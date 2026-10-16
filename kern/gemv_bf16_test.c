@@ -97,8 +97,9 @@ int main(int argc, char **argv) {
 		params[s][0] = &sW[s]; params[s][1] = &sX[s]; params[s][2] = &dY; params[s][3] = &urows; params[s][4] = &dD;
 	}
 	/* the accumulating slices start from y = 0; a single slice overwrites */
-	if (slices == 1) CK(cuMemsetD32(dY, 0x7fc00000u, rows)); else CK(cuMemsetD32(dY, 0, rows));
-	for (int s = 0; s < slices; s++) CK(cuLaunchKernel(fn, grid, 1, 1, 256, 1, 1, 0, 0, params[s], NULL));
+	CK(cuMemsetD32(dY, 0x7fc00000u, rows));
+	/* the fused kernel (GEMV_SLICES=4) runs all four slices in one launch */
+	CK(cuLaunchKernel(fn, grid, 1, 1, 256, 1, 1, 0, 0, params[0], NULL));
 	CK(cuCtxSynchronize());
 	CK(cuMemcpyDtoH(y, dY, sizeof(float) * rows));
 	int bad = 0;
@@ -114,7 +115,7 @@ int main(int argc, char **argv) {
 		CK(cuCtxSynchronize());
 		double ta = now();
 		for (int i = 0; i < iters; i++)
-			for (int s = 0; s < slices; s++) CK(cuLaunchKernel(fn, grid, 1, 1, 256, 1, 1, 0, 0, params[s], NULL));
+			CK(cuLaunchKernel(fn, grid, 1, 1, 256, 1, 1, 0, 0, params[0], NULL));
 		CK(cuCtxSynchronize());
 		double tb = now();
 		double per = (tb - ta) / iters;

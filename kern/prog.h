@@ -37,25 +37,29 @@ int gemv_op_is_q2(int op);
 int gemv_op_is_b32(int op);
 
 /* ---- a Gated DeltaNet block (one die, every row) ---- */
+/* the holder's merged rows: hc_*_dj = down ++ inject (324 x 10240), ffn_gate_inp_x =
+ * router ++ shared-expert gate (513 x 2560), ssm_ab = alpha ++ beta (96 x 2560) with
+ * ssm_ab_bias = dt_bias ++ zeros */
 typedef struct {
-	CUdeviceptr hc_attn_norm, hc_attn_down, hc_attn_up, hc_attn_inject;
-	CUdeviceptr hc_ffn_norm, hc_ffn_down, hc_ffn_up, hc_ffn_inject;
-	CUdeviceptr attn_qkv, attn_gate, ssm_alpha, ssm_beta, ssm_dt_bias, ssm_conv1d, ssm_a, ssm_norm, ssm_out;
+	CUdeviceptr hc_attn_norm, hc_attn_dj, hc_attn_up;
+	CUdeviceptr hc_ffn_norm, hc_ffn_dj, hc_ffn_up;
+	CUdeviceptr attn_qkv, attn_gate, ssm_ab, ssm_ab_bias, ssm_conv1d, ssm_a, ssm_norm, ssm_out;
 	uint32_t attn_qkv_type, attn_gate_type, ssm_out_type;
-	CUdeviceptr ffn_gate_inp, ffn_gate_inp_shexp, ffn_gate_exps, ffn_up_exps, ffn_down_exps;
+	CUdeviceptr ffn_gate_inp_x, ffn_gate_exps, ffn_up_exps, ffn_down_exps;
 	CUdeviceptr ffn_gate_shexp, ffn_up_shexp, ffn_down_shexp;
 	uint32_t ffn_gate_shexp_type, ffn_up_shexp_type, ffn_down_shexp_type;
 } dn_weights_t;
 
-/* activation / state buffers (device); sizes in floats unless noted */
+/* activation / state buffers (device); sizes in floats unless noted. inj = down + 320,
+ * b = a + 48, sh = r + 512 (merged GEMV outputs) */
 typedef struct {
 	CUdeviceptr S;                    /* 10240 in/out stream */
-	CUdeviceptr xh, down, inj, t, up, z;   /* 10240, 320, 4, 320, 10240, 2560 */
+	CUdeviceptr xh, down, t, up, z;   /* 10240, 324 (down ++ inj), 320, 10240, 2560 */
 	CUdeviceptr zq, zs32, zs16, zas;  /* int16 2560, i32 80, i32 160, f32 80 */
-	CUdeviceptr qkv, gate, a, b, u, o, on;  /* 10240, 6144, 48, 48, 10240, 6144, 6144 */
+	CUdeviceptr qkv, gate, a, u, o, on;  /* 10240, 6144, 96 (a ++ b), 10240, 6144, 6144 */
 	CUdeviceptr oq, os32, os16, oas;  /* int16 6144, 192, 384, 192 */
 	CUdeviceptr y;                    /* 2560 */
-	CUdeviceptr r, sh, idx, w, s;     /* 512, 1, u32 10, f32 10, f32 1 */
+	CUdeviceptr r, idx, w, s;         /* 513 (r ++ sh), u32 10, f32 10, f32 1 */
 	CUdeviceptr g, gu;                /* 11 x 640 each */
 	CUdeviceptr hq, hs32, hs16, has;  /* int16 11x640, i32 11x20, i32 11x40, f32 11x20 */
 	CUdeviceptr out;                  /* 2560 */

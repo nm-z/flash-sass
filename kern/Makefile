@@ -33,7 +33,7 @@ gemv_bf16_k320.cubin: gemv_bf16.sass skel_bf16.cubin
 # K=2560 column slice of a K=10240 row, accumulating into y (hc_*_down, hc_*_inject)
 gemv_bf16_hc.cubin: gemv_bf16.sass skel_bf16.cubin
 	cp skel_bf16.cubin $@
-	GEMV_K=2560 GEMV_ROWSTRIDE=20480 GEMV_ACC=1 $(MAXAS) -i gemv_bf16.sass $@
+	GEMV_K=2560 GEMV_SLICES=4 $(MAXAS) -i gemv_bf16.sass $@
 
 skel_q4_k.cubin: gemv_q4_k.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ $<

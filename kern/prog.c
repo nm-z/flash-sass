@@ -96,16 +96,12 @@ static void ph_gemv_any(prog_t *P, uint32_t type, int K, CUdeviceptr W, CUdevice
 	else ph_gemvk(P, op, W, Xq, S32, Y, rows, AS);
 }
 
-/* hyper-connection read: xh = per-lane RMS(S) * norm; down (320) and inject (4) as
- * four K=2560 slices of the 10240-wide BF16 rows; t = SiLU(0.25 down); up = W_up t;
+/* hyper-connection read: xh = per-lane RMS(S) * norm; down ++ inject (324 rows of
+ * K=10240 BF16, the fused four-slice GEMV); t = SiLU(0.25 down); up = W_up t;
  * z = mix(up, xh); z quantised */
-static void ph_hc_read(prog_t *P, CUdeviceptr S, CUdeviceptr norm, CUdeviceptr down, CUdeviceptr up, CUdeviceptr inject, const dn_bufs_t *b, float eps) {
+static void ph_hc_read(prog_t *P, CUdeviceptr S, CUdeviceptr norm, CUdeviceptr dj, CUdeviceptr up, const dn_bufs_t *b, float eps) {
 	ph_rms(P, OP_RMS2560, S, norm, b->xh, eps, 4);
-	for (int s = 0; s < 4; s++) {
-		int op = s ? OP_BF16HC : OP_BF16HC0;
-		ph_bf16(P, op, down + 5120 * s, b->xh + 2560 * 4 * s, b->down, 320, 0);
-		ph_bf16(P, op, inject + 5120 * s, b->xh + 2560 * 4 * s, b->inj, 4, 0);
-	}
+	ph_bf16(P, OP_BF16HC, dj, b->xh, b->down, 324, 0);
 	ph_hc(P, OP_HCSILU, b->down, b->t, 0, 320, 2);
 	ph_bf16(P, OP_BF16K320, up, b->t, b->up, 10240, 0);
 	ph_hc(P, OP_HCMIX, b->up, b->xh, b->z, 2560, 10);
@@ -113,23 +109,22 @@ static void ph_hc_read(prog_t *P, CUdeviceptr S, CUdeviceptr norm, CUdeviceptr d
 }
 
 void prog_deltanet_block(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps) {
+	CUdeviceptr inj = b->down + 320 * 4, bb = b->a + 48 * 4, sh = b->r + 512 * 4;
 	/* ---- attention-side hyper-block: Gated DeltaNet ---- */
-	ph_hc_read(P, b->S, w->hc_attn_norm, w->hc_attn_down, w->hc_attn_up, w->hc_attn_inject, b, eps);
+	ph_hc_read(P, b->S, w->hc_attn_norm, w->hc_attn_dj, w->hc_attn_up, b, eps);
 	ph_gemv_any(P, w->attn_qkv_type, 2560, w->attn_qkv, b->zq, b->zs32, b->qkv, 10240, b->zas, 0, 0);
 	ph_gemv_any(P, w->attn_gate_type, 2560, w->attn_gate, b->zq, b->zs32, b->gate, 6144, b->zas, 0, 0);
-	ph_bf16(P, OP_BF16BIAS, w->ssm_alpha, b->z, b->a, 48, w->ssm_dt_bias);
-	ph_bf16(P, OP_BF16K2560, w->ssm_beta, b->z, b->b, 48, 0);
+	ph_bf16(P, OP_BF16BIAS, w->ssm_ab, b->z, b->a, 96, w->ssm_ab_bias);
 	ph_conv1d(P, b->qkv, b->conv_state, w->ssm_conv1d, b->u, t, 10240);
-	ph_dnstep(P, b->dn_state, b->u, b->u + 2048 * 4, b->u + 4096 * 4, b->a, b->b, w->ssm_a, b->o, eps);
+	ph_dnstep(P, b->dn_state, b->u, b->u + 2048 * 4, b->u + 4096 * 4, b->a, bb, w->ssm_a, b->o, eps);
 	ph_dnnorm(P, b->o, w->ssm_norm, b->gate, b->on, eps);
 	ph_actq(P, OP_ACTQ6144, b->on, b->oq, b->os32, b->os16, b->oas, 6144, 1);
 	ph_gemv_any(P, w->ssm_out_type, 6144, w->ssm_out, b->oq, b->os32, b->y, 2560, b->oas, 0, 0);
-	ph_hc(P, OP_HCWRITE, b->inj, b->y, b->S, 2560, 10);
+	ph_hc(P, OP_HCWRITE, inj, b->y, b->S, 2560, 10);
 	/* ---- FFN hyper-block: MoE ---- */
-	ph_hc_read(P, b->S, w->hc_ffn_norm, w->hc_ffn_down, w->hc_ffn_up, w->hc_ffn_inject, b, eps);
-	ph_bf16(P, OP_BF16K2560, w->ffn_gate_inp, b->z, b->r, 512, 0);
-	ph_bf16(P, OP_BF16K2560, w->ffn_gate_inp_shexp, b->z, b->sh, 1, 0);
-	ph_router(P, b->r, b->sh, b->idx, b->w, b->s);
+	ph_hc_read(P, b->S, w->hc_ffn_norm, w->hc_ffn_dj, w->hc_ffn_up, b, eps);
+	ph_bf16(P, OP_BF16K2560, w->ffn_gate_inp_x, b->z, b->r, 513, 0);
+	ph_router(P, b->r, sh, b->idx, b->w, b->s);
 	ph_q2(P, OP_Q2MOEG, w->ffn_gate_exps, b->zq, b->zs32, b->g, 640, b->idx, b->zas, 0);
 	ph_q2(P, OP_Q2MOEG, w->ffn_up_exps, b->zq, b->zs32, b->gu, 640, b->idx, b->zas, 0);
 	ph_gemv_any(P, w->ffn_gate_shexp_type, 2560, w->ffn_gate_shexp, b->zq, b->zs32, b->g + 6400 * 4, 640, b->zas, 0, 0);
@@ -137,5 +132,5 @@ void prog_deltanet_block(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, u
 	ph_ffnact(P, b->g, b->gu, b->hq, b->hs32, b->hs16, b->has, 640, 11);
 	ph_q2(P, OP_Q2MOED, w->ffn_down_exps, b->hq, b->hs32, b->out, 2560, b->idx, b->has, b->w);
 	ph_gemv_any(P, w->ffn_down_shexp_type, 640, w->ffn_down_shexp, b->hq + 10 * 640 * 2, b->hs32 + 10 * 20 * 4, b->out, 2560, b->has + 10 * 20 * 4, 1, b->s);
-	ph_hc(P, OP_HCWRITE, b->inj, b->out, b->S, 2560, 10);
+	ph_hc(P, OP_HCWRITE, inj, b->out, b->S, 2560, 10);
 }

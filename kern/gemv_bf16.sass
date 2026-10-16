@@ -2,23 +2,28 @@
 #
 # y[r] = sum_k W[r][k] * x[k] for bf16 rows W (row stride 2K bytes) and fp32 x.
 # GEMV_K=2560 (default) or GEMV_K=320 at assembly time. GEMV_ROWSTRIDE overrides
-# the row stride and GEMV_ACC=1 makes the store y += partial: the K=10240
-# hyper-connection matrices (hc_*_down, hc_*_inject) run as four K=2560 column
-# slices in order, y = (((0 + p0) + p1) + p2) + p3.
+# the row stride and GEMV_ACC=1 makes the store y += partial. GEMV_SLICES=N runs
+# N consecutive K-wide column slices of a (N K)-wide row inside the kernel,
+# y = (((p0 + p1) + p2) + p3) with each p_s the full K-slice reduction, exactly
+# the numbers four separate slice launches produce: the K=10240 hyper-connection
+# matrices (hc_*_down ++ hc_*_inject) run as one phase. With slices the
+# activations are reloaded per slice and the next slice's loads are issued
+# while the current slice's FFMA chain consumes the registers.
 #
 # L lanes per row (32 for K=2560, 8 for K=320); lane l owns the 8-element chunks
 # at 8 (l + L j), j < C = K/(8L): one LDG.128 of weights and two LDG.128 of
-# activations per chunk. The activations (8C fp32) stay in registers for the whole
-# kernel. bf16 -> fp32 is a shift (low element) or a mask (high element); the
-# products go through one FFMA chain per lane in element order, then a SHFL
-# butterfly over the L lanes. The C reference (gemv_bf16_ref) mirrors this order.
+# activations per chunk. Without slices the activations (8C fp32) stay in
+# registers for the whole kernel. bf16 -> fp32 is a shift (low element) or a mask
+# (high element); the products go through one FFMA chain per lane in element
+# order, then a SHFL butterfly over the L lanes. The C reference (gemv_bf16_ref)
+# mirrors this order.
 #
 # Scheduling (measured rules, see SPEC): fixed-latency 6; variable-latency ops set a
 # barrier and need stall >= 2 before a dependent wait; predicates are computed at
 # the loop top, ~18+ cycles before any consumer.
-# Barriers: 1 = row loads, 2 = address/store reads and prologue loads, 5 = SHFL, 6 = S2R.
+# Barriers: 1 = row loads, 2 = address/store reads and activation loads, 5 = SHFL, 6 = S2R.
 #
-# Params: 0:0x140:8 W   1:0x148:8 X   2:0x150:8 Y   3:0x158:4 rows   4:0x160:8 dbg (unused)
+# Params: 0:0x140:8 W   1:0x148:8 X   2:0x150:8 Y   3:0x158:4 rows   4:0x160:8 dbg (bias)
 
 <CONSTANT_MAPPING>
     gridDimX   : c[0x0][0x14]
@@ -36,6 +41,7 @@
 <CODE>
     # register mapping depends on K: act<00-..> and w<00-..> sizes
     my $K = $ENV{GEMV_K} || 2560;
+    my $NS = $ENV{GEMV_SLICES} || 1;
     my $L = $K >= 2560 ? 32 : 8;
     my $C = $K / (8 * $L);
     my $na = 8 * $C;         # activation registers
@@ -55,12 +61,15 @@
     $o .= sprintf "    %d : stepw\n", $tmp + 9;
     $o .= sprintf "    %d : yold\n", $tmp + 10;
     $o .= sprintf "    %d : bias\n", $tmp + 11;
-    my $p = $tmp + 12; $p += $p & 1;
+    $o .= sprintf "    %d : ysum\n", $tmp + 12;
+    my $p = $tmp + 13; $p += $p & 1;
     $o .= sprintf "    %d,%d : wp<0-1>\n", $p, $p + 1;
     $o .= sprintf "    %d,%d : yp<0-1>\n", $p + 2, $p + 3;
     $o .= sprintf "    %d,%d : bp<0-1>\n", $p + 4, $p + 5;
+    # the activation pointer lives for the whole kernel with slices, else only in the prologue
+    if ($NS > 1) { $o .= sprintf "    %d,%d : xp<0-1>\n", $p + 6, $p + 7; }
+    else         { $o .= sprintf "    %d,%d : xp<0-1>\n", $wbase, $wbase + 1; }
     # prologue temporaries alias the weight registers
-    $o .= sprintf "    %d,%d : xp<0-1>\n", $wbase, $wbase + 1;
     $o .= sprintf "    %d : lane\n    %d : grp\n    %d : tid\n    %d : bid\n    %d : off\n    %d : t0\n    %d : t1\n",
         $wbase + 2, $wbase + 3, $wbase + 4, $wbase + 5, $wbase + 6, $wbase + 7, $wbase + 8;
     $o .= "</REGISTER_MAPPING>\n";
@@ -69,15 +78,17 @@
 
 <CODE>
     my $K = $ENV{GEMV_K} || 2560;
+    my $NS = $ENV{GEMV_SLICES} || 1;
     my $L = $K >= 2560 ? 32 : 8;
     my $C = $K / (8 * $L);
     my $R = 256 / $L;                     # rows per CTA iteration
-    my $S = $ENV{GEMV_ROWSTRIDE} || 2 * $K;   # row stride bytes (20480 for a K=2560 slice of a K=10240 row)
+    my $S = $ENV{GEMV_ROWSTRIDE} || 2 * $K * $NS;   # row stride bytes
     my $acc = $ENV{GEMV_ACC} ? 1 : 0;     # y += partial instead of y = partial
     my $bias = $ENV{GEMV_BIAS} ? 1 : 0;   # y = partial + bias[row], bias at the dbg pointer (ssm_dt.bias on the alpha logits)
     my $lgL = int(log($L)/log(2) + 0.5);
     my $lgR = int(log($R)/log(2) + 0.5);
     my $wrows = 32 / $L;
+    my $res = $NS > 1 ? 'ysum' : 'accf';  # the row result register
     my $mulc = sub {
         my ($d, $r, $c) = @_;
         my @bits = grep { $c & (1 << $_) } 0..31;
@@ -85,6 +96,16 @@
         my $s = sprintf "--:-:-:-:6      SHL %s, %s, 0x%x;\n", $d, $r, $first;
         $s .= sprintf "--:-:-:-:6      ISCADD %s, %s, %s, 0x%x;\n", $d, $r, $d, $_ for @bits;
         return $s;
+    };
+    # activation chunk loads of slice s (two LDG.128 per chunk)
+    my $xload = sub {
+        my ($s, $last) = @_;
+        my $o = '';
+        for my $j (0..$C-1) {
+            $o .= sprintf "--:-:2:-:1      LDG.E.CI.128 act%02d, [xp+0x%x];\n", 8*$j, 32*$L*$j + 4*$K*$s;
+            $o .= sprintf "--:-:2:-:%s      LDG.E.CI.128 act%02d, [xp+0x%x];\n", ($last && $j == $C-1) ? '2' : '1', 8*$j + 4, 32*$L*$j + 16 + 4*$K*$s;
+        }
+        return $o;
     };
     my $o = '';
     $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
@@ -96,6 +117,8 @@
     $o .= "--:-:-:-:1      ISETP.EQ.U32.AND P0, PT, lane, RZ, PT;\n";
     $o .= sprintf "--:-:-:-:6      ISCADD row, bid, grp, 0x%x;\n", $lgR;
     $o .= $mulc->('stepw', 'rowstep', $S);
+    # P3: this row exists (rows beyond param_rows load nothing: the matrix may end the allocation)
+    $o .= "--:-:-:-:6      ISETP.LT.U32.AND P3, PT, row, param_rows, PT;\n";
     $o .= sprintf "--:-:-:-:6      LOP32I.AND rowpair, row, 0x%08x;\n", (~($wrows - 1)) & 0xffffffff;
     $o .= $mulc->('off', 'row', $S);
     # wp = W + off + 16 lane
@@ -110,55 +133,79 @@
         $o .= "--:-:-:-:6      IADD bp0.CC, t1, param_D0;\n";
         $o .= "--:-:-:-:6      IADD.X bp1, RZ, param_D1;\n";
     }
-    # activations: xp = X + 32 lane; chunk j at +32 L j (two 16 B loads)
+    # activations: xp = X + 32 lane; chunk j at +32 L j (two 16 B loads); slice s at +4 K s
     $o .= "--:-:-:-:6      SHL t1, lane, 0x5;\n";
     $o .= "--:-:-:-:6      IADD xp0.CC, t1, param_X0;\n";
     $o .= "--:-:-:-:6      IADD.X xp1, RZ, param_X1;\n";
-    for my $j (0..$C-1) {
-        $o .= sprintf "--:-:2:-:1      LDG.E.CI.128 act%02d, [xp+0x%x];\n", 8*$j, 32*$L*$j;
-        $o .= sprintf "--:-:2:-:%s      LDG.E.CI.128 act%02d, [xp+0x%x];\n", $j == $C-1 ? '2' : '1', 8*$j + 4, 32*$L*$j + 16;
-    }
+    $o .= $xload->(0, 1) if $NS == 1;     # resident for the whole kernel
     $o .= "\nLOOP:\n";
+    $o .= $xload->(0, 0) if $NS > 1;      # slice 0 of this row
     for my $j (0..$C-1) {
-        $o .= sprintf "--:2:1:-:%s      LDG.E.CI.128 w%02d, [wp+0x%x];\n", ($j == $C-1 && !$acc) ? '2' : '1', 4*$j, 16*$L*$j;
+        $o .= sprintf "--:2:1:-:%s  \@P3 LDG.E.CI.128 w%02d, [wp+0x%x];\n", ($j == $C-1 && !$acc && !$bias) ? '2' : '1', 4*$j, 16*$L*$j;
     }
-    $o .= "--:2:1:-:2      LDG.E yold, [yp];\n" if $acc;
-    $o .= "--:2:1:-:2      LDG.E bias, [bp];\n" if $bias;
+    $o .= "--:2:1:-:2  \@P3 LDG.E yold, [yp];\n" if $acc;
+    $o .= "--:2:1:-:2  \@P3 LDG.E bias, [bp];\n" if $bias;
     # predicates for this row, far from their consumers (see SPEC: ~18 cycles)
     $o .= "--:-:-:-:1      ISETP.LT.U32.AND P2, PT, row, param_rows, P0;\n";
     $o .= "--:-:-:-:1      IADD rowpair, rowpair, rowstep;\n";
     $o .= "--:-:-:-:6      MOV accf, RZ;\n";
     $o .= "--:-:-:-:2      ISETP.LT.U32.AND P1, PT, rowpair, param_rows, PT;\n";
-    # software-pipelined conversion: word k's halves are ready two FFMAs before use
     my $nwords = 4 * $C;
-    $o .= "03:-:-:-:1      SHL a0, w00, 0x10;\n";
-    $o .= "--:-:-:-:6      LOP32I.AND b0, w00, 0xffff0000;\n";
-    for my $k (0..$nwords-1) {
-        my $cur = $k & 1;
-        my $nxt = 1 - $cur;
-        my $x0 = sprintf "act%02d", 2*$k;
-        my $x1 = sprintf "act%02d", 2*$k + 1;
-        if ($k + 1 < $nwords) {
-            my $wn = sprintf "w%02d", $k + 1;
-            $o .= sprintf "--:-:-:-:1      FFMA accf, a%d, %s, accf;\n", $cur, $x0;
-            $o .= sprintf "--:-:-:-:1      SHL a%d, %s, 0x10;\n", $nxt, $wn;
-            $o .= sprintf "--:-:-:-:4      LOP32I.AND b%d, %s, 0xffff0000;\n", $nxt, $wn;
-            $o .= sprintf "--:-:-:-:6      FFMA accf, b%d, %s, accf;\n", $cur, $x1;
-        } else {
-            $o .= sprintf "--:-:-:-:6      FFMA accf, a%d, %s, accf;\n", $cur, $x0;
-            $o .= sprintf "--:-:-:-:6      FFMA accf, b%d, %s, accf;\n", $cur, $x1;
+    for my $s (0..$NS-1) {
+        my $pre = $s + 1 < $NS;           # issue slice s+1's loads inside this chain
+        $o .= "--:-:-:-:6      MOV accf, RZ;\n" if $s;
+        # software-pipelined conversion: word k's halves are ready two FFMAs before use
+        $o .= "03:-:-:-:1      SHL a0, w00, 0x10;\n";
+        $o .= "--:-:-:-:6      LOP32I.AND b0, w00, 0xffff0000;\n";
+        for my $k (0..$nwords-1) {
+            my $cur = $k & 1;
+            my $nxt = 1 - $cur;
+            my $x0 = sprintf "act%02d", 2*$k;
+            my $x1 = sprintf "act%02d", 2*$k + 1;
+            # act(4m .. 4m+3) are dead after word k = 2m+1: reload them for the next slice
+            my $xpre = $pre && (($k & 1) == 1);
+            my $m = ($k - 1) >> 1;
+            my $xldg = $xpre ? sprintf("--:-:2:-:1      LDG.E.CI.128 act%02d, [xp+0x%x];\n", 4*$m, 32*$L*($m >> 1) + 16*($m & 1) + 4*$K*($s+1)) : '';
+            if ($k + 1 < $nwords) {
+                my $wn = sprintf "w%02d", $k + 1;
+                # w(4j' .. 4j'+3) are dead once word k+1 = 4j'+3 is converted: reload them
+                my $wpre = $pre && ((($k + 1) & 3) == 3);
+                my $jq = ($k + 1) >> 2;
+                $o .= sprintf "--:-:-:-:1      FFMA accf, a%d, %s, accf;\n", $cur, $x0;
+                $o .= sprintf "--:-:-:-:1      SHL a%d, %s, 0x10;\n", $nxt, $wn;
+                if ($wpre) {
+                    $o .= sprintf "--:-:-:-:3      LOP32I.AND b%d, %s, 0xffff0000;\n", $nxt, $wn;
+                    $o .= sprintf "--:2:1:-:1  \@P3 LDG.E.CI.128 w%02d, [wp+0x%x];\n", 4*$jq, 16*$L*$jq + 2*$K*($s+1);
+                } else {
+                    $o .= sprintf "--:-:-:-:4      LOP32I.AND b%d, %s, 0xffff0000;\n", $nxt, $wn;
+                }
+                if ($xpre) {
+                    $o .= sprintf "--:-:-:-:5      FFMA accf, b%d, %s, accf;\n", $cur, $x1;
+                    $o .= $xldg;
+                } else {
+                    $o .= sprintf "--:-:-:-:6      FFMA accf, b%d, %s, accf;\n", $cur, $x1;
+                }
+            } else {
+                $o .= sprintf "--:-:-:-:6      FFMA accf, a%d, %s, accf;\n", $cur, $x0;
+                $o .= sprintf "--:-:-:-:6      FFMA accf, b%d, %s, accf;\n", $cur, $x1;
+                $o .= $xldg;
+            }
+        }
+        for (my $x = $L / 2; $x >= 1; $x >>= 1) {
+            $o .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x%x, 0x1f;\n", $x;
+            $o .= "10:-:-:-:6      FADD accf, accf, t;\n";
+        }
+        if ($NS > 1) {
+            $o .= $s ? "--:-:-:-:6      FADD ysum, ysum, accf;\n" : "--:-:-:-:6      MOV ysum, accf;\n";
         }
     }
-    for (my $x = $L / 2; $x >= 1; $x >>= 1) {
-        $o .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x%x, 0x1f;\n", $x;
-        $o .= "10:-:-:-:6      FADD accf, accf, t;\n";
-    }
-    $o .= "--:-:-:-:6      FADD accf, yold, accf;\n" if $acc;
-    $o .= "--:-:-:-:6      FADD accf, accf, bias;\n" if $bias;
-    $o .= "--:2:-:-:1  \@P2 STG.E [yp], accf;\n";
+    $o .= "--:-:-:-:6      FADD $res, yold, $res;\n" if $acc;
+    $o .= "--:-:-:-:6      FADD $res, $res, bias;\n" if $bias;
+    $o .= "--:2:-:-:1  \@P2 STG.E [yp], $res;\n";
     $o .= "--:-:-:-:1      IADD row, row, rowstep;\n";
     $o .= "02:-:-:-:6      IADD wp0.CC, wp0, stepw;\n";
     $o .= "--:-:-:-:6      IADD.X wp1, wp1, RZ;\n";
+    $o .= "--:-:-:-:6      ISETP.LT.U32.AND P3, PT, row, param_rows, PT;\n";   # next row (row is 12 cycles old)
     $o .= "--:-:-:-:6      SHL t, rowstep, 0x2;\n";
     $o .= "--:-:-:-:6      IADD yp0.CC, yp0, t;\n";
     $o .= "--:-:-:-:6      IADD.X yp1, yp1, RZ;\n";
