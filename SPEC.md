@@ -945,6 +945,17 @@ grid barrier after a phase whose successor is independent (the CTA only syncs):
 qkv / gate / αβ GEMVs of z, the four expert and shared gate / up GEMVs, attention
 q / k / v; `hcwsum` (hcops write with `HC_SUMN`) adds the dies' MoE partials in
 sumn's order inside the stream write, so `sumn` is gone (48 phases).
+`bf16hcup` (gemv_bf16 with `GEMV_HCUP=1`, K = 320) is the whole hc read after the
+down exchange in one phase: every CTA computes t = SiLU(0.25 DOWN) into shared
+memory (CTA 0 also writes t, inject values included, for hcwrite and the
+checks), rows are taken in the order 4 c + l over weight rows l·cols + c so one
+warp holds the four lane rows of column c (lanes 0, 8, 16, 24 after the
+butterfly), every lane computes sigmoid(u), the warp gathers g_l and xh[l][c]
+with `SHFL.IDX` and lane 0 forms hcmix's z_c = 0.25 (((g0 x0 + g1 x1) + g2 x2)
++ g3 x3) and stores it into every die's slot: hcsilu and hcmixx are gone (2
+phases per hc read, 194 per token). `PROG_NOHCUP=1` builds the old sequence.
+A dollar-hash (last index) in an op generator is eaten by die.pl's comment
+stripper (everything after `#` on a line goes) — write `@n - 1`.
 **Flag-array grid barrier:** no atomics and no last-arriver release: thread 0
 of every CTA writes the generation it arrives at (`GEN`, shared memory
 0xbf78, seeded from `ctl[1]`, +1 per phase, mirrored back by CTA 0) to
