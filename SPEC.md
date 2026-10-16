@@ -1008,6 +1008,16 @@ full-model holders run with `SPLIT_SHARES=86,103,103,103,103,102 ATTN_DIE=1`
 slower per block" of board 4. `nvidia-smi -ac 2505,1177 -i 6` (and 7) pins
 them to the maximum; the token time did not move (45–46 ms): the x2 gen2
 link, not the SM clock, is what the other dies wait for.
+**Die 2 recovered (2026-10-16).** `nvidia-smi -r -i 2` kept refusing with "in use
+by another process" even with no CUDA process, no `/dev/nvidia*` holder and
+persistence mode off: the holder was **`nvidia_modeset`** (loaded under the
+unused `nvidia_drm`, which takes a reference on every GPU). `rmmod nvidia_drm
+nvidia_modeset` → the reset succeeds → `modprobe` both back, `nvidia-smi
+-pm 1` restores persistence. The pending retirement is now active (20 DBE
+pages blacklisted, volatile counts 0) and `die_test` passes on it. Recipe for
+the next Xid 48: stop every CUDA process on the box, `rmmod nvidia_drm
+nvidia_modeset`, `nvidia-smi -r -i <die>`, reload, re-enable persistence.
+
 **Hardware notes (archy, 2026-10-16).** Root ports: board 1 (dies 0, 1) is
 PCIe 3 ×8, boards 2 and 3 ×16, board 4 (dies 6, 7) hangs off the PCH at
 5 GT/s ×2. Boards 2 (dies 2, 3) run with ECC *enabled*, the others disabled.
