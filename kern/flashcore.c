@@ -137,7 +137,7 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "\rPLE table: %.2f GB pinned in %.0f s\n", PLE_BYTES / 1e9, now() - tp0);
 	}
 	fprintf(stderr, "flashcore: %d dies, weights and PLE table resident after %.0f s\n", core.nd, now() - ts0);
-	if (engine_load(libfile)) return 1;
+	if (engine_load(libfile)) fprintf(stderr, "flashcore: starting without an engine; \"reload <path>\" loads one (the weights and the table stay resident)\n");
 	printf("ready\n"); fflush(stdout);
 
 	const char *sock = getenv("FLASH_SOCK");
@@ -154,7 +154,20 @@ int main(int argc, char **argv) {
 			int c = accept(ls, NULL, NULL); if (c < 0) { perror("accept"); continue; }
 			in = fdopen(c, "r"); out = fdopen(dup(c), "w");
 		}
-		int q = e_session(in, out);
+		int q;
+		if (lib) q = e_session(in, out);
+		else {   /* no engine: only reload and quit are understood */
+			char buf[1024]; q = 0;
+			while (fgets(buf, sizeof buf, in)) {
+				if (!strncmp(buf, "quit", 4)) { q = 1; break; }
+				if (!strncmp(buf, "reload", 6)) {
+					char path[1000] = ""; sscanf(buf + 6, "%999s", path);
+					int rc = engine_load(*path ? path : libfile);
+					fprintf(out, rc ? "error: could not load the engine\n" : "ok: engine loaded\n"); fflush(out);
+					if (!rc) break;
+				} else { fprintf(out, "error: no engine loaded; send \"reload <path>\"\n"); fflush(out); }
+			}
+		}
 		if (q == 3) {   /* the engine hit a CUDA error: the contexts are unusable, the table (anchor) is not */
 			fprintf(stderr, "flashcore: device fault; rebuilding the die contexts and the engine\n");
 			char keep[1024]; snprintf(keep, sizeof keep, "%s", libpath);

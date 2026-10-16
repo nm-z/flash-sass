@@ -151,11 +151,31 @@ static void chat(int fd, const char *body, size_t bn) {
 		pthread_mutex_unlock(&ENGINE); free(ids); free(prompt); arena_free(a);
 		error(fd, 400, np < 1 ? "empty prompt" : "the prompt is longer than the engine's context"); return;
 	}
-	long n_new = max_tokens < POSITIONS - np ? max_tokens : POSITIONS - np;
+	/* the engine returns n_new + 1 tokens (the one predicted at the last prompt position, then n_new more) */
+	long n_new = max_tokens - 1 < POSITIONS - np ? max_tokens - 1 : POSITIONS - np;
+	/* the prefix cache: the next turn of this conversation will start with this prompt up to the assistant turn it appends, so
+	   render the conversation plus an assistant message and keep the tokens the two share (at least one prompt token must run) */
+	int snap = 0;
+	{
+		jv *l2 = jv_new(a, J_LIST), *am = jv_new(a, J_DICT);
+		for (int i = 0; i < msgs->l.n; i++) jv_push(a, l2, msgs->l.a[i]);
+		jv_set(a, am, "role", 4, jv_str(a, "assistant", 9)); jv_set(a, am, "content", 7, jv_str(a, "x", 1)); jv_push(a, l2, am);
+		jv_set(a, vars, "messages", 8, l2);
+		size_t pn2; char *p2 = jinja_render(TPL, a, vars, &pn2, err, sizeof err);
+		jv_set(a, vars, "messages", 8, msgs);
+		if (p2) {
+			uint32_t *ids2 = malloc(4 * (pn2 + 16)); int n2 = tok_encode(V, p2, pn2, 1, ids2, (int)pn2 + 16);
+			int l = 0; while (l < n2 && l < np && ids2[l] == ids[l]) l++;
+			snap = l < np - 1 ? l : np - 1;
+			if (snap < 16) snap = 0;
+			free(ids2); free(p2);
+		}
+	}
 	FILE *out = NULL, *in = engine_open(&out);
 	if (!in) { pthread_mutex_unlock(&ENGINE); free(ids); free(prompt); arena_free(a); error(fd, 500, "the engine is not running"); return; }
 	fprintf(out, "stop %u %u\n", ID_END, tok_eos(V) == ID_END ? 0xffffffffu : tok_eos(V));
 	fprintf(out, "sample %llu %.6g %ld %.6g\n", seed, temp, topk <= 0 ? 32 : topk, topp);
+	if (snap) fprintf(out, "snap %d\n", snap);
 	fprintf(out, "chat %ld", n_new); for (int i = 0; i < np; i++) fprintf(out, " %u", ids[i]); fputc('\n', out); fflush(out);
 	free(ids);
 
@@ -169,11 +189,11 @@ static void chat(int fd, const char *body, size_t bn) {
 		if (!g.gone && chunk(fd, b.s, b.n)) g.gone = 1;
 		sb_free(&b);
 	}
-	char line[256]; int ngen = 0, ended = 0; double run_ms = 0, first_ms = 0;
+	char line[256]; int ngen = 0, ended = 0, resumed = 0, snapped = 0; double run_ms = 0, first_ms = 0;
 	while (fgets(line, sizeof line, in)) {
 		unsigned id; int e, npm; double r, f;
 		if (sscanf(line, "tok %u", &id) == 1) { on_token(&g, id); if (g.gone) break; }
-		else if (sscanf(line, "done %d %d %d %lf %lf", &ngen, &e, &npm, &r, &f) == 5) { ended = e; run_ms = r; first_ms = f; break; }
+		else if (sscanf(line, "done %d %d %d %lf %lf %d %d", &ngen, &e, &npm, &r, &f, &resumed, &snapped) >= 5) { ended = e; run_ms = r; first_ms = f; break; }
 		else if (!strncmp(line, "error", 5)) { fprintf(stderr, "flashd: engine: %s", line); break; }
 	}
 	fclose(in); fclose(out);
@@ -181,11 +201,11 @@ static void chat(int fd, const char *body, size_t bn) {
 	free(prompt);
 
 	if (g.gone) fprintf(stderr, "flashd: client left after %d bytes of text; the engine is told to stop\n", (int)(g.content.n + g.reasoning.n));
-	double pp = first_ms > 0 ? np / (first_ms / 1e3) : 0, dec_ms = run_ms - first_ms, dec = (ngen > 1 && dec_ms > 0) ? (ngen - 1) / (dec_ms / 1e3) : 0;
+	double pp = first_ms > 0 ? (np - resumed) / (first_ms / 1e3) : 0, dec_ms = run_ms - first_ms, dec = (ngen > 1 && dec_ms > 0) ? (ngen - 1) / (dec_ms / 1e3) : 0;
 	sbuf t = {0};
-	sb_printf(&t, "{\"prompt_n\":%d,\"prompt_ms\":%.1f,\"prompt_per_second\":%.2f,\"predicted_n\":%d,\"predicted_ms\":%.1f,\"predicted_per_second\":%.2f}", np, first_ms, pp, ngen, dec_ms > 0 ? dec_ms : 0, dec);
+	sb_printf(&t, "{\"prompt_n\":%d,\"cache_n\":%d,\"prompt_ms\":%.1f,\"prompt_per_second\":%.2f,\"predicted_n\":%d,\"predicted_ms\":%.1f,\"predicted_per_second\":%.2f}", np, resumed, first_ms, pp, ngen, dec_ms > 0 ? dec_ms : 0, dec);
 	const char *fin = ended ? "stop" : "length";
-	fprintf(stderr, "flashd: %d prompt + %d generated tokens, %.1f ms (first %.1f), %s, pp %.1f decode %.1f tok/s\n", np, ngen, run_ms, first_ms, fin, pp, dec);
+	fprintf(stderr, "flashd: %d prompt (%d from the cache, snapshot at %d) + %d generated tokens, %.1f ms (first %.1f), %s, pp %.1f decode %.1f tok/s\n", np, resumed, snapped, ngen, run_ms, first_ms, fin, pp, dec);
 	if (stream) {
 		if (!g.gone) {
 			sbuf b = {0};

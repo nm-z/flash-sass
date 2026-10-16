@@ -1444,3 +1444,29 @@ remounts it when missing (`mount -t nfs -o ro,vers=3,hard,rsize=1048576`).
   boot, `persuader-lfm.service` (enabled, pinned to die 1, 1.4 GB) came back and would not leave
   room for the die-1 share, so it was stopped again as it had been the night before; the NFS
   share is not in fstab and was remounted by hand.
+
+## After the reset: board 3's link, results (2026-10-16)
+
+- **Board 3's upstream link (CPU root port 00:03.0 <-> switch 09:00.0, dies 4 and 5) came back from the
+  reboot unreliable**: `mailbox_test` round trips 4<->5 300 us and 0<->4 570 us instead of 17 / 28 us on
+  the healthy boards, a full token 336 ms instead of 37, and the sticky AER bits on both ends
+  (RxErr, BadTLP, BadDLLP, replay rollover, replay timer timeout) came straight back after clearing them
+  (`setpci -s <dev> ECAP_AER+0x10.l=0xffffffff`) and running traffic. Config was identical to the
+  healthy boards (gen3 x16, ASPM off, no ACS), a plain retrain (LnkCtl bit 5) did not help, and the
+  kernel counted nothing (the platform does not hand AER to the OS). **Setting the root port's target
+  link speed to gen2 and retraining** (`setpci -s 00:03.0 CAP_EXP+0x30.w=0002` then LnkCtl |= 0x20)
+  made the link clean: 4<->5 17 us, 0<->4 28 us, one RxErr in all the engine traffic since, and
+  the token **26.7 ms (37.5 tok/s)** — faster than before the reset (36.8 ms), whose 2 ms stalls in
+  ~10 % of tokens were this link too. It does not survive a reboot (the target speed is a register
+  of the port); a boot unit that sets it, or a reseat of board 3, makes it permanent. Dies 6 and 7
+  hang off the PCH port 00:1c.4 (cap gen2 x4, runs gen2 x2); `persuader-lfm.service` is now pinned to
+  die 6 and the embedding server uses die 7.
+- **Tested on the rebuilt stack** (flashcore + libengine.so + flashd): both llama.cpp references
+  reproduced greedily (`gen`); `reload` swaps the engine in seconds (no table or weights reload);
+  sampling: different seeds diverge after " Paris", the same seed reproduces, top_k 1 equals greedy;
+  26.8 ms per position with the sampler (argmax path 26.7); prefix cache: a second chat turn reuses
+  the first turn's 33 prompt tokens (`cache_n` 33 of 66) and answers correctly; abort: a browser
+  that leaves during the prompt stops the kernel and the next request is served within a second;
+  `max_tokens` is exact (the engine returns n_new + 1 tokens, so flashd asks for max_tokens - 1).
+  `prof` (engine command) prints where the last token spent its time, per op and the longest phases,
+  from the phase timestamps CTA 0 writes: that is how the slow exchanges were found.
