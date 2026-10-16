@@ -32,6 +32,7 @@
 #include "gguf.h"
 #include "quant.h"
 #include "prog.h"
+#include "split.h"
 #include <cuda.h>
 #include <signal.h>
 #include <stdio.h>
@@ -139,7 +140,7 @@ static void select_rows(const char *name, int rows, int experts, sel_t *s) {
 	else if (!strcmp(x, "ssm_a")) { s->nr = 1; s->r[0] = (range_t){ p->h0, p->hn }; s->rows_total = 48; }
 	else if (!strcmp(x, "ssm_out.weight")) { s->nr = 1; s->r[0] = (range_t){ p->y0, p->yn }; }
 	/* v1 of the attention block: die 0 runs the attention proper, the output projection is row-split */
-	else if (!strcmp(x, "attn_q.weight") || !strcmp(x, "attn_k.weight") || !strcmp(x, "attn_v.weight")) { s->nr = 1; s->r[0] = (range_t){ 0, p->d == 0 ? rows : 0 }; }
+	else if (!strcmp(x, "attn_q.weight") || !strcmp(x, "attn_k.weight") || !strcmp(x, "attn_v.weight")) { s->nr = 1; s->r[0] = (range_t){ 0, p->d == attn_die() ? rows : 0 }; }
 	else if (!strcmp(x, "attn_output.weight")) { s->nr = 1; s->r[0] = (range_t){ p->y0, p->yn }; }
 	else if (!strcmp(x, "ple_key.weight")) { s->nr = 1; s->r[0] = (range_t){ p->pk0, p->pkn }; }
 	else if (!strcmp(x, "ple_value.weight")) { s->nr = 1; s->r[0] = (range_t){ p->y0, p->yn }; }

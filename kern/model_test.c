@@ -16,6 +16,7 @@
 #include "ple.h"
 #include "hold.h"
 #include "prog.h"
+#include "split.h"
 #include "gguf.h"
 #include <cuda.h>
 #include <stdio.h>
@@ -228,7 +229,7 @@ int main(int argc, char **argv) {
 				w->attn_v = dptr(d, bb, "attn_v.weight"); w->attn_v_type = ttype(bb, "attn_v.weight");
 				w->attn_output = dptr(d, bb, "attn_output.weight"); w->attn_output_type = ttype(bb, "attn_output.weight");
 				w->attn_q_norm = dptr(d, bb, "attn_q_norm.weight"); w->attn_k_norm = dptr(d, bb, "attn_k_norm.weight");
-				dst_kc[d][bb] = dalloc(d == 0 ? kcf * 4 : 256); dst_vc[d][bb] = dalloc(d == 0 ? vcf * 4 : 256);
+				dst_kc[d][bb] = dalloc(d == attn_die() ? kcf * 4 : 256); dst_vc[d][bb] = dalloc(d == attn_die() ? vcf * 4 : 256);
 			}
 			w->ffn_gate_inp_x = dptr(d, bb, "ffn_gate_inp_x.weight"); w->emap = dptr(d, bb, "emap");
 			w->ffn_gate_exps = dptr(d, bb, "ffn_gate_exps.weight"); w->ffn_up_exps = dptr(d, bb, "ffn_up_exps.weight"); w->ffn_down_exps = dptr(d, bb, "ffn_down_exps.weight");
@@ -244,7 +245,7 @@ int main(int argc, char **argv) {
 		if (do_head) {
 			dn_weights_t *w = &dw[d][0];
 			w->output_hc_norm = dptr_raw(d, "output_hc_norm.weight"); w->output_hc_down = dptr_raw(d, "output_hc_down.weight"); w->output_hc_up = dptr_raw(d, "output_hc_up.weight"); w->output = dptr_raw(d, "output.weight");
-			uint32_t ob[6]; for (int e = 0; e < 6; e++) ob[e] = 248320u * (unsigned)e / (unsigned)nd;
+			uint32_t ob[6]; for (int e = 0; e < 6; e++) ob[e] = split_bound(248320u, e, nd);
 			w->obases = dalloc(24); CK(cuMemcpyHtoD(w->obases, ob, 24));
 		}
 		if (do_embed) dw[d][0].token_embd = dptr_raw(d, "token_embd.weight");

@@ -14,6 +14,7 @@
 #include "ple.h"
 #include "hold.h"
 #include "prog.h"
+#include "split.h"
 #include "gguf.h"
 #include <cuda.h>
 #include <stdio.h>
@@ -171,7 +172,7 @@ int main(int argc, char **argv) {
 		dn_weights_t *w = &dw[d]; memset(w, 0, sizeof *w);
 		if (mode == 1) {
 			w->output_hc_norm = dptr_raw(d, "output_hc_norm.weight"); w->output_hc_down = dptr_raw(d, "output_hc_down.weight"); w->output_hc_up = dptr_raw(d, "output_hc_up.weight"); w->output = dptr_raw(d, "output.weight");
-			uint32_t ob[6]; for (int e = 0; e < 6; e++) ob[e] = 248320u * (unsigned)e / (unsigned)nd;
+			uint32_t ob[6]; for (int e = 0; e < 6; e++) ob[e] = split_bound(248320u, e, nd);
 			w->obases = dalloc(24); CK(cuMemcpyHtoD(w->obases, ob, 24));
 		} else if (mode == 2) w->token_embd = dptr_raw(d, "token_embd.weight");
 		if (mode == 0) {
@@ -221,7 +222,7 @@ int main(int argc, char **argv) {
 		if (is_attn) {
 			b->qg = dalloc(4 * 12288); b->k = dalloc(4 * 512); b->v = dalloc(4 * 512); b->qo = dalloc(4 * 6144); b->aout = dalloc(4 * 6144);
 			b->pm = dalloc(4 * 24 * 8); b->pd = dalloc(4 * 24 * 8); b->po = dalloc(4 * 24 * 8 * 256);
-			b->kc = dalloc(d == 0 ? kcf * 4 : 256); b->vc = dalloc(d == 0 ? vcf * 4 : 256);
+			b->kc = dalloc(d == attn_die() ? kcf * 4 : 256); b->vc = dalloc(d == attn_die() ? vcf * 4 : 256);
 			b->rope_cs = dalloc(4 * 32 * T); b->rope_sn = dalloc(4 * 32 * T);
 			CK(cuMemcpyHtoD(b->rope_cs, rcs, 4 * 32 * T)); CK(cuMemcpyHtoD(b->rope_sn, rsn, 4 * 32 * T));
 		}
@@ -347,7 +348,7 @@ int main(int argc, char **argv) {
 			bad += cmpbuf("lz", hb->z + 32 * s->cb0, db[d].lz, 4u * 32u * (unsigned)s->cbn, 4);
 			bad += cmpbuf("zq", hb->zq, db[d].zq, 2 * 2560, 2);
 			if (is_attn) {
-				if (d == 0) {
+				if (d == attn_die()) {
 					bad += cmpbuf("qg", hb->qg, db[d].qg, 4 * 12288, 4);
 					bad += cmpbuf("k", hb->k, db[d].k, 4 * 512, 4);
 					bad += cmpbuf("v", hb->v, db[d].v, 4 * 512, 4);

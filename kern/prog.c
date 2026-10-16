@@ -1,4 +1,5 @@
 #include "prog.h"
+#include "split.h"
 #include "gguf.h"
 #include "quant.h"
 #include <stdio.h>
@@ -132,15 +133,15 @@ void prog_token_end(prog_t *P, const xchg_t *x, int me, int ndies, CUdeviceptr a
 /* ---- the split ---- */
 void split_of(split_t *s, int d, int n, int blk) {
 	s->d = d; s->n = n;
-	s->dj0 = 324 * d / n;  s->djn = 324 * (d + 1) / n - s->dj0;
-	s->cb0 = 80 * d / n;   s->cbn = 80 * (d + 1) / n - s->cb0;
-	s->h0 = 48 * d / n;    s->hn = 48 * (d + 1) / n - s->h0;
+	s->dj0 = split_bound(324, d, n);  s->djn = split_bound(324, d + 1, n) - s->dj0;
+	s->cb0 = split_bound(80, d, n);   s->cbn = split_bound(80, d + 1, n) - s->cb0;
+	s->h0 = split_bound(48, d, n);    s->hn = split_bound(48, d + 1, n) - s->h0;
 	s->klo = s->h0 / 3;    s->khi = (s->h0 + s->hn - 1) / 3; s->nk = s->khi - s->klo + 1;
-	s->y0 = 2560 * d / n;  s->yn = 2560 * (d + 1) / n - s->y0;
-	s->pk0 = 10240 * d / n; s->pkn = 10240 * (d + 1) / n - s->pk0;
-	s->o0 = 248320 * d / n; s->on = 248320 * (d + 1) / n - s->o0;
-	s->hd0 = 320 * d / n;  s->hdn = 320 * (d + 1) / n - s->hd0;
-	s->e0 = 512 * d / n;   s->en = 512 * (d + 1) / n - s->e0;
+	s->y0 = split_bound(2560, d, n);  s->yn = split_bound(2560, d + 1, n) - s->y0;
+	s->pk0 = split_bound(10240, d, n); s->pkn = split_bound(10240, d + 1, n) - s->pk0;
+	s->o0 = split_bound(248320, d, n); s->on = split_bound(248320, d + 1, n) - s->o0;
+	s->hd0 = split_bound(320, d, n);  s->hdn = split_bound(320, d + 1, n) - s->hd0;
+	s->e0 = split_bound(512, d, n);   s->en = split_bound(512, d + 1, n) - s->e0;
 	s->shexp = (blk % n) == d;
 }
 
@@ -203,8 +204,8 @@ static void ph_attn_core(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, u
 void prog_attn_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps) {
 	CUdeviceptr inj = b->t + 320 * 4;
 	ph_hc_read(P, s, x, w->hc_attn_norm, w->hc_attn_dj, w->hc_attn_up, b, eps);
-	if (s->d == 0) ph_attn_core(P, w, b, t, eps);
-	CUdeviceptr AOUT = ph_xchg(P, x, s->d, s->n, b->aout, s->d == 0 ? 6144 * 4 : 0, 0, 6144 * 4);
+	if (s->d == attn_die()) ph_attn_core(P, w, b, t, eps);
+	CUdeviceptr AOUT = ph_xchg(P, x, s->d, s->n, b->aout, s->d == attn_die() ? 6144 * 4 : 0, 0, 6144 * 4);
 	ph_actq(P, OP_ACTQ256, AOUT, b->oq, b->os32, b->os16, b->oas, 256, 24);
 	ph_gemv_any(P, w->attn_output_type, 6144, w->attn_output, b->oq, b->os32, b->os16, b->ly, (unsigned)s->yn, b->oas, 0, 0);
 	CUdeviceptr Y = ph_xchg(P, x, s->d, s->n, b->ly, 4u * (unsigned)s->yn, 4u * (unsigned)s->y0, 4 * 2560);

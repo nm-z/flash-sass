@@ -1,4 +1,5 @@
 #include "block.h"
+#include "split.h"
 #include "quant.h"
 #include "gguf.h"
 #include "fmath.h"
@@ -59,7 +60,7 @@ static void hc_read(const float *S, const float *norm, const uint16_t *dj, const
 static void moe_half(const dn_hweights_t *w, dn_hbufs_t *b, float eps, int ndies, int blk, int8_t *zq8, int8_t *hq8, float *p);
 
 int split_expert_owner(int e, int n) {
-	for (int d = 0; d < n; d++) if (e >= 512 * d / n && e < 512 * (d + 1) / n) return d;
+	for (int d = 0; d < n; d++) if (e >= (int)split_bound(512, d, n) && e < (int)split_bound(512, d + 1, n)) return d;
 	return -1;
 }
 
@@ -103,7 +104,7 @@ void head_gpu(const dn_hweights_t *w, dn_hbufs_t *b, float eps, int ndies) {
 	q16to8(b->zq, zq8, 2560);
 	gemv_ref_any(GG_Q5_K, w->output, 248320, 2560, zq8, b->zs32, b->zs16, b->zas, b->logits);
 	for (int d = 0; d < ndies; d++) {
-		unsigned o0 = 248320u * d / ndies, o1 = 248320u * (d + 1) / ndies, im = o0; float m = b->logits[o0];
+		unsigned o0 = split_bound(248320u, d, ndies), o1 = split_bound(248320u, d + 1, ndies), im = o0; float m = b->logits[o0];
 		for (unsigned i = o0 + 1; i < o1; i++) if (b->logits[i] > m) { m = b->logits[i]; im = i; }
 		b->dmax[d] = m; b->didx[d] = im;
 	}

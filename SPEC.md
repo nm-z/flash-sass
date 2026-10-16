@@ -951,6 +951,20 @@ bodies (loop the sub-blocks instead of unrolling, prefetch the next
 iteration's rows), one phase per activation for same-format matrices (expert
 gate ++ up, q ++ k ++ v), a flag-array grid barrier (~1 µs less per phase).
 
+**Die 0 has a bad VRAM band (from cx-flash's `Cargo.toml`, 2026-10-16):**
+"Archy allocations remain below die 0's bad VRAM band; die 6 is fenced" —
+`device-usable-bytes archy:nv0 = 6186598400` (5.76 GiB), `nv2 = 0`, `nv6 =
+0`, plus two fenced UUIDs. Our full-model holder put 7.1 GB on die 0 (the
+common 1/6 share + the attention projections), i.e. into that band; nothing
+has shown corruption (the random-prompt token sequence is identical across
+every kernel revision) but the split must respect it: die 0 gets a smaller
+share and the attention die moves to die 1: `ref/split.c` draws every boundary
+(`split_bound(total, d, n)`), weighted by `SPLIT_SHARES=s0,...,s5` (default
+equal) with the attention die from `ATTN_DIE` (default 0); the holder, the
+builder, the twin and the tests all take the same two variables, and the
+full-model holders run with `SPLIT_SHARES=86,103,103,103,103,102 ATTN_DIE=1`
+(die 0 ≈ 0.5 GB replicated + 35.7 GB × 0.143 ≈ 5.6 GB).
+
 **Hardware notes (archy, 2026-10-16).** Root ports: board 1 (dies 0, 1) is
 PCIe 3 ×8, boards 2 and 3 ×16, board 4 (dies 6, 7) hangs off the PCH at
 5 GT/s ×2. Boards 2 (dies 2, 3) run with ECC *enabled*, the others disabled.
