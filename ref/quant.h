@@ -121,3 +121,9 @@ void gemv_b32_ref(uint32_t type, const uint8_t *tile, int rows, int K, const int
  * r = 1/amax (IEEE), inv = r * 127 (0 if amax == 0), q = lrintf(x * inv) as int16,
  * sum32/sum16 = per-32/per-16 sums of the codes. Returns xscale = amax * (1/127). */
 float quant_act_gpu(const float *x, int n, int16_t *q16, int32_t *sum32, int32_t *sum16);
+
+/* The GPU RMSNorm + quantiser (kern/normq.sass), bit for bit, n = 2560: lane l
+ * (32 lanes) sums x^2 over the 4-element chunks at 4 (l + 32 j) with one fmaf chain,
+ * SHFL butterfly (xor 16, 8, 4, 2, 1), m = ss * (1/2560), v = m + eps, s = sqrtf(v),
+ * r = 1/s, y_i = (x_i * r) * w_i, then quant_act_gpu on y. Returns xscale. */
+float rmsnorm_quant_gpu(const float *x, const float *w, int n, float eps, float *y, int16_t *q16, int32_t *sum32, int32_t *sum16);

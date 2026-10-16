@@ -163,3 +163,14 @@ actq_test: actq_test.c ../ref/quant.c ../ref/quant.h ../ref/gguf.c
 
 actq: actq_k640.cubin actq_k2560.cubin actq_k6144.cubin actq_k10240.cubin actq_test
 .PHONY: actq
+
+# fused RMSNorm + quantiser for the 2560-wide block inputs
+skel_normq.cubin: normq.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+normq.cubin: normq.sass skel_normq.cubin
+	cp skel_normq.cubin $@
+	$(MAXAS) -i normq.sass $@
+
+normq_test: normq_test.c ../ref/quant.c ../ref/quant.h ../ref/gguf.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ normq_test.c ../ref/quant.c ../ref/gguf.c -I../ref -I$(CUDA)/include -lcuda -lm

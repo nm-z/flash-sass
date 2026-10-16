@@ -197,7 +197,19 @@ head and runs slower (811 MHz measured), so it gets fewer blocks.
 
 ## Numerics
 
-- Activations quantised per row to int8 + fp32 scale before each integer matmul.
+- Activations quantised per vector to int8 codes (carried as int16) + fp32 scale
+  before each integer matmul, by `kern/actq.sass` (one warp per vector) with the
+  bit-exact twin `quant_act_gpu`: amax = max |x|; r = rcp_rn(amax) (the ptxas
+  fast path: MUFU.RCP, FFMA e = amax·r − 1, FFMA r += r·(−e), which is IEEE
+  1/amax for any normal amax below 2^125); inv = r·127 (0 if amax = 0);
+  q = F2I.RN(x·inv) = lrintf(x·inv); per-16 and per-32 sums of the codes;
+  xscale = amax·(1/127). Verified bit-exact for n = 640, 2560, 6144, 10240 on
+  six magnitudes including zero and an outlier. Rules found on the way: SASS
+  float immediates are 20-bit (1/127 is not representable; constants like it
+  come from MOV32I); any predicate consumer — EXIT and MOV included — needs the
+  ~18-cycle gap; a counter incremented at stall 1 is read stale by the next
+  instruction (the loop ran once too often and its stray stores zeroed the
+  neighbouring buffers).
 - Q2_0 × int8 in XMAD SWAR: each 16-bit lane accumulates up to 8 products
   (|q·a| ≤ 3·127) before extraction; other widths pack fewer terms. Accumulate in
   int32, multiply by the block scale once per block in fp32.
