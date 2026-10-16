@@ -1091,6 +1091,26 @@ token loop; the head writes `ids[t+1]` past the prompt), `cubin <path>` reloads
 the kernel, `quit`. Without a table (`-`) it runs on a zero compact table.
 First run: 1541 phases, ~49 ms per position on {0, 1, 6, 3, 4, 5}.
 
+## MTP scoping (2026-10-16, from `mtp-Qwen3.8-Flash-Next-Q8_0.gguf`)
+
+34 tensors, all Q8_0/F32/BF16, 4.1 GB: `blk.48` is a full attention block (attn_q
+12288 / k 512 / v 512 / attn_output, q/k norms, the indexer) with its own MoE
+(512 experts × gate/up/down 640, 2.67 GB; shared expert; router F32) and hyper
+connections, plus the nextn parts: `nextn.eh_proj` 5120→2560 (the draft input
+token's normed embedding `enorm` ++ the normed hidden state `hnorm` → the block
+input), `nextn.hc_head_{norm,down,up}` (the hc read gate before the head), and
+its own `output.weight` and `token_embd.weight` (Q8_0, 675 MB each). Placement:
+the block fits on die 7 alone (8 GB free; the slow slot costs one 40 KB hidden
+state in and one token out per step), its head row-split over the six dies
+(112 MB each) and reduced by `amax` like the main head. The step: main model
+→ y_{t+1}; MTP(h_t, embd(y_{t+1})) → draft y_{t+2}; next step feeds y_{t+1}
+and y_{t+2} as **two positions in one pass** (verify the draft, predict the
+next) — so MTP needs the 2-position batch through every op (weights read once
+per phase for both activations: the GEMVs keep two accumulator sets, dnstep
+and the caches take the positions in order, exchanges carry 2×), which is the
+same restructure prefill chunks need. Q8_0 × int8 is the XMAD path already
+used for the Q8_0 tensors of the main model.
+
 ## State at the end of 2026-10-16
 
 - The whole 48-block model runs as one persistent kernel per die on six dies
