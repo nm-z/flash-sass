@@ -1129,7 +1129,11 @@ then serves `gen <n_new> <ids...>` lines from stdin with **one launch per die pe
 response** (prompt positions and generated ones are iterations of the kernel's
 token loop; the head writes `ids[t+1]` past the prompt), `cubin <path>` reloads
 the kernel, `quit`. Without a table (`-`) it runs on a zero compact table.
-First run: 1541 phases, ~49 ms per position on {0, 1, 6, 3, 4, 5}.
+First run: 1541 phases, ~49 ms per position on {0, 1, 6, 3, 4, 5}. With the real table
+(28.8 GB pinned from shard 2 in 382 s) and the kernel's own n-gram hash, one
+launch per response: "The capital of France is" → `11751 13 248046` and the
+32-token prompt → the reference's 32 tokens, both identical to llama.cpp,
+at 44.8–47 ms per position.
 
 ## MTP scoping (2026-10-16, from `mtp-Qwen3.8-Flash-Next-Q8_0.gguf`)
 
