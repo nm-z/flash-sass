@@ -5,6 +5,7 @@
 #include "hc.h"
 #include "deltanet.h"
 #include "router.h"
+#include "attn.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,6 +49,8 @@ static void hc_read(const float *S, const float *norm, const uint16_t *dj, const
 	quant_act_gpu32(b->z, 2560, b->zq, b->zs32, b->zs16, b->zas);
 }
 
+static void moe_half(const dn_hweights_t *w, dn_hbufs_t *b, float eps, int ndies, int blk, int8_t *zq8, int8_t *hq8, float *p);
+
 int split_expert_owner(int e, int n) {
 	for (int d = 0; d < n; d++) if (e >= 512 * d / n && e < 512 * (d + 1) / n) return d;
 	return -1;
@@ -72,8 +75,41 @@ void deltanet_block_gpu(const dn_hweights_t *w, dn_hbufs_t *b, unsigned t, float
 	q16to8(b->oq, oq8, 6144);
 	gemv_ref_any(w->ssm_out_type, w->ssm_out, 2560, 6144, oq8, b->os32, b->os16, b->oas, b->y);
 	hc_write_gpu(inj, b->y, b->S);
-	if (stage == 1) { free(zq8); free(oq8); free(hq8); free(p); return; }
-	/* ---- MoE hyper-block ---- */
+	if (stage != 1) moe_half(w, b, eps, ndies, blk, zq8, hq8, p);
+	free(zq8); free(oq8); free(hq8); free(p);
+}
+
+/* the full-attention block: hc read; q/k/v projections; per-head RMS + RoPE on q and k,
+ * the KV cache gets position t; decode attention over the t+1 keys with the output
+ * gate (ref/attn.h, as the attnqk / attnpart / attnmerge kernels); attn_output; hc
+ * write; then the MoE hyper-block */
+void attn_block_gpu(const dn_hweights_t *w, dn_hbufs_t *b, unsigned t, float eps, int ndies, int blk, int stage) {
+	int8_t *zq8 = malloc(2560), *oq8 = malloc(6144), *hq8 = malloc(7040);
+	float *p = malloc(4 * 2560), ktmp[256];
+	const float *inj = b->t + 320;
+	hc_read(b->S, w->hc_attn_norm, w->hc_attn_dj, w->hc_attn_up, b, eps);
+	q16to8(b->zq, zq8, 2560);
+	gemv_ref_any(w->attn_q_type, w->attn_q, 12288, 2560, zq8, b->zs32, b->zs16, b->zas, b->qg);
+	gemv_ref_any(w->attn_k_type, w->attn_k, 512, 2560, zq8, b->zs32, b->zs16, b->zas, b->k);
+	gemv_ref_any(w->attn_v_type, w->attn_v, 512, 2560, zq8, b->zs32, b->zs16, b->zas, b->v);
+	rope_table_gpu(t, 1e7f, b->cs, b->sn);
+	for (int h = 0; h < 24; h++) qk_norm_rope_gpu(b->qg + 512 * h, w->attn_q_norm, eps, b->cs, b->sn, b->qo + 256 * h);
+	for (int kv = 0; kv < 2; kv++) {
+		qk_norm_rope_gpu(b->k + 256 * kv, w->attn_k_norm, eps, b->cs, b->sn, ktmp);
+		for (int d = 0; d < 256; d++) { b->kc[attn_kidx(t, kv, d)] = ktmp[d]; b->vc[(size_t)t * 512 + 256 * kv + d] = b->v[256 * kv + d]; }
+	}
+	attn_decode_gpu(b->qo, b->kc, b->vc, t + 1, b->qg, b->aout);
+	quant_act_gpu32(b->aout, 6144, b->oq, b->os32, b->os16, b->oas);
+	q16to8(b->oq, oq8, 6144);
+	gemv_ref_any(w->attn_output_type, w->attn_output, 2560, 6144, oq8, b->os32, b->os16, b->oas, b->y);
+	hc_write_gpu(inj, b->y, b->S);
+	if (stage != 1) moe_half(w, b, eps, ndies, blk, zq8, hq8, p);
+	free(zq8); free(oq8); free(hq8); free(p);
+}
+
+/* ---- MoE hyper-block ---- */
+static void moe_half(const dn_hweights_t *w, dn_hbufs_t *b, float eps, int ndies, int blk, int8_t *zq8, int8_t *hq8, float *p) {
+	const float *inj = b->t + 320;
 	hc_read(b->S, w->hc_ffn_norm, w->hc_ffn_dj, w->hc_ffn_up, b, eps);
 	q16to8(b->zq, zq8, 2560);
 	gemv_bf16_ref(w->ffn_gate_inp_x, 513, 2560, b->z, b->r);  /* router ++ shared-expert gate */
@@ -106,5 +142,4 @@ void deltanet_block_gpu(const dn_hweights_t *w, dn_hbufs_t *b, unsigned t, float
 	for (int r = 0; r < 2560; r++) ps[r] = fmaf(b->s, p[r], ps[r]);
 	for (int r = 0; r < 2560; r++) { float acc = b->part[0][r]; for (int d = 1; d < ndies; d++) acc = acc + b->part[d][r]; b->out[r] = acc; }
 	hc_write_gpu(inj, b->out, b->S);
-	free(zq8); free(oq8); free(hq8); free(p);
 }

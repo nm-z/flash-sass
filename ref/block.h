@@ -17,6 +17,9 @@ typedef struct {
 	const uint16_t *ffn_gate_inp_x;
 	const uint8_t *ffn_gate_exps, *ffn_up_exps, *ffn_down_exps;
 	const uint8_t *ffn_gate_shexp, *ffn_up_shexp, *ffn_down_shexp; uint32_t ffn_gate_shexp_type, ffn_up_shexp_type, ffn_down_shexp_type;
+	/* full-attention blocks */
+	const uint8_t *attn_q, *attn_k, *attn_v, *attn_output; uint32_t attn_q_type, attn_k_type, attn_v_type, attn_output_type;
+	const float *attn_q_norm, *attn_k_norm;
 } dn_hweights_t;
 
 /* inj = down + 320 (and t + 320, copied), b = a + 48, sh = r[512] */
@@ -34,6 +37,9 @@ typedef struct {
 	float out[2560];
 	float conv_state[4][10240];
 	float *dn_state;             /* 48 x 128 x 128 */
+	/* attention: qg = 24 x [q | gate], caches in ref/attn.h layouts (zero-filled, sized by the caller) */
+	float qg[12288], k[512], v[512], qo[6144], aout[6144], cs[32], sn[32];
+	float *kc, *vc;
 } dn_hbufs_t;
 
 /* y = W x for any supported weight type (tile layout), with the quantised x */
@@ -44,4 +50,6 @@ int split_expert_owner(int e, int n);
 /* one block over ndies dies: the MoE partials are summed per owning die in slot order
  * (the shared expert on die blk % ndies), then across dies in order */
 void deltanet_block_gpu(const dn_hweights_t *w, dn_hbufs_t *b, unsigned t, float eps, int ndies, int blk, int stage);   /* stage 1: stop after the DeltaNet hyper-block */
+void attn_block_gpu(const dn_hweights_t *w, dn_hbufs_t *b, unsigned t, float eps, int ndies, int blk, int stage);       /* the full-attention block at position t */
+#define BLK_IS_ATTN(blk) (((blk) & 3) == 3)
 #endif

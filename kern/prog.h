@@ -79,6 +79,9 @@ typedef struct {
 	CUdeviceptr ffn_gate_inp_x, ffn_gate_exps, ffn_up_exps, ffn_down_exps, emap;
 	CUdeviceptr ffn_gate_shexp, ffn_up_shexp, ffn_down_shexp;
 	uint32_t ffn_gate_shexp_type, ffn_up_shexp_type, ffn_down_shexp_type;
+	/* full-attention blocks (3, 7, ...): v1 keeps attn_q/k/v whole on die 0 only */
+	CUdeviceptr attn_q, attn_k, attn_v, attn_q_norm, attn_k_norm, attn_output;
+	uint32_t attn_q_type, attn_k_type, attn_v_type, attn_output_type;
 } dn_weights_t;
 
 /* activation / state buffers of one die (device); sizes in floats unless noted; the
@@ -97,7 +100,14 @@ typedef struct {
 	CUdeviceptr hq, hs32, hs16, has;  /* int16 11x640, i32 11x20, i32 11x40, f32 11x20 */
 	CUdeviceptr out;                  /* 2560 (the reduced MoE output) */
 	CUdeviceptr conv_state, dn_state; /* 4 x nloc ring, hn x 128 x 128 */
+	/* attention (die 0): qg 24 x [q 256 | gate 256], k/v 512, qo 6144, caches (ref/attn.h
+	 * layouts, zero-filled, >= n + 8192 + 64 positions), partials pm/pd [24][8], po
+	 * [24][8][256], aout 6144, RoPE tables cs/sn [positions][32] */
+	CUdeviceptr qg, k, v, qo, kc, vc, pm, pd, po, aout, rope_cs, rope_sn;
 } dn_bufs_t;
 
 void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps);
+void prog_attn_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps);
+/* attention blocks are every fourth block from 3 */
+#define BLK_IS_ATTN(blk) (((blk) & 3) == 3)
 #endif

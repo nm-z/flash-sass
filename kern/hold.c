@@ -99,11 +99,11 @@ static int wanted(const char *name, int b0, int b1, int extra_embd, int extra_ou
 	if (!strncmp(name, "output", 6)) return extra_out;
 	return 0;
 }
+/* NULL when the block has no such tensor (attention blocks have no ssm_*) */
 static const gguf_tensor *blk_tensor(const gguf_file *g, int b, const char *suf) {
 	char name[128]; snprintf(name, sizeof name, "blk.%d.%s", b, suf);
 	const gguf_tensor *t = gguf_find(g, name);
-	if (!t || !t->data) { fprintf(stderr, "%s: missing\n", name); exit(1); }
-	return t;
+	return t && t->data ? t : NULL;
 }
 
 /* ---- the split: which rows (or experts) of a tensor this die keeps ---- */
@@ -127,6 +127,9 @@ static void select_rows(const char *name, int rows, int experts, sel_t *s) {
 	else if (!strcmp(x, "ssm_ab.weight") || !strcmp(x, "ssm_ab.bias")) { s->nr = 2; s->r[0] = (range_t){ p->h0, p->hn }; s->r[1] = (range_t){ 48 + p->h0, p->hn }; s->rows_total = 96; }
 	else if (!strcmp(x, "ssm_a")) { s->nr = 1; s->r[0] = (range_t){ p->h0, p->hn }; s->rows_total = 48; }
 	else if (!strcmp(x, "ssm_out.weight")) { s->nr = 1; s->r[0] = (range_t){ p->y0, p->yn }; }
+	/* v1 of the attention block: die 0 runs the attention proper, the output projection is row-split */
+	else if (!strcmp(x, "attn_q.weight") || !strcmp(x, "attn_k.weight") || !strcmp(x, "attn_v.weight")) { s->nr = 1; s->r[0] = (range_t){ 0, p->d == 0 ? rows : 0 }; }
+	else if (!strcmp(x, "attn_output.weight")) { s->nr = 1; s->r[0] = (range_t){ p->y0, p->yn }; }
 	else if (!strcmp(x, "ffn_gate_exps.weight") || !strcmp(x, "ffn_up_exps.weight") || !strcmp(x, "ffn_down_exps.weight")) { s->nr = 1; s->r[0] = (range_t){ p->e0, p->en }; }
 }
 
@@ -135,7 +138,7 @@ static size_t cap; static uint8_t *buf;
 static void need(size_t bytes) { if (bytes > cap) { free(buf); cap = bytes; buf = malloc(cap); } }
 static void emit(const char *name, const uint8_t *img, size_t bytes, uint32_t type, int rows, int K, int st, int experts) {
 	off = (off + 255) & ~(size_t)255;
-	CK(cuMemcpyHtoD(arena + off, img, bytes));
+	if (bytes) CK(cuMemcpyHtoD(arena + off, img, bytes));
 	if (cache) {
 		char fn[512]; snprintf(fn, sizeof fn, "%s/%s", cache, name);
 		FILE *cf = fopen(fn, "wb");
@@ -205,6 +208,7 @@ int main(int argc, char **argv) {
 		if (split_on) split_of(&SP, sd, sn, b);
 		for (int i = 0; i < NMERGE; i++) {
 			const gguf_tensor *a = blk_tensor(&g, b, merges[i].a), *c = blk_tensor(&g, b, merges[i].b);
+			if (!a || !c) continue;
 			size_t nb = merges[i].zero_b ? a->nbytes : c->nbytes, bytes = a->nbytes + nb;
 			int rows = a->nd > 1 ? (int)(bytes / (a->nbytes / a->dims[1])) : (int)(bytes / 4);
 			char name[128]; snprintf(name, sizeof name, "blk.%d.%s", b, merges[i].out);
@@ -245,6 +249,7 @@ int main(int argc, char **argv) {
 		if (split_on) split_of(&SP, sd, sn, b);
 		for (int i = 0; i < NMERGE; i++) {
 			const gguf_tensor *a = blk_tensor(&g, b, merges[i].a), *c = blk_tensor(&g, b, merges[i].b);
+			if (!a || !c) continue;
 			size_t nb = merges[i].zero_b ? a->nbytes : c->nbytes, bytes = a->nbytes + nb;
 			if (a->type != c->type || a->dims[0] != c->dims[0]) { fprintf(stderr, "blk.%d.%s: cannot merge %s and %s\n", b, merges[i].out, merges[i].a, merges[i].b); return 1; }
 			if (bytes > mcap) { free(mb); mcap = bytes; mb = malloc(mcap); }

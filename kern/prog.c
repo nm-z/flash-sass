@@ -143,6 +143,55 @@ static CUdeviceptr ph_hc_read(prog_t *P, const split_t *s, const xchg_t *x, CUde
 	return Z;
 }
 
+/* the MoE hyper-block (expert split: this die's routed experts, partials reduced) */
+static void ph_moe_half(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, float eps) {
+	CUdeviceptr inj = b->t + 320 * 4;
+	CUdeviceptr Z = ph_hc_read(P, s, x, w->hc_ffn_norm, w->hc_ffn_dj, w->hc_ffn_up, b, eps);
+	ph_bf16(P, OP_BF16K2560, w->ffn_gate_inp_x, Z, b->r, 513, 0);
+	ph_router(P, b->r, b->r + 512 * 4, b->idx, b->w, b->s);
+	ph_moesel(P, b->idx, b->w, w->emap, b->lidx, b->lw, b->ne, b->part);
+	ph_q2(P, OP_Q2MOEGN, w->ffn_gate_exps, b->zq, b->zs32, b->g, 640, b->lidx, b->zas, 0, b->ne);
+	ph_q2(P, OP_Q2MOEGN, w->ffn_up_exps, b->zq, b->zs32, b->gu, 640, b->lidx, b->zas, 0, b->ne);
+	if (s->shexp) {
+		ph_gemv_any(P, w->ffn_gate_shexp_type, 2560, w->ffn_gate_shexp, b->zq, b->zs32, b->g + 6400 * 4, 640, b->zas, 0, 0);
+		ph_gemv_any(P, w->ffn_up_shexp_type, 2560, w->ffn_up_shexp, b->zq, b->zs32, b->gu + 6400 * 4, 640, b->zas, 0, 0);
+	}
+	ph_ffnact(P, b->g, b->gu, b->hq, b->hs32, b->hs16, b->has, 640, s->shexp ? 11 : 10);
+	ph_q2(P, OP_Q2MOEDN, w->ffn_down_exps, b->hq, b->hs32, b->part, 2560, b->lidx, b->has, b->lw, b->ne);
+	if (s->shexp) ph_gemv_any(P, w->ffn_down_shexp_type, 640, w->ffn_down_shexp, b->hq + 10 * 640 * 2, b->hs32 + 10 * 20 * 4, b->part, 2560, b->has + 10 * 20 * 4, 1, b->s);
+	CUdeviceptr PARTS = ph_xchg(P, x, s->d, s->n, b->part, 2560 * 4, 2560u * 4u * (unsigned)s->d, 2560u * 4u * (unsigned)s->n);
+	ph_sumn(P, PARTS, 2560 * 4, b->out, 2560, (unsigned)s->n);
+	ph_hc(P, OP_HCWRITE, inj, b->out, b->S, 2560, 0, 10);
+}
+
+/* attention proper on die 0 (v1): q/k/v GEMVs, per-head norm + RoPE + cache append,
+ * flash-decoding partials over the t+1 keys, merge with the output gate */
+static void ph_attn_core(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps) {
+	ph_gemv_any(P, w->attn_q_type, 2560, w->attn_q, b->zq, b->zs32, b->qg, 12288, b->zas, 0, 0);
+	ph_gemv_any(P, w->attn_k_type, 2560, w->attn_k, b->zq, b->zs32, b->k, 512, b->zas, 0, 0);
+	ph_gemv_any(P, w->attn_v_type, 2560, w->attn_v, b->zq, b->zs32, b->v, 512, b->zas, 0, 0);
+	phase_t *p = prog_add(P, OP_ATTNQK, 26);
+	ph_ptr(p, 0x140, b->qg); ph_ptr(p, 0x148, b->k); ph_ptr(p, 0x150, b->v); ph_ptr(p, 0x158, w->attn_q_norm); ph_ptr(p, 0x160, w->attn_k_norm);
+	ph_ptr(p, 0x168, b->rope_cs + 128u * t); ph_ptr(p, 0x170, b->rope_sn + 128u * t); ph_ptr(p, 0x178, b->qo); ph_ptr(p, 0x180, b->kc); ph_ptr(p, 0x188, b->vc);
+	ph_u32(p, 0x190, t); ph_f32(p, 0x194, eps);
+	p = prog_add(P, OP_ATTNPART, 32);
+	ph_ptr(p, 0x140, b->qo); ph_ptr(p, 0x148, b->kc); ph_ptr(p, 0x150, b->vc); ph_ptr(p, 0x158, b->pm); ph_ptr(p, 0x160, b->pd); ph_ptr(p, 0x168, b->po); ph_u32(p, 0x170, t + 1);
+	p = prog_add(P, OP_ATTNMERGE, 24);
+	ph_ptr(p, 0x140, b->pm); ph_ptr(p, 0x148, b->pd); ph_ptr(p, 0x150, b->po); ph_ptr(p, 0x158, b->qg); ph_ptr(p, 0x160, b->aout);
+}
+
+void prog_attn_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps) {
+	CUdeviceptr inj = b->t + 320 * 4;
+	ph_hc_read(P, s, x, w->hc_attn_norm, w->hc_attn_dj, w->hc_attn_up, b, eps);
+	if (s->d == 0) ph_attn_core(P, w, b, t, eps);
+	CUdeviceptr AOUT = ph_xchg(P, x, s->d, s->n, b->aout, s->d == 0 ? 6144 * 4 : 0, 0, 6144 * 4);
+	ph_actq(P, OP_ACTQ6144, AOUT, b->oq, b->os32, b->os16, b->oas, 6144, 1);
+	ph_gemv_any(P, w->attn_output_type, 6144, w->attn_output, b->oq, b->os32, b->ly, (unsigned)s->yn, b->oas, 0, 0);
+	CUdeviceptr Y = ph_xchg(P, x, s->d, s->n, b->ly, 4u * (unsigned)s->yn, 4u * (unsigned)s->y0, 4 * 2560);
+	ph_hc(P, OP_HCWRITE, inj, Y, b->S, 2560, 0, 10);
+	ph_moe_half(P, s, x, w, b, eps);
+}
+
 void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps) {
 	unsigned nloc = SPLIT_NLOC(s), hrows = 128u * (unsigned)s->hn;
 	CUdeviceptr inj = b->t + 320 * 4;
@@ -159,21 +208,5 @@ void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_
 	ph_gemv_any(P, w->ssm_out_type, 6144, w->ssm_out, b->oq, b->os32, b->ly, (unsigned)s->yn, b->oas, 0, 0);
 	CUdeviceptr Y = ph_xchg(P, x, s->d, s->n, b->ly, 4u * (unsigned)s->yn, 4u * (unsigned)s->y0, 4 * 2560);
 	ph_hc(P, OP_HCWRITE, inj, Y, b->S, 2560, 0, 10);
-	/* ---- FFN hyper-block: MoE (expert split: this die's routed experts, partials reduced) ---- */
-	Z = ph_hc_read(P, s, x, w->hc_ffn_norm, w->hc_ffn_dj, w->hc_ffn_up, b, eps);
-	ph_bf16(P, OP_BF16K2560, w->ffn_gate_inp_x, Z, b->r, 513, 0);
-	ph_router(P, b->r, b->r + 512 * 4, b->idx, b->w, b->s);
-	ph_moesel(P, b->idx, b->w, w->emap, b->lidx, b->lw, b->ne, b->part);
-	ph_q2(P, OP_Q2MOEGN, w->ffn_gate_exps, b->zq, b->zs32, b->g, 640, b->lidx, b->zas, 0, b->ne);
-	ph_q2(P, OP_Q2MOEGN, w->ffn_up_exps, b->zq, b->zs32, b->gu, 640, b->lidx, b->zas, 0, b->ne);
-	if (s->shexp) {
-		ph_gemv_any(P, w->ffn_gate_shexp_type, 2560, w->ffn_gate_shexp, b->zq, b->zs32, b->g + 6400 * 4, 640, b->zas, 0, 0);
-		ph_gemv_any(P, w->ffn_up_shexp_type, 2560, w->ffn_up_shexp, b->zq, b->zs32, b->gu + 6400 * 4, 640, b->zas, 0, 0);
-	}
-	ph_ffnact(P, b->g, b->gu, b->hq, b->hs32, b->hs16, b->has, 640, s->shexp ? 11 : 10);
-	ph_q2(P, OP_Q2MOEDN, w->ffn_down_exps, b->hq, b->hs32, b->part, 2560, b->lidx, b->has, b->lw, b->ne);
-	if (s->shexp) ph_gemv_any(P, w->ffn_down_shexp_type, 640, w->ffn_down_shexp, b->hq + 10 * 640 * 2, b->hs32 + 10 * 20 * 4, b->part, 2560, b->has + 10 * 20 * 4, 1, b->s);
-	CUdeviceptr PARTS = ph_xchg(P, x, s->d, s->n, b->part, 2560 * 4, 2560u * 4u * (unsigned)s->d, 2560u * 4u * (unsigned)s->n);
-	ph_sumn(P, PARTS, 2560 * 4, b->out, 2560, (unsigned)s->n);
-	ph_hc(P, OP_HCWRITE, inj, b->out, b->S, 2560, 0, 10);
+	ph_moe_half(P, s, x, w, b, eps);
 }

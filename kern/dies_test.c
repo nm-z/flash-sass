@@ -10,6 +10,7 @@
  * program (a prefix on every die), DIES_PROF prints die 0's per-phase times. */
 #define _POSIX_C_SOURCE 200809L
 #include "block.h"
+#include "attn.h"
 #include "hold.h"
 #include "prog.h"
 #include "gguf.h"
@@ -65,6 +66,9 @@ int main(int argc, char **argv) {
 	if (argc < 5) { fprintf(stderr, "usage: dies_test <fullcache> <blk> <T> <manifest0> [manifest1 ...]\n"); return 2; }
 	fullcache = argv[1]; blk = atoi(argv[2]); int T = atoi(argv[3]); nd = argc - 4; float eps = 1e-6f;
 	if (nd > MAXD) { fprintf(stderr, "at most %d dies\n", MAXD); return 2; }
+	int is_attn = BLK_IS_ATTN(blk);
+	unsigned npos = ((unsigned)T + 8192 + 64 + 31) / 32 * 32;   /* cache positions: chunk round-up plus the loops' stray prefetches */
+	size_t kcf = ATTN_KC_FLOATS(npos), vcf = (size_t)npos * 512;
 	CK(cuInit(0));
 	CUmodule mod[MAXD]; CUfunction fn[MAXD];
 	int dev_of[MAXD];
@@ -86,18 +90,30 @@ int main(int argc, char **argv) {
 	dn_hweights_t hw; memset(&hw, 0, sizeof hw);
 	hw.hc_attn_norm = hostimg("hc_attn_norm.weight"); hw.hc_attn_dj = hostimg("hc_attn_dj.weight"); hw.hc_attn_up = hostimg("hc_attn_up.weight");
 	hw.hc_ffn_norm = hostimg("hc_ffn_norm.weight"); hw.hc_ffn_dj = hostimg("hc_ffn_dj.weight"); hw.hc_ffn_up = hostimg("hc_ffn_up.weight");
-	hw.attn_qkv = hostimg("attn_qkv.weight"); hw.attn_qkv_type = ttype(0, "attn_qkv.weight");
-	hw.attn_gate = hostimg("attn_gate.weight"); hw.attn_gate_type = ttype(0, "attn_gate.weight");
-	hw.ssm_out = hostimg("ssm_out.weight"); hw.ssm_out_type = ttype(0, "ssm_out.weight");
-	hw.ssm_ab = hostimg("ssm_ab.weight"); hw.ssm_ab_bias = hostimg("ssm_ab.bias"); hw.ssm_conv1d = hostimg("ssm_conv1d.weight");
-	hw.ssm_a = hostimg("ssm_a"); hw.ssm_norm = hostimg("ssm_norm.weight");
+	if (!is_attn) {
+		hw.attn_qkv = hostimg("attn_qkv.weight"); hw.attn_qkv_type = ttype(0, "attn_qkv.weight");
+		hw.attn_gate = hostimg("attn_gate.weight"); hw.attn_gate_type = ttype(0, "attn_gate.weight");
+		hw.ssm_out = hostimg("ssm_out.weight"); hw.ssm_out_type = ttype(0, "ssm_out.weight");
+		hw.ssm_ab = hostimg("ssm_ab.weight"); hw.ssm_ab_bias = hostimg("ssm_ab.bias"); hw.ssm_conv1d = hostimg("ssm_conv1d.weight");
+		hw.ssm_a = hostimg("ssm_a"); hw.ssm_norm = hostimg("ssm_norm.weight");
+	} else {
+		hw.attn_q = hostimg("attn_q.weight"); hw.attn_q_type = ttype(0, "attn_q.weight");
+		hw.attn_k = hostimg("attn_k.weight"); hw.attn_k_type = ttype(0, "attn_k.weight");
+		hw.attn_v = hostimg("attn_v.weight"); hw.attn_v_type = ttype(0, "attn_v.weight");
+		hw.attn_output = hostimg("attn_output.weight"); hw.attn_output_type = ttype(0, "attn_output.weight");
+		hw.attn_q_norm = hostimg("attn_q_norm.weight"); hw.attn_k_norm = hostimg("attn_k_norm.weight");
+	}
 	hw.ffn_gate_inp_x = hostimg("ffn_gate_inp_x.weight");
 	hw.ffn_gate_exps = hostimg("ffn_gate_exps.weight"); hw.ffn_up_exps = hostimg("ffn_up_exps.weight"); hw.ffn_down_exps = hostimg("ffn_down_exps.weight");
 	hw.ffn_gate_shexp = hostimg("ffn_gate_shexp.weight"); hw.ffn_gate_shexp_type = ttype(0, "ffn_gate_shexp.weight");
 	hw.ffn_up_shexp = hostimg("ffn_up_shexp.weight"); hw.ffn_up_shexp_type = ttype(0, "ffn_up_shexp.weight");
 	hw.ffn_down_shexp = hostimg("ffn_down_shexp.weight"); hw.ffn_down_shexp_type = ttype(0, "ffn_down_shexp.weight");
 	dn_hbufs_t *hb = calloc(1, sizeof *hb); hb->dn_state = calloc(48 * 16384, 4);
+	if (is_attn) { hb->kc = calloc(kcf, 4); hb->vc = calloc(vcf, 4); }
 	for (int i = 0; i < 10240; i++) hb->S[i] = 0.5f * frand();
+	/* RoPE tables for positions [0, T) as the twin computes them */
+	float *rcs = malloc(4 * 32 * T), *rsn = malloc(4 * 32 * T);
+	for (int t = 0; t < T; t++) rope_table_gpu((unsigned)t, 1e7f, rcs + 32 * t, rsn + 32 * t);
 	/* per die: weights, buffers, exchange state */
 	dn_weights_t dw[MAXD]; dn_bufs_t db[MAXD]; xchg_t xc[MAXD]; split_t sp[MAXD];
 	CUdeviceptr dPROG[MAXD], dCTL[MAXD];
@@ -108,11 +124,19 @@ int main(int argc, char **argv) {
 		dn_weights_t *w = &dw[d]; memset(w, 0, sizeof *w);
 		w->hc_attn_norm = dptr(d, "hc_attn_norm.weight"); w->hc_attn_dj = dptr(d, "hc_attn_dj.weight"); w->hc_attn_up = dptr(d, "hc_attn_up.weight");
 		w->hc_ffn_norm = dptr(d, "hc_ffn_norm.weight"); w->hc_ffn_dj = dptr(d, "hc_ffn_dj.weight"); w->hc_ffn_up = dptr(d, "hc_ffn_up.weight");
-		w->attn_qkv = dptr(d, "attn_qkv.weight"); w->attn_qkv_type = hw.attn_qkv_type;
-		w->attn_gate = dptr(d, "attn_gate.weight"); w->attn_gate_type = hw.attn_gate_type;
-		w->ssm_out = dptr(d, "ssm_out.weight"); w->ssm_out_type = hw.ssm_out_type;
-		w->ssm_ab = dptr(d, "ssm_ab.weight"); w->ssm_ab_bias = dptr(d, "ssm_ab.bias");
-		w->ssm_conv1d = dptr(d, "ssm_conv1d.weight"); w->ssm_a = dptr(d, "ssm_a"); w->ssm_norm = dptr(d, "ssm_norm.weight");
+		if (!is_attn) {
+			w->attn_qkv = dptr(d, "attn_qkv.weight"); w->attn_qkv_type = hw.attn_qkv_type;
+			w->attn_gate = dptr(d, "attn_gate.weight"); w->attn_gate_type = hw.attn_gate_type;
+			w->ssm_out = dptr(d, "ssm_out.weight"); w->ssm_out_type = hw.ssm_out_type;
+			w->ssm_ab = dptr(d, "ssm_ab.weight"); w->ssm_ab_bias = dptr(d, "ssm_ab.bias");
+			w->ssm_conv1d = dptr(d, "ssm_conv1d.weight"); w->ssm_a = dptr(d, "ssm_a"); w->ssm_norm = dptr(d, "ssm_norm.weight");
+		} else {
+			w->attn_q = dptr(d, "attn_q.weight"); w->attn_q_type = hw.attn_q_type;
+			w->attn_k = dptr(d, "attn_k.weight"); w->attn_k_type = hw.attn_k_type;
+			w->attn_v = dptr(d, "attn_v.weight"); w->attn_v_type = hw.attn_v_type;
+			w->attn_output = dptr(d, "attn_output.weight"); w->attn_output_type = hw.attn_output_type;
+			w->attn_q_norm = dptr(d, "attn_q_norm.weight"); w->attn_k_norm = dptr(d, "attn_k_norm.weight");
+		}
 		w->ffn_gate_inp_x = dptr(d, "ffn_gate_inp_x.weight"); w->emap = dptr(d, "emap");
 		w->ffn_gate_exps = dptr(d, "ffn_gate_exps.weight"); w->ffn_up_exps = dptr(d, "ffn_up_exps.weight"); w->ffn_down_exps = dptr(d, "ffn_down_exps.weight");
 		w->ffn_gate_shexp = dptr(d, "ffn_gate_shexp.weight"); w->ffn_gate_shexp_type = hw.ffn_gate_shexp_type;
@@ -129,6 +153,13 @@ int main(int argc, char **argv) {
 		b->lidx = dalloc(64); b->lw = dalloc(64); b->ne = dalloc(16); b->part = dalloc(4 * 2560);
 		b->g = dalloc(4 * 7040); b->gu = dalloc(4 * 7040); b->hq = dalloc(2 * 7040); b->hs32 = dalloc(4 * 220); b->hs16 = dalloc(4 * 440); b->has = dalloc(4 * 220);
 		b->out = dalloc(4 * 2560); b->conv_state = dalloc(4 * 4 * nloc); b->dn_state = dalloc((size_t)s->hn * 16384 * 4);
+		if (is_attn) {
+			b->qg = dalloc(4 * 12288); b->k = dalloc(4 * 512); b->v = dalloc(4 * 512); b->qo = dalloc(4 * 6144); b->aout = dalloc(4 * 6144);
+			b->pm = dalloc(4 * 24 * 8); b->pd = dalloc(4 * 24 * 8); b->po = dalloc(4 * 24 * 8 * 256);
+			b->kc = dalloc(d == 0 ? kcf * 4 : 256); b->vc = dalloc(d == 0 ? vcf * 4 : 256);
+			b->rope_cs = dalloc(4 * 32 * T); b->rope_sn = dalloc(4 * 32 * T);
+			CK(cuMemcpyHtoD(b->rope_cs, rcs, 4 * 32 * T)); CK(cuMemcpyHtoD(b->rope_sn, rsn, 4 * 32 * T));
+		}
 		CK(cuMemcpyHtoD(b->S, hb->S, 4 * 10240));
 		xchg_t *x = &xc[d];
 		x->inbox = dalloc(2 * XSLOT); x->flags = dalloc(32); x->xgen = dalloc(16); x->xtab = dalloc(128);
@@ -145,12 +176,14 @@ int main(int argc, char **argv) {
 	int fails = 0;
 	for (int t = 0; t < T; t++) {
 		double t0 = now();
-		deltanet_block_gpu(&hw, hb, (unsigned)t, eps, nd, blk, getenv("DIES_STAGE") ? atoi(getenv("DIES_STAGE")) : 0);
+		int stage = getenv("DIES_STAGE") ? atoi(getenv("DIES_STAGE")) : 0;
+		if (is_attn) attn_block_gpu(&hw, hb, (unsigned)t, eps, nd, blk, stage); else deltanet_block_gpu(&hw, hb, (unsigned)t, eps, nd, blk, stage);
 		double t1 = now();
 		prog_t P[MAXD]; unsigned nph[MAXD];
 		for (int d = 0; d < nd; d++) {
 			prog_init(&P[d]);
-			prog_deltanet_block(&P[d], &sp[d], &xc[d], &dw[d], &db[d], (unsigned)t, eps);
+			if (is_attn) prog_attn_block(&P[d], &sp[d], &xc[d], &dw[d], &db[d], (unsigned)t, eps);
+			else prog_deltanet_block(&P[d], &sp[d], &xc[d], &dw[d], &db[d], (unsigned)t, eps);
 			nph[d] = (unsigned)P[d].n;
 			if (getenv("DIES_NPH") && (unsigned)atoi(getenv("DIES_NPH")) < nph[d]) nph[d] = (unsigned)atoi(getenv("DIES_NPH"));
 			CK(cuCtxSetCurrent(ctx[d]));
@@ -186,7 +219,17 @@ int main(int argc, char **argv) {
 			for (int l = 0; l < 4; l++) { snprintf(what, sizeof what, "lup%d", l); bad += cmpbuf(what, hb->up + 2560 * l + 32 * s->cb0, db[d].lup + 4u * 32u * (unsigned)(s->cbn * l), 4u * 32u * (unsigned)s->cbn, 4); }
 			bad += cmpbuf("lz", hb->z + 32 * s->cb0, db[d].lz, 4u * 32u * (unsigned)s->cbn, 4);
 			bad += cmpbuf("zq", hb->zq, db[d].zq, 2 * 2560, 2);
-			{   /* attention-side locals (not overwritten by the FFN half) */
+			if (is_attn) {
+				if (d == 0) {
+					bad += cmpbuf("qg", hb->qg, db[d].qg, 4 * 12288, 4);
+					bad += cmpbuf("k", hb->k, db[d].k, 4 * 512, 4);
+					bad += cmpbuf("v", hb->v, db[d].v, 4 * 512, 4);
+					bad += cmpbuf("qo", hb->qo, db[d].qo, 4 * 6144, 4);
+					bad += cmpbuf("aout", hb->aout, db[d].aout, 4 * 6144, 4);
+				}
+				bad += cmpbuf("oq", hb->oq, db[d].oq, 2 * 6144, 2);
+				bad += cmpbuf("ly", hb->y + s->y0, db[d].ly, 4u * (unsigned)s->yn, 4);
+			} else {   /* attention-side locals (not overwritten by the FFN half) */
 				unsigned nk = (unsigned)s->nk, hn = (unsigned)s->hn;
 				bad += cmpbuf("lqkv.q", hb->qkv + 128 * s->klo, db[d].lqkv, 4 * 128 * nk, 4);
 				bad += cmpbuf("lqkv.k", hb->qkv + 2048 + 128 * s->klo, db[d].lqkv + 4 * 128 * nk, 4 * 128 * nk, 4);
