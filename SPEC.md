@@ -928,6 +928,11 @@ and lands in ROWS). That is teacher-forced by construction (every id known
 up front: `MODEL_IDS` with T ids); blocks 0–4 with the real table are exact
 over 3 tokens. Free-running decode with the real table needs a long-lived
 process that owns one pinned anonymous copy (the harness rule: load once).
+**PLE source now:** the tmpfs copy is gone (it starved the CPU reference of
+page cache); tests map shard 2 on NFS directly (`MODEL_PLE=<shard 2>
+MODEL_PLE_OFF=192`, 16 random 90 B reads per position) and `flash` reads the
+table from the shard into pinned memory once per start (`FLASH_PLE_OFF=192`,
+~7 min at NFS speed).
 **Reference (2026-10-16):** cx-flash's recipe cannot run this GGUF on the
 GPUs it allows (`requantized node names no format`) and needs 48 GB of RAM on
 the CPU path; upstream llama.cpp (ggml-org master, built CPU-only at
