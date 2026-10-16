@@ -840,3 +840,22 @@ void rmsnorm_gpu(const float *x, const float *w, int n, float eps, float *y) {
 	float r = 1.0f / s;
 	for (int i = 0; i < n; i++) y[i] = (x[i] * r) * w[i];
 }
+
+void quant_act_gpu32(const float *x, int n, int16_t *q16, int32_t *sum32, int32_t *sum16, float *as) {
+	const float tiny = 7.8886090522101180541e-31f;   /* 2^-100 */
+	for (int g = 0; g < n / 32; g++) {
+		float gmax = 0.f;
+		for (int e = 0; e < 32; e++) { float a = fabsf(x[32 * g + e]); if (a > gmax) gmax = a; }
+		if (gmax < tiny) gmax = tiny;
+		float r = 1.0f / gmax;
+		float inv = r * 127.0f;
+		for (int e = 0; e < 32; e++) q16[32 * g + e] = (int16_t)lrintf(x[32 * g + e] * inv);
+		as[g] = gmax * (1.0f / 127.0f);
+	}
+	for (int g = 0; g < n / 16; g++) {
+		int32_t s = 0;
+		for (int e = 0; e < 16; e++) s += q16[16 * g + e];
+		sum16[g] = s;
+	}
+	for (int g = 0; g < n / 32; g++) sum32[g] = sum16[2 * g] + sum16[2 * g + 1];
+}

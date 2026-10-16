@@ -132,3 +132,8 @@ float rmsnorm_quant_gpu(const float *x, const float *w, int n, float eps, float 
  * per-lane fmaf chains over the chunks at 4 (l + 32 j), SHFL butterfly,
  * m = ss * (1/n), v = m + eps, s = sqrtf(v), r = 1/s, y_i = (x_i * r) * w_i. */
 void rmsnorm_gpu(const float *x, const float *w, int n, float eps, float *y);
+
+/* Per-32 activation quantiser (kern/actq.sass, GPU order): for each 32-element
+ * group g: gmax = max(max |x|, 2^-100), r = 1/gmax (IEEE), inv = r * 127,
+ * q = lrintf(x * inv) (int16), as[g] = gmax * (1/127); sum16/sum32 of the codes. */
+void quant_act_gpu32(const float *x, int n, int16_t *q16, int32_t *sum32, int32_t *sum16, float *as);

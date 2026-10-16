@@ -169,31 +169,76 @@ head and runs slower (811 MHz measured), so it gets fewer blocks.
 - **Prefill**: same kernel, prompt tokens in chunks through the same pipeline.
 - **Termination**: EOS/max tokens → stop flag → all loops exit → 8 completions.
 
-## Block math (from cx-flash `recipe.rs`/`qwen4exp.rs`, to be verified numerically)
+## Block math (cx-flash, `results/cx-flash-blockmath.md`, plus the GGUF metadata)
 
-- **Hyper-connections** (around both the mixer and the MoE): `xn` = per-lane
-  RMSNorm(stream)·`hc_*_norm`; read gate `r = σ(W_up · SiLU(W_down · xn/4))`;
-  write gate `w = 2σ(W_inject · xn/4)` per lane; branch input = read-gated sum of
-  lanes; update `stream_l += w_l ⊙ Branch`.
-- **DeltaNet** (36 blocks): qkv 2560→10240 (q 16×128, k 16×128, v 48×128), causal
-  depthwise conv k=4 + SiLU, L2-normalise q and k per head; per value head with
-  S∈R^{128×128}: `d = exp(a·softplus(α + dt_bias))`, `w = σ(β)`,
-  `S ← d·S; r = k̂ᵀS; S ← S + w·k̂(v−r)ᵀ; o = (q̂/√128)ᵀS`; then RMSNorm(`ssm_norm`)
-  ⊙ σ(`attn_gate`·x), `ssm_out`. Open: cx-flash may apply 1/√128 twice.
-- **Full attention** (12 blocks): q 2560→12288 (q + gate), k/v 2560→512, q/k
-  RMSNorm 256, neox RoPE on 64 dims, GQA 24:2, head dim 256, `attn_output`
-  6144→2560. Indexer: q 2560→512 (4×128), k 2560→128, RMSNorm 128, blocks of 4
-  keys, keep the top 2048 tokens (512 blocks).
-- **MoE**: router BF16 2560→512, softmax, top-10, renormalise; expert
-  `W_down(SiLU(W_gate x) ⊙ W_up x)`; shared expert 640-wide scaled by
-  σ(`ffn_gate_inp_shexp`·x).
-- **PLE** (block 1): gathered e (2560) → `key = RMSNorm(W_k e)`,
-  `query = RMSNorm(stream lane)`, `s = Σ key⊙query / √2560`,
-  `g = σ(sign(s)·√max(|s|,1e-6))`, `v = W_v e`, out = `stream + g⊗v +
-  SiLU(DConv_{k=4,dil=3}(RMSNorm(g⊗v)))`.
-- **Head**: `output_hc_*` collapse → RMSNorm → `output.weight`.
-- **MTP**: RMSNorm(embedding) ‖ per-lane hnorm → `eh_proj` 5120→2560 → one block
-  → shared head.
+Metadata (`ggufhdr … kv`): eps = 1e-6 everywhere (RMS, L2 floor, indexer, PLE);
+`rope.dimension_count` = 64 (partial), `rope.freq_base` = 1e7,
+`rope.dimension_sections` = [11, 11, 10, 0] (M-RoPE sections — for text all
+position components are equal, so this is plain NeoX RoPE on the first 64 dims);
+`indexer.top_k` = 2048, `compress_ratios` = 4 on attention blocks (0 elsewhere);
+`expert_gating_func` absent → softmax; `ple.ngram_size` 3, `heads_per_ngram` 8,
+eos 248044 (= BOS id; tokenizer eos 248046), head offsets/vocab sizes as in the
+SPEC n-gram section; no logit soft-capping key. All norms are RMSNorm with the
+plain weight (no 1+w); no block has a pre- or post-norm — the only norms are
+the hyper-connection norms, `ssm_norm`, q/k norms, indexer norms and PLE norms.
+
+- **Stream and hyper-connections.** Stream S ∈ R^{4×2560} (4 lanes). Embedding:
+  all 4 lanes = `token_embd[id]` (Q3_K row). Each block runs two hyper-blocks
+  (mixer with `hc_attn_*`, MoE with `hc_ffn_*`), each:
+  `x̂_l = RMS_2560(S_l) ⊙ hc_norm[l]` (10240 weights = per-lane slices);
+  read gate `g = σ(W_up · SiLU(0.25 · W_down · x̂))` with `W_down` 10240→320,
+  `W_up` 320→10240; branch input `z = 0.25 · Σ_l g_l ⊙ x̂_l` (2560);
+  `y = Branch(z)`; write gate `w_l = 2σ(0.25 · (W_inj x̂)_l)` (`hc_inject` 10240→4);
+  `S_l += w_l · y`. Head: the same read gate with `output_hc_{norm,down,up}`
+  gives h (2560, no further norm); `logits = output.weight · h`.
+- **Gated DeltaNet** (36 blocks): `qkv = W_qkv z` (10240 = q 16×128 | k 16×128 |
+  v 48×128); depthwise causal conv k=4 over all 10240 channels (`ssm_conv1d`
+  [4×10240], oldest tap first, state = last 3 inputs per channel); SiLU on all
+  10240; `q̂ = q/max(‖q‖₂, ε)`, `k̂` likewise per 128-vector; gates
+  `a = W_α z + ssm_dt.bias`, `b = W_β z` (48 each); `g_h = −exp(A_h)·softplus(a_h)`
+  where the file stores `ssm_a = −exp(A)` (so `−exp(A_h) = ssm_a_h`), decay
+  `α_h = exp(g_h)`, write `β_h = σ(b_h)`; per value head h with key head
+  `kh(h)` and S ∈ R^{128×128}: `S ← α_h S; r = k̂ᵀS; e = v − r;
+  S += β_h · k̂ eᵀ; o = q̂ᵀS` (readout after the write); `o ← o/√128` **once**
+  (cx-flash's B path applies it twice — a bug there, ours applies it once;
+  verify against llama.cpp); `ô = RMS_128(o) ⊙ ssm_norm` (128 weights shared by
+  heads); `ô ⊙ σ(W_g z)` (`attn_gate` 2560→6144, **sigmoid**); `ssm_out` 6144→2560.
+  **Open: key-head mapping** — cx-flash B tiles `kh = h mod 16`, A's inference
+  path groups `kh = h / 3`; llama.cpp's Qwen3-Next uses grouped (3 consecutive
+  value heads per key head). We implement grouped and verify numerically.
+- **Full attention** (blocks 3, 7, …, 47): `attn_q` 2560→12288 = 24 × [q (256) |
+  gate (256)], `attn_k`/`attn_v` 2560→512 (2 KV heads × 256), no biases; per-head
+  RMS_256 on q and k (shared weights), v unnormalised; NeoX RoPE on dims 0..63
+  (pairs (p, p+32), θ_p = 1e7^(−2p/64)); `score = q·k/√256`, query head i uses
+  KV head i/12; softmax over admitted causal keys; `out_i ⊙ σ(gate_i)`;
+  `attn_output` 6144→2560.
+  Indexer: `iq = W_iq z` (4×128), `ik = W_ik z` (128); `iq_h ← RoPE(RMS_128(iq_h)
+  ⊙ q_norm)` at position t; keys pooled per block of B = 4: representative
+  `r_b = RoPE_{pos=4b}(RMS_128(mean_j ik_j) ⊙ k_norm)` (the block containing t
+  uses its prefix mean); `score_b = Σ_h ReLU(iq_h · r_b)`; admit the
+  `ceil(2048/4) = 512` highest blocks (ties → lower index); attention runs over
+  every key in admitted blocks. (Below 2048 tokens nothing is dropped.)
+- **MoE** (every block): `p = softmax(W_r z)` (`ffn_gate_inp` BF16 2560→512),
+  top-10 (ties → lower id), `w_e = p_e / Σ_top p`; `y_e = W_down,e(SiLU(W_gate,e z)
+  ⊙ W_up,e z)`; `routed = Σ w_e y_e`; shared: `s = σ(ffn_gate_inp_shexp · z)`
+  (scalar), `y_s = W_down,s(SiLU(W_gate,s z) ⊙ W_up,s z)`; `out = routed + s·y_s`.
+- **PLE** (top of block 1, on the 4-lane stream): rows from the hash in the
+  execution-model section, `g` = 16 rows × 160 = 2560; `K = W_k g` (10240 =
+  per-lane), `k̂ = RMS_2560/lane(K) ⊙ ple_norm_key`, `Q = RMS_2560/lane(S) ⊙
+  ple_norm_query`, `s_l = (1/√2560) Σ_{c∈lane l} k̂_c Q_c`, `γ_l = σ(sgn(s_l)·
+  √max(|s_l|, 1e-6))`, `V = W_v g` (2560), `G_l = γ_l V`, `out = G +
+  SiLU(DConv_{k=4, dilation=3}(RMS_2560/lane(G) ⊙ ple_norm_conv))` (`ple_conv1d`
+  F16 [4×10240], a 4-tap causal conv over tokens per channel), `S += out`.
+- **MTP** (block 48 file): `e = RMS(token_embd'[next]) ⊙ nextn.enorm`; per lane
+  `u_l = RMS(S_l) ⊙ nextn.hnorm[l]` where S is the head-normalised stream (x̂ of
+  the output hyper-block); `lane_l = W_eh [e ; u_l]` (`eh_proj` 5120→2560, same
+  for all lanes); then one ordinary hyper-block pair (gated attention + MoE)
+  and the head `nextn.hc_head_*` → its own `output.weight`. Drafts verified by
+  equality with the main model's argmax; greedy output is unchanged by MTP.
+- **Numerics in cx-flash** (for tolerance expectations): fp32 accumulation,
+  DeltaNet state fp64 in its A path, experts forced fp32, activations quantised
+  per 32-element block (`d = max|x|/127`, round half away) — we quantise per 32
+  as well (see Numerics) but with round-to-nearest-even and an IEEE reciprocal.
 
 ## Numerics
 

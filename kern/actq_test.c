@@ -32,33 +32,33 @@ int main(int argc, char **argv) {
 	CK(cuModuleGetFunction(&fn, mod, "actq"));
 	CUdeviceptr dX, dQ, dS32, dS16, dSC;
 	CK(cuMemAlloc(&dX, 4 * n)); CK(cuMemAlloc(&dQ, 2 * n)); CK(cuMemAlloc(&dS32, 4 * n / 32 + 64));
-	CK(cuMemAlloc(&dS16, 4 * n / 16 + 64)); CK(cuMemAlloc(&dSC, 256));
+	CK(cuMemAlloc(&dS16, 4 * n / 16 + 64)); CK(cuMemAlloc(&dSC, 4 * n / 32 + 64));
 	float *x = malloc(4 * n);
 	int16_t *q = malloc(2 * n), *qg = malloc(2 * n);
 	int32_t *s32 = malloc(4 * n / 32), *s16 = malloc(4 * n / 16), *s32g = malloc(4 * n / 32), *s16g = malloc(4 * n / 16);
+	float *as = malloc(4 * n / 32), *asg = malloc(4 * n / 32);
 	const float mags[] = { 1.f, 1e-3f, 37.5f, 1e4f, 0.f, 3.14159f };
 	int fails = 0;
 	unsigned un = (unsigned)n;
 	for (unsigned m = 0; m < sizeof mags / sizeof mags[0]; m++) {
 		for (int i = 0; i < n; i++) x[i] = mags[m] * frand() * (1.f + (i % 7) * 0.25f);
 		if (m == 5) x[n - 1] = 1e4f;   /* one outlier */
-		float xs = quant_act_gpu(x, n, q, s32, s16);
+		quant_act_gpu32(x, n, q, s32, s16, as);
 		CK(cuMemcpyHtoD(dX, x, 4 * n));
 		CK(cuMemsetD32(dQ, 0x7fff7fffu, n / 2));
-		CK(cuMemsetD32(dS32, 0x7fffffffu, n / 32)); CK(cuMemsetD32(dS16, 0x7fffffffu, n / 16)); CK(cuMemsetD32(dSC, 0x7fc00000u, 64));
+		CK(cuMemsetD32(dS32, 0x7fffffffu, n / 32)); CK(cuMemsetD32(dS16, 0x7fffffffu, n / 16)); CK(cuMemsetD32(dSC, 0x7fc00000u, n / 32));
 		void *params[] = { &dX, &dQ, &dS32, &dS16, &dSC, &un };
 		CK(cuLaunchKernel(fn, 1, 1, 1, 32, 1, 1, 0, 0, params, NULL));
 		CK(cuCtxSynchronize());
-		float xsg;
-		CK(cuMemcpyDtoH(qg, dQ, 2 * n)); CK(cuMemcpyDtoH(s32g, dS32, 4 * n / 32)); CK(cuMemcpyDtoH(s16g, dS16, 4 * n / 16)); CK(cuMemcpyDtoH(&xsg, dSC, 4));
-		if (getenv("ACTQ_DBG")) { unsigned dbg[64]; CK(cuMemcpyDtoH(dbg, dSC, 256)); for (int k = 0; k < 48; k += 16) { printf("  dbg:"); for (int j = 0; j < 16; j++) printf(" %08x", dbg[k + j]); printf("\n"); } }
+		CK(cuMemcpyDtoH(qg, dQ, 2 * n)); CK(cuMemcpyDtoH(s32g, dS32, 4 * n / 32)); CK(cuMemcpyDtoH(s16g, dS16, 4 * n / 16)); CK(cuMemcpyDtoH(asg, dSC, 4 * n / 32));
 		int bq = 0, b32 = 0, b16 = 0;
 		for (int i = 0; i < n; i++) if (q[i] != qg[i]) { if (bq < 3) printf("  q[%d]: gpu %d ref %d (x %g)\n", i, qg[i], q[i], x[i]); bq++; }
 		for (int i = 0; i < n / 32; i++) if (s32[i] != s32g[i]) { if (b32 < 3) printf("  s32[%d]: gpu %d ref %d\n", i, s32g[i], s32[i]); b32++; }
 		for (int i = 0; i < n / 16; i++) if (s16[i] != s16g[i]) { if (b16 < 3) printf("  s16[%d]: gpu %d ref %d (prev %d next %d)\n", i, s16g[i], s16[i], i ? s16[i-1] : 0, i + 1 < n / 16 ? s16[i+1] : 0); b16++; }
-		int bs = memcmp(&xs, &xsg, 4) != 0;
-		printf("n=%d mag %-8g: %s (codes %d/%d differ, s32 %d, s16 %d, scale gpu %.9g ref %.9g)\n", n, mags[m],
-		       (bq || b32 || b16 || bs) ? "MISMATCH" : "BIT-EXACT", bq, n, b32, b16, xsg, xs);
+		int bs = 0;
+		for (int i = 0; i < n / 32; i++) if (memcmp(&as[i], &asg[i], 4)) { if (bs < 3) printf("  as[%d]: gpu %.9g ref %.9g\n", i, asg[i], as[i]); bs++; }
+		printf("n=%d mag %-8g: %s (codes %d/%d differ, s32 %d, s16 %d, scales %d/%d)\n", n, mags[m],
+		       (bq || b32 || b16 || bs) ? "MISMATCH" : "BIT-EXACT", bq, n, b32, b16, bs, n / 32);
 		if (bq || b32 || b16 || bs) fails++;
 	}
 	return fails ? 3 : 0;
