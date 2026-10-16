@@ -152,6 +152,7 @@ static CUdeviceptr ph_hc_read(prog_t *P, const split_t *s, const xchg_t *x, CUde
 	unsigned cols = 32u * (unsigned)s->cbn;
 	ph_rms(P, OP_RMS2560, b->S, norm, b->xh, eps, 4);
 	ph_bf16(P, OP_BF16HC, dj, b->xh, b->ldown, (unsigned)s->djn, 0);
+	if (getenv("PROG_DUP")) ph_bf16(P, OP_BF16HC, dj, b->xh, b->ldown, (unsigned)s->djn, 0);   /* timing experiment: the same phase twice (warm code) */
 	CUdeviceptr DOWN = ph_xchg(P, x, s->d, s->n, b->ldown, 4u * (unsigned)s->djn, 4u * (unsigned)s->dj0, 4 * 324);
 	ph_hc(P, OP_HCSILU, DOWN, b->t, 0, 324, 320, 2);
 	ph_bf16(P, OP_BF16K320, up, b->t, b->lup, 4 * cols, 0);
@@ -173,6 +174,7 @@ static void ph_moe_half(prog_t *P, const split_t *s, const xchg_t *x, const dn_w
 	if (s->shexp) {
 		ph_gemv_any(P, w->ffn_gate_shexp_type, 2560, w->ffn_gate_shexp, b->zq, b->zs32, b->zs16, b->g + 6400 * 4, 640, b->zas, 0, 0);
 		ph_gemv_any(P, w->ffn_up_shexp_type, 2560, w->ffn_up_shexp, b->zq, b->zs32, b->zs16, b->gu + 6400 * 4, 640, b->zas, 0, 0);
+		if (getenv("PROG_DUP")) ph_gemv_any(P, w->ffn_up_shexp_type, 2560, w->ffn_up_shexp, b->zq, b->zs32, b->zs16, b->gu + 6400 * 4, 640, b->zas, 0, 0);
 	}
 	ph_ffnact(P, b->g, b->gu, b->hq, b->hs32, b->hs16, b->has, 640, s->shexp ? 11 : 10);
 	ph_q2(P, OP_Q2MOEDN, w->ffn_down_exps, b->hq, b->hs32, b->part, 2560, b->lidx, b->has, b->lw, b->ne);

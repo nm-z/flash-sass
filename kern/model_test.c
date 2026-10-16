@@ -22,6 +22,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 
 CUresult cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev);
 #define CK(x) do { CUresult r_ = (x); if (r_ != CUDA_SUCCESS) { const char *s_ = "?"; cuGetErrorString(r_, &s_); \
@@ -108,15 +112,26 @@ int main(int argc, char **argv) {
 	const size_t PLE_R = 1u << 20; uint8_t *ptab = NULL; uint8_t ppc[160]; uint64_t pmult[3], poff[16], pvoc[16]; uint32_t pabsent = 248044, pend = 248046;
 	int has_ple = b0 <= 1 && 1 < b1;
 	if (has_ple) {
-		CK(cuMemHostAlloc((void **)&ptab, PLE_R * 90, CU_MEMHOSTALLOC_PORTABLE | CU_MEMHOSTALLOC_DEVICEMAP));
-		for (size_t r = 0; r < PLE_R; r++)
-			for (int k = 0; k < 5; k++) {
-				uint16_t dd = (uint16_t)(0x3000 + (rs >> 16) % 0x1000); frand();
-				memcpy(ptab + r * 90 + 18 * k, &dd, 2);
-				for (int j = 2; j < 18; j++) { ptab[r * 90 + 18 * k + j] = (uint8_t)(rs >> 24); frand(); }
-			}
 		memcpy(pmult, ple_multipliers, sizeof pmult);
-		for (int h = 0; h < 16; h++) { poff[h] = (uint64_t)h * 65000; pvoc[h] = 60000 + 13 * h; }
+		if (getenv("MODEL_PLE")) {   /* the real table: shard 2's tensor data (320,001,536 rows x 90 B) as a file, mapped and pinned */
+			int fd = open(getenv("MODEL_PLE"), O_RDONLY); if (fd < 0) { perror(getenv("MODEL_PLE")); return 1; }
+			struct stat st; if (fstat(fd, &st)) { perror("fstat"); return 1; }
+			size_t sz = (size_t)st.st_size;
+			ptab = mmap(NULL, sz, PROT_READ, MAP_SHARED, fd, 0); if (ptab == MAP_FAILED) { perror("mmap ple"); return 1; }
+			double tp0 = now();
+			CK(cuMemHostRegister(ptab, sz, CU_MEMHOSTREGISTER_PORTABLE | CU_MEMHOSTREGISTER_DEVICEMAP));
+			printf("PLE table %s: %.2f GB pinned in %.1f s\n", getenv("MODEL_PLE"), sz / 1e9, now() - tp0);
+			memcpy(poff, ple_head_offsets, sizeof poff); memcpy(pvoc, ple_head_vocab, sizeof pvoc);
+		} else {
+			CK(cuMemHostAlloc((void **)&ptab, PLE_R * 90, CU_MEMHOSTALLOC_PORTABLE | CU_MEMHOSTALLOC_DEVICEMAP));
+			for (size_t r = 0; r < PLE_R; r++)
+				for (int k = 0; k < 5; k++) {
+					uint16_t dd = (uint16_t)(0x3000 + (rs >> 16) % 0x1000); frand();
+					memcpy(ptab + r * 90 + 18 * k, &dd, 2);
+					for (int j = 2; j < 18; j++) { ptab[r * 90 + 18 * k + j] = (uint8_t)(rs >> 24); frand(); }
+				}
+			for (int h = 0; h < 16; h++) { poff[h] = (uint64_t)h * 65000; pvoc[h] = 60000 + 13 * h; }
+		}
 		memset(ppc, 0, sizeof ppc); memcpy(ppc, pmult, 24);
 		for (int h = 0; h < 16; h++) { uint32_t o32 = (uint32_t)poff[h], v32 = (uint32_t)pvoc[h]; memcpy(ppc + 24 + 4 * h, &o32, 4); memcpy(ppc + 88 + 4 * h, &v32, 4); }
 		memcpy(ppc + 152, &pabsent, 4); memcpy(ppc + 156, &pend, 4);

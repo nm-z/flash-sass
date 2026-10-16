@@ -903,6 +903,43 @@ second fence; a waiting phase's warp 0 polls all 96 words (3 per lane,
 `VOTE.ALL` on `min >= XG`). The framework no longer touches `ctl[8]` or the
 flags itself (descriptor word 30 bit 0 is informational now).
 
+**The PCH board costs ~15–20 ms per token (2026-10-16).** Full-model profile
+(die 0, per token, logical dies on physical {0, 1, 6, 3, 4, 5}): 342 `xsend`
+phases take 21.8 ms (≈ 63 µs each, independent of the part's size) and the
+phases that wait on an exchange carry another ~5 ms (sumn 42 µs, hcwrite 28,
+hcsilu 12 each). Block 0 on two dies, per-phase: with dies {1, 3} every xsend
+is 8 µs and the waits 3–5 µs (0.74 ms per token); with {1, 6} xsend is 22–26
+µs and the waits 20–40 µs (0.90 ms) — the x2 gen2 link of board 4 adds ~23
+µs to every exchange (MEMBAR.SYS waits for the peer writes to land there) and
+the other dies then wait for die 6's part. So the six logical dies must be
+physical 0–5 (die 2 needs its pending page retirement activated: a GPU reset
+or a reboot), which is worth ≈ 30 % of the token. `nvidia-smi -r -i 2` (and
+`-i 2,3`) refuses with "in use by another process" even with every CUDA
+process gone and nothing holding `/dev/nvidia2` (`fuser`/`lsof` empty,
+persistenced inactive) — archy needs a reboot to get die 2 back (Nate's
+call: other agents use the box).
+
+**Where a split GEMV phase's time goes (2026-10-16).** Block 0 on one die
+(die 7, all rows, per phase): bf16hc 59 µs (6.6 MB, 111 GB/s), iq4k2560
+123 (13.9 MB, 113 GB/s), q5kk6144 114 (95 GB/s), dnstep 56, but q3kk2560
+26 µs for 738 KB (28 GB/s) and the standalone `gemv_k_test` gets the same
+matrix in 16 µs at a 16-CTA grid (45 GB/s; 23.5 µs at grid 40 — the kernel is
+latency-chained per 16-row CTA iteration, ~5.5 µs each, with no prefetch of
+the next rows). Running the same phase twice in a row (`PROG_DUP=1`) makes
+the second q3kk2560 17.4 µs instead of 29.7 and the second bf16hc 55 instead
+of 61: **the first run of an op pays ~5–12 µs of instruction fetch** — the
+die kernel is 329 KB of code and a K-quant GEMV body is 11–22 KB (q3kk2560
+889 instructions, 18.5 KB; attnpart 39 KB, router 31 KB), far beyond what
+stays in the SM's instruction cache across the other ops of a phase. In the
+six-way split every GEMV is 1/6 the size while the floor (~3 µs barrier +
+dispatch), the cold code (~5–12 µs) and the two serial memory latencies of a
+unit (x, then weights) stay, which is why a block costs ~650 µs on six dies
+against a bandwidth floor of ~185. Levers, in order: more tokens per phase
+(MTP draft + verify, prefill chunks — the fixed costs amortise), smaller op
+bodies (loop the sub-blocks instead of unrolling, prefetch the next
+iteration's rows), one phase per activation for same-format matrices (expert
+gate ++ up, q ++ k ++ v), a flag-array grid barrier (~1 µs less per phase).
+
 **Hardware notes (archy, 2026-10-16).** Root ports: board 1 (dies 0, 1) is
 PCIe 3 ×8, boards 2 and 3 ×16, board 4 (dies 6, 7) hangs off the PCH at
 5 GT/s ×2. Boards 2 (dies 2, 3) run with ECC *enabled*, the others disabled.
