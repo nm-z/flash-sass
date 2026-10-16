@@ -35,6 +35,7 @@ static tok_vocab *V;
 static jinja *TPL;
 static const char *SOCK, *NAME = "Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass";
 static int POSITIONS = 2048, THINK_DEFAULT = 1;
+static double DEF_TEMP = 0.0, DEF_TOPP = 1.0; static int DEF_TOPK = 0;   /* general.sampling.* from the GGUF; temperature 0 = greedy */
 static uint32_t ID_END, ID_THINK_END;
 static pthread_mutex_t ENGINE = PTHREAD_MUTEX_INITIALIZER;
 
@@ -128,6 +129,13 @@ static void chat(int fd, const char *body, size_t bn) {
 	else if (!THINK_DEFAULT) jv_set(a, vars, "enable_thinking", 15, jv_bool(a, 0));
 	jv *eff = kw ? jv_getz(kw, "reasoning_effort") : NULL;
 	if (eff && eff->k == J_STR) jv_set(a, vars, "reasoning_effort", 16, eff);
+	double temp = DEF_TEMP, topp = DEF_TOPP; long topk = DEF_TOPK; unsigned long long seed = 0; int have_seed = 0;
+	{ jv *x;
+	  if ((x = jv_getz(req, "temperature")) && (x->k == J_NUM || x->k == J_INT)) temp = x->k == J_NUM ? x->d : (double)x->i;
+	  if ((x = jv_getz(req, "top_p")) && (x->k == J_NUM || x->k == J_INT)) topp = x->k == J_NUM ? x->d : (double)x->i;
+	  if ((x = jv_getz(req, "top_k")) && x->k == J_INT) topk = (long)x->i;
+	  if ((x = jv_getz(req, "seed")) && x->k == J_INT && x->i >= 0) { seed = (unsigned long long)x->i; have_seed = 1; } }
+	if (!have_seed) { struct timespec ts; clock_gettime(CLOCK_REALTIME, &ts); seed = (unsigned long long)ts.tv_nsec * 1000003ull ^ (unsigned long long)ts.tv_sec * 0x9e3779b97f4a7c15ull ^ (unsigned long long)(uintptr_t)body; }
 	int stream = 0; jv *sv = jv_getz(req, "stream"); if (sv && sv->k == J_BOOL) stream = sv->b;
 	long max_tokens = 512; jv *mt = jv_getz(req, "max_tokens"); if (!mt) mt = jv_getz(req, "max_completion_tokens");
 	if (mt && mt->k == J_INT && mt->i > 0) max_tokens = (long)mt->i;
@@ -147,6 +155,7 @@ static void chat(int fd, const char *body, size_t bn) {
 	FILE *out = NULL, *in = engine_open(&out);
 	if (!in) { pthread_mutex_unlock(&ENGINE); free(ids); free(prompt); arena_free(a); error(fd, 500, "the engine is not running"); return; }
 	fprintf(out, "stop %u %u\n", ID_END, tok_eos(V) == ID_END ? 0xffffffffu : tok_eos(V));
+	fprintf(out, "sample %llu %.6g %ld %.6g\n", seed, temp, topk <= 0 ? 32 : topk, topp);
 	fprintf(out, "chat %ld", n_new); for (int i = 0; i < np; i++) fprintf(out, " %u", ids[i]); fputc('\n', out); fflush(out);
 	free(ids);
 
@@ -163,7 +172,7 @@ static void chat(int fd, const char *body, size_t bn) {
 	char line[256]; int ngen = 0, ended = 0; double run_ms = 0, first_ms = 0;
 	while (fgets(line, sizeof line, in)) {
 		unsigned id; int e, npm; double r, f;
-		if (sscanf(line, "tok %u", &id) == 1) on_token(&g, id);
+		if (sscanf(line, "tok %u", &id) == 1) { on_token(&g, id); if (g.gone) break; }
 		else if (sscanf(line, "done %d %d %d %lf %lf", &ngen, &e, &npm, &r, &f) == 5) { ended = e; run_ms = r; first_ms = f; break; }
 		else if (!strncmp(line, "error", 5)) { fprintf(stderr, "flashd: engine: %s", line); break; }
 	}
@@ -171,6 +180,7 @@ static void chat(int fd, const char *body, size_t bn) {
 	pthread_mutex_unlock(&ENGINE);
 	free(prompt);
 
+	if (g.gone) fprintf(stderr, "flashd: client left after %d bytes of text; the engine is told to stop\n", (int)(g.content.n + g.reasoning.n));
 	double pp = first_ms > 0 ? np / (first_ms / 1e3) : 0, dec_ms = run_ms - first_ms, dec = (ngen > 1 && dec_ms > 0) ? (ngen - 1) / (dec_ms / 1e3) : 0;
 	sbuf t = {0};
 	sb_printf(&t, "{\"prompt_n\":%d,\"prompt_ms\":%.1f,\"prompt_per_second\":%.2f,\"predicted_n\":%d,\"predicted_ms\":%.1f,\"predicted_per_second\":%.2f}", np, first_ms, pp, ngen, dec_ms > 0 ? dec_ms : 0, dec);
@@ -235,6 +245,8 @@ int main(int argc, char **argv) {
 	if (getenv("FLASHD_NAME")) NAME = getenv("FLASHD_NAME");
 	if (getenv("FLASHD_THINKING")) THINK_DEFAULT = atoi(getenv("FLASHD_THINKING"));
 	V = tok_load(argv[1]); if (!V) return 1;
+	{ double x; if (!tok_meta_num(V, "general.sampling.temp", &x)) DEF_TEMP = x; if (!tok_meta_num(V, "general.sampling.top_p", &x)) DEF_TOPP = x; if (!tok_meta_num(V, "general.sampling.top_k", &x)) DEF_TOPK = (int)x;
+	  if (getenv("FLASHD_GREEDY")) DEF_TEMP = 0.0; }
 	const char *ts = tok_template(V); char err[512];
 	if (!ts) { fprintf(stderr, "%s has no chat template\n", argv[1]); return 1; }
 	TPL = jinja_compile(ts, strlen(ts), err, sizeof err);
@@ -253,7 +265,7 @@ int main(int argc, char **argv) {
 	int ls = socket(AF_INET, SOCK_STREAM, 0), one = 1; setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, &one, sizeof one);
 	struct sockaddr_in sa = { .sin_family = AF_INET, .sin_port = htons((uint16_t)port) }; inet_pton(AF_INET, host, &sa.sin_addr);
 	if (bind(ls, (struct sockaddr *)&sa, sizeof sa) || listen(ls, 64)) { perror(argv[3]); return 1; }
-	fprintf(stderr, "flashd: %s, %d positions, listening on %s\n", NAME, POSITIONS, argv[3]);
+	fprintf(stderr, "flashd: %s, %d positions, sampling defaults from the GGUF: temp %g top_k %d top_p %g%s, listening on %s\n", NAME, POSITIONS, DEF_TEMP, DEF_TOPK, DEF_TOPP, DEF_TEMP > 0 ? "" : " (greedy)", argv[3]);
 	for (;;) {
 		int c = accept(ls, NULL, NULL); if (c < 0) { if (errno != EINTR) perror("accept"); continue; }
 		pthread_t th; if (pthread_create(&th, NULL, serve, (void *)(long)c)) { close(c); continue; }

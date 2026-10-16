@@ -9,7 +9,7 @@
 #include <stdint.h>
 
 typedef struct { uint32_t w[32]; } phase_t;
-typedef struct { phase_t *p; int n, cap; int xj; int loop; int pending_wait; uint32_t stop[2]; CUdeviceptr end; } prog_t;   /* stop[2], end: a generated token equal to stop[0] or stop[1] sets *end (ctl[5]) = 0x80000000 and the kernel exits after that token (0xffffffff: none) */
+typedef struct { phase_t *p; int n, cap; int xj; int loop; int pending_wait; uint32_t stop[2]; CUdeviceptr end; int samp_k; float samp_topp, samp_invT; } prog_t;   /* stop[2], end: a generated token equal to stop[0] or stop[1] sets *end (ctl[5]) = 0x80000000 and the kernel exits after that token (0xffffffff: none) */
    /* pending_wait: the next phase consumes an exchange */   /* xj: exchanges issued (slot parity); loop: token-relative
  * parameters are marked for the kernel's token loop instead of taking the position literally */
 
@@ -132,6 +132,7 @@ typedef struct {
 	unsigned ple_compact;   /* 1: ple_tab holds the 16 rows of every position (16 pos + h), not the hashed table */
 	/* head: this die's logits, its argmax (idx, max bits) + partials/counter, the gathered pairs, the token (u32 idx, u32 max bits) */
 	CUdeviceptr hlo, amo, apart, acnt, tokout, toks;   /* toks: u32[positions], the generated tokens */
+	CUdeviceptr tkout, tkpart, tkcnt, rnd;   /* sampling: this die top-K list (32 x {idx, value bits}), the CTA lists, the counter, u[positions] floats */
 } dn_bufs_t;
 
 void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps);

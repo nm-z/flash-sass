@@ -99,6 +99,8 @@ my @OPS = (
     [ 'q2moegn',    'gemv_q2_0.sass',   'cta',  { GEMV_K => 2560, GEMV_MOE => 'gather', GEMV_NEPTR => 1 } ],
     [ 'q2moedn',    'gemv_q2_0.sass',   'cta',  { GEMV_K => 640, GEMV_MOE => 'down', GEMV_NEPTR => 1 } ],
     [ 'amax',       'amax.sass',        'warp', {} ],
+    [ 'topk',       'topk.sass',        'cta',  {} ],
+    [ 'sample',     'sample.sass',      'warp', {} ],
 );
 
 sub expand_names {                       # x<00-15> -> x00 .. x15
@@ -509,9 +511,21 @@ BDONE:
 --:-:-:-:6      MOV bar_cp1, ctl1;
 --:-:-:-:6      BAR.SYNC 0x1;
 --:-:1:-:1 \@!P5 LDS bar_t, [RZ+0x@{[sprintf '%x', $TOK_OFF]}];
---:-:3:-:2 \@!P5 LDG.E.CV bar_old, [bar_cp+0x14];
+--:-:3:-:1 \@!P5 LDG.E.CV bar_old, [bar_cp+0x14];
+--:-:3:-:2 \@!P5 LDG.E.CV bar_g2, [bar_cp+0x18];
 01:-:-:-:6 \@!P5 IADD bar_t, bar_t, 0x1;
 04:-:-:-:6 \@!P5 LOP.OR bar_t, bar_t, bar_old;
+# Abort: the host writes ctl[6] = a token count a few tokens ahead of every die (0: none); the
+# die whose count reaches it ends the turn exactly like a stop token, so all dies stop together.
+--:-:-:-:6      ISETP.NE.U32.AND P3, PT, bar_g2, RZ, !P5;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, bar_t, bar_g2, P3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P3 LOP32I.OR bar_t, bar_t, 0x80000000;
 --:2:-:-:6 \@!P5 STS [RZ+0x@{[sprintf '%x', $TOK_OFF]}], bar_t;
 --:2:-:-:6  \@P4 STG.E [bar_cp+0x8], bar_t;
 02:-:-:-:6      BAR.SYNC 0x1;

@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void prog_init(prog_t *P) { P->cap = 64; P->n = 0; P->xj = 0; P->loop = 0; P->pending_wait = 0; P->stop[0] = P->stop[1] = 0xffffffffu; P->end = 0; P->p = malloc(sizeof(phase_t) * P->cap); }
+void prog_init(prog_t *P) { P->cap = 64; P->n = 0; P->xj = 0; P->loop = 0; P->pending_wait = 0; P->stop[0] = P->stop[1] = 0xffffffffu; P->end = 0; P->samp_k = 0; P->samp_topp = 1.0f; P->samp_invT = 1.0f; P->p = malloc(sizeof(phase_t) * P->cap); }
 void prog_free(prog_t *P) { free(P->p); P->p = NULL; P->n = P->cap = 0; }
 phase_t *prog_add(prog_t *P, int op, unsigned units) {
 	if (P->n == P->cap) { P->cap *= 2; P->p = realloc(P->p, sizeof(phase_t) * P->cap); }
@@ -303,7 +303,18 @@ void prog_head(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t 
 	CUdeviceptr Z = ph_hcup(P, x, w->output_hc_up, DOWN, b->lup, cols, b->xh + 4u * 32u * (unsigned)s->cb0, b->t, 320, 4u * 32u * (unsigned)s->cb0);
 	ph_actq(P, OP_ACTQ256, Z, b->zq, b->zs32, b->zs16, b->zas, 256, 10);
 	ph_gemv_any(P, GG_Q5_K, 2560, w->output, b->zq, b->zs32, b->zs16, b->hlo, (unsigned)s->on, b->zas, 0, 0);
-	phase_t *p = prog_add(P, OP_ARGMAX, 16);
+	phase_t *p;
+	if (P->samp_k >= 2) {   /* top-k -> top-p -> temperature, the dies agree on the token (kern/sample.sass) */
+		p = prog_add(P, OP_TOPK, 16);
+		ph_ptr(p, 0x140, b->hlo); ph_ptr(p, 0x148, b->tkout); ph_ptr(p, 0x150, b->tkpart); ph_ptr(p, 0x158, b->tkcnt); ph_u32(p, 0x160, (unsigned)s->on); ph_u32(p, 0x164, 16); ph_u32(p, 0x168, (unsigned)P->samp_k);
+		CUdeviceptr LISTS = ph_xchg(P, x, s->d, s->n, b->tkout, 256, 256u * (unsigned)s->d, 256u * (unsigned)s->n);
+		p = prog_add(P, OP_SAMPLE, 1);
+		ph_ptr(p, 0x140, LISTS); ph_ptr(p, 0x148, w->obases); ph_u32(p, 0x150, (unsigned)s->n); ph_u32(p, 0x154, (unsigned)P->samp_k); ph_f32(p, 0x158, P->samp_topp); ph_f32(p, 0x15c, P->samp_invT);
+		ph_ptr(p, 0x160, b->ids); ph_ptr(p, 0x168, b->toks); ph_tokv(P, p, 0x170, 0, t); ph_u32(p, 0x174, nprompt);
+		ph_u32(p, 0x178, P->stop[0]); ph_u32(p, 0x17c, P->stop[1]); ph_ptr(p, 0x180, P->end); ph_ptr(p, 0x188, b->rnd);
+		return;
+	}
+	p = prog_add(P, OP_ARGMAX, 16);
 	ph_ptr(p, 0x140, b->hlo); ph_ptr(p, 0x148, b->amo); ph_ptr(p, 0x150, b->apart); ph_ptr(p, 0x158, b->acnt); ph_u32(p, 0x160, (unsigned)s->on); ph_u32(p, 0x164, 16);
 	CUdeviceptr PAIRS = ph_xchg(P, x, s->d, s->n, b->amo, 8, 8u * (unsigned)s->d, 8u * (unsigned)s->n);
 	p = prog_add(P, OP_AMAX, 1);

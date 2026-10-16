@@ -471,8 +471,17 @@ dies_test: dies_test.c prog.c prog.h holdc.c hold.h dieops.h ../ref/block.c ../r
 model_test: model_test.c prog.c prog.h holdc.c hold.h dieops.h ../ref/block.c ../ref/block.h ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c ../ref/split.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ model_test.c prog.c holdc.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I$(CUDA)/include -lcuda -lm
 
-flash: flash.c prog.c prog.h holdc.c hold.h dieops.h ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/split.c ../ref/split.h
-	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ flash.c prog.c holdc.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I$(CUDA)/include -lcuda -lm
+# the persistent core and the reloadable engine library (see core.h); the library is built to a new name and moved
+# over the old one, so a running core that has the old file mapped keeps a consistent image
+ENGINE_SRC = engine.c prog.c holdc.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c
+libengine.so: $(ENGINE_SRC) prog.h hold.h core.h engine.h dieops.h ../ref/split.h
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -o $@.new $(ENGINE_SRC) -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
+
+flashcore: flashcore.c core.h hold.h holdc.c ../ref/gguf.c ../ref/gguf.h
+	$(CC) -std=gnu99 -O2 -Wall -o $@ flashcore.c holdc.c ../ref/gguf.c -I../ref -I$(CUDA)/include -lcuda -ldl -lm
+
+nullengine.so: nullengine.c core.h
+	$(CC) -std=gnu99 -O2 -Wall -fPIC -shared -o $@.new nullengine.c -I../ref -I$(CUDA)/include && mv -f $@.new $@
 
 tok_test: tok_test.c tok.c tok.h ucd.h ../ref/gguf.c ../ref/gguf.h
 	$(CC) -std=gnu99 -O2 -Wall -o $@ tok_test.c tok.c ../ref/gguf.c -I../ref
@@ -482,3 +491,6 @@ jinja_test: jinja_test.c jinja.c jinja.h json.c json.h
 
 flashd: flashd.c tok.c tok.h jinja.c jinja.h json.c json.h ucd.h ../ref/gguf.c ../ref/gguf.h
 	$(CC) -std=gnu99 -O2 -Wall -o $@ flashd.c tok.c jinja.c json.c ../ref/gguf.c -I../ref -lm -lpthread
+
+sample_test: sample_test.c dieops.h ../ref/sample.c ../ref/sample.h ../ref/fmath.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ sample_test.c ../ref/sample.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm

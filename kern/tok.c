@@ -314,3 +314,13 @@ tok_vocab *tok_load(const char *path) {
 }
 
 int tok_is_special(const tok_vocab *v, uint32_t id) { return (int)id < v->n && v->type[id] != TT_NORMAL && v->type[id] != TT_BYTE; }
+
+int tok_meta_num(const tok_vocab *v, const char *key, double *out) {
+	const gguf_kv *kv = gguf_get(&v->g, key);
+	if (!kv) return -1;
+	if (kv->type == 6) { float f; memcpy(&f, kv->val, 4); *out = f; return 0; }
+	if (kv->type == 12) { memcpy(out, kv->val, 8); return 0; }
+	int64_t i;
+	if (gguf_get_int(&v->g, key, &i)) return -1;
+	*out = (double)i; return 0;
+}
