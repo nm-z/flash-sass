@@ -149,9 +149,13 @@ sub fm_zip {
     my $stall = $n >= 6 ? 1 : $n >= 3 ? 2 : $n >= 2 ? 3 : 6;
     my $o = '';
     for my $i (0 .. $#{$chains[0]}) {
-        for my $c (@chains) {
-            my $l = $c->[$i];
-            $l =~ s/^(..:.:.:.:)(\d)/$1$stall/ if $n > 1;
+        for my $k (0 .. $#chains) {
+            my $l = $chains[$k][$i];
+            my $s = $stall;
+            # the last chain's copy of a variable-latency op sits right before the next
+            # line, which may wait on it: stall >= 2 or the wait can miss it
+            $s = 2 if $k == $#chains && $s < 2 && $l =~ /\b(SHFL|MUFU|F2I|F2F|LDG|LDS|I2F)\b/;
+            $l =~ s/^(..:.:.:.:)(\d)/$1$s/ if $n > 1;
             $o .= "$l\n";
         }
     }

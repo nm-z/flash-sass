@@ -67,6 +67,7 @@ sub actq_code {
             my $line = $f->($u);
             my $w = ($u == 0 && $wait) ? $wait : '--';
             my $s = $u == $U-1 ? $rs : '1';
+            $s = 2 if $u == $U-1 && $s eq '1' && $line =~ /\b(SHFL|MUFU|F2I|LDG)\b/;   # variable-latency op: stall >= 2 before the dependent wait
             $line =~ s/^WW/$w/; $line =~ s/:SS /:$s /;
             $x .= $line;
         }
