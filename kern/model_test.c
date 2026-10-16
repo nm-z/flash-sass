@@ -111,6 +111,8 @@ int main(int argc, char **argv) {
 		fclose(f);
 	} else for (int i = 0; i < T; i++) { ids[i] = (uint32_t)((rs >> 8) % 248000u); frand(); }
 	const size_t PLE_R = 1u << 20; uint8_t *ptab = NULL, *ctab = NULL; unsigned pcompact = 0; uint8_t ppc[160]; uint64_t pmult[3], poff[16], pvoc[16]; uint32_t pabsent = 248044, pend = 248046;
+/* the 16 real rows of position t -> the compact table slot the GPU reads (plerows compact mode) */
+#define PLE_STAGE(t) do { uint64_t rows_[16]; ple_rows_c(ids, (size_t)(t), pabsent, &pend, 1, pmult, poff, pvoc, rows_); for (int h_ = 0; h_ < 16; h_++) memcpy(ctab + ((size_t)(t) * 16 + h_) * 90, ptab + rows_[h_] * 90, 90); } while (0)
 	int has_ple = b0 <= 1 && 1 < b1;
 	if (has_ple) {
 		memcpy(pmult, ple_multipliers, sizeof pmult);
@@ -120,19 +122,16 @@ int main(int argc, char **argv) {
 			   while the GPU gets a compact table: the 16 rows of every position (teacher-forced: all T
 			   ids are known up front), staged in pinned memory and indexed 16 pos + h (plerows' compact
 			   mode). Free-running decode with the real table needs a long-lived pinned copy (later). */
-			if (nprompt < T) { fprintf(stderr, "MODEL_PLE needs every id up front (MODEL_IDS with %d ids): the compact table is built per position\n", T); return 1; }
+			if (do_loop && nprompt < T) { fprintf(stderr, "MODEL_PLE in one-launch mode needs every id up front (MODEL_IDS with %d ids): the rows are staged per position\n", T); return 1; }
 			int fd = open(getenv("MODEL_PLE"), O_RDONLY); if (fd < 0) { perror(getenv("MODEL_PLE")); return 1; }
 			struct stat st; if (fstat(fd, &st)) { perror("fstat"); return 1; }
 			size_t sz = ((size_t)st.st_size + 4095) & ~(size_t)4095;   /* whole pages (the last row ends mid-page) */
 			ptab = mmap(NULL, sz, PROT_READ, MAP_SHARED, fd, 0); if (ptab == MAP_FAILED) { perror("mmap ple"); return 1; }
 			memcpy(poff, ple_head_offsets, sizeof poff); memcpy(pvoc, ple_head_vocab, sizeof pvoc);
 			CK(cuMemHostAlloc((void **)&ctab, (size_t)T * 16 * 90 + 4096, CU_MEMHOSTALLOC_PORTABLE | CU_MEMHOSTALLOC_DEVICEMAP));
-			for (int t = 0; t < T; t++) {
-				uint64_t rows[16]; ple_rows_c(ids, (size_t)t, pabsent, &pend, 1, pmult, poff, pvoc, rows);
-				for (int h = 0; h < 16; h++) memcpy(ctab + ((size_t)t * 16 + h) * 90, ptab + rows[h] * 90, 90);
-			}
+			for (int t = 0; t < nprompt; t++) PLE_STAGE(t);   /* generated positions are staged per token (per-token mode) */
 			pcompact = 1;
-			printf("PLE table %s mapped for the twin; %d positions x 16 rows staged for the GPU\n", getenv("MODEL_PLE"), T);
+			printf("PLE table %s mapped for the twin; %d prompt positions x 16 rows staged for the GPU\n", getenv("MODEL_PLE"), nprompt);
 		} else {
 			CK(cuMemHostAlloc((void **)&ptab, PLE_R * 90, CU_MEMHOSTALLOC_PORTABLE | CU_MEMHOSTALLOC_DEVICEMAP));
 			for (size_t r = 0; r < PLE_R; r++)
@@ -362,6 +361,7 @@ int main(int argc, char **argv) {
 	for (int t = 0; t < T; t++) {
 		unsigned id = t < nprompt ? ids[t] : tok_gpu;
 		if (t >= nprompt) ids[t] = tok_gpu;   /* the PLE's context sees the generated token */
+		if (pcompact && t >= nprompt) PLE_STAGE(t);   /* and its real PLE rows get staged */
 		double t0 = now();
 		if (!notwin) {
 			unsigned idt = t < nprompt ? ids[t] : tok_twin;

@@ -998,6 +998,11 @@ builder, the twin and the tests all take the same two variables, and the
 full-model holders run with `SPLIT_SHARES=86,103,103,103,103,102 ATTN_DIE=1`
 (die 0 ≈ 0.5 GB replicated + 35.7 GB × 0.143 ≈ 5.6 GB).
 
+**Clocks (2026-10-16):** die 6 ran with an applications clock of 873 MHz
+(its default is 557; dies 0–5 default to the 1177 MHz maximum) — the "35 %
+slower per block" of board 4. `nvidia-smi -ac 2505,1177 -i 6` (and 7) pins
+them to the maximum; the token time did not move (45–46 ms): the x2 gen2
+link, not the SM clock, is what the other dies wait for.
 **Hardware notes (archy, 2026-10-16).** Root ports: board 1 (dies 0, 1) is
 PCIe 3 ×8, boards 2 and 3 ×16, board 4 (dies 6, 7) hangs off the PCH at
 5 GT/s ×2. Boards 2 (dies 2, 3) run with ECC *enabled*, the others disabled.
