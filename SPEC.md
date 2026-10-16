@@ -405,18 +405,29 @@ head and runs slower (811 MHz measured), so it gets fewer blocks.
 ## Phases
 
 0. **Probes** — done (table above).
-1. **GEMV kernels**: done and bit-exact: Q2_0 K=2560 and K=640 (139-140 GB/s),
-   BF16 K=2560 and K=320 (134-137 GB/s), Q4_K K=2560 and K=6144 (121-124 GB/s on
-   8.8 MB matrices; sub-block-major repack, 6-bit scale/min decode per lane,
-   8 shift accumulators). Scheduling lessons folded into the generators: a mask
-   LOP must be >= 6 issues before the XMAD that reads it (first word and the
-   H0 masks of the next word were 3-5 away); the combine must not read an
-   accumulator within 6 cycles of its last XMAD (only element 28 of a sub-block
-   exposed it). Next:
-   BF16 K=10240 as 4 ordered K=2560 partials (hc_down, hc_inject); then the
-   K-quants with a sub-block-major repack: Q4_K, Q5_K (the 437 MB/token head),
-   Q6_K, Q3_K; IQ4_XS via PRMT byte lookup; the block-32 formats last.
-   Each bit-exact against the C reference on real tensors.
+1. **GEMV kernels** — **done (2026-10-16)**. Every weight format and matvec
+   shape in the file has a MaxAs kernel that is bit-exact against the C
+   reference on real tensors:
+
+   | Kernel | Shapes | Registers | GB/s (large tensors) |
+   |---|---|---|---|
+   | `gemv_q2_0` | K=2560, 640 | 128 | 139–140 |
+   | `gemv_bf16` | K=2560, 320; K=10240 as 4 accumulating slices | 134/74/136 | 134–137 |
+   | `gemv_q4_k` / `gemv_q5_k` (one generator) | K=2560, 6144 | 168/192, 186/212 | 138 (output.weight), 117–129 (K=6144) |
+   | `gemv_q3_k` | K=2560, 6144 | 172/192 | 107 |
+   | `gemv_q6_k` | K=2560, 6144 | 204/230 | 112 |
+   | `gemv_iq4_xs` | K=2560, 6144 | 184/206 | 118–129 |
+   | `gemv_b32` → q4_0, q5_0, q8_0, iq4_nl | K=640 | 144–180 | small matrices |
+
+   Scheduling lessons folded into the generators: a mask LOP must be >= 6 issues
+   before the XMAD that reads it (the next word's masks precede this word's
+   XMADs); a combine must not read an accumulator within 6 cycles of its last
+   XMAD; predicates at the loop top; stall >= 2 after a variable-latency op
+   before a dependent wait. Not yet done, for the tuning pass: overlapping the
+   next row's loads with this row's compute (Q3_K/Q6_K/K=6144 kernels sit at
+   75–85% of the ceiling because of it); the conflict-free register banks.
+   Not GEMVs, handled in Phase 2: the n-gram table gather (IQ4_NL rows of 160),
+   `token_embd` row gather (Q3_K), norms and conv weights (F32/F16).
 2. **Block kernels**: DeltaNet, attention + indexer, MoE, hyper-connections, PLE,
    checked against cx-flash per-layer dumps on identical inputs.
 3. **One die, 6 blocks**: persistent loop, grid barriers, correct state after 6 blocks.
