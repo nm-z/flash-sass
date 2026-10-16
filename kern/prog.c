@@ -151,6 +151,16 @@ CUdeviceptr ph_dnnormx(prog_t *P, const xchg_t *x, CUdeviceptr O, CUdeviceptr W,
 
 /* a GEMV whose rows go straight into every die's inbox slot (op built with GEMV_XOUT): the
    phase is a send, the next phase waits; returns the gathered slot */
+/* the hc down GEMV with the RMS norm of S fused (bf16hcrx): every CTA normalises S into shared memory, the
+   rows go to every die's slot, xh (the normalised stream) is stored for the up / mix that follows */
+CUdeviceptr ph_bf16rx(prog_t *P, const xchg_t *x, CUdeviceptr W, CUdeviceptr S, CUdeviceptr NW, CUdeviceptr XH, float eps, unsigned rows, unsigned myoff) {
+	unsigned slot = (unsigned)(P->xj & 1) * XSLOT;
+	phase_t *p = prog_add(P, OP_BF16HCRX, 16);
+	ph_ptr(p, 0x140, W); ph_ptr(p, 0x148, S); ph_ptr(p, 0x150, x->xtab); ph_u32(p, 0x158, rows); ph_u32(p, 0x168, slot + myoff);
+	ph_ptr(p, 0x178, XH); ph_ptr(p, 0x190, NW); ph_f32(p, 0x198, eps);
+	p->w[30] |= 1; P->pending_wait = 1; P->xj++;
+	return x->inbox + slot;
+}
 CUdeviceptr ph_bf16x(prog_t *P, const xchg_t *x, int op, CUdeviceptr W, CUdeviceptr X, unsigned rows, unsigned myoff) {
 	unsigned slot = (unsigned)(P->xj & 1) * XSLOT;
 	phase_t *p = prog_add(P, op, 16);
@@ -198,8 +208,11 @@ void split_of(split_t *s, int d, int n, int blk) {
  * Returns the gathered z (an inbox slot). */
 static CUdeviceptr ph_hc_read(prog_t *P, const split_t *s, const xchg_t *x, CUdeviceptr norm, CUdeviceptr dj, CUdeviceptr up, const dn_bufs_t *b, float eps) {
 	unsigned cols = 32u * (unsigned)s->cbn;
-	ph_rms(P, OP_RMS2560, b->S, norm, b->xh, eps, 4);
-	CUdeviceptr DOWN = ph_bf16x(P, x, OP_BF16HCX, dj, b->xh, (unsigned)s->djn, 4u * (unsigned)s->dj0);   /* down ++ inject rows straight into every die's slot */
+	CUdeviceptr DOWN;
+	if (getenv("PROG_NORMSFUSE")) {
+		ph_rms(P, OP_RMS2560, b->S, norm, b->xh, eps, 4);
+		DOWN = ph_bf16x(P, x, OP_BF16HCX, dj, b->xh, (unsigned)s->djn, 4u * (unsigned)s->dj0);   /* down ++ inject rows straight into every die's slot */
+	} else DOWN = ph_bf16rx(P, x, dj, b->S, norm, b->xh, eps, (unsigned)s->djn, 4u * (unsigned)s->dj0);   /* + the RMS norm */
 	CUdeviceptr Z = getenv("PROG_NOHCUP") ? 0 : ph_hcup(P, x, up, DOWN, b->lup, cols, b->xh + 4u * 32u * (unsigned)s->cb0, b->t, 324, 4u * 32u * (unsigned)s->cb0);
 	if (!Z) {
 		ph_hc(P, OP_HCSILU, DOWN, b->t, 0, 324, 320, 2);
@@ -274,8 +287,7 @@ void prog_embed(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, unsigned t
 void prog_head(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, float eps, unsigned t, unsigned nprompt) {
 	unsigned cols = 32u * (unsigned)s->cbn;
 	/* the read gate without an inject: 320 down rows, nothing copied behind t */
-	ph_rms(P, OP_RMS2560, b->S, w->output_hc_norm, b->xh, eps, 4);
-	CUdeviceptr DOWN = ph_bf16x(P, x, OP_BF16HCX, w->output_hc_down, b->xh, (unsigned)s->hdn, 4u * (unsigned)s->hd0);
+	CUdeviceptr DOWN = ph_bf16rx(P, x, w->output_hc_down, b->S, w->output_hc_norm, b->xh, eps, (unsigned)s->hdn, 4u * (unsigned)s->hd0);
 	CUdeviceptr Z = ph_hcup(P, x, w->output_hc_up, DOWN, b->lup, cols, b->xh + 4u * 32u * (unsigned)s->cb0, b->t, 320, 4u * 32u * (unsigned)s->cb0);
 	ph_actq(P, OP_ACTQ256, Z, b->zq, b->zs32, b->zs16, b->zas, 256, 10);
 	ph_gemv_any(P, GG_Q5_K, 2560, w->output, b->zq, b->zs32, b->zs16, b->hlo, (unsigned)s->on, b->zas, 0, 0);

@@ -57,6 +57,7 @@ typedef struct {
  * for all parts: two phases; returns the slot's address in this die's inbox */
 CUdeviceptr ph_xchg(prog_t *P, const xchg_t *x, int me, int ndies, CUdeviceptr src, unsigned nbytes, unsigned myoff, unsigned total);   /* total: bytes the slot holds once every part arrived */
 CUdeviceptr ph_bf16x(prog_t *P, const xchg_t *x, int op, CUdeviceptr W, CUdeviceptr X, unsigned rows, unsigned myoff);   /* a GEMV_XOUT op: rows land in every die's slot */
+CUdeviceptr ph_bf16rx(prog_t *P, const xchg_t *x, CUdeviceptr W, CUdeviceptr S, CUdeviceptr NW, CUdeviceptr XH, float eps, unsigned rows, unsigned myoff);   /* + RMSNorm(S) */
 CUdeviceptr ph_hcup(prog_t *P, const xchg_t *x, CUdeviceptr W, CUdeviceptr DOWN, CUdeviceptr LUP, unsigned cols, CUdeviceptr XH, CUdeviceptr T, unsigned tn, unsigned myoff);   /* SiLU + hc up + mix -> slots */
 CUdeviceptr ph_hcx(prog_t *P, const xchg_t *x, int op, CUdeviceptr P0, CUdeviceptr P1, unsigned n, unsigned us, unsigned units, unsigned myoff);
 CUdeviceptr ph_dnnormx(prog_t *P, const xchg_t *x, CUdeviceptr O, CUdeviceptr W, CUdeviceptr G, float eps, unsigned heads, unsigned myoff);
