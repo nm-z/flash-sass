@@ -21,3 +21,9 @@ void deltanet_step_gpu(float *S, const float *q, const float *k, const float *v,
 /* the L2 normalisation alone (q^ = q * rcp(max(sqrt(sum q^2), eps))), 128 elements */
 void l2norm128_gpu(const float *q, float eps, float *qn);
 #endif
+
+/* Depthwise causal conv (k = 4) + SiLU over n channels, as kern/conv1d.sass: the
+ * ring state[4][n] holds x(t) in slot t mod 4; y_c = ((w[c][0] x_c(t-3)) + w[c][1]
+ * x_c(t-2) + w[c][2] x_c(t-1)) + w[c][3] x_c(t) by FMUL then three fmaf, u = SiLU(y)
+ * (fmath twin); x(t) is written into slot t mod 4. w is [c][k] (k contiguous). */
+void conv1d_silu_gpu(const float *x, float *state, const float *w, unsigned t, float *u, int n);

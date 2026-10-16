@@ -217,3 +217,14 @@ dnstep_tiled.cubin: dnstep.sass fmath.pl skel_dnstep.cubin
 
 dnstep_test: dnstep_test.c ../ref/deltanet.c ../ref/deltanet.h ../ref/fmath.c
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ dnstep_test.c ../ref/deltanet.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+# conv1d + SiLU state step
+skel_conv1d.cubin: conv1d.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+conv1d.cubin: conv1d.sass fmath.pl skel_conv1d.cubin
+	cp skel_conv1d.cubin $@
+	$(MAXAS) -i conv1d.sass $@
+
+conv1d_test: conv1d_test.c ../ref/deltanet.c ../ref/deltanet.h ../ref/fmath.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ conv1d_test.c ../ref/deltanet.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm

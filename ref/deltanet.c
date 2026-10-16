@@ -61,3 +61,16 @@ void deltanet_step_gpu(float *S, const float *q, const float *k, const float *v,
 		o[c] = combine8(part) * inv_sqrt128;
 	}
 }
+
+void conv1d_silu_gpu(const float *x, float *state, const float *w, unsigned t, float *u, int n) {
+	const float *s0 = state + (size_t)((t + 1) & 3) * n, *s1 = state + (size_t)((t + 2) & 3) * n, *s2 = state + (size_t)((t + 3) & 3) * n;
+	float *sw = state + (size_t)(t & 3) * n;
+	for (int c = 0; c < n; c++) {
+		float y = w[4 * c] * s0[c];
+		y = fmaf(w[4 * c + 1], s1[c], y);
+		y = fmaf(w[4 * c + 2], s2[c], y);
+		y = fmaf(w[4 * c + 3], x[c], y);
+		u[c] = silu_gpu(y);
+		sw[c] = x[c];
+	}
+}

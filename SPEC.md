@@ -509,6 +509,19 @@ the hyper-connection norms, `ssm_norm`, q/k norms, indexer norms and PLE norms.
   two-part ln2, degree-6 Taylor (≤ 1 ulp-ish at |r| ≤ ln2/2), 2^n by integer
   exponent bits; log1p(e) for e ∈ [0,1] by the atanh series in e/(2+e) to u^11.
   Constants that are not 20-bit-representable live in registers (`fm_consts`).
+- **DeltaNet head step** `kern/dnstep.sass` (twin `deltanet_step_gpu`): one CTA
+  per value head; value-major 128×128 fp32 state; thread (g, p) owns 4 columns
+  × 16 keys (coalesced 64 B column pieces); warps 0/1 L2-normalise q/k (IEEE
+  sqrt and rcp, max with eps), warp 2 copies v and computes α = exp(ssm_a ·
+  softplus(a)), β = σ(b) with fmath; decay, 16-term FFMA chains per column with
+  xor 1/2/4 part reductions, e = v − r, be = β e, rank-1 update, readout with q̂,
+  × 1/√128. **Bit-exact on all 48 heads (state and output)** for both key-head
+  conventions (`DN_TILED`); 66 µs per step of 48 heads = 95 GB/s of state
+  traffic (6 MB per DeltaNet block → 36 blocks ≈ 2.4 ms per token, the price
+  of fp32 state; fp16 state would halve it if accuracy allows). Lesson: a
+  warp that diverges (lane 0 alone computing the gates) before BAR.SYNC let the
+  barrier complete early and phase B read zeros — barrier arrivals must be
+  warp-uniform, so every lane computes the gates and lane 0 stores.
 - Register-bank note: in the K-quant streams the mask for field v and the
   activation register of the same XMAD share a bank for 2 of every 8 XMADs, and
   the combine's `acc_v + acc_{v+4}` pairs share banks (MaxAs reports 187
