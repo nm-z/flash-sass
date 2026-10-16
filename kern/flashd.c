@@ -35,6 +35,8 @@ static tok_vocab *V;
 static jinja *TPL;
 static const char *SOCK, *NAME = "Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass";
 static int POSITIONS = 2048, THINK_DEFAULT = 1;
+// Output budgets in thinking mode: up to 262,144 tokens of reasoning and 131,072 of final answer (the context bounds both).
+static long REASONING_MAX = 262144, ANSWER_MAX = 131072;
 static double DEF_TEMP = 0.0, DEF_TOPP = 1.0; static int DEF_TOPK = 0;   /* general.sampling.* from the GGUF; temperature 0 = greedy */
 static uint32_t ID_END, ID_THINK_END;
 static pthread_mutex_t ENGINE = PTHREAD_MUTEX_INITIALIZER;
@@ -70,6 +72,7 @@ typedef struct {
 	unsigned char pend[8]; int npend;
 	sbuf content, reasoning;
 	long created;
+	long n_reason, n_answer; int cap_hit;   /* tokens so far in each part; set when one reaches its budget */
 } gen;
 
 static void emit_delta(gen *g, const char *field, const char *s, size_t n) {
@@ -108,6 +111,7 @@ static void emit_text(gen *g, const char *s, size_t n) {
 static void on_token(gen *g, uint32_t id) {
 	if (id == ID_THINK_END) { g->in_think = 0; return; }
 	if (tok_is_special(V, id)) return;
+	if (g->in_think ? ++g->n_reason > REASONING_MAX : ++g->n_answer > ANSWER_MAX) { g->cap_hit = 1; return; }
 	char piece[256]; int n = tok_piece(V, id, piece, sizeof piece);
 	if (n > 0) emit_text(g, piece, (size_t)n);
 }
@@ -119,6 +123,23 @@ static void chat(int fd, const char *body, size_t bn) {
 	if (!req || req->k != J_DICT) { error(fd, 400, "the body is not a JSON object"); arena_free(a); return; }
 	jv *msgs = jv_getz(req, "messages");
 	if (!msgs || msgs->k != J_LIST || !msgs->l.n) { error(fd, 400, "messages must be a non-empty list"); arena_free(a); return; }
+	/* The sampler has no penalties: the thinking-mode settings presence_penalty 0.0 and repetition_penalty 1.0 are what it does, so
+	   those values are accepted and any other is refused rather than silently ignored. */
+	{
+		static const struct { const char *key; double fixed; } pen[] = { { "presence_penalty", 0.0 }, { "frequency_penalty", 0.0 }, { "repetition_penalty", 1.0 }, { "repeat_penalty", 1.0 } };
+		for (size_t i = 0; i < sizeof pen / sizeof pen[0]; i++) {
+			jv *x = jv_getz(req, pen[i].key); double v = x && x->k == J_NUM ? x->d : x && x->k == J_INT ? (double)x->i : pen[i].fixed;
+			if (v != pen[i].fixed) { char m[160]; snprintf(m, sizeof m, "%s is fixed at %g (the engine has no penalties)", pen[i].key, pen[i].fixed); error(fd, 400, m); arena_free(a); return; }
+		}
+	}
+	/* Images need a vision encoder, which the engine does not have yet. */
+	for (int i = 0; i < msgs->l.n; i++) {
+		jv *c = jv_getz(msgs->l.a[i], "content");
+		if (c && c->k == J_LIST) for (int j = 0; j < c->l.n; j++) {
+			jv *ty = jv_getz(c->l.a[j], "type");
+			if (ty && ty->k == J_STR && ((ty->s.n == 9 && !memcmp(ty->s.s, "image_url", 9)) || (ty->s.n == 5 && !memcmp(ty->s.s, "image", 5)))) { error(fd, 400, "this engine has no vision encoder yet"); arena_free(a); return; }
+		}
+	}
 	jv *vars = jv_new(a, J_DICT);
 	jv_set(a, vars, "messages", 8, msgs);
 	jv_set(a, vars, "add_generation_prompt", 21, jv_bool(a, 1));
@@ -193,7 +214,7 @@ static void chat(int fd, const char *body, size_t bn) {
 	char line[256]; int ngen = 0, ended = 0, resumed = 0, snapped = 0; double run_ms = 0, first_ms = 0;
 	while (fgets(line, sizeof line, in)) {
 		unsigned id; int e, npm; double r, f;
-		if (sscanf(line, "tok %u", &id) == 1) { on_token(&g, id); if (g.gone) break; }
+		if (sscanf(line, "tok %u", &id) == 1) { on_token(&g, id); if (g.gone || g.cap_hit) break; }
 		else if (sscanf(line, "done %d %d %d %lf %lf %d %d", &ngen, &e, &npm, &r, &f, &resumed, &snapped) >= 5) { ended = e; run_ms = r; first_ms = f; break; }
 		else if (!strncmp(line, "error", 5)) { fprintf(stderr, "flashd: engine: %s", line); break; }
 	}
@@ -250,7 +271,7 @@ static void *serve(void *arg) {
 		reply(fd, 200, "application/json", b.s, b.n); sb_free(&b);
 	} else if (!strcmp(method, "GET") && !strcmp(path, "/props")) {
 		sbuf b = {0}; const char *t = tok_template(V);
-		sb_printf(&b, "{\"default_generation_settings\":{\"n_ctx\":%d},\"model_alias\":", POSITIONS); sb_json_str(&b, NAME, strlen(NAME));
+		sb_printf(&b, "{\"default_generation_settings\":{\"n_ctx\":%d,\"temperature\":%g,\"top_k\":%d,\"top_p\":%g,\"presence_penalty\":0.0,\"repeat_penalty\":1.0,\"max_reasoning_tokens\":%ld,\"max_answer_tokens\":%ld},\"modalities\":{\"vision\":false},\"model_alias\":", POSITIONS, DEF_TEMP, DEF_TOPK, DEF_TOPP, REASONING_MAX, ANSWER_MAX); sb_json_str(&b, NAME, strlen(NAME));
 		sb_puts(&b, ",\"chat_template\":"); sb_json_str(&b, t ? t : "", t ? strlen(t) : 0); sb_putc(&b, '}');
 		reply(fd, 200, "application/json", b.s, b.n); sb_free(&b);
 	} else if (!strcmp(method, "POST") && !strcmp(path, "/v1/chat/completions")) chat(fd, body, have);
