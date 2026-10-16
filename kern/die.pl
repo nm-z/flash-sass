@@ -68,6 +68,9 @@ my @OPS = (
     [ 'q3kk2560',   'gemv_q3_k.sass',   'cta',  { GEMV_K => 2560 } ],
     [ 'q3kk6144',   'gemv_q3_k.sass',   'cta',  { GEMV_K => 6144 } ],
     [ 'q6kk2560',   'gemv_q6_k.sass',   'cta',  { GEMV_K => 2560 } ],
+    # K = 6144 (attn_output of blk 11, 27, 31, 43; ssm_out of 38, 44): four K = 1536 column slices, y = ((p0 + p1) + p2) + p3
+    [ 'q6kk1536',   'gemv_q6_k.sass',   'cta',  { GEMV_K => 1536 } ],
+    [ 'q6kk1536acc','gemv_q6_k.sass',   'cta',  { GEMV_K => 1536, GEMV_ACC => 1 } ],
     # q6kk6144 (236 registers + 13 params) does not fit yet: attn_output of blk 11, 27, 31 — needs a register diet
     [ 'iq4k2560',   'gemv_iq4_xs.sass', 'cta',  { GEMV_K => 2560 } ],
     [ 'iq4k6144',   'gemv_iq4_xs.sass', 'cta',  { GEMV_K => 6144 } ],

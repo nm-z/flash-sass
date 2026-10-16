@@ -47,6 +47,10 @@ static volatile sig_atomic_t stop;
 static void onsig(int s) { (void)s; stop = 1; }
 
 /* tile stride for a quantised matrix row of K elements, 0 for raw types */
+/* Q6_K rows of K = 6144 do not fit the GEMV's registers: they are held as four K = 1536 column
+ * slices, each in its own tile layout, side by side (slice s of the selected rows at
+ * s * rows * q6_k_tile_stride(1536)); the GEMV runs four times, accumulating */
+#define Q6K_SLICED(type, K) ((type) == GG_Q6_K && (K) == 6144)
 static int tile_stride(uint32_t type, int K) {
 	switch (type) {
 	case GG_Q2_0: return q2_0_tile_stride(K);
@@ -165,12 +169,27 @@ static size_t sel_bytes(const sel_t *s, size_t nbytes, int rows, int st) {
 	size_t rowb = st ? (size_t)st : nbytes / s->rows_total;
 	return rowb * n;
 }
+/* bytes per selected row on the device (the sliced Q6_K rows take four K = 1536 tiles) */
+static int dev_row_stride(uint32_t type, int K) { return Q6K_SLICED(type, K) ? 4 * q6_k_tile_stride(1536) : tile_stride(type, K); }
 /* repack / copy the selected rows (or experts) of a raw source image into buf and emit it */
 static void emit_sel(const char *name, uint32_t type, const uint8_t *src, size_t nbytes, int rows, int K, int experts, const sel_t *s) {
-	int st = strncmp(name, "token_embd", 10) ? tile_stride(type, K) : 0;   /* embrow reads raw Q3_K rows */
+	int st = strncmp(name, "token_embd", 10) ? dev_row_stride(type, K) : 0;   /* embrow reads raw Q3_K rows */
 	size_t bytes = sel_bytes(s, nbytes, rows, st), o = 0;
 	need(bytes);
 	int nsel = 0;
+	if (Q6K_SLICED(type, K) && experts == 1) {
+		for (int i = 0; i < s->nr; i++) nsel += s->r[i].n;
+		size_t srow = nbytes / s->rows_total, sl = srow / 4, st1 = (size_t)q6_k_tile_stride(1536);   /* 24 blocks of 210 B; 6 per slice */
+		uint8_t *tmp = malloc(sl * (size_t)nsel);
+		for (int sidx = 0; sidx < 4; sidx++) {
+			int k = 0;
+			for (int i = 0; i < s->nr; i++) for (int r = s->r[i].r0; r < s->r[i].r0 + s->r[i].n; r++, k++) memcpy(tmp + sl * k, src + srow * r + sl * sidx, sl);
+			repack_q6_k(tmp, nsel, 1536, buf + st1 * (size_t)nsel * sidx);
+		}
+		free(tmp);
+		emit(name, buf, bytes, type, 4 * nsel, 1536, (int)st1, 1);
+		return;
+	}
 	if (s->experts > 1) {
 		size_t per = nbytes / experts, dper = st ? (size_t)st * rows : per;
 		for (int i = 0; i < s->nr; i++) for (int e = s->r[i].r0; e < s->r[i].r0 + s->r[i].n; e++, nsel++) {
@@ -208,7 +227,7 @@ int main(int argc, char **argv) {
 		const gguf_tensor *t = &g.t[i];
 		if (!wanted(t->name, b0, b1, xe, xo)) continue;
 		int K = (int)t->dims[0], rows = t->nd > 1 ? (int)t->dims[1] : 1, experts = t->nd > 2 ? (int)t->dims[2] : 1;
-		int st = strncmp(t->name, "token_embd", 10) ? tile_stride(t->type, K) : 0;
+		int st = strncmp(t->name, "token_embd", 10) ? dev_row_stride(t->type, K) : 0;
 		sel_t s; if (split_on) split_of(&SP, sd, sn, strncmp(t->name, "blk.", 4) ? 0 : atoi(t->name + 4)); select_rows(t->name, rows, experts, &s);
 		total = (total + 255) & ~(size_t)255;
 		total += sel_bytes(&s, t->nbytes, rows, st); count++;

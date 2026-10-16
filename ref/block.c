@@ -18,7 +18,13 @@ void gemv_ref_any(uint32_t type, const uint8_t *tile, int rows, int K, const int
 	case GG_Q4_K: gemv_q4_k_ref(tile, rows, K, xq, s32, as, y); break;
 	case GG_Q5_K: gemv_q5_k_ref(tile, rows, K, xq, s32, as, y); break;
 	case GG_Q3_K: gemv_q3_k_ref(tile, rows, K, xq, as, y); break;
-	case GG_Q6_K: gemv_q6_k_ref(tile, rows, K, xq, s16, as, y); break;
+	case GG_Q6_K:
+		if (K == 6144) {   /* four K = 1536 column slices side by side (kern/hold.c), y = ((p0 + p1) + p2) + p3 */
+			float *p = malloc(4 * (size_t)rows); size_t sl = (size_t)rows * (size_t)q6_k_tile_stride(1536);
+			for (int s = 0; s < 4; s++) { gemv_q6_k_ref(tile + sl * s, rows, 1536, xq + 1536 * s, s16 + 96 * s, as + 48 * s, p); for (int r = 0; r < rows; r++) y[r] = s ? y[r] + p[r] : p[r]; }
+			free(p);
+		} else gemv_q6_k_ref(tile, rows, K, xq, s16, as, y);
+		break;
 	case GG_IQ4_XS: gemv_iq4_xs_ref(tile, rows, K, xq, as, y); break;
 	case GG_Q4_0: case GG_Q5_0: case GG_Q8_0: case GG_IQ4_NL: gemv_b32_ref(type, tile, rows, K, xq, s32, as, y); break;
 	default: fprintf(stderr, "gemv_ref_any: type %u\n", type); exit(1);

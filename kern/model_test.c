@@ -298,6 +298,16 @@ int main(int argc, char **argv) {
 		for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuCtxSynchronize()); }
 		double t3 = now();
 		printf("%u phases per token; twin %.2f s for %d tokens; dies %.3f ms total = %.3f ms per token\n", nph[0], t1 - t0, T, (t3 - t2) * 1e3, (t3 - t2) * 1e3 / T);
+		if (getenv("MODEL_PROF")) {   /* die 0, the last token */
+			CK(cuCtxSetCurrent(ctx[0]));
+			uint32_t *ts = malloc(4 * (64 + nph[0])); CK(cuMemcpyDtoH(ts, dCTL[0], 4 * (64 + nph[0])));
+			double byop[DIE_NOPS] = {0}; unsigned prev = ts[15], cnt[DIE_NOPS] = {0};
+			for (unsigned i = 0; i < nph[0]; i++) { unsigned dd = ts[64 + i] - prev; prev = ts[64 + i]; byop[P[0].p[i].w[0]] += dd / 1e3; cnt[P[0].p[i].w[0]]++; }
+			printf("  die 0 by op (us/count):");
+			for (int o = 0; o < DIE_NOPS; o++) if (cnt[o]) printf(" %s %.0f/%u", die_opname[o], byop[o], cnt[o]);
+			printf("\n  last token %.1f us in %u phases\n", (ts[64 + nph[0] - 1] - ts[15]) / 1e3, nph[0]);
+			free(ts);
+		}
 		unsigned *tg = calloc((size_t)T + 1, 4); int bad = 0;
 		for (int d = 0; d < nd; d++) {
 			CK(cuCtxSetCurrent(ctx[d]));

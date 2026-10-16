@@ -37,7 +37,7 @@ void ph_router(prog_t *P, CUdeviceptr R, CUdeviceptr SH, CUdeviceptr IDX, CUdevi
 void ph_moesel(prog_t *P, CUdeviceptr IDX, CUdeviceptr W, CUdeviceptr MAP, CUdeviceptr LIDX, CUdeviceptr LW, CUdeviceptr NE, CUdeviceptr PART);
 void ph_sumn(prog_t *P, CUdeviceptr SRC, unsigned stride, CUdeviceptr OUT, unsigned n, unsigned ndies);
 /* a GEMV phase for any weight type by GGUF type and K (acc: y = fma(*scale, dot, y)) */
-void ph_gemv_any(prog_t *P, uint32_t type, int K, CUdeviceptr W, CUdeviceptr Xq, CUdeviceptr S32, CUdeviceptr Y, unsigned rows, CUdeviceptr AS, int acc, CUdeviceptr scale);
+void ph_gemv_any(prog_t *P, uint32_t type, int K, CUdeviceptr W, CUdeviceptr Xq, CUdeviceptr S32, CUdeviceptr S16, CUdeviceptr Y, unsigned rows, CUdeviceptr AS, int acc, CUdeviceptr scale);
 
 /* the GEMV opcode for a GGUF type and K (0 if none), and whether the op is Q2_0 / b32 / K-quant */
 int gemv_op(uint32_t type, int K, int acc);

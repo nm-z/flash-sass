@@ -1,5 +1,6 @@
 #include "prog.h"
 #include "gguf.h"
+#include "quant.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -99,12 +100,17 @@ int gemv_op(uint32_t type, int K, int acc) {
 int gemv_op_is_q2(int op) { return op == OP_Q2K2560 || op == OP_Q2K640 || op == OP_Q2ACC640 || op == OP_Q2MOEG || op == OP_Q2MOED || op == OP_Q2MOEGN || op == OP_Q2MOEDN; }
 int gemv_op_is_b32(int op) { return op == OP_B32Q40 || op == OP_B32Q50 || op == OP_B32Q80 || op == OP_B32IQ4NL || op == OP_B32Q40ACC || op == OP_B32Q50ACC || op == OP_B32Q80ACC || op == OP_B32IQ4NLACC; }
 
-void ph_gemv_any(prog_t *P, uint32_t type, int K, CUdeviceptr W, CUdeviceptr Xq, CUdeviceptr S32, CUdeviceptr Y, unsigned rows, CUdeviceptr AS, int acc, CUdeviceptr scale) {
+void ph_gemv_any(prog_t *P, uint32_t type, int K, CUdeviceptr W, CUdeviceptr Xq, CUdeviceptr S32, CUdeviceptr S16, CUdeviceptr Y, unsigned rows, CUdeviceptr AS, int acc, CUdeviceptr scale) {
+	if (type == GG_Q6_K && K == 6144) {   /* four K = 1536 column slices (the holder's layout), y = ((p0 + p1) + p2) + p3 */
+		size_t sl = (size_t)rows * (size_t)q6_k_tile_stride(1536);
+		for (unsigned s = 0; s < 4; s++) ph_gemvk(P, s ? OP_Q6KK1536ACC : OP_Q6KK1536, W + sl * s, Xq + 2u * 1536u * s, S16 + 4u * 96u * s, Y, rows, AS + 4u * 48u * s);
+		return;
+	}
 	int op = gemv_op(type, K, acc);
 	if (!op) { fprintf(stderr, "prog: no GEMV op for type %u K %d\n", type, K); exit(1); }
 	if (gemv_op_is_q2(op)) ph_q2(P, op, W, Xq, S32, Y, rows, 0, AS, scale, 0);
 	else if (gemv_op_is_b32(op)) ph_b32(P, op, W, Xq, S32, Y, rows, scale, AS);
-	else ph_gemvk(P, op, W, Xq, S32, Y, rows, AS);
+	else ph_gemvk(P, op, W, Xq, type == GG_Q6_K ? S16 : S32, Y, rows, AS);   /* Q6_K takes the per-16 sums */
 }
 
 /* ---- exchange ---- */
@@ -165,12 +171,12 @@ static void ph_moe_half(prog_t *P, const split_t *s, const xchg_t *x, const dn_w
 	ph_q2(P, OP_Q2MOEGN, w->ffn_gate_exps, b->zq, b->zs32, b->g, 640, b->lidx, b->zas, 0, b->ne);
 	ph_q2(P, OP_Q2MOEGN, w->ffn_up_exps, b->zq, b->zs32, b->gu, 640, b->lidx, b->zas, 0, b->ne);
 	if (s->shexp) {
-		ph_gemv_any(P, w->ffn_gate_shexp_type, 2560, w->ffn_gate_shexp, b->zq, b->zs32, b->g + 6400 * 4, 640, b->zas, 0, 0);
-		ph_gemv_any(P, w->ffn_up_shexp_type, 2560, w->ffn_up_shexp, b->zq, b->zs32, b->gu + 6400 * 4, 640, b->zas, 0, 0);
+		ph_gemv_any(P, w->ffn_gate_shexp_type, 2560, w->ffn_gate_shexp, b->zq, b->zs32, b->zs16, b->g + 6400 * 4, 640, b->zas, 0, 0);
+		ph_gemv_any(P, w->ffn_up_shexp_type, 2560, w->ffn_up_shexp, b->zq, b->zs32, b->zs16, b->gu + 6400 * 4, 640, b->zas, 0, 0);
 	}
 	ph_ffnact(P, b->g, b->gu, b->hq, b->hs32, b->hs16, b->has, 640, s->shexp ? 11 : 10);
 	ph_q2(P, OP_Q2MOEDN, w->ffn_down_exps, b->hq, b->hs32, b->part, 2560, b->lidx, b->has, b->lw, b->ne);
-	if (s->shexp) ph_gemv_any(P, w->ffn_down_shexp_type, 640, w->ffn_down_shexp, b->hq + 10 * 640 * 2, b->hs32 + 10 * 20 * 4, b->part, 2560, b->has + 10 * 20 * 4, 1, b->s);
+	if (s->shexp) ph_gemv_any(P, w->ffn_down_shexp_type, 640, w->ffn_down_shexp, b->hq + 10 * 640 * 2, b->hs32 + 10 * 20 * 4, b->hs16 + 10 * 40 * 4, b->part, 2560, b->has + 10 * 20 * 4, 1, b->s);
 	CUdeviceptr PARTS = ph_xchg(P, x, s->d, s->n, b->part, 2560 * 4, 2560u * 4u * (unsigned)s->d, 2560u * 4u * (unsigned)s->n);
 	ph_sumn(P, PARTS, 2560 * 4, b->out, 2560, (unsigned)s->n);
 	ph_hc(P, OP_HCWRITE, inj, b->out, b->S, 2560, 0, 10);
@@ -179,9 +185,9 @@ static void ph_moe_half(prog_t *P, const split_t *s, const xchg_t *x, const dn_w
 /* attention proper on die 0 (v1): q/k/v GEMVs, per-head norm + RoPE + cache append,
  * flash-decoding partials over the t+1 keys, merge with the output gate */
 static void ph_attn_core(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps) {
-	ph_gemv_any(P, w->attn_q_type, 2560, w->attn_q, b->zq, b->zs32, b->qg, 12288, b->zas, 0, 0);
-	ph_gemv_any(P, w->attn_k_type, 2560, w->attn_k, b->zq, b->zs32, b->k, 512, b->zas, 0, 0);
-	ph_gemv_any(P, w->attn_v_type, 2560, w->attn_v, b->zq, b->zs32, b->v, 512, b->zas, 0, 0);
+	ph_gemv_any(P, w->attn_q_type, 2560, w->attn_q, b->zq, b->zs32, b->zs16, b->qg, 12288, b->zas, 0, 0);
+	ph_gemv_any(P, w->attn_k_type, 2560, w->attn_k, b->zq, b->zs32, b->zs16, b->k, 512, b->zas, 0, 0);
+	ph_gemv_any(P, w->attn_v_type, 2560, w->attn_v, b->zq, b->zs32, b->zs16, b->v, 512, b->zas, 0, 0);
 	phase_t *p = prog_add(P, OP_ATTNQK, 26);
 	ph_ptr(p, 0x140, b->qg); ph_ptr(p, 0x148, b->k); ph_ptr(p, 0x150, b->v); ph_ptr(p, 0x158, w->attn_q_norm); ph_ptr(p, 0x160, w->attn_k_norm);
 	ph_ptr(p, 0x168, b->rope_cs); ph_ptr(p, 0x170, b->rope_sn); ph_ptr(p, 0x178, b->qo); ph_ptr(p, 0x180, b->kc); ph_ptr(p, 0x188, b->vc);
@@ -198,7 +204,7 @@ void prog_attn_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weig
 	if (s->d == 0) ph_attn_core(P, w, b, t, eps);
 	CUdeviceptr AOUT = ph_xchg(P, x, s->d, s->n, b->aout, s->d == 0 ? 6144 * 4 : 0, 0, 6144 * 4);
 	ph_actq(P, OP_ACTQ256, AOUT, b->oq, b->os32, b->os16, b->oas, 256, 24);
-	ph_gemv_any(P, w->attn_output_type, 6144, w->attn_output, b->oq, b->os32, b->ly, (unsigned)s->yn, b->oas, 0, 0);
+	ph_gemv_any(P, w->attn_output_type, 6144, w->attn_output, b->oq, b->os32, b->os16, b->ly, (unsigned)s->yn, b->oas, 0, 0);
 	CUdeviceptr Y = ph_xchg(P, x, s->d, s->n, b->ly, 4u * (unsigned)s->yn, 4u * (unsigned)s->y0, 4 * 2560);
 	ph_hc(P, OP_HCWRITE, inj, Y, b->S, 2560, 0, 10);
 	ph_moe_half(P, s, x, w, b, eps);
@@ -220,7 +226,7 @@ void prog_head(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t 
 	ph_hc(P, OP_HCMIX, b->lup, b->xh + 4u * 32u * (unsigned)s->cb0, b->lz, cols, 4 * cols, (cols + 255) / 256);
 	CUdeviceptr Z = ph_xchg(P, x, s->d, s->n, b->lz, 4 * cols, 4u * 32u * (unsigned)s->cb0, 4 * 2560);
 	ph_actq(P, OP_ACTQ256, Z, b->zq, b->zs32, b->zs16, b->zas, 256, 10);
-	ph_gemv_any(P, GG_Q5_K, 2560, w->output, b->zq, b->zs32, b->hlo, (unsigned)s->on, b->zas, 0, 0);
+	ph_gemv_any(P, GG_Q5_K, 2560, w->output, b->zq, b->zs32, b->zs16, b->hlo, (unsigned)s->on, b->zas, 0, 0);
 	phase_t *p = prog_add(P, OP_ARGMAX, 16);
 	ph_ptr(p, 0x140, b->hlo); ph_ptr(p, 0x148, b->amo); ph_ptr(p, 0x150, b->apart); ph_ptr(p, 0x158, b->acnt); ph_u32(p, 0x160, (unsigned)s->on); ph_u32(p, 0x164, 16);
 	CUdeviceptr PAIRS = ph_xchg(P, x, s->d, s->n, b->amo, 8, 8u * (unsigned)s->d, 8u * (unsigned)s->n);
@@ -233,7 +239,7 @@ void prog_ple_prefix(prog_t *P, const split_t *s, const xchg_t *x, const dn_weig
 	phase_t *p = prog_add(P, OP_PLEROWS, 1);   /* every die hashes and gathers the 16 rows itself */
 	ph_ptr(p, 0x140, b->ids); ph_ptr(p, 0x148, b->ple_pc); ph_ptr(p, 0x150, b->ple_tab); ph_ptr(p, 0x158, b->pg); ph_ptr(p, 0x160, b->prows); ph_tokv(P, p, 0x168, 0, t);
 	ph_actq(P, OP_ACTQ256, b->pg, b->pgq, b->pgs32, b->pgs16, b->pgas, 256, 10);
-	ph_gemv_any(P, GG_Q2_0, 2560, w->ple_key, b->pgq, b->pgs32, b->lk, (unsigned)s->pkn, b->pgas, 0, 0);
+	ph_gemv_any(P, GG_Q2_0, 2560, w->ple_key, b->pgq, b->pgs32, b->pgs16, b->lk, (unsigned)s->pkn, b->pgas, 0, 0);
 	CUdeviceptr K = ph_xchg(P, x, s->d, s->n, b->lk, 4u * (unsigned)s->pkn, 4u * (unsigned)s->pk0, 4 * 10240);
 	ph_rms(P, OP_RMS2560, K, w->ple_norm_key, b->kn, eps, 4);
 	ph_rms(P, OP_RMS2560, b->S, w->ple_norm_query, b->qn, eps, 4);
@@ -251,15 +257,15 @@ void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_
 	CUdeviceptr inj = b->t + 320 * 4;
 	/* ---- attention-side hyper-block: Gated DeltaNet ---- */
 	CUdeviceptr Z = ph_hc_read(P, s, x, w->hc_attn_norm, w->hc_attn_dj, w->hc_attn_up, b, eps);
-	ph_gemv_any(P, w->attn_qkv_type, 2560, w->attn_qkv, b->zq, b->zs32, b->lqkv, nloc, b->zas, 0, 0);
-	ph_gemv_any(P, w->attn_gate_type, 2560, w->attn_gate, b->zq, b->zs32, b->lgate, hrows, b->zas, 0, 0);
+	ph_gemv_any(P, w->attn_qkv_type, 2560, w->attn_qkv, b->zq, b->zs32, b->zs16, b->lqkv, nloc, b->zas, 0, 0);
+	ph_gemv_any(P, w->attn_gate_type, 2560, w->attn_gate, b->zq, b->zs32, b->zs16, b->lgate, hrows, b->zas, 0, 0);
 	ph_bf16(P, OP_BF16BIAS, w->ssm_ab, Z, b->la, 2u * (unsigned)s->hn, w->ssm_ab_bias);
 	ph_conv1d(P, b->lqkv, b->conv_state, w->ssm_conv1d, b->lu, t, nloc);
 	ph_dnstep(P, b->dn_state, b->lu, b->lu + 512u * (unsigned)s->nk, b->lu + 1024u * (unsigned)s->nk, b->la, b->la + 4u * (unsigned)s->hn, w->ssm_a, b->lo, eps, (unsigned)s->h0, (unsigned)s->klo, (unsigned)s->hn);
 	ph_dnnorm(P, b->lo, w->ssm_norm, b->lgate, b->lon, eps, (unsigned)s->hn);
 	CUdeviceptr ON = ph_xchg(P, x, s->d, s->n, b->lon, 4 * hrows, 4u * 128u * (unsigned)s->h0, 4 * 6144);
 	ph_actq(P, OP_ACTQ256, ON, b->oq, b->os32, b->os16, b->oas, 256, 24);
-	ph_gemv_any(P, w->ssm_out_type, 6144, w->ssm_out, b->oq, b->os32, b->ly, (unsigned)s->yn, b->oas, 0, 0);
+	ph_gemv_any(P, w->ssm_out_type, 6144, w->ssm_out, b->oq, b->os32, b->os16, b->ly, (unsigned)s->yn, b->oas, 0, 0);
 	CUdeviceptr Y = ph_xchg(P, x, s->d, s->n, b->ly, 4u * (unsigned)s->yn, 4u * (unsigned)s->y0, 4 * 2560);
 	ph_hc(P, OP_HCWRITE, inj, Y, b->S, 2560, 0, 10);
 	ph_moe_half(P, s, x, w, b, eps);
