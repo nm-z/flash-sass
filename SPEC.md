@@ -1041,6 +1041,19 @@ die 2 gets die 0's share (`SPLIT_SHARES=86,107,86,107,107,107`, ≈ 5.5 GiB
 resident, assuming bottom-up physical placement), and every holder runs with
 `HOLD_VISIBLE=1 CUDA_VISIBLE_DEVICES=<die>` so it keeps no other GPU open — a
 faulted die can then be reset by stopping only its own holder.
+**Burn-in (`kern/memtest` + `kern/burnin.sh`):** memtest fills all free memory with
+four patterns and reads it back through the copy engine; burnin.sh resets the die
+after each uncorrectable error *once the retirement is recorded* (Xid 63 arrives
+seconds after the Xid 48; a reset before it loses the retirement and the same
+cell fails again). 30 rounds on die 2 retired 28 more pages (50 now) and every
+failure is in partition 1 / subpartition 1 at a ~2 MB stride from 5.657 GiB up
+to the top: a failing column of one GDDR5 chip, which retirement cannot cover
+(and the driver's retirement table is finite) — while everything below 5.65 GiB
+read back clean on every pass. So die 2 is used with all of its allocations
+below that line: shares `82,103,77,108,115,115` (die 2 ≈ 5.0 GB, die 0 ≈ 5.25
+GB under its own band, the 8 GB ECC-free dies carry the rest), assuming the
+driver places allocations bottom-up (the memtest's failures came in increasing
+address order, as its chunks were allocated).
 
 **Clocks after a reset (2026-10-16):** `gpu-application-clocks.service` sets persistence
 mode and the 2505/1177 MHz application clocks at boot. Turning persistence off
