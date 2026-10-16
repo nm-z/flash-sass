@@ -1358,3 +1358,38 @@ remounts it when missing (`mount -t nfs -o ro,vers=3,hard,rsize=1048576`).
 4. Prefill inside the same single dispatch (default), or a separate prefill
    dispatch per die?
 5. Context target for v1: 32k?
+
+## Chat serving (2026-10-16)
+
+- **Pieces** (all C or SASS, `kern/`): `flash` (the engine: arenas + the pinned PLE table
+  loaded once, `FLASH_SOCK=<path>` serves one client at a time with `gen`, `chat`, `stop`,
+  `info`, `cubin`, `quit`), `flashd` (HTTP front-end), `tok.c` (tokenizer from the GGUF),
+  `jinja.c` + `json.c` (the GGUF's own chat template), `ucd.h` (Unicode category table
+  converted from llama.cpp's `unicode-data.cpp`).
+- **End of turn in the kernel**: `amax` compares the sampled token (past the prompt) with the
+  two stop ids it gets as parameters and stores 0x80000000 to `ctl[5]`; the token-end code in
+  `die.pl` reads `ctl[5]` and ors it into TOK, so `tok < ntok` fails on every CTA of every die
+  after that token (all dies pick the same token, so they stop together). `ctl[2]` carries the
+  count in its low 31 bits and the end flag in bit 31; the host reads it while the kernel runs
+  and streams new tokens from die 0's `toks` through a non-blocking stream.
+- **Tokenizer**: byte-level BPE with llama.cpp's qwen35 pre-tokenizer (hand-written split,
+  not a regex), merge ranks by `"left right"` text, special tokens split out longest first.
+  `tok_check.sh` compares against `llama-tokenize` (18 awkward strings × 2 modes, plus whole
+  source files): identical. Note `llama-tokenize -f` processes `\n` escapes unless
+  `--no-escape`, which looks like a tokenizer bug if you forget it.
+- **Template**: a Jinja subset interpreter (if/for/set/macro/namespace, tests, filters,
+  slices, string methods, `trim_blocks` + `lstrip_blocks`). Renders the Qwen3.8 template for
+  system/user/assistant/tool turns, tool definitions and list content; `raise_exception`
+  becomes a 400. Not diffed against llama.cpp's renderer byte for byte (no built harness;
+  its server could not load next to the pinned table); the output follows the template's
+  logic and the Qwen chat format.
+- **flashd**: `/v1/models`, `/props` (n_ctx = FLASH_MAXT), `/health`, and
+  `/v1/chat/completions` (stream or not): reasoning tokens go out as `delta.reasoning_content`
+  until `</think>`, then `delta.content`; the last event carries `timings`
+  (`prompt_per_second`, `predicted_per_second`) and `usage`. Tested through the real
+  `nmz-chat-gw` binary on a spare port: model list, streamed reply, timings.
+  Measured: ~26 tok/s prompt, ~25 tok/s decode, 2 s to the first token for a 57-token prompt.
+- **Not done**: a client that disconnects mid-reply does not stop the kernel (it runs to
+  `max_tokens` or the stop token; fix: every die ORs a host-written abort word into its
+  argmax pair so `amax` sees one consistent value); no prefix cache (every request
+  re-runs the whole conversation at ~26 tok/s); greedy only; one request at a time.
