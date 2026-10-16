@@ -242,14 +242,17 @@ the hyper-connection norms, `ssm_norm`, q/k norms, indexer norms and PLE norms.
 
 ## Numerics
 
-- Activations quantised per vector to int8 codes (carried as int16) + fp32 scale
-  before each integer matmul, by `kern/actq.sass` (one warp per vector) with the
-  bit-exact twin `quant_act_gpu`: amax = max |x|; r = rcp_rn(amax) (the ptxas
-  fast path: MUFU.RCP, FFMA e = amax·r − 1, FFMA r += r·(−e), which is IEEE
-  1/amax for any normal amax below 2^125); inv = r·127 (0 if amax = 0);
-  q = F2I.RN(x·inv) = lrintf(x·inv); per-16 and per-32 sums of the codes;
-  xscale = amax·(1/127). Verified bit-exact for n = 640, 2560, 6144, 10240 on
-  six magnitudes including zero and an outlier. Rules found on the way: SASS
+- Activations quantised **per 32-element group** (as cx-flash and llama.cpp's
+  Q8_1 do; a per-vector scale lost most of the vector to one outlier) to int8
+  codes (carried as int16) + one fp32 scale per group, by `kern/actq.sass` (one
+  warp per vector) with the bit-exact twin `quant_act_gpu32`: gmax = max(max |x|
+  over the 32, 2^-100); r = rcp_rn(gmax) (the ptxas fast path: MUFU.RCP, FFMA
+  e = gmax·r − 1, FFMA r += r·(−e), IEEE 1/gmax for any normal gmax below 2^125);
+  inv = r·127; q = F2I.RN(x·inv) = lrintf(x·inv); per-16 and per-32 sums of the
+  codes; as[g] = gmax·(1/127). The GEMV kernels multiply each sub-block's
+  contribution by as[g] (one extra FMUL per 32 elements). Verified bit-exact for
+  n = 640, 2560, 6144, 10240 on six magnitudes including zero and an outlier.
+  Rules found on the way: SASS
   float immediates are 20-bit (1/127 is not representable; constants like it
   come from MOV32I); any predicate consumer — EXIT and MOV included — needs the
   ~18-cycle gap; a counter incremented at stall 1 is read stale by the next

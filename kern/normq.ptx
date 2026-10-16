@@ -3,7 +3,7 @@
 .target sm_52
 .address_size 64
 
-.visible .entry normq(.param .u64 px, .param .u64 pw, .param .u64 py, .param .u64 pq, .param .u64 ps32, .param .u64 ps16, .param .u64 psc, .param .f32 eps)
+.visible .entry normq(.param .u64 px, .param .u64 pw, .param .u64 py, .param .u64 pq, .param .u64 ps32, .param .u64 ps16, .param .u64 pas, .param .f32 eps)
 {
 	.reg .u32 %r<2>;
 	.reg .f32 %f<1>;

@@ -859,3 +859,8 @@ void quant_act_gpu32(const float *x, int n, int16_t *q16, int32_t *sum32, int32_
 	}
 	for (int g = 0; g < n / 32; g++) sum32[g] = sum16[2 * g] + sum16[2 * g + 1];
 }
+
+void rmsnorm_quant_gpu32(const float *x, const float *w, int n, float eps, float *y, int16_t *q16, int32_t *sum32, int32_t *sum16, float *as) {
+	rmsnorm_gpu(x, w, n, eps, y);
+	quant_act_gpu32(y, n, q16, sum32, sum16, as);
+}

@@ -137,3 +137,6 @@ void rmsnorm_gpu(const float *x, const float *w, int n, float eps, float *y);
  * group g: gmax = max(max |x|, 2^-100), r = 1/gmax (IEEE), inv = r * 127,
  * q = lrintf(x * inv) (int16), as[g] = gmax * (1/127); sum16/sum32 of the codes. */
 void quant_act_gpu32(const float *x, int n, int16_t *q16, int32_t *sum32, int32_t *sum16, float *as);
+
+/* RMSNorm + per-32 quantiser (kern/normq.sass): rmsnorm_gpu then quant_act_gpu32. */
+void rmsnorm_quant_gpu32(const float *x, const float *w, int n, float eps, float *y, int16_t *q16, int32_t *sum32, int32_t *sum16, float *as);
