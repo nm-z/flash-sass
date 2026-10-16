@@ -22,6 +22,8 @@
     param_nd   : c[0x0][0x164]
     param_OUT0 : c[0x0][0x168]
     param_OUT1 : c[0x0][0x16c]
+    param_SIN0 : c[0x0][0x170]
+    param_SIN1 : c[0x0][0x174]
 </CONSTANT_MAPPING>
 
 <REGISTER_MAPPING>
@@ -61,6 +63,7 @@
     64-69 : pe<0-5>
     70-81 : aq<00-11>
     82,83 : oq<0-1>
+    84,85 : si<0-1>
 </REGISTER_MAPPING>
 
 <CODE>
@@ -148,10 +151,14 @@
             $o .= "--:-:-:-:6      SHL t, tg, 0x2;\n";
             $o .= "--:-:-:-:6      IADD oq0.CC, t, param_OUT0;\n";
             $o .= "--:-:-:-:6      IADD.X oq1, RZ, param_OUT1;\n";
+            # the stream is read from SIN (written to P2): the MoE end reads the copy the fused
+            # attention-side write left (bf16hcrwx) and puts the block's result back into S
+            $o .= "--:-:-:-:6      IADD si0.CC, t, param_SIN0;\n";
+            $o .= "--:-:-:-:6      IADD.X si1, RZ, param_SIN1;\n";
         } else {
             $o .= "--:-:1:-:1      LDG.E y, [bp];\n";
         }
-        $o .= sprintf "--:-:1:-:%s      LDG.E x%d, [cp+0x%x];\n", $_ == 3 ? '2' : '1', $_, 10240*$_ for 0..3;
+        $o .= sprintf "--:-:1:-:%s      LDG.E x%d, [%s+0x%x];\n", $_ == 3 ? '2' : '1', $_, $ENV{HC_SUMN} ? 'si' : 'cp', 10240*$_ for 0..3;
         $o .= sprintf "%s:-:-:-:%s      FMUL u%d, u%d, 0.25;\n", $_ == 0 ? '01' : '--', $_ == 3 ? '6' : '1', $_, $_ for 0..3;
         if ($ENV{HC_SUMN}) {
             $o .= "--:-:-:-:6      MOV y, pe0;\n";

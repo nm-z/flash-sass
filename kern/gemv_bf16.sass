@@ -47,6 +47,10 @@
     param_NW0  : c[0x0][0x190]
     param_NW1  : c[0x0][0x194]
     param_eps  : c[0x0][0x198]
+    param_YG0  : c[0x0][0x1a0]
+    param_YG1  : c[0x0][0x1a4]
+    param_INJ0 : c[0x0][0x1a8]
+    param_INJ1 : c[0x0][0x1ac]
 </CONSTANT_MAPPING>
 
 <CODE>
@@ -84,10 +88,12 @@
     if ($ENV{GEMV_XOUT} || $ENV{GEMV_HCUP}) { my $q = $NS > 1 ? $p + 8 : $p + 6; $o .= sprintf "    %d-%d : dq<00-11>\n", $q, $q + 11; $o .= sprintf "    %d : xo\n", $q + 12; }
     if ($ENV{GEMV_RMS}) {   # the fused RMS norm of the stream (prologue registers past dq/xo)
         my $h = ($NS > 1 ? $p + 8 : $p + 6) + 14;
-        my @n = qw(ss mm vv s0 hh rr e mneg1 invn wq lq sw);
+        my @n = qw(ss mm vv s0 hh rr e mneg1 invn wq lq sw wr4);
+        push @n, qw(g ij ft1 ft2 ft3 ft4 log2e ln2hi ln2lo c720 c120 c24 c6 chalf cone) if $ENV{GEMV_RMSW};
         $o .= sprintf "    %d : %s\n", $h + $_, $n[$_] for 0 .. @n - 1;
         my $q = $h + @n; $q += $q & 1;
         $o .= sprintf "    %d,%d : sp<0-1>\n    %d,%d : np<0-1>\n    %d,%d : hp<0-1>\n", $q, $q + 1, $q + 2, $q + 3, $q + 4, $q + 5;
+        $o .= sprintf "    %d,%d : ib<0-1>\n    %d,%d : yb<0-1>\n    %d,%d : ob<0-1>\n", $q + 6, $q + 7, $q + 8, $q + 9, $q + 10, $q + 11 if $ENV{GEMV_RMSW};
     }
     if ($ENV{GEMV_HCUP}) {   # the fused hc up: SiLU prologue, lane mix epilogue (registers past dq/xo)
         my $h = ($NS > 1 ? $p + 8 : $p + 6) + 14;
@@ -114,6 +120,9 @@
     my $bias = $ENV{GEMV_BIAS} ? 1 : 0;   # y = partial + bias[row], bias at the dbg pointer (ssm_dt.bias on the alpha logits)
     my $xout = $ENV{GEMV_XOUT} ? 1 : 0;   # y rows go to every die's inbox: TAB (at the Y param) + XOFF + 4 row, and the phase is a send
     my $rms = $ENV{GEMV_RMS} ? 1 : 0;     # x = RMSNorm(S) (4 lanes of 2560) built in shared memory by every CTA (bf16hcrx)
+    my $rmsw = $ENV{GEMV_RMSW} ? 1 : 0;   # ... after applying the pending stream write (hcwrite's update) to S, stored to SOUT
+    die "GEMV_RMSW needs GEMV_RMS" if $rmsw && !$rms;
+    require './fmath.pl' if $rmsw;
     die "GEMV_RMS needs K = 2560, 4 slices" if $rms && ($K != 2560 || $NS != 4);
     my $hcup = $ENV{GEMV_HCUP} ? 1 : 0;   # fused hc up (K = 320): x = SiLU(0.25 DOWN) via smem, rows ordered 4 c + l over
                                           # weight rows l cols + c, z_c = mix of the 4 lane rows -> every die's inbox (see ph_hcup)
@@ -152,13 +161,28 @@
     $o .= "--:-:6:-:1      S2R bid, SR_CTAID.X;\n";
     $o .= "--:-:-:-:6      MOV rowstep, gridDimX;\n";
     if ($rms) {
-        # xh = RMSNorm of S's 4 lanes, rmsnorm.sass's arithmetic bit for bit: warps 0..3 sum the squares of
-        # lane w (warp lane l: chunks 4 (l + 32 j), j < 20, one FFMA chain; butterfly) and leave 1/rms in
-        # shared memory at 0xa000; then thread t normalises the float4s q = 10 t .. 10 t + 9 (stream lane
-        # t / 64) into shared memory [0, 40960) and CTA c stores q in [160 c, 160 c + 160) to XH (the
-        # global xh hcup mixes with); the GEMV reads x from shared memory
+        # xh = RMSNorm of the stream's 4 lanes, rmsnorm.sass's arithmetic bit for bit: warps 0..3 sum the
+        # squares of lane w (warp lane l: chunks 4 (l + 32 j), j < 20, one FFMA chain; butterfly) and leave
+        # 1/rms in shared memory at 0xa000; then thread t normalises the float4s q = 10 t .. 10 t + 9 (stream
+        # lane t / 64) into shared memory [0, 40960) and CTA c stores q in [160 c, 160 c + 160) to XH (the
+        # global xh hcup mixes with); the GEMV reads x from shared memory.
+        # GEMV_RMSW: the stream is first updated as hcwrite would (S = fma(2 sigmoid(inj_l / 4), y_c, S),
+        # y = YG, inj = INJ, S read at X): both passes form the new values the same way, and CTA c stores
+        # its slice of the new stream to SOUT (the D parameter)
         my $invn = unpack("L", pack("f", 1.0 / 2560));
-        $o .= "--:-:-:-:1      MOV32I mneg1, 0xbf800000;\n";
+        my %FW = map { $_ => $_ } qw(log2e ln2hi ln2lo c720 c120 c24 c6 chalf cone mneg1);
+        my $gate = sub {   # g = 2 sigmoid(0.25 INJ[lane register]) -> g
+            my ($lreg) = @_;
+            my $s = "--:-:-:-:6      SHL ij, $lreg, 0x2;\n";
+            $s .= "--:-:-:-:6      IADD ib0.CC, ij, param_INJ0;\n";
+            $s .= "--:-:-:-:6      IADD.X ib1, RZ, param_INJ1;\n";
+            $s .= "--:-:3:-:2      LDG.E ij, [ib];\n";
+            $s .= "04:-:-:-:6      FMUL ij, ij, 0.25;\n";
+            $s .= fm_sigmoid('g', 'ij', 'ft1', 'ft2', 'ft3', 'ft4', \%FW);
+            $s .= "--:-:-:-:6      FMUL g, g, 2;\n";
+            return $s;
+        };
+        $o .= $rmsw ? fm_consts(\%FW) : "--:-:-:-:1      MOV32I mneg1, 0xbf800000;\n";
         $o .= sprintf "--:-:-:-:1      MOV32I invn, 0x%08x;\n", $invn;
         $o .= "20:-:-:-:6      SHR.U32 wq, tid, 0x5;\n";
         $o .= "--:-:-:-:6      LOP32I.AND lq, tid, 0x1f;\n";
@@ -168,9 +192,23 @@
         $o .= "--:-:-:-:6      IADD sp0.CC, sw, param_X0;\n";
         $o .= "--:-:-:-:6      IADD.X sp1, RZ, param_X1;\n";
         $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P5, PT, lq, RZ, P4;\n";
-        $o .= sprintf "--:-:1:-:%s  \@P4 LDG.E.CI.128 act%02d, [sp+0x%x];\n", $_ == 19 ? '2' : '1', 4 * $_, 512 * $_ for 0..19;
         $o .= "--:-:-:-:6      MOV ss, RZ;\n";
-        $o .= sprintf "%s:-:-:-:6      FFMA ss, act%02d, act%02d, ss;\n", $_ == 0 ? '01' : '--', $_, $_ for 0..79;
+        if ($rmsw) {
+            $o .= "--:-:-:-:6      LOP32I.AND wr4, wq, 0x3;\n";
+            $o .= $gate->('wr4');
+            $o .= "--:-:-:-:6      SHL ij, lq, 0x4;\n";
+            $o .= "--:-:-:-:6      IADD yb0.CC, ij, param_YG0;\n";
+            $o .= "--:-:-:-:6      IADD.X yb1, RZ, param_YG1;\n";
+            for my $h (0, 1) {   # 10 chunks at a time: S into act00..39, y into act40..79
+                $o .= sprintf "--:-:1:-:1  \@P4 LDG.E.CI.128 act%02d, [sp+0x%x];\n", 4 * $_, 512 * (10 * $h + $_) for 0..9;
+                $o .= sprintf "--:-:1:-:%s  \@P4 LDG.E.CI.128 act%02d, [yb+0x%x];\n", $_ == 9 ? '2' : '1', 40 + 4 * $_, 512 * (10 * $h + $_) for 0..9;
+                $o .= sprintf "%s:-:-:-:%s      FFMA act%02d, g, act%02d, act%02d;\n", $_ == 0 ? '01' : '--', $_ == 39 ? '6' : '1', $_, 40 + $_, $_ for 0..39;
+                $o .= sprintf "--:-:-:-:6      FFMA ss, act%02d, act%02d, ss;\n", $_, $_ for 0..39;
+            }
+        } else {
+            $o .= sprintf "--:-:1:-:%s  \@P4 LDG.E.CI.128 act%02d, [sp+0x%x];\n", $_ == 19 ? '2' : '1', 4 * $_, 512 * $_ for 0..19;
+            $o .= sprintf "%s:-:-:-:6      FFMA ss, act%02d, act%02d, ss;\n", $_ == 0 ? '01' : '--', $_, $_ for 0..79;
+        }
         for my $x (16, 8, 4, 2, 1) {
             $o .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, ss, 0x%x, 0x1f;\n", $x;
             $o .= "10:-:-:-:6      FADD ss, ss, t;\n";
@@ -190,10 +228,10 @@
         $o .= "--:-:-:-:6      SHL sw, wq, 0x2;\n";
         $o .= "--:1:-:-:6  \@P5 STS [sw+0xa000], rr;\n";
         $o .= "01:-:-:-:6      BAR.SYNC 0x0;\n";
-        # pass 2: y = (x r) w for this thread's 40 elements
+        # pass 2: this thread's 40 elements (stream lane t / 64)
         $o .= "--:-:-:-:6      SHR.U32 lq, tid, 0x6;\n";
-        $o .= "--:-:-:-:6      SHL lq, lq, 0x2;\n";
-        $o .= "--:-:3:-:1      LDS rr, [lq+0xa000];\n";
+        $o .= "--:-:-:-:6      SHL wr4, lq, 0x2;\n";
+        $o .= "--:-:3:-:1      LDS rr, [wr4+0xa000];\n";
         $o .= "--:-:-:-:6      XMAD sw, tid, 0xa0, RZ;\n";
         $o .= "--:-:-:-:6      IADD sp0.CC, sw, param_X0;\n";
         $o .= "--:-:-:-:6      IADD.X sp1, RZ, param_X1;\n";
@@ -204,9 +242,21 @@
         $o .= "--:-:-:-:6      SHR.U32 wq, tid, 0x4;\n";
         $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P6, PT, wq, bid, PT;\n";       # CTA c stores threads 16 c .. 16 c + 15
         $o .= sprintf "--:-:1:-:1      LDG.E.CI.128 act%02d, [sp+0x%x];\n", 4 * $_, 16 * $_ for 0..9;
+        if ($rmsw) {
+            $o .= $gate->('lq');
+            $o .= "--:-:-:-:6      LOP32I.AND ij, tid, 0x3f;\n";
+            $o .= "--:-:-:-:6      XMAD ij, ij, 0xa0, RZ;\n";                  # y offset 160 (t mod 64)
+            $o .= "--:-:-:-:6      IADD yb0.CC, ij, param_YG0;\n";
+            $o .= "--:-:-:-:6      IADD.X yb1, RZ, param_YG1;\n";
+            $o .= "--:-:-:-:6      IADD ob0.CC, sw, param_D0;\n";             # the new stream (SOUT)
+            $o .= "--:-:-:-:6      IADD.X ob1, RZ, param_D1;\n";
+            $o .= sprintf "--:-:1:-:%s      LDG.E.CI.128 act%02d, [yb+0x%x];\n", $_ == 9 ? '2' : '1', 40 + 4 * $_, 16 * $_ for 0..9;
+            $o .= sprintf "%s:-:-:-:%s      FFMA act%02d, g, act%02d, act%02d;\n", $_ == 0 ? '01' : '--', $_ == 39 ? '6' : '1', $_, 40 + $_, $_ for 0..39;
+            $o .= sprintf "--:4:-:-:1  \@P6 STG.E.128 [ob+0x%x], act%02d;\n", 16 * $_, 4 * $_ for 0..9;
+        }
         # (the norm weights go to act40..79: the w registers alias tid, bid, lane ... during the prologue)
         $o .= sprintf "--:-:2:-:%s      LDG.E.CI.128 act%02d, [np+0x%x];\n", $_ == 9 ? '2' : '1', 40 + 4 * $_, 16 * $_ for 0..9;
-        $o .= sprintf "%s:-:-:-:%s      FMUL act%02d, act%02d, rr;\n", $_ == 0 ? '05' : '--', $_ == 39 ? '6' : '1', $_, $_ for 0..39;
+        $o .= sprintf "%s:-:-:-:%s      FMUL act%02d, act%02d, rr;\n", $_ == 0 ? ($rmsw ? '0d' : '05') : '--', $_ == 39 ? '6' : '1', $_, $_ for 0..39;
         $o .= sprintf "%s:-:-:-:%s      FMUL act%02d, act%02d, act%02d;\n", $_ == 0 ? '02' : '--', $_ == 39 ? '6' : '1', $_, $_, 40 + $_ for 0..39;
         $o .= sprintf "--:1:-:-:1      STS.128 [sw+0x%x], act%02d;\n", 16 * $_, 4 * $_ for 0..9;
         $o .= sprintf "--:1:-:-:1  \@P6 STG.E.128 [hp+0x%x], act%02d;\n", 16 * $_, 4 * $_ for 0..9;

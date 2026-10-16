@@ -107,6 +107,7 @@ typedef struct {
  * l* buffers hold this die's part, the gathered vectors live in the inbox slots */
 typedef struct {
 	CUdeviceptr S;                    /* 10240 in/out stream (replicated) */
+	CUdeviceptr S2;                   /* 10240 scratch stream: the attention side's write lands here (bf16hcrwx), the MoE end writes S */
 	CUdeviceptr xh, t;                /* 10240; 324 = SiLU(0.25 down) ++ inj */
 	CUdeviceptr ldown, lup, lz;       /* djn; 4 x 32 cbn; 32 cbn */
 	CUdeviceptr zq, zs32, zs16, zas;  /* int16 2560, i32 80, i32 160, f32 80 */

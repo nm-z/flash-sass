@@ -69,6 +69,7 @@ my @OPS = (
     [ 'bf16hc',     'gemv_bf16.sass',   'cta',  { GEMV_K => 2560, GEMV_SLICES => 4 } ],
     [ 'bf16hcx',    'gemv_bf16.sass',   'cta',  { GEMV_K => 2560, GEMV_SLICES => 4, GEMV_XOUT => 1 } ],
     [ 'bf16hcrx',   'gemv_bf16.sass',   'cta',  { GEMV_K => 2560, GEMV_SLICES => 4, GEMV_XOUT => 1, GEMV_RMS => 1 } ],   # RMSNorm of S + hc down ++ inject -> slots
+    [ 'bf16hcrwx',  'gemv_bf16.sass',   'cta',  { GEMV_K => 2560, GEMV_SLICES => 4, GEMV_XOUT => 1, GEMV_RMS => 1, GEMV_RMSW => 1 } ],   # + the pending stream write (S -> SOUT)
     [ 'q4kk2560',   'gemv_q4_k.sass',   'cta',  { GEMV_K => 2560 } ],
     [ 'q4kk6144',   'gemv_q4_k.sass',   'cta',  { GEMV_K => 6144 } ],
     [ 'q5kk2560',   'gemv_q4_k.sass',   'cta',  { GEMV_K => 2560, GEMV_FMT => 'q5_k' } ],

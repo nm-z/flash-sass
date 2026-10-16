@@ -199,7 +199,7 @@ int main(int argc, char **argv) {
 		}
 		unsigned nloc = SPLIT_NLOC(s), cols = 32u * (unsigned)s->cbn, hrows = 128u * (unsigned)s->hn;
 		dn_bufs_t *b = &db[d];
-		b->S = dalloc(4 * 10240); b->xh = dalloc(4 * 10240); b->t = dalloc(4 * 324);
+		b->S = dalloc(4 * 10240); b->S2 = dalloc(4 * 10240); b->xh = dalloc(4 * 10240); b->t = dalloc(4 * 324);
 		b->ldown = dalloc(4u * (unsigned)s->djn); b->lup = dalloc(4 * 4 * cols); b->lz = dalloc(4 * cols);
 		b->zq = dalloc(2 * 2560); b->zs32 = dalloc(4 * 80); b->zs16 = dalloc(4 * 160); b->zas = dalloc(4 * 80);
 		b->lqkv = dalloc(4 * nloc); b->lgate = dalloc(4 * hrows); b->la = dalloc(4 * 2u * (unsigned)s->hn); b->lu = dalloc(4 * nloc); b->lo = dalloc(4 * hrows); b->lon = dalloc(4 * hrows);

@@ -206,10 +206,19 @@ void split_of(split_t *s, int d, int n, int blk) {
  * rows of down ++ inject, gathered; t = SiLU(0.25 down) ++ inj; this die's rows of
  * up (the 4 lanes of its z columns); z columns mixed locally, gathered; z quantised.
  * Returns the gathered z (an inbox slot). */
-static CUdeviceptr ph_hc_read(prog_t *P, const split_t *s, const xchg_t *x, CUdeviceptr norm, CUdeviceptr dj, CUdeviceptr up, const dn_bufs_t *b, float eps) {
+/* Y / inj: the pending stream write of the attention side (gathered y, inject values) or 0: with them
+   the read runs bf16hcrwx, which first applies the write (S + 2 sigmoid(inj / 4) y) into S2 */
+static CUdeviceptr ph_hc_read(prog_t *P, const split_t *s, const xchg_t *x, CUdeviceptr norm, CUdeviceptr dj, CUdeviceptr up, const dn_bufs_t *b, float eps, CUdeviceptr Y, CUdeviceptr inj) {
 	unsigned cols = 32u * (unsigned)s->cbn;
 	CUdeviceptr DOWN;
-	if (getenv("PROG_NORMSFUSE")) {
+	if (Y) {
+		unsigned slot = (unsigned)(P->xj & 1) * XSLOT;
+		phase_t *p = prog_add(P, OP_BF16HCRWX, 16);
+		ph_ptr(p, 0x140, dj); ph_ptr(p, 0x148, b->S); ph_ptr(p, 0x150, x->xtab); ph_u32(p, 0x158, (unsigned)s->djn); ph_ptr(p, 0x160, b->S2);
+		ph_u32(p, 0x168, slot + 4u * (unsigned)s->dj0); ph_ptr(p, 0x178, b->xh); ph_ptr(p, 0x190, norm); ph_f32(p, 0x198, eps); ph_ptr(p, 0x1a0, Y); ph_ptr(p, 0x1a8, inj);
+		p->w[30] |= 1; P->pending_wait = 1; P->xj++;
+		DOWN = x->inbox + slot;
+	} else if (getenv("PROG_NORMSFUSE")) {
 		ph_rms(P, OP_RMS2560, b->S, norm, b->xh, eps, 4);
 		DOWN = ph_bf16x(P, x, OP_BF16HCX, dj, b->xh, (unsigned)s->djn, 4u * (unsigned)s->dj0);   /* down ++ inject rows straight into every die's slot */
 	} else DOWN = ph_bf16rx(P, x, dj, b->S, norm, b->xh, eps, (unsigned)s->djn, 4u * (unsigned)s->dj0);   /* + the RMS norm */
@@ -224,9 +233,12 @@ static CUdeviceptr ph_hc_read(prog_t *P, const split_t *s, const xchg_t *x, CUde
 }
 
 /* the MoE hyper-block (expert split: this die's routed experts, partials reduced) */
-static void ph_moe_half(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, float eps) {
+static void ph_moe_half(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, float eps, CUdeviceptr Y) {
 	CUdeviceptr inj = b->t + 320 * 4;
-	CUdeviceptr Z = ph_hc_read(P, s, x, w->hc_ffn_norm, w->hc_ffn_dj, w->hc_ffn_up, b, eps);
+	/* Y: the attention side's gathered output, its write fused into this read (the stream goes to S2 and
+	   the MoE end writes S from S2); 0: the write already happened (S2 = S, in place) */
+	CUdeviceptr Z = ph_hc_read(P, s, x, w->hc_ffn_norm, w->hc_ffn_dj, w->hc_ffn_up, b, eps, Y, inj);
+	CUdeviceptr SIN = Y ? b->S2 : b->S;
 	ph_bf16(P, OP_BF16K2560, w->ffn_gate_inp_x, Z, b->r, 513, 0);
 	ph_router(P, b->r, b->r + 512 * 4, b->idx, b->w, b->s);
 	ph_moesel(P, b->idx, b->w, w->emap, b->lidx, b->lw, b->ne, b->part);
@@ -246,7 +258,7 @@ static void ph_moe_half(prog_t *P, const split_t *s, const xchg_t *x, const dn_w
 	CUdeviceptr PARTS = ph_xchg(P, x, s->d, s->n, b->part, 2560 * 4, 2560u * 4u * (unsigned)s->d, 2560u * 4u * (unsigned)s->n);
 	/* out = the fixed-order sum of the parts (sumn's order), fused into the stream write */
 	phase_t *p = prog_add(P, OP_HCWSUM, 10);
-	ph_ptr(p, 0x140, inj); ph_ptr(p, 0x148, PARTS); ph_ptr(p, 0x150, b->S); ph_u32(p, 0x158, 2560); ph_u32(p, 0x15c, 2560 * 4); ph_u32(p, 0x164, (unsigned)s->n); ph_ptr(p, 0x168, b->out);
+	ph_ptr(p, 0x140, inj); ph_ptr(p, 0x148, PARTS); ph_ptr(p, 0x150, b->S); ph_u32(p, 0x158, 2560); ph_u32(p, 0x15c, 2560 * 4); ph_u32(p, 0x164, (unsigned)s->n); ph_ptr(p, 0x168, b->out); ph_ptr(p, 0x170, SIN);
 }
 
 /* attention proper on die 0 (v1): q/k/v GEMVs, per-head norm + RoPE + cache append,
@@ -269,14 +281,14 @@ static void ph_attn_core(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, u
 
 void prog_attn_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps) {
 	CUdeviceptr inj = b->t + 320 * 4;
-	ph_hc_read(P, s, x, w->hc_attn_norm, w->hc_attn_dj, w->hc_attn_up, b, eps);
+	ph_hc_read(P, s, x, w->hc_attn_norm, w->hc_attn_dj, w->hc_attn_up, b, eps, 0, 0);
 	if (s->d == attn_die()) ph_attn_core(P, w, b, t, eps);
 	CUdeviceptr AOUT = ph_xchg(P, x, s->d, s->n, b->aout, s->d == attn_die() ? 6144 * 4 : 0, 0, 6144 * 4);
 	ph_actq(P, OP_ACTQ256, AOUT, b->oq, b->os32, b->os16, b->oas, 256, 24);
 	ph_gemv_any(P, w->attn_output_type, 6144, w->attn_output, b->oq, b->os32, b->os16, b->ly, (unsigned)s->yn, b->oas, 0, 0);
 	CUdeviceptr Y = ph_xchg(P, x, s->d, s->n, b->ly, 4u * (unsigned)s->yn, 4u * (unsigned)s->y0, 4 * 2560);
-	ph_hc(P, OP_HCWRITE, inj, Y, b->S, 2560, 0, 10);
-	ph_moe_half(P, s, x, w, b, eps);
+	if (getenv("PROG_NORMSW")) { ph_hc(P, OP_HCWRITE, inj, Y, b->S, 2560, 0, 10); ph_moe_half(P, s, x, w, b, eps, 0); }
+	else ph_moe_half(P, s, x, w, b, eps, Y);   /* the write is fused into the MoE side's read */
 }
 
 void prog_embed(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, unsigned t) {
@@ -320,7 +332,7 @@ void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_
 	unsigned nloc = SPLIT_NLOC(s), hrows = 128u * (unsigned)s->hn;
 	CUdeviceptr inj = b->t + 320 * 4;
 	/* ---- attention-side hyper-block: Gated DeltaNet ---- */
-	CUdeviceptr Z = ph_hc_read(P, s, x, w->hc_attn_norm, w->hc_attn_dj, w->hc_attn_up, b, eps);
+	CUdeviceptr Z = ph_hc_read(P, s, x, w->hc_attn_norm, w->hc_attn_dj, w->hc_attn_up, b, eps, 0, 0);
 	ph_gemv_any(P, w->attn_qkv_type, 2560, w->attn_qkv, b->zq, b->zs32, b->zs16, b->lqkv, nloc, b->zas, 0, 0);
 	prog_nobar(P);
 	ph_gemv_any(P, w->attn_gate_type, 2560, w->attn_gate, b->zq, b->zs32, b->zs16, b->lgate, hrows, b->zas, 0, 0);
@@ -332,6 +344,6 @@ void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_
 	ph_actq(P, OP_ACTQ256, ON, b->oq, b->os32, b->os16, b->oas, 256, 24);
 	ph_gemv_any(P, w->ssm_out_type, 6144, w->ssm_out, b->oq, b->os32, b->os16, b->ly, (unsigned)s->yn, b->oas, 0, 0);
 	CUdeviceptr Y = ph_xchg(P, x, s->d, s->n, b->ly, 4u * (unsigned)s->yn, 4u * (unsigned)s->y0, 4 * 2560);
-	ph_hc(P, OP_HCWRITE, inj, Y, b->S, 2560, 0, 10);
-	ph_moe_half(P, s, x, w, b, eps);
+	if (getenv("PROG_NORMSW")) { ph_hc(P, OP_HCWRITE, inj, Y, b->S, 2560, 0, 10); ph_moe_half(P, s, x, w, b, eps, 0); }
+	else ph_moe_half(P, s, x, w, b, eps, Y);   /* the write is fused into the MoE side's read */
 }
