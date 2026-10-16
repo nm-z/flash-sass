@@ -47,4 +47,18 @@ void gemv_q2_0_ref_v2(const uint8_t *tile, int rows, int K, const int8_t *xq, co
 int bf16_lanes_per_row(int K);
 void gemv_bf16_ref(const uint16_t *W, int rows, int K, const float *x, float *y);
 
+/* Q4_K sub-block-major row tile: per block 16 B header {fp16 d, fp16 dmin, u8 scales[12]}
+ * for all B blocks, then per block 8 x 16 B of nibbles, sub-block j (elements
+ * 32j..32j+31 of the block) in bytes 16j.., element 2i in the low nibble of byte i,
+ * 2i+1 in the high nibble. Row stride 144 B per block. */
+int q4_k_tile_stride(int K);
+int repack_q4_k(const uint8_t *src, int rows, int K, uint8_t *dst);
+int q4_k_lanes_per_row(int K);   /* 2560 -> 16 lanes x 5 sub-blocks, 6144 -> 32 x 6 */
+/* 6-bit scale and min of sub-block j from a block's 12 scale bytes */
+void q4_k_scale_min(const uint8_t *sc, int j, int *scale, int *min);
+/* GPU order: lane l owns sub-blocks s = l + L i; per sub-block dot (int), t1 = (float)dot *
+ * (float)sc, acc = fma(d, t1, acc), acc = fma(-dmin, (float)(min * sum32[s]), acc);
+ * butterfly over L lanes; * xscale. */
+void gemv_q4_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, float xscale, float *y);
+
 #endif

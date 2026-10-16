@@ -4,7 +4,7 @@ MAXAS = PATH=$(CUDA)/bin:$$PATH perl -I../maxas/lib ../maxas/bin/maxas.pl
 CC ?= gcc
 SHARD1 ?= /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
 
-all: gemv_q2_0_k2560.cubin gemv_q2_0_k640.cubin gemv_test gemv_bf16_k2560.cubin gemv_bf16_k320.cubin gemv_bf16_test
+all: gemv_q2_0_k2560.cubin gemv_q2_0_k640.cubin gemv_test gemv_bf16_k2560.cubin gemv_bf16_k320.cubin gemv_bf16_test gemv_q4_k_k2560.cubin gemv_q4_k_k6144.cubin gemv_k_test
 
 # ptxas (11.4, matches driver 470) builds the container; maxas replaces the code.
 # Build switches (GEMV_TRACE, GEMV_NOLOAD, ...) come from the environment.
@@ -29,6 +29,20 @@ gemv_bf16_k2560.cubin: gemv_bf16.sass skel_bf16.cubin
 gemv_bf16_k320.cubin: gemv_bf16.sass skel_bf16.cubin
 	cp skel_bf16.cubin $@
 	GEMV_K=320 $(MAXAS) -i gemv_bf16.sass $@
+
+skel_q4_k.cubin: gemv_q4_k.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+gemv_q4_k_k2560.cubin: gemv_q4_k.sass skel_q4_k.cubin
+	cp skel_q4_k.cubin $@
+	GEMV_K=2560 $(MAXAS) -i gemv_q4_k.sass $@
+
+gemv_q4_k_k6144.cubin: gemv_q4_k.sass skel_q4_k.cubin
+	cp skel_q4_k.cubin $@
+	GEMV_K=6144 $(MAXAS) -i gemv_q4_k.sass $@
+
+gemv_k_test: gemv_k_test.c ../ref/gguf.c ../ref/quant.c ../ref/gguf.h ../ref/quant.h
+	$(CC) -std=gnu99 -O2 -Wall -o $@ gemv_k_test.c ../ref/gguf.c ../ref/quant.c -I../ref -I$(CUDA)/include -lcuda -lm
 
 gemv_bf16_test: gemv_bf16_test.c ../ref/gguf.c ../ref/quant.c ../ref/gguf.h ../ref/quant.h
 	$(CC) -std=gnu99 -O2 -Wall -o $@ gemv_bf16_test.c ../ref/gguf.c ../ref/quant.c -I../ref -I$(CUDA)/include -lcuda -lm

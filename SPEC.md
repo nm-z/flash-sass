@@ -305,8 +305,14 @@ head and runs slower (811 MHz measured), so it gets fewer blocks.
 ## Phases
 
 0. **Probes** — done (table above).
-1. **GEMV kernels**: done and bit-exact at 134-140 GB/s: Q2_0 K=2560 and K=640,
-   BF16 K=2560 (router, indexer, ssm α/β, ple_value) and K=320 (hc_up). Next:
+1. **GEMV kernels**: done and bit-exact: Q2_0 K=2560 and K=640 (139-140 GB/s),
+   BF16 K=2560 and K=320 (134-137 GB/s), Q4_K K=2560 and K=6144 (121-124 GB/s on
+   8.8 MB matrices; sub-block-major repack, 6-bit scale/min decode per lane,
+   8 shift accumulators). Scheduling lessons folded into the generators: a mask
+   LOP must be >= 6 issues before the XMAD that reads it (first word and the
+   H0 masks of the next word were 3-5 away); the combine must not read an
+   accumulator within 6 cycles of its last XMAD (only element 28 of a sub-block
+   exposed it). Next:
    BF16 K=10240 as 4 ordered K=2560 partials (hc_down, hc_inject); then the
    K-quants with a sub-block-major repack: Q4_K, Q5_K (the 437 MB/token head),
    Q6_K, Q3_K; IQ4_XS via PRMT byte lookup; the block-32 formats last.

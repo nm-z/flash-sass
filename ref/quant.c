@@ -1,6 +1,7 @@
 #include "quant.h"
 #include "gguf.h"
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 
 float fp16_to_fp32(uint16_t h) {
@@ -312,5 +313,68 @@ void gemv_bf16_ref(const uint16_t *W, int rows, int K, const float *x, float *y)
 			memcpy(v, w, sizeof(float) * L);
 		}
 		y[r] = v[0];
+	}
+}
+
+int q4_k_tile_stride(int K) { return 144 * (K / 256); }
+
+int q4_k_lanes_per_row(int K) { return K >= 6144 ? 32 : 16; }
+
+void q4_k_scale_min(const uint8_t *q, int j, int *scale, int *min) {
+	if (j < 4) { *scale = q[j] & 63; *min = q[j + 4] & 63; }
+	else { *scale = (q[j + 4] & 0xF) | ((q[j - 4] >> 6) << 4); *min = (q[j + 4] >> 4) | ((q[j] >> 6) << 4); }
+}
+
+int repack_q4_k(const uint8_t *src, int rows, int K, uint8_t *dst) {
+	int B = K / 256, stride = q4_k_tile_stride(K);
+	if (!dst) return stride;
+	for (int r = 0; r < rows; r++) {
+		const uint8_t *s = src + (size_t)r * B * 144;
+		uint8_t *hdr = dst + (size_t)r * stride, *codes = hdr + 16 * B;
+		for (int b = 0; b < B; b++) {
+			const uint8_t *blk = s + 144 * b;
+			memcpy(hdr + 16 * b, blk, 16);               /* d, dmin, scales[12] */
+			const uint8_t *qs = blk + 16;
+			for (int g = 0; g < 4; g++) {
+				uint8_t *lo = codes + 128 * b + 16 * (2 * g), *hi = lo + 16;
+				for (int i = 0; i < 16; i++) {
+					const uint8_t *p = qs + 32 * g + 2 * i;
+					lo[i] = (uint8_t)((p[0] & 0xF) | ((p[1] & 0xF) << 4));
+					hi[i] = (uint8_t)((p[0] >> 4) | ((p[1] >> 4) << 4));
+				}
+			}
+		}
+	}
+	return stride;
+}
+
+void gemv_q4_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, float xscale, float *y) {
+	int B = K / 256, stride = q4_k_tile_stride(K);
+	int L = q4_k_lanes_per_row(K), n = (K / 32) / L;
+	float v[32], w[32];
+	for (int r = 0; r < rows; r++) {
+		const uint8_t *hdr = tile + (size_t)r * stride, *codes = hdr + 16 * B;
+		for (int l = 0; l < L; l++) {
+			float acc = 0.f;
+			for (int i = 0; i < n; i++) {
+				int s = l + L * i, b = s >> 3, j = s & 7;
+				const uint8_t *h = hdr + 16 * b, *q = codes + 128 * b + 16 * j;
+				int sc, mn;
+				q4_k_scale_min(h + 4, j, &sc, &mn);
+				int32_t dot = 0;
+				for (int e = 0; e < 32; e++) dot += ((q[e >> 1] >> (4 * (e & 1))) & 0xF) * xq[32 * s + e];
+				float d = fp16_to_fp32(ld16(h)), dmin = fp16_to_fp32(ld16(h + 2));
+				float t1 = (float)dot * (float)sc;
+				acc = fmaf(d, t1, acc);
+				float t2 = (float)(mn * sum32[s]);
+				if (!getenv("GEMV_NOMIN")) acc = fmaf(-dmin, t2, acc);
+			}
+			v[l] = acc;
+		}
+		for (int o = L / 2; o >= 1; o >>= 1) {
+			for (int l = 0; l < L; l++) w[l] = v[l] + v[l ^ o];
+			memcpy(v, w, sizeof(float) * L);
+		}
+		y[r] = v[0] * xscale;
 	}
 }
