@@ -10,6 +10,8 @@
 #include "hold.h"
 #include "prog.h"
 #include "split.h"
+#include "qsa.h"
+#include <math.h>
 #include "gguf.h"
 #include "engine.h"
 #include "core.h"
@@ -60,8 +62,10 @@ static int MAXT; static float eps = 1e-6f;
 static CUmodule mod[MAXD]; static CUfunction fn[MAXD];
 static uint32_t *s_ids, *s_toks;   /* engine_session scratch (positions each) */
 static dn_weights_t (*dw)[NB]; static dn_bufs_t db[MAXD]; static xchg_t xc[MAXD]; static split_t (*sp)[NB];
-static CUdeviceptr dPROG[MAXD], dCTL[MAXD], (*dst_dn)[NB], (*dst_conv)[NB], (*dst_kc)[NB], (*dst_vc)[NB], dst_ple[MAXD];
+static CUdeviceptr dPROG[MAXD], dCTL[MAXD], (*dst_dn)[NB], (*dst_conv)[NB], (*dst_kq)[NB], (*dst_ks)[NB], (*dst_vq)[NB], (*dst_vs)[NB], (*dst_pkt)[NB], (*dst_ring)[NB], (*snap_ring)[NB], dst_ple[MAXD];
 static size_t dn_bytes[MAXD][NB], conv_bytes[MAXD][NB], kcf, vcf;
+static unsigned nblk_qsa = QSA_NBLK;   /* blocks of 4 keys attended per layer and token (FLASH_NBLK: a small value exercises the selection on short prompts) */
+static int has_attn[MAXD];             /* the die runs at least one attention layer */
 static uint32_t *h_ids, *h_toks;    /* pinned: the prompt, and the tokens as die 0 writes them */
 static float *h_rnd;                /* pinned: u[position] for the sampler */
 static uint32_t *h_tok;             /* pinned: ctl[2] (count, bit 31 = the turn ended) */
@@ -72,7 +76,7 @@ void engine_fini(void);
 int engine_positions(void) { return MAXT; }
 
 /* ---- the prefix cache: a snapshot of every recurrent state (DeltaNet matrices, conv windows, the PLE ring)
-   after snap_s positions of a prompt. The attention caches need none: positions >= snap_s are simply
+   after snap_s positions of a prompt (and the indexer's raw key ring). The attention caches need none: positions >= snap_s are simply
    overwritten, and positions < snap_s are untouched by a response that resumes from the snapshot.
    A request whose first snap_s tokens are the same restores it and starts at position snap_s. ---- */
 static CUdeviceptr (*snap_dn)[NB], (*snap_conv)[NB], snap_ple[MAXD];
@@ -83,7 +87,10 @@ static void state_copy(int to_snapshot) {
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
 		for (int bb = 0; bb < NB; bb++) {
-			if (BLK_IS_ATTN(bb)) continue;
+			if (BLK_IS_ATTN(bb)) {   /* the raw indexer keys of the unfinished block (the caches themselves are positional) */
+				if (dst_ring[d][bb]) { if (to_snapshot) CK(cuMemcpyDtoD(snap_ring[d][bb], dst_ring[d][bb], 2048)); else CK(cuMemcpyDtoD(dst_ring[d][bb], snap_ring[d][bb], 2048)); }
+				continue;
+			}
 			if (to_snapshot) { CK(cuMemcpyDtoD(snap_dn[d][bb], dst_dn[d][bb], dn_bytes[d][bb])); CK(cuMemcpyDtoD(snap_conv[d][bb], dst_conv[d][bb], conv_bytes[d][bb])); }
 			else { CK(cuMemcpyDtoD(dst_dn[d][bb], snap_dn[d][bb], dn_bytes[d][bb])); CK(cuMemcpyDtoD(dst_conv[d][bb], snap_conv[d][bb], conv_bytes[d][bb])); }
 		}
@@ -139,13 +146,75 @@ static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuCtxSynchronize()); }
 }
 
-int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], const sampling *sm, int snap_at, const engine_cb *cb, run_stats *st) {
+/* ---- images: the embeddings that replace placeholder tokens, and the M-RoPE positions of every token ----
+   Image tokens take fp16 rows of the img table through imap; the attention layers rotate q / k by the position triple (t, y, x) of
+   a token, one axis per rope pair (pair p takes axis p % 3, the interleaved sections of the model), so the RoPE tables of the
+   dies that run attention are rebuilt from the positions of this response. Text tokens have (L, L, L) with L their logical
+   position: an image consumes npos = max(nx, ny) logical positions, not one per token. */
+static unsigned img_rows_max;          /* rows of the img table (FLASH_MAXIMG) */
+static uint32_t *h_imap;               /* [MAXT + 2] */
+static int imap_dirty, rope_dirty_T;   /* the device holds image rows / image-built RoPE rows of this many positions */
+static void rope_upload(const uint32_t (*pos3)[3], int T) {
+	float *cs = malloc(4 * 32 * (size_t)T), *sn = malloc(4 * 32 * (size_t)T);
+	double theta[32]; for (int p = 0; p < 32; p++) theta[p] = pow((double)1e7f, -2.0 * p / 64.0);
+	for (int t = 0; t < T; t++) for (int p = 0; p < 32; p++) { double ang = (double)pos3[t][p % 3] * theta[p]; cs[32 * t + p] = (float)cos(ang); sn[32 * t + p] = (float)sin(ang); }
+	for (int d = 0; d < nd; d++) if (has_attn[d]) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(db[d].rope_cs, cs, 4 * 32 * (size_t)T)); CK(cuMemcpyHtoD(db[d].rope_sn, sn, 4 * 32 * (size_t)T)); }
+	free(cs); free(sn);
+}
+static void rope_plain(int T) {
+	uint32_t (*pos3)[3] = malloc(12 * (size_t)T);
+	for (int t = 0; t < T; t++) pos3[t][0] = pos3[t][1] = pos3[t][2] = (uint32_t)t;
+	rope_upload(pos3, T); free(pos3);
+}
+/* 0, or -3: a bad file, a segment outside the prompt or out of order, too many rows */
+static int prepare_images(const engine_img *imgs, int nimg, int nprompt, int T) {
+	if (!nimg) {   /* a response without images: undo what the last one left on the dies */
+		if (imap_dirty) { for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemsetD32(db[d].imap, 0xffffffffu, (size_t)MAXT + 2)); } imap_dirty = 0; }
+		if (rope_dirty_T) { rope_plain(rope_dirty_T); rope_dirty_T = 0; }
+		return 0;
+	}
+	if (!img_rows_max) return -3;
+	uint32_t (*pos3)[3] = malloc(12 * (size_t)T);
+	uint16_t *h16 = malloc(2 * 2560 * (size_t)img_rows_max);
+	for (int t = 0; t < T + 2; t++) h_imap[t] = 0xffffffffu;
+	long L = 0; int t = 0, rows = 0, bad = 0;
+	for (int i = 0; i < nimg && !bad; i++) {
+		const engine_img *g = &imgs[i];
+		FILE *f = fopen(g->path, "rb"); uint32_t hd[5];
+		if (!f || fread(hd, 4, 5, f) != 5 || hd[4] != 2560 || g->s < t || g->s + (int)hd[0] > nprompt || rows + (int)hd[0] > (int)img_rows_max) { bad = 1; if (f) fclose(f); break; }
+		for (; t < g->s; t++, L++) pos3[t][0] = pos3[t][1] = pos3[t][2] = (uint32_t)L;
+		float *e = malloc(4 * 2560); uint32_t *rel = malloc(12 * (size_t)hd[0]);
+		for (uint32_t k = 0; k < hd[0] && !bad; k++) {
+			if (fread(e, 4, 2560, f) != 2560) { bad = 1; break; }
+			for (int j = 0; j < 2560; j++) h16[(size_t)(rows + (int)k) * 2560 + j] = qsa_f2h(e[j]);
+		}
+		if (!bad && fread(rel, 12, hd[0], f) != hd[0]) bad = 1;
+		for (uint32_t k = 0; k < hd[0] && !bad; k++) {
+			h_imap[g->s + (int)k] = (uint32_t)(rows + (int)k);
+			pos3[g->s + (int)k][0] = (uint32_t)L + rel[3 * k]; pos3[g->s + (int)k][1] = (uint32_t)L + rel[3 * k + 1]; pos3[g->s + (int)k][2] = (uint32_t)L + rel[3 * k + 2];
+		}
+		fclose(f); free(e); 
+		if (!bad) { t = g->s + (int)hd[0]; L += (long)hd[3]; rows += (int)hd[0]; }
+		free(rel);
+	}
+	if (!bad) {
+		for (; t < T; t++, L++) pos3[t][0] = pos3[t][1] = pos3[t][2] = (uint32_t)L;
+		for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(db[d].img, h16, 2 * 2560 * (size_t)rows)); CK(cuMemcpyHtoD(db[d].imap, h_imap, 4 * ((size_t)T + 2))); }
+		rope_upload(pos3, T); imap_dirty = 1; if (T > rope_dirty_T) rope_dirty_T = T;
+	}
+	free(pos3); free(h16);
+	return bad ? -3 : 0;
+}
+
+int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], const sampling *sm, int snap_at, const engine_img *imgs, int nimg, const engine_cb *cb, run_stats *st) {
 	int T = nprompt + n_new;
 	if (nprompt < 1 || n_new < 0 || T > MAXT) return -1;
 	/* a CUDA error from here on unwinds to this point: the contexts are no longer usable, the core rebuilds them (return -2) */
 	in_run = 1;
 	if (setjmp(run_jb)) { in_run = 0; snap_s = 0; return -2; }
 	memcpy(h_ids, ids, 4 * (size_t)nprompt); memset(h_ids + nprompt, 0, 4 * (size_t)(T + 2 - nprompt));
+	int irc = prepare_images(imgs, nimg, nprompt, T);
+	if (irc) { in_run = 0; return irc; }
 	double t0 = now();
 	int samp_k = (sm && sm->temp > 0.f && sm->top_k >= 2) ? (sm->top_k > 32 ? 32 : sm->top_k) : 0;
 	float samp_topp = sm && sm->topp > 0.f ? sm->topp : 1.0f, samp_invT = samp_k ? 1.0f / sm->temp : 1.0f;
@@ -157,6 +226,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	   still run, to produce the logits of the last one) */
 	int resume = (snap_s > 0 && snap_s <= nprompt - 1 && !memcmp(ids, snap_ids, 4 * (size_t)snap_s)) ? snap_s : 0;
 	if (snap_at > nprompt - 1) snap_at = nprompt - 1;
+	for (int i = 0; i < nimg; i++) if (snap_at > imgs[i].s) snap_at = imgs[i].s;   /* the snapshot would not know the image */
 	if (snap_at <= resume) snap_at = 0;
 	if (!resume) snap_s = 0;   /* this response rewrites the attention caches from position 0 */
 	prog_t *P = calloc(MAXD, sizeof *P); unsigned nph[MAXD];
@@ -167,7 +237,8 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 		   were restored, the attention caches below the snapshot are intact), and so do the end flag and the abort count */
 		if (!resume) {
 			for (int bb = 0; bb < NB; bb++) {
-				if (BLK_IS_ATTN(bb)) { CK(cuMemsetD8(dst_kc[d][bb], 0, d == attn_die() ? kcf * 4 : 256)); CK(cuMemsetD8(dst_vc[d][bb], 0, d == attn_die() ? vcf * 4 : 256)); }
+				/* the int8 caches, the indexer pool and the ring of an attention layer need no reset: positions are written before they are read */
+				if (BLK_IS_ATTN(bb)) continue;
 				else { CK(cuMemsetD8(dst_dn[d][bb], 0, dn_bytes[d][bb])); CK(cuMemsetD8(dst_conv[d][bb], 0, conv_bytes[d][bb])); }
 			}
 			CK(cuMemsetD8(dst_ple[d], 0, 4 * 10 * 10240));
@@ -181,7 +252,8 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 		if (samp_k) CK(cuMemcpyHtoD(db[d].rnd, h_rnd, 4 * ((size_t)T + 2)));
 		prog_embed(&P[d], &dw[d][0], &db[d], 0);
 		for (int bb = 0; bb < NB; bb++) {
-			dn_bufs_t bb_ = db[d]; bb_.dn_state = dst_dn[d][bb]; bb_.conv_state = dst_conv[d][bb]; bb_.kc = dst_kc[d][bb]; bb_.vc = dst_vc[d][bb]; bb_.ple_state = dst_ple[d];
+			dn_bufs_t bb_ = db[d]; bb_.dn_state = dst_dn[d][bb]; bb_.conv_state = dst_conv[d][bb]; bb_.ple_state = dst_ple[d];
+			bb_.qsa = 1; bb_.nblk = nblk_qsa; bb_.kq = dst_kq[d][bb]; bb_.ks = dst_ks[d][bb]; bb_.vq = dst_vq[d][bb]; bb_.vs = dst_vs[d][bb]; bb_.pkt = dst_pkt[d][bb]; bb_.ring = dst_ring[d][bb];
 			if (bb == 1) prog_ple_prefix(&P[d], &sp[d][bb], &xc[d], &dw[d][bb], &bb_, 0, eps);
 			if (BLK_IS_ATTN(bb)) prog_attn_block(&P[d], &sp[d][bb], &xc[d], &dw[d][bb], &bb_, 0, eps);
 			else prog_deltanet_block(&P[d], &sp[d][bb], &xc[d], &dw[d][bb], &bb_, 0, eps);
@@ -218,8 +290,15 @@ int engine_init(core_t *c) {
 	if (setjmp(init_jb)) { in_init = 0; engine_fini(); return -1; }
 	MAXT = c->maxt;
 	const char *cubin = getenv("FLASH_CUBIN") ? getenv("FLASH_CUBIN") : "die.cubin";
-	unsigned npos = ((unsigned)MAXT + 8192 + 64 + 31) / 32 * 32;
-	kcf = ATTN_KC_FLOATS(npos); vcf = (size_t)npos * 512;
+	img_rows_max = getenv("FLASH_MAXIMG") ? (unsigned)atoi(getenv("FLASH_MAXIMG")) : 2048;   /* image tokens per response (fp16 rows of 2560 on every die) */
+	h_imap = calloc((size_t)MAXT + 2, 4); imap_dirty = 0; rope_dirty_T = 0;
+	if (getenv("FLASH_NBLK")) nblk_qsa = (unsigned)atoi(getenv("FLASH_NBLK"));
+	if (nblk_qsa < 1 || nblk_qsa > 4096) { fprintf(stderr, "engine: FLASH_NBLK %u out of range\n", nblk_qsa); return -1; }
+	unsigned cpos = (4u * (nblk_qsa + 1) + 2048 + 31) / 32 * 32;   /* compact caches: the attended keys (4 per block + the partial one) and the kernels' stray prefetch past them */
+	kcf = ATTN_KC_FLOATS(cpos); vcf = (size_t)cpos * 512;
+	unsigned maxp = ((unsigned)MAXT + 127) & ~127u;   /* positions of the int8 caches and the pool: whole groups of 32 blocks */
+	memset(has_attn, 0, sizeof has_attn);
+	for (int bb = 3; bb < NB; bb += 4) if (attn_die_of(bb) < nd) has_attn[attn_die_of(bb)] = 1;
 	double ts0 = now();
 	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuModuleLoad(&mod[d], cubin)); CK(cuModuleGetFunction(&fn[d], mod[d], "die")); }
 	/* ---- the PLE constants block (plerows layout); the table itself is the core's ---- */
@@ -232,7 +311,7 @@ int engine_init(core_t *c) {
 	for (int t = 0; t < MAXT; t++) rope_table_gpu((unsigned)t, 1e7f, rcs + 32 * t, rsn + 32 * t);
 	/* ---- the dies: weights, buffers, exchange, control ---- */
 	dw = calloc(MAXD, sizeof *dw); sp = calloc(MAXD, sizeof *sp);
-	dst_dn = calloc(MAXD, sizeof *dst_dn); dst_conv = calloc(MAXD, sizeof *dst_conv); dst_kc = calloc(MAXD, sizeof *dst_kc); dst_vc = calloc(MAXD, sizeof *dst_vc);
+	dst_dn = calloc(MAXD, sizeof *dst_dn); dst_conv = calloc(MAXD, sizeof *dst_conv); dst_kq = calloc(MAXD, sizeof *dst_kq); dst_ks = calloc(MAXD, sizeof *dst_ks); dst_vq = calloc(MAXD, sizeof *dst_vq); dst_vs = calloc(MAXD, sizeof *dst_vs); dst_pkt = calloc(MAXD, sizeof *dst_pkt); dst_ring = calloc(MAXD, sizeof *dst_ring); snap_ring = calloc(MAXD, sizeof *snap_ring);
 	snap_dn = calloc(MAXD, sizeof *snap_dn); snap_conv = calloc(MAXD, sizeof *snap_conv); snap_ids = malloc(4 * ((size_t)MAXT + 2)); snap_s = 0;
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
@@ -250,9 +329,15 @@ int engine_init(core_t *c) {
 		b->out = dalloc(4 * 2560);
 		b->qg = dalloc(4 * 12288); b->k = dalloc(4 * 512); b->v = dalloc(4 * 512); b->qo = dalloc(4 * 6144); b->aout = dalloc(4 * 6144);
 		b->pm = dalloc(4 * 24 * 8); b->pd = dalloc(4 * 24 * 8); b->po = dalloc(4 * 24 * 8 * 256);
-		b->rope_cs = dalloc(4 * 32 * (size_t)MAXT); b->rope_sn = dalloc(4 * 32 * (size_t)MAXT);
-		CK(cuMemcpyHtoD(b->rope_cs, rcs, 4 * 32 * (size_t)MAXT)); CK(cuMemcpyHtoD(b->rope_sn, rsn, 4 * 32 * (size_t)MAXT));
+		if (has_attn[d]) {   /* the attention layers of this die: RoPE tables, the indexer scratch, the compact caches of the attended keys */
+			b->rope_cs = dalloc(4 * 32 * (size_t)MAXT); b->rope_sn = dalloc(4 * 32 * (size_t)MAXT);
+			CK(cuMemcpyHtoD(b->rope_cs, rcs, 4 * 32 * (size_t)MAXT)); CK(cuMemcpyHtoD(b->rope_sn, rsn, 4 * 32 * (size_t)MAXT));
+			b->iqk = dalloc(4 * 640); b->iq = dalloc(4 * 512); b->sc = dalloc(4 * ((size_t)maxp / 4 + 64)); b->hst = dalloc(4 * 1280); b->sel = dalloc(4 * ((size_t)nblk_qsa + 8));
+			b->kc = dalloc(kcf * 4); b->vc = dalloc(vcf * 4);
+		}
 		b->ids = dalloc(4 * ((size_t)MAXT + 2));
+		b->imap = dalloc(4 * ((size_t)MAXT + 2)); CK(cuMemsetD32(b->imap, 0xffffffffu, (size_t)MAXT + 2));
+		if (img_rows_max) b->img = dalloc(2 * 2560 * (size_t)img_rows_max);
 		b->ple_pc = dalloc(160); CK(cuMemcpyHtoD(b->ple_pc, ppc, 160)); CK(cuMemHostGetDevicePointer(&b->ple_tab, c->ple_host, 0)); b->ple_compact = (unsigned)c->ple_compact;
 		b->pg = dalloc(4 * 2560); b->pgq = dalloc(2 * 2560); b->pgs32 = dalloc(4 * 80); b->pgs16 = dalloc(4 * 160); b->pgas = dalloc(4 * 80);
 		b->lk = dalloc(4u * (unsigned)s0.pkn); b->kn = dalloc(4 * 10240); b->qn = dalloc(4 * 10240); b->lv = dalloc(4u * (unsigned)s0.yn);
@@ -281,7 +366,12 @@ int engine_init(core_t *c) {
 				w->attn_v = dptr(d, bb, "attn_v.weight"); w->attn_v_type = ttype(bb, "attn_v.weight");
 				w->attn_output = dptr(d, bb, "attn_output.weight"); w->attn_output_type = ttype(bb, "attn_output.weight");
 				w->attn_q_norm = dptr(d, bb, "attn_q_norm.weight"); w->attn_k_norm = dptr(d, bb, "attn_k_norm.weight");
-				dst_kc[d][bb] = dalloc(d == attn_die() ? kcf * 4 : 256); dst_vc[d][bb] = dalloc(d == attn_die() ? vcf * 4 : 256);
+				w->indexer_x = dptr(d, bb, "indexer_x.weight"); w->indexer_qn = dptr(d, bb, "indexer.q_norm.weight"); w->indexer_kn = dptr(d, bb, "indexer.k_norm.weight");
+				if (d == attn_die_of(bb)) {   /* this layer runs here: int8 K / V with fp16 scales, the pooled indexer keys, the raw key ring */
+					dst_kq[d][bb] = dalloc((size_t)maxp * 512); dst_vq[d][bb] = dalloc((size_t)maxp * 512);
+					dst_ks[d][bb] = dalloc((size_t)maxp * 32); dst_vs[d][bb] = dalloc((size_t)maxp * 32);
+					dst_pkt[d][bb] = dalloc((size_t)maxp / 128 * 8192); dst_ring[d][bb] = dalloc(2048); snap_ring[d][bb] = dalloc(2048);
+				}
 			}
 			w->ffn_gate_inp_x = dptr(d, bb, "ffn_gate_inp_x.weight"); w->emap = dptr(d, bb, "emap");
 			w->ffn_gate_exps = dptr(d, bb, "ffn_gate_exps.weight"); w->ffn_up_exps = dptr(d, bb, "ffn_up_exps.weight"); w->ffn_down_exps = dptr(d, bb, "ffn_down_exps.weight");
@@ -340,8 +430,9 @@ void engine_fini(void) {
 	for (int d = 0; d < nd; d++) { if (mod[d]) { cuCtxSetCurrent(ctx[d]); cuModuleUnload(mod[d]); mod[d] = 0; } }
 	cuCtxSetCurrent(ctx[0]);
 	free(snap_dn); free(snap_conv); free(snap_ids); snap_dn = snap_conv = NULL; snap_ids = NULL; snap_s = 0; memset(snap_ple, 0, sizeof snap_ple);
-	free(dw); free(sp); free(dst_dn); free(dst_conv); free(dst_kc); free(dst_vc); dw = NULL; sp = NULL; dst_dn = dst_conv = dst_kc = dst_vc = NULL;
+	free(dw); free(sp); free(dst_dn); free(dst_conv); free(dst_kq); free(dst_ks); free(dst_vq); free(dst_vs); free(dst_pkt); free(dst_ring); free(snap_ring); dw = NULL; sp = NULL; dst_dn = dst_conv = dst_kq = dst_ks = dst_vq = dst_vs = dst_pkt = dst_ring = snap_ring = NULL;
 	free(s_ids); free(s_toks); s_ids = s_toks = NULL;
+	free(h_imap); h_imap = NULL; imap_dirty = rope_dirty_T = 0;
 	memset(db, 0, sizeof db); memset(xc, 0, sizeof xc); memset(dPROG, 0, sizeof dPROG); memset(dCTL, 0, sizeof dCTL); memset(dst_ple, 0, sizeof dst_ple);
 	core = NULL;
 }
@@ -361,12 +452,14 @@ static int client_gone(void *arg) {
  *   stop [<id> [<id>]]       end-of-turn ids for the following responses (none by default)
  *   sample <seed> <temp> <top_k> <top_p>   sampling for the following responses (greedy by default;
  *                            temp <= 0 or top_k <= 1: greedy; top_k is capped at 32)
+ *   img <path> <s>           the tokens from s on are an image (see engine.h), for the next response
  *   snap <s>                 take a prefix-cache snapshot after s positions of the next response; a later response
  *                            whose prompt starts with the same s tokens resumes there instead of from 0
  *   info                     "info <positions>"
  *   cubin <path>             reload the kernel on every die
  *   reload [path]            replace this library (the weights and the PLE table stay loaded)
  *   quit                     stop the whole process */
+static engine_img pend[8]; static int npend;   /* "img" commands waiting for the next response */
 static char reload_path[1024];
 const char *engine_reload_path(void) { return reload_path[0] ? reload_path : NULL; }
 
@@ -411,6 +504,10 @@ int engine_session(FILE *in, FILE *out) {
 			smp = (sampling){ seed, temp, topp, topk };
 			fprintf(out, "ok: sample seed %llu temp %g top_k %d top_p %g%s\n", seed, temp, topk, topp, temp > 0.f && topk >= 2 ? "" : " (greedy)"); fflush(out); continue;
 		}
+		if (!strncmp(p, "img", 3) && (p[3] == 0x20)) {   /* img <path> <first token> */
+			if (npend >= 8 || sscanf(p + 3, "%239s %d", pend[npend].path, &pend[npend].s) != 2) { fprintf(out, "error: img <path> <first token> (at most 8)\n"); fflush(out); continue; }
+			npend++; fprintf(out, "ok: img %d\n", npend); fflush(out); continue;
+		}
 		if (!strncmp(p, "snap", 4)) { snap_req = atoi(p + 4); fprintf(out, "ok: snap %d\n", snap_req); fflush(out); continue; }
 		if (!strncmp(p, "stop", 4)) {
 			char *e2; p += 4; stop[0] = stop[1] = 0xffffffffu;
@@ -424,8 +521,9 @@ int engine_session(FILE *in, FILE *out) {
 		for (;;) { long v = strtol(p, &end, 10); if (end == p) break; if (nprompt + 2 >= MAXT) break; ids[nprompt++] = (uint32_t)v; p = end; }
 		run_stats st;
 		engine_cb cb = { chat ? put_token : NULL, client_gone, out };
-		int rc = engine_run(ids, nprompt, (int)n_new, stop, &smp, snap_req, &cb, &st);
-		snap_req = 0;
+		int rc = engine_run(ids, nprompt, (int)n_new, stop, &smp, snap_req, pend, npend, &cb, &st);
+		snap_req = 0; npend = 0;
+		if (rc == -3) { fprintf(out, "error: bad image data (a file, a position or too many image tokens)\n"); fflush(out); continue; }
 		if (rc == -2) { fprintf(out, "error: device fault; the core rebuilds the contexts and the engine\n"); fflush(out); free(line); return 3; }
 		if (rc) { fprintf(out, "error: %d prompt ids + %ld new > %d positions\n", nprompt, n_new, MAXT); fflush(out); continue; }
 		if (chat) {

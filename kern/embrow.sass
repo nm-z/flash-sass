@@ -11,7 +11,11 @@
 #   y = (d * sc) * (code - (h ? 0 : 4))
 # Bit-exact twin: dequant(GG_Q3_K, ...).
 #
+# A position that carries an image embedding (IMAP[pos] != 0xffffffff, a row of the fp16 table IMG [row][2560]) takes it instead:
+# y = f32(IMG[row][256 b + v]), the same four stores.
+#
 # Params: 0:0x140 E (token_embd)  1:0x148 S (stream out)  2:0x150 pos (u32)  3:0x158 IDS (u32 tokens; the row is IDS[pos])
+#         4:0x160 IMAP (u32 per position)  5:0x168 IMG (fp16 rows of 2560)
 
 <CONSTANT_MAPPING>
     param_E0 : c[0x0][0x140]
@@ -21,6 +25,10 @@
     param_id : c[0x0][0x150]
     param_IDS0 : c[0x0][0x158]
     param_IDS1 : c[0x0][0x15c]
+    param_IMAP0 : c[0x0][0x160]
+    param_IMAP1 : c[0x0][0x164]
+    param_IMG0 : c[0x0][0x168]
+    param_IMG1 : c[0x0][0x16c]
 </CONSTANT_MAPPING>
 
 <REGISTER_MAPPING>
@@ -47,6 +55,10 @@
     24,25 : lp<0-1>
     26,27 : kp<0-1>
     28,29 : ip<0-1>
+    30,31 : mp<0-1>
+    32    : row
+    33    : hh
+    34,35 : gp<0-1>
 </REGISTER_MAPPING>
 
 <CODE>
@@ -59,6 +71,19 @@
     $o .= "--:-:-:-:6      IADD ip0.CC, t, param_IDS0;\n";
     $o .= "--:-:-:-:6      IADD.X ip1, RZ, param_IDS1;\n";
     $o .= "--:-:1:-:2      LDG.E t, [ip];\n";
+    # the image row of this position (0xffffffff: a token)
+    $o .= "--:-:-:-:6      MOV hh, param_id;\n";
+    $o .= "--:-:-:-:6      SHL hh, hh, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD mp0.CC, hh, param_IMAP0;\n";
+    $o .= "--:-:-:-:6      IADD.X mp1, RZ, param_IMAP1;\n";
+    $o .= "--:-:-:-:6      MOV32I row, 0xffffffff;\n";
+    $o .= "--:-:-:-:6      ISETP.NE.U32.AND P2, PT, param_IMAP0, RZ, PT;\n";   # no image map (the tests): every position is a token
+    $o .= "--:-:-:-:6      NOP;\n" x 3;
+    $o .= "--:-:1:-:2  \@P2 LDG.E row, [mp];\n";
+    $o .= "01:-:-:-:6      IADD hh, row, 0x1;\n";
+    $o .= "--:-:-:-:6      ISETP.NE.U32.AND P1, PT, hh, RZ, PT;\n";
+    $o .= "--:-:-:-:6      NOP;\n" x 3;
+    $o .= "--:-:-:-:6  \@P1 BRA IMGROW;\n";
     # block base: E + 1100 id + 110 b
     $o .= "01:-:-:-:6      MOV t, t;\n";
     $o .= "--:-:-:-:6      XMAD t2, t, 0x44c, RZ;\n";                 # low 16 bits of id * 1100
@@ -132,6 +157,27 @@
     $o .= "04:-:-:-:6      FMUL d, d, schi;\n";                        # dl = d * sc
     $o .= "--:-:-:-:6      FMUL y, d, k;\n";
     $o .= "--:1:-:-:1      STG.E [sp], y;\n";
+    $o .= "--:1:-:-:1      STG.E [sp+0x2800], y;\n";
+    $o .= "--:1:-:-:1      STG.E [sp+0x5000], y;\n";
+    $o .= "--:1:-:-:6      STG.E [sp+0x7800], y;\n";
+    $o .= "01:-:-:-:f      EXIT;\n";
+    # an image embedding: y = f32(IMG[2560 row + 256 b + v]); S + 4 v + 1024 b as above
+    $o .= "\nIMGROW:\n";
+    $o .= "--:-:-:-:6      XMAD t2, row, 0xa00, RZ;\n";
+    $o .= "--:-:-:-:6      XMAD.PSL t2, row.H1, 0xa00, t2;\n";
+    $o .= "--:-:-:-:6      SHL t, b, 0x8;\n";
+    $o .= "--:-:-:-:6      IADD t2, t2, t;\n";
+    $o .= "--:-:-:-:6      IADD t2, t2, v;\n";
+    $o .= "--:-:-:-:6      SHL t2, t2, 0x1;\n";
+    $o .= "--:-:-:-:6      IADD gp0.CC, t2, param_IMG0;\n";
+    $o .= "--:-:-:-:6      IADD.X gp1, RZ, param_IMG1;\n";
+    $o .= "--:-:1:-:2      LDG.E.U16 d, [gp];\n";
+    $o .= "--:-:-:-:6      SHL t, v, 0x2;\n";
+    $o .= "--:-:-:-:6      ISCADD t, b, t, 0xa;\n";
+    $o .= "--:-:-:-:6      IADD sp0.CC, t, param_S0;\n";
+    $o .= "--:-:-:-:6      IADD.X sp1, RZ, param_S1;\n";
+    $o .= "01:-:3:-:2      F2F.F32.F16 y, d;\n";
+    $o .= "04:1:-:-:1      STG.E [sp], y;\n";
     $o .= "--:1:-:-:1      STG.E [sp+0x2800], y;\n";
     $o .= "--:1:-:-:1      STG.E [sp+0x5000], y;\n";
     $o .= "--:1:-:-:6      STG.E [sp+0x7800], y;\n";

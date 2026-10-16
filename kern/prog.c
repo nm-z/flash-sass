@@ -261,6 +261,40 @@ static void ph_moe_half(prog_t *P, const split_t *s, const xchg_t *x, const dn_w
 	ph_ptr(p, 0x140, inj); ph_ptr(p, 0x148, PARTS); ph_ptr(p, 0x150, b->S); ph_u32(p, 0x158, 2560); ph_u32(p, 0x15c, 2560 * 4); ph_u32(p, 0x164, (unsigned)s->n); ph_ptr(p, 0x168, b->out); ph_ptr(p, 0x170, SIN);
 }
 
+/* QSA attention (ref/qsa.h): the q/k/v projections of z and the indexer projections (Z, the gathered fp32 z), the int8 KV append,
+ * the indexer (q norm + rope, key ring, pooled keys, scores, 5 selection passes), the gather of the attended blocks into the compact
+ * caches and flash-decoding over them (n keys from the token position, see ref/qsa.h qsa_nkeys), then the merge with the output gate */
+static void ph_attn_qsa(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps, CUdeviceptr Z) {
+	ph_gemv_any(P, w->attn_q_type, 2560, w->attn_q, b->zq, b->zs32, b->zs16, b->qg, 12288, b->zas, 0, 0);
+	prog_nobar(P);
+	ph_gemv_any(P, w->attn_k_type, 2560, w->attn_k, b->zq, b->zs32, b->zs16, b->k, 512, b->zas, 0, 0);
+	prog_nobar(P);
+	ph_gemv_any(P, w->attn_v_type, 2560, w->attn_v, b->zq, b->zs32, b->zs16, b->v, 512, b->zas, 0, 0);
+	prog_nobar(P);
+	ph_bf16(P, OP_BF16K2560, w->indexer_x, Z, b->iqk, 640, 0);   /* iq (512) ++ ik (128) */
+	phase_t *p = prog_add(P, OP_ATTNQKQ, 26);
+	ph_ptr(p, 0x140, b->qg); ph_ptr(p, 0x148, b->k); ph_ptr(p, 0x150, b->v); ph_ptr(p, 0x158, w->attn_q_norm); ph_ptr(p, 0x160, w->attn_k_norm);
+	ph_ptr(p, 0x168, b->rope_cs); ph_ptr(p, 0x170, b->rope_sn); ph_ptr(p, 0x178, b->qo); ph_ptr(p, 0x180, b->kq); ph_ptr(p, 0x188, b->vq);
+	ph_tokv(P, p, 0x190, 0, t); ph_f32(p, 0x194, eps); ph_ptr(p, 0x198, b->ks); ph_ptr(p, 0x1a0, b->vs);
+	prog_nobar(P);   /* the indexer does not read what the cache append writes */
+	p = prog_add(P, OP_IDXQK, 6);
+	ph_ptr(p, 0x140, b->iqk); ph_ptr(p, 0x148, w->indexer_qn); ph_ptr(p, 0x150, w->indexer_kn); ph_ptr(p, 0x158, b->rope_cs); ph_ptr(p, 0x160, b->rope_sn); ph_ptr(p, 0x168, b->iq);
+	ph_ptr(p, 0x170, b->ring); ph_ptr(p, 0x178, b->pkt); ph_ptr(p, 0x180, b->hst); ph_tokv(P, p, 0x188, 0, t); ph_f32(p, 0x18c, eps);
+	p = prog_add(P, OP_IDXSCORE, 16);
+	ph_ptr(p, 0x140, b->pkt); ph_ptr(p, 0x148, b->iq); ph_ptr(p, 0x150, b->sc); ph_ptr(p, 0x158, b->hst); ph_tokv(P, p, 0x160, 0, t); ph_u32(p, 0x164, b->nblk);
+	for (unsigned pass = 2; pass <= 6; pass++) {
+		p = prog_add(P, OP_IDXSEL, 16);
+		ph_ptr(p, 0x140, b->sc); ph_ptr(p, 0x148, b->hst); ph_ptr(p, 0x150, b->sel); ph_tokv(P, p, 0x158, 0, t); ph_u32(p, 0x15c, b->nblk); ph_u32(p, 0x160, pass);
+	}
+	p = prog_add(P, OP_KVGATHER, b->nblk + 1);
+	ph_ptr(p, 0x140, b->kq); ph_ptr(p, 0x148, b->ks); ph_ptr(p, 0x150, b->vq); ph_ptr(p, 0x158, b->vs); ph_ptr(p, 0x160, b->kc); ph_ptr(p, 0x168, b->vc);
+	ph_ptr(p, 0x170, b->sel); ph_tokv(P, p, 0x178, 0, t); ph_u32(p, 0x17c, b->nblk);
+	p = prog_add(P, OP_ATTNPARTN, 32);
+	ph_ptr(p, 0x140, b->qo); ph_ptr(p, 0x148, b->kc); ph_ptr(p, 0x150, b->vc); ph_ptr(p, 0x158, b->pm); ph_ptr(p, 0x160, b->pd); ph_ptr(p, 0x168, b->po); ph_tokv(P, p, 0x170, 1, t + 1); ph_u32(p, 0x174, b->nblk);
+	p = prog_add(P, OP_ATTNMERGE, 24);
+	ph_ptr(p, 0x140, b->pm); ph_ptr(p, 0x148, b->pd); ph_ptr(p, 0x150, b->po); ph_ptr(p, 0x158, b->qg); ph_ptr(p, 0x160, b->aout);
+}
+
 /* attention proper on die 0 (v1): q/k/v GEMVs, per-head norm + RoPE + cache append,
  * flash-decoding partials over the t+1 keys, merge with the output gate */
 static void ph_attn_core(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps) {
@@ -281,9 +315,10 @@ static void ph_attn_core(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, u
 
 void prog_attn_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps) {
 	CUdeviceptr inj = b->t + 320 * 4;
-	ph_hc_read(P, s, x, w->hc_attn_norm, w->hc_attn_dj, w->hc_attn_up, b, eps, 0, 0);
-	if (s->d == attn_die()) ph_attn_core(P, w, b, t, eps);
-	CUdeviceptr AOUT = ph_xchg(P, x, s->d, s->n, b->aout, s->d == attn_die() ? 6144 * 4 : 0, 0, 6144 * 4);
+	CUdeviceptr Z = ph_hc_read(P, s, x, w->hc_attn_norm, w->hc_attn_dj, w->hc_attn_up, b, eps, 0, 0);
+	int here = b->qsa ? b->kq != 0 : s->d == attn_die();   /* the die that runs this layer: the one holding its KV cache (QSA), else attn_die() */
+	if (here) { if (b->qsa) ph_attn_qsa(P, w, b, t, eps, Z); else ph_attn_core(P, w, b, t, eps); }
+	CUdeviceptr AOUT = ph_xchg(P, x, s->d, s->n, b->aout, here ? 6144 * 4 : 0, 0, 6144 * 4);
 	ph_actq(P, OP_ACTQ256, AOUT, b->oq, b->os32, b->os16, b->oas, 256, 24);
 	ph_gemv_any(P, w->attn_output_type, 6144, w->attn_output, b->oq, b->os32, b->os16, b->ly, (unsigned)s->yn, b->oas, 0, 0);
 	CUdeviceptr Y = ph_xchg(P, x, s->d, s->n, b->ly, 4u * (unsigned)s->yn, 4u * (unsigned)s->y0, 4 * 2560);
@@ -294,6 +329,7 @@ void prog_attn_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weig
 void prog_embed(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, unsigned t) {
 	phase_t *p = prog_add(P, OP_EMBROW, 10);
 	ph_ptr(p, 0x140, w->token_embd); ph_ptr(p, 0x148, b->S); ph_tokv(P, p, 0x150, 0, t); ph_ptr(p, 0x158, b->ids);
+	ph_ptr(p, 0x160, b->imap); ph_ptr(p, 0x168, b->img);
 }
 
 void prog_head(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, float eps, unsigned t, unsigned nprompt) {

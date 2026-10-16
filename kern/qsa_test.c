@@ -6,6 +6,8 @@
 #include "attn.h"
 #include "qsa.h"
 #include "fmath.h"
+#include "quant.h"
+#include "gguf.h"
 #include <cuda.h>
 #include <math.h>
 #include <stdio.h>
@@ -293,12 +295,38 @@ static int test_idxfull(unsigned nv, unsigned NBLK, int iters) {
 	return bad;
 }
 
+/* embrow: image rows from the fp16 table, token rows from a Q3_K table, through the same op */
+static int test_embimg(void) {
+	const int R = 32; unsigned npos = 6;
+	uint8_t *tab = malloc((size_t)R * 1100); for (size_t i = 0; i < (size_t)R * 1100; i++) tab[i] = (uint8_t)urand();
+	for (int r = 0; r < R; r++) for (int b = 0; b < 10; b++) { uint16_t h = (uint16_t)(0x2c00 + (urand() % 0x1000)); memcpy(tab + (size_t)r * 1100 + 110 * b + 108, &h, 2); }
+	unsigned nimg = 4; uint16_t *img = malloc(2 * 2560 * (size_t)nimg); for (size_t i = 0; i < 2560 * (size_t)nimg; i++) img[i] = qsa_f2h(3.f * frand());
+	uint32_t ids[6] = { 5, 7, 9, 11, 13, 15 }, imap[6] = { 0xffffffffu, 3, 0xffffffffu, 0xffffffffu, 0, 2 };
+	CUdeviceptr dE = dalloc((size_t)R * 1100), dS = dalloc(4 * 10240), dIDS = dalloc(64), dIMAP = dalloc(64), dIMG = dalloc(2 * 2560 * (size_t)nimg);
+	CK(cuMemcpyHtoD(dE, tab, (size_t)R * 1100)); CK(cuMemcpyHtoD(dIDS, ids, 24)); CK(cuMemcpyHtoD(dIMAP, imap, 24)); CK(cuMemcpyHtoD(dIMG, img, 2 * 2560 * (size_t)nimg));
+	desc_t prog[1]; d_init(&prog[0], OP_EMBROW, 10);
+	d_ptr(&prog[0], 0x140, dE); d_ptr(&prog[0], 0x148, dS); d_tok(&prog[0], 0x150, 0); d_ptr(&prog[0], 0x158, dIDS); d_ptr(&prog[0], 0x160, dIMAP); d_ptr(&prog[0], 0x168, dIMG);
+	int bad = 0, shown = 0;
+	for (unsigned t = 0; t < npos; t++) {
+		CK(cuMemsetD32(dS, 0x7fc00000u, 10240));
+		run_token(prog, 1, t);
+		float ref[2560], got[10240];
+		if (imap[t] == 0xffffffffu) dequant(GG_Q3_K, tab + (size_t)ids[t] * 1100, ref, 2560);
+		else for (int j = 0; j < 2560; j++) ref[j] = qsa_h2f(img[(size_t)imap[t] * 2560 + j]);
+		CK(cuMemcpyDtoH(got, dS, 4 * 10240));
+		for (int l = 0; l < 4; l++) bad |= cmpb(imap[t] == 0xffffffffu ? "token row" : "image row", ref, got + 2560 * l, 4 * 2560, &shown);
+	}
+	printf("embrow with images: %s\n", bad ? "MISMATCH" : "BIT-EXACT");
+	return bad;
+}
+
 int main(int argc, char **argv) {
 	if (argc < 2) { fprintf(stderr, "usage: qsa_test kv <T> <NBLK>\n"); return 2; }
 	dev_init();
 	if (!strcmp(argv[1], "idxscore")) return test_idxscore(argc > 2 ? (unsigned)atoi(argv[2]) : 700, argc > 3 ? (unsigned)atoi(argv[3]) : 512) ? 3 : 0;
 	if (!strcmp(argv[1], "idxsel")) return test_idxsel(argc > 2 ? (unsigned)atoi(argv[2]) : 700, argc > 3 ? (unsigned)atoi(argv[3]) : 512, argc > 4 ? atoi(argv[4]) : 0, argc > 5 ? atoi(argv[5]) : 5) ? 3 : 0;
 	if (!strcmp(argv[1], "idxfull")) return test_idxfull(argc > 2 ? (unsigned)atoi(argv[2]) : 2000, argc > 3 ? (unsigned)atoi(argv[3]) : 512, argc > 4 ? atoi(argv[4]) : 0) ? 3 : 0;
+	if (!strcmp(argv[1], "embimg")) return test_embimg() ? 3 : 0;
 	if (!strcmp(argv[1], "idxqk")) return test_idxqk(argc > 2 ? (unsigned)atoi(argv[2]) : 100) ? 3 : 0;
 	if (!strcmp(argv[1], "kv")) return test_kv(argc > 2 ? (unsigned)atoi(argv[2]) : 200, argc > 3 ? (unsigned)atoi(argv[3]) : 8) ? 3 : 0;
 	fprintf(stderr, "unknown test %s\n", argv[1]); return 2;

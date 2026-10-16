@@ -97,6 +97,8 @@ typedef struct {
 	uint32_t ffn_gate_shexp_type, ffn_up_shexp_type, ffn_down_shexp_type;
 	/* full-attention blocks (3, 7, ...): v1 keeps attn_q/k/v whole on die 0 only */
 	CUdeviceptr attn_q, attn_k, attn_v, attn_q_norm, attn_k_norm, attn_output;
+	/* QSA (the indexer of the layer): the q and k projections (BF16, 512 + 128 rows) and their norms (F32 128) */
+	CUdeviceptr indexer_x, indexer_qn, indexer_kn;
 	uint32_t attn_q_type, attn_k_type, attn_v_type, attn_output_type;
 	/* block 1's PLE: ple_key Q2_0 (this die's rows of 10240), ple_value BF16 (rows of 2560), norms, conv F16 [10240][4] */
 	CUdeviceptr ple_key, ple_value, ple_norm_key, ple_norm_query, ple_norm_conv, ple_conv1d;
@@ -128,11 +130,19 @@ typedef struct {
 	/* PLE (block 1): token ids (u32[positions]), the constants block (plerows PC layout),
 	 * the host-mapped table, g 2560 (+ its quantisation), this die's K rows, kn/qn 10240,
 	 * this die's V rows, G 10240, gates 4, conv input 10240, ring state [10][10240], rows debug */
+	CUdeviceptr imap, img;   /* image input: imap[position] = a row of img (fp16 [row][2560]) or 0xffffffff for a token; 0: no images */
 	CUdeviceptr ids, ple_pc, ple_tab, pg, pgq, pgs32, pgs16, pgas, lk, kn, qn, lv, pG, pgates, px, ple_state, prows;
 	unsigned ple_compact;   /* 1: ple_tab holds the 16 rows of every position (16 pos + h), not the hashed table */
 	/* head: this die's logits, its argmax (idx, max bits) + partials/counter, the gathered pairs, the token (u32 idx, u32 max bits) */
 	CUdeviceptr hlo, amo, apart, acnt, tokout, toks;   /* toks: u32[positions], the generated tokens */
 	CUdeviceptr tkout, tkpart, tkcnt, rnd;   /* sampling: this die top-K list (32 x {idx, value bits}), the CTA lists, the counter, u[positions] floats */
+	/* QSA attention (ref/qsa.h, ops attnqkq .. attnpartn): qsa = 1 makes prog_attn_block run the layer on the die whose kq is set.
+	 * per layer: the int8 K / V caches kq, vq [position][2][256] with fp16 scales ks, vs [position][2][8], the indexer pool pkt
+	 * (transposed fp16, 8192 B per 32 blocks), the raw key ring [4][128] f32; per die: iqk (640 f32), iq [4][128], sc (scores),
+	 * hst (1280 u32 selection state), sel (u32 [nblk]); the compact caches kc, vc of the attended keys (ATTN_KC_FLOATS layout) are
+	 * the ones above; nblk: blocks of 4 keys attended at most (QSA_NBLK, 512) */
+	int qsa; unsigned nblk;
+	CUdeviceptr kq, ks, vq, vs, pkt, ring, iqk, iq, sc, hst, sel;
 } dn_bufs_t;
 
 void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps);
@@ -145,5 +155,6 @@ void prog_embed(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, unsigned t
  * gathered and combined identically everywhere into tokout = {idx, max bits} */
 void prog_head(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, float eps, unsigned t, unsigned nprompt);   /* toks[t] = token; ids[t+1] = token once t + 1 >= nprompt */
 /* attention blocks are every fourth block from 3 */
+#define QSA_NBLK 512                 /* indexer.top_k (2048) / 4 keys per block */
 #define BLK_IS_ATTN(blk) (((blk) & 3) == 3)
 #endif
