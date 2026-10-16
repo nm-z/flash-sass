@@ -19,7 +19,7 @@ static uint32_t rs = 101;
 static float frand(void) { rs = rs * 1664525u + 1013904223u; return ((rs >> 8) & 0xffff) / 32768.f - 1.f; }
 static uint32_t urand(void) { rs = rs * 1664525u + 1013904223u; return rs >> 8; }
 
-enum { OP_EMBROW, OP_PLEGATE, OP_ARGMAX, OP_ACTQ, OP_FFNACT };
+#include "dieops.h"
 static void desc_init(uint32_t *d, int op, unsigned units) { memset(d, 0, 128); d[0] = op; d[1] = units; }
 static void desc_ptr(uint32_t *d, int addr, CUdeviceptr p) { int w = 2 + (addr - 0x140) / 4; d[w] = (uint32_t)p; d[w + 1] = (uint32_t)(p >> 32); }
 static void desc_u32(uint32_t *d, int addr, uint32_t v) { d[2 + (addr - 0x140) / 4] = v; }
@@ -94,7 +94,7 @@ int main(void) {
 	uint32_t prog[5][32];
 	desc_init(prog[0], OP_EMBROW, 10); desc_ptr(prog[0], 0x140, dE); desc_ptr(prog[0], 0x148, dS); desc_u32(prog[0], 0x150, id);
 	desc_init(prog[1], OP_PLEGATE, 4); desc_ptr(prog[1], 0x140, dKN); desc_ptr(prog[1], 0x148, dQN); desc_ptr(prog[1], 0x150, dV); desc_ptr(prog[1], 0x158, dG); desc_ptr(prog[1], 0x160, dGT);
-	desc_init(prog[2], OP_ACTQ, 1); desc_ptr(prog[2], 0x140, dX1); desc_ptr(prog[2], 0x148, dQ1); desc_ptr(prog[2], 0x150, dS32_1); desc_ptr(prog[2], 0x158, dS16_1); desc_ptr(prog[2], 0x160, dAS1); desc_u32(prog[2], 0x168, n1);
+	desc_init(prog[2], OP_ACTQ2560, 1); desc_ptr(prog[2], 0x140, dX1); desc_ptr(prog[2], 0x148, dQ1); desc_ptr(prog[2], 0x150, dS32_1); desc_ptr(prog[2], 0x158, dS16_1); desc_ptr(prog[2], 0x160, dAS1); desc_u32(prog[2], 0x168, n1);
 	desc_init(prog[3], OP_FFNACT, E); desc_ptr(prog[3], 0x140, dGG); desc_ptr(prog[3], 0x148, dUU); desc_ptr(prog[3], 0x150, dQ2); desc_ptr(prog[3], 0x158, dS32_2); desc_ptr(prog[3], 0x160, dS16_2); desc_ptr(prog[3], 0x168, dAS2); desc_u32(prog[3], 0x170, n2);
 	desc_init(prog[4], OP_ARGMAX, 16); desc_ptr(prog[4], 0x140, dL); desc_ptr(prog[4], 0x148, dOUT); desc_ptr(prog[4], 0x150, dPART); desc_ptr(prog[4], 0x158, dCNT); desc_u32(prog[4], 0x160, NL); desc_u32(prog[4], 0x164, 16);
 	if (getenv("DIE_OP0")) prog[0][0] = (uint32_t)atoi(getenv("DIE_OP0"));
@@ -118,8 +118,12 @@ int main(void) {
 		CK(cuMemcpyDtoH(g_got, dG, 4 * 10240)); CK(cuMemcpyDtoH(gates_got, dGT, 16));
 		fails += cmpf("gates", gates_ref, gates_got, 4); fails += cmpf("G", g_ref, g_got, 10240);
 		CK(cuMemcpyDtoH(q1g, dQ1, 2 * n1)); CK(cuMemcpyDtoH(s32_1g, dS32_1, 4 * n1 / 32)); CK(cuMemcpyDtoH(s16_1g, dS16_1, 4 * n1 / 16)); CK(cuMemcpyDtoH(as1g, dAS1, 4 * n1 / 32));
-		int b = memcmp(q1, q1g, 2 * n1) || memcmp(s32_1, s32_1g, 4 * n1 / 32) || memcmp(s16_1, s16_1g, 4 * n1 / 16) || memcmp(as1, as1g, 4 * n1 / 32);
-		printf("  actq     %s\n", b ? "MISMATCH" : "BIT-EXACT"); fails += b;
+		int bq = 0, b32 = 0, b16 = 0, bs = 0;
+		for (int i = 0; i < n1; i++) if (q1[i] != q1g[i]) { if (bq < 2) printf("  actq q[%d]: gpu %d ref %d\n", i, q1g[i], q1[i]); bq++; }
+		for (int i = 0; i < n1 / 32; i++) { if (s32_1[i] != s32_1g[i]) b32++; if (memcmp(&as1[i], &as1g[i], 4)) { if (bs < 2) printf("  actq as[%d]: gpu %.9g ref %.9g\n", i, as1g[i], as1[i]); bs++; } }
+		for (int i = 0; i < n1 / 16; i++) if (s16_1[i] != s16_1g[i]) b16++;
+		int b = bq || b32 || b16 || bs;
+		printf("  actq     %s (q %d, s32 %d, s16 %d, as %d differ)\n", b ? "MISMATCH" : "BIT-EXACT", bq, b32, b16, bs); fails += b;
 		CK(cuMemcpyDtoH(q2g, dQ2, 2 * N2)); CK(cuMemcpyDtoH(s32_2g, dS32_2, 4 * N2 / 32)); CK(cuMemcpyDtoH(s16_2g, dS16_2, 4 * N2 / 16)); CK(cuMemcpyDtoH(as2g, dAS2, 4 * N2 / 32));
 		b = memcmp(q2, q2g, 2 * N2) || memcmp(s32_2, s32_2g, 4 * N2 / 32) || memcmp(s16_2, s16_2g, 4 * N2 / 16) || memcmp(as2, as2g, 4 * N2 / 32);
 		printf("  ffnact   %s\n", b ? "MISMATCH" : "BIT-EXACT"); fails += b;

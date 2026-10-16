@@ -712,6 +712,52 @@ at tolerance; end to end against `RECIPE_REFERENCE_WRITE` logits and greedy
 tokens. The two cx-flash ambiguities (key-head mapping, readout scale) are
 resolved by whichever choice reproduces llama.cpp's greedy output.
 
+## Phase 3 design: the persistent kernel (`kern/die.pl` → `die.sass`)
+
+One kernel per die, 16 CTAs × 256 threads (one CTA per SM: the K-quant GEMVs
+need more than 128 registers, so the kernel-wide count is up to 255), 48 KB of
+static shared memory. The host builds a **program**: an array of 128-byte phase
+descriptors (`u32[32]`: `[0]` opcode, `[1]` unit count, `[2 + (addr−0x140)/4]`
+the op's parameter words in its standalone `CONSTANT_MAPPING` layout). The
+kernel loops over phases: warp 0 of every CTA copies the descriptor into shared
+memory (offset 0xbf80), the dispatcher compares the opcode against the op table
+and branches to the op's `SETUP`, the op runs once per **virtual unit** (cta
+ops: units cta, cta+16, …, with `vtid = tid`; warp ops: units 8·cta+warp, +128,
+…, with `vtid = lane`), and every CTA then passes the software grid barrier
+(gridbar's protocol on `ctl`: ATOM.ADD counter, generation word, LDG.CV spin,
+MEMBAR.GL.IVALLD fences, named barrier 1 so it never meets an op's own
+`BAR.SYNC 0`). `die.pl` builds the kernel from the **unchanged** op generators:
+it evaluates each op's `<CODE>` blocks with that op's environment (the Makefile
+knobs: GEMV_K, GEMV_FMT, HC_OP, …), shifts its registers up by 16 (the framework
+owns R0–R15: tid lane warp cta vid vtid units pidx nph prog ctl op fw) keeping
+the mapping lines intact so MaxAs still knows the pair base names, prefixes
+every register name and label with the op tag, turns `param_*` constants and
+`gridDimX` into registers loaded by `LDS` from the descriptor, replaces `S2R
+SR_TID.X / SR_CTAID.X` with `MOV` from `vtid` / `vid`, and `EXIT` with a branch
+to the op's unit-loop end. `perl die.pl header` prints `dieops.h` (the opcode
+numbers) for the host. Each op therefore keeps its own test harness, and the
+framework was proven with a 5-phase program (embrow, plegate, actq, ffnact,
+argmax) bit-exact against the twins across two launches; the barrier state in
+`ctl` (counter back to 0, generation +1 per phase) survives launches.
+Constraints found: an op's registers + its parameter registers must stay ≤ 239
+(normq at 228 + 15 does not fit and is left out; actq K=2560 is built with
+`ACTQ_U=10`); early `EXIT`s are fine only in ops that run no `BAR.SYNC 0`
+afterwards (true of all current ops); MaxAs counted `BAR.SYNC 0x1` as one
+barrier (it adds 1 to the immediate *string*; patched in `maxas-patch/MaxAs.pm`
+to parse hex) — the cubin's barrier count lives in the `.text` section flags
+(bits 20–25) and the hardware traps an id beyond it as an illegal instruction.
+
+**End-to-end harness rule (Nate):** weights are loaded onto the dies **once**
+and stay resident across kernel iterations — a holder process allocates one
+arena per die, repacks the GGUF tensors into tiles, exports the arena with a
+CUDA IPC handle and writes a manifest (tensor → offset); test programs map the
+arena (`cuIpcOpenMemHandle`), load whatever cubin is under test and run. The
+PLE table is cached in RAM (`/dev/shm`) and host-registered by each test.
+Block correctness is first checked against a C block twin composed of the
+bit-exact primitives (`ref/block.c`, to be written) — that verifies the phase
+program and buffer wiring exactly — and then against cx-flash's node dumps at
+tolerance.
+
 ## Phases
 
 0. **Probes** — done (table above).

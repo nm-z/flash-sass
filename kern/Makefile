@@ -376,9 +376,12 @@ plegate: plegate.cubin plegate_test
 ple: plerows.cubin plerows_ng.cubin plerows_test plegate pleconv
 
 # ---- the persistent per-die kernel (die.pl stitches the ops together) ----
-DIE_OPS = embrow.sass plegate.sass argmax.sass actq.sass ffnact.sass actq.pl fmath.pl
+DIE_OPS = $(filter-out die.sass semtest%.sass bartest.sass fmath.sass gridbar.sass mailbox.sass xmadbench.sass, $(wildcard *.sass)) actq.pl fmath.pl
 die.sass: die.pl $(DIE_OPS)
 	perl die.pl > $@
+
+dieops.h: die.pl
+	perl die.pl header > $@
 
 skel_die.cubin: die.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ $<
@@ -387,7 +390,7 @@ die.cubin: die.sass skel_die.cubin
 	cp skel_die.cubin $@
 	$(MAXAS) -i die.sass $@
 
-die_test: die_test.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/ple.c ../ref/ple.h
+die_test: die_test.c dieops.h ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/ple.c ../ref/ple.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ die_test.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/ple.c -I../ref -I$(CUDA)/include -lcuda -lm
 
 .PHONY: die
