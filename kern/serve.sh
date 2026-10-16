@@ -14,7 +14,7 @@ SOCK=${FLASH_SOCK:-/tmp/flash.sock}
 # the split of the weights over the six dies and the die of each attention layer (its projections, indexer pool and RoPE tables live there;
 # the int8 KV caches are in pinned host memory). Die 0 and die 2 each have a failing band of VRAM (die 2 above 5.657 GiB, die 0 above 5.76 GiB)
 # and get the small shares; every die keeps >= 300 MB free (see SPEC, "Long context")
-export SPLIT_SHARES=${SPLIT_SHARES:-82,110,77,106,112,113} ATTN_MAP=${ATTN_MAP:-1,1,1,1,4,4,4,4,5,5,5,5} ATTN_DIE=${ATTN_DIE:-1}
+export SPLIT_SHARES=${SPLIT_SHARES:-82,110,79,110,111,108} ATTN_MAP=${ATTN_MAP:-1,1,1,1,4,4,4,4,5,5,5,5} ATTN_DIE=${ATTN_DIE:-1}
 case $1 in
 all)   # everything at once: the holders (35 min of repacking) and the core (14 min of PLE table) load side by side, the core waits for the holders
 	$0 holders; $0 core; $0 vis
