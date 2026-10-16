@@ -1153,6 +1153,11 @@ used for the Q8_0 tensors of the main model.
   needs a **reboot of archy** to activate its pending page retirement
   (`nvidia-smi -r` refuses). With die 2 back the same program should land
   near 25–30 ms per token before any further code work.
+- The reference comparison (upstream llama.cpp on archy's CPU) found one real
+  bug — the DeltaNet value→key head pairing (h mod 16, not ⌊h/3⌋); with it
+  fixed the C twin matches llama.cpp through block 0 to int8 noise. The
+  six-die re-validation and the teacher-forced agreement with the corrected
+  holders are the next results to read.
 - Next in code, in order: the reference agreement (running), MTP draft +
   verify (amortises the per-phase fixed costs that dominate the split: cold
   instruction fetch ~5–12 µs per GEMV phase, ~3 µs barrier + dispatch), a

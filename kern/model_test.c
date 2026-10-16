@@ -417,6 +417,10 @@ int main(int argc, char **argv) {
 		double t3 = now();
 		tsum += t3 - t2;
 		if (do_head) { CK(cuCtxSetCurrent(ctx[0])); CK(cuMemcpyDtoH(&tok_gpu, db[0].tokout, 4)); }
+		if (getenv("MODEL_DUMP_S")) {   /* this position's stream: <path>.t<pos> */
+			float *St = malloc(4 * 10240); CK(cuCtxSetCurrent(ctx[0])); CK(cuMemcpyDtoH(St, db[0].S, 4 * 10240));
+			char fnt[600]; snprintf(fnt, sizeof fnt, "%s.t%d", getenv("MODEL_DUMP_S"), t); FILE *ft = fopen(fnt, "wb"); if (ft) { fwrite(St, 4, 10240, ft); fclose(ft); } free(St);
+		}
 		if (do_head && getenv("MODEL_TOPK")) {   /* the position's top-k logits, gathered from the dies' row slices (reference comparisons) */
 			int k = atoi(getenv("MODEL_TOPK")); static float *lg = NULL; if (!lg) lg = malloc(4 * 248320);
 			for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyDtoH(lg + sp[d][b0].o0, db[d].hlo, 4u * (unsigned)sp[d][b0].on)); }
@@ -469,7 +473,7 @@ int main(int argc, char **argv) {
 		snprintf(fn, sizeof fn, "%s/on.bin", dir); f = fopen(fn, "wb"); if (f) { fwrite(o, 4, 6144, f); fclose(f); }
 		printf("  dumped die 0 buffers to %s\n", dir);
 	}
-	if (getenv("MODEL_DUMP_S")) {   /* die 0's stream after the last token (reference comparisons per block prefix) */
+	if (getenv("MODEL_DUMP_S")) {   /* die 0's stream after the last token (reference comparisons per block prefix); per-token files too */
 		float *S = malloc(4 * 10240); CK(cuCtxSetCurrent(ctx[0])); CK(cuMemcpyDtoH(S, db[0].S, 4 * 10240));
 		FILE *f = fopen(getenv("MODEL_DUMP_S"), "wb"); if (f) { fwrite(S, 4, 10240, f); fclose(f); }
 		double ss = 0; for (int i = 0; i < 10240; i++) ss += (double)S[i] * S[i];
