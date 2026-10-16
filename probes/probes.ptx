@@ -1,0 +1,368 @@
+//
+// Phase-0 probe kernels for archy's Tesla M60s (sm_52).
+//
+// pingpong   one-way/round-trip latency between two dies (P2P or host-mapped flags)
+// rowread    dependent latency and throughput of reading n-gram rows from host RAM
+// chase      dependent pointer chasing through a host-mapped region
+// xmad_tput  XMAD issue rate (mad.wide.u16 lowers to exactly one XMAD)
+// ffma_tput  FFMA issue rate, for comparison
+// gridbar    cost of a software all-CTA barrier (atomic counter + generation flag)
+//
+.version 7.4
+.target sm_52
+.address_size 64
+
+// pingpong(local, remote, iters, start, out)
+// One thread. The starter stores i into the remote flag, then waits for its local
+// flag to reach i. The responder waits for i, then stores i into the remote flag.
+// out[0] = %clock64 cycles spent in the loop.
+.visible .entry pingpong(
+	.param .u64 p_local, .param .u64 p_remote, .param .u32 p_iters, .param .u32 p_start, .param .u64 p_out)
+{
+	.reg .u64 %rl, %rr, %ro, %c0, %c1;
+	.reg .u32 %i, %n, %s, %v;
+	.reg .pred %p, %q;
+	ld.param.u64 %rl, [p_local];
+	ld.param.u64 %rr, [p_remote];
+	ld.param.u32 %n, [p_iters];
+	ld.param.u32 %s, [p_start];
+	ld.param.u64 %ro, [p_out];
+	cvta.to.global.u64 %rl, %rl;
+	cvta.to.global.u64 %rr, %rr;
+	cvta.to.global.u64 %ro, %ro;
+	setp.ne.u32 %q, %s, 0;
+	mov.u32 %i, 1;
+	mov.u64 %c0, %clock64;
+L_pp_loop:
+	@!%q bra L_pp_wait;
+	st.volatile.global.u32 [%rr], %i;
+L_pp_wait:
+	ld.volatile.global.u32 %v, [%rl];
+	setp.lt.u32 %p, %v, %i;
+	@%p bra L_pp_wait;
+	@%q bra L_pp_next;
+	st.volatile.global.u32 [%rr], %i;
+L_pp_next:
+	add.u32 %i, %i, 1;
+	setp.le.u32 %p, %i, %n;
+	@%p bra L_pp_loop;
+	mov.u64 %c1, %clock64;
+	sub.u64 %c1, %c1, %c0;
+	st.global.u64 [%ro], %c1;
+	ret;
+}
+
+// rowread(base, off, nrows, words, reps, out)
+// One warp per row. Lane l loads word l of the row (words <= 32) with .cv so the
+// data comes from memory every time. A fake dependency makes each rep wait for
+// the previous load, so cycles/rep is one row-read latency. out[2*row] = cycles,
+// out[2*row+1] = checksum.
+.visible .entry rowread(
+	.param .u64 p_base, .param .u64 p_off, .param .u32 p_nrows, .param .u32 p_words, .param .u32 p_reps, .param .u64 p_out)
+{
+	.reg .u64 %base, %poff, %pout, %addr, %o64, %c0, %c1;
+	.reg .u32 %ti, %bi, %nrows, %words, %reps, %off, %acc, %v, %r, %t, %lane4;
+	.reg .pred %p, %m;
+	ld.param.u64 %base, [p_base];
+	ld.param.u64 %poff, [p_off];
+	ld.param.u32 %nrows, [p_nrows];
+	ld.param.u32 %words, [p_words];
+	ld.param.u32 %reps, [p_reps];
+	ld.param.u64 %pout, [p_out];
+	cvta.to.global.u64 %base, %base;
+	cvta.to.global.u64 %poff, %poff;
+	cvta.to.global.u64 %pout, %pout;
+	mov.u32 %ti, %tid.x;
+	mov.u32 %bi, %ctaid.x;
+	setp.ge.u32 %p, %bi, %nrows;
+	@%p ret;
+	mul.wide.u32 %o64, %bi, 4;
+	add.u64 %addr, %poff, %o64;
+	ld.global.u32 %off, [%addr];
+	shl.b32 %lane4, %ti, 2;
+	setp.lt.u32 %m, %ti, %words;
+	mov.u32 %acc, 0;
+	mov.u32 %r, 0;
+	mov.u32 %v, 0;
+	bar.sync 0;
+	mov.u64 %c0, %clock64;
+L_rr_rep:
+	add.u32 %t, %off, %lane4;
+	cvt.u64.u32 %o64, %t;
+	add.u64 %addr, %base, %o64;
+	@%m ld.global.cv.u32 %v, [%addr];
+	xor.b32 %acc, %acc, %v;
+	setp.eq.u32 %p, %acc, 0xdeadbeef;
+	selp.u32 %t, 4, 0, %p;
+	add.u32 %off, %off, %t;
+	add.u32 %r, %r, 1;
+	setp.lt.u32 %p, %r, %reps;
+	@%p bra L_rr_rep;
+	bar.sync 0;
+	mov.u64 %c1, %clock64;
+	sub.u64 %c1, %c1, %c0;
+	setp.ne.u32 %p, %ti, 0;
+	@%p ret;
+	mul.wide.u32 %o64, %bi, 16;
+	add.u64 %addr, %pout, %o64;
+	st.global.u64 [%addr], %c1;
+	cvt.u64.u32 %o64, %acc;
+	st.global.u64 [%addr+8], %o64;
+	ret;
+}
+
+// chase(base, start, steps, out): idx = base[idx] repeated. out[0] = cycles, out[1] = idx.
+.visible .entry chase(
+	.param .u64 p_base, .param .u32 p_start, .param .u32 p_steps, .param .u64 p_out)
+{
+	.reg .u64 %base, %pout, %addr, %o64, %c0, %c1;
+	.reg .u32 %idx, %n, %i;
+	.reg .pred %p;
+	ld.param.u64 %base, [p_base];
+	ld.param.u32 %idx, [p_start];
+	ld.param.u32 %n, [p_steps];
+	ld.param.u64 %pout, [p_out];
+	cvta.to.global.u64 %base, %base;
+	cvta.to.global.u64 %pout, %pout;
+	mov.u32 %i, 0;
+	mov.u64 %c0, %clock64;
+L_ch:
+	mul.wide.u32 %o64, %idx, 4;
+	add.u64 %addr, %base, %o64;
+	ld.global.cv.u32 %idx, [%addr];
+	add.u32 %i, %i, 1;
+	setp.lt.u32 %p, %i, %n;
+	@%p bra L_ch;
+	mov.u64 %c1, %clock64;
+	sub.u64 %c1, %c1, %c0;
+	st.global.u64 [%pout], %c1;
+	cvt.u64.u32 %o64, %idx;
+	st.global.u64 [%pout+8], %o64;
+	ret;
+}
+
+// xmad_tput(iters, out): 16 chains x 4 unrolled = 64 XMADs per iteration per thread.
+// Each chain is x = x.lo16 * b + x, which is one XMAD (x.H0, b.H0, x).
+// out[cta] = cycles (thread 0 of each CTA).
+.visible .entry xmad_tput(.param .u32 p_iters, .param .u64 p_out)
+{
+	.reg .u32 %x<16>, %i, %n, %ti, %bi, %b;
+	.reg .u16 %h<16>, %hb;
+	.reg .u64 %pout, %c0, %c1, %o64, %addr;
+	.reg .pred %p;
+	ld.param.u32 %n, [p_iters];
+	ld.param.u64 %pout, [p_out];
+	cvta.to.global.u64 %pout, %pout;
+	mov.u32 %ti, %tid.x;
+	mov.u32 %bi, %ctaid.x;
+	add.u32 %b, %ti, 0x9e37;
+	cvt.u16.u32 %hb, %b;
+	add.u32 %x0, %ti, 1;   add.u32 %x1, %ti, 2;   add.u32 %x2, %ti, 3;   add.u32 %x3, %ti, 4;
+	add.u32 %x4, %ti, 5;   add.u32 %x5, %ti, 6;   add.u32 %x6, %ti, 7;   add.u32 %x7, %ti, 8;
+	add.u32 %x8, %ti, 9;   add.u32 %x9, %ti, 10;  add.u32 %x10, %ti, 11; add.u32 %x11, %ti, 12;
+	add.u32 %x12, %ti, 13; add.u32 %x13, %ti, 14; add.u32 %x14, %ti, 15; add.u32 %x15, %ti, 16;
+	mov.u32 %i, 0;
+	bar.sync 0;
+	mov.u64 %c0, %clock64;
+L_xm:
+	cvt.u16.u32 %h0, %x0;   mad.wide.u16 %x0, %h0, %hb, %x0;
+	cvt.u16.u32 %h1, %x1;   mad.wide.u16 %x1, %h1, %hb, %x1;
+	cvt.u16.u32 %h2, %x2;   mad.wide.u16 %x2, %h2, %hb, %x2;
+	cvt.u16.u32 %h3, %x3;   mad.wide.u16 %x3, %h3, %hb, %x3;
+	cvt.u16.u32 %h4, %x4;   mad.wide.u16 %x4, %h4, %hb, %x4;
+	cvt.u16.u32 %h5, %x5;   mad.wide.u16 %x5, %h5, %hb, %x5;
+	cvt.u16.u32 %h6, %x6;   mad.wide.u16 %x6, %h6, %hb, %x6;
+	cvt.u16.u32 %h7, %x7;   mad.wide.u16 %x7, %h7, %hb, %x7;
+	cvt.u16.u32 %h8, %x8;   mad.wide.u16 %x8, %h8, %hb, %x8;
+	cvt.u16.u32 %h9, %x9;   mad.wide.u16 %x9, %h9, %hb, %x9;
+	cvt.u16.u32 %h10, %x10; mad.wide.u16 %x10, %h10, %hb, %x10;
+	cvt.u16.u32 %h11, %x11; mad.wide.u16 %x11, %h11, %hb, %x11;
+	cvt.u16.u32 %h12, %x12; mad.wide.u16 %x12, %h12, %hb, %x12;
+	cvt.u16.u32 %h13, %x13; mad.wide.u16 %x13, %h13, %hb, %x13;
+	cvt.u16.u32 %h14, %x14; mad.wide.u16 %x14, %h14, %hb, %x14;
+	cvt.u16.u32 %h15, %x15; mad.wide.u16 %x15, %h15, %hb, %x15;
+	cvt.u16.u32 %h0, %x0;   mad.wide.u16 %x0, %h0, %hb, %x0;
+	cvt.u16.u32 %h1, %x1;   mad.wide.u16 %x1, %h1, %hb, %x1;
+	cvt.u16.u32 %h2, %x2;   mad.wide.u16 %x2, %h2, %hb, %x2;
+	cvt.u16.u32 %h3, %x3;   mad.wide.u16 %x3, %h3, %hb, %x3;
+	cvt.u16.u32 %h4, %x4;   mad.wide.u16 %x4, %h4, %hb, %x4;
+	cvt.u16.u32 %h5, %x5;   mad.wide.u16 %x5, %h5, %hb, %x5;
+	cvt.u16.u32 %h6, %x6;   mad.wide.u16 %x6, %h6, %hb, %x6;
+	cvt.u16.u32 %h7, %x7;   mad.wide.u16 %x7, %h7, %hb, %x7;
+	cvt.u16.u32 %h8, %x8;   mad.wide.u16 %x8, %h8, %hb, %x8;
+	cvt.u16.u32 %h9, %x9;   mad.wide.u16 %x9, %h9, %hb, %x9;
+	cvt.u16.u32 %h10, %x10; mad.wide.u16 %x10, %h10, %hb, %x10;
+	cvt.u16.u32 %h11, %x11; mad.wide.u16 %x11, %h11, %hb, %x11;
+	cvt.u16.u32 %h12, %x12; mad.wide.u16 %x12, %h12, %hb, %x12;
+	cvt.u16.u32 %h13, %x13; mad.wide.u16 %x13, %h13, %hb, %x13;
+	cvt.u16.u32 %h14, %x14; mad.wide.u16 %x14, %h14, %hb, %x14;
+	cvt.u16.u32 %h15, %x15; mad.wide.u16 %x15, %h15, %hb, %x15;
+	cvt.u16.u32 %h0, %x0;   mad.wide.u16 %x0, %h0, %hb, %x0;
+	cvt.u16.u32 %h1, %x1;   mad.wide.u16 %x1, %h1, %hb, %x1;
+	cvt.u16.u32 %h2, %x2;   mad.wide.u16 %x2, %h2, %hb, %x2;
+	cvt.u16.u32 %h3, %x3;   mad.wide.u16 %x3, %h3, %hb, %x3;
+	cvt.u16.u32 %h4, %x4;   mad.wide.u16 %x4, %h4, %hb, %x4;
+	cvt.u16.u32 %h5, %x5;   mad.wide.u16 %x5, %h5, %hb, %x5;
+	cvt.u16.u32 %h6, %x6;   mad.wide.u16 %x6, %h6, %hb, %x6;
+	cvt.u16.u32 %h7, %x7;   mad.wide.u16 %x7, %h7, %hb, %x7;
+	cvt.u16.u32 %h8, %x8;   mad.wide.u16 %x8, %h8, %hb, %x8;
+	cvt.u16.u32 %h9, %x9;   mad.wide.u16 %x9, %h9, %hb, %x9;
+	cvt.u16.u32 %h10, %x10; mad.wide.u16 %x10, %h10, %hb, %x10;
+	cvt.u16.u32 %h11, %x11; mad.wide.u16 %x11, %h11, %hb, %x11;
+	cvt.u16.u32 %h12, %x12; mad.wide.u16 %x12, %h12, %hb, %x12;
+	cvt.u16.u32 %h13, %x13; mad.wide.u16 %x13, %h13, %hb, %x13;
+	cvt.u16.u32 %h14, %x14; mad.wide.u16 %x14, %h14, %hb, %x14;
+	cvt.u16.u32 %h15, %x15; mad.wide.u16 %x15, %h15, %hb, %x15;
+	cvt.u16.u32 %h0, %x0;   mad.wide.u16 %x0, %h0, %hb, %x0;
+	cvt.u16.u32 %h1, %x1;   mad.wide.u16 %x1, %h1, %hb, %x1;
+	cvt.u16.u32 %h2, %x2;   mad.wide.u16 %x2, %h2, %hb, %x2;
+	cvt.u16.u32 %h3, %x3;   mad.wide.u16 %x3, %h3, %hb, %x3;
+	cvt.u16.u32 %h4, %x4;   mad.wide.u16 %x4, %h4, %hb, %x4;
+	cvt.u16.u32 %h5, %x5;   mad.wide.u16 %x5, %h5, %hb, %x5;
+	cvt.u16.u32 %h6, %x6;   mad.wide.u16 %x6, %h6, %hb, %x6;
+	cvt.u16.u32 %h7, %x7;   mad.wide.u16 %x7, %h7, %hb, %x7;
+	cvt.u16.u32 %h8, %x8;   mad.wide.u16 %x8, %h8, %hb, %x8;
+	cvt.u16.u32 %h9, %x9;   mad.wide.u16 %x9, %h9, %hb, %x9;
+	cvt.u16.u32 %h10, %x10; mad.wide.u16 %x10, %h10, %hb, %x10;
+	cvt.u16.u32 %h11, %x11; mad.wide.u16 %x11, %h11, %hb, %x11;
+	cvt.u16.u32 %h12, %x12; mad.wide.u16 %x12, %h12, %hb, %x12;
+	cvt.u16.u32 %h13, %x13; mad.wide.u16 %x13, %h13, %hb, %x13;
+	cvt.u16.u32 %h14, %x14; mad.wide.u16 %x14, %h14, %hb, %x14;
+	cvt.u16.u32 %h15, %x15; mad.wide.u16 %x15, %h15, %hb, %x15;
+	add.u32 %i, %i, 1;
+	setp.lt.u32 %p, %i, %n;
+	@%p bra L_xm;
+	bar.sync 0;
+	mov.u64 %c1, %clock64;
+	sub.u64 %c1, %c1, %c0;
+	// keep every chain live
+	xor.b32 %x0, %x0, %x1;   xor.b32 %x2, %x2, %x3;   xor.b32 %x4, %x4, %x5;   xor.b32 %x6, %x6, %x7;
+	xor.b32 %x8, %x8, %x9;   xor.b32 %x10, %x10, %x11; xor.b32 %x12, %x12, %x13; xor.b32 %x14, %x14, %x15;
+	xor.b32 %x0, %x0, %x2;   xor.b32 %x4, %x4, %x6;   xor.b32 %x8, %x8, %x10;  xor.b32 %x12, %x12, %x14;
+	xor.b32 %x0, %x0, %x4;   xor.b32 %x8, %x8, %x12;  xor.b32 %x0, %x0, %x8;
+	setp.eq.u32 %p, %x0, 0x12345678;
+	@%p st.global.u32 [%pout+8], %x0;
+	setp.ne.u32 %p, %ti, 0;
+	@%p ret;
+	mul.wide.u32 %o64, %bi, 8;
+	add.u64 %addr, %pout, %o64;
+	st.global.u64 [%addr], %c1;
+	ret;
+}
+
+// ffma_tput(iters, out): same shape with fma.rn.f32, 64 FFMAs per iteration.
+.visible .entry ffma_tput(.param .u32 p_iters, .param .u64 p_out)
+{
+	.reg .f32 %f<16>, %a, %b;
+	.reg .u32 %i, %n, %ti, %bi, %t;
+	.reg .u64 %pout, %c0, %c1, %o64, %addr;
+	.reg .pred %p;
+	ld.param.u32 %n, [p_iters];
+	ld.param.u64 %pout, [p_out];
+	cvta.to.global.u64 %pout, %pout;
+	mov.u32 %ti, %tid.x;
+	mov.u32 %bi, %ctaid.x;
+	cvt.rn.f32.u32 %a, %ti;
+	mul.f32 %a, %a, 0f3A83126F;
+	add.f32 %a, %a, 0f3F7FF000;
+	mov.f32 %b, 0f3A83126F;
+	mov.f32 %f0, 0f3F800000;  mov.f32 %f1, 0f40000000;  mov.f32 %f2, 0f40400000;  mov.f32 %f3, 0f40800000;
+	mov.f32 %f4, 0f40A00000;  mov.f32 %f5, 0f40C00000;  mov.f32 %f6, 0f40E00000;  mov.f32 %f7, 0f41000000;
+	mov.f32 %f8, 0f41100000;  mov.f32 %f9, 0f41200000;  mov.f32 %f10, 0f41300000; mov.f32 %f11, 0f41400000;
+	mov.f32 %f12, 0f41500000; mov.f32 %f13, 0f41600000; mov.f32 %f14, 0f41700000; mov.f32 %f15, 0f41800000;
+	mov.u32 %i, 0;
+	bar.sync 0;
+	mov.u64 %c0, %clock64;
+L_ff:
+	fma.rn.f32 %f0, %f0, %a, %b;   fma.rn.f32 %f1, %f1, %a, %b;   fma.rn.f32 %f2, %f2, %a, %b;   fma.rn.f32 %f3, %f3, %a, %b;
+	fma.rn.f32 %f4, %f4, %a, %b;   fma.rn.f32 %f5, %f5, %a, %b;   fma.rn.f32 %f6, %f6, %a, %b;   fma.rn.f32 %f7, %f7, %a, %b;
+	fma.rn.f32 %f8, %f8, %a, %b;   fma.rn.f32 %f9, %f9, %a, %b;   fma.rn.f32 %f10, %f10, %a, %b; fma.rn.f32 %f11, %f11, %a, %b;
+	fma.rn.f32 %f12, %f12, %a, %b; fma.rn.f32 %f13, %f13, %a, %b; fma.rn.f32 %f14, %f14, %a, %b; fma.rn.f32 %f15, %f15, %a, %b;
+	fma.rn.f32 %f0, %f0, %a, %b;   fma.rn.f32 %f1, %f1, %a, %b;   fma.rn.f32 %f2, %f2, %a, %b;   fma.rn.f32 %f3, %f3, %a, %b;
+	fma.rn.f32 %f4, %f4, %a, %b;   fma.rn.f32 %f5, %f5, %a, %b;   fma.rn.f32 %f6, %f6, %a, %b;   fma.rn.f32 %f7, %f7, %a, %b;
+	fma.rn.f32 %f8, %f8, %a, %b;   fma.rn.f32 %f9, %f9, %a, %b;   fma.rn.f32 %f10, %f10, %a, %b; fma.rn.f32 %f11, %f11, %a, %b;
+	fma.rn.f32 %f12, %f12, %a, %b; fma.rn.f32 %f13, %f13, %a, %b; fma.rn.f32 %f14, %f14, %a, %b; fma.rn.f32 %f15, %f15, %a, %b;
+	fma.rn.f32 %f0, %f0, %a, %b;   fma.rn.f32 %f1, %f1, %a, %b;   fma.rn.f32 %f2, %f2, %a, %b;   fma.rn.f32 %f3, %f3, %a, %b;
+	fma.rn.f32 %f4, %f4, %a, %b;   fma.rn.f32 %f5, %f5, %a, %b;   fma.rn.f32 %f6, %f6, %a, %b;   fma.rn.f32 %f7, %f7, %a, %b;
+	fma.rn.f32 %f8, %f8, %a, %b;   fma.rn.f32 %f9, %f9, %a, %b;   fma.rn.f32 %f10, %f10, %a, %b; fma.rn.f32 %f11, %f11, %a, %b;
+	fma.rn.f32 %f12, %f12, %a, %b; fma.rn.f32 %f13, %f13, %a, %b; fma.rn.f32 %f14, %f14, %a, %b; fma.rn.f32 %f15, %f15, %a, %b;
+	fma.rn.f32 %f0, %f0, %a, %b;   fma.rn.f32 %f1, %f1, %a, %b;   fma.rn.f32 %f2, %f2, %a, %b;   fma.rn.f32 %f3, %f3, %a, %b;
+	fma.rn.f32 %f4, %f4, %a, %b;   fma.rn.f32 %f5, %f5, %a, %b;   fma.rn.f32 %f6, %f6, %a, %b;   fma.rn.f32 %f7, %f7, %a, %b;
+	fma.rn.f32 %f8, %f8, %a, %b;   fma.rn.f32 %f9, %f9, %a, %b;   fma.rn.f32 %f10, %f10, %a, %b; fma.rn.f32 %f11, %f11, %a, %b;
+	fma.rn.f32 %f12, %f12, %a, %b; fma.rn.f32 %f13, %f13, %a, %b; fma.rn.f32 %f14, %f14, %a, %b; fma.rn.f32 %f15, %f15, %a, %b;
+	add.u32 %i, %i, 1;
+	setp.lt.u32 %p, %i, %n;
+	@%p bra L_ff;
+	bar.sync 0;
+	mov.u64 %c1, %clock64;
+	sub.u64 %c1, %c1, %c0;
+	add.f32 %f0, %f0, %f1;   add.f32 %f2, %f2, %f3;   add.f32 %f4, %f4, %f5;   add.f32 %f6, %f6, %f7;
+	add.f32 %f8, %f8, %f9;   add.f32 %f10, %f10, %f11; add.f32 %f12, %f12, %f13; add.f32 %f14, %f14, %f15;
+	add.f32 %f0, %f0, %f2;   add.f32 %f4, %f4, %f6;   add.f32 %f8, %f8, %f10;  add.f32 %f12, %f12, %f14;
+	add.f32 %f0, %f0, %f4;   add.f32 %f8, %f8, %f12;  add.f32 %f0, %f0, %f8;
+	mov.b32 %t, %f0;
+	setp.eq.u32 %p, %t, 0x12345678;
+	@%p st.global.u32 [%pout+8], %t;
+	setp.ne.u32 %p, %ti, 0;
+	@%p ret;
+	mul.wide.u32 %o64, %bi, 8;
+	add.u64 %addr, %pout, %o64;
+	st.global.u64 [%addr], %c1;
+	ret;
+}
+
+// gridbar(ctr, gen, nctas, iters, out): all CTAs must be co-resident.
+// Thread 0 of each CTA: read gen, fence, atomically count in; the last arriver
+// resets the counter and bumps gen; the others spin on gen. out[cta] = cycles.
+.visible .entry gridbar(
+	.param .u64 p_ctr, .param .u64 p_gen, .param .u32 p_nctas, .param .u32 p_iters, .param .u64 p_out)
+{
+	.reg .u64 %pc, %pg, %pout, %c0, %c1, %o64, %addr;
+	.reg .u32 %ti, %bi, %n, %iters, %i, %old, %g, %g2, %t;
+	.reg .pred %p, %last;
+	ld.param.u64 %pc, [p_ctr];
+	ld.param.u64 %pg, [p_gen];
+	ld.param.u32 %n, [p_nctas];
+	ld.param.u32 %iters, [p_iters];
+	ld.param.u64 %pout, [p_out];
+	cvta.to.global.u64 %pc, %pc;
+	cvta.to.global.u64 %pg, %pg;
+	cvta.to.global.u64 %pout, %pout;
+	mov.u32 %ti, %tid.x;
+	mov.u32 %bi, %ctaid.x;
+	mov.u32 %i, 0;
+	mov.u64 %c0, %clock64;
+L_gb:
+	bar.sync 0;
+	setp.ne.u32 %p, %ti, 0;
+	@%p bra L_gb_skip;
+	ld.volatile.global.u32 %g, [%pg];
+	membar.gl;
+	atom.global.add.u32 %old, [%pc], 1;
+	add.u32 %t, %old, 1;
+	setp.eq.u32 %last, %t, %n;
+	@!%last bra L_gb_spin;
+	st.volatile.global.u32 [%pc], 0;
+	membar.gl;
+	add.u32 %g2, %g, 1;
+	st.volatile.global.u32 [%pg], %g2;
+	bra L_gb_skip;
+L_gb_spin:
+	ld.volatile.global.u32 %g2, [%pg];
+	setp.eq.u32 %p, %g2, %g;
+	@%p bra L_gb_spin;
+	membar.gl;
+L_gb_skip:
+	bar.sync 0;
+	add.u32 %i, %i, 1;
+	setp.lt.u32 %p, %i, %iters;
+	@%p bra L_gb;
+	mov.u64 %c1, %clock64;
+	sub.u64 %c1, %c1, %c0;
+	setp.ne.u32 %p, %ti, 0;
+	@%p ret;
+	mul.wide.u32 %o64, %bi, 8;
+	add.u64 %addr, %pout, %o64;
+	st.global.u64 [%addr], %c1;
+	ret;
+}

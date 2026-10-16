@@ -1,0 +1,17 @@
+// Skeleton for MaxAs: same entry name and parameter layout as gemv_q2_0.sass.
+// ptxas builds the cubin container; maxas -i replaces the code section.
+.version 7.4
+.target sm_52
+.address_size 64
+
+.visible .entry gemv_q2_0(
+	.param .u64 pw, .param .u64 px, .param .u64 ps, .param .u64 py, .param .u32 rows, .param .f32 xs, .param .u64 pdbg)
+{
+	.reg .u32 %r<2>;
+	.reg .pred %p;
+	ld.param.u32 %r0, [rows];
+	mov.u32 %r1, %tid.x;
+	setp.lt.u32 %p, %r1, %r0;
+	@%p ret;
+	ret;
+}
