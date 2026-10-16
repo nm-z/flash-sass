@@ -43,6 +43,7 @@ my @OPS = (
     [ 'hcwrite',    'hcops.sass',       'cta',  { HC_OP => 'write' } ],
     [ 'conv1d',     'conv1d.sass',      'cta',  {} ],
     [ 'dnstep',     'dnstep.sass',      'cta',  {} ],
+    [ 'dnnorm',     'dnnorm.sass',      'warp', {} ],
     [ 'router',     'router.sass',      'warp', {} ],
     [ 'attnqk',     'attnqk.sass',      'warp', {} ],
     [ 'attnpart',   'attnpart.sass',    'cta',  {} ],
@@ -58,6 +59,7 @@ my @OPS = (
     [ 'bf16k2560',  'gemv_bf16.sass',   'cta',  { GEMV_K => 2560 } ],
     [ 'bf16k320',   'gemv_bf16.sass',   'cta',  { GEMV_K => 320 } ],
     [ 'bf16hc',     'gemv_bf16.sass',   'cta',  { GEMV_K => 2560, GEMV_ROWSTRIDE => 20480, GEMV_ACC => 1 } ],
+    [ 'bf16hc0',    'gemv_bf16.sass',   'cta',  { GEMV_K => 2560, GEMV_ROWSTRIDE => 20480 } ],
     [ 'q4kk2560',   'gemv_q4_k.sass',   'cta',  { GEMV_K => 2560 } ],
     [ 'q4kk6144',   'gemv_q4_k.sass',   'cta',  { GEMV_K => 6144 } ],
     [ 'q5kk2560',   'gemv_q4_k.sass',   'cta',  { GEMV_K => 2560, GEMV_FMT => 'q5_k' } ],
@@ -72,6 +74,10 @@ my @OPS = (
     [ 'b32q50',     'gemv_b32.sass',    'cta',  { GEMV_K => 640, GEMV_FMT => 'q5_0' } ],
     [ 'b32q80',     'gemv_b32.sass',    'cta',  { GEMV_K => 640, GEMV_FMT => 'q8_0' } ],
     [ 'b32iq4nl',   'gemv_b32.sass',    'cta',  { GEMV_K => 640, GEMV_FMT => 'iq4_nl' } ],
+    [ 'b32q40acc',  'gemv_b32.sass',    'cta',  { GEMV_K => 640, GEMV_FMT => 'q4_0', GEMV_ACC => 1 } ],
+    [ 'b32q50acc',  'gemv_b32.sass',    'cta',  { GEMV_K => 640, GEMV_FMT => 'q5_0', GEMV_ACC => 1 } ],
+    [ 'b32q80acc',  'gemv_b32.sass',    'cta',  { GEMV_K => 640, GEMV_FMT => 'q8_0', GEMV_ACC => 1 } ],
+    [ 'b32iq4nlacc','gemv_b32.sass',    'cta',  { GEMV_K => 640, GEMV_FMT => 'iq4_nl', GEMV_ACC => 1 } ],
 );
 
 sub expand_names {                       # x<00-15> -> x00 .. x15
@@ -189,6 +195,10 @@ for my $k (0 .. $#OPS) {
     $body .= "${tag}_BEGIN:\n";
     $body .= $op->{code};
     $body .= "${tag}_END:\n";
+    # a CTA unit owns the shared memory: no warp may start the next unit (and
+    # store into smem) while a lagging warp still reads the previous unit's data,
+    # so the whole CTA syncs here, after every outstanding load has landed.
+    $body .= "3f:-:-:-:6      BAR.SYNC 0x0;\n" if $kind eq 'cta';
     $body .= sprintf "--:-:-:-:6      IADD vid, vid, 0x%x;\n", $step;
     $body .= "--:-:-:-:6      ISETP.LT.U32.AND P6, PT, vid, units, PT;\n";
     $body .= "--:-:-:-:6      NOP;\n" x 3;

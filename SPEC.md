@@ -742,7 +742,15 @@ argmax) bit-exact against the twins across two launches; the barrier state in
 Constraints found: an op's registers + its parameter registers must stay ≤ 239
 (normq at 228 + 15 does not fit and is left out; actq K=2560 is built with
 `ACTQ_U=10`); early `EXIT`s are fine only in ops that run no `BAR.SYNC 0`
-afterwards (true of all current ops); MaxAs counted `BAR.SYNC 0x1` as one
+afterwards (true of all current ops); **a CTA unit owns the shared memory**:
+the framework ends every cta-kind unit with `3f:-:-:-:6 BAR.SYNC 0x0` (all
+scoreboards drained first) before the CTA moves to its next unit — without it
+the next head's phase-A `STS` in dnstep overtook a lagging warp's late `LDS`
+of q (dnstep reads q from smem only after the state update), and one to three
+of heads 33–35 came out wrong in roughly every other run of the block program
+(named-barrier arrivals are counted, so this END barrier pairs correctly with
+the op's own `BAR.SYNC 0x0`s as long as every warp passes the same sequence
+of them, which the early-EXIT rule guarantees); MaxAs counted `BAR.SYNC 0x1` as one
 barrier (it adds 1 to the immediate *string*; patched in `maxas-patch/MaxAs.pm`
 to parse hex) — the cubin's barrier count lives in the `.text` section flags
 (bits 20–25) and the hardware traps an id beyond it as an illegal instruction.
@@ -760,18 +768,43 @@ BF16 GEMV adds `ssm_dt.bias[r]` to the α logits. MoE per block is therefore 10
 phases: router GEMV, shared-gate dot, router, gate gather, up gather, shared
 gate, shared up, ffnact (11 vectors), down, shared down.
 
-**Open decision (Nate, 2026-10-16): layer pipeline vs tensor/expert split.**
-The spec's layout is a layer pipeline (whole blocks per die, 9/9/9/9/8/4): one
-die streams at a time, per-token latency ≈ Σ dies ≈ 27 ms at 140 GB/s. Row-
-splitting every GEMV over the 6 dies plus expert-splitting the MoE (each die
-owns 1/6 of the experts, computes the routed ones it holds, partial sums
-reduced) would stream from all dies at once (~4.5 ms of weight time) at the
-cost of ~12–15 all-gathers/reduces of 10–40 KB per block (P2P within a board,
-through host memory across boards, ~5–15 µs each → ~5–7 ms/token) and
-multi-die barriers; the per-die ops are the same kernels on sliced row ranges,
-so the block work below carries over; placement becomes uniform (~8 GB per die)
-and the program gains exchange phases. Decision pending; v1 proceeds with the
-pipeline unless Nate asks for the split now.
+**Decision (Nate, 2026-10-16): expert split + row split across the 6 dies —
+this method only.** Measured with `kern/allgather.sass` (one CTA per die, P2P
+STG.128 of each die's slice into the five peers' double-buffered slots,
+MEMBAR.SYS, STG.WT flags, warp 0 polls its six local flags with LDG.CV): the
+pure 6-die barrier costs **9.6 µs**; an all-gather of 24 KB (4 KB per die) **25
+µs**, of 96 KB **68 µs** — the payload path is ~8 GB/s aggregate because every
+cross-board byte goes through the host bridge (pairwise flag round trips were
+1.5–3.9 µs). Per-token estimates from these numbers (one sequence, no MTP):
+layer pipeline 27 ms streaming (one die at a time) + ~3 ms barriers ≈ 30 ms (33
+tok/s); expert split alone ≈ 28 ms (the dense 3.2 GB stays serial); row split
+alone 4.5 ms streaming + ~12 exchanges/block × 48 × (9.6 µs + bytes/8 GB/s) ≈
+16 ms (60 tok/s); expert + row split ≈ 15 ms (65 tok/s: the MoE needs one
+partial-sum reduce instead of gathers of the expert outputs). Capacity: the
+model is 37.6 GB + 2.8 GB MTP → 6.7 GB per die on 6 dies (fits; dies 6/7 behind
+the gen2 x2 slot stay out). Layout from here on:
+- every dense matrix is split by **output rows** over the 6 dies (rows r·N/6…,
+  unequal by at most one row group; the GEMV kernels take `rows` and a tile
+  base, so die d's tile matrix is just its row range repacked); the hyper
+  stream S (4 × 2560) and every gathered vector are **replicated** on all dies;
+  norms, mix, write, actq, router top-10 and conv1d run redundantly per die;
+- DeltaNet: 8 value heads per die (states local); attention: 4 query heads per
+  die, dies 0–2 serve KV head 0 and dies 3–5 KV head 1 (each die keeps only its
+  KV head's cache; the partials/merge run on the die's 4 heads);
+- MoE: experts 0–85 on die 0, …, 85–86 per die; a die runs gather/up/ffnact/down
+  for the routed experts it holds and the shared expert's share, then the 2560
+  partial sums are reduced across dies in a fixed order (all-gather of the six
+  partials, every die sums them identically);
+- the program gains **exchange phases** (`xchg` op: all CTAs write the die's
+  slice into the peers' double-buffered slots, the die's grid barrier, CTA 0
+  fences and sets the peers' flags, every CTA polls the six local flags): per
+  block ≈ 10 (hc down+inject 1.3 KB, hc up 40 KB, qkv+gate+α/β 66 KB, o 24
+  KB, ssm_out 10 KB, hc down+inject, hc up, router 2 KB, shared-expert
+  gate/up 5 KB, expert partials 60 KB); the output head's argmax reduces six
+  (max, index) pairs. Exchange bytes shrink later by moving the lane mix before
+  the up exchange and by exchanging int8 codes where the consumer quantises.
+- the loader (`hold`) takes a die index and loads that die's row ranges, expert
+  subset and heads; one holder per die, all six arenas exported over IPC.
 
 **End-to-end harness rule (Nate):** weights are loaded onto the dies **once**
 and stay resident across kernel iterations — a holder process allocates one

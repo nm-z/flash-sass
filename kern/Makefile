@@ -462,3 +462,7 @@ allgather_flags.cubin: allgather.sass skel_allgather.cubin
 allgather_nover.cubin: allgather.sass skel_allgather.cubin
 	cp skel_allgather.cubin $@
 	AG_NOVERIFY=1 $(MAXAS) -i allgather.sass $@
+
+# ---- a block through the persistent kernel vs the C block twin ----
+block_test: block_test.c prog.c prog.h holdc.c hold.h dieops.h ../ref/block.c ../ref/block.h ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ block_test.c prog.c holdc.c ../ref/block.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c -I../ref -I$(CUDA)/include -lcuda -lm

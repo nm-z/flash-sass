@@ -33,6 +33,8 @@
     param_Y1   : c[0x0][0x15c]
     param_rows : c[0x0][0x160]
     param_xs   : c[0x0][0x164]
+    param_D0   : c[0x0][0x168]
+    param_D1   : c[0x0][0x16c]
     param_AS0  : c[0x0][0x170]
     param_AS1  : c[0x0][0x174]
 </CONSTANT_MAPPING>
@@ -70,7 +72,7 @@
     }
     if ($fmt eq 'q8_0') { $o .= sprintf "    %d-%d : p<00-15>\n", $r, $r + 15; $r += 16; }
     $o .= sprintf "    %d-%d : as<0-4>\n", $r, $r + 4; $r += 5;
-    for my $name (qw(dot dh dotf dd accf t u row rowpair rowstep stepw)) { $o .= sprintf "    %d : %s\n", $r++, $name; }
+    for my $name (qw(dot dh dotf dd accf t u row rowpair rowstep stepw yold xsv)) { $o .= sprintf "    %d : %s\n", $r++, $name; }
     $r += $r & 1;
     $o .= sprintf "    %d,%d : pp<0-1>\n    %d,%d : np<0-1>\n    %d,%d : hp<0-1>\n    %d,%d : yp<0-1>\n",
         $r, $r+1, $r+2, $r+3, $r+4, $r+5, $r+6, $r+7;
@@ -104,9 +106,15 @@
         return $x;
     };
     my $o = '';
+    my $acc = $ENV{GEMV_ACC} ? 1 : 0;        # y[r] = fma(*D, dot, y[r]) (shared expert down)
     $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
     $o .= "--:-:6:-:1      S2R bid, SR_CTAID.X;\n";
     $o .= "--:-:-:-:6      MOV rowstep, gridDimX;\n";
+    if ($acc) {
+        $o .= "--:-:-:-:6      MOV xp0, param_D0;\n";
+        $o .= "--:-:-:-:6      MOV xp1, param_D1;\n";
+        $o .= "--:-:2:-:2      LDG.E xsv, [xp];\n";
+    }
     $o .= "20:-:-:-:6      LOP32I.AND lane, tid, 0x3;\n";
     $o .= "--:-:-:-:1      SHR.U32 grp, tid, 0x2;\n";
     $o .= "--:-:-:-:6      SHL rowstep, rowstep, 0x6;\n";
@@ -167,6 +175,7 @@
     }
 
     $o .= "\nLOOP:\n";
+    $o .= "--:2:1:-:1      LDG.E yold, [yp];\n" if $acc;
     for my $i (0..$n-1) { $o .= sprintf "--:2:1:-:1      LDG.E.CI.U16 dp%d, [pp+0x%x];\n", $i, 8*$i; }
     for my $i (0..$n-1) {
         for my $k (0..$nw/4-1) { $o .= sprintf "--:2:1:-:1      LDG.E.CI.128 nb%02d, [np+0x%x];\n", $nw*$i + 4*$k, 4*$bb*$i + 16*$k; }
@@ -337,6 +346,7 @@
         $o .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x%x, 0x1f;\n", $x;
         $o .= "10:-:-:-:6      FADD accf, accf, t;\n";
     }
+    $o .= "--:-:-:-:6      FFMA accf, xsv, accf, yold;\n" if $acc;
     $o .= "--:2:-:-:1  \@P2 STG.E [yp], accf;\n";
     $o .= "--:-:-:-:1      IADD row, row, rowstep;\n";
     $o .= "02:-:-:-:6      IADD pp0.CC, pp0, stepw;\n";

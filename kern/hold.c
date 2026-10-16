@@ -5,8 +5,9 @@
  * bytes, type, rows, K, tile stride); then sleeps until killed, so kernel tests
  * map the arena (hold_open in hold.h) instead of reloading from NFS.
  *
- *   hold <gguf> <die> <b0> <b1> <manifest> [extra ...]
- *     extra: token_embd  output  (loads token_embd.weight / output*.weight too)
+ *   hold <gguf> <die> <b0> <b1> <manifest> [token_embd] [output] [cache=DIR]
+ *     token_embd / output also load those tensors; cache=DIR writes every device
+ *     image (tiles or raw) to DIR/<name> so the C references read local disk, not NFS
  *
  * Layout rules (what the kernels expect):
  *   Q2_0, Q4_K, Q5_K, Q3_K, Q6_K, IQ4_XS, Q4_0/Q5_0/Q8_0/IQ4_NL: repack_* tiles,
@@ -67,7 +68,8 @@ int main(int argc, char **argv) {
 	if (argc < 6) { fprintf(stderr, "usage: hold <gguf> <die> <b0> <b1> <manifest> [token_embd] [output]\n"); return 2; }
 	const char *path = argv[1], *mpath = argv[5];
 	int die = atoi(argv[2]), b0 = atoi(argv[3]), b1 = atoi(argv[4]), xe = 0, xo = 0;
-	for (int i = 6; i < argc; i++) { if (!strcmp(argv[i], "token_embd")) xe = 1; if (!strcmp(argv[i], "output")) xo = 1; }
+	const char *cache = NULL;
+	for (int i = 6; i < argc; i++) { if (!strcmp(argv[i], "token_embd")) xe = 1; if (!strcmp(argv[i], "output")) xo = 1; if (!strncmp(argv[i], "cache=", 6)) cache = argv[i] + 6; }
 	gguf_file g;
 	if (gguf_open(&g, path)) { fprintf(stderr, "cannot open %s\n", path); return 1; }
 	/* pass 1: sizes */
@@ -105,13 +107,19 @@ int main(int argc, char **argv) {
 		off = (off + 255) & ~(size_t)255;
 		const uint8_t *src = t->data;
 		if (!src) { fprintf(stderr, "%s: not mapped\n", t->name); return 1; }
+		const uint8_t *img = src;
 		if (st) {
 			if (bytes > cap) { free(buf); cap = bytes; buf = malloc(cap); }
 			size_t per = t->nbytes / experts;
 			for (int e = 0; e < experts; e++) repack(t->type, src + per * e, rows, K, buf + (size_t)st * rows * e);
-			CK(cuMemcpyHtoD(arena + off, buf, bytes));
-		} else {
-			CK(cuMemcpyHtoD(arena + off, src, bytes));
+			img = buf;
+		}
+		CK(cuMemcpyHtoD(arena + off, img, bytes));
+		if (cache) {
+			char fn[512]; snprintf(fn, sizeof fn, "%s/%s", cache, t->name);
+			FILE *cf = fopen(fn, "wb");
+			if (!cf || fwrite(img, 1, bytes, cf) != bytes) { perror(fn); return 1; }
+			fclose(cf);
 		}
 		fprintf(m, "%s %zu %zu %u %d %d %d %d\n", t->name, off, bytes, t->type, rows, K, st, experts);
 		fprintf(stderr, "  %-40s %8.1f MB  %s%s\n", t->name, bytes / 1e6, gguf_type_name(t->type), st ? " tiles" : "");
