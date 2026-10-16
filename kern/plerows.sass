@@ -25,6 +25,7 @@
     param_ROWS0 : c[0x0][0x160]
     param_ROWS1 : c[0x0][0x164]
     param_pos   : c[0x0][0x168]
+    param_cmp   : c[0x0][0x16c]
 </CONSTANT_MAPPING>
 
 <REGISTER_MAPPING>
@@ -159,6 +160,14 @@
         }
     }
     $o .= "--:-:-:-:6      IADD off, off, rem;\n";                                    # row
+    # compact mode (param_cmp != 0): the host staged the 16 rows of every position at
+    # TAB + 90 (16 pos + h) (teacher-forced runs with the real table, which CUDA 11.4
+    # cannot pin from a file mapping); the hash above still runs and lands in ROWS
+    $o .= "--:-:-:-:6      MOV t, param_cmp;\n";
+    $o .= "--:-:-:-:6      ISETP.NE.U32.AND P6, PT, t, RZ, PT;\n";
+    $o .= "--:-:-:-:6      ISCADD rem2, pos, h, 0x4;\n";
+    $o .= "--:-:-:-:6      NOP;\n" x 2;
+    $o .= "--:-:-:-:6  \@P6 MOV off, rem2;\n";
     # ROWS[h] = row (debug / host check)
     $o .= "--:-:-:-:6      SHL t, h, 0x2;\n";
     $o .= "--:-:-:-:6      IADD rp0.CC, t, param_ROWS0;\n";

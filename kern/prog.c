@@ -261,7 +261,7 @@ void prog_head(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t 
 
 void prog_ple_prefix(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps) {
 	phase_t *p = prog_add(P, OP_PLEROWS, 1);   /* every die hashes and gathers the 16 rows itself */
-	ph_ptr(p, 0x140, b->ids); ph_ptr(p, 0x148, b->ple_pc); ph_ptr(p, 0x150, b->ple_tab); ph_ptr(p, 0x158, b->pg); ph_ptr(p, 0x160, b->prows); ph_tokv(P, p, 0x168, 0, t);
+	ph_ptr(p, 0x140, b->ids); ph_ptr(p, 0x148, b->ple_pc); ph_ptr(p, 0x150, b->ple_tab); ph_ptr(p, 0x158, b->pg); ph_ptr(p, 0x160, b->prows); ph_tokv(P, p, 0x168, 0, t); ph_u32(p, 0x16c, b->ple_compact);
 	ph_actq(P, OP_ACTQ256, b->pg, b->pgq, b->pgs32, b->pgs16, b->pgas, 256, 10);
 	ph_gemv_any(P, GG_Q2_0, 2560, w->ple_key, b->pgq, b->pgs32, b->pgs16, b->lk, (unsigned)s->pkn, b->pgas, 0, 0);
 	CUdeviceptr K = ph_xchg(P, x, s->d, s->n, b->lk, 4u * (unsigned)s->pkn, 4u * (unsigned)s->pk0, 4 * 10240);

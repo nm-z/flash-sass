@@ -110,21 +110,29 @@ int main(int argc, char **argv) {
 		nprompt = 0; while (nprompt < T && fscanf(f, "%u", &ids[nprompt]) == 1) nprompt++;
 		fclose(f);
 	} else for (int i = 0; i < T; i++) { ids[i] = (uint32_t)((rs >> 8) % 248000u); frand(); }
-	const size_t PLE_R = 1u << 20; uint8_t *ptab = NULL; uint8_t ppc[160]; uint64_t pmult[3], poff[16], pvoc[16]; uint32_t pabsent = 248044, pend = 248046;
+	const size_t PLE_R = 1u << 20; uint8_t *ptab = NULL, *ctab = NULL; unsigned pcompact = 0; uint8_t ppc[160]; uint64_t pmult[3], poff[16], pvoc[16]; uint32_t pabsent = 248044, pend = 248046;
 	int has_ple = b0 <= 1 && 1 < b1;
 	if (has_ple) {
 		memcpy(pmult, ple_multipliers, sizeof pmult);
-		if (getenv("MODEL_PLE")) {   /* the real table: shard 2's tensor data (320,001,536 rows x 90 B) as a file, mapped and pinned */
+		if (getenv("MODEL_PLE")) {
+			/* the real table: shard 2's tensor data (320,001,536 rows x 90 B) as a file (a tmpfs copy).
+			   CUDA 11.4 refuses to pin a file mapping, so the twin reads the mapping with the real hash
+			   while the GPU gets a compact table: the 16 rows of every position (teacher-forced: all T
+			   ids are known up front), staged in pinned memory and indexed 16 pos + h (plerows' compact
+			   mode). Free-running decode with the real table needs a long-lived pinned copy (later). */
+			if (nprompt < T) { fprintf(stderr, "MODEL_PLE needs every id up front (MODEL_IDS with %d ids): the compact table is built per position\n", T); return 1; }
 			int fd = open(getenv("MODEL_PLE"), O_RDONLY); if (fd < 0) { perror(getenv("MODEL_PLE")); return 1; }
 			struct stat st; if (fstat(fd, &st)) { perror("fstat"); return 1; }
 			size_t sz = ((size_t)st.st_size + 4095) & ~(size_t)4095;   /* whole pages (the last row ends mid-page) */
 			ptab = mmap(NULL, sz, PROT_READ, MAP_SHARED, fd, 0); if (ptab == MAP_FAILED) { perror("mmap ple"); return 1; }
-			double tp0 = now();
-			unsigned flags_try[3] = { CU_MEMHOSTREGISTER_PORTABLE | CU_MEMHOSTREGISTER_DEVICEMAP, CU_MEMHOSTREGISTER_DEVICEMAP, 0 }; CUresult rr = CUDA_ERROR_INVALID_VALUE;
-			for (int f = 0; f < 3 && rr != CUDA_SUCCESS; f++) { rr = cuMemHostRegister(ptab, sz, flags_try[f]); if (rr != CUDA_SUCCESS) fprintf(stderr, "cuMemHostRegister(flags %u) -> %d\n", flags_try[f], (int)rr); }
-			if (rr != CUDA_SUCCESS) return 1;
-			printf("PLE table %s: %.2f GB pinned in %.1f s\n", getenv("MODEL_PLE"), sz / 1e9, now() - tp0);
 			memcpy(poff, ple_head_offsets, sizeof poff); memcpy(pvoc, ple_head_vocab, sizeof pvoc);
+			CK(cuMemHostAlloc((void **)&ctab, (size_t)T * 16 * 90 + 4096, CU_MEMHOSTALLOC_PORTABLE | CU_MEMHOSTALLOC_DEVICEMAP));
+			for (int t = 0; t < T; t++) {
+				uint64_t rows[16]; ple_rows_c(ids, (size_t)t, pabsent, &pend, 1, pmult, poff, pvoc, rows);
+				for (int h = 0; h < 16; h++) memcpy(ctab + ((size_t)t * 16 + h) * 90, ptab + rows[h] * 90, 90);
+			}
+			pcompact = 1;
+			printf("PLE table %s mapped for the twin; %d positions x 16 rows staged for the GPU\n", getenv("MODEL_PLE"), T);
 		} else {
 			CK(cuMemHostAlloc((void **)&ptab, PLE_R * 90, CU_MEMHOSTALLOC_PORTABLE | CU_MEMHOSTALLOC_DEVICEMAP));
 			for (size_t r = 0; r < PLE_R; r++)
@@ -206,7 +214,7 @@ int main(int argc, char **argv) {
 		CK(cuMemcpyHtoD(b->rope_cs, rcs, 4 * 32 * T)); CK(cuMemcpyHtoD(b->rope_sn, rsn, 4 * 32 * T));
 		b->ids = dalloc(4 * ((size_t)T + 2)); CK(cuMemcpyHtoD(b->ids, ids, 4 * ((size_t)T + 2)));
 		if (has_ple) {
-			b->ple_pc = dalloc(160); CK(cuMemcpyHtoD(b->ple_pc, ppc, 160)); CK(cuMemHostGetDevicePointer(&b->ple_tab, ptab, 0));
+			b->ple_pc = dalloc(160); CK(cuMemcpyHtoD(b->ple_pc, ppc, 160)); CK(cuMemHostGetDevicePointer(&b->ple_tab, pcompact ? ctab : ptab, 0)); b->ple_compact = pcompact;
 			b->pg = dalloc(4 * 2560); b->pgq = dalloc(2 * 2560); b->pgs32 = dalloc(4 * 80); b->pgs16 = dalloc(4 * 160); b->pgas = dalloc(4 * 80);
 			b->lk = dalloc(4u * (unsigned)s0.pkn); b->kn = dalloc(4 * 10240); b->qn = dalloc(4 * 10240); b->lv = dalloc(4u * (unsigned)s0.yn);
 			b->pG = dalloc(4 * 10240); b->pgates = dalloc(16); b->px = dalloc(4 * 10240); b->prows = dalloc(64);
@@ -340,6 +348,13 @@ int main(int argc, char **argv) {
 			if (!notwin) { char nm[16]; snprintf(nm, sizeof nm, "S.%d", d); if (!cmpbuf(nm, hb->S, db[d].S, 4 * 10240, 4)) printf("  %s exact\n", nm); else bad++; }
 		}
 		if (do_head) { printf("  tokens:"); for (int t = 0; t < T && t < 40; t++) printf(" %u", tg[t]); printf("%s\n", T > 40 ? " ..." : ""); }
+		if (do_head && nprompt == T && getenv("MODEL_IDS")) {   /* teacher-forced: the prediction at t against the given id at t + 1 */
+			int agree = 0, first = -1;
+			for (int t = 0; t + 1 < T; t++) { if (tg[t] == ids[t + 1]) agree++; else if (first < 0) first = t; }
+			printf("  teacher-forced: %d of %d next-token predictions match the given ids", agree, T - 1);
+			if (first >= 0) printf("; first difference at %d (gpu %u given %u)", first, tg[first], ids[first + 1]);
+			printf("\n");
+		}
 		printf("%s\n", notwin ? "ran" : bad ? "FAIL" : "OK: one launch, every token exact");
 		for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); hold_close(&ar[d]); }
 		return bad && !notwin ? 3 : 0;

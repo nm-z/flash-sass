@@ -915,6 +915,26 @@ phases per token (from 1843), 42–46 ms per token on {0, 1, 6, 3, 4, 5} — the
 PCH die still sets the pace (the fence after each producer's peer writes now
 shows up in the producer: bf16hcx 40 µs, hcmixx 20, and the wait in the
 consumer: actq256 57 µs).
+**The real PLE table in tests (2026-10-16):** shard 2's tensor data lives as a
+file on a dedicated tmpfs (`/mnt/ple/ple.bin`, 28.8 GB; `/dev/shm` has a 20 GB
+per-user quota). Driver 470 refuses `cuMemHostRegister` on any file mapping
+(tmpfs shared or private, 8 MB or 8 GB: `CUDA_ERROR_INVALID_VALUE`; anonymous
+memory registers fine), and 28.8 GB pinned next to the 28.8 GB tmpfs copy does
+not fit in 46 GB, so `model_test MODEL_PLE=file` maps the file for the twin
+(real hash) and stages the GPU's rows per position: `ple_rows_c` on the known
+ids, 16 × 90 B per position into pinned memory, and `plerows`' compact mode
+(param 0x16c) reads row 16 pos + h instead of the hash (the hash still runs
+and lands in ROWS). That is teacher-forced by construction (every id known
+up front: `MODEL_IDS` with T ids); blocks 0–4 with the real table are exact
+over 3 tokens. Free-running decode with the real table needs a long-lived
+process that owns one pinned anonymous copy (the harness rule: load once).
+**Reference (2026-10-16):** cx-flash's recipe cannot run this GGUF on the
+GPUs it allows (`requantized node names no format`) and needs 48 GB of RAM on
+the CPU path; upstream llama.cpp (ggml-org master, built CPU-only at
+archy:~/claude/llama.cpp-up) knows `qwen4exp` and `Q2_0` (type 42) and runs
+as `llama-server -lm mmap -lzm on -fit off` on archy's CPU; `/tmp/ref-run.sh`
+tokenizes a prompt, greedy-decodes it with `n_probs` and writes the ids for
+`MODEL_IDS`; `model_test ... ehl` then reports the teacher-forced agreement.
 **Flag-array grid barrier:** no atomics and no last-arriver release: thread 0
 of every CTA writes the generation it arrives at (`GEN`, shared memory
 0xbf78, seeded from `ctl[1]`, +1 per phase, mirrored back by CTA 0) to

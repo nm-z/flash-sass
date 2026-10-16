@@ -124,6 +124,7 @@ typedef struct {
 	 * the host-mapped table, g 2560 (+ its quantisation), this die's K rows, kn/qn 10240,
 	 * this die's V rows, G 10240, gates 4, conv input 10240, ring state [10][10240], rows debug */
 	CUdeviceptr ids, ple_pc, ple_tab, pg, pgq, pgs32, pgs16, pgas, lk, kn, qn, lv, pG, pgates, px, ple_state, prows;
+	unsigned ple_compact;   /* 1: ple_tab holds the 16 rows of every position (16 pos + h), not the hashed table */
 	/* head: this die's logits, its argmax (idx, max bits) + partials/counter, the gathered pairs, the token (u32 idx, u32 max bits) */
 	CUdeviceptr hlo, amo, apart, acnt, tokout, toks;   /* toks: u32[positions], the generated tokens */
 } dn_bufs_t;
