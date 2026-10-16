@@ -230,7 +230,7 @@ int q2_0_lanes_per_row(int K) {
 	return halves / 5;   /* 2560 -> 16 lanes, 640 -> 4 lanes */
 }
 
-void gemv_q2_0_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, float xscale, float *y) {
+void gemv_q2_0_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, const float *as, float *y) {
 	int B = K / 64, stride = q2_0_tile_stride(K), scales = stride - 16 * B;
 	int L = q2_0_lanes_per_row(K);
 	float v[32] = { 0 }, w[32] = { 0 };
@@ -244,7 +244,7 @@ void gemv_q2_0_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const
 				int32_t dot = 0;
 				for (int j = 0; j < 32; j++) dot += ((qs[j >> 2] >> (2 * (j & 3))) & 3) * xq[32 * h + j];
 				float d = fp16_to_fp32(ld16(row + 2 * b));
-				acc = fmaf(d, (float)(dot - sum32[h]), acc);
+				{ float u = d * (float)(dot - sum32[h]); acc = fmaf(as[h], u, acc); }
 			}
 			v[l] = acc;
 		}
@@ -252,7 +252,7 @@ void gemv_q2_0_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const
 			for (int l = 0; l < L; l++) w[l] = v[l] + v[l ^ o];
 			memcpy(v, w, sizeof(float) * L);
 		}
-		y[r] = v[0] * xscale;
+		y[r] = v[0];
 	}
 }
 
@@ -348,7 +348,7 @@ int repack_q4_k(const uint8_t *src, int rows, int K, uint8_t *dst) {
 	return stride;
 }
 
-void gemv_q4_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, float xscale, float *y) {
+void gemv_q4_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, const float *as, float *y) {
 	int B = K / 256, stride = q4_k_tile_stride(K);
 	int L = q4_k_lanes_per_row(K), n = (K / 32) / L;
 	float v[32], w[32];
@@ -365,9 +365,10 @@ void gemv_q4_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const
 				for (int e = 0; e < 32; e++) dot += ((q[e >> 1] >> (4 * (e & 1))) & 0xF) * xq[32 * s + e];
 				float d = fp16_to_fp32(ld16(h)), dmin = fp16_to_fp32(ld16(h + 2));
 				float t1 = (float)dot * (float)sc;
-				acc = fmaf(d, t1, acc);
+				float u = d * t1;
 				float t2 = (float)(mn * sum32[s]);
-				if (!getenv("GEMV_NOMIN")) acc = fmaf(-dmin, t2, acc);
+				if (!getenv("GEMV_NOMIN")) u = fmaf(-dmin, t2, u);
+				acc = fmaf(as[s], u, acc);
 			}
 			v[l] = acc;
 		}
@@ -375,7 +376,7 @@ void gemv_q4_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const
 			for (int l = 0; l < L; l++) w[l] = v[l] + v[l ^ o];
 			memcpy(v, w, sizeof(float) * L);
 		}
-		y[r] = v[0] * xscale;
+		y[r] = v[0];
 	}
 }
 
@@ -409,7 +410,7 @@ int repack_q5_k(const uint8_t *src, int rows, int K, uint8_t *dst) {
 	return stride;
 }
 
-void gemv_q5_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, float xscale, float *y) {
+void gemv_q5_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, const float *as, float *y) {
 	int B = K / 256, stride = q5_k_tile_stride(K);
 	int L = q4_k_lanes_per_row(K), n = (K / 32) / L;
 	float v[32], w[32];
@@ -428,9 +429,10 @@ void gemv_q5_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const
 				for (int e = 0; e < 32; e++) dot += (((q[e >> 1] >> (4 * (e & 1))) & 0xF) + 16 * ((hw >> e) & 1)) * xq[32 * s + e];
 				float d = fp16_to_fp32(ld16(h)), dmin = fp16_to_fp32(ld16(h + 2));
 				float t1 = (float)dot * (float)sc;
-				acc = fmaf(d, t1, acc);
+				float u = d * t1;
 				float t2 = (float)(mn * sum32[s]);
-				if (!getenv("GEMV_NOMIN")) acc = fmaf(-dmin, t2, acc);
+				if (!getenv("GEMV_NOMIN")) u = fmaf(-dmin, t2, u);
+				acc = fmaf(as[s], u, acc);
 			}
 			v[l] = acc;
 		}
@@ -438,7 +440,7 @@ void gemv_q5_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const
 			for (int l = 0; l < L; l++) w[l] = v[l] + v[l ^ o];
 			memcpy(v, w, sizeof(float) * L);
 		}
-		y[r] = v[0] * xscale;
+		y[r] = v[0];
 	}
 }
 
@@ -491,7 +493,7 @@ int repack_q3_k(const uint8_t *src, int rows, int K, uint8_t *dst) {
 	return stride;
 }
 
-void gemv_q3_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, float xscale, float *y) {
+void gemv_q3_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const float *as, float *y) {
 	int B = K / 256, stride = q3_k_tile_stride(K);
 	int L = q4_k_lanes_per_row(K), Q = L / 8, n = B / Q;
 	float v[32], w[32];
@@ -516,7 +518,7 @@ void gemv_q3_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, float
 					}
 					sumi += (int8_t)rec[96 + g] * dot;
 				}
-				acc = fmaf(fp16_to_fp32(ld16(pre + 16 * q + 2 * i)), (float)sumi, acc);
+				{ float u = fp16_to_fp32(ld16(pre + 16 * q + 2 * i)) * (float)sumi; acc = fmaf(as[8 * b + jj], u, acc); }
 			}
 			v[l] = acc;
 		}
@@ -524,7 +526,7 @@ void gemv_q3_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, float
 			for (int l = 0; l < L; l++) w[l] = v[l] + v[l ^ o];
 			memcpy(v, w, sizeof(float) * L);
 		}
-		y[r] = v[0] * xscale;
+		y[r] = v[0];
 	}
 }
 
@@ -584,7 +586,7 @@ int repack_q6_k(const uint8_t *src, int rows, int K, uint8_t *dst) {
 	return stride;
 }
 
-void gemv_q6_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum16, float xscale, float *y) {
+void gemv_q6_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum16, const float *as, float *y) {
 	int B = K / 256, stride = q6_k_tile_stride(K);
 	int L = q4_k_lanes_per_row(K), Q = L / 8, n = B / Q;
 	float v[32], w[32];
@@ -609,7 +611,7 @@ void gemv_q6_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const
 					}
 					sumi += (int8_t)rec[192 + 2 * jj + gg] * dot;
 				}
-				acc = fmaf(fp16_to_fp32(ld16(pre + 16 * q + 2 * i)), (float)sumi, acc);
+				{ float u = fp16_to_fp32(ld16(pre + 16 * q + 2 * i)) * (float)sumi; acc = fmaf(as[8 * b + jj], u, acc); }
 			}
 			v[l] = acc;
 		}
@@ -617,7 +619,7 @@ void gemv_q6_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const
 			for (int l = 0; l < L; l++) w[l] = v[l] + v[l ^ o];
 			memcpy(v, w, sizeof(float) * L);
 		}
-		y[r] = v[0] * xscale;
+		y[r] = v[0];
 	}
 }
 
@@ -653,7 +655,7 @@ int repack_iq4_xs(const uint8_t *src, int rows, int K, uint8_t *dst) {
 	return stride;
 }
 
-void gemv_iq4_xs_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, float xscale, float *y) {
+void gemv_iq4_xs_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const float *as, float *y) {
 	int B = K / 256, stride = iq4_xs_tile_stride(K);
 	int L = q4_k_lanes_per_row(K), Q = L / 8, n = B / Q;
 	float v[32], w[32];
@@ -668,7 +670,7 @@ void gemv_iq4_xs_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, flo
 				int32_t dot = 0;
 				for (int e = 0; e < 32; e++) dot += kvalues_iq4nl[(p[e >> 1] >> (4 * (e & 1))) & 0xF] * xq[256 * b + 32 * jj + e];
 				int32_t sumi = (int8_t)scs[8 * b + jj] * dot;
-				acc = fmaf(fp16_to_fp32(ld16(pre + 16 * q + 2 * i)), (float)sumi, acc);
+				{ float u = fp16_to_fp32(ld16(pre + 16 * q + 2 * i)) * (float)sumi; acc = fmaf(as[8 * b + jj], u, acc); }
 			}
 			v[l] = acc;
 		}
@@ -676,7 +678,7 @@ void gemv_iq4_xs_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, flo
 			for (int l = 0; l < L; l++) w[l] = v[l] + v[l ^ o];
 			memcpy(v, w, sizeof(float) * L);
 		}
-		y[r] = v[0] * xscale;
+		y[r] = v[0];
 	}
 }
 
@@ -754,7 +756,7 @@ float b32_tile_value(uint32_t type, const uint8_t *tile, int K, int r, int e) {
 	return d * (float)(q - b32_offset(type));
 }
 
-void gemv_b32_ref(uint32_t type, const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, float xscale, float *y) {
+void gemv_b32_ref(uint32_t type, const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, const float *as, float *y) {
 	int B = K / 32, stride = b32_tile_stride(type, K), L = 4, n = B / L, off = b32_offset(type);
 	float v[4], w[4];
 	(void)sum32;
@@ -770,7 +772,7 @@ void gemv_b32_ref(uint32_t type, const uint8_t *tile, int rows, int K, const int
 					int val = type == GG_IQ4_NL ? kvalues_iq4nl[q] : q - off;
 					dot += val * xq[32 * b + e];
 				}
-				acc = fmaf(fp16_to_fp32(ld16(pre + 2 * b)), (float)dot, acc);
+				{ float u = fp16_to_fp32(ld16(pre + 2 * b)) * (float)dot; acc = fmaf(as[b], u, acc); }
 			}
 			v[l] = acc;
 		}
@@ -778,7 +780,7 @@ void gemv_b32_ref(uint32_t type, const uint8_t *tile, int rows, int K, const int
 			for (int l = 0; l < L; l++) w[l] = v[l] + v[l ^ o];
 			memcpy(v, w, sizeof(float) * L);
 		}
-		y[r] = v[0] * xscale;
+		y[r] = v[0];
 	}
 }
 

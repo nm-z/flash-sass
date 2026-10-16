@@ -36,6 +36,8 @@
     param_Y1   : c[0x0][0x15c]
     param_rows : c[0x0][0x160]
     param_xs   : c[0x0][0x164]
+    param_AS0  : c[0x0][0x170]
+    param_AS1  : c[0x0][0x174]
 </CONSTANT_MAPPING>
 
 <CODE>
@@ -63,13 +65,16 @@
     $o .= sprintf "    %d-%d : p<00-15>\n", $T + 12, $T + 27;
     $o .= sprintf "    %d-%d : acc<0-7>\n", $r, $r + 7;
     $r += 8;
-    my @scal = qw(tl0 tl1 th0 th1 t7f dot sumi t sumif dd accf row rowpair rowstep stepw);
+    $o .= sprintf "    %d-%d : as<0-%d>\n", $r, $r + $n - 1, $n - 1;
+    $r += $n;
+    my @scal = qw(tl0 tl1 th0 th1 t7f dot sumi t sumif dd accf u row rowpair rowstep stepw);
     for my $name (@scal) { $o .= sprintf "    %d : %s\n", $r++, $name; }
     $r += $r & 1;
     $o .= sprintf "    %d,%d : pp<0-1>\n    %d,%d : np<0-1>\n    %d,%d : sp<0-1>\n    %d,%d : yp<0-1>\n",
         $r, $r+1, $r+2, $r+3, $r+4, $r+5, $r+6, $r+7;
     # prologue temporaries alias the nibble registers (dead before the loop)
     $o .= sprintf "    %d,%d : xp<0-1>\n", $nb, $nb + 1;
+    $o .= sprintf "    %d,%d : ap<0-1>\n", $nb + 12, $nb + 13;
     $o .= sprintf "    %d : lane\n    %d : grp\n    %d : tid\n    %d : bid\n    %d : off\n    %d : t1p\n    %d : q\n    %d : jj\n    %d : base2\n",
         $nb+2, $nb+3, $nb+4, $nb+5, $nb+6, $nb+7, $nb+8, $nb+9, $nb+10;
     $o .= "</REGISTER_MAPPING>\n";
@@ -139,6 +144,11 @@
     $o .= "--:-:-:-:6      SHL t1p, row, 0x2;\n";
     $o .= "--:-:-:-:6      IADD yp0.CC, t1p, param_Y0;\n";
     $o .= "--:-:-:-:6      IADD.X yp1, RZ, param_Y1;\n";
+    # activation scales: sub-block i at AS + 4 (lane + L i)
+    $o .= "--:-:-:-:6      SHL t1p, lane, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD ap0.CC, t1p, param_AS0;\n";
+    $o .= "--:-:-:-:6      IADD.X ap1, RZ, param_AS1;\n";
+    for my $i (0..$n-1) { $o .= sprintf "--:-:2:-:1      LDG.E.CI as%d, [ap+0x%x];\n", $i, 4*$L*$i; }
     # activations: xp = X + 512 q + 64 jj ; step i at + 512 Q i
     $o .= "--:-:-:-:6      SHL t1p, q, 0x9;\n";
     $o .= "--:-:-:-:6      ISCADD t1p, jj, t1p, 0x6;\n";
@@ -219,14 +229,14 @@
         $o .= sprintf "--:-:-:-:6      XMAD.S16.S16 t, dot.H1, sc%d, RZ;\n", $i;
         $o .= "--:-:-:-:6      ISCADD sumi, t, sumi, 0x10;\n";
         $o .= "--:-:3:-:6      I2F.F32.S32 sumif, sumi;\n";
-        $o .= "0c:-:-:-:6      FFMA accf, dd, sumif, accf;\n";
+        $o .= "0c:-:-:-:6      FMUL u, dd, sumif;\n";
+        $o .= sprintf "--:-:-:-:6      FFMA accf, as%d, u, accf;\n", $i;
     }
     for (my $x = $L / 2; $x >= 1; $x >>= 1) {
         $o .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x%x, 0x1f;\n", $x;
         $o .= "10:-:-:-:6      FADD accf, accf, t;\n";
     }
-    $o .= "--:-:-:-:6      FMUL t, accf, param_xs;\n";
-    $o .= "--:2:-:-:1  \@P2 STG.E [yp], t;\n";
+    $o .= "--:2:-:-:1  \@P2 STG.E [yp], accf;\n";
     $o .= "--:-:-:-:1      IADD row, row, rowstep;\n";
     $o .= "02:-:-:-:6      IADD pp0.CC, pp0, stepw;\n";
     $o .= "--:-:-:-:6      IADD.X pp1, pp1, RZ;\n";

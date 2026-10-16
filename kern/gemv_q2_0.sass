@@ -49,6 +49,8 @@
     param_xs   : c[0x0][0x164]
     param_D0   : c[0x0][0x168]
     param_D1   : c[0x0][0x16c]
+    param_AS0  : c[0x0][0x170]
+    param_AS1  : c[0x0][0x174]
 </CONSTANT_MAPPING>
 
 <REGISTER_MAPPING>
@@ -68,11 +70,13 @@
     125     : rowpair
     126     : rowstep
     127     : stepw
-    128,129 : dp<0-1>
+    128-132 : as<0-4>
+    134,135 : dp<0-1>
 
     // prologue temporaries, dead before the loop body uses these registers
     90,91   : xp<0-1>
     92,93   : sp<0-1>
+    80,81   : ap<0-1>
     94      : lane
     95      : grp
     96      : half
@@ -87,6 +91,7 @@
     // loop temporaries living in the mask registers between the last XMAD and the next LOP32I
     91      : dot
     92      : dotf
+    93      : u
 </REGISTER_MAPPING>
 
 <CODE>
@@ -163,6 +168,13 @@
     $o .= "--:-:-:-:6      IADD.X sp1, RZ, param_S1;\n";
     for my $i (0..4) {
         $o .= sprintf "--:-:2:-:%s      LDG.E%s s%d, [sp+0x%x];\n", $i == 4 ? '6' : '1', $ci, $i, 4*$L*$i;
+    }
+    # activation scales: half-block i at AS + 4 (lane + L i)
+    $o .= "--:-:-:-:6      SHL t1, lane, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD ap0.CC, t1, param_AS0;\n";
+    $o .= "--:-:-:-:6      IADD.X ap1, RZ, param_AS1;\n";
+    for my $i (0..4) {
+        $o .= sprintf "--:-:2:-:%s      LDG.E%s as%d, [ap+0x%x];\n", $i == 4 ? '6' : '1', $ci, $i, 4*$L*$i;
     }
     for my $i (0..4) {
         $o .= sprintf "%s:-:-:-:%s      IADD3 nsum%d, RZ, -s%d, RZ;\n", $i == 0 ? '02' : '--', $i == 4 ? '6' : '1', $i, $i;
@@ -243,7 +255,8 @@ LOOP:
         push @out, "--:-:-:-:6      IADD acc4, acc4, acc6;\n";
         push @out, "--:-:-:-:6      IADD dot, acc0, acc4;\n";
         push @out, "--:-:3:-:6      I2F.F32.S32 dotf, dot;\n";
-        push @out, "0c:-:-:-:6      FFMA accf, t, dotf, accf;\n";
+        push @out, "0c:-:-:-:6      FMUL u, t, dotf;\n";
+        push @out, sprintf "--:-:-:-:6      FFMA accf, as%d, u, accf;\n", $i;
         if ($trace && $i == 0) {
             push @out, "--:2:-:-:1      STG.E [dp], q0;\n";
             push @out, "--:2:-:-:1      STG.E [dp+0x4], q1;\n";
@@ -270,8 +283,7 @@ LOOP:
     $o .= "--:-:-:-:6      CS2R acc2, SR_CLOCKLO;\n" if $ENV{GEMV_TIMING};
     return $o;
 </CODE>
---:-:-:-:6      FMUL t, accf, param_xs;
---:2:-:-:1  @P2 STG.E [yp], t;
+--:2:-:-:1  @P2 STG.E [yp], accf;
 <CODE>
     # the trace build stored `row` just above; wait for that read before changing it
     return $ENV{GEMV_TRACE} ? "02:-:-:-:6      IADD row, row, rowstep;\n" : "--:-:-:-:1      IADD row, row, rowstep;\n";

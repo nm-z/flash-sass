@@ -519,6 +519,69 @@ the hyper-connection norms, `ssm_norm`, q/k norms, indexer norms and PLE norms.
 | BF16 | 320 | 10240 (hc up) | 96 |
 | BF16 | 2560 | 512 (router), 128/512 (indexer), 48 (ssm α/β), 2560 (ple_value) | 48 + 24 + 72 + 1 |
 
+## Phase 2 design (block kernels on one die)
+
+Primitives that exist and are bit-exact against C twins: the GEMV family
+(every format/shape), `actq` (per-32 quantiser), `normq` (RMSNorm + quantiser),
+`rmsnorm` (fp32, 2560/10240), `gridbar`, `mailbox`. Still to write, each with a
+C twin and a tolerance test (transcendentals use MUFU, so bit-exactness ends
+where exp/log/sigmoid begin; the twins mirror op order and the tests report max
+abs/rel error): SiLU/sigmoid/softplus/exp vector ops, the DeltaNet head step,
+conv1d state step, L2 normalisation, per-head RMSNorm + RoPE, attention scores +
+softmax + KV cache append, the indexer, router softmax + top-10, the PLE hash +
+row gather + gate, the token-embedding row decode (raw Q3_K), hyper-connection
+read/write gates.
+
+Phase sequence per block (each line = one grid phase of the persistent kernel;
+a phase is a loop over its rows/heads by all warps of the die, then a grid
+barrier; "1w" = tiny, one warp):
+
+1. **hc_attn norm**: x̂_l = RMS_2560(S_l) ⊙ hc_norm[l], 4 warps (fp32 10240 out).
+2. **hc read-down**: BF16 GEMV 10240→320 (4 slices accumulate) on x̂.
+3. **hc read-up**: t = SiLU(0.25·down) (1w), BF16 GEMV 320→10240, g = σ(·);
+   also **inject**: w_l = 2σ(0.25·(W_inj x̂)_l) (4 rows × 10240, 4 warps).
+4. **mix**: z = 0.25·Σ_l g_l ⊙ x̂_l (2560) → `actq`(z) and keep z fp32.
+5. **mixer projections** from z: DeltaNet: qkv (10240 rows), gate (6144),
+   α/β (BF16 48+48, fp32 z); attention: q (12288), k, v (512 each), indexer
+   q/k (BF16 512/128, fp32 z). One phase, rows of several matrices.
+6. **mixer core**: DeltaNet: conv1d(k=4, state) + SiLU on 10240 channels, L2 on
+   q/k heads, gates α_h/β_h (softplus/exp/σ), 48 recurrences (one CTA per head:
+   S ← α S; r = k̂ᵀS; e = v − r; S += β k̂ eᵀ; o = q̂ᵀS; 64 KB state per head read
+   and written), o/√128, RMS_128 ⊙ ssm_norm, ⊙ σ(gate) → 6144 fp32 → `actq`.
+   Attention: q/k per-head RMS + RoPE(64), KV append, (indexer when t > 2048),
+   24 heads × online softmax over admitted keys, ⊙ σ(gate) → 6144 → `actq`.
+7. **out projection**: ssm_out / attn_output (K=6144) → y (2560).
+8. **write**: S_l += w_l · y (4 lanes, 1 phase, 4 warps).
+9–12. **hc_ffn**: norm, read-down, read-up + inject, mix → z' (+ `actq`).
+13. **router**: softmax(W_r z') (BF16 512 rows), top-10 + renormalise (1w),
+    shared gate s = σ(w_sh · z') (1w).
+14. **experts gate/up**: 10 experts × (gate, up) Q2_0 640 rows each + shared
+    gate/up (640 rows, mixed formats): 13,440 rows total in one phase, then
+    h_e = SiLU(g_e) ⊙ u_e → `actq` per expert (11 × 640, per-32).
+15. **experts down**: 10 × Q2_0 K=640 (2560 rows each) + shared down (b32),
+    weighted sum Σ w_e y_e + s·y_s → out (2560) (each row's 11 contributions
+    summed in a fixed order inside the row loop).
+16. **write**: S_l += w'_l · out.
+Block 1 adds the PLE step before phase 1 (hash → 16 rows from host RAM → K/V
+projections → per-lane gates → conv over the 4 last tokens' G → S += out);
+block 0 starts from the embedding row broadcast to 4 lanes; after block 47 the
+head: output_hc norm/down/up gate → h → `output.weight` logits → argmax /
+sampling (1w) → token to the ring buffer and the next die's mailbox.
+
+≈ 16 barriers per block → ~800 per token across the 6 dies ≈ 1.5 ms (≈ 5% of
+~30 ms); fusions (norm into mix, inject into read-up, router into the mix
+phase) come later. State per die: DeltaNet states 3 MB × its DeltaNet blocks,
+conv states (3 × 10240 fp32 per block), KV cache 2 × 256 × 2 × 4 B = 4 KB per
+token per attention block (fp32; 32k tokens = 128 MB per block ✗ → fp16 KV at
+64 MB per block, 2 attention blocks per die → 128 MB at 32k), indexer keys
+(128 fp32 per token per attention block), PLE: the last 4 G vectors (4 × 10240).
+
+Verification: each primitive against its C twin; each block against cx-flash's
+node dumps (`RECIPE_TRACE_*` on archy, see `results/cx-flash-blockmath.md` §9)
+at tolerance; end to end against `RECIPE_REFERENCE_WRITE` logits and greedy
+tokens. The two cx-flash ambiguities (key-head mapping, readout scale) are
+resolved by whichever choice reproduces llama.cpp's greedy output.
+
 ## Phases
 
 0. **Probes** — done (table above).

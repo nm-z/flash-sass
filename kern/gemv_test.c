@@ -63,13 +63,15 @@ int main(int argc, char **argv) {
 	else if (!strcmp(pat, "ones")) for (int k = 0; k < K; k++) x[k] = 1.f;
 	else if (!strcmp(pat, "alt")) for (int k = 0; k < K; k++) x[k] = (k & 1) ? -1.f : 1.f;
 	int8_t *xq = malloc(K);
-	int32_t *sum32 = malloc(sizeof(int32_t) * K / 32);
-	float xs = quant_act_int8(x, xq, sum32, K);
+	int32_t *sum32 = malloc(sizeof(int32_t) * K / 32), *sum16 = malloc(sizeof(int32_t) * K / 16);
 	int16_t *x16 = malloc(sizeof(int16_t) * K);
-	for (int k = 0; k < K; k++) x16[k] = xq[k];
+	float *as = malloc(sizeof(float) * K / 32);
+	quant_act_gpu32(x, K, x16, sum32, sum16, as);
+	for (int k = 0; k < K; k++) xq[k] = (int8_t)x16[k];
+	float xs = 1.f;
 	float *yref = malloc(sizeof(float) * rows), *y = malloc(sizeof(float) * rows);
 	double t2 = now();
-	gemv_q2_0_ref(tile, rows, K, xq, sum32, xs, yref);
+	gemv_q2_0_ref(tile, rows, K, xq, sum32, as, yref);
 	double t3 = now();
 	printf("repack %.1f ms (%.2f GB/s read), reference %.1f ms\n", (t1 - t0) * 1e3, (double)rows * (K / 64) * 18 / (t1 - t0) / 1e9, (t3 - t2) * 1e3);
 
@@ -99,6 +101,9 @@ int main(int argc, char **argv) {
 	CK(cuMemcpyHtoD(dW, tile, (size_t)stride * rows));
 	CK(cuMemcpyHtoD(dX, x16, sizeof(int16_t) * K));
 	CK(cuMemcpyHtoD(dS, sum32, sizeof(int32_t) * K / 32));
+	CUdeviceptr dAS;
+	CK(cuMemAlloc(&dAS, sizeof(float) * K / 32 + 64));
+	CK(cuMemcpyHtoD(dAS, as, sizeof(float) * K / 32));
 	CK(cuMemsetD32(dY, 0x7fc00000u, rows));   /* NaN: any row the kernel skips shows up */
 	/* debug trace: 12 words per (row, lane16) */
 	size_t dbg_bytes = (size_t)rows * L * 48;
@@ -106,7 +111,7 @@ int main(int argc, char **argv) {
 	CK(cuMemAlloc(&dD, dbg_bytes));
 	CK(cuMemsetD8(dD, 0, dbg_bytes));
 	unsigned urows = (unsigned)rows;
-	void *params[] = { &dW, &dX, &dS, &dY, &urows, &xs, &dD };
+	void *params[] = { &dW, &dX, &dS, &dY, &urows, &xs, &dD, &dAS };
 	unsigned grid = (urows + RPC - 1) / RPC;
 	if (getenv("GEMV_GRID") && (unsigned)atoi(getenv("GEMV_GRID")) < grid) grid = (unsigned)atoi(getenv("GEMV_GRID"));
 	printf("grid %u CTAs x 256 threads, %u rows per CTA iteration\n", grid, RPC);

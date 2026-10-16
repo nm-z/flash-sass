@@ -27,7 +27,7 @@ int q2_0_lanes_per_row(int K);
 /* y[r] for r < rows, computed as the GPU does: per lane a sequential FMA chain
  * over its 5 half-blocks, a SHFL-butterfly tree across the row's lanes, then
  * times xscale. Bit-identical to the kernel by construction. */
-void gemv_q2_0_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, float xscale, float *y);
+void gemv_q2_0_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, const float *as, float *y);
 
 /* plain fp32 dot of the dequantised row with the dequantised activations, for sanity */
 void gemv_q2_0_float(const uint8_t *src, int rows, int K, const float *x, float *y);
@@ -59,14 +59,14 @@ void q4_k_scale_min(const uint8_t *sc, int j, int *scale, int *min);
 /* GPU order: lane l owns sub-blocks s = l + L i; per sub-block dot (int), t1 = (float)dot *
  * (float)sc, acc = fma(d, t1, acc), acc = fma(-dmin, (float)(min * sum32[s]), acc);
  * butterfly over L lanes; * xscale. */
-void gemv_q4_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, float xscale, float *y);
+void gemv_q4_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, const float *as, float *y);
 
 /* Q5_K tile: Q4_K tile followed by per block 8 x 4 B high-bit words (bit e of word j =
  * high bit of element e of sub-block j). Row stride 176 B per block. */
 int q5_k_tile_stride(int K);
 int repack_q5_k(const uint8_t *src, int rows, int K, uint8_t *dst);
 /* GPU order as gemv_q4_k_ref with dot = sum (q4 + 16 h) a */
-void gemv_q5_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, float xscale, float *y);
+void gemv_q5_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, const float *as, float *y);
 
 #endif
 
@@ -80,7 +80,7 @@ int repack_q3_k(const uint8_t *src, int rows, int K, uint8_t *dst);
 /* GPU order: lane (q = l >> 3, jj = l & 7) owns groups 2jj, 2jj+1 of blocks Q i + q;
  * per block sumi = sc0 dot0 + sc1 dot1 (exact integers), acc = fma(d, (float)sumi,
  * acc), then the SHFL butterfly and * xscale. */
-void gemv_q3_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, float xscale, float *y);
+void gemv_q3_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const float *as, float *y);
 
 /* Q6_K row tile: [prefix: Q x 16 B of fp16 d as for Q3_K] [per block 208 B: 8 x 16 B
  * low nibbles (sub-block j, element 2i low / 2i+1 high), 8 x 8 B high bits (sub-block
@@ -93,7 +93,7 @@ void act_sum16(const int8_t *q, int32_t *sum16, int n);
 /* GPU order: lane (q, jj) owns sub-block jj of blocks Q i + q; per block
  * sumi = sc0 dot0 + sc1 dot1 with dot_g = sum (q6 - 32) a over the 16-element group
  * (exact), acc = fma(d, (float)sumi, acc), then the butterfly and * xscale. */
-void gemv_q6_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum16, float xscale, float *y);
+void gemv_q6_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum16, const float *as, float *y);
 
 /* IQ4_XS row tile: [prefix: Q x 16 B of fp16 d as for Q3_K] [nibbles: block b,
  * sub-block j at 128 b + 16 j, element 2i low / 2i+1 high] [scales: int8 (ls - 32)
@@ -103,7 +103,7 @@ int repack_iq4_xs(const uint8_t *src, int rows, int K, uint8_t *dst);
 int iq4_kvalue(int q);
 /* GPU order: lane (q, jj) owns sub-block jj of blocks Q i + q; per block
  * dot = sum kvalues[q] a (exact), sumi = sc * dot, acc = fma(d, (float)sumi, acc). */
-void gemv_iq4_xs_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, float xscale, float *y);
+void gemv_iq4_xs_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const float *as, float *y);
 
 /* Block-32 formats at K = 640 (ffn_down_shexp): 4 lanes per row, lane l owns blocks
  * l + 4 i, i = 0..4. Row tile: [prefix 48 B: fp16 d of the 20 blocks][data: per block
@@ -115,7 +115,7 @@ int repack_b32(uint32_t type, const uint8_t *src, int rows, int K, uint8_t *dst)
 float b32_tile_value(uint32_t type, const uint8_t *tile, int K, int r, int e);
 /* GPU order: per lane dot_b = sum (q - off) a (exact), acc = fma(d_b, (float)dot_b, acc)
  * over its 5 blocks, a 4-lane butterfly, then * xscale. */
-void gemv_b32_ref(uint32_t type, const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, float xscale, float *y);
+void gemv_b32_ref(uint32_t type, const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, const float *as, float *y);
 
 /* The GPU activation quantiser (kern/actq.sass), bit for bit: amax = max |x|,
  * r = 1/amax (IEEE), inv = r * 127 (0 if amax == 0), q = lrintf(x * inv) as int16,

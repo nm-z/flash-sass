@@ -113,21 +113,22 @@ int main(int argc, char **argv) {
 	else if (pat && !strncmp(pat, "twohot:", 7)) { for (int k = 0; k < K; k++) x[k] = 0.f; int a1 = atoi(pat + 7), b1 = atoi(strchr(pat, ',') + 1); x[a1 % K] = 1.f; x[b1 % K] = 0.5f; }
 	else if (pat && !strncmp(pat, "range:", 6)) { for (int k = 0; k < K; k++) x[k] = 0.f; int a1 = atoi(pat + 6), b1 = atoi(strchr(pat, ',') + 1); for (int k = a1; k < b1 && k < K; k++) x[k] = 1.f; }
 	else if (pat && !strncmp(pat, "lane:", 5)) { for (int k = 0; k < K; k++) x[k] = 0.f; int l0 = atoi(pat + 5); for (int k = 0; k < 32; k++) x[(32 * l0 + k) % K] = 1.f; }
-	int8_t *xq = malloc(K);
 	int32_t *sum32 = malloc(sizeof(int32_t) * K / 32);
-	float xs = quant_act_int8(x, xq, sum32, K);
 	int16_t *x16 = malloc(sizeof(int16_t) * K);
-	for (int k = 0; k < K; k++) x16[k] = xq[k];
+	int32_t *sum16 = malloc(sizeof(int32_t) * K / 16);
+	float *as = malloc(sizeof(float) * K / 32);
+	quant_act_gpu32(x, K, x16, sum32, sum16, as);
+	int8_t *xq = malloc(K);
+	for (int k = 0; k < K; k++) xq[k] = (int8_t)x16[k];
+	float xs = 1.f;
 	float *yref = malloc(sizeof(float) * rows), *y = malloc(sizeof(float) * rows);
 	t0 = now();
-	int32_t *sum16 = malloc(sizeof(int32_t) * K / 16);
-	act_sum16(xq, sum16, K);
-	if (b32) gemv_b32_ref(t->type, tile, rows, K, xq, sum32, xs, yref);
-	else if (q5) gemv_q5_k_ref(tile, rows, K, xq, sum32, xs, yref);
-	else if (q3) gemv_q3_k_ref(tile, rows, K, xq, xs, yref);
-	else if (q6) gemv_q6_k_ref(tile, rows, K, xq, sum16, xs, yref);
-	else if (x4) gemv_iq4_xs_ref(tile, rows, K, xq, xs, yref);
-	else gemv_q4_k_ref(tile, rows, K, xq, sum32, xs, yref);
+	if (b32) gemv_b32_ref(t->type, tile, rows, K, xq, sum32, as, yref);
+	else if (q5) gemv_q5_k_ref(tile, rows, K, xq, sum32, as, yref);
+	else if (q3) gemv_q3_k_ref(tile, rows, K, xq, as, yref);
+	else if (q6) gemv_q6_k_ref(tile, rows, K, xq, sum16, as, yref);
+	else if (x4) gemv_iq4_xs_ref(tile, rows, K, xq, as, yref);
+	else gemv_q4_k_ref(tile, rows, K, xq, sum32, as, yref);
 	t1 = now();
 	printf("reference %.1f ms\n", (t1 - t0) * 1e3);
 
@@ -142,12 +143,14 @@ int main(int argc, char **argv) {
 	int nregs, maxb;
 	CK(cuFuncGetAttribute(&nregs, CU_FUNC_ATTRIBUTE_NUM_REGS, fn));
 	CK(cuOccupancyMaxActiveBlocksPerMultiprocessor(&maxb, fn, 256, 0));
-	CUdeviceptr dW, dX, dS, dY, dD;
+	CUdeviceptr dW, dX, dS, dY, dD, dAS;
 	CK(cuMemAlloc(&dW, (size_t)stride * rows));
 	CK(cuMemAlloc(&dX, sizeof(int16_t) * K));
 	CK(cuMemAlloc(&dS, sizeof(int32_t) * K / 16 + 64));
 	CK(cuMemAlloc(&dY, sizeof(float) * rows));
 	CK(cuMemAlloc(&dD, 4096));
+	CK(cuMemAlloc(&dAS, sizeof(float) * K / 32 + 64));
+	CK(cuMemcpyHtoD(dAS, as, sizeof(float) * K / 32));
 	CK(cuMemcpyHtoD(dW, tile, (size_t)stride * rows));
 	CK(cuMemcpyHtoD(dX, x16, sizeof(int16_t) * K));
 	/* Q6_K takes per-16 sums in the sums slot, the others per-32 */
@@ -155,7 +158,7 @@ int main(int argc, char **argv) {
 	else CK(cuMemcpyHtoD(dS, sum32, sizeof(int32_t) * K / 32));
 	CK(cuMemsetD32(dY, 0x7fc00000u, rows));
 	unsigned urows = (unsigned)rows;
-	void *params[] = { &dW, &dX, &dS, &dY, &urows, &xs, &dD };
+	void *params[] = { &dW, &dX, &dS, &dY, &urows, &xs, &dD, &dAS };
 	unsigned grid = (urows + RPC - 1) / RPC;
 	if (getenv("GEMV_GRID") && (unsigned)atoi(getenv("GEMV_GRID")) < grid) grid = (unsigned)atoi(getenv("GEMV_GRID"));
 	printf("kernel: %d registers, %d CTAs/SM; grid %u x 256, %u rows per CTA iteration\n", nregs, maxb, grid, RPC);

@@ -3,7 +3,7 @@
 .target sm_52
 .address_size 64
 
-.visible .entry KERNEL(.param .u64 pw, .param .u64 px, .param .u64 ps, .param .u64 py, .param .u32 rows, .param .f32 xs, .param .u64 pdbg)
+.visible .entry KERNEL(.param .u64 pw, .param .u64 px, .param .u64 ps, .param .u64 py, .param .u32 rows, .param .f32 xs, .param .u64 pdbg, .param .u64 pas)
 {
 	.reg .u32 %r<2>;
 	.reg .pred %p;
