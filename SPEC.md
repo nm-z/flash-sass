@@ -1071,6 +1071,11 @@ over the CTAs (3 phases, 45 µs → ~10), the one-warp router top-10 (24 µs),
 and merging elementwise phases into their neighbours; the ≈4 µs floor
 matters even more once the rows are split six ways.
 
+**Twin coverage:** every (tensor kind, GGUF type) combination in the model (34 of
+them on die 0's manifest) occurs in blocks 0–4 or 11, the blocks the C twin
+has checked bit-exactly on six dies, so no untested weight-format path remains
+in the other 42 blocks.
+
 **`kern/flash` — the decoder front-end (2026-10-16):** loads once (arenas from the
 holders' manifests, the PLE table into pinned host memory — `FLASH_PLE_OFF=192`
 reads shard 2 directly, `FLASH_PLE_CONSUME=1` eats a tmpfs copy from the end so
