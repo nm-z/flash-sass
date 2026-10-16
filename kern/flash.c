@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
 		FILE *f = fopen(argv[2 + d], "r"); size_t bytes; int die;
 		if (!f || fscanf(f, "arena %zu die %d", &bytes, &die) != 2) { fprintf(stderr, "bad manifest %s\n", argv[2 + d]); return 1; }
 		fclose(f);
-		CUdevice dev; CK(cuDeviceGet(&dev, die));
+		CUdevice dev; if (hold_ordinal(die) < 0) { fprintf(stderr, "die %d is not in CUDA_VISIBLE_DEVICES\n", die); return 1; } CK(cuDeviceGet(&dev, hold_ordinal(die)));
 		CK(cuCtxCreate_v2(&ctx[d], CU_CTX_SCHED_SPIN, dev));
 		if (hold_open(&ar[d], argv[2 + d])) return 1;
 		CK(cuModuleLoad(&mod[d], cubin)); CK(cuModuleGetFunction(&fn[d], mod[d], "die"));

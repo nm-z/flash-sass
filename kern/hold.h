@@ -26,3 +26,7 @@ const hold_tensor *hold_find(const hold_arena *a, const char *name);   /* NULL i
 CUdeviceptr hold_ptr(const hold_arena *a, const char *name);           /* 0 if absent */
 void hold_close(hold_arena *a);
 #endif
+
+/* the CUDA ordinal of physical die `die` under CUDA_VISIBLE_DEVICES (a list of physical
+ * indices); the die itself when the variable is unset. -1 if the die is not visible. */
+int hold_ordinal(int die);

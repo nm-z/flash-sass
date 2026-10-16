@@ -41,3 +41,16 @@ void hold_close(hold_arena *a) {
 	free(a->t);
 	memset(a, 0, sizeof *a);
 }
+
+int hold_ordinal(int die) {
+	const char *v = getenv("CUDA_VISIBLE_DEVICES");
+	if (!v || !*v) return die;
+	int ord = 0;
+	for (const char *p = v; *p; ) {
+		char *end; long d = strtol(p, &end, 10);
+		if (end == p) break;
+		if (d == die) return ord;
+		ord++; p = end; while (*p == ',' || *p == ' ') p++;
+	}
+	return -1;
+}
