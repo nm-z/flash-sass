@@ -65,6 +65,7 @@ my @OPS = (
     [ 'bf16bias',   'gemv_bf16.sass',   'cta',  { GEMV_K => 2560, GEMV_BIAS => 1 } ],
     [ 'bf16k2560',  'gemv_bf16.sass',   'cta',  { GEMV_K => 2560 } ],
     [ 'bf16k320',   'gemv_bf16.sass',   'cta',  { GEMV_K => 320 } ],
+    [ 'bf16hcup',   'gemv_bf16.sass',   'cta',  { GEMV_K => 320, GEMV_HCUP => 1 } ],   # SiLU + hc up + lane mix + inbox write in one phase
     [ 'bf16hc',     'gemv_bf16.sass',   'cta',  { GEMV_K => 2560, GEMV_SLICES => 4 } ],
     [ 'bf16hcx',    'gemv_bf16.sass',   'cta',  { GEMV_K => 2560, GEMV_SLICES => 4, GEMV_XOUT => 1 } ],
     [ 'q4kk2560',   'gemv_q4_k.sass',   'cta',  { GEMV_K => 2560 } ],

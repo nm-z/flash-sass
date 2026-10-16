@@ -1022,6 +1022,14 @@ nvidia_modeset` → the reset succeeds → `modprobe` both back, `nvidia-smi
 pages blacklisted, volatile counts 0) and `die_test` passes on it. Recipe for
 the next Xid 48: stop every CUDA process on the box, `rmmod nvidia_drm
 nvidia_modeset`, `nvidia-smi -r -i <die>`, reload, re-enable persistence.
+Within the hour die 2 took a second DBE at another page (0x1946b3 ≈ 6.32 GiB;
+the first was 0x189128 ≈ 6.14 GiB): a bad band at the top of its 7.44 GiB, the
+pattern cx-flash fences on die 0 (and cx-flash fences die 2 entirely). With
+ECC on, die 2's errors are loud (Xid 48, the context dies), never silent. Now:
+die 2 gets die 0's share (`SPLIT_SHARES=86,107,86,107,107,107`, ≈ 5.5 GiB
+resident, assuming bottom-up physical placement), and every holder runs with
+`HOLD_VISIBLE=1 CUDA_VISIBLE_DEVICES=<die>` so it keeps no other GPU open — a
+faulted die can then be reset by stopping only its own holder.
 
 **Hardware notes (archy, 2026-10-16).** Root ports: board 1 (dies 0, 1) is
 PCIe 3 ×8, boards 2 and 3 ×16, board 4 (dies 6, 7) hangs off the PCH at

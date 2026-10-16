@@ -258,7 +258,9 @@ int main(int argc, char **argv) {
 	fprintf(stderr, "hold: %d tensors, %.2f GB on die %d%s\n", count, total / 1e9, die, split_on ? " (split)" : "");
 	CK(cuInit(0));
 	CUdevice dev; CUcontext ctx;
-	CK(cuDeviceGet(&dev, die));
+	/* HOLD_VISIBLE=1: the holder runs under CUDA_VISIBLE_DEVICES=<die> (so it holds no other GPU open and a
+	   faulted die can be reset alone); it opens device 0 and still records the physical index */
+	CK(cuDeviceGet(&dev, getenv("HOLD_VISIBLE") ? 0 : die));
 	CK(cuCtxCreate_v2(&ctx, CU_CTX_SCHED_BLOCKING_SYNC, dev));
 	CK(cuMemAlloc(&arena, total));
 	CUipcMemHandle h;

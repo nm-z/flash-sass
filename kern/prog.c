@@ -123,6 +123,16 @@ void ph_gemv_any(prog_t *P, uint32_t type, int K, CUdeviceptr W, CUdeviceptr Xq,
 }
 
 /* ---- exchange ---- */
+/* the fused hc up (bf16hcup): t = SiLU(0.25 DOWN) (tn values, the last tn - 320 copied), the die's 4 lane rows
+   of up (u -> LUP, rows l cols + c), z_c = mix of the 4 lanes into every die's slot at myoff + 4 c */
+CUdeviceptr ph_hcup(prog_t *P, const xchg_t *x, CUdeviceptr W, CUdeviceptr DOWN, CUdeviceptr LUP, unsigned cols, CUdeviceptr XH, CUdeviceptr T, unsigned tn, unsigned myoff) {
+	unsigned slot = (unsigned)(P->xj & 1) * XSLOT;
+	phase_t *p = prog_add(P, OP_BF16HCUP, 16);
+	ph_ptr(p, 0x140, W); ph_ptr(p, 0x148, DOWN); ph_ptr(p, 0x150, LUP); ph_u32(p, 0x158, 4 * cols);
+	ph_u32(p, 0x168, slot + myoff); ph_ptr(p, 0x170, x->xtab); ph_ptr(p, 0x178, XH); ph_ptr(p, 0x180, T); ph_u32(p, 0x188, tn);
+	p->w[30] |= 1; P->pending_wait = 1; P->xj++;
+	return x->inbox + slot;
+}
 /* hcmix / dnnorm variants whose output lands in every die's inbox slot (HC_XOUT / DN_XOUT ops) */
 CUdeviceptr ph_hcx(prog_t *P, const xchg_t *x, int op, CUdeviceptr P0, CUdeviceptr P1, unsigned n, unsigned us, unsigned units, unsigned myoff) {
 	unsigned slot = (unsigned)(P->xj & 1) * XSLOT;
@@ -190,9 +200,12 @@ static CUdeviceptr ph_hc_read(prog_t *P, const split_t *s, const xchg_t *x, CUde
 	unsigned cols = 32u * (unsigned)s->cbn;
 	ph_rms(P, OP_RMS2560, b->S, norm, b->xh, eps, 4);
 	CUdeviceptr DOWN = ph_bf16x(P, x, OP_BF16HCX, dj, b->xh, (unsigned)s->djn, 4u * (unsigned)s->dj0);   /* down ++ inject rows straight into every die's slot */
-	ph_hc(P, OP_HCSILU, DOWN, b->t, 0, 324, 320, 2);
-	ph_bf16(P, OP_BF16K320, up, b->t, b->lup, 4 * cols, 0);
-	CUdeviceptr Z = ph_hcx(P, x, OP_HCMIXX, b->lup, b->xh + 4u * 32u * (unsigned)s->cb0, cols, 4 * cols, (cols + 255) / 256, 4u * 32u * (unsigned)s->cb0);   /* the die's z columns straight into every die's slot */
+	CUdeviceptr Z = getenv("PROG_NOHCUP") ? 0 : ph_hcup(P, x, up, DOWN, b->lup, cols, b->xh + 4u * 32u * (unsigned)s->cb0, b->t, 324, 4u * 32u * (unsigned)s->cb0);
+	if (!Z) {
+		ph_hc(P, OP_HCSILU, DOWN, b->t, 0, 324, 320, 2);
+		ph_bf16(P, OP_BF16K320, up, b->t, b->lup, 4 * cols, 0);
+		Z = ph_hcx(P, x, OP_HCMIXX, b->lup, b->xh + 4u * 32u * (unsigned)s->cb0, cols, 4 * cols, (cols + 255) / 256, 4u * 32u * (unsigned)s->cb0);
+	}
 	ph_actq(P, OP_ACTQ256, Z, b->zq, b->zs32, b->zs16, b->zas, 256, 10);
 	return Z;
 }
@@ -263,9 +276,7 @@ void prog_head(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t 
 	/* the read gate without an inject: 320 down rows, nothing copied behind t */
 	ph_rms(P, OP_RMS2560, b->S, w->output_hc_norm, b->xh, eps, 4);
 	CUdeviceptr DOWN = ph_bf16x(P, x, OP_BF16HCX, w->output_hc_down, b->xh, (unsigned)s->hdn, 4u * (unsigned)s->hd0);
-	ph_hc(P, OP_HCSILU, DOWN, b->t, 0, 320, 320, 2);
-	ph_bf16(P, OP_BF16K320, w->output_hc_up, b->t, b->lup, 4 * cols, 0);
-	CUdeviceptr Z = ph_hcx(P, x, OP_HCMIXX, b->lup, b->xh + 4u * 32u * (unsigned)s->cb0, cols, 4 * cols, (cols + 255) / 256, 4u * 32u * (unsigned)s->cb0);   /* the die's z columns straight into every die's slot */
+	CUdeviceptr Z = ph_hcup(P, x, w->output_hc_up, DOWN, b->lup, cols, b->xh + 4u * 32u * (unsigned)s->cb0, b->t, 320, 4u * 32u * (unsigned)s->cb0);
 	ph_actq(P, OP_ACTQ256, Z, b->zq, b->zs32, b->zs16, b->zas, 256, 10);
 	ph_gemv_any(P, GG_Q5_K, 2560, w->output, b->zq, b->zs32, b->zs16, b->hlo, (unsigned)s->on, b->zas, 0, 0);
 	phase_t *p = prog_add(P, OP_ARGMAX, 16);
