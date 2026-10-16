@@ -285,29 +285,32 @@ $maps</REGISTER_MAPPING>
 --:-:-:-:6      NOP;
 --:-:6:-:2  \@P4 S2R op, SR_GLOBALTIMERLO;
 20:1:-:-:6  \@P4 STG.E [fw+0x3c], op;
+# descriptor 0 prefetch: warp 0 lane i fetches word i into vtid and word 31 (the +tok
+# mask) into vid; later phases prefetch theirs during the previous grid barrier
+01:-:-:-:6      ISETP.GE.U32.AND P6, PT, tid, 0x20, PT;
+--:-:-:-:6      SHL op, lane, 0x2;
+--:-:-:-:6      IADD fw0.CC, prog0, op;
+--:-:-:-:6      IADD.X fw1, prog1, RZ;
+--:-:-:-:6      MOV dsp0, prog0;
+--:-:-:-:6      MOV dsp1, prog1;
+--:-:4:-:1 \@!P6 LDG.E vtid, [fw];
+--:-:4:-:2 \@!P6 LDG.E vid, [dsp+0x7c];
 
 PHASE:
-# descriptor -> smem (warp 0, lane = word); word 31 is a mask of the parameter words
-# that get the token counter added (positions, cache slots, key counts)
+# descriptor -> smem (warp 0, lane = word; the words were prefetched); word 31 is a
+# mask of the parameter words that get the token counter added
 01:-:-:-:6      ISETP.LT.U32.AND P6, PT, tid, 0x20, PT;
---:-:-:-:6      SHL fw0, pidx, 0x7;
---:-:-:-:6      IADD dsp0.CC, fw0, prog0;
---:-:-:-:6      IADD.X dsp1, RZ, prog1;
 --:-:-:-:6      SHL op, lane, 0x2;
---:-:-:-:6      IADD fw0.CC, dsp0, op;
---:-:-:-:6      IADD.X fw1, dsp1, RZ;
 --:-:-:-:6      IADD units, op, 0x@{[sprintf '%x', $DESC_OFF]};
---:-:1:-:1  \@P6 LDG.E op, [fw];
---:-:1:-:1  \@P6 LDG.E bar_g, [dsp+0x7c];
 --:-:1:-:2      LDS bar_t, [RZ+0x@{[sprintf '%x', $TOK_OFF]}];
-01:-:-:-:6      SHR.U32 bar_g, bar_g, lane;
---:-:-:-:6      LOP32I.AND bar_g, bar_g, 0x1;
---:-:-:-:6      ISETP.NE.U32.AND P5, PT, bar_g, RZ, PT;
+09:-:-:-:6      SHR.U32 vid, vid, lane;
+--:-:-:-:6      LOP32I.AND vid, vid, 0x1;
+--:-:-:-:6      ISETP.NE.U32.AND P5, PT, vid, RZ, PT;
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
---:-:-:-:6  \@P5 IADD op, op, bar_t;
---:2:-:-:6  \@P6 STS [units], op;
+--:-:-:-:6  \@P5 IADD vtid, vtid, bar_t;
+--:2:-:-:6  \@P6 STS [units], vtid;
 02:-:-:-:6      BAR.SYNC 0x1;
 --:-:1:-:1      LDS op, [RZ+0x@{[sprintf '%x', $DESC_OFF]}];
 --:-:1:-:2      LDS units, [RZ+0x@{[sprintf '%x', $DESC_OFF + 4]}];
@@ -354,6 +357,20 @@ PHASE_END:
 --:-:-:-:6      BAR.SYNC 0x1;
 --:-:-:-:6      ISETP.GE.U32.AND P6, PT, tid, 0x20, PT;
 --:-:-:-:6      ISETP.NE.U32.AND P5, PT, tid, RZ, PT;
+# prefetch the next descriptor (pidx + 1, or 0 at the token wrap) while the barrier runs
+--:-:-:-:6      IADD bar_t, pidx, 0x1;
+--:-:-:-:6      ISETP.LT.U32.AND P3, PT, bar_t, nph, PT;
+--:-:-:-:6      SHL op, lane, 0x2;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      SEL bar_t, bar_t, RZ, P3;
+--:-:-:-:6      SHL bar_t, bar_t, 0x7;
+--:-:-:-:6      IADD dsp0.CC, bar_t, prog0;
+--:-:-:-:6      IADD.X dsp1, RZ, prog1;
+--:-:-:-:6      IADD fw0.CC, dsp0, op;
+--:-:-:-:6      IADD.X fw1, dsp1, RZ;
+--:-:4:-:1 \@!P6 LDG.E vtid, [fw];
+--:-:4:-:2 \@!P6 LDG.E vid, [dsp+0x7c];
 --:-:-:-:6      MOV bar_cp0, ctl0;
 --:-:-:-:6      MOV bar_cp1, ctl1;
 --:-:-:-:6      MOV bar_one, 0x1;

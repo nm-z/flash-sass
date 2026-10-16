@@ -885,6 +885,14 @@ descriptor word 30 bit 0 marks a send phase (CTA 0 thread 0 bumps `ctl[8]`
 before the grid barrier and publishes it to every die's flag slot after it,
 addresses from `ctl[16 + 2e]`), bit 1 marks a phase that first polls this
 die's flags (`ctl[28]`) — so an exchange is one phase, not two.
+**Descriptor prefetch:** warp 0 of every CTA loads the *next* descriptor
+(lane i word i into `vtid`, word 31 into `vid`; `pidx + 1`, or 0 at the token
+wrap) at `PHASE_END` before counting into the grid barrier, on its own
+scoreboard (barrier 4, so the barrier's own `LDS`/`LDG` waits do not drain
+it), and `PHASE` only adds the token counter and stores the words to shared
+memory — the descriptor's global-memory latency is hidden under the barrier
+instead of paid at every phase start (`vid`/`vtid` are free then: every unit
+recomputes them). Descriptor 0 is prefetched in the prologue.
 
 **Hardware notes (archy, 2026-10-16).** Root ports: board 1 (dies 0, 1) is
 PCIe 3 ×8, boards 2 and 3 ×16, board 4 (dies 6, 7) hangs off the PCH at
