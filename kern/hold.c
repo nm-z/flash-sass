@@ -224,6 +224,7 @@ int main(int argc, char **argv) {
 		if (!strncmp(argv[i], "cache=", 6)) cache = argv[i] + 6;
 		if (!strncmp(argv[i], "split=", 6)) { if (sscanf(argv[i] + 6, "%d/%d", &sd, &sn) != 2 || sn < 1 || sn > 6 || sd < 0 || sd >= sn) { fprintf(stderr, "bad split %s\n", argv[i]); return 2; } split_on = 1; }
 	}
+	{ char rp[600]; snprintf(rp, sizeof rp, "%s.ready", mpath); unlink(rp); }   /* a restarted holder is not ready until it says so */
 	gguf_file g;
 	if (gguf_open(&g, path)) { fprintf(stderr, "cannot open %s\n", path); return 1; }
 	/* pass 1: sizes (per block, the split depends on the block for the shared expert only) */
@@ -305,6 +306,7 @@ int main(int argc, char **argv) {
 	}
 	fclose(m);
 	gguf_close(&g);
+	{ char rp[600]; snprintf(rp, sizeof rp, "%s.ready", mpath); FILE *rf = fopen(rp, "w"); if (rf) { fputs("ready\n", rf); fclose(rf); } }   /* the core waits for this */
 	fprintf(stderr, "hold: ready (%s); holding until SIGTERM\n", mpath);
 	signal(SIGTERM, onsig); signal(SIGINT, onsig);
 	while (!stop) pause();

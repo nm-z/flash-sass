@@ -190,13 +190,6 @@
     $o .= "\nSCANBAR:\n";
     $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P1, PT, tid, RZ, PT;\n";
     $o .= $nop3;
-    $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P2, PT, cta, RZ, P1;\n";
-    $o .= "--:-:-:-:6      SHL t, pass, 0x3;\n";
-    $o .= "--:-:-:-:6      IADD hp0.CC, t, param_HST0;\n";
-    $o .= "--:-:-:-:6      IADD.X hp1, RZ, param_HST1;\n";
-    $o .= $nop3;
-    $o .= "--:-:-:-:1  \@P2 STG.E [hp+0x1080], pre;\n";
-    $o .= "--:-:-:-:6  \@P2 STG.E [hp+0x1084], kk;\n";
     $o .= "--:-:-:-:6  \@P1 STS [RZ+0x400], kk;\n";
     $o .= "--:-:-:-:6  \@P1 STS [RZ+0x404], pre;\n";
     $o .= "--:-:-:-:6      BAR.SYNC 0x0;\n";
@@ -315,15 +308,6 @@
     $o .= "\nCOMPACT:\n";
     $o .= "--:-:-:-:6      MOV T, pre;\n";
     $o .= "--:-:-:-:6      MOV need, kk;\n";
-    # debug: CTA 0 records T and need at HST word 1060, 1061
-    $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P1, PT, tid, RZ, PT;\n";
-    $o .= $nop3;
-    $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P2, PT, cta, RZ, P1;\n";
-    $o .= "--:-:-:-:6      IADD hp0.CC, RZ, param_HST0;\n";
-    $o .= "--:-:-:-:6      IADD.X hp1, RZ, param_HST1;\n";
-    $o .= $nop3;
-    $o .= "--:-:-:-:1  \@P2 STG.E [hp+0x1100], T;\n";
-    $o .= "--:-:-:-:6  \@P2 STG.E [hp+0x1104], need;\n";
     # gt_before / eq_before: warp 0, lane l < cta reads the counts of CTA l; a butterfly sums them
     $o .= "--:-:-:-:6      MOV gtc, RZ;\n";
     $o .= "--:-:-:-:6      MOV eqc, RZ;\n";

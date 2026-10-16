@@ -1,5 +1,5 @@
 #!/bin/bash
-# serve.sh <holders|core|flashd|reload [lib]|status|stop>: run the Flash-Next engine on archy.
+# serve.sh <all|holders|core|vis|flashd|reload [lib]|status|stop>: run the Flash-Next engine on archy.
 #   holders   the six weight holders (dies 0-5; ~40 min from NFS; restart only when the split changes)
 #   vis       flashvis: the vision encoder (libmtmd on the CPU; the projector is loaded once, seconds per image)
 #   core      flashcore: contexts, arenas and the 28.8 GB PLE table (~7 min), then the engine library
@@ -16,12 +16,16 @@ SOCK=${FLASH_SOCK:-/tmp/flash.sock}
 # and get the small shares; every die keeps >= 300 MB free (see SPEC, "Long context")
 export SPLIT_SHARES=${SPLIT_SHARES:-82,110,77,106,112,113} ATTN_MAP=${ATTN_MAP:-1,1,1,1,4,4,4,4,5,5,5,5} ATTN_DIE=${ATTN_DIE:-1}
 case $1 in
+all)   # everything at once: the holders (35 min of repacking) and the core (14 min of PLE table) load side by side, the core waits for the holders
+	$0 holders; $0 core; $0 vis
+	for i in $(seq 7200); do [ -S "$SOCK" ] && break; read -t 1 < /dev/zero 2>/dev/null; done
+	$0 flashd ;;
 holders)
 	for i in 0 1 2 3 4 5; do
 		HOLD_VISIBLE=1 CUDA_VISIBLE_DEVICES=$i setsid -f ./hold "$GGUF1" $i 0 48 /tmp/hold-h$i.manifest token_embd output split=$i/6 > /tmp/hold-h$i.out 2> /tmp/hold-h$i.err < /dev/null
 	done ;;
 core)
-	CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 FLASH_MAXT=${FLASH_MAXT:-262144} FLASH_PLE_OFF=${FLASH_PLE_OFF:-192} FLASH_SOCK=$SOCK \
+	CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 FLASH_MAXT=${FLASH_MAXT:-262144} FLASH_MAXIMG=${FLASH_MAXIMG:-4096} FLASH_PLE_OFF=${FLASH_PLE_OFF:-192} FLASH_SOCK=$SOCK \
 		setsid -f ./flashcore "$GGUF2" "$PWD/libengine.so" /tmp/hold-h{0,1,2,3,4,5}.manifest > /tmp/flashcore.out 2> /tmp/flashcore.err < /dev/null ;;
 vis)
 	setsid -f ./flashvis "${MMPROJ:-$HOME/models-hdd-backup/Qwen3.8-Flash-Next-GGUF/mmproj-BF16.gguf}" "$GGUF1" "${FLASHVIS_SOCK:-/tmp/flashvis.sock}" "${VIS_THREADS:-10}" > /tmp/flashvis.out 2> /tmp/flashvis.err < /dev/null ;;
@@ -35,5 +39,5 @@ status)
 stop)
 	pkill -x flashd; pkill -x flashcore; pkill -x flashvis ;;
 *)
-	echo "usage: serve.sh holders|core|vis|flashd|reload [lib]|status|stop" >&2; exit 2 ;;
+	echo "usage: serve.sh all|holders|core|vis|flashd|reload [lib]|status|stop" >&2; exit 2 ;;
 esac

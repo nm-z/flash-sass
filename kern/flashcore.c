@@ -72,8 +72,19 @@ static CUcontext anchor;
 
 /* The die contexts, peer access and weight arenas; 0 on success. A device fault leaves the contexts unusable:
    close_dies + open_dies rebuild them without touching the PLE table, which belongs to the anchor context. */
+/* a holder writes <manifest>.ready when its arena is complete; the core, which loads the PLE table first, waits here for the rest (FLASH_HOLD_WAIT_S, default 7200),
+   so the holders and the core can be started together and their loads overlap. A manifest without the marker (an older holder) is taken as it is. */
+static void wait_holder(const char *mpath) {
+	char ready[600]; snprintf(ready, sizeof ready, "%s.ready", mpath);
+	double limit = getenv("FLASH_HOLD_WAIT_S") ? atof(getenv("FLASH_HOLD_WAIT_S")) : 7200.0, t0 = now(); int said = 0;
+	while (access(ready, F_OK) && now() - t0 < limit) {
+		if (!said && now() - t0 > 2.0) { fprintf(stderr, "flashcore: waiting for the holder of %s\n", mpath); said = 1; }
+		struct timespec nap = { 2, 0 }; nanosleep(&nap, NULL);
+	}
+}
 static int open_dies(void) {
 	for (int d = 0; d < core.nd; d++) {
+		wait_holder(manifest[d]);
 		FILE *f = fopen(manifest[d], "r"); size_t bytes; int die;
 		if (!f || fscanf(f, "arena %zu die %d", &bytes, &die) != 2) { fprintf(stderr, "bad manifest %s\n", manifest[d]); if (f) fclose(f); return -1; }
 		fclose(f);

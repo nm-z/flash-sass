@@ -305,7 +305,14 @@ static void chat(int fd, const char *body, size_t bn) {
 		sb_free(&b);
 	}
 	char line[256]; int ngen = 0, ended = 0, resumed = 0, snapped = 0; double run_ms = 0, first_ms = 0;
-	while (fgets(line, sizeof line, in)) {
+	/* a long prompt takes minutes before the first token: an idle stream is cut by proxies (Cloudflare closes after 100 s), so an SSE comment goes out
+	   every 10 s while the engine is silent */
+	{ struct timeval tv = { 10, 0 }; setsockopt(fileno(in), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv); }
+	for (;;) {
+		if (!fgets(line, sizeof line, in)) {
+			if ((errno == EAGAIN || errno == EWOULDBLOCK) && stream && !g.gone) { clearerr(in); if (chunk(fd, ": keepalive\n\n", 13)) { g.gone = 1; break; } continue; }
+			break;
+		}
 		unsigned id; int e, npm; double r, f;
 		if (sscanf(line, "tok %u", &id) == 1) { on_token(&g, id); if (g.gone || g.cap_hit) break; }
 		else if (sscanf(line, "done %d %d %d %lf %lf %d %d", &ngen, &e, &npm, &r, &f, &resumed, &snapped) >= 5) { ended = e; run_ms = r; first_ms = f; break; }
