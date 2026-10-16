@@ -128,6 +128,7 @@ static void chat(int fd, const char *body, size_t bn) {
 	if (think && think->k == J_BOOL) jv_set(a, vars, "enable_thinking", 15, think);
 	else if (!THINK_DEFAULT) jv_set(a, vars, "enable_thinking", 15, jv_bool(a, 0));
 	jv *eff = kw ? jv_getz(kw, "reasoning_effort") : NULL;
+	if (!eff) eff = jv_getz(req, "reasoning_effort");   /* the OpenAI spelling */
 	if (eff && eff->k == J_STR) jv_set(a, vars, "reasoning_effort", 16, eff);
 	double temp = DEF_TEMP, topp = DEF_TOPP; long topk = DEF_TOPK; unsigned long long seed = 0; int have_seed = 0;
 	{ jv *x;
