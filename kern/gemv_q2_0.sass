@@ -67,16 +67,16 @@
     122     : accf
     123     : t
     124     : row
-    125     : rowpair
+    125     : smaddr
     126     : rowstep
     127     : stepw
-    128-132 : as<0-4>
-    134,135 : dp<0-1>
+    128,129 : dp<0-1>
 
     // prologue temporaries, dead before the loop body uses these registers
     90,91   : xp<0-1>
     92,93   : sp<0-1>
-    80,81   : ap<0-1>
+    88,89   : ap<0-1>
+    80-84   : as<0-4>
     94      : lane
     95      : grp
     96      : half
@@ -129,7 +129,7 @@
     $o .= "--:-:-:-:1      ISETP.EQ.U32.AND P0, PT, lane, RZ, PT;\n";
     $o .= sprintf "--:-:-:-:6      ISCADD row, bid, grp, 0x%x;\n", $lgR;
     $o .= $mulc->('stepw', 'rowstep', $S);
-    $o .= sprintf "--:-:-:-:6      LOP32I.AND rowpair, row, 0x%08x;\n", (~($wrows - 1)) & 0xffffffff;
+    $o .= $mulc->('smaddr', 'tid', 20);              # shared slot: 5 activation scales per thread
     $o .= $mulc->('off', 'row', $S);
     # ws = W + off + 2 blk0
     $o .= "--:-:-:-:6      ISCADD t1, blk0, off, 0x1;\n";
@@ -176,8 +176,12 @@
     for my $i (0..4) {
         $o .= sprintf "--:-:2:-:%s      LDG.E%s as%d, [ap+0x%x];\n", $i == 4 ? '6' : '1', $ci, $i, 4*$L*$i;
     }
+    # park them in shared memory (registers are full); the loop reloads one per half-block
     for my $i (0..4) {
-        $o .= sprintf "%s:-:-:-:%s      IADD3 nsum%d, RZ, -s%d, RZ;\n", $i == 0 ? '02' : '--', $i == 4 ? '6' : '1', $i, $i;
+        $o .= sprintf "%s:4:-:-:%s      STS [smaddr+0x%x], as%d;\n", $i == 0 ? '02' : '--', $i == 4 ? '6' : '1', 4*$i, $i;
+    }
+    for my $i (0..4) {
+        $o .= sprintf "%s:-:-:-:%s      IADD3 nsum%d, RZ, -s%d, RZ;\n", $i == 0 ? '0a' : '--', $i == 4 ? '6' : '1', $i, $i;
     }
     return $o;
 </CODE>
@@ -209,9 +213,17 @@ LOOP:
 // later (measured on the M60; 6-13 cycle gaps read the previous value).
 // P2: store this row; P1: run another iteration after this one.
 --:-:-:-:1      ISETP.LT.U32.AND P2, PT, row, param_rows, P0;
---:-:-:-:1      IADD rowpair, rowpair, rowstep;
---:-:-:-:6      MOV accf, RZ;
---:-:-:-:2      ISETP.LT.U32.AND P1, PT, rowpair, param_rows, PT;
+<CODE>
+    # P1 from the warp's first row: (row & ~(wrows-1)) + rowstep < rows
+    my $K = $ENV{GEMV_K} || 2560;
+    my $L = ($K / 32) / 5;
+    my $wrows = 32 / $L;
+    my $o = sprintf "--:-:-:-:6      LOP32I.AND t, row, 0x%08x;\n", (~($wrows - 1)) & 0xffffffff;
+    $o .= "--:-:-:-:1      MOV accf, RZ;\n";
+    $o .= "--:-:-:-:6      IADD t, t, rowstep;\n";
+    $o .= "--:-:-:-:2      ISETP.LT.U32.AND P1, PT, t, param_rows, PT;\n";
+    return $o;
+</CODE>
 <CODE>
     my $trace = $ENV{GEMV_TRACE} ? 1 : 0;
     my @out;
@@ -224,6 +236,7 @@ LOOP:
         # scale to fp32 first; its consumer is the FFMA at the end of this half-block
         my $wait = $i == 0 ? ($ENV{GEMV_SCALEBAR} ? sprintf("%02x", 3 | (1 << ($ENV{GEMV_SCALEBAR} - 1))) : '03') : '--';
         push @out, sprintf "%s:-:4:-:2      F2F.F32.F16 t, d%d;\n", $wait, $i;
+        push @out, sprintf "--:-:4:-:1      LDS d%d, [smaddr+0x%x];\n", $i, 4*$i;    # this half-block's activation scale
         push @out, "--:-:-:-:6      DEPBAR.LE SB0, 0x0;\n" if $i == 0 && $ENV{GEMV_DEPBAR};
         for my $w (0..1) {
             my $q = 'q' . (2*$i + $w);
@@ -256,7 +269,7 @@ LOOP:
         push @out, "--:-:-:-:6      IADD dot, acc0, acc4;\n";
         push @out, "--:-:3:-:6      I2F.F32.S32 dotf, dot;\n";
         push @out, "0c:-:-:-:6      FMUL u, t, dotf;\n";
-        push @out, sprintf "--:-:-:-:6      FFMA accf, as%d, u, accf;\n", $i;
+        push @out, sprintf "--:-:-:-:6      FFMA accf, d%d, u, accf;\n", $i;
         if ($trace && $i == 0) {
             push @out, "--:2:-:-:1      STG.E [dp], q0;\n";
             push @out, "--:2:-:-:1      STG.E [dp+0x4], q1;\n";

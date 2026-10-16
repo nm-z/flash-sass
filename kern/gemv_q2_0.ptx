@@ -8,6 +8,7 @@
 	.param .u64 pw, .param .u64 px, .param .u64 ps, .param .u64 py, .param .u32 rows, .param .f32 xs, .param .u64 pdbg, .param .u64 pas)
 {
 	.reg .u32 %r<2>;
+	.shared .align 16 .b8 smem[5120];
 	.reg .pred %p;
 	ld.param.u32 %r0, [rows];
 	mov.u32 %r1, %tid.x;
