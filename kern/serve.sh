@@ -10,7 +10,9 @@ cd "$(dirname "$0")" || exit 1
 GGUF1=${GGUF1:-/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf}
 GGUF2=${GGUF2:-/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf}
 SOCK=${FLASH_SOCK:-/tmp/flash.sock}
-export SPLIT_SHARES=${SPLIT_SHARES:-82,103,77,108,115,115} ATTN_DIE=${ATTN_DIE:-1}
+# the split of the weights over the six dies and the die of each attention layer (KV cache, indexer pool, projections live there):
+# chosen so every die keeps >= 150 MB free beside its share of the 262144-position int8 KV cache (see SPEC, "Long context")
+export SPLIT_SHARES=${SPLIT_SHARES:-84,103,95,111,104,103} ATTN_MAP=${ATTN_MAP:-1,1,1,2,2,2,4,4,4,5,5,5} ATTN_DIE=${ATTN_DIE:-1}
 case $1 in
 holders)
 	for i in 0 1 2 3 4 5; do

@@ -40,3 +40,22 @@ int attn_die(void) {
 	const char *s = getenv("ATTN_DIE");
 	return s ? atoi(s) : 0;
 }
+
+/* ATTN_MAP=d0,d1,...,d11: the die that runs attention layer i (block 3 + 4 i) and keeps its projections, KV cache and indexer
+ * pool; unset: every attention layer on attn_die() */
+int attn_die_of(int blk) {
+	static int map[12], mapped = -1;
+	if (mapped < 0) {
+		mapped = 0;
+		const char *s = getenv("ATTN_MAP");
+		if (s) {
+			char *copy = strdup(s), *save = NULL; int n = 0;
+			for (char *tok = strtok_r(copy, ",", &save); tok && n < 12; tok = strtok_r(NULL, ",", &save)) map[n++] = atoi(tok);
+			free(copy);
+			if (n != 12) { fprintf(stderr, "split: ATTN_MAP needs 12 dies, got %d\n", n); exit(1); }
+			mapped = 1;
+		}
+	}
+	int i = (blk - 3) / 4;
+	return mapped && i >= 0 && i < 12 ? map[i] : attn_die();
+}

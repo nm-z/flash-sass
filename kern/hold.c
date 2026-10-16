@@ -83,6 +83,7 @@ static const merge_t merges[] = {
 	{ "ffn_gate_inp_x.weight", "ffn_gate_inp.weight", "ffn_gate_inp_shexp.weight", 0 },
 	{ "ssm_ab.weight",        "ssm_alpha.weight",    "ssm_beta.weight",         0 },
 	{ "ssm_ab.bias",          "ssm_dt.bias",         "ssm_dt.bias",             1 },
+	{ "indexer_x.weight",    "indexer.q_proj.weight", "indexer.k_proj.weight",  0 },   /* the indexer projections of an attention block: 512 q rows ++ 128 k rows (BF16) */
 };
 #define NMERGE ((int)(sizeof merges / sizeof merges[0]))
 
@@ -99,7 +100,6 @@ static int merged_source(const char *name) {
 	return 0;
 }
 static int wanted(const char *name, int b0, int b1, int extra_embd, int extra_out) {
-	if (strstr(name, ".indexer.")) return 0;   /* the sparse-attention indexer is not used below 2048 tokens */
 	if (!strncmp(name, "blk.", 4)) { int b = atoi(name + 4); return b >= b0 && b < b1 && !merged_source(name); }
 	if (!strncmp(name, "token_embd", 10)) return extra_embd;
 	if (!strncmp(name, "output", 6)) return extra_out;
@@ -143,8 +143,8 @@ static void select_rows(const char *name, int rows, int experts, sel_t *s) {
 	else if (!strcmp(x, "ssm_ab.weight") || !strcmp(x, "ssm_ab.bias")) { s->nr = 2; s->r[0] = (range_t){ p->h0, p->hn }; s->r[1] = (range_t){ 48 + p->h0, p->hn }; s->rows_total = 96; }
 	else if (!strcmp(x, "ssm_a")) { s->nr = 1; s->r[0] = (range_t){ p->h0, p->hn }; s->rows_total = 48; }
 	else if (!strcmp(x, "ssm_out.weight")) { s->nr = 1; s->r[0] = (range_t){ p->y0, p->yn }; }
-	/* v1 of the attention block: die 0 runs the attention proper, the output projection is row-split */
-	else if (!strcmp(x, "attn_q.weight") || !strcmp(x, "attn_k.weight") || !strcmp(x, "attn_v.weight")) { s->nr = 1; s->r[0] = (range_t){ 0, p->d == attn_die() ? rows : 0 }; }
+	/* the attention proper (q/k/v, the indexer projections and norms) runs on the die of the layer (ATTN_MAP), the output projection is row-split */
+	else if (!strcmp(x, "attn_q.weight") || !strcmp(x, "attn_k.weight") || !strcmp(x, "attn_v.weight") || !strcmp(x, "indexer_x.weight") || !strcmp(x, "indexer.q_norm.weight") || !strcmp(x, "indexer.k_norm.weight")) { s->nr = 1; s->r[0] = (range_t){ 0, p->d == attn_die_of(atoi(name + 4)) ? rows : 0 }; }
 	else if (!strcmp(x, "attn_output.weight")) { s->nr = 1; s->r[0] = (range_t){ p->y0, p->yn }; }
 	else if (!strcmp(x, "ple_key.weight")) { s->nr = 1; s->r[0] = (range_t){ p->pk0, p->pkn }; }
 	else if (!strcmp(x, "ple_value.weight")) { s->nr = 1; s->r[0] = (range_t){ p->y0, p->yn }; }
@@ -256,6 +256,7 @@ int main(int argc, char **argv) {
 	 * matrix end; keep the arena mapped there */
 	total = ((total + 255) & ~(size_t)255) + (4u << 20);
 	fprintf(stderr, "hold: %d tensors, %.2f GB on die %d%s\n", count, total / 1e9, die, split_on ? " (split)" : "");
+	if (getenv("HOLD_DRY")) return 0;   /* sizes only: tune SPLIT_SHARES / ATTN_MAP without loading */
 	CK(cuInit(0));
 	CUdevice dev; CUcontext ctx;
 	/* HOLD_VISIBLE=1: the holder runs under CUDA_VISIBLE_DEVICES=<die> (so it holds no other GPU open and a
