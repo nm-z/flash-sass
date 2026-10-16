@@ -1,7 +1,10 @@
 # Kernel: gemv_bf16
 #
 # y[r] = sum_k W[r][k] * x[k] for bf16 rows W (row stride 2K bytes) and fp32 x.
-# GEMV_K=2560 (default) or GEMV_K=320 at assembly time.
+# GEMV_K=2560 (default) or GEMV_K=320 at assembly time. GEMV_ROWSTRIDE overrides
+# the row stride and GEMV_ACC=1 makes the store y += partial: the K=10240
+# hyper-connection matrices (hc_*_down, hc_*_inject) run as four K=2560 column
+# slices in order, y = (((0 + p0) + p1) + p2) + p3.
 #
 # L lanes per row (32 for K=2560, 8 for K=320); lane l owns the 8-element chunks
 # at 8 (l + L j), j < C = K/(8L): one LDG.128 of weights and two LDG.128 of
@@ -48,7 +51,8 @@
     $o .= sprintf "    %d : rowpair\n", $tmp + 7;
     $o .= sprintf "    %d : rowstep\n", $tmp + 8;
     $o .= sprintf "    %d : stepw\n", $tmp + 9;
-    my $p = $tmp + 10; $p += $p & 1;
+    $o .= sprintf "    %d : yold\n", $tmp + 10;
+    my $p = $tmp + 11; $p += $p & 1;
     $o .= sprintf "    %d,%d : wp<0-1>\n", $p, $p + 1;
     $o .= sprintf "    %d,%d : yp<0-1>\n", $p + 2, $p + 3;
     # prologue temporaries alias the weight registers
@@ -64,7 +68,8 @@
     my $L = $K >= 2560 ? 32 : 8;
     my $C = $K / (8 * $L);
     my $R = 256 / $L;                     # rows per CTA iteration
-    my $S = 2 * $K;                       # row stride bytes
+    my $S = $ENV{GEMV_ROWSTRIDE} || 2 * $K;   # row stride bytes (20480 for a K=2560 slice of a K=10240 row)
+    my $acc = $ENV{GEMV_ACC} ? 1 : 0;     # y += partial instead of y = partial
     my $lgL = int(log($L)/log(2) + 0.5);
     my $lgR = int(log($R)/log(2) + 0.5);
     my $wrows = 32 / $L;
@@ -106,8 +111,9 @@
     }
     $o .= "\nLOOP:\n";
     for my $j (0..$C-1) {
-        $o .= sprintf "--:2:1:-:%s      LDG.E.CI.128 w%02d, [wp+0x%x];\n", $j == $C-1 ? '2' : '1', 4*$j, 16*$L*$j;
+        $o .= sprintf "--:2:1:-:%s      LDG.E.CI.128 w%02d, [wp+0x%x];\n", ($j == $C-1 && !$acc) ? '2' : '1', 4*$j, 16*$L*$j;
     }
+    $o .= "--:2:1:-:2      LDG.E yold, [yp];\n" if $acc;
     # predicates for this row, far from their consumers (see SPEC: ~18 cycles)
     $o .= "--:-:-:-:1      ISETP.LT.U32.AND P2, PT, row, param_rows, P0;\n";
     $o .= "--:-:-:-:1      IADD rowpair, rowpair, rowstep;\n";
@@ -137,6 +143,7 @@
         $o .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x%x, 0x1f;\n", $x;
         $o .= "10:-:-:-:6      FADD accf, accf, t;\n";
     }
+    $o .= "--:-:-:-:6      FADD accf, yold, accf;\n" if $acc;
     $o .= "--:2:-:-:1  \@P2 STG.E [yp], accf;\n";
     $o .= "--:-:-:-:1      IADD row, row, rowstep;\n";
     $o .= "02:-:-:-:6      IADD wp0.CC, wp0, stepw;\n";

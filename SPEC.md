@@ -340,6 +340,44 @@ head and runs slower (811 MHz measured), so it gets fewer blocks.
   fix — issue the next row's loads for step i right after step i's XMADs, with
   loads spread over barriers 1/2/6 and the STG read on barrier 5 — is noted for
   the tuning pass; it applies to every K-quant kernel.
+- **Q6_K**: `kern/gemv_q6_k.sass`, bit-exact on `blk.5.ffn_up_shexp`,
+  `blk.31.attn_v` and `blk.11.attn_output` (K = 6144, 111.6 GB/s). 208-byte
+  block records (zero overhead) plus the d prefix; low nibbles through the Q4_K
+  stream with −32·sum16 folded into each group's first XMAD (the harness passes
+  per-16 sums in the sums slot), 2-bit high fields through 8 shift accumulators
+  per group, int8 scales applied as exact 32-bit products (two XMADs: low half
+  unsigned, high half signed, then ISCADD by 16 — |dot| ≤ 65k does not fit
+  int16). 204/230 registers.
+- **IQ4_XS**: `kern/gemv_iq4_xs.sass`, bit-exact on six tensors (attn_qkv,
+  attn_q 12,288 rows, attn_gate, ssm_out K = 6144, attn_k, ffn_gate_shexp) at
+  118–129 GB/s. The non-linear table is applied with PRMT: a nibble word is its
+  own selector (upper four nibbles after SHR 16); PRMT replicates the sign of
+  the selected byte when selector bit 3 is set, so `PRMT(kv[0..7], w)` gives
+  kv[q] for q < 8 and 0xFF otherwise, `PRMT(kv[8..15], w ^ 0x8888)` gives kv[q]
+  for q ≥ 8 and 0x00 otherwise, `PRMT(0x7F.., w)` gives 0x7F/0x00, `m | m << 1`
+  is the byte mask and `LOP3 0xE2` selects; two more PRMTs (0x9180, 0xB3A2)
+  sign-extend the bytes into int16 pairs for XMAD.S16.S16 into 8 round-robin
+  accumulators. ~108 issue slots per 32 elements (18 B), all stall-free by
+  construction (every dependency ≥ 6 issues apart). Scales pre-decoded to int8
+  (ls − 32); 184/206 registers.
+- **Block-32 formats (Q4_0, Q5_0, Q8_0, IQ4_NL at K = 640, the shared-expert
+  down projections)**: one generator `kern/gemv_b32.sass`, assembled four times
+  (`GEMV_FMT`, `-k gemv_q4_0` …) into one shared PTX skeleton. 4 lanes per row,
+  lane l owns blocks l + 4i; the tile is a 48 B fp16-d prefix plus 16 B (32 B
+  for Q8_0) per block, Q5_0 adds 20 high-bit words. Q4_0/Q5_0 reuse the Q4_K
+  nibble stream with −8/−16·sum32 folded into the first XMAD (Q5_0 adds the
+  Q5_K high-bit stream); Q8_0 sign-extends byte pairs with PRMT and uses
+  XMAD.S16.S16 into 8 accumulators; IQ4_NL is the IQ4_XS lookup without the
+  scale. All four bit-exact on `ffn_down_shexp` tensors (2560 rows). 144–180
+  registers. These matrices are ~1.5% of per-token bytes.
+- **BF16 K = 10240 (hc_*_down 320 rows, hc_*_inject 4 rows)**: no new kernel —
+  the K=2560 BF16 kernel assembled with `GEMV_ROWSTRIDE=20480 GEMV_ACC=1`
+  (`gemv_bf16_hc.cubin`) runs the four column slices in order, each adding its
+  partial into y: y = (((0 + p0) + p1) + p2) + p3, p_s = the K=2560 kernel's
+  value on slice s. In the persistent kernel a warp keeps its rows and loops
+  s = 0..3, reloading the 10 KB activation slice per s from L2 — no grid
+  barrier between slices. The reference composes `gemv_bf16_ref` on the slices
+  the same way.
 - Register-bank note: in the K-quant streams the mask for field v and the
   activation register of the same XMAD share a bank for 2 of every 8 XMADs, and
   the combine's `acc_v + acc_{v+4}` pairs share banks (MaxAs reports 187

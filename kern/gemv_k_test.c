@@ -37,19 +37,21 @@ int main(int argc, char **argv) {
 	const gguf_tensor *t = gguf_find(&g, tname);
 	if (!t || !t->data) { fprintf(stderr, "%s: not found\n", tname); return 1; }
 	int q5 = t->type == GG_Q5_K, q3 = t->type == GG_Q3_K, q6 = t->type == GG_Q6_K, x4 = t->type == GG_IQ4_XS;
-	if (t->type != GG_Q4_K && !q5 && !q3 && !q6 && !x4) { fprintf(stderr, "%s is %s; only Q3_K, Q4_K, Q5_K, Q6_K and IQ4_XS so far\n", tname, gguf_type_name(t->type)); return 1; }
-	int gblk = q5 ? 176 : q3 ? 110 : q6 ? 210 : x4 ? 136 : 144;
+	int b32 = t->type == GG_Q4_0 || t->type == GG_Q5_0 || t->type == GG_Q8_0 || t->type == GG_IQ4_NL;
+	if (t->type != GG_Q4_K && !q5 && !q3 && !q6 && !x4 && !b32) { fprintf(stderr, "%s is %s; only Q3_K, Q4_K, Q5_K, Q6_K, IQ4_XS and the block-32 formats so far\n", tname, gguf_type_name(t->type)); return 1; }
 	const char *kname = q5 ? "gemv_q5_k" : q3 ? "gemv_q3_k" : q6 ? "gemv_q6_k" : x4 ? "gemv_iq4_xs" : "gemv_q4_k";
+	if (b32) kname = t->type == GG_Q4_0 ? "gemv_q4_0" : t->type == GG_Q5_0 ? "gemv_q5_0" : t->type == GG_Q8_0 ? "gemv_q8_0" : "gemv_iq4_nl";
 	int K = (int)t->dims[0], rows = (int)(t->elems / K);
-	if (K != 2560 && K != 6144) { fprintf(stderr, "kernels exist for K=2560 and K=6144, tensor has K=%d\n", K); return 1; }
-	int L = q4_k_lanes_per_row(K), RPC = 256 / L;
-	int stride = q5 ? q5_k_tile_stride(K) : q3 ? q3_k_tile_stride(K) : q6 ? q6_k_tile_stride(K) : x4 ? iq4_xs_tile_stride(K) : q4_k_tile_stride(K);
+	if (b32 ? K != 640 : (K != 2560 && K != 6144)) { fprintf(stderr, "no kernel for %s with K=%d\n", gguf_type_name(t->type), K); return 1; }
+	int L = b32 ? 4 : q4_k_lanes_per_row(K), RPC = 256 / L;
+	int stride = b32 ? b32_tile_stride(t->type, K) : q5 ? q5_k_tile_stride(K) : q3 ? q3_k_tile_stride(K) : q6 ? q6_k_tile_stride(K) : x4 ? iq4_xs_tile_stride(K) : q4_k_tile_stride(K);
 	printf("%s: %s K=%d rows=%d (%.1f MB), %d lanes per row, tile stride %d\n", tname, gguf_type_name(t->type), K, rows, (double)rows * stride / 1e6, L, stride);
 
 	/* repack and check the tile against the standard dequantiser on a few rows */
 	uint8_t *tile = malloc((size_t)stride * rows);
 	double t0 = now();
-	if (q5) repack_q5_k(t->data, rows, K, tile);
+	if (b32) repack_b32(t->type, t->data, rows, K, tile);
+	else if (q5) repack_q5_k(t->data, rows, K, tile);
 	else if (q3) repack_q3_k(t->data, rows, K, tile);
 	else if (q6) repack_q6_k(t->data, rows, K, tile);
 	else if (x4) repack_iq4_xs(t->data, rows, K, tile);
@@ -58,11 +60,15 @@ int main(int argc, char **argv) {
 	{
 		float *a = malloc(sizeof(float) * K), *b = malloc(sizeof(float) * K);
 		int bad = 0, B = K / 256, Q = L / 8;
+		uint32_t gelems = 0, gbytes = 0;
+		gguf_block(t->type, &gelems, &gbytes);
 		for (int r = 0; r < rows && r < 7; r += 3) {
-			dequant(t->type, t->data + (size_t)r * B * gblk, a, K);
+			dequant(t->type, t->data + (size_t)r * (K / gelems) * gbytes, a, K);
 			const uint8_t *hdr = tile + (size_t)r * stride, *codes = hdr + 16 * B, *hb = hdr + 144 * B;
 			for (int e = 0; e < K; e++) {
-				if (x4) {
+				if (b32) {
+					b[e] = b32_tile_value(t->type, tile, K, r, e);
+				} else if (x4) {
 					int blk = e / 256, j = (e & 255) >> 5, el = e & 31;
 					const uint8_t *nib = hdr + 16 * Q + 128 * blk + 16 * j;
 					int qv = (nib[el >> 1] >> (4 * (el & 1))) & 0xF;
@@ -116,7 +122,8 @@ int main(int argc, char **argv) {
 	t0 = now();
 	int32_t *sum16 = malloc(sizeof(int32_t) * K / 16);
 	act_sum16(xq, sum16, K);
-	if (q5) gemv_q5_k_ref(tile, rows, K, xq, sum32, xs, yref);
+	if (b32) gemv_b32_ref(t->type, tile, rows, K, xq, sum32, xs, yref);
+	else if (q5) gemv_q5_k_ref(tile, rows, K, xq, sum32, xs, yref);
 	else if (q3) gemv_q3_k_ref(tile, rows, K, xq, xs, yref);
 	else if (q6) gemv_q6_k_ref(tile, rows, K, xq, sum16, xs, yref);
 	else if (x4) gemv_iq4_xs_ref(tile, rows, K, xq, xs, yref);

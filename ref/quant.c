@@ -709,8 +709,8 @@ static int b32_offset(uint32_t type) { return type == GG_Q4_0 ? 8 : type == GG_Q
 
 int repack_b32(uint32_t type, const uint8_t *src, int rows, int K, uint8_t *dst) {
 	int B = K / 32, stride = b32_tile_stride(type, K), bb = b32_block_bytes(type);
-	uint32_t gb;
-	gguf_block(type, NULL, &gb);
+	uint32_t ge, gb;
+	gguf_block(type, &ge, &gb);
 	if (!dst) return stride;
 	for (int r = 0; r < rows; r++) {
 		const uint8_t *s = src + (size_t)r * B * gb;
