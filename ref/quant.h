@@ -127,3 +127,8 @@ float quant_act_gpu(const float *x, int n, int16_t *q16, int32_t *sum32, int32_t
  * SHFL butterfly (xor 16, 8, 4, 2, 1), m = ss * (1/2560), v = m + eps, s = sqrtf(v),
  * r = 1/s, y_i = (x_i * r) * w_i, then quant_act_gpu on y. Returns xscale. */
 float rmsnorm_quant_gpu(const float *x, const float *w, int n, float eps, float *y, int16_t *q16, int32_t *sum32, int32_t *sum16);
+
+/* The GPU fp32 RMSNorm (kern/rmsnorm.sass), bit for bit, n = 2560 or 10240:
+ * per-lane fmaf chains over the chunks at 4 (l + 32 j), SHFL butterfly,
+ * m = ss * (1/n), v = m + eps, s = sqrtf(v), r = 1/s, y_i = (x_i * r) * w_i. */
+void rmsnorm_gpu(const float *x, const float *w, int n, float eps, float *y);

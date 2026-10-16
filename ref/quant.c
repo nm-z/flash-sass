@@ -820,3 +820,23 @@ float rmsnorm_quant_gpu(const float *x, const float *w, int n, float eps, float 
 	for (int i = 0; i < n; i++) y[i] = (x[i] * r) * w[i];
 	return quant_act_gpu(y, n, q16, sum32, sum16);
 }
+
+void rmsnorm_gpu(const float *x, const float *w, int n, float eps, float *y) {
+	float v[32], t[32];
+	int C = n / 128;
+	for (int l = 0; l < 32; l++) {
+		float ss = 0.f;
+		for (int j = 0; j < C; j++)
+			for (int k = 0; k < 4; k++) { float e = x[4 * (l + 32 * j) + k]; ss = fmaf(e, e, ss); }
+		v[l] = ss;
+	}
+	for (int o = 16; o >= 1; o >>= 1) {
+		for (int l = 0; l < 32; l++) t[l] = v[l] + v[l ^ o];
+		memcpy(v, t, sizeof v);
+	}
+	float m = v[0] * (1.0f / (float)n);
+	float vv = m + eps;
+	float s = sqrtf(vv);
+	float r = 1.0f / s;
+	for (int i = 0; i < n; i++) y[i] = (x[i] * r) * w[i];
+}

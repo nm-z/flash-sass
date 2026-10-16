@@ -174,3 +174,20 @@ normq.cubin: normq.sass skel_normq.cubin
 
 normq_test: normq_test.c ../ref/quant.c ../ref/quant.h ../ref/gguf.c
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ normq_test.c ../ref/quant.c ../ref/gguf.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+# fp32 RMSNorm, per vector length (hc norms 10240, 2560)
+skel_rmsnorm.cubin: rmsnorm.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+rmsnorm_k%.cubin: rmsnorm.sass skel_rmsnorm.cubin
+	cp skel_rmsnorm.cubin $@
+	GEMV_K=$* $(MAXAS) -i rmsnorm.sass $@
+
+rmsnorm_test: rmsnorm_test.c ../ref/quant.c ../ref/quant.h ../ref/gguf.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ rmsnorm_test.c ../ref/quant.c ../ref/gguf.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+# barrier capacity micro-test
+skel_bartest.cubin: bartest.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+bartest_test: bartest_test.c
+	$(CC) -std=gnu99 -O2 -Wall -o $@ bartest_test.c -I$(CUDA)/include -lcuda

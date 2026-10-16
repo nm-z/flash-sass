@@ -180,7 +180,7 @@
         $o .= "--:-:-:-:6      IADD cp0.CC, cp0, 0x40;\n";
         $o .= "--:-:-:-:6      IADD.X cp1, cp1, RZ;\n";
     }
-    $o .= sprintf "--:-:-:-:6      IADD xp0.CC, xp0, 0x%x;\n", 512*$U;
+    $o .= sprintf "02:-:-:-:6      IADD xp0.CC, xp0, 0x%x;\n", 512*$U;
     $o .= "--:-:-:-:6      IADD.X xp1, xp1, RZ;\n";
     $o .= sprintf "--:-:-:-:6      IADD qp0.CC, qp0, 0x%x;\n", 256*$U;
     $o .= "--:-:-:-:6      IADD.X qp1, qp1, RZ;\n";

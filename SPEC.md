@@ -210,6 +210,13 @@ head and runs slower (811 MHz measured), so it gets fewer blocks.
   ~18-cycle gap; a counter incremented at stall 1 is read stale by the next
   instruction (the loop ran once too often and its stray stores zeroed the
   neighbouring buffers).
+- Block inputs (2560 wide) go through `kern/normq.sass`: RMSNorm fused with the
+  quantiser, one warp: ss by one FFMA chain per lane over its 4-element chunks
+  plus the SHFL butterfly, m = ss·(1/2560), v = m + eps, s = sqrt_rn(v) (ptxas
+  MUFU.RSQ fast path, IEEE), r = rcp_rn(s), y = (x·r)·w stored fp32 for the fp32
+  consumers (router), then the quantiser on y. Twin `rmsnorm_quant_gpu`,
+  bit-exact on six magnitudes. The norm weight convention (w vs 1 + w) is a
+  load-time transform of the weights, not a kernel property.
 - Q2_0 × int8 in XMAD SWAR: each 16-bit lane accumulates up to 8 products
   (|q·a| ≤ 3·127) before extraction; other widths pack fewer terms. Accumulate in
   int32, multiply by the block scale once per block in fp32.
@@ -430,6 +437,16 @@ head and runs slower (811 MHz measured), so it gets fewer blocks.
   shapes for Phase 5: F32 GEMV K=2560, Q4_K K=5120 (32 lanes × 5), Q4_K/Q6_K
   K=10240 (as accumulating slices, as BF16), Q5_0 K=320. Die 5 budget with
   everything: ≈ 3.1 + 0.44 + 2.8 = 6.3 GB.
+- **fp32 RMSNorm** `kern/rmsnorm.sass` (n = 2560 / 10240, one warp, two
+  streaming passes, twin `rmsnorm_gpu`) — bit-exact once a hazard was fixed that
+  the GEMV kernels had been handling by design: **a memory op reads its address
+  and data registers late, so a pointer bump (or any overwrite) after a burst of
+  stores must wait on the stores' read barrier.** 20 back-to-back STG.128s
+  queue up in the LSU; the last six read the address register after the bump,
+  stored to the wrong place, and the unwritten slots showed the harness's NaN
+  fill. (Checked on the way with `kern/bartest.sass`: one write barrier tracks at
+  least 24 outstanding LDG.128s correctly, with slow host-mapped loads, plain or
+  .CI, so the wait-mask semantics are counting.)
 - Register-bank note: in the K-quant streams the mask for field v and the
   activation register of the same XMAD share a bank for 2 of every 8 XMADs, and
   the combine's `acc_v + acc_{v+4}` pairs share banks (MaxAs reports 187
