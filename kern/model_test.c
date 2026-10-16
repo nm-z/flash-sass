@@ -438,6 +438,13 @@ int main(int argc, char **argv) {
 		}
 		for (int d = 0; d < nd; d++) prog_free(&P[d]);
 	}
+	if (getenv("MODEL_DUMP_S")) {   /* die 0's stream after the last token (reference comparisons per block prefix) */
+		float *S = malloc(4 * 10240); CK(cuCtxSetCurrent(ctx[0])); CK(cuMemcpyDtoH(S, db[0].S, 4 * 10240));
+		FILE *f = fopen(getenv("MODEL_DUMP_S"), "wb"); if (f) { fwrite(S, 4, 10240, f); fclose(f); }
+		double ss = 0; for (int i = 0; i < 10240; i++) ss += (double)S[i] * S[i];
+		printf("  S dumped to %s: lanes sum %.6g %.6g %.6g %.6g, |S| %.6g\n", getenv("MODEL_DUMP_S"), (double)S[0], (double)S[2560], (double)S[5120], (double)S[7680], ss);
+		free(S);
+	}
 	printf("%s: %d of %d tokens %s; mean %.3f ms per token\n", fails ? "FAIL" : "OK", T - fails, T, notwin ? "run" : "exact", tsum / T * 1e3);
 	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); hold_close(&ar[d]); }
 	return fails ? 3 : 0;
