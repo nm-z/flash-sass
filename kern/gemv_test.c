@@ -39,7 +39,8 @@ int main(int argc, char **argv) {
 	if (!t || !t->data) { fprintf(stderr, "%s: not found\n", tname); return 1; }
 	if (t->type != GG_Q2_0) { fprintf(stderr, "%s is %s, not Q2_0\n", tname, gguf_type_name(t->type)); return 1; }
 	int K = (int)t->dims[0];
-	if (K != 2560) { fprintf(stderr, "kernel is built for K=2560, tensor has K=%d\n", K); return 1; }
+	if (K != 2560 && K != 640) { fprintf(stderr, "kernels exist for K=2560 and K=640, tensor has K=%d\n", K); return 1; }
+	int L = q2_0_lanes_per_row(K), RPC = 256 / L;   /* lanes per row, rows per CTA */
 	int rows_per_expert = t->nd >= 2 ? (int)t->dims[1] : (int)(t->elems / K);
 	int rows, row0;
 	if (!strcmp(which, "all")) { rows = (int)(t->elems / K); row0 = 0; }
@@ -79,7 +80,9 @@ int main(int argc, char **argv) {
 	CK(cuDeviceGet(&dev, 0));
 	CK(cuCtxCreate_v2(&ctx, CU_CTX_SCHED_SPIN, dev));
 	CUmodule mod;
-	CK(cuModuleLoad(&mod, "gemv_q2_0.cubin"));
+	char cubin[64];
+	snprintf(cubin, sizeof cubin, "gemv_q2_0_k%d.cubin", K);
+	CK(cuModuleLoad(&mod, cubin));
 	CUfunction fn;
 	CK(cuModuleGetFunction(&fn, mod, "gemv_q2_0"));
 	int nregs, smem;
@@ -98,13 +101,13 @@ int main(int argc, char **argv) {
 	CK(cuMemcpyHtoD(dS, sum32, sizeof(int32_t) * K / 32));
 	CK(cuMemsetD32(dY, 0x7fc00000u, rows));   /* NaN: any row the kernel skips shows up */
 	/* debug trace: 12 words per (row, lane16) */
-	size_t dbg_bytes = (size_t)rows * 16 * 48;
+	size_t dbg_bytes = (size_t)rows * L * 48;
 	CUdeviceptr dD;
 	CK(cuMemAlloc(&dD, dbg_bytes));
 	CK(cuMemsetD8(dD, 0, dbg_bytes));
 	unsigned urows = (unsigned)rows;
 	void *params[] = { &dW, &dX, &dS, &dY, &urows, &xs, &dD };
-	unsigned grid = (urows + 15) / 16;
+	unsigned grid = (urows + RPC - 1) / RPC;
 	CK(cuLaunchKernel(fn, grid, 1, 1, 256, 1, 1, 0, 0, params, NULL));
 	CK(cuCtxSynchronize());
 	CK(cuMemcpyDtoH(y, dY, sizeof(float) * rows));
@@ -131,11 +134,11 @@ int main(int argc, char **argv) {
 		for (int r = 0; r < rows && shown < 12; r++) {
 			const uint8_t *row = tile + (size_t)r * stride;
 			float v[16];
-			for (int l = 0; l < 16; l++) {
+			for (int l = 0; l < L; l++) {
 				float acc = 0.f;
 				uint32_t e[12] = { 0 };
 				for (int i = 0; i < 5; i++) {
-					int h = l + 16 * i, b = h >> 1;
+					int h = l + L * i, b = h >> 1;
 					const uint8_t *qs = row + scales + 16 * b + 8 * (h & 1);
 					int32_t dot = 0;
 					for (int j = 0; j < 32; j++) dot += ((qs[j >> 2] >> (2 * (j & 3))) & 3) * xq[32 * h + j];
@@ -152,7 +155,7 @@ int main(int argc, char **argv) {
 				memcpy(&e[8], &acc, 4);
 				v[l] = acc;
 				e[10] = (uint32_t)r;
-				const uint32_t *g = tr + ((size_t)r * 16 + l) * 12;
+				const uint32_t *g = tr + ((size_t)r * L + l) * 12;
 				static const char *nm[] = { "q0", "q1", "act00", "act01", "nsum0", "d0", "dot0", "accf0", "accf_pre", "accf_post", "row" };
 				for (int k = 0; k < 11; k++) {
 					if (k == 9) continue;
@@ -166,15 +169,15 @@ int main(int argc, char **argv) {
 				}
 			}
 			float w[16];
-			for (int o = 8; o >= 1; o >>= 1) { for (int l = 0; l < 16; l++) w[l] = v[l] + v[l ^ o]; memcpy(v, w, sizeof v); }
+			for (int o = L / 2; o >= 1; o >>= 1) { for (int l = 0; l < L; l++) w[l] = v[l] + v[l ^ o]; memcpy(v, w, sizeof v); }
 			float gp;
-			memcpy(&gp, tr + ((size_t)r * 16) * 12 + 9, 4);
+			memcpy(&gp, tr + ((size_t)r * L) * 12 + 9, 4);
 			if (gp != v[0] && shown < 12) { printf("  trace row %d: accf_post gpu %g cpu %g\n", r, gp, v[0]); shown++; }
 		}
 		/* row 0, every lane: value before the butterfly and what the GPU had after it */
 		printf("  row 0 lanes (pre -> gpu post):\n");
 		double sum16 = 0;
-		for (int l = 0; l < 16; l++) {
+		for (int l = 0; l < L; l++) {
 			float pre, post;
 			memcpy(&pre, tr + (size_t)l * 12 + 8, 4);
 			memcpy(&post, tr + (size_t)l * 12 + 9, 4);
