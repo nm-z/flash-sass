@@ -11,6 +11,7 @@ reset_die() {
 	sudo modprobe nvidia_modeset
 	sudo modprobe nvidia_drm
 	sudo nvidia-smi -pm 1 > /dev/null
+	sudo nvidia-smi -ac 2505,1177 -i "$die" > /dev/null   # gpu-application-clocks.service's setting (a reset drops it)
 	return $rc
 }
 for ((round = 1; round <= rounds; round++)); do

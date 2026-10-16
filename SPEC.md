@@ -1042,6 +1042,13 @@ resident, assuming bottom-up physical placement), and every holder runs with
 `HOLD_VISIBLE=1 CUDA_VISIBLE_DEVICES=<die>` so it keeps no other GPU open — a
 faulted die can then be reset by stopping only its own holder.
 
+**Clocks after a reset (2026-10-16):** `gpu-application-clocks.service` sets persistence
+mode and the 2505/1177 MHz application clocks at boot. Turning persistence off
+(part of the first die-2 recovery attempt) dropped every die back to the 557 MHz
+default, and so does a GPU reset; re-apply with `nvidia-smi -ac 2505,1177 -i <die>`
+(burnin.sh does it after each reset). Single-die block 0 on die 7 at 1177 MHz:
+0.97 ms per token fused (28 phases) vs 1.03 ms unfused (34).
+
 **Hardware notes (archy, 2026-10-16).** Root ports: board 1 (dies 0, 1) is
 PCIe 3 ×8, boards 2 and 3 ×16, board 4 (dies 6, 7) hangs off the PCH at
 5 GT/s ×2. Boards 2 (dies 2, 3) run with ECC *enabled*, the others disabled.
