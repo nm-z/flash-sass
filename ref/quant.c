@@ -441,3 +441,89 @@ void gemv_q5_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const
 		y[r] = v[0] * xscale;
 	}
 }
+
+/* ---- Q3_K: per-16 groups, 2-bit codes plus inverted high bits ---- */
+
+int q3_k_tile_stride(int K) { return 16 * (q4_k_lanes_per_row(K) / 8) + 112 * (K / 256); }
+
+/* the 16 6-bit scales of a block, as ggml unpacks them */
+static void q3_k_scales(const uint8_t *sc12, int8_t *sc16) {
+	uint32_t aux[4];
+	memcpy(aux, sc12, 12);
+	const uint32_t kmask1 = 0x03030303, kmask2 = 0x0f0f0f0f;
+	uint32_t tmp = aux[2];
+	aux[2] = ((aux[0] >> 4) & kmask2) | (((tmp >> 4) & kmask1) << 4);
+	aux[3] = ((aux[1] >> 4) & kmask2) | (((tmp >> 6) & kmask1) << 4);
+	aux[0] = (aux[0] & kmask2) | (((tmp >> 0) & kmask1) << 4);
+	aux[1] = (aux[1] & kmask2) | (((tmp >> 2) & kmask1) << 4);
+	memcpy(sc16, aux, 16);
+}
+
+int repack_q3_k(const uint8_t *src, int rows, int K, uint8_t *dst) {
+	int B = K / 256, L = q4_k_lanes_per_row(K), Q = L / 8, stride = q3_k_tile_stride(K);
+	if (!dst) return stride;
+	for (int r = 0; r < rows; r++) {
+		const uint8_t *s = src + (size_t)r * B * 110;
+		uint8_t *pre = dst + (size_t)r * stride, *blocks = pre + 16 * Q;
+		memset(pre, 0, 16 * Q);
+		for (int b = 0; b < B; b++) {
+			const uint8_t *blk = s + 110 * b, *hm = blk, *qs = blk + 32;
+			uint8_t *rec = blocks + 112 * b;
+			memcpy(pre + 16 * (b % Q) + 2 * (b / Q), blk + 108, 2);
+			int8_t sc[16];
+			q3_k_scales(blk + 96, sc);
+			for (int g = 0; g < 16; g++) {
+				int nn = g >> 3, j = (g >> 1) & 3, which = g & 1;
+				uint32_t cw = 0, hw = 0;
+				for (int l = 0; l < 16; l++) {
+					int code = (qs[32 * nn + 16 * which + l] >> (2 * j)) & 3;
+					int h = (hm[16 * which + l] >> (4 * nn + j)) & 1;
+					cw |= (uint32_t)code << (16 * (l >> 3) + 2 * (l & 7));
+					hw |= (uint32_t)(h ^ 1) << l;
+				}
+				memcpy(rec + 4 * g, &cw, 4);
+				rec[64 + 2 * g] = (uint8_t)hw;
+				rec[65 + 2 * g] = (uint8_t)(hw >> 8);
+				rec[96 + g] = (uint8_t)(sc[g] - 32);
+			}
+		}
+	}
+	return stride;
+}
+
+void gemv_q3_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, float xscale, float *y) {
+	int B = K / 256, stride = q3_k_tile_stride(K);
+	int L = q4_k_lanes_per_row(K), Q = L / 8, n = B / Q;
+	float v[32], w[32];
+	for (int r = 0; r < rows; r++) {
+		const uint8_t *pre = tile + (size_t)r * stride, *blocks = pre + 16 * Q;
+		for (int l = 0; l < L; l++) {
+			int q = l >> 3, jj = l & 7;
+			float acc = 0.f;
+			for (int i = 0; i < n; i++) {
+				int b = Q * i + q;
+				const uint8_t *rec = blocks + 112 * b;
+				int32_t sumi = 0;
+				for (int gg = 0; gg < 2; gg++) {
+					int g = 2 * jj + gg;
+					uint32_t cw;
+					memcpy(&cw, rec + 4 * g, 4);
+					uint32_t hw = rec[64 + 2 * g] | (rec[65 + 2 * g] << 8);
+					int32_t dot = 0;
+					for (int e = 0; e < 16; e++) {
+						int code = (cw >> (16 * (e >> 3) + 2 * (e & 7))) & 3, hinv = (hw >> e) & 1;
+						dot += (code - 4 * hinv) * xq[256 * b + 16 * g + e];
+					}
+					sumi += (int8_t)rec[96 + g] * dot;
+				}
+				acc = fmaf(fp16_to_fp32(ld16(pre + 16 * q + 2 * i)), (float)sumi, acc);
+			}
+			v[l] = acc;
+		}
+		for (int o = L / 2; o >= 1; o >>= 1) {
+			for (int l = 0; l < L; l++) w[l] = v[l] + v[l ^ o];
+			memcpy(v, w, sizeof(float) * L);
+		}
+		y[r] = v[0] * xscale;
+	}
+}

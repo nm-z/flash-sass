@@ -36,32 +36,41 @@ int main(int argc, char **argv) {
 	if (gguf_open(&g, argv[1])) return 1;
 	const gguf_tensor *t = gguf_find(&g, tname);
 	if (!t || !t->data) { fprintf(stderr, "%s: not found\n", tname); return 1; }
-	if (t->type != GG_Q4_K && t->type != GG_Q5_K) { fprintf(stderr, "%s is %s; only Q4_K and Q5_K so far\n", tname, gguf_type_name(t->type)); return 1; }
-	int q5 = t->type == GG_Q5_K, gblk = q5 ? 176 : 144;
+	if (t->type != GG_Q4_K && t->type != GG_Q5_K && t->type != GG_Q3_K) { fprintf(stderr, "%s is %s; only Q3_K, Q4_K and Q5_K so far\n", tname, gguf_type_name(t->type)); return 1; }
+	int q5 = t->type == GG_Q5_K, q3 = t->type == GG_Q3_K, gblk = q5 ? 176 : q3 ? 110 : 144;
 	int K = (int)t->dims[0], rows = (int)(t->elems / K);
 	if (K != 2560 && K != 6144) { fprintf(stderr, "kernels exist for K=2560 and K=6144, tensor has K=%d\n", K); return 1; }
-	int L = q4_k_lanes_per_row(K), RPC = 256 / L, stride = q5 ? q5_k_tile_stride(K) : q4_k_tile_stride(K);
+	int L = q4_k_lanes_per_row(K), RPC = 256 / L, stride = q5 ? q5_k_tile_stride(K) : q3 ? q3_k_tile_stride(K) : q4_k_tile_stride(K);
 	printf("%s: %s K=%d rows=%d (%.1f MB), %d lanes per row, tile stride %d\n", tname, gguf_type_name(t->type), K, rows, (double)rows * stride / 1e6, L, stride);
 
 	/* repack and check the tile against the standard dequantiser on a few rows */
 	uint8_t *tile = malloc((size_t)stride * rows);
 	double t0 = now();
-	if (q5) repack_q5_k(t->data, rows, K, tile); else repack_q4_k(t->data, rows, K, tile);
+	if (q5) repack_q5_k(t->data, rows, K, tile); else if (q3) repack_q3_k(t->data, rows, K, tile); else repack_q4_k(t->data, rows, K, tile);
 	double t1 = now();
 	{
 		float *a = malloc(sizeof(float) * K), *b = malloc(sizeof(float) * K);
-		int bad = 0, B = K / 256;
+		int bad = 0, B = K / 256, Q = L / 8;
 		for (int r = 0; r < rows && r < 7; r += 3) {
 			dequant(t->type, t->data + (size_t)r * B * gblk, a, K);
 			const uint8_t *hdr = tile + (size_t)r * stride, *codes = hdr + 16 * B, *hb = hdr + 144 * B;
 			for (int e = 0; e < K; e++) {
-				int s = e / 32, blk = s >> 3, j = s & 7, sc, mn;
-				q4_k_scale_min(hdr + 16 * blk + 4, j, &sc, &mn);
-				int q = (codes[128 * blk + 16 * j + ((e & 31) >> 1)] >> (4 * (e & 1))) & 0xF;
-				if (q5) { uint32_t hw; memcpy(&hw, hb + 32 * blk + 4 * j, 4); q += 16 * ((hw >> (e & 31)) & 1); }
-				uint16_t dh, mh;
-				memcpy(&dh, hdr + 16 * blk, 2); memcpy(&mh, hdr + 16 * blk + 2, 2);
-				b[e] = fp16_to_fp32(dh) * sc * q - fp16_to_fp32(mh) * mn;
+				if (q3) {
+					int blk = e / 256, g = (e & 255) >> 4, el = e & 15;
+					const uint8_t *rec = hdr + 16 * Q + 112 * blk;
+					uint32_t cw; memcpy(&cw, rec + 4 * g, 4);
+					int code = (cw >> (16 * (el >> 3) + 2 * (el & 7))) & 3, hinv = (rec[64 + 2 * g + (el >> 3)] >> (el & 7)) & 1;
+					uint16_t dh; memcpy(&dh, hdr + 16 * (blk % Q) + 2 * (blk / Q), 2);
+					b[e] = (fp16_to_fp32(dh) * (float)(int8_t)rec[96 + g]) * (float)(code - 4 * hinv);
+				} else {
+					int s = e / 32, blk = s >> 3, j = s & 7, sc, mn;
+					q4_k_scale_min(hdr + 16 * blk + 4, j, &sc, &mn);
+					int q = (codes[128 * blk + 16 * j + ((e & 31) >> 1)] >> (4 * (e & 1))) & 0xF;
+					if (q5) { uint32_t hw; memcpy(&hw, hb + 32 * blk + 4 * j, 4); q += 16 * ((hw >> (e & 31)) & 1); }
+					uint16_t dh, mh;
+					memcpy(&dh, hdr + 16 * blk, 2); memcpy(&mh, hdr + 16 * blk + 2, 2);
+					b[e] = fp16_to_fp32(dh) * sc * q - fp16_to_fp32(mh) * mn;
+				}
 				if (b[e] != a[e]) { if (bad < 3) printf("  repack check row %d elem %d: tile %g gguf %g\n", r, e, b[e], a[e]); bad++; }
 			}
 		}
@@ -84,7 +93,9 @@ int main(int argc, char **argv) {
 	for (int k = 0; k < K; k++) x16[k] = xq[k];
 	float *yref = malloc(sizeof(float) * rows), *y = malloc(sizeof(float) * rows);
 	t0 = now();
-	if (q5) gemv_q5_k_ref(tile, rows, K, xq, sum32, xs, yref); else gemv_q4_k_ref(tile, rows, K, xq, sum32, xs, yref);
+	if (q5) gemv_q5_k_ref(tile, rows, K, xq, sum32, xs, yref);
+	else if (q3) gemv_q3_k_ref(tile, rows, K, xq, xs, yref);
+	else gemv_q4_k_ref(tile, rows, K, xq, sum32, xs, yref);
 	t1 = now();
 	printf("reference %.1f ms\n", (t1 - t0) * 1e3);
 
@@ -93,9 +104,12 @@ int main(int argc, char **argv) {
 	CK(cuDeviceGet(&dev, 0));
 	CK(cuCtxCreate_v2(&ctx, CU_CTX_SCHED_SPIN, dev));
 	char cubin[64];
-	snprintf(cubin, sizeof cubin, "gemv_q%d_k_k%d.cubin", q5 ? 5 : 4, K);
+	int qn = q5 ? 5 : q3 ? 3 : 4;
+	char fname[32];
+	snprintf(cubin, sizeof cubin, "gemv_q%d_k_k%d.cubin", qn, K);
+	snprintf(fname, sizeof fname, "gemv_q%d_k", qn);
 	CK(cuModuleLoad(&mod, cubin));
-	CK(cuModuleGetFunction(&fn, mod, q5 ? "gemv_q5_k" : "gemv_q4_k"));
+	CK(cuModuleGetFunction(&fn, mod, fname));
 	int nregs, maxb;
 	CK(cuFuncGetAttribute(&nregs, CU_FUNC_ATTRIBUTE_NUM_REGS, fn));
 	CK(cuOccupancyMaxActiveBlocksPerMultiprocessor(&maxb, fn, 256, 0));

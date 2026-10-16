@@ -69,3 +69,15 @@ int repack_q5_k(const uint8_t *src, int rows, int K, uint8_t *dst);
 void gemv_q5_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, float xscale, float *y);
 
 #endif
+
+/* Q3_K row tile for L lanes per row (q4_k_lanes_per_row), Q = L/8 lane groups:
+ * [prefix: Q x 16 B, lane group q holds fp16 d of blocks Q i + q for i = 0..B/Q-1]
+ * [per block 112 B: 16 code words (group g of 16 elements: element e at bits
+ *  2 (e & 7) of half e >> 3), 16 half-words of inverted high bits (bit e = !h_e),
+ *  16 int8 scales (sc - 32)]. Element value = (code - 4 !h) * sc * d. */
+int q3_k_tile_stride(int K);
+int repack_q3_k(const uint8_t *src, int rows, int K, uint8_t *dst);
+/* GPU order: lane (q = l >> 3, jj = l & 7) owns groups 2jj, 2jj+1 of blocks Q i + q;
+ * per block sumi = sc0 dot0 + sc1 dot1 (exact integers), acc = fma(d, (float)sumi,
+ * acc), then the SHFL butterfly and * xscale. */
+void gemv_q3_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, float xscale, float *y);

@@ -321,6 +321,25 @@ head and runs slower (811 MHz measured), so it gets fewer blocks.
   unreliable (two sources disagree) — we never use stalls above 6 except `f` on
   EXIT; `SCHEDULE_BLOCK` reorders only by register dependencies (no barriers, no
   memory order), so we do not use it.
+- **Q3_K (2026-10-16 night)**: `kern/gemv_q3_k.sass`, bit-exact on
+  `blk.3.attn_k`, `blk.0.ffn_up_shexp`, `blk.5.attn_qkv` (10,240 rows) and
+  `blk.6.ssm_out` (K = 6144). Tile (`repack_q3_k`, 1152 B per K=2560 row vs 1100
+  raw, 4.7%): a per-row prefix of fp16 d per lane group, then per block 16 code
+  words (16 × 2-bit fields), 16 half-words of *inverted* high bits and 16 int8
+  scales (sc − 32). A lane owns two 16-element groups (32 consecutive elements)
+  of block Q i + q. The 2-bit codes stream through 8 masks `0x00030003 << 2s`
+  into 8 accumulators per group; the inverted high bits stream as in Q5_K
+  (`hw >> u`, masks `0x00010001 << 4v`) and are subtracted ×4, so no activation
+  sums are needed (value = code − 4·!h). Scales are sign-extended in pairs with
+  one `PRMT 0x9180` and applied as exact integers: `sumi = sc0·dot0 + sc1·dot1`
+  with XMAD.S16.S16 (|dot| ≤ 8128 fits), one I2F + FFMA per block. Both PRMT and
+  XMAD.S16.S16 behaved as written on first use. 172/192 registers. Speed: 107
+  GB/s on `attn_qkv` (11.8 MB, grid 32): more compute per byte than Q4_K, and
+  the kernels do not overlap a row's loads with the previous row's compute
+  (one barrier for all of a row's loads, issued after the row's SHFL). The
+  fix — issue the next row's loads for step i right after step i's XMADs, with
+  loads spread over barriers 1/2/6 and the STG read on barrier 5 — is noted for
+  the tuning pass; it applies to every K-quant kernel.
 - Register-bank note: in the K-quant streams the mask for field v and the
   activation register of the same XMAD share a bank for 2 of every 8 XMADs, and
   the combine's `acc_v + acc_{v+4}` pairs share banks (MaxAs reports 187
