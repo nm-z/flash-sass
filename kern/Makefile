@@ -127,3 +127,14 @@ gemv_%_k640.cubin: gemv_b32.sass skel_b32_%.cubin
 
 b32: $(B32_CUBINS)
 .PHONY: b32
+
+# software grid barrier primitive and its visibility test
+skel_gridbar.cubin: gridbar.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+gridbar.cubin: gridbar.sass skel_gridbar.cubin
+	cp skel_gridbar.cubin $@
+	$(MAXAS) -i gridbar.sass $@
+
+gridbar_test: gridbar_test.c
+	$(CC) -std=gnu99 -O2 -Wall -o $@ gridbar_test.c -I$(CUDA)/include -lcuda

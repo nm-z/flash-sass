@@ -238,7 +238,7 @@ my $bar   = qr"\.(?<mode>SYNC|ARV|RED)(?:\.(?<red>POPC|AND|OR))? (?:$i8w4|$r8)(?
 my $b2r   = qr"\.RESULT $r0(?:, $p45|(?<nop45>))"o;
 my $dbar  = qr"(?<SB>SB0|SB1|SB2|SB3|SB4|SB5)";
 my $dbar2 = qr" {(?<db5>5)?,?(?<db4>4)?,?(?<db3>3)?,?(?<db2>2)?,?(?<db1>1)?,?(?<db0>0)?}";
-my $mbar  = qr"\.(?<mode>CTA|GL|SYS)";
+my $mbar  = qr"\.(?<mode>CTA|GL|SYS)(?<IVALLD>\.IVALLD)?";
 my $addr  = qr"\[(?:(?<r8>$reg)|(?<nor8>))(?:\s*\+?\s*$i20w24)?\]"o;
 my $addr2 = qr"\[(?:(?<r8>$reg)|(?<nor8>))(?:\s*\+?\s*$i28w20)?\]"o;
 my $ldc   = qr"c\[(?<c36>$hex)\]\s*$addr"o;
@@ -972,6 +972,9 @@ MEMBAR: mode
 0x0000000000000000 CTA
 0x0000000000000100 GL
 0x0000000000000200 SYS
+
+MEMBAR
+0x0000000000000001 IVALLD
 
 VOTE: mode
 0x0000000000000000 ALL
