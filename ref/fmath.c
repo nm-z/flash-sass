@@ -4,8 +4,6 @@
 #include <string.h>
 
 static float f32(uint32_t b) { float f; memcpy(&f, &b, 4); return f; }
-static uint32_t u32(float f) { uint32_t b; memcpy(&b, &f, 4); return b; }
-
 float rcp_gpu(float x) { return 1.0f / x; }
 
 float exp_gpu(float x) {
@@ -61,6 +59,3 @@ float softplus_gpu(float x) {
 	float m = x > 0.0f ? x : 0.0f;
 	return m + l;
 }
-
-/* silence unused warnings */
-static void unused(void) { (void)u32; }

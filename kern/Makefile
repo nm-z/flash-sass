@@ -202,3 +202,18 @@ fmath.cubin: fmath.sass fmath.pl skel_fmath.cubin
 
 fmath_test: fmath_test.c ../ref/fmath.c ../ref/fmath.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ fmath_test.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+# DeltaNet head step
+skel_dnstep.cubin: dnstep.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+dnstep.cubin: dnstep.sass fmath.pl skel_dnstep.cubin
+	cp skel_dnstep.cubin $@
+	$(MAXAS) -i dnstep.sass $@
+
+dnstep_tiled.cubin: dnstep.sass fmath.pl skel_dnstep.cubin
+	cp skel_dnstep.cubin $@
+	DN_TILED=1 $(MAXAS) -i dnstep.sass $@
+
+dnstep_test: dnstep_test.c ../ref/deltanet.c ../ref/deltanet.h ../ref/fmath.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ dnstep_test.c ../ref/deltanet.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
