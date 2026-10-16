@@ -94,3 +94,25 @@ void act_sum16(const int8_t *q, int32_t *sum16, int n);
  * sumi = sc0 dot0 + sc1 dot1 with dot_g = sum (q6 - 32) a over the 16-element group
  * (exact), acc = fma(d, (float)sumi, acc), then the butterfly and * xscale. */
 void gemv_q6_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum16, float xscale, float *y);
+
+/* IQ4_XS row tile: [prefix: Q x 16 B of fp16 d as for Q3_K] [nibbles: block b,
+ * sub-block j at 128 b + 16 j, element 2i low / 2i+1 high] [scales: int8 (ls - 32)
+ * at 128 B + 8 b + j]. Element value = d * (ls - 32) * kvalues[q]. */
+int iq4_xs_tile_stride(int K);
+int repack_iq4_xs(const uint8_t *src, int rows, int K, uint8_t *dst);
+int iq4_kvalue(int q);
+/* GPU order: lane (q, jj) owns sub-block jj of blocks Q i + q; per block
+ * dot = sum kvalues[q] a (exact), sumi = sc * dot, acc = fma(d, (float)sumi, acc). */
+void gemv_iq4_xs_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, float xscale, float *y);
+
+/* Block-32 formats at K = 640 (ffn_down_shexp): 4 lanes per row, lane l owns blocks
+ * l + 4 i, i = 0..4. Row tile: [prefix 48 B: fp16 d of the 20 blocks][data: per block
+ * 16 B nibbles (element 2i low / 2i+1 high) for Q4_0, Q5_0, IQ4_NL or 32 B int8 for
+ * Q8_0][Q5_0 only: 20 x 4 B high-bit words, bit e = element e]. */
+int b32_tile_stride(uint32_t type, int K);
+int repack_b32(uint32_t type, const uint8_t *src, int rows, int K, uint8_t *dst);
+/* element value of the tile (for checks): d * (q - 8 | q - 16 | q | kvalues[q]) */
+float b32_tile_value(uint32_t type, const uint8_t *tile, int K, int r, int e);
+/* GPU order: per lane dot_b = sum (q - off) a (exact), acc = fma(d_b, (float)dot_b, acc)
+ * over its 5 blocks, a 4-lane butterfly, then * xscale. */
+void gemv_b32_ref(uint32_t type, const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, float xscale, float *y);

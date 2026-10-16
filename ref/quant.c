@@ -620,3 +620,164 @@ void gemv_q6_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const
 		y[r] = v[0] * xscale;
 	}
 }
+
+/* ---- IQ4_XS: per-32 6-bit scales, non-linear 4-bit codes ---- */
+
+int iq4_xs_tile_stride(int K) { return 16 * (q4_k_lanes_per_row(K) / 8) + 136 * (K / 256); }
+int iq4_kvalue(int q) { return kvalues_iq4nl[q & 15]; }
+
+int repack_iq4_xs(const uint8_t *src, int rows, int K, uint8_t *dst) {
+	int B = K / 256, L = q4_k_lanes_per_row(K), Q = L / 8, stride = iq4_xs_tile_stride(K);
+	if (!dst) return stride;
+	for (int r = 0; r < rows; r++) {
+		const uint8_t *s = src + (size_t)r * B * 136;
+		uint8_t *pre = dst + (size_t)r * stride, *nib = pre + 16 * Q, *scs = nib + 128 * B;
+		memset(pre, 0, 16 * Q);
+		for (int b = 0; b < B; b++) {
+			const uint8_t *blk = s + 136 * b, *sl = blk + 4, *qs = blk + 8;
+			uint16_t sh = ld16(blk + 2);
+			memcpy(pre + 16 * (b % Q) + 2 * (b / Q), blk, 2);
+			for (int j = 0; j < 8; j++) {
+				int ls = ((sl[j / 2] >> (4 * (j % 2))) & 0xf) | (((sh >> (2 * j)) & 3) << 4);
+				scs[8 * b + j] = (uint8_t)(ls - 32);
+				const uint8_t *q = qs + 16 * j;
+				for (int i = 0; i < 16; i++) {
+					int e0 = 2 * i, e1 = 2 * i + 1;
+					int n0 = e0 < 16 ? (q[e0] & 0xF) : (q[e0 - 16] >> 4);
+					int n1 = e1 < 16 ? (q[e1] & 0xF) : (q[e1 - 16] >> 4);
+					nib[128 * b + 16 * j + i] = (uint8_t)(n0 | (n1 << 4));
+				}
+			}
+		}
+	}
+	return stride;
+}
+
+void gemv_iq4_xs_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, float xscale, float *y) {
+	int B = K / 256, stride = iq4_xs_tile_stride(K);
+	int L = q4_k_lanes_per_row(K), Q = L / 8, n = B / Q;
+	float v[32], w[32];
+	for (int r = 0; r < rows; r++) {
+		const uint8_t *pre = tile + (size_t)r * stride, *nib = pre + 16 * Q, *scs = nib + 128 * B;
+		for (int l = 0; l < L; l++) {
+			int q = l >> 3, jj = l & 7;
+			float acc = 0.f;
+			for (int i = 0; i < n; i++) {
+				int b = Q * i + q;
+				const uint8_t *p = nib + 128 * b + 16 * jj;
+				int32_t dot = 0;
+				for (int e = 0; e < 32; e++) dot += kvalues_iq4nl[(p[e >> 1] >> (4 * (e & 1))) & 0xF] * xq[256 * b + 32 * jj + e];
+				int32_t sumi = (int8_t)scs[8 * b + jj] * dot;
+				acc = fmaf(fp16_to_fp32(ld16(pre + 16 * q + 2 * i)), (float)sumi, acc);
+			}
+			v[l] = acc;
+		}
+		for (int o = L / 2; o >= 1; o >>= 1) {
+			for (int l = 0; l < L; l++) w[l] = v[l] + v[l ^ o];
+			memcpy(v, w, sizeof(float) * L);
+		}
+		y[r] = v[0] * xscale;
+	}
+}
+
+/* ---- block-32 formats at K = 640 ---- */
+
+static int b32_block_bytes(uint32_t type) { return type == GG_Q8_0 ? 32 : 16; }
+
+int b32_tile_stride(uint32_t type, int K) {
+	int B = K / 32;
+	return 48 + B * b32_block_bytes(type) + (type == GG_Q5_0 ? 4 * B : 0);
+}
+
+/* integer code of element e (0..31) of a raw block: the value before the offset */
+static int b32_code(uint32_t type, const uint8_t *blk, int e) {
+	switch (type) {
+	case GG_Q4_0: return e < 16 ? (blk[2 + e] & 0xF) : (blk[2 + e - 16] >> 4);
+	case GG_IQ4_NL: return e < 16 ? (blk[2 + e] & 0xF) : (blk[2 + e - 16] >> 4);
+	case GG_Q5_0: {
+		uint32_t qh = ld32(blk + 2);
+		int lo = e < 16 ? (blk[6 + e] & 0xF) : (blk[6 + e - 16] >> 4);
+		int hi = e < 16 ? ((qh >> e) & 1) : ((qh >> (e - 16 + 12)) & 0x10) >> 4;
+		return lo | (hi << 4);
+	}
+	case GG_Q8_0: return (int8_t)blk[2 + e];
+	}
+	return 0;
+}
+
+static int b32_offset(uint32_t type) { return type == GG_Q4_0 ? 8 : type == GG_Q5_0 ? 16 : 0; }
+
+int repack_b32(uint32_t type, const uint8_t *src, int rows, int K, uint8_t *dst) {
+	int B = K / 32, stride = b32_tile_stride(type, K), bb = b32_block_bytes(type);
+	uint32_t gb;
+	gguf_block(type, NULL, &gb);
+	if (!dst) return stride;
+	for (int r = 0; r < rows; r++) {
+		const uint8_t *s = src + (size_t)r * B * gb;
+		uint8_t *pre = dst + (size_t)r * stride, *data = pre + 48, *qh = data + bb * B;
+		memset(pre, 0, 48);
+		for (int b = 0; b < B; b++) {
+			const uint8_t *blk = s + gb * b;
+			memcpy(pre + 2 * b, blk, 2);
+			if (type == GG_Q8_0) {
+				memcpy(data + 32 * b, blk + 2, 32);
+			} else {
+				for (int i = 0; i < 16; i++) {
+					int c0 = b32_code(type, blk, 2 * i) & 0xF, c1 = b32_code(type, blk, 2 * i + 1) & 0xF;
+					data[16 * b + i] = (uint8_t)(c0 | (c1 << 4));
+				}
+				if (type == GG_Q5_0) {
+					uint32_t w = 0;
+					for (int e = 0; e < 32; e++) w |= (uint32_t)(b32_code(type, blk, e) >> 4) << e;
+					memcpy(qh + 4 * b, &w, 4);
+				}
+			}
+		}
+	}
+	return stride;
+}
+
+static int b32_tile_code(uint32_t type, const uint8_t *pre, int K, int e) {
+	int B = K / 32, b = e >> 5, el = e & 31, bb = b32_block_bytes(type);
+	const uint8_t *data = pre + 48;
+	if (type == GG_Q8_0) return (int8_t)data[32 * b + el];
+	int q = (data[16 * b + (el >> 1)] >> (4 * (el & 1))) & 0xF;
+	if (type == GG_Q5_0) { uint32_t w; memcpy(&w, data + bb * B + 4 * b, 4); q |= ((w >> el) & 1) << 4; }
+	return q;
+}
+
+float b32_tile_value(uint32_t type, const uint8_t *tile, int K, int r, int e) {
+	const uint8_t *pre = tile + (size_t)r * b32_tile_stride(type, K);
+	float d = fp16_to_fp32(ld16(pre + 2 * (e >> 5)));
+	int q = b32_tile_code(type, pre, K, e);
+	if (type == GG_IQ4_NL) return d * kvalues_iq4nl[q];
+	return d * (float)(q - b32_offset(type));
+}
+
+void gemv_b32_ref(uint32_t type, const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, float xscale, float *y) {
+	int B = K / 32, stride = b32_tile_stride(type, K), L = 4, n = B / L, off = b32_offset(type);
+	float v[4], w[4];
+	(void)sum32;
+	for (int r = 0; r < rows; r++) {
+		const uint8_t *pre = tile + (size_t)r * stride;
+		for (int l = 0; l < L; l++) {
+			float acc = 0.f;
+			for (int i = 0; i < n; i++) {
+				int b = l + L * i;
+				int32_t dot = 0;
+				for (int e = 0; e < 32; e++) {
+					int q = b32_tile_code(type, pre, K, 32 * b + e);
+					int val = type == GG_IQ4_NL ? kvalues_iq4nl[q] : q - off;
+					dot += val * xq[32 * b + e];
+				}
+				acc = fmaf(fp16_to_fp32(ld16(pre + 2 * b)), (float)dot, acc);
+			}
+			v[l] = acc;
+		}
+		for (int o = L / 2; o >= 1; o >>= 1) {
+			for (int l = 0; l < L; l++) w[l] = v[l] + v[l ^ o];
+			memcpy(v, w, sizeof(float) * L);
+		}
+		y[r] = v[0] * xscale;
+	}
+}

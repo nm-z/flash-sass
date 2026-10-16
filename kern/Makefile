@@ -107,3 +107,18 @@ clean:
 	rm -f gemv_q2_0_k2560.cubin gemv_q2_0_k640.cubin skel_q2_0.cubin gemv_bf16_k2560.cubin gemv_bf16_k320.cubin skel_bf16.cubin *.dis gemv_test gemv_bf16_test
 
 .PHONY: all test clean
+
+# block-32 formats at K=640: one generator, GEMV_FMT selects the format
+B32 = q4_0 q5_0 q8_0 iq4_nl
+B32_CUBINS = $(foreach f,$(B32),gemv_$(f)_k640.cubin)
+
+skel_b32_%.cubin: gemv_skel.ptx
+	sed 's/KERNEL/gemv_$*/' $< > skel_b32_$*.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ skel_b32_$*.ptx
+
+gemv_%_k640.cubin: gemv_b32.sass skel_b32_%.cubin
+	cp skel_b32_$*.cubin $@
+	GEMV_FMT=$* GEMV_K=640 $(MAXAS) -i -k gemv_$* gemv_b32.sass $@
+
+b32: $(B32_CUBINS)
+.PHONY: b32
