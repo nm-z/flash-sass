@@ -68,7 +68,7 @@ typedef struct {
 	int dj0, djn;       /* hc down++inject rows [dj0, dj0+djn) of 324 */
 	int cb0, cbn;       /* z column blocks (32 wide) [cb0, cb0+cbn) of 80; hc up rows l*2560 + 32 cb */
 	int h0, hn;         /* value heads [h0, h0+hn) of 48 (gate rows 128 h, alpha/beta rows h, states) */
-	int klo, khi, nk;   /* key heads [klo, khi] they use: qkv rows q and k of these, then v of [h0, h0+hn) */
+	int klo, khi, nk;   /* key heads (klo + j) % 16, j < nk (value head h uses key head h % 16): qkv rows q and k of these in that order, then v of [h0, h0+hn) */
 	int y0, yn;         /* ssm_out / attn_output / ple_value rows (of 2560) */
 	int pk0, pkn;       /* ple_key rows (of 10240) */
 	int o0, on;         /* output.weight rows (of 248320) */

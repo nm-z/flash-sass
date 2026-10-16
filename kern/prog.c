@@ -162,7 +162,10 @@ void split_of(split_t *s, int d, int n, int blk) {
 	s->dj0 = split_bound(324, d, n);  s->djn = split_bound(324, d + 1, n) - s->dj0;
 	s->cb0 = split_bound(80, d, n);   s->cbn = split_bound(80, d + 1, n) - s->cb0;
 	s->h0 = split_bound(48, d, n);    s->hn = split_bound(48, d + 1, n) - s->h0;
-	s->klo = s->h0 / 3;    s->khi = (s->h0 + s->hn - 1) / 3; s->nk = s->khi - s->klo + 1;
+	/* value head h pairs with key head h mod 16 (ggml_repeat_4d / the fused GDN kernel: head h uses q/k
+	   head h % neq1 — not h / 3, which cost 2 of 7 reference tokens): the die holds key heads
+	   (klo + j) % 16, j < nk, in that order, so local value head j reads local key head j % 16 */
+	s->klo = s->h0 % 16;   s->nk = s->hn < 16 ? s->hn : 16; s->khi = (s->klo + s->nk - 1) % 16;
 	s->y0 = split_bound(2560, d, n);  s->yn = split_bound(2560, d + 1, n) - s->y0;
 	s->pk0 = split_bound(10240, d, n); s->pkn = split_bound(10240, d + 1, n) - s->pk0;
 	s->o0 = split_bound(248320, d, n); s->on = split_bound(248320, d + 1, n) - s->o0;

@@ -1076,6 +1076,19 @@ over the CTAs (3 phases, 45 µs → ~10), the one-warp router top-10 (24 µs),
 and merging elementwise phases into their neighbours; the ≈4 µs floor
 matters even more once the rows are split six ways.
 
+**The bug the reference found (2026-10-16):** DeltaNet value head h must use key
+head **h mod 16**, not ⌊h/3⌋ (ggml's fused gated-delta kernel indexes q/k with
+`iv1 % neq1`, the unfused path repeats them with `ggml_repeat_4d`, i.e. tiled).
+Layer-by-layer against `llama-eval-callback` on the one-token prompt "The":
+hc_norm-0, the qkv projection, the conv, q/k/v, β and the output gate all agree
+to int8 noise; the recurrence output did not (0.588 vs 0.866) and the
+position-0 formula recomputed from our own q/k/v/β with h mod 16 gives
+0.8657. Fixed in `split_of` (a die holds key heads (klo + j) % 16, j < nk,
+klo = h0 % 16, nk = min(hn, 16): local value head j reads local key head
+j % 16 — `dnstep` built with `DN_TILED=1`), the holder's qkv/conv1d row
+selection (two ranges when the list wraps past head 15), the twin and
+`dies_test`'s slice checks. Earlier teacher-forced agreement: 2 of 7.
+
 **Dequantization against ggml (2026-10-16):** `ref/deqcheck` (built against the
 llama.cpp tree's libggml-base) compares `ref/quant.c`'s `dequant()` with ggml's
 `dequantize_row_*` on real rows of the GGUF: Q2_0, Q3_K, Q4_K, Q5_K, Q6_K, IQ4_XS,

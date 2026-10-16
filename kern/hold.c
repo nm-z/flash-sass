@@ -114,7 +114,7 @@ static const gguf_tensor *blk_tensor(const gguf_file *g, int b, const char *suf)
 
 /* ---- the split: which rows (or experts) of a tensor this die keeps ---- */
 typedef struct { int r0, n; } range_t;
-typedef struct { range_t r[4]; int nr; int rows_total; int experts; } sel_t;   /* rows_total: rows the ranges index */
+typedef struct { range_t r[6]; int nr; int rows_total; int experts; } sel_t;   /* rows_total: rows the ranges index */
 static int split_on;
 static split_t SP;
 static void sel_whole(sel_t *s, int rows, int experts) { s->nr = 1; s->r[0].r0 = 0; s->r[0].n = experts > 1 ? experts : rows; s->rows_total = rows; s->experts = experts; }
@@ -133,7 +133,11 @@ static void select_rows(const char *name, int rows, int experts, sel_t *s) {
 	if (!strcmp(x, "hc_attn_dj.weight") || !strcmp(x, "hc_ffn_dj.weight")) { s->nr = 1; s->r[0] = (range_t){ p->dj0, p->djn }; }
 	else if (!strcmp(x, "hc_attn_up.weight") || !strcmp(x, "hc_ffn_up.weight")) { s->nr = 4; for (int l = 0; l < 4; l++) s->r[l] = (range_t){ 2560 * l + 32 * p->cb0, 32 * p->cbn }; }
 	else if (!strcmp(x, "attn_qkv.weight") || !strcmp(x, "ssm_conv1d.weight")) {
-		s->nr = 3; s->r[0] = (range_t){ 128 * p->klo, 128 * p->nk }; s->r[1] = (range_t){ 2048 + 128 * p->klo, 128 * p->nk }; s->r[2] = (range_t){ 4096 + 128 * p->h0, 128 * p->hn };
+		/* key heads (klo + j) % 16, j < nk: one range, or two when it wraps past head 15 */
+		int n1 = p->klo + p->nk <= 16 ? p->nk : 16 - p->klo, n2 = p->nk - n1; s->nr = 0;
+		s->r[s->nr++] = (range_t){ 128 * p->klo, 128 * n1 }; if (n2) s->r[s->nr++] = (range_t){ 0, 128 * n2 };
+		s->r[s->nr++] = (range_t){ 2048 + 128 * p->klo, 128 * n1 }; if (n2) s->r[s->nr++] = (range_t){ 2048, 128 * n2 };
+		s->r[s->nr++] = (range_t){ 4096 + 128 * p->h0, 128 * p->hn };
 	}
 	else if (!strcmp(x, "attn_gate.weight")) { s->nr = 1; s->r[0] = (range_t){ 128 * p->h0, 128 * p->hn }; }
 	else if (!strcmp(x, "ssm_ab.weight") || !strcmp(x, "ssm_ab.bias")) { s->nr = 2; s->r[0] = (range_t){ p->h0, p->hn }; s->r[1] = (range_t){ 48 + p->h0, p->hn }; s->rows_total = 96; }

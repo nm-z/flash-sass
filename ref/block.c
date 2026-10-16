@@ -77,7 +77,7 @@ void deltanet_block_gpu(const dn_hweights_t *w, dn_hbufs_t *b, unsigned t, float
 	for (int h = 0; h < 96; h++) b->a[h] = b->a[h] + w->ssm_ab_bias[h];
 	conv1d_silu_gpu(b->qkv, &b->conv_state[0][0], w->ssm_conv1d, t, b->u, 10240);
 	for (int h = 0; h < 48; h++)
-		deltanet_step_gpu(b->dn_state + (size_t)h * 16384, b->u + 128 * (h / 3), b->u + 2048 + 128 * (h / 3), b->u + 4096 + 128 * h, b->a[h], bb[h], w->ssm_a[h], eps, b->o + 128 * h);
+		deltanet_step_gpu(b->dn_state + (size_t)h * 16384, b->u + 128 * (h % 16), b->u + 2048 + 128 * (h % 16), b->u + 4096 + 128 * h, b->a[h], bb[h], w->ssm_a[h], eps, b->o + 128 * h);
 	dnnorm_gpu(b->o, w->ssm_norm, b->gate, eps, b->on);
 	quant_act_gpu32(b->on, 6144, b->oq, b->os32, b->os16, b->oas);
 	q16to8(b->oq, oq8, 6144);

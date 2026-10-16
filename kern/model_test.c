@@ -379,6 +379,15 @@ int main(int argc, char **argv) {
 				if (hs[b].ple_state) memcpy(hs[b].ple_state, hb->ple_state, sizeof hb->ple_state);
 			}
 			if (do_head) { head_gpu(&hwb[0], hb, eps, nd); tok_twin = hb->tok; }
+			if (getenv("MODEL_DUMP_TWIN") && t == T - 1) {   /* the twin's intermediates of the last block (layer comparisons) */
+				const char *dir = getenv("MODEL_DUMP_TWIN"); char fn[600];
+				struct { const char *name; const void *p; size_t bytes; } bufs[] = {
+					{ "S", hb->S, 4 * 10240 }, { "xh", hb->xh, 4 * 10240 }, { "z", hb->z, 4 * 2560 }, { "qkv", hb->qkv, 4 * 10240 }, { "gate", hb->gate, 4 * 6144 }, { "a", hb->a, 4 * 96 },
+					{ "u", hb->u, 4 * 10240 }, { "o", hb->o, 4 * 6144 }, { "on", hb->on, 4 * 6144 }, { "y", hb->y, 4 * 2560 }, { "r", hb->r, 4 * 513 }, { "out", hb->out, 4 * 2560 }, { "t", hb->t, 4 * 324 }, { "up", hb->up, 4 * 10240 },
+				};
+				for (size_t i = 0; i < sizeof bufs / sizeof *bufs; i++) { snprintf(fn, sizeof fn, "%s/%s.bin", dir, bufs[i].name); FILE *f = fopen(fn, "wb"); if (f) { fwrite(bufs[i].p, 1, bufs[i].bytes, f); fclose(f); } }
+				printf("  twin buffers dumped to %s\n", dir);
+			}
 		}
 		double t1 = now();
 		prog_t P[MAXD]; unsigned nph[MAXD];
@@ -437,6 +446,28 @@ int main(int argc, char **argv) {
 			free(ts);
 		}
 		for (int d = 0; d < nd; d++) prog_free(&P[d]);
+	}
+	if (getenv("MODEL_DUMP_DIR")) {   /* die 0's whole-vector buffers after the last launch (with MODEL_NPH: a snapshot mid-block) */
+		const char *dir = getenv("MODEL_DUMP_DIR"); char fn[600]; CK(cuCtxSetCurrent(ctx[0]));
+		struct { const char *name; CUdeviceptr p; size_t bytes; } bufs[] = {
+			{ "S", db[0].S, 4 * 10240 }, { "xh", db[0].xh, 4 * 10240 }, { "t", db[0].t, 4 * 324 }, { "r", db[0].r, 4 * 513 }, { "out", db[0].out, 4 * 2560 },
+			{ "part", db[0].part, 4 * 2560 }, { "inbox0", xc[0].inbox, 4 * 10240 }, { "inbox1", xc[0].inbox + XSLOT, 4 * 10240 }, { "idx", db[0].idx, 40 }, { "w", db[0].w, 40 },
+		};
+		for (size_t i = 0; i < sizeof bufs / sizeof *bufs; i++) {
+			void *h = malloc(bufs[i].bytes); CK(cuMemcpyDtoH(h, bufs[i].p, bufs[i].bytes));
+			snprintf(fn, sizeof fn, "%s/%s.bin", dir, bufs[i].name); FILE *f = fopen(fn, "wb"); if (f) { fwrite(h, 1, bufs[i].bytes, f); fclose(f); }
+			free(h);
+		}
+		/* z: the quantised MoE/qkv input, dequantised (int16 codes x per-32 scale) */
+		int16_t *q = malloc(2 * 2560); float *as = malloc(4 * 80), *z = malloc(4 * 2560);
+		CK(cuMemcpyDtoH(q, db[0].zq, 2 * 2560)); CK(cuMemcpyDtoH(as, db[0].zas, 4 * 80));
+		for (int i = 0; i < 2560; i++) z[i] = (float)q[i] * as[i / 32];
+		snprintf(fn, sizeof fn, "%s/z.bin", dir); FILE *f = fopen(fn, "wb"); if (f) { fwrite(z, 4, 2560, f); fclose(f); }
+		int16_t *oq = malloc(2 * 6144); float *oas = malloc(4 * 192), *o = malloc(4 * 6144);
+		CK(cuMemcpyDtoH(oq, db[0].oq, 2 * 6144)); CK(cuMemcpyDtoH(oas, db[0].oas, 4 * 192));
+		for (int i = 0; i < 6144; i++) o[i] = (float)oq[i] * oas[i / 32];
+		snprintf(fn, sizeof fn, "%s/on.bin", dir); f = fopen(fn, "wb"); if (f) { fwrite(o, 4, 6144, f); fclose(f); }
+		printf("  dumped die 0 buffers to %s\n", dir);
 	}
 	if (getenv("MODEL_DUMP_S")) {   /* die 0's stream after the last token (reference comparisons per block prefix) */
 		float *S = malloc(4 * 10240); CK(cuCtxSetCurrent(ctx[0])); CK(cuMemcpyDtoH(S, db[0].S, 4 * 10240));

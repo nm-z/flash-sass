@@ -359,13 +359,15 @@ int main(int argc, char **argv) {
 				bad += cmpbuf("ly", hb->y + s->y0, db[d].ly, 4u * (unsigned)s->yn, 4);
 			} else {   /* attention-side locals (not overwritten by the FFN half) */
 				unsigned nk = (unsigned)s->nk, hn = (unsigned)s->hn;
-				bad += cmpbuf("lqkv.q", hb->qkv + 128 * s->klo, db[d].lqkv, 4 * 128 * nk, 4);
-				bad += cmpbuf("lqkv.k", hb->qkv + 2048 + 128 * s->klo, db[d].lqkv + 4 * 128 * nk, 4 * 128 * nk, 4);
+				float kq[128 * 16], kk[128 * 16], ku[128 * 16];   /* the die's key heads (klo + j) % 16, in its local order */
+				for (unsigned j = 0; j < nk; j++) { int kh = (s->klo + (int)j) % 16; memcpy(kq + 128 * j, hb->qkv + 128 * kh, 512); memcpy(kk + 128 * j, hb->qkv + 2048 + 128 * kh, 512); memcpy(ku + 128 * j, hb->u + 128 * kh, 512); }
+				bad += cmpbuf("lqkv.q", kq, db[d].lqkv, 4 * 128 * nk, 4);
+				bad += cmpbuf("lqkv.k", kk, db[d].lqkv + 4 * 128 * nk, 4 * 128 * nk, 4);
 				bad += cmpbuf("lqkv.v", hb->qkv + 4096 + 128 * s->h0, db[d].lqkv + 4 * 256 * nk, 4 * 128 * hn, 4);
 				bad += cmpbuf("lgate", hb->gate + 128 * s->h0, db[d].lgate, 4 * 128 * hn, 4);
 				bad += cmpbuf("la", hb->a + s->h0, db[d].la, 4 * hn, 4);
 				bad += cmpbuf("lb", hb->a + 48 + s->h0, db[d].la + 4 * hn, 4 * hn, 4);
-				bad += cmpbuf("lu.q", hb->u + 128 * s->klo, db[d].lu, 4 * 128 * nk, 4);
+				bad += cmpbuf("lu.q", ku, db[d].lu, 4 * 128 * nk, 4);
 				bad += cmpbuf("lu.v", hb->u + 4096 + 128 * s->h0, db[d].lu + 4 * 256 * nk, 4 * 128 * hn, 4);
 				bad += cmpbuf("lo", hb->o + 128 * s->h0, db[d].lo, 4 * 128 * hn, 4);
 				bad += cmpbuf("oq", hb->oq, db[d].oq, 2 * 6144, 2);

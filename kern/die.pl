@@ -47,7 +47,7 @@ my @OPS = (
     [ 'hcmixx',     'hcops.sass',       'cta',  { HC_OP => 'mix', HC_XOUT => 1 } ],
     [ 'hcwrite',    'hcops.sass',       'cta',  { HC_OP => 'write' } ],
     [ 'conv1d',     'conv1d.sass',      'cta',  {} ],
-    [ 'dnstep',     'dnstep.sass',      'cta',  {} ],
+    [ 'dnstep',     'dnstep.sass',      'cta',  { DN_TILED => 1 } ],   # local value head j reads local key head j % 16 (value head h pairs with key head h % 16)
     [ 'dnnorm',     'dnnorm.sass',      'warp', {} ],
     [ 'dnnormx',    'dnnorm.sass',      'warp', { DN_XOUT => 1 } ],
     [ 'router',     'router.sass',      'warp', {} ],
