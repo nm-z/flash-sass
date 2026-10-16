@@ -1472,3 +1472,29 @@ remounts it when missing (`mount -t nfs -o ro,vers=3,hard,rsize=1048576`).
   `max_tokens` is exact (the engine returns n_new + 1 tokens, so flashd asks for max_tokens - 1).
   `prof` (engine command) prints where the last token spent its time, per op and the longest phases,
   from the phase timestamps CTA 0 writes: that is how the slow exchanges were found.
+
+## Chat page, length limits, image input (2026-10-16)
+
+- **Limits in `flashd`**: reasoning at most 262,144 tokens and the final answer at most
+  131,072 (`REASONING_MAX`, `ANSWER_MAX`; counted on non-special tokens, split at `</think>`;
+  `/props` reports both). The engine has no penalties, which is what thinking mode asks for
+  (`presence_penalty` 0.0, `repetition_penalty` 1.0): a request that sets other values gets a
+  400 instead of being silently ignored.
+- **Context is not 262,144 yet**: the engine runs `FLASH_MAXT` = 4096 positions and `/props`
+  says so (the page's context ring uses it). Blockers: the indexer (top-2048 sparse
+  attention) is not implemented, which only matters beyond 2048 keys; the attention KV at
+  262,144 positions is about 7.1 GB in fp16 against roughly 4.3 GB of free VRAM on the
+  attention die; prefill runs at ~37 tokens/s, so a full window takes about two hours.
+- **Image input**: the Qwen repo's `preprocessor_config.json`, `video_preprocessor_config.json`
+  and `generation_config.json` are in `kern/vision/` (downloaded from
+  `Qwen/Qwen3.8-Flash-Next`). Image: patch 16, merge 2, mean/std 0.5, pixels 65,536 to
+  16,777,216; video: the same normalisation and patching, `temporal_patch_size` 2, pixels
+  4,096 to 25,165,824 over the whole clip. The chat page resizes a pasted image with the
+  processor's `smart_resize` (sides a multiple of 32), capped at 1,048,576 pixels (1,024
+  visual tokens), and sends it as a JPEG data URL. There is no vision encoder in the engine:
+  the GGUF has no vision tensors, `flashd` answers 400 to an image part, and `/props` says
+  `modalities.vision: false`, so the gateway and page treat the model as text-only (the page
+  accepts a paste only for a model that reports vision). The encoder is in
+  `mmproj-F16.gguf` (qwen3vl_merger, ViT 1152 wide × 27 layers, deepstack); using it means
+  running it (CPU or its own kernel), putting its output rows into the embedding stream, and
+  giving the 3-axis rope positions of image tokens to the attention blocks.
