@@ -495,6 +495,20 @@ the hyper-connection norms, `ssm_norm`, q/k norms, indexer norms and PLE norms.
   fill. (Checked on the way with `kern/bartest.sass`: one write barrier tracks at
   least 24 outstanding LDG.128s correctly, with slow host-mapped loads, plain or
   .CI, so the wait-mask semantics are counting.)
+- **Per-32 activation scales in the GEMVs** (all formats, all bit-exact): one
+  extra FMUL per sub-block. Q2_0 was the only kernel that could not afford the
+  five scale registers (128 → 133 pushed it to 1 CTA/SM and 125 GB/s), so it
+  parks them in shared memory (20 B per thread, STS once in the prologue, one
+  LDS per half-block into the just-consumed d register) and is back to 128
+  registers, 2 CTAs/SM and 139–140 GB/s. MaxAs keeps the skeleton's `.shared`
+  declaration (5120 B shows in the function attributes).
+- **Transcendentals** (`kern/fmath.pl`, twin `ref/fmath.c`): exp, rcp, sigmoid,
+  SiLU, log1p, softplus from IEEE FADD/FMUL/FFMA/FMNMX/F2I and the rcp_rn
+  sequence only — no MUFU.EX2/LG2 — so every consumer (gates, softmax, decay)
+  has a bit-exact C twin. exp: n = rint(x·log2e) by the 1.5·2^23 trick, r by a
+  two-part ln2, degree-6 Taylor (≤ 1 ulp-ish at |r| ≤ ln2/2), 2^n by integer
+  exponent bits; log1p(e) for e ∈ [0,1] by the atanh series in e/(2+e) to u^11.
+  Constants that are not 20-bit-representable live in registers (`fm_consts`).
 - Register-bank note: in the K-quant streams the mask for field v and the
   activation register of the same XMAD share a bank for 2 of every 8 XMADs, and
   the combine's `acc_v + acc_{v+4}` pairs share banks (MaxAs reports 187

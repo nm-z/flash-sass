@@ -191,3 +191,14 @@ skel_bartest.cubin: bartest.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ $<
 bartest_test: bartest_test.c
 	$(CC) -std=gnu99 -O2 -Wall -o $@ bartest_test.c -I$(CUDA)/include -lcuda
+
+# transcendental library test
+skel_fmath.cubin: fmath.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+fmath.cubin: fmath.sass fmath.pl skel_fmath.cubin
+	cp skel_fmath.cubin $@
+	$(MAXAS) -i fmath.sass $@
+
+fmath_test: fmath_test.c ../ref/fmath.c ../ref/fmath.h
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ fmath_test.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm

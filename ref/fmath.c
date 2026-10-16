@@ -13,7 +13,7 @@ float exp_gpu(float x) {
 	const float ln2hi = 0.693145751953125f;                  /* 0x3f317200 */
 	const float ln2lo = 1.428606765330187045e-06f;           /* 0x35bfbe8e */
 	const float magic = 12582912.0f;                         /* 1.5 * 2^23 */
-	if (x > 88.0f) x = 88.0f;
+	if (x > 87.0f) x = 87.0f;
 	if (x < -87.0f) x = -87.0f;
 	float t = x * log2e;
 	float n = (t + magic) - magic;                           /* rint(t) */

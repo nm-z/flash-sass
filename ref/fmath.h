@@ -1,6 +1,6 @@
 /* Transcendentals exactly as the SASS library kern/fmath.pl computes them: only
  * IEEE fp32 adds, multiplies and fmaf plus the rcp_rn sequence, so a C twin is
- * bit-exact. Ranges: exp for x in [-87, 88] (clamped), the rest as noted. */
+ * bit-exact. Ranges: exp for x in [-87, 87] (clamped so that 1/(1+exp) stays normal for the rcp fast path), the rest as noted. */
 #ifndef FLASH_FMATH_H
 #define FLASH_FMATH_H
 float exp_gpu(float x);        /* 2^n * p(r), n = rint(x log2e), |r| <= ln2/2, degree-6 Taylor */

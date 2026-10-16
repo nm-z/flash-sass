@@ -7,7 +7,7 @@
 # care. Constants live in registers named by the %C hash (see fm_consts).
 #
 #   fm_consts(\%C)                        MOV32I the constants into their registers
-#   fm_exp($dst, $x, $t1, $t2, $t3, \%C)  dst = exp(clamp(x, -87, 88)); x is left clamped
+#   fm_exp($dst, $x, $t1, $t2, $t3, \%C)  dst = exp(clamp(x, -87, 87)); x is left clamped
 #   fm_rcp($dst, $x, $t1, \%C)            dst = 1/x (IEEE for normal x < 2^125)
 #   fm_sigmoid($dst, $x, $t1, $t2, $t3, $t4, \%C)
 #   fm_silu($dst, $x, $t1, $t2, $t3, $t4, $t5, \%C)   (x must differ from the temps)
@@ -21,7 +21,7 @@ our %FM_CONST = (
     log2e => 0x3fb8aa3b, ln2hi => 0x3f317200, ln2lo => 0x35bfbe8e,
     c720 => 0x3ab60b61, c120 => 0x3c088889, c24 => 0x3d2aaaab, c6 => 0x3e2aaaab,
     c11 => 0x3dba2e8c, c9 => 0x3de38e39, c7 => 0x3e124925, c5 => 0x3e4ccccd, c3 => 0x3eaaaaab,
-    mneg1 => 0xbf800000,
+    mneg1 => 0xbf800000, chalf => 0x3f000000, cone => 0x3f800000,
 );
 
 sub fm_consts {
@@ -49,7 +49,7 @@ sub fm_rcp {
 sub fm_exp {
     my ($dst, $x, $t1, $t2, $t3, $C) = @_;
     my $o = '';
-    $o .= sprintf "--:-:-:-:6      FMNMX %s, %s, 88, PT;\n", $x, $x;            # min
+    $o .= sprintf "--:-:-:-:6      FMNMX %s, %s, 87, PT;\n", $x, $x;            # min
     $o .= sprintf "--:-:-:-:6      FMNMX %s, %s, -87, !PT;\n", $x, $x;          # max
     $o .= sprintf "--:-:-:-:6      FMUL %s, %s, %s;\n", $t1, $x, $C->{log2e};
     $o .= sprintf "--:-:-:-:6      FADD %s, %s, 12582912;\n", $t2, $t1;
@@ -59,9 +59,9 @@ sub fm_exp {
     $o .= sprintf "--:-:-:-:6      FFMA %s, %s, %s, %s;\n", $t1, $C->{c720}, $t3, $C->{c120};
     $o .= sprintf "--:-:-:-:6      FFMA %s, %s, %s, %s;\n", $t1, $t1, $t3, $C->{c24};
     $o .= sprintf "--:-:-:-:6      FFMA %s, %s, %s, %s;\n", $t1, $t1, $t3, $C->{c6};
-    $o .= sprintf "--:-:-:-:6      FFMA %s, %s, %s, 0.5;\n", $t1, $t1, $t3;
-    $o .= sprintf "--:-:-:-:6      FFMA %s, %s, %s, 1;\n", $t1, $t1, $t3;
-    $o .= sprintf "--:-:-:-:6      FFMA %s, %s, %s, 1;\n", $t1, $t1, $t3;
+    $o .= sprintf "--:-:-:-:6      FFMA %s, %s, %s, %s;\n", $t1, $t1, $t3, $C->{chalf};
+    $o .= sprintf "--:-:-:-:6      FFMA %s, %s, %s, %s;\n", $t1, $t1, $t3, $C->{cone};
+    $o .= sprintf "--:-:-:-:6      FFMA %s, %s, %s, %s;\n", $t1, $t1, $t3, $C->{cone};
     $o .= sprintf "--:-:3:-:2      F2I.S32.F32 %s, %s;\n", $t2, $t2;
     $o .= sprintf "04:-:-:-:6      IADD %s, %s, 0x7f;\n", $t2, $t2;
     $o .= sprintf "--:-:-:-:6      SHL %s, %s, 0x17;\n", $t2, $t2;              # bits of 2^n
@@ -98,7 +98,7 @@ sub fm_log1p {
     $o .= sprintf "--:-:-:-:6      FFMA %s, %s, %s, %s;\n", $t3, $t3, $t2, $C->{c7};
     $o .= sprintf "--:-:-:-:6      FFMA %s, %s, %s, %s;\n", $t3, $t3, $t2, $C->{c5};
     $o .= sprintf "--:-:-:-:6      FFMA %s, %s, %s, %s;\n", $t3, $t3, $t2, $C->{c3};
-    $o .= sprintf "--:-:-:-:6      FFMA %s, %s, %s, 1;\n", $t3, $t3, $t2;
+    $o .= sprintf "--:-:-:-:6      FFMA %s, %s, %s, %s;\n", $t3, $t3, $t2, $C->{cone};
     $o .= sprintf "--:-:-:-:6      FMUL %s, %s, 2;\n", $t1, $t1;
     $o .= sprintf "--:-:-:-:6      FMUL %s, %s, %s;\n", $dst, $t1, $t3;
     return $o;

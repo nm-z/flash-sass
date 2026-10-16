@@ -42,6 +42,8 @@
     40    : tid
     41    : it
     42    : xc
+    43    : chalf
+    54    : cone
     44,45 : xp<0-1>
     46,47 : ep<0-1>
     48,49 : sp<0-1>
@@ -51,7 +53,7 @@
 
 <CODE>
     require './fmath.pl';
-    my %C = map { $_ => $_ } qw(log2e ln2hi ln2lo c720 c120 c24 c6 c11 c9 c7 c5 c3 mneg1);
+    my %C = map { $_ => $_ } qw(log2e ln2hi ln2lo c720 c120 c24 c6 c11 c9 c7 c5 c3 mneg1 chalf cone);
     my $o = '';
     $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
     $o .= fm_consts(\%C);
