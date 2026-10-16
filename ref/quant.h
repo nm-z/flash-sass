@@ -32,4 +32,13 @@ void gemv_q2_0_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const
 /* plain fp32 dot of the dequantised row with the dequantised activations, for sanity */
 void gemv_q2_0_float(const uint8_t *src, int rows, int K, const float *x, float *y);
 
+
+/* v2 layout (lane = row): the per-block (64) activation sums, negated, as the
+ * kernel's XMAD addend wants them. nsum64 has K/64 entries. */
+void act_nsum64(const int8_t *q, int32_t *nsum64, int n);
+
+/* y[r] computed in the v2 kernel's order: one lane per row, blocks 0..B-1 in
+ * sequence, acc = fma(fp32(d_b), float(dot_b + nsum64[b]), acc), then * xscale. */
+void gemv_q2_0_ref_v2(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *nsum64, float xscale, float *y);
+
 #endif

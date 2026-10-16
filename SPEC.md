@@ -227,7 +227,42 @@ head and runs slower (811 MHz measured), so it gets fewer blocks.
   0, 7, 511 and for all 327,680 rows at once (236 MB), with random, all-ones and
   alternating activations. Verified by `kern/gemv_test`.
 - Speed: 57 GB/s of tile on the full tensor (4.1 ms), 36 GB/s on one expert
-  (launch-bound at 13 µs). Roofline is ~160 GB/s; profiling and scheduling next.
+  (launch-bound at 13 µs). Measured device roofline (`probe bw`, LDG.128
+  streaming, plain or read-only path): **145 GB/s**. Decomposition on the full
+  tensor: loads only 3.5 ms (67 GB/s), compute only 3.1 ms, both 4.1 ms; the
+  10 small scale loads cost nothing, plain LDG is slower than LDG.CI (6.1 ms).
+  Ruled out by microbenchmarks (`kern/xmadbench.sass`): the instruction forms
+  (XMAD.U16.S16 with H1 selects 106/clk/SM, LOP32I 117, the GEMV mix 76) and the
+  instruction cache (no cliff up to a 25 KB loop body). Per-warp iteration time
+  in the load-only build is ~5.5 µs for 10 loads, which no latency explains;
+  clock-stamp instrumentation (`GEMV_TIMING`) is measuring where it goes.
+- **Found (2026-10-16 02:00)**: the 57 GB/s was an artefact of launching one
+  16-row iteration per CTA (20,480 CTAs each reloading the 5 KB activation
+  vector); with a persistent-style grid (32–96 CTAs looping over rows) the loop
+  body runs at memory speed. Two Maxwell rules surfaced while making the loop
+  correct, both measured with build variants:
+  1. **A predicate written by ISETP must not be consumed for ~18 cycles.** A
+     `@P BRA` 6–13 cycles after its ISETP reads the *previous* predicate value
+     (the loop ran once); so did `@P2 STG` 7 cycles after its ISETP (the flaky
+     K=640 rows: whether a lane stored depended on leftover predicate state).
+     Fix: compute P1/P2 at the loop top, far from their consumers. ptxas keeps
+     ≥13 cycles plus a yield before predicated branches.
+  2. MaxAs's automatic operand-reuse flags are suspect around the pointer bumps
+     (`SHL t, rowstep.reuse` followed by an instruction with a different slot-a
+     register); builds with `-n` (no reuse flags) behaved differently. Pending the
+     research notes, kernels are built with `-n` unless measured otherwise.
+- **Die plan (Nate, 02:10)**: the model fits on dies 0–5 (47.7 GB): 8 transformer
+  blocks per die would put head + MTP over 8 GB on die 5, so use 9/9/9/9/8/4
+  blocks with `output.weight` (0.44 GB) + MTP on die 5 (Q4_K_M 2.8 GB is on archy;
+  Q8_0 4.1 GB fits only with ≤4 blocks). Dies 6/7 sit behind a gen2 x2 slot and
+  stay off the token path; the middle board is x8, fine for the 40 KB hop.
+- v2 plan, still worth doing for register count and generality: **lane = row**. A warp
+  owns 32 rows, all lanes walk the same k, activations are broadcast from shared
+  memory (LDS.128 = 8 int16, conflict-free broadcast), the Σa offsets become
+  per-block constants, no SHFL reduction, no 80-register activation footprint,
+  one LDG.128 per block per lane, ~1.8 issue slots per MAC, ~75 registers. The
+  same structure serves the persistent kernel (a warp takes a 32-row chunk of
+  any matvec) and the other formats.
 - Toolchain fixes needed on the way, all in `maxas-patch/` and applied on archy:
   `ISCADD R.CC` in the grammar; **EIATTR_REGCOUNT** in the global `.nv.info` is what
   the 470 driver reads for the register count (MaxAs only rewrote the section

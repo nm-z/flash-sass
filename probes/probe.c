@@ -379,6 +379,7 @@ static void probe_bar(void) {
 	}
 }
 
+static void probe_bw(void);
 static void probe_pin(double gib) {
 	size_t bytes = (size_t)(gib * (1ull << 30));
 	printf("\n== pin %.1f GiB of host memory ==\n", gib);
@@ -411,5 +412,36 @@ int main(int argc, char **argv) {
 	if (all || !strcmp(what, "xmad")) probe_xmad();
 	if (all || !strcmp(what, "bar")) probe_bar();
 	if (!strcmp(what, "pin")) probe_pin(gib);
+	if (!strcmp(what, "bw")) probe_bw();
 	return 0;
+}
+
+/* appended: device streaming bandwidth with 16 B per lane per load */
+static void probe_bw(void) {
+	printf("\n== device streaming read bandwidth (1 GiB, 16 B per lane) ==\n");
+	CK(cuCtxSetCurrent(ctx[0]));
+	size_t bytes = 1ull << 30;
+	CUdeviceptr d, dout;
+	CK(cuMemAlloc(&d, bytes));
+	CK(cuMemsetD32(d, 0x01020304, bytes / 4));
+	const char *names[] = { "stream", "stream_nc" };
+	unsigned grids[] = { 16, 32, 64, 128 };
+	for (int k = 0; k < 2; k++) {
+		CUfunction f = fn(0, names[k]);
+		for (unsigned g = 0; g < 4; g++) {
+			unsigned grid = grids[g] * sms[0], threads = 256;
+			CK(cuMemAlloc(&dout, (size_t)grid * threads * 4));
+			unsigned n = (unsigned)(bytes / 16);
+			void *p[] = { &d, &n, &dout };
+			CK(cuLaunchKernel(f, grid, 1, 1, threads, 1, 1, 0, strm[0], p, NULL));
+			CK(cuStreamSynchronize(strm[0]));
+			double t0 = now();
+			for (int r = 0; r < 3; r++) CK(cuLaunchKernel(f, grid, 1, 1, threads, 1, 1, 0, strm[0], p, NULL));
+			CK(cuStreamSynchronize(strm[0]));
+			double t1 = now();
+			printf("%-10s grid %5u x %u: %.1f GB/s\n", names[k], grid, threads, 3.0 * bytes / (t1 - t0) / 1e9);
+			CK(cuMemFree(dout));
+		}
+	}
+	CK(cuMemFree(d));
 }

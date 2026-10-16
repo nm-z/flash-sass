@@ -265,3 +265,27 @@ void gemv_q2_0_float(const uint8_t *src, int rows, int K, const float *x, float 
 		y[r] = (float)s;
 	}
 }
+
+void act_nsum64(const int8_t *q, int32_t *nsum64, int n) {
+	for (int b = 0; b < n / 64; b++) {
+		int32_t s = 0;
+		for (int j = 0; j < 64; j++) s += q[64 * b + j];
+		nsum64[b] = -s;
+	}
+}
+
+void gemv_q2_0_ref_v2(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *nsum64, float xscale, float *y) {
+	int B = K / 64, stride = q2_0_tile_stride(K), scales = stride - 16 * B;
+	for (int r = 0; r < rows; r++) {
+		const uint8_t *row = tile + (size_t)r * stride;
+		float acc = 0.f;
+		for (int b = 0; b < B; b++) {
+			const uint8_t *qs = row + scales + 16 * b;
+			int32_t dot = 0;
+			for (int j = 0; j < 64; j++) dot += ((qs[j >> 2] >> (2 * (j & 3))) & 3) * xq[64 * b + j];
+			float d = fp16_to_fp32(ld16(row + 2 * b));
+			acc = fmaf(d, (float)(dot + nsum64[b]), acc);
+		}
+		y[r] = acc * xscale;
+	}
+}

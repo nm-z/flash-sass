@@ -140,7 +140,7 @@
     $o .= "--:-:-:-:6      SHL t1, row, 0x2;\n";
     $o .= "--:-:-:-:6      IADD yp0.CC, t1, param_Y0;\n";
     $o .= "--:-:-:-:6      IADD.X yp1, RZ, param_Y1;\n";
-    if ($ENV{GEMV_TRACE}) {
+    if ($ENV{GEMV_TRACE} || $ENV{GEMV_TIMING} || $ENV{GEMV_DPONLY}) {
         # dp = D + 48 L row + 48 lane (12 words per lane per row)
         $o .= $mulc->('t0', 'row', 48 * $L);
         $o .= $mulc->('t1', 'lane', 48);
@@ -172,6 +172,11 @@
 
 LOOP:
 <CODE>
+    my $o = $ENV{GEMV_TIMING} ? "--:-:-:-:6      CS2R acc0, SR_CLOCKLO;\n" : "";
+    $o .= "--:-:-:-:6      MOV dp0, param_D0;\n--:-:-:-:6      MOV dp1, param_D1;\n--:-:-:-:6      MOV m0, 0x1;\n--:-:-:-:6      RED.E.ADD [dp], m0;\n" if $ENV{GEMV_COUNT};
+    return $o;
+</CODE>
+<CODE>
     my $K = $ENV{GEMV_K} || 2560;
     my $L = ($K / 32) / 5;
     my $ci = $ENV{GEMV_NOCI} ? '' : '.CI';
@@ -179,28 +184,40 @@ LOOP:
     my $o = '';
     unless ($ENV{GEMV_NOSCALE}) {
         for my $i (0..4) {
-            $o .= sprintf "--:2:1:-:1      LDG.E%s.U16 d%d, [ws+0x%x];\n", $ci, $i, $L*$i;
+            $o .= sprintf "--:2:%s:-:1      LDG.E%s.U16 d%d, [ws+0x%x];\n", $ENV{GEMV_SCALEBAR} || 1, $ci, $i, $L*$i;
         }
     }
     for my $i (0..4) {
-        $o .= sprintf "--:2:1:-:%s      LDG.E%s.64 q%d, [wq+0x%x];\n", $i == 4 ? '2' : '1', $ci, 2*$i, 8*$L*$i;
+        $o .= sprintf "--:2:1:-:%s      LDG.E%s.64 q%d, [wq+0x%x];\n", $i == 4 ? ($ENV{GEMV_LASTSTALL} || 2) : 1, $ci, 2*$i, 8*$L*$i;
     }
     return $o;
 </CODE>
---:-:-:-:2      MOV accf, RZ;
+// Predicates for this row, computed here because their consumers are hundreds of
+// cycles away: a predicate written by ISETP is not safe to read until ~18 cycles
+// later (measured on the M60; 6-13 cycle gaps read the previous value).
+// P2: store this row; P1: run another iteration after this one.
+--:-:-:-:1      ISETP.LT.U32.AND P2, PT, row, param_rows, P0;
+--:-:-:-:1      IADD rowpair, rowpair, rowstep;
+--:-:-:-:6      MOV accf, RZ;
+--:-:-:-:2      ISETP.LT.U32.AND P1, PT, rowpair, param_rows, PT;
 <CODE>
     my $trace = $ENV{GEMV_TRACE} ? 1 : 0;
     my @out;
-    return "03:-:-:-:6      MOV accf, RZ;\n" if $ENV{GEMV_NOCOMPUTE};
+    if ($ENV{GEMV_NOCOMPUTE}) {
+        my $o = "03:-:-:-:6      MOV accf, RZ;\n";
+        $o .= "--:-:-:-:6      CS2R acc1, SR_CLOCKLO;\n" if $ENV{GEMV_TIMING};
+        return $o;
+    }
     for my $i (0..4) {
         # scale to fp32 first; its consumer is the FFMA at the end of this half-block
-        my $wait = $i == 0 ? '03' : '--';
+        my $wait = $i == 0 ? ($ENV{GEMV_SCALEBAR} ? sprintf("%02x", 3 | (1 << ($ENV{GEMV_SCALEBAR} - 1))) : '03') : '--';
         push @out, sprintf "%s:-:4:-:2      F2F.F32.F16 t, d%d;\n", $wait, $i;
+        push @out, "--:-:-:-:6      DEPBAR.LE SB0, 0x0;\n" if $i == 0 && $ENV{GEMV_DEPBAR};
         for my $w (0..1) {
             my $q = 'q' . (2*$i + $w);
             for my $s (0..7) {
                 my $mask = sprintf '0x%08x', (0x00030003 << (2*$s)) & 0xffffffff;
-                my $wt = ($trace && $i == 1 && $w == 0 && $s == 0) ? '02' : '--';
+                my $wt = (($trace || $ENV{GEMV_TRACEWAIT}) && $i == 1 && $w == 0 && $s == 0) ? '02' : '--';
                 push @out, sprintf "%s:-:-:-:1      LOP32I.AND m%d, %s, %s;\n", $wt, $s, $q, $mask;
             }
             for my $hsel (0, 1) {
@@ -250,13 +267,15 @@ LOOP:
         $o .= "10:-:-:-:6      FADD accf, accf, t;\n";
     }
     $o .= "--:2:-:-:1      STG.E [dp+0x24], accf;\n--:2:-:-:6      STG.E [dp+0x28], row;\n" if $ENV{GEMV_TRACE};
+    $o .= "--:-:-:-:6      CS2R acc2, SR_CLOCKLO;\n" if $ENV{GEMV_TIMING};
     return $o;
 </CODE>
---:-:-:-:1      ISETP.LT.U32.AND P2, PT, row, param_rows, P0;
 --:-:-:-:6      FMUL t, accf, param_xs;
 --:2:-:-:1  @P2 STG.E [yp], t;
---:-:-:-:1      IADD row, row, rowstep;
---:-:-:-:1      IADD rowpair, rowpair, rowstep;
+<CODE>
+    # the trace build stored `row` just above; wait for that read before changing it
+    return $ENV{GEMV_TRACE} ? "02:-:-:-:6      IADD row, row, rowstep;\n" : "--:-:-:-:1      IADD row, row, rowstep;\n";
+</CODE>
 02:-:-:-:6      IADD wq0.CC, wq0, stepw;
 --:-:-:-:6      IADD.X wq1, wq1, RZ;
 --:-:-:-:6      IADD ws0.CC, ws0, stepw;
@@ -265,17 +284,23 @@ LOOP:
 --:-:-:-:6      IADD yp0.CC, yp0, t;
 --:-:-:-:6      IADD.X yp1, yp1, RZ;
 <CODE>
-    return '' unless $ENV{GEMV_TRACE};
+    return '' unless $ENV{GEMV_TRACE} || $ENV{GEMV_TIMING};
     my $K = $ENV{GEMV_K} || 2560;
     my $L = ($K / 32) / 5;
     my $c = 48 * $L;
     my @bits = grep { $c & (1 << $_) } 0..31;
     my $first = shift @bits;
-    my $o = sprintf "--:-:-:-:6      SHL t, rowstep, 0x%x;\n", $first;
+    # the trace/timing stores read dp: wait on their read barrier (2) before advancing it
+    my $o = sprintf "02:-:-:-:6      SHL t, rowstep, 0x%x;\n", $first;
     $o .= sprintf "--:-:-:-:6      ISCADD t, rowstep, t, 0x%x;\n", $_ for @bits;
+    if ($ENV{GEMV_TIMING}) {
+        $o = "--:-:-:-:6      CS2R acc3, SR_CLOCKLO;\n--:2:-:-:1      STG.E [dp], acc0;\n--:2:-:-:1      STG.E [dp+0x4], acc1;\n--:2:-:-:1      STG.E [dp+0x8], acc2;\n--:2:-:-:6      STG.E [dp+0xc], acc3;\n" . $o;
+    }
     $o .= "--:-:-:-:6      IADD dp0.CC, dp0, t;\n--:-:-:-:6      IADD.X dp1, dp1, RZ;\n";
     return $o;
 </CODE>
---:-:-:-:6      ISETP.LT.U32.AND P1, PT, rowpair, param_rows, PT;
+<CODE>
+    return $ENV{GEMV_COUNT} ? "--:-:-:-:6      MOV m0, 0x1;\n--:-:-:-:6      RED.E.ADD [dp+0x40], m0;\n--:-:-:-:6      MOV m1, 0x1;\n--:-:-:-:6  \@P1 RED.E.ADD [dp+0x80], m1;\n" : '';
+</CODE>
 --:-:-:-:6  @P1 BRA LOOP;
 --:-:-:-:f      EXIT;

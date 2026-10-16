@@ -108,6 +108,8 @@ int main(int argc, char **argv) {
 	unsigned urows = (unsigned)rows;
 	void *params[] = { &dW, &dX, &dS, &dY, &urows, &xs, &dD };
 	unsigned grid = (urows + RPC - 1) / RPC;
+	if (getenv("GEMV_GRID") && (unsigned)atoi(getenv("GEMV_GRID")) < grid) grid = (unsigned)atoi(getenv("GEMV_GRID"));
+	printf("grid %u CTAs x 256 threads, %u rows per CTA iteration\n", grid, RPC);
 	CK(cuLaunchKernel(fn, grid, 1, 1, 256, 1, 1, 0, 0, params, NULL));
 	CK(cuCtxSynchronize());
 	CK(cuMemcpyDtoH(y, dY, sizeof(float) * rows));
@@ -124,11 +126,24 @@ int main(int argc, char **argv) {
 		if (a > maxabs || isnan(a)) maxabs = a;
 	}
 	printf("%s: %d of %d rows differ (max abs %.3e)\n", bad ? "MISMATCH" : "BIT-EXACT", bad, rows, maxabs);
+	if (bad) {
+		for (int r = 0, k = 0; r < rows && k < 6; r++) if (memcmp(&y[r], &yref[r], 4)) { printf("  bad row %d: gpu %g ref %g\n", r, y[r], yref[r]); k++; }
+		if (getenv("GEMV_DEBUGROW")) { printf("  y as int for rows 0,1,16,17,512,513,528,639:"); int rr[] = { 0, 1, 16, 17, 512, 513, 528, 639 }; for (int k = 0; k < 8; k++) { uint32_t u; memcpy(&u, &y[rr[k] < rows ? rr[k] : rows - 1], 4); printf(" %u", u); } printf("\n"); }
+		printf("  bad row ranges:");
+		int start = -1, shown = 0;
+		for (int r = 0; r <= rows; r++) {
+			int isbad = r < rows && memcmp(&y[r], &yref[r], 4) != 0;
+			if (isbad && start < 0) start = r;
+			if (!isbad && start >= 0) { if (shown++ < 10) printf(" %d-%d", start, r - 1); start = -1; }
+		}
+		printf("\n");
+	}
 
 	/* per-lane trace of the first rows against the same quantities computed here */
 	if (bad) {
 		uint32_t *tr = malloc(dbg_bytes);
 		CK(cuMemcpyDtoH(tr, dD, dbg_bytes));
+		for (int r = 0; r < rows; r++) if (memcmp(&y[r], &yref[r], 4)) { printf("  raw trace of row %d lane 0:", r); for (int k = 0; k < 12; k++) printf(" %08x", tr[((size_t)r * L) * 12 + k]); printf("\n"); break; }
 		int shown = 0;
 		int B = K / 64, scales = stride - 16 * B;
 		for (int r = 0; r < rows && shown < 12; r++) {
@@ -185,6 +200,42 @@ int main(int argc, char **argv) {
 			printf("    %2d: % .6g -> % .6g\n", l, pre, post);
 		}
 		printf("  sum of the 16 pre values: %.6g\n", sum16);
+		free(tr);
+	}
+
+	/* clock stamps from a GEMV_TIMING build: words 0..3 of each (row, lane 0) trace slot */
+	if (getenv("GEMV_TIMING")) {
+		uint32_t *tr = malloc(dbg_bytes);
+		CK(cuMemcpyDtoH(tr, dD, dbg_bytes));
+		double s1 = 0, s2 = 0, s3 = 0, st = 0;
+		int n = 0;
+		for (int r = 0; r < rows; r += 32 / L) {
+			const uint32_t *g = tr + ((size_t)r * L) * 12;
+			if (!g[0] && !g[3]) continue;
+			s1 += (uint32_t)(g[1] - g[0]); s2 += (uint32_t)(g[2] - g[1]); s3 += (uint32_t)(g[3] - g[2]); st += (uint32_t)(g[3] - g[0]); n++;
+		}
+		if (n) printf("timing over %d warp-iterations: loads %.0f + reduce %.0f + epilogue %.0f = %.0f cycles per iteration (%.1f rows)\n", n, s1 / n, s2 / n, s3 / n, st / n, 32.0 / L);
+		free(tr);
+	}
+
+	if (getenv("GEMV_COUNT")) {
+		uint32_t c[64];
+		CK(cuMemcpyDtoH(c, dD, sizeof c));
+		printf("  counters: loop-top %u, epilogue-end %u, branch-taken %u (lanes x warps x CTAs = %u per iteration)\n", c[0], c[16], c[32], grid * 256);
+	}
+	if (getenv("GEMV_DUMPREGS")) {
+		uint32_t *tr = malloc(dbg_bytes);
+		CK(cuMemcpyDtoH(tr, dD, dbg_bytes));
+		unsigned rs = grid * RPC;
+		int slots[] = { 0, (int)rs, 2 * (int)rs };
+		for (int k = 0; k < 3; k++) {
+			int s = slots[k];
+			if (s >= rows) break;
+			const uint32_t *g = tr + (size_t)s * 16;
+			unsigned long long wq = dW + (unsigned long long)(s + rs) * stride + (stride - 16 * (K / 64)), ws = dW + (unsigned long long)(s + rs) * stride, yp = dY + 4ull * (s + rs);
+			printf("  after iteration %d (slot %d): row %u/%u rowpair %u/%u rowstep %u/%u stepw %u/%u\n", k + 1, s, g[0], s + rs, g[1], (s & ~1) + rs, g[2], rs, g[3], rs * stride);
+			printf("    wq %08x%08x/%016llx ws %08x%08x/%016llx yp %08x%08x/%016llx t %u/%u nsum0 %d\n", g[5], g[4], wq, g[7], g[6], ws, g[9], g[8], yp, g[10], rs * 4, (int)g[12]);
+		}
 		free(tr);
 	}
 
