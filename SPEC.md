@@ -1089,6 +1089,18 @@ j % 16 — `dnstep` built with `DN_TILED=1`), the holder's qkv/conv1d row
 selection (two ranges when the list wraps past head 15), the twin and
 `dies_test`'s slice checks. Earlier teacher-forced agreement: 2 of 7.
 
+**Reference agreement (2026-10-16, after the fix):** "The capital of France is"
+→ our free-running greedy decode gives ` Paris` `.` EOS, token for token what
+llama.cpp produces (11751 13 248046); teacher-forced over the reference's 8
+ids, our argmax equals the reference's greedy choice at all 7 positions
+(220 314 279 369 11751 13 248046; the top-3 orders agree at 6 of 7). The
+stream after every block for the one-token prompt matches llama.cpp's
+`l_last-il` sums within ~1 % through all 48 layers (int8 activation noise);
+summed over the 5 prompt positions likewise through block 39 (llama.cpp crops
+its last layer to the output row). `model_test`'s die buffers for the qkv and
+conv rows are now sized by the die's key-head count (the old `2 * 4` heads
+overflowed with nk up to 9 and produced garbage before this was noticed).
+
 **Dequantization against ggml (2026-10-16):** `ref/deqcheck` (built against the
 llama.cpp tree's libggml-base) compares `ref/quant.c`'s `dequant()` with ggml's
 `dequantize_row_*` on real rows of the GGUF: Q2_0, Q3_K, Q4_K, Q5_K, Q6_K, IQ4_XS,
@@ -1154,10 +1166,10 @@ used for the Q8_0 tensors of the main model.
   (`nvidia-smi -r` refuses). With die 2 back the same program should land
   near 25–30 ms per token before any further code work.
 - The reference comparison (upstream llama.cpp on archy's CPU) found one real
-  bug — the DeltaNet value→key head pairing (h mod 16, not ⌊h/3⌋); with it
-  fixed the C twin matches llama.cpp through block 0 to int8 noise. The
-  six-die re-validation and the teacher-forced agreement with the corrected
-  holders are the next results to read.
+  bug — the DeltaNet value→key head pairing (h mod 16, not ⌊h/3⌋). Fixed, the
+  six-die engine reproduces llama.cpp's greedy tokens on the first prompt and
+  its per-layer streams to ~1 %; blocks 0–4 and 3 stay bit-exact against the
+  twin on six dies.
 - Next in code, in order: the reference agreement (running), MTP draft +
   verify (amortises the per-phase fixed costs that dominate the split: cold
   instruction fetch ~5–12 µs per GEMV phase, ~3 µs barrier + dispatch), a

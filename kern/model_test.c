@@ -200,7 +200,7 @@ int main(int argc, char **argv) {
 		CK(cuCtxSetCurrent(ctx[d]));
 		split_t s0; split_of(&s0, d, nd, 0);
 		dn_bufs_t *b = &db[d]; memset(b, 0, sizeof *b);
-		unsigned nlocmax = 128u * (2u * 4u + (unsigned)s0.hn), cols = 32u * (unsigned)s0.cbn, hrows = 128u * (unsigned)s0.hn;
+		unsigned nlocmax = 128u * (2u * (unsigned)s0.nk + (unsigned)s0.hn)   /* q, k of the die's key heads, v of its value heads */, cols = 32u * (unsigned)s0.cbn, hrows = 128u * (unsigned)s0.hn;
 		b->S = dalloc(4 * 10240); b->xh = dalloc(4 * 10240); b->t = dalloc(4 * 324);
 		b->ldown = dalloc(4 * 324); b->lup = dalloc(4 * 4 * cols); b->lz = dalloc(4 * cols);
 		b->zq = dalloc(2 * 2560); b->zs32 = dalloc(4 * 80); b->zs16 = dalloc(4 * 160); b->zas = dalloc(4 * 80);
