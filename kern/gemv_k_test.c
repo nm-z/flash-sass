@@ -36,17 +36,21 @@ int main(int argc, char **argv) {
 	if (gguf_open(&g, argv[1])) return 1;
 	const gguf_tensor *t = gguf_find(&g, tname);
 	if (!t || !t->data) { fprintf(stderr, "%s: not found\n", tname); return 1; }
-	if (t->type != GG_Q4_K && t->type != GG_Q5_K && t->type != GG_Q3_K) { fprintf(stderr, "%s is %s; only Q3_K, Q4_K and Q5_K so far\n", tname, gguf_type_name(t->type)); return 1; }
-	int q5 = t->type == GG_Q5_K, q3 = t->type == GG_Q3_K, gblk = q5 ? 176 : q3 ? 110 : 144;
+	if (t->type != GG_Q4_K && t->type != GG_Q5_K && t->type != GG_Q3_K && t->type != GG_Q6_K) { fprintf(stderr, "%s is %s; only Q3_K, Q4_K, Q5_K and Q6_K so far\n", tname, gguf_type_name(t->type)); return 1; }
+	int q5 = t->type == GG_Q5_K, q3 = t->type == GG_Q3_K, q6 = t->type == GG_Q6_K, gblk = q5 ? 176 : q3 ? 110 : q6 ? 210 : 144;
 	int K = (int)t->dims[0], rows = (int)(t->elems / K);
 	if (K != 2560 && K != 6144) { fprintf(stderr, "kernels exist for K=2560 and K=6144, tensor has K=%d\n", K); return 1; }
-	int L = q4_k_lanes_per_row(K), RPC = 256 / L, stride = q5 ? q5_k_tile_stride(K) : q3 ? q3_k_tile_stride(K) : q4_k_tile_stride(K);
+	int L = q4_k_lanes_per_row(K), RPC = 256 / L;
+	int stride = q5 ? q5_k_tile_stride(K) : q3 ? q3_k_tile_stride(K) : q6 ? q6_k_tile_stride(K) : q4_k_tile_stride(K);
 	printf("%s: %s K=%d rows=%d (%.1f MB), %d lanes per row, tile stride %d\n", tname, gguf_type_name(t->type), K, rows, (double)rows * stride / 1e6, L, stride);
 
 	/* repack and check the tile against the standard dequantiser on a few rows */
 	uint8_t *tile = malloc((size_t)stride * rows);
 	double t0 = now();
-	if (q5) repack_q5_k(t->data, rows, K, tile); else if (q3) repack_q3_k(t->data, rows, K, tile); else repack_q4_k(t->data, rows, K, tile);
+	if (q5) repack_q5_k(t->data, rows, K, tile);
+	else if (q3) repack_q3_k(t->data, rows, K, tile);
+	else if (q6) repack_q6_k(t->data, rows, K, tile);
+	else repack_q4_k(t->data, rows, K, tile);
 	double t1 = now();
 	{
 		float *a = malloc(sizeof(float) * K), *b = malloc(sizeof(float) * K);
@@ -55,7 +59,15 @@ int main(int argc, char **argv) {
 			dequant(t->type, t->data + (size_t)r * B * gblk, a, K);
 			const uint8_t *hdr = tile + (size_t)r * stride, *codes = hdr + 16 * B, *hb = hdr + 144 * B;
 			for (int e = 0; e < K; e++) {
-				if (q3) {
+				if (q6) {
+					int blk = e / 256, j = (e & 255) >> 5, el = e & 31, g = (e & 255) >> 4;
+					const uint8_t *rec = hdr + 16 * Q + 208 * blk;
+					uint32_t hw; memcpy(&hw, rec + 128 + 8 * j + 4 * (el >> 4), 4);
+					int eh = el & 15;
+					int q6v = ((rec[16 * j + (el >> 1)] >> (4 * (el & 1))) & 0xF) | (((hw >> (16 * (eh >> 3) + 2 * (eh & 7))) & 3) << 4);
+					uint16_t dh; memcpy(&dh, hdr + 16 * (blk % Q) + 2 * (blk / Q), 2);
+					b[e] = fp16_to_fp32(dh) * (float)(int8_t)rec[192 + g] * (float)(q6v - 32);
+				} else if (q3) {
 					int blk = e / 256, g = (e & 255) >> 4, el = e & 15;
 					const uint8_t *rec = hdr + 16 * Q + 112 * blk;
 					uint32_t cw; memcpy(&cw, rec + 4 * g, 4);
@@ -93,8 +105,11 @@ int main(int argc, char **argv) {
 	for (int k = 0; k < K; k++) x16[k] = xq[k];
 	float *yref = malloc(sizeof(float) * rows), *y = malloc(sizeof(float) * rows);
 	t0 = now();
+	int32_t *sum16 = malloc(sizeof(int32_t) * K / 16);
+	act_sum16(xq, sum16, K);
 	if (q5) gemv_q5_k_ref(tile, rows, K, xq, sum32, xs, yref);
 	else if (q3) gemv_q3_k_ref(tile, rows, K, xq, xs, yref);
+	else if (q6) gemv_q6_k_ref(tile, rows, K, xq, sum16, xs, yref);
 	else gemv_q4_k_ref(tile, rows, K, xq, sum32, xs, yref);
 	t1 = now();
 	printf("reference %.1f ms\n", (t1 - t0) * 1e3);
@@ -104,7 +119,7 @@ int main(int argc, char **argv) {
 	CK(cuDeviceGet(&dev, 0));
 	CK(cuCtxCreate_v2(&ctx, CU_CTX_SCHED_SPIN, dev));
 	char cubin[64];
-	int qn = q5 ? 5 : q3 ? 3 : 4;
+	int qn = q5 ? 5 : q3 ? 3 : q6 ? 6 : 4;
 	char fname[32];
 	snprintf(cubin, sizeof cubin, "gemv_q%d_k_k%d.cubin", qn, K);
 	snprintf(fname, sizeof fname, "gemv_q%d_k", qn);
@@ -116,12 +131,14 @@ int main(int argc, char **argv) {
 	CUdeviceptr dW, dX, dS, dY, dD;
 	CK(cuMemAlloc(&dW, (size_t)stride * rows));
 	CK(cuMemAlloc(&dX, sizeof(int16_t) * K));
-	CK(cuMemAlloc(&dS, sizeof(int32_t) * K / 32 + 64));
+	CK(cuMemAlloc(&dS, sizeof(int32_t) * K / 16 + 64));
 	CK(cuMemAlloc(&dY, sizeof(float) * rows));
 	CK(cuMemAlloc(&dD, 4096));
 	CK(cuMemcpyHtoD(dW, tile, (size_t)stride * rows));
 	CK(cuMemcpyHtoD(dX, x16, sizeof(int16_t) * K));
-	CK(cuMemcpyHtoD(dS, sum32, sizeof(int32_t) * K / 32));
+	/* Q6_K takes per-16 sums in the sums slot, the others per-32 */
+	if (q6) CK(cuMemcpyHtoD(dS, sum16, sizeof(int32_t) * K / 16));
+	else CK(cuMemcpyHtoD(dS, sum32, sizeof(int32_t) * K / 32));
 	CK(cuMemsetD32(dY, 0x7fc00000u, rows));
 	unsigned urows = (unsigned)rows;
 	void *params[] = { &dW, &dX, &dS, &dY, &urows, &xs, &dD };

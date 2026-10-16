@@ -64,6 +64,28 @@ gemv_q3_k_k6144.cubin: gemv_q3_k.sass skel_q3_k.cubin
 	cp skel_q3_k.cubin $@
 	GEMV_K=6144 $(MAXAS) -i gemv_q3_k.sass $@
 
+skel_q6_k.cubin: gemv_q6_k.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+gemv_q6_k_k2560.cubin: gemv_q6_k.sass skel_q6_k.cubin
+	cp skel_q6_k.cubin $@
+	GEMV_K=2560 $(MAXAS) -i gemv_q6_k.sass $@
+
+gemv_q6_k_k6144.cubin: gemv_q6_k.sass skel_q6_k.cubin
+	cp skel_q6_k.cubin $@
+	GEMV_K=6144 $(MAXAS) -i gemv_q6_k.sass $@
+
+skel_iq4_xs.cubin: gemv_iq4_xs.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+gemv_iq4_xs_k2560.cubin: gemv_iq4_xs.sass skel_iq4_xs.cubin
+	cp skel_iq4_xs.cubin $@
+	GEMV_K=2560 $(MAXAS) -i gemv_iq4_xs.sass $@
+
+gemv_iq4_xs_k6144.cubin: gemv_iq4_xs.sass skel_iq4_xs.cubin
+	cp skel_iq4_xs.cubin $@
+	GEMV_K=6144 $(MAXAS) -i gemv_iq4_xs.sass $@
+
 gemv_k_test: gemv_k_test.c ../ref/gguf.c ../ref/quant.c ../ref/gguf.h ../ref/quant.h
 	$(CC) -std=gnu99 -O2 -Wall -o $@ gemv_k_test.c ../ref/gguf.c ../ref/quant.c -I../ref -I$(CUDA)/include -lcuda -lm
 

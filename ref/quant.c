@@ -527,3 +527,96 @@ void gemv_q3_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, float
 		y[r] = v[0] * xscale;
 	}
 }
+
+/* ---- Q6_K: per-16 int8 scales, low nibbles plus 2-bit high fields ---- */
+
+int q6_k_tile_stride(int K) { return 16 * (q4_k_lanes_per_row(K) / 8) + 208 * (K / 256); }
+
+void act_sum16(const int8_t *q, int32_t *sum16, int n) {
+	for (int g = 0; g < n / 16; g++) {
+		int32_t s = 0;
+		for (int e = 0; e < 16; e++) s += q[16 * g + e];
+		sum16[g] = s;
+	}
+}
+
+/* q6 of element e (0..255) of a raw Q6_K block */
+static int q6_k_elem(const uint8_t *blk, int e) {
+	const uint8_t *ql = blk + 64 * (e >> 7), *qh = blk + 128 + 32 * (e >> 7);
+	int l = e & 31, part = (e & 127) >> 5;      /* part 0..3 = q1..q4 of the decoder */
+	int lo;
+	if (part == 0) lo = ql[l] & 0xF;
+	else if (part == 1) lo = ql[l + 32] & 0xF;
+	else if (part == 2) lo = ql[l] >> 4;
+	else lo = ql[l + 32] >> 4;
+	int hi = (qh[l] >> (2 * part)) & 3;
+	return lo | (hi << 4);
+}
+
+int repack_q6_k(const uint8_t *src, int rows, int K, uint8_t *dst) {
+	int B = K / 256, L = q4_k_lanes_per_row(K), Q = L / 8, stride = q6_k_tile_stride(K);
+	if (!dst) return stride;
+	for (int r = 0; r < rows; r++) {
+		const uint8_t *s = src + (size_t)r * B * 210;
+		uint8_t *pre = dst + (size_t)r * stride, *blocks = pre + 16 * Q;
+		memset(pre, 0, 16 * Q);
+		for (int b = 0; b < B; b++) {
+			const uint8_t *blk = s + 210 * b;
+			uint8_t *rec = blocks + 208 * b;
+			memcpy(pre + 16 * (b % Q) + 2 * (b / Q), blk + 208, 2);
+			memcpy(rec + 192, blk + 192, 16);
+			for (int j = 0; j < 8; j++) {
+				for (int i = 0; i < 16; i++) {
+					int a = q6_k_elem(blk, 32 * j + 2 * i), c = q6_k_elem(blk, 32 * j + 2 * i + 1);
+					rec[16 * j + i] = (uint8_t)((a & 0xF) | ((c & 0xF) << 4));
+				}
+				for (int w = 0; w < 2; w++) {
+					uint32_t hw = 0;
+					for (int e = 0; e < 16; e++) {
+						int hi = q6_k_elem(blk, 32 * j + 16 * w + e) >> 4;
+						hw |= (uint32_t)hi << (16 * (e >> 3) + 2 * (e & 7));
+					}
+					memcpy(rec + 128 + 8 * j + 4 * w, &hw, 4);
+				}
+			}
+		}
+	}
+	return stride;
+}
+
+void gemv_q6_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum16, float xscale, float *y) {
+	int B = K / 256, stride = q6_k_tile_stride(K);
+	int L = q4_k_lanes_per_row(K), Q = L / 8, n = B / Q;
+	float v[32], w[32];
+	(void)sum16;
+	for (int r = 0; r < rows; r++) {
+		const uint8_t *pre = tile + (size_t)r * stride, *blocks = pre + 16 * Q;
+		for (int l = 0; l < L; l++) {
+			int q = l >> 3, jj = l & 7;
+			float acc = 0.f;
+			for (int i = 0; i < n; i++) {
+				int b = Q * i + q;
+				const uint8_t *rec = blocks + 208 * b, *nib = rec + 16 * jj;
+				int32_t sumi = 0;
+				for (int gg = 0; gg < 2; gg++) {
+					uint32_t hw;
+					memcpy(&hw, rec + 128 + 8 * jj + 4 * gg, 4);
+					int32_t dot = 0;
+					for (int e = 0; e < 16; e++) {
+						int el = 16 * gg + e;
+						int q6 = ((nib[el >> 1] >> (4 * (el & 1))) & 0xF) | (((hw >> (16 * (e >> 3) + 2 * (e & 7))) & 3) << 4);
+						dot += (q6 - 32) * xq[256 * b + 32 * jj + el];
+					}
+					sumi += (int8_t)rec[192 + 2 * jj + gg] * dot;
+				}
+				acc = fmaf(fp16_to_fp32(ld16(pre + 16 * q + 2 * i)), (float)sumi, acc);
+			}
+			v[l] = acc;
+		}
+		for (int o = L / 2; o >= 1; o >>= 1) {
+			for (int l = 0; l < L; l++) w[l] = v[l] + v[l ^ o];
+			memcpy(v, w, sizeof(float) * L);
+		}
+		y[r] = v[0] * xscale;
+	}
+}

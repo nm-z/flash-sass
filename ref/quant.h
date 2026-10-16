@@ -81,3 +81,16 @@ int repack_q3_k(const uint8_t *src, int rows, int K, uint8_t *dst);
  * per block sumi = sc0 dot0 + sc1 dot1 (exact integers), acc = fma(d, (float)sumi,
  * acc), then the SHFL butterfly and * xscale. */
 void gemv_q3_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, float xscale, float *y);
+
+/* Q6_K row tile: [prefix: Q x 16 B of fp16 d as for Q3_K] [per block 208 B: 8 x 16 B
+ * low nibbles (sub-block j, element 2i low / 2i+1 high), 8 x 8 B high bits (sub-block
+ * j, word w = elements 16w.. as 2-bit fields at bits 2 (e & 7) of half e >> 3),
+ * 16 int8 scales]. Element value = d * sc[g] * (q6 - 32). */
+int q6_k_tile_stride(int K);
+int repack_q6_k(const uint8_t *src, int rows, int K, uint8_t *dst);
+/* per-16 activation sums (n/16 entries) */
+void act_sum16(const int8_t *q, int32_t *sum16, int n);
+/* GPU order: lane (q, jj) owns sub-block jj of blocks Q i + q; per block
+ * sumi = sc0 dot0 + sc1 dot1 with dot_g = sum (q6 - 32) a over the 16-element group
+ * (exact), acc = fma(d, (float)sumi, acc), then the butterfly and * xscale. */
+void gemv_q6_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum16, float xscale, float *y);
