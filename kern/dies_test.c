@@ -43,8 +43,8 @@ static CUcontext ctx[MAXD];
 static hold_arena ar[MAXD];
 static char tname[128];
 static const char *tn(const char *suffix) { snprintf(tname, sizeof tname, "blk.%d.%s", blk, suffix); return tname; }
-static void *hostimg(const char *suffix) {
-	char fn[512]; snprintf(fn, sizeof fn, "%s/%s", fullcache, tn(suffix));
+static void *hostimg_raw(const char *name) {
+	char fn[512]; snprintf(fn, sizeof fn, "%s/%s", fullcache, name);
 	FILE *f = fopen(fn, "rb"); if (!f) { perror(fn); exit(1); }
 	fseek(f, 0, SEEK_END); long n = ftell(f); fseek(f, 0, SEEK_SET);
 	void *p = malloc((size_t)n);
@@ -52,7 +52,9 @@ static void *hostimg(const char *suffix) {
 	fclose(f);
 	return p;
 }
-static CUdeviceptr dptr(int d, const char *suffix) { CUdeviceptr p = hold_ptr(&ar[d], tn(suffix)); if (!p) { fprintf(stderr, "die %d: no %s\n", d, tname); exit(1); } return p; }
+static void *hostimg(const char *suffix) { return hostimg_raw(tn(suffix)); }
+static CUdeviceptr dptr_raw(int d, const char *name) { CUdeviceptr p = hold_ptr(&ar[d], name); if (!p) { fprintf(stderr, "die %d: no %s\n", d, name); exit(1); } return p; }
+static CUdeviceptr dptr(int d, const char *suffix) { return dptr_raw(d, tn(suffix)); }
 static uint32_t ttype(int d, const char *suffix) { const hold_tensor *t = hold_find(&ar[d], tn(suffix)); if (!t) { fprintf(stderr, "no %s\n", tname); exit(1); } return t->type; }
 static CUdeviceptr dalloc(size_t bytes) { CUdeviceptr p; CK(cuMemAlloc(&p, bytes)); CK(cuMemsetD8(p, 0, bytes)); return p; }
 
@@ -72,10 +74,12 @@ static int cmpbuf(const char *what, const void *ref, CUdeviceptr dev, size_t byt
 }
 
 int main(int argc, char **argv) {
-	if (argc < 5) { fprintf(stderr, "usage: dies_test <fullcache> <blk> <T> <manifest0> [manifest1 ...]\n"); return 2; }
-	fullcache = argv[1]; blk = atoi(argv[2]); int T = atoi(argv[3]); nd = argc - 4; float eps = 1e-6f;
+	if (argc < 5) { fprintf(stderr, "usage: dies_test <fullcache> <blk|head|embed> <T> <manifest0> [manifest1 ...]\n"); return 2; }
+	fullcache = argv[1]; const char *whatarg = argv[2]; int T = atoi(argv[3]); nd = argc - 4; float eps = 1e-6f;
+	int mode = !strcmp(whatarg, "head") ? 1 : !strcmp(whatarg, "embed") ? 2 : 0;   /* 0: a block */
+	blk = mode ? 0 : atoi(whatarg);
 	if (nd > MAXD) { fprintf(stderr, "at most %d dies\n", MAXD); return 2; }
-	int is_attn = BLK_IS_ATTN(blk), has_ple = blk == 1;
+	int is_attn = mode == 0 && BLK_IS_ATTN(blk), has_ple = mode == 0 && blk == 1;
 	unsigned npos = ((unsigned)T + 8192 + 64 + 31) / 32 * 32;   /* cache positions: chunk round-up plus the loops' stray prefetches */
 	size_t kcf = ATTN_KC_FLOATS(npos), vcf = (size_t)npos * 512;
 	CK(cuInit(0));
@@ -97,6 +101,9 @@ int main(int argc, char **argv) {
 	}
 	/* twin: whole-block weights from the full tile cache */
 	dn_hweights_t hw; memset(&hw, 0, sizeof hw);
+	if (mode == 1) { hw.output_hc_norm = hostimg_raw("output_hc_norm.weight"); hw.output_hc_down = hostimg_raw("output_hc_down.weight"); hw.output_hc_up = hostimg_raw("output_hc_up.weight"); hw.output = hostimg_raw("output.weight"); }
+	else if (mode == 2) hw.token_embd = hostimg_raw("token_embd.weight");
+	if (mode == 0) {
 	hw.hc_attn_norm = hostimg("hc_attn_norm.weight"); hw.hc_attn_dj = hostimg("hc_attn_dj.weight"); hw.hc_attn_up = hostimg("hc_attn_up.weight");
 	hw.hc_ffn_norm = hostimg("hc_ffn_norm.weight"); hw.hc_ffn_dj = hostimg("hc_ffn_dj.weight"); hw.hc_ffn_up = hostimg("hc_ffn_up.weight");
 	if (!is_attn) {
@@ -117,8 +124,10 @@ int main(int argc, char **argv) {
 	hw.ffn_gate_shexp = hostimg("ffn_gate_shexp.weight"); hw.ffn_gate_shexp_type = ttype(0, "ffn_gate_shexp.weight");
 	hw.ffn_up_shexp = hostimg("ffn_up_shexp.weight"); hw.ffn_up_shexp_type = ttype(0, "ffn_up_shexp.weight");
 	hw.ffn_down_shexp = hostimg("ffn_down_shexp.weight"); hw.ffn_down_shexp_type = ttype(0, "ffn_down_shexp.weight");
+	}
 	dn_hbufs_t *hb = calloc(1, sizeof *hb); hb->dn_state = calloc(48 * 16384, 4);
 	if (is_attn) { hb->kc = calloc(kcf, 4); hb->vc = calloc(vcf, 4); }
+	if (mode == 1) hb->logits = malloc(4 * 248320);
 	/* PLE: a synthetic n-gram table (the real one is 29 GB) in host-mapped memory, scaled-down
 	 * head offsets / vocabularies, the model's multipliers; a token sequence with ends planted */
 	const size_t PLE_R = 1u << 20; uint8_t *ptab = NULL; uint32_t *ids = NULL; uint8_t ppc[160]; float *pconv = NULL;
@@ -160,6 +169,12 @@ int main(int argc, char **argv) {
 		split_of(&sp[d], d, nd, blk);
 		const split_t *s = &sp[d];
 		dn_weights_t *w = &dw[d]; memset(w, 0, sizeof *w);
+		if (mode == 1) {
+			w->output_hc_norm = dptr_raw(d, "output_hc_norm.weight"); w->output_hc_down = dptr_raw(d, "output_hc_down.weight"); w->output_hc_up = dptr_raw(d, "output_hc_up.weight"); w->output = dptr_raw(d, "output.weight");
+			uint32_t ob[6]; for (int e = 0; e < 6; e++) ob[e] = 248320u * (unsigned)e / (unsigned)nd;
+			w->obases = dalloc(24); CK(cuMemcpyHtoD(w->obases, ob, 24));
+		} else if (mode == 2) w->token_embd = dptr_raw(d, "token_embd.weight");
+		if (mode == 0) {
 		w->hc_attn_norm = dptr(d, "hc_attn_norm.weight"); w->hc_attn_dj = dptr(d, "hc_attn_dj.weight"); w->hc_attn_up = dptr(d, "hc_attn_up.weight");
 		w->hc_ffn_norm = dptr(d, "hc_ffn_norm.weight"); w->hc_ffn_dj = dptr(d, "hc_ffn_dj.weight"); w->hc_ffn_up = dptr(d, "hc_ffn_up.weight");
 		if (!is_attn) {
@@ -180,6 +195,7 @@ int main(int argc, char **argv) {
 		w->ffn_gate_shexp = dptr(d, "ffn_gate_shexp.weight"); w->ffn_gate_shexp_type = hw.ffn_gate_shexp_type;
 		w->ffn_up_shexp = dptr(d, "ffn_up_shexp.weight"); w->ffn_up_shexp_type = hw.ffn_up_shexp_type;
 		w->ffn_down_shexp = dptr(d, "ffn_down_shexp.weight"); w->ffn_down_shexp_type = hw.ffn_down_shexp_type;
+		}
 		unsigned nloc = SPLIT_NLOC(s), cols = 32u * (unsigned)s->cbn, hrows = 128u * (unsigned)s->hn;
 		dn_bufs_t *b = &db[d];
 		b->S = dalloc(4 * 10240); b->xh = dalloc(4 * 10240); b->t = dalloc(4 * 324);
@@ -209,6 +225,7 @@ int main(int argc, char **argv) {
 			b->rope_cs = dalloc(4 * 32 * T); b->rope_sn = dalloc(4 * 32 * T);
 			CK(cuMemcpyHtoD(b->rope_cs, rcs, 4 * 32 * T)); CK(cuMemcpyHtoD(b->rope_sn, rsn, 4 * 32 * T));
 		}
+		if (mode == 1) { b->hlo = dalloc(4u * (unsigned)s->on); b->amo = dalloc(8); b->apart = dalloc(16 * 8); b->acnt = dalloc(4); b->tokout = dalloc(8); }
 		CK(cuMemcpyHtoD(b->S, hb->S, 4 * 10240));
 		xchg_t *x = &xc[d];
 		x->inbox = dalloc(2 * XSLOT); x->flags = dalloc(32); x->xgen = dalloc(16); x->xtab = dalloc(128);
@@ -226,17 +243,33 @@ int main(int argc, char **argv) {
 	for (int t = 0; t < T; t++) {
 		double t0 = now();
 		if (getenv("DIES_TRACE")) fprintf(stderr, "[token %d] twin...\n", t);
-		int stage = getenv("DIES_STAGE") ? atoi(getenv("DIES_STAGE")) : 0;
-		if (has_ple) ple_prefix_gpu(&hw, hb, (unsigned)t, eps);
-		if (is_attn) attn_block_gpu(&hw, hb, (unsigned)t, eps, nd, blk, stage); else deltanet_block_gpu(&hw, hb, (unsigned)t, eps, nd, blk, stage);
+		int stage = getenv("DIES_STAGE") ? atoi(getenv("DIES_STAGE")) : 0, notwin = getenv("DIES_NOTWIN") != NULL;   /* timing only */
+		unsigned id = 0;
+		if (mode == 1) {   /* a fresh random stream per token */
+			for (int i = 0; i < 10240; i++) hb->S[i] = 0.5f * frand();
+			for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(db[d].S, hb->S, 4 * 10240)); }
+		}
+		if (mode == 2) { id = (uint32_t)((rs >> 8) % 248320u); frand(); }
+		if (!notwin) {
+			if (mode == 1) head_gpu(&hw, hb, eps, nd);
+			else if (mode == 2) embed_gpu(&hw, hb, id);
+			else {
+				if (has_ple) ple_prefix_gpu(&hw, hb, (unsigned)t, eps);
+				if (is_attn) attn_block_gpu(&hw, hb, (unsigned)t, eps, nd, blk, stage); else deltanet_block_gpu(&hw, hb, (unsigned)t, eps, nd, blk, stage);
+			}
+		}
 		double t1 = now();
 		prog_t P[MAXD]; unsigned nph[MAXD];
 		if (getenv("DIES_TRACE")) fprintf(stderr, "[token %d] twin done, building programs\n", t);
 		for (int d = 0; d < nd; d++) {
 			prog_init(&P[d]);
-			if (has_ple) prog_ple_prefix(&P[d], &sp[d], &xc[d], &dw[d], &db[d], (unsigned)t, eps);
-			if (is_attn) prog_attn_block(&P[d], &sp[d], &xc[d], &dw[d], &db[d], (unsigned)t, eps);
-			else prog_deltanet_block(&P[d], &sp[d], &xc[d], &dw[d], &db[d], (unsigned)t, eps);
+			if (mode == 1) prog_head(&P[d], &sp[d], &xc[d], &dw[d], &db[d], eps);
+			else if (mode == 2) prog_embed(&P[d], &dw[d], &db[d], id);
+			else {
+				if (has_ple) prog_ple_prefix(&P[d], &sp[d], &xc[d], &dw[d], &db[d], (unsigned)t, eps);
+				if (is_attn) prog_attn_block(&P[d], &sp[d], &xc[d], &dw[d], &db[d], (unsigned)t, eps);
+				else prog_deltanet_block(&P[d], &sp[d], &xc[d], &dw[d], &db[d], (unsigned)t, eps);
+			}
 			nph[d] = (unsigned)P[d].n;
 			if (getenv("DIES_NPH") && (unsigned)atoi(getenv("DIES_NPH")) < nph[d]) nph[d] = (unsigned)atoi(getenv("DIES_NPH"));
 			CK(cuCtxSetCurrent(ctx[d]));
@@ -254,11 +287,31 @@ int main(int argc, char **argv) {
 		double t3 = now();
 		printf("token %d: %u phases; twin %.2f s, dies %.3f ms\n", t, nph[0], t1 - t0, (t3 - t2) * 1e3);
 		int bad = 0;
+		if ((t3 - t2) > 1.5e-3 && getenv("DIES_STALL")) {   /* which die stalled where: the two longest phases per die */
+			for (int d = 0; d < nd; d++) {
+				CK(cuCtxSetCurrent(ctx[d]));
+				uint32_t *ts = malloc(4 * (16 + nph[d])); CK(cuMemcpyDtoH(ts, dCTL[d], 4 * (16 + nph[d])));
+				unsigned prev = ts[15], b1 = 0, i1 = 0, b2 = 0, i2 = 0;
+				for (unsigned i = 0; i < nph[d]; i++) { unsigned dd = ts[16 + i] - prev; prev = ts[16 + i]; if (dd > b1) { b2 = b1; i2 = i1; b1 = dd; i1 = i; } else if (dd > b2) { b2 = dd; i2 = i; } }
+				printf("   stall die %d: total %.0f us; phase %u %s %.0f us, phase %u %s %.0f us; launch->phase0 %.0f\n", d, (ts[16 + nph[d] - 1] - ts[15]) / 1e3, i1, die_opname[P[d].p[i1].w[0]], b1 / 1e3, i2, die_opname[P[d].p[i2].w[0]], b2 / 1e3, (ts[16] - ts[15]) / 1e3);
+				free(ts);
+			}
+		}
+		if (notwin) { for (int d = 0; d < nd; d++) prog_free(&P[d]); continue; }
 		for (int d = 0; d < nd; d++) {
 			CK(cuCtxSetCurrent(ctx[d]));
 			char what[32];
 			printf(" die %d\n", d);
 			const split_t *s = &sp[d];
+			if (mode == 1) {
+				bad += cmpbuf("hlo", hb->logits + s->o0, db[d].hlo, 4u * (unsigned)s->on, 4);
+				uint32_t am[2] = { hb->didx[d] - (unsigned)s->o0, 0 }; memcpy(&am[1], &hb->dmax[d], 4);
+				bad += cmpbuf("amo", am, db[d].amo, 8, 4);
+				uint32_t tk[2] = { hb->tok, 0 }; memcpy(&tk[1], &hb->tokmax, 4);
+				bad += cmpbuf("tok", tk, db[d].tokout, 8, 4);
+				continue;
+			}
+			if (mode == 2) { bad += cmpbuf("S", hb->S, db[d].S, 4 * 10240, 4); continue; }
 			if (has_ple) {
 				bad += cmpbuf("pg", hb->pg, db[d].pg, 4 * 2560, 4);
 				bad += cmpbuf("lk", hb->pK + s->pk0, db[d].lk, 4u * (unsigned)s->pkn, 4);

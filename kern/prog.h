@@ -62,6 +62,8 @@ typedef struct {
 	int klo, khi, nk;   /* key heads [klo, khi] they use: qkv rows q and k of these, then v of [h0, h0+hn) */
 	int y0, yn;         /* ssm_out / attn_output / ple_value rows (of 2560) */
 	int pk0, pkn;       /* ple_key rows (of 10240) */
+	int o0, on;         /* output.weight rows (of 248320) */
+	int hd0, hdn;       /* output_hc_down rows (of 320) */
 	int e0, en;         /* experts [e0, e0+en) of 512 */
 	int shexp;          /* this die runs the shared expert (blk % n == d) */
 } split_t;
@@ -85,6 +87,8 @@ typedef struct {
 	uint32_t attn_q_type, attn_k_type, attn_v_type, attn_output_type;
 	/* block 1's PLE: ple_key Q2_0 (this die's rows of 10240), ple_value BF16 (rows of 2560), norms, conv F16 [10240][4] */
 	CUdeviceptr ple_key, ple_value, ple_norm_key, ple_norm_query, ple_norm_conv, ple_conv1d;
+	/* the head (output_hc read gate, output.weight Q5_K rows of this die) and the embedding (raw Q3_K rows, whole) */
+	CUdeviceptr output_hc_norm, output_hc_down, output_hc_up, output, obases, token_embd;
 } dn_weights_t;
 
 /* activation / state buffers of one die (device); sizes in floats unless noted; the
@@ -111,12 +115,19 @@ typedef struct {
 	 * the host-mapped table, g 2560 (+ its quantisation), this die's K rows, kn/qn 10240,
 	 * this die's V rows, G 10240, gates 4, conv input 10240, ring state [10][10240], rows debug */
 	CUdeviceptr ids, ple_pc, ple_tab, pg, pgq, pgs32, pgs16, pgas, lk, kn, qn, lv, pG, pgates, px, ple_state, prows;
+	/* head: this die's logits, its argmax (idx, max bits) + partials/counter, the gathered pairs, the token (u32 idx, u32 max bits) */
+	CUdeviceptr hlo, amo, apart, acnt, tokout;
 } dn_bufs_t;
 
 void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps);
 void prog_attn_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps);
 /* the PLE prefix of block 1 (before its DeltaNet block program): S += PLE(S, n-gram rows of position t) */
 void prog_ple_prefix(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps);
+/* S = 4 lanes of token_embd[id] (every die) */
+void prog_embed(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, unsigned id);
+/* the head: output_hc read gate -> z -> output.weight rows of this die -> argmax, the dies' (idx, max) pairs
+ * gathered and combined identically everywhere into tokout = {idx, max bits} */
+void prog_head(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, float eps);
 /* attention blocks are every fourth block from 3 */
 #define BLK_IS_ATTN(blk) (((blk) & 3) == 3)
 #endif

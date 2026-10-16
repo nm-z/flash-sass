@@ -24,6 +24,8 @@ typedef struct {
 	 * the n-gram table (IQ4_NL rows of 90 bytes, host memory) and the row-hash constants */
 	const uint8_t *ple_key; const uint16_t *ple_value; const float *ple_norm_key, *ple_norm_query, *ple_norm_conv, *ple_conv_w;
 	const uint8_t *ple_tab; uint64_t ple_mult[3], ple_off[16], ple_voc[16]; uint32_t ple_absent, ple_end;
+	/* the head and the embedding */
+	const float *output_hc_norm; const uint16_t *output_hc_down, *output_hc_up; const uint8_t *output, *token_embd;
 } dn_hweights_t;
 
 /* inj = down + 320 (and t + 320, copied), b = a + 48, sh = r[512] */
@@ -49,7 +51,14 @@ typedef struct {
 	float pK[10240], kn[10240], qn[10240], pV[2560], pG[10240], pgates[4], px[10240];
 	float ple_state[10][10240];
 	const uint32_t *ids;
+	/* head: logits (248320, caller-allocated), the per-die argmax partials and the token */
+	float *logits, dmax[6], tokmax; unsigned didx[6], tok;
 } dn_hbufs_t;
+/* S = the four lanes of token_embd[id] (raw Q3_K rows of 1100 bytes) */
+void embed_gpu(const dn_hweights_t *w, dn_hbufs_t *b, unsigned id);
+/* the head: output_hc read gate (no inject) -> z -> logits -> argmax; the argmax is taken per die's row range
+ * ([248320 d / n, ...), first maximum) and combined in die order (greater, or equal with a lower index) */
+void head_gpu(const dn_hweights_t *w, dn_hbufs_t *b, float eps, int ndies);
 /* S += PLE(S, the n-gram rows of position t) — the prefix of block 1 (ref/ple.h pieces) */
 void ple_prefix_gpu(const dn_hweights_t *w, dn_hbufs_t *b, unsigned t, float eps);
 

@@ -115,9 +115,13 @@ static void sel_whole(sel_t *s, int rows, int experts) { s->nr = 1; s->r[0].r0 =
 static void select_rows(const char *name, int rows, int experts, sel_t *s) {
 	sel_whole(s, rows, experts);
 	if (!split_on) return;
+	const split_t *p = &SP;
+	/* the head: output.weight rows, output_hc_down rows, output_hc_up the 4 lanes of the z columns; token_embd whole */
+	if (!strcmp(name, "output.weight")) { s->nr = 1; s->r[0] = (range_t){ p->o0, p->on }; return; }
+	if (!strcmp(name, "output_hc_down.weight")) { s->nr = 1; s->r[0] = (range_t){ p->hd0, p->hdn }; return; }
+	if (!strcmp(name, "output_hc_up.weight")) { s->nr = 4; for (int l = 0; l < 4; l++) s->r[l] = (range_t){ 2560 * l + 32 * p->cb0, 32 * p->cbn }; return; }
 	const char *x = suffix(name);
 	if (!x) return;
-	const split_t *p = &SP;
 	if (!strcmp(x, "hc_attn_dj.weight") || !strcmp(x, "hc_ffn_dj.weight")) { s->nr = 1; s->r[0] = (range_t){ p->dj0, p->djn }; }
 	else if (!strcmp(x, "hc_attn_up.weight") || !strcmp(x, "hc_ffn_up.weight")) { s->nr = 4; for (int l = 0; l < 4; l++) s->r[l] = (range_t){ 2560 * l + 32 * p->cb0, 32 * p->cbn }; }
 	else if (!strcmp(x, "attn_qkv.weight") || !strcmp(x, "ssm_conv1d.weight")) {
@@ -160,7 +164,7 @@ static size_t sel_bytes(const sel_t *s, size_t nbytes, int rows, int st) {
 }
 /* repack / copy the selected rows (or experts) of a raw source image into buf and emit it */
 static void emit_sel(const char *name, uint32_t type, const uint8_t *src, size_t nbytes, int rows, int K, int experts, const sel_t *s) {
-	int st = tile_stride(type, K);
+	int st = strncmp(name, "token_embd", 10) ? tile_stride(type, K) : 0;   /* embrow reads raw Q3_K rows */
 	size_t bytes = sel_bytes(s, nbytes, rows, st), o = 0;
 	need(bytes);
 	int nsel = 0;
@@ -201,8 +205,8 @@ int main(int argc, char **argv) {
 		const gguf_tensor *t = &g.t[i];
 		if (!wanted(t->name, b0, b1, xe, xo)) continue;
 		int K = (int)t->dims[0], rows = t->nd > 1 ? (int)t->dims[1] : 1, experts = t->nd > 2 ? (int)t->dims[2] : 1;
-		int st = tile_stride(t->type, K);
-		sel_t s; if (split_on) split_of(&SP, sd, sn, atoi(t->name + 4)); select_rows(t->name, rows, experts, &s);
+		int st = strncmp(t->name, "token_embd", 10) ? tile_stride(t->type, K) : 0;
+		sel_t s; if (split_on) split_of(&SP, sd, sn, strncmp(t->name, "blk.", 4) ? 0 : atoi(t->name + 4)); select_rows(t->name, rows, experts, &s);
 		total = (total + 255) & ~(size_t)255;
 		total += sel_bytes(&s, t->nbytes, rows, st); count++;
 	}
@@ -243,7 +247,7 @@ int main(int argc, char **argv) {
 		if (!wanted(t->name, b0, b1, xe, xo)) continue;
 		int K = (int)t->dims[0], rows = t->nd > 1 ? (int)t->dims[1] : 1, experts = t->nd > 2 ? (int)t->dims[2] : 1;
 		if (!t->data) { fprintf(stderr, "%s: not mapped\n", t->name); return 1; }
-		sel_t s; if (split_on) split_of(&SP, sd, sn, atoi(t->name + 4)); select_rows(t->name, rows, experts, &s);
+		sel_t s; if (split_on) split_of(&SP, sd, sn, strncmp(t->name, "blk.", 4) ? 0 : atoi(t->name + 4)); select_rows(t->name, rows, experts, &s);
 		emit_sel(t->name, t->type, t->data, t->nbytes, rows, K, experts, &s);
 	}
 	uint8_t *mb = NULL; size_t mcap = 0;

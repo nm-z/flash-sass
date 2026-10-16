@@ -80,6 +80,31 @@ void deltanet_block_gpu(const dn_hweights_t *w, dn_hbufs_t *b, unsigned t, float
 	free(zq8); free(oq8); free(hq8); free(p);
 }
 
+void embed_gpu(const dn_hweights_t *w, dn_hbufs_t *b, unsigned id) {
+	float row[2560];
+	dequant(GG_Q3_K, w->token_embd + (size_t)id * 1100, row, 2560);
+	for (int l = 0; l < 4; l++) memcpy(b->S + 2560 * l, row, sizeof row);
+}
+
+void head_gpu(const dn_hweights_t *w, dn_hbufs_t *b, float eps, int ndies) {
+	int8_t zq8[2560];
+	for (int l = 0; l < 4; l++) rmsnorm_gpu(b->S + 2560 * l, w->output_hc_norm + 2560 * l, 2560, eps, b->xh + 2560 * l);
+	bf16_sliced(w->output_hc_down, 320, b->xh, b->down);
+	hc_silu_gpu(b->down, b->t);
+	gemv_bf16_ref(w->output_hc_up, 10240, 320, b->t, b->up);
+	hc_mix_gpu(b->up, b->xh, b->z);
+	quant_act_gpu32(b->z, 2560, b->zq, b->zs32, b->zs16, b->zas);
+	q16to8(b->zq, zq8, 2560);
+	gemv_ref_any(GG_Q5_K, w->output, 248320, 2560, zq8, b->zs32, b->zs16, b->zas, b->logits);
+	for (int d = 0; d < ndies; d++) {
+		unsigned o0 = 248320u * d / ndies, o1 = 248320u * (d + 1) / ndies, im = o0; float m = b->logits[o0];
+		for (unsigned i = o0 + 1; i < o1; i++) if (b->logits[i] > m) { m = b->logits[i]; im = i; }
+		b->dmax[d] = m; b->didx[d] = im;
+	}
+	b->tok = b->didx[0]; b->tokmax = b->dmax[0];
+	for (int d = 1; d < ndies; d++) if (b->dmax[d] > b->tokmax || (b->dmax[d] == b->tokmax && b->didx[d] < b->tok)) { b->tokmax = b->dmax[d]; b->tok = b->didx[d]; }
+}
+
 void ple_prefix_gpu(const dn_hweights_t *w, dn_hbufs_t *b, unsigned t, float eps) {
 	uint64_t rows[16];
 	int8_t gq8[2560];

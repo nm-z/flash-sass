@@ -123,6 +123,8 @@ void split_of(split_t *s, int d, int n, int blk) {
 	s->klo = s->h0 / 3;    s->khi = (s->h0 + s->hn - 1) / 3; s->nk = s->khi - s->klo + 1;
 	s->y0 = 2560 * d / n;  s->yn = 2560 * (d + 1) / n - s->y0;
 	s->pk0 = 10240 * d / n; s->pkn = 10240 * (d + 1) / n - s->pk0;
+	s->o0 = 248320 * d / n; s->on = 248320 * (d + 1) / n - s->o0;
+	s->hd0 = 320 * d / n;  s->hdn = 320 * (d + 1) / n - s->hd0;
 	s->e0 = 512 * d / n;   s->en = 512 * (d + 1) / n - s->e0;
 	s->shexp = (blk % n) == d;
 }
@@ -191,6 +193,30 @@ void prog_attn_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weig
 	CUdeviceptr Y = ph_xchg(P, x, s->d, s->n, b->ly, 4u * (unsigned)s->yn, 4u * (unsigned)s->y0, 4 * 2560);
 	ph_hc(P, OP_HCWRITE, inj, Y, b->S, 2560, 0, 10);
 	ph_moe_half(P, s, x, w, b, eps);
+}
+
+void prog_embed(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, unsigned id) {
+	phase_t *p = prog_add(P, OP_EMBROW, 10);
+	ph_ptr(p, 0x140, w->token_embd); ph_ptr(p, 0x148, b->S); ph_u32(p, 0x150, id);
+}
+
+void prog_head(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, float eps) {
+	unsigned cols = 32u * (unsigned)s->cbn;
+	/* the read gate without an inject: 320 down rows, nothing copied behind t */
+	ph_rms(P, OP_RMS2560, b->S, w->output_hc_norm, b->xh, eps, 4);
+	ph_bf16(P, OP_BF16HC, w->output_hc_down, b->xh, b->ldown, (unsigned)s->hdn, 0);
+	CUdeviceptr DOWN = ph_xchg(P, x, s->d, s->n, b->ldown, 4u * (unsigned)s->hdn, 4u * (unsigned)s->hd0, 4 * 320);
+	ph_hc(P, OP_HCSILU, DOWN, b->t, 0, 320, 320, 2);
+	ph_bf16(P, OP_BF16K320, w->output_hc_up, b->t, b->lup, 4 * cols, 0);
+	ph_hc(P, OP_HCMIX, b->lup, b->xh + 4u * 32u * (unsigned)s->cb0, b->lz, cols, 4 * cols, (cols + 255) / 256);
+	CUdeviceptr Z = ph_xchg(P, x, s->d, s->n, b->lz, 4 * cols, 4u * 32u * (unsigned)s->cb0, 4 * 2560);
+	ph_actq(P, OP_ACTQ2560, Z, b->zq, b->zs32, b->zs16, b->zas, 2560, 1);
+	ph_gemv_any(P, GG_Q5_K, 2560, w->output, b->zq, b->zs32, b->hlo, (unsigned)s->on, b->zas, 0, 0);
+	phase_t *p = prog_add(P, OP_ARGMAX, 16);
+	ph_ptr(p, 0x140, b->hlo); ph_ptr(p, 0x148, b->amo); ph_ptr(p, 0x150, b->apart); ph_ptr(p, 0x158, b->acnt); ph_u32(p, 0x160, (unsigned)s->on); ph_u32(p, 0x164, 16);
+	CUdeviceptr PAIRS = ph_xchg(P, x, s->d, s->n, b->amo, 8, 8u * (unsigned)s->d, 8u * (unsigned)s->n);
+	p = prog_add(P, OP_AMAX, 1);
+	ph_ptr(p, 0x140, PAIRS); ph_ptr(p, 0x148, w->obases); ph_u32(p, 0x150, (unsigned)s->n); ph_ptr(p, 0x158, b->tokout);
 }
 
 void prog_ple_prefix(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps) {

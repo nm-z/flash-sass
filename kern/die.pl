@@ -84,6 +84,7 @@ my @OPS = (
     [ 'sumn',       'sumn.sass',        'cta',  {} ],
     [ 'q2moegn',    'gemv_q2_0.sass',   'cta',  { GEMV_K => 2560, GEMV_MOE => 'gather', GEMV_NEPTR => 1 } ],
     [ 'q2moedn',    'gemv_q2_0.sass',   'cta',  { GEMV_K => 640, GEMV_MOE => 'down', GEMV_NEPTR => 1 } ],
+    [ 'amax',       'amax.sass',        'warp', {} ],
 );
 
 sub expand_names {                       # x<00-15> -> x00 .. x15
