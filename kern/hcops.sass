@@ -1,0 +1,101 @@
+# Kernel: hcops  (HC_OP = silu | mix | write)
+#
+#   silu : P0 = d (320), P1 = t (320):            t = SiLU(0.25 d)          grid 2 x 256 (tid < 320)
+#   mix  : P0 = up (10240), P1 = xh (10240), P2 = z (2560):
+#          z_c = 0.25 ((sigmoid(up_0c) xh_0c + sigmoid(up_1c) xh_1c) + ...)  grid 10 x 256
+#   write: P0 = inj (4), P1 = y (2560), P2 = S (4 x 2560):
+#          S_lc = fma(2 sigmoid(0.25 inj_l), y_c, S_lc)                       grid 10 x 256
+# One element (column c) per thread. Bit-exact twins in ref/hc.c.
+#
+# Params: 0:0x140:8 P0  1:0x148:8 P1  2:0x150:8 P2  3:0x158:4 n
+
+<CONSTANT_MAPPING>
+    param_P00 : c[0x0][0x140]
+    param_P01 : c[0x0][0x144]
+    param_P10 : c[0x0][0x148]
+    param_P11 : c[0x0][0x14c]
+    param_P20 : c[0x0][0x150]
+    param_P21 : c[0x0][0x154]
+    param_n   : c[0x0][0x158]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0-3   : u<0-3>
+    4-7   : x<0-3>
+    8-11  : g<0-3>
+    12-16 : ft<1-5>
+    17    : acc
+    18    : y
+    19    : log2e
+    20    : ln2hi
+    21    : ln2lo
+    22    : c720
+    23    : c120
+    24    : c24
+    25    : c6
+    26    : c11
+    27    : c9
+    28    : c7
+    29    : c5
+    30    : c3
+    31    : mneg1
+    32    : chalf
+    33    : cone
+    34    : tid
+    35    : bid
+    36    : tg
+    37    : t
+    38,39 : ap<0-1>
+    40,41 : bp<0-1>
+    42,43 : cp<0-1>
+</REGISTER_MAPPING>
+
+<CODE>
+    require './fmath.pl';
+    my %C = map { $_ => $_ } qw(log2e ln2hi ln2lo c720 c120 c24 c6 c11 c9 c7 c5 c3 mneg1 chalf cone);
+    my $op = $ENV{HC_OP} || 'mix';
+    my $o = '';
+    $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
+    $o .= "--:-:6:-:1      S2R bid, SR_CTAID.X;\n";
+    $o .= fm_consts(\%C);
+    $o .= "20:-:-:-:6      ISCADD tg, bid, tid, 0x8;\n";
+    $o .= "--:-:-:-:6      ISETP.GE.U32.AND P0, PT, tg, param_n, PT;\n";
+    $o .= "--:-:-:-:6      SHL t, tg, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD ap0.CC, t, param_P00;\n";
+    $o .= "--:-:-:-:6      IADD.X ap1, RZ, param_P01;\n";
+    $o .= "--:-:-:-:6      IADD bp0.CC, t, param_P10;\n";
+    $o .= "--:-:-:-:6      IADD.X bp1, RZ, param_P11;\n";
+    $o .= "--:-:-:-:6      IADD cp0.CC, t, param_P20;\n";
+    $o .= "--:-:-:-:6      IADD.X cp1, RZ, param_P21;\n";
+    $o .= "--:-:-:-:6  \@P0 EXIT;\n";
+    if ($op eq 'silu') {
+        $o .= "--:-:1:-:2      LDG.E u0, [ap];\n";
+        $o .= "01:-:-:-:6      FMUL u0, u0, 0.25;\n";
+        $o .= fm_silu('y', 'u0', 'ft1', 'ft2', 'ft3', 'ft4', 'ft5', \%C);
+        $o .= "--:2:-:-:1      STG.E [bp], y;\n";
+    } elsif ($op eq 'mix') {
+        $o .= sprintf "--:-:1:-:1      LDG.E u%d, [ap+0x%x];\n", $_, 10240*$_ for 0..3;
+        $o .= sprintf "--:-:1:-:%s      LDG.E x%d, [bp+0x%x];\n", $_ == 3 ? '2' : '1', $_, 10240*$_ for 0..3;
+        $o .= "01:-:-:-:6      MOV acc, RZ;\n";
+        for my $l (0..3) { $o .= fm_sigmoid("g$l", "u$l", 'ft1', 'ft2', 'ft3', 'ft4', \%C); }
+        $o .= "--:-:-:-:6      FMUL acc, g0, x0;\n";
+        $o .= sprintf "--:-:-:-:6      FFMA acc, g%d, x%d, acc;\n", $_, $_ for 1..3;
+        $o .= "--:-:-:-:6      FMUL acc, acc, 0.25;\n";
+        $o .= "--:2:-:-:1      STG.E [cp], acc;\n";
+    } else {   # write
+        $o .= "--:-:-:-:6      MOV ap0, param_P00;\n";                   # inj: the same 4 words for every thread
+        $o .= "--:-:-:-:6      MOV ap1, param_P01;\n";
+        $o .= "--:-:1:-:1      LDG.E.128 u0, [ap];\n";
+        $o .= "--:-:1:-:1      LDG.E y, [bp];\n";
+        $o .= sprintf "--:-:1:-:%s      LDG.E x%d, [cp+0x%x];\n", $_ == 3 ? '2' : '1', $_, 10240*$_ for 0..3;
+        $o .= sprintf "%s:-:-:-:%s      FMUL u%d, u%d, 0.25;\n", $_ == 0 ? '01' : '--', $_ == 3 ? '6' : '1', $_, $_ for 0..3;
+        for my $l (0..3) {
+            $o .= fm_sigmoid("g$l", "u$l", 'ft1', 'ft2', 'ft3', 'ft4', \%C);
+            $o .= "--:-:-:-:6      FMUL g$l, g$l, 2;\n";
+        }
+        $o .= sprintf "--:-:-:-:%s      FFMA x%d, g%d, y, x%d;\n", $_ == 3 ? '6' : '1', $_, $_, $_ for 0..3;
+        $o .= sprintf "--:2:-:-:1      STG.E [cp+0x%x], x%d;\n", 10240*$_, $_ for 0..3;
+    }
+    $o .= "02:-:-:-:f      EXIT;\n";
+    return $o;
+</CODE>

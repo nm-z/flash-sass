@@ -228,3 +228,17 @@ conv1d.cubin: conv1d.sass fmath.pl skel_conv1d.cubin
 
 conv1d_test: conv1d_test.c ../ref/deltanet.c ../ref/deltanet.h ../ref/fmath.c
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ conv1d_test.c ../ref/deltanet.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+# hyper-connection vector ops
+skel_hcops.cubin: hcops.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+hc_%.cubin: hcops.sass fmath.pl skel_hcops.cubin
+	cp skel_hcops.cubin $@
+	HC_OP=$* $(MAXAS) -i hcops.sass $@
+
+hcops_test: hcops_test.c ../ref/hc.c ../ref/hc.h ../ref/fmath.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ hcops_test.c ../ref/hc.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+hcops: hc_silu.cubin hc_mix.cubin hc_write.cubin hcops_test
+.PHONY: hcops
