@@ -42,6 +42,8 @@ static void dev_init(void) {
 	CK(cuMemAlloc(&dPROG, 128 * 256)); CK(cuMemAlloc(&dCTL, 8192)); CK(cuMemsetD8(dCTL, 0, 8192));
 }
 static CUdeviceptr dalloc(size_t n) { CUdeviceptr p; CK(cuMemAlloc(&p, n ? n : 4)); CK(cuMemsetD8(p, 0, n ? n : 4)); return p; }
+/* the same, in pinned host memory the die reads and writes over PCIe (QSA_HOSTKV=1 runs the KV cache of the kv test there) */
+static CUdeviceptr halloc(size_t n) { void *h; CUdeviceptr d; CK(cuMemHostAlloc(&h, n, CU_MEMHOSTALLOC_DEVICEMAP | CU_MEMHOSTALLOC_PORTABLE)); memset(h, 0, n); CK(cuMemHostGetDevicePointer(&d, h, 0)); return d; }
 /* run the program once at token t (the kernel's token counter starts at t) */
 static void run_token(const desc_t *prog, unsigned nph, unsigned t) {
 	CK(cuMemcpyHtoD(dPROG, prog, sizeof(desc_t) * nph));
@@ -69,7 +71,8 @@ static int test_kv(unsigned T, unsigned NBLK) {
 	unsigned cpos = 4 * (NBLK + 1) + 2048; cpos = (cpos + 31) / 32 * 32;
 	size_t kcf = ATTN_KC_FLOATS(cpos), vcf = (size_t)cpos * 512;
 	CUdeviceptr dQG = dalloc(4 * 12288), dK = dalloc(4 * 512), dV = dalloc(4 * 512), dQN = dalloc(4 * 256), dKN = dalloc(4 * 256), dCS = dalloc(4 * 32 * (size_t)npos), dSN = dalloc(4 * 32 * (size_t)npos);
-	CUdeviceptr dQO = dalloc(4 * 6144), dKQ = dalloc((size_t)npos * 512), dVQ = dalloc((size_t)npos * 512), dKS = dalloc((size_t)npos * 32), dVS = dalloc((size_t)npos * 32);
+	int hk = getenv("QSA_HOSTKV") != NULL;
+	CUdeviceptr dQO = dalloc(4 * 6144), dKQ = hk ? halloc((size_t)npos * 512) : dalloc((size_t)npos * 512), dVQ = hk ? halloc((size_t)npos * 512) : dalloc((size_t)npos * 512), dKS = hk ? halloc((size_t)npos * 32) : dalloc((size_t)npos * 32), dVS = hk ? halloc((size_t)npos * 32) : dalloc((size_t)npos * 32);
 	CUdeviceptr dKC = dalloc(kcf * 4), dVC = dalloc(vcf * 4), dSEL = dalloc(4 * (NBLK + 8)), dPM = dalloc(4 * 24 * 8), dPD = dalloc(4 * 24 * 8), dPO = dalloc(4 * 24 * 8 * 256), dAOUT = dalloc(4 * 6144);
 	CK(cuMemcpyHtoD(dQN, qn, 4 * 256)); CK(cuMemcpyHtoD(dKN, kn, 4 * 256)); CK(cuMemcpyHtoD(dCS, rcs, 4 * 32 * (size_t)npos)); CK(cuMemcpyHtoD(dSN, rsn, 4 * 32 * (size_t)npos));
 	desc_t prog[4];
@@ -321,6 +324,25 @@ static int test_embimg(void) {
 	return bad;
 }
 
+/* the time of kvgather over 2051 attended keys with the int8 cache in VRAM or in pinned host memory */
+static int test_gathertime(int host, unsigned nv) {
+	unsigned NBLK = 512, t = 4 * nv - 1, npos = 4 * nv + 400;
+	size_t cpos = (4 * (NBLK + 1) + 2048 + 31) / 32 * 32;
+	CUdeviceptr dKQ = host ? halloc((size_t)npos * 512) : dalloc((size_t)npos * 512), dVQ = host ? halloc((size_t)npos * 512) : dalloc((size_t)npos * 512), dKS = host ? halloc((size_t)npos * 32) : dalloc((size_t)npos * 32), dVS = host ? halloc((size_t)npos * 32) : dalloc((size_t)npos * 32);
+	CUdeviceptr dKC = dalloc(ATTN_KC_FLOATS(cpos) * 4), dVC = dalloc(cpos * 512 * 4), dSEL = dalloc(4 * (NBLK + 8));
+	uint32_t sel[512]; for (unsigned i = 0; i < NBLK; i++) sel[i] = i * (nv / NBLK);
+	CK(cuMemcpyHtoD(dSEL, sel, 4 * NBLK));
+	desc_t prog[1]; d_init(&prog[0], OP_KVGATHER, NBLK + 1);
+	d_ptr(&prog[0], 0x140, dKQ); d_ptr(&prog[0], 0x148, dKS); d_ptr(&prog[0], 0x150, dVQ); d_ptr(&prog[0], 0x158, dVS); d_ptr(&prog[0], 0x160, dKC); d_ptr(&prog[0], 0x168, dVC); d_ptr(&prog[0], 0x170, dSEL); d_tok(&prog[0], 0x178, 0); d_u32(&prog[0], 0x17c, NBLK);
+	CK(cuMemcpyHtoD(dPROG, prog, sizeof(desc_t))); unsigned nph = 1, ntok = t + 1 + 50; CK(cuMemcpyHtoD(dCTL + 8, &t, 4));
+	void *params[] = { &dPROG, &nph, &dCTL, &ntok };
+	CUevent e0, e1; CK(cuEventCreate(&e0, 0)); CK(cuEventCreate(&e1, 0));
+	CK(cuEventRecord(e0, 0)); CK(cuLaunchKernel(fn, 16, 1, 1, 256, 1, 1, 0, 0, params, NULL)); CK(cuEventRecord(e1, 0)); CK(cuCtxSynchronize());
+	float ms; CK(cuEventElapsedTime(&ms, e0, e1));
+	printf("kvgather, cache in %s memory: %.1f us per token (2051 keys)\n", host ? "host" : "device", 1e3 * ms / 51);
+	return 0;
+}
+
 int main(int argc, char **argv) {
 	if (argc < 2) { fprintf(stderr, "usage: qsa_test kv <T> <NBLK>\n"); return 2; }
 	dev_init();
@@ -328,6 +350,7 @@ int main(int argc, char **argv) {
 	if (!strcmp(argv[1], "idxsel")) return test_idxsel(argc > 2 ? (unsigned)atoi(argv[2]) : 700, argc > 3 ? (unsigned)atoi(argv[3]) : 512, argc > 4 ? atoi(argv[4]) : 0, argc > 5 ? atoi(argv[5]) : 5) ? 3 : 0;
 	if (!strcmp(argv[1], "idxfull")) return test_idxfull(argc > 2 ? (unsigned)atoi(argv[2]) : 2000, argc > 3 ? (unsigned)atoi(argv[3]) : 512, argc > 4 ? atoi(argv[4]) : 0) ? 3 : 0;
 	if (!strcmp(argv[1], "embimg")) return test_embimg() ? 3 : 0;
+	if (!strcmp(argv[1], "gathertime")) return test_gathertime(argc > 2 ? atoi(argv[2]) : 0, argc > 3 ? (unsigned)atoi(argv[3]) : 5000);
 	if (!strcmp(argv[1], "idxqk")) return test_idxqk(argc > 2 ? (unsigned)atoi(argv[2]) : 100) ? 3 : 0;
 	if (!strcmp(argv[1], "kv")) return test_kv(argc > 2 ? (unsigned)atoi(argv[2]) : 200, argc > 3 ? (unsigned)atoi(argv[3]) : 8) ? 3 : 0;
 	fprintf(stderr, "unknown test %s\n", argv[1]); return 2;
