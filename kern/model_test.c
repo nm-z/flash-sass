@@ -234,18 +234,19 @@ int main(int argc, char **argv) {
 		}
 		if (do_embed) dw[d][0].token_embd = dptr_raw(d, "token_embd.weight");
 		xchg_t *x = &xc[d];
-		x->inbox = dalloc(2 * XSLOT); x->flags = dalloc(32); x->xgen = dalloc(16); x->xtab = dalloc(128);
-		uint32_t fl[6]; for (int e = 0; e < 6; e++) fl[e] = e < nd ? 0u : 0xffffffffu;
+		x->inbox = dalloc(2 * XSLOT); x->flags = dalloc(512); x->xtab = dalloc(128);   /* flags: u32[6 dies][16 CTAs] */
+		uint32_t fl[96]; for (int e = 0; e < 96; e++) fl[e] = e / 16 < nd ? 0u : 0xffffffffu;
 		CK(cuMemcpyHtoD(x->flags, fl, sizeof fl));
 		dPROG[d] = dalloc(128 * 4096); dCTL[d] = dalloc(0x100 + 4 * 4096);
+		x->xgen = dCTL[d] + 0x20;   /* the exchange count lives in ctl[8] between launches */
 	}
 	uint64_t tab[12] = { 0 };
 	for (int d = 0; d < nd; d++) { tab[d] = (uint64_t)xc[d].inbox; tab[6 + d] = (uint64_t)xc[d].flags; }
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(xc[d].xtab, tab, sizeof tab));
-		/* the framework's exchange header in ctl: [3] me, [4] ndies, [16 + 2e] = &flags_e[me], [28] = my flags */
+		/* the framework's exchange header in ctl: [3] me, [4] ndies, [16 + 2e] = &flags_e[me][0], [28] = my flags */
 		uint32_t hdr[32] = { 0 }; hdr[3] = (uint32_t)d; hdr[4] = (uint32_t)nd;
-		for (int e = 0; e < nd; e++) { uint64_t a = (uint64_t)xc[e].flags + 4u * (unsigned)d; memcpy(&hdr[16 + 2 * e], &a, 8); }
+		for (int e = 0; e < nd; e++) { uint64_t a = (uint64_t)xc[e].flags + 64u * (unsigned)d; memcpy(&hdr[16 + 2 * e], &a, 8); }
 		uint64_t mf = (uint64_t)xc[d].flags; memcpy(&hdr[28], &mf, 8);
 		CK(cuMemcpyHtoD(dCTL[d], hdr, sizeof hdr));
 	}

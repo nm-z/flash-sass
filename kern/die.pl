@@ -25,6 +25,7 @@ my $BASE = 16;             # first op register
 my $NCTA = 16;             # CTAs per die (1 per SM)
 my $DESC_OFF = 0xbf80;     # descriptor in shared memory (ops use smem from 0)
 my $TOK_OFF = 0xbf70;      # the token counter (u32), kept per CTA in shared memory
+my $XG_OFF = 0xbf74;       # the exchange count (u32), per CTA in shared memory (xsend bumps it)
 
 # opcode = index. tag, file, unit kind, environment for the generator
 my @OPS = (
@@ -278,6 +279,9 @@ $maps</REGISTER_MAPPING>
 --:-:-:-:6      MOV fw1, ctl1;
 --:-:1:-:2      LDG.E op, [fw+0x8];
 01:2:-:-:6      STS [RZ+0x@{[sprintf '%x', $TOK_OFF]}], op;
+# the exchange count (XG) likewise, seeded from ctl[8]; xsend bumps it per CTA
+02:-:1:-:2      LDG.E op, [fw+0x20];
+01:2:-:-:6      STS [RZ+0x@{[sprintf '%x', $XG_OFF]}], op;
 # launch timestamp -> ctl[15]
 02:-:-:-:6      IADD op, cta, tid;
 --:-:-:-:6      ISETP.EQ.U32.AND P4, PT, op, RZ, PT;
@@ -316,32 +320,33 @@ PHASE:
 --:-:1:-:2      LDS units, [RZ+0x@{[sprintf '%x', $DESC_OFF + 4]}];
 01:-:-:-:6      NOP;
 # ---- exchange wait (descriptor word 30 bit 1): warp 0 of every CTA polls this die's
-# six flags (ctl[28..29] -> u32[6], absent dies hold ~0) until all read >= the
-# exchange counter ctl[8], invalidates L1, and the CTA syncs ----
+# flags (ctl[28..29] -> u32[6][16], one per sending die and CTA; absent dies hold ~0;
+# lane l reads words l, l + 32, l + 64) until all 96 read >= the exchange count (XG
+# in shared memory), invalidates L1, and the CTA syncs ----
 --:-:1:-:2      LDS bar_g, [RZ+0x@{[sprintf '%x', $DESC_OFF + 0x78]}];
 01:-:-:-:6      LOP32I.AND bar_g, bar_g, 0x2;
 --:-:-:-:6      ISETP.EQ.U32.AND P5, PT, bar_g, RZ, PT;
 --:-:-:-:6      ISETP.GE.U32.AND P6, PT, tid, 0x20, PT;
 --:-:-:-:6      MOV bar_cp0, ctl0;
 --:-:-:-:6      MOV bar_cp1, ctl1;
---:-:-:-:6      NOP;
+--:-:-:-:6      SHL bar_old, lane, 0x2;
 --:-:-:-:6  \@P5 BRA XWDONE;
 --:-:-:-:6  \@P6 BRA XWBAR;
---:-:1:-:1      LDG.E.CV bar_g, [bar_cp+0x20];
+--:-:1:-:1      LDS bar_g, [RZ+0x@{[sprintf '%x', $XG_OFF]}];
 --:-:1:-:2      LDG.E.64 xe0, [bar_cp+0x70];
+01:-:-:-:6      IADD xe0.CC, xe0, bar_old;
+--:-:-:-:6      IADD.X xe1, xe1, RZ;
 XWSPIN:
-01:-:3:-:1      LDG.E.CV bar_t, [xe];
---:-:3:-:1      LDG.E.CV bar_old, [xe+0x4];
---:-:3:-:1      LDG.E.CV bar_one, [xe+0x8];
---:-:3:-:1      LDG.E.CV bar_g2, [xe+0xc];
---:-:3:-:1      LDG.E.CV xb0, [xe+0x10];
---:-:3:-:2      LDG.E.CV xb1, [xe+0x14];
-04:-:-:-:1      IMNMX.U32 bar_t, bar_t, bar_old, PT;
---:-:-:-:1      IMNMX.U32 bar_one, bar_one, bar_g2, PT;
---:-:-:-:6      IMNMX.U32 xb0, xb0, xb1, PT;
---:-:-:-:6      IMNMX.U32 bar_t, bar_t, bar_one, PT;
---:-:-:-:6      IMNMX.U32 bar_t, bar_t, xb0, PT;
+--:-:3:-:1      LDG.E.CV bar_t, [xe];
+--:-:3:-:1      LDG.E.CV bar_one, [xe+0x80];
+--:-:3:-:2      LDG.E.CV bar_g2, [xe+0x100];
+04:-:-:-:6      IMNMX.U32 bar_t, bar_t, bar_one, PT;
+--:-:-:-:6      IMNMX.U32 bar_t, bar_t, bar_g2, PT;
 --:-:-:-:6      ISETP.GE.U32.AND P4, PT, bar_t, bar_g, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      VOTE.ALL P4, P4;
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
@@ -374,21 +379,7 @@ PHASE_END:
 --:-:-:-:6      MOV bar_cp0, ctl0;
 --:-:-:-:6      MOV bar_cp1, ctl1;
 --:-:-:-:6      MOV bar_one, 0x1;
-# a send phase (descriptor word 30 bit 0): CTA 0 thread 0 bumps the exchange counter
-# ctl[8] before counting in, so every CTA reads the new value after the barrier
---:-:-:-:6      IADD bar_t, cta, tid;
---:-:-:-:6      ISETP.EQ.U32.AND P4, PT, bar_t, RZ, PT;
---:-:1:-:2      LDS bar_g2, [RZ+0x@{[sprintf '%x', $DESC_OFF + 0x78]}];
-01:-:-:-:6      LOP32I.AND bar_g2, bar_g2, 0x1;
---:-:-:-:6      NOP;
---:-:-:-:6      ISETP.NE.U32.AND P4, PT, bar_g2, RZ, P4;
---:-:-:-:6      NOP;
---:-:-:-:6      NOP;
---:-:-:-:6      NOP;
---:-:1:-:2  \@P4 LDG.E.CV bar_g2, [bar_cp+0x20];
-01:-:-:-:6  \@P4 IADD bar_g2, bar_g2, 0x1;
---:2:-:-:6  \@P4 STG.E.WT [bar_cp+0x20], bar_g2;
-02:-:-:-:6  \@P6 BRA BDONE;
+--:-:-:-:6  \@P6 BRA BDONE;
 --:-:1:-:2      LDG.E.CV bar_g, [bar_cp+0x4];
 --:-:-:-:6      MEMBAR.GL.IVALLD;
 01:-:2:-:2 \@!P5 ATOM.E.ADD bar_old, [bar_cp], bar_one;
@@ -423,44 +414,6 @@ BDONE:
 --:-:-:-:6      IADD.X bar_cp1, bar_cp1, RZ;
 --:-:6:-:2  \@P4 S2R bar_g2, SR_GLOBALTIMERLO;
 20:-:-:-:6  \@P4 STG.E [bar_cp+0x100], bar_g2;
-# ---- exchange flag (word 30 bit 0): warp 0 of CTA 0 fences and lane 0 publishes the
-# exchange counter to flags[me] of every die (ctl[16 + 2e] holds that address) ----
---:-:1:-:2      LDS bar_g, [RZ+0x@{[sprintf '%x', $DESC_OFF + 0x78]}];
-01:-:-:-:6      LOP32I.AND bar_g, bar_g, 0x1;
---:-:-:-:6      ISETP.EQ.U32.AND P5, PT, bar_g, RZ, PT;
---:-:-:-:6      ISETP.NE.U32.AND P6, PT, cta, RZ, PT;
---:-:-:-:6      ISETP.GE.U32.AND P3, PT, tid, 0x20, PT;
---:-:-:-:6      MOV bar_cp0, ctl0;
---:-:-:-:6      MOV bar_cp1, ctl1;
---:-:-:-:6      NOP;
---:-:-:-:6  \@P5 BRA XFDONE;
---:-:-:-:6  \@P6 BRA XFDONE;
---:-:-:-:6  \@P3 BRA XFDONE;
---:-:1:-:1      LDG.E.CV op, [bar_cp+0x20];
---:-:1:-:1      LDG.E units, [bar_cp+0x10];
---:-:1:-:1      LDG.E.64 xa0, [bar_cp+0x40];
---:-:1:-:1      LDG.E.64 xb0, [bar_cp+0x48];
---:-:1:-:1      LDG.E.64 xc0, [bar_cp+0x50];
---:-:1:-:2      LDG.E.64 xd0, [bar_cp+0x58];
---:-:-:-:6      MEMBAR.SYS;
-01:-:-:-:6      ISETP.GT.U32.AND P5, PT, units, 0x1, P4;
---:-:-:-:6      ISETP.GT.U32.AND P6, PT, units, 0x2, P4;
---:-:-:-:6      ISETP.GT.U32.AND P3, PT, units, 0x3, P4;
---:-:-:-:6      NOP;
---:-:-:-:6      NOP;
---:2:-:-:1  \@P4 STG.E.WT [xa], op;
---:2:-:-:1  \@P5 STG.E.WT [xb], op;
---:2:-:-:1  \@P6 STG.E.WT [xc], op;
---:2:-:-:6  \@P3 STG.E.WT [xd], op;
---:-:-:-:6      ISETP.GT.U32.AND P5, PT, units, 0x4, P4;
---:-:-:-:6      ISETP.GT.U32.AND P6, PT, units, 0x5, P4;
-# (xe aliases bar_cp: its load comes last, after every other use of the base)
-02:-:1:-:1      LDG.E.64 xa0, [bar_cp+0x68];
---:-:1:-:2      LDG.E.64 xe0, [bar_cp+0x60];
-01:-:-:-:6      NOP;
---:2:-:-:1  \@P5 STG.E.WT [xe], op;
---:2:-:-:6  \@P6 STG.E.WT [xa], op;
-XFDONE:
 # ---- next phase ----
 --:-:-:-:6      IADD pidx, pidx, 0x1;
 --:-:-:-:6      ISETP.LT.U32.AND P6, PT, pidx, nph, PT;

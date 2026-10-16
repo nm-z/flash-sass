@@ -893,6 +893,15 @@ it), and `PHASE` only adds the token counter and stores the words to shared
 memory — the descriptor's global-memory latency is hidden under the barrier
 instead of paid at every phase start (`vid`/`vtid` are free then: every unit
 recomputes them). Descriptor 0 is prefetched in the prologue.
+**Per-CTA exchange flags:** the flags are `u32[6 dies][16 CTAs]` per die;
+`xsend`'s thread 0, right after its CTA's `BAR.SYNC` + `MEMBAR.SYS`, bumps the
+CTA's exchange count (`XG`, shared memory 0xbf74, seeded from `ctl[8]` like
+the token counter and mirrored back by CTA 0) and stores it to
+`flags_e[me][cta]` of every die e (`TAB[6 + e] + 64 me + 4 cta`), so the flag
+leaves with the data instead of after the die's grid barrier and CTA 0's
+second fence; a waiting phase's warp 0 polls all 96 words (3 per lane,
+`VOTE.ALL` on `min >= XG`). The framework no longer touches `ctl[8]` or the
+flags itself (descriptor word 30 bit 0 is informational now).
 
 **Hardware notes (archy, 2026-10-16).** Root ports: board 1 (dies 0, 1) is
 PCIe 3 ×8, boards 2 and 3 ×16, board 4 (dies 6, 7) hangs off the PCH at

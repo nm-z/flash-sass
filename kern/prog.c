@@ -117,10 +117,10 @@ void ph_gemv_any(prog_t *P, uint32_t type, int K, CUdeviceptr W, CUdeviceptr Xq,
 CUdeviceptr ph_xchg(prog_t *P, const xchg_t *x, int me, int ndies, CUdeviceptr src, unsigned nbytes, unsigned myoff, unsigned total) {
 	unsigned slot = (unsigned)(P->xj & 1) * XSLOT;
 	phase_t *p = prog_add(P, OP_XSEND, 16);
-	ph_ptr(p, 0x140, x->xtab); ph_ptr(p, 0x148, src); ph_u32(p, 0x150, nbytes); ph_u32(p, 0x154, myoff); ph_u32(p, 0x158, slot); ph_u32(p, 0x15c, (unsigned)ndies); ph_ptr(p, 0x160, x->xgen);
-	p->w[30] |= 1;             /* a send: the framework publishes the flag after this phase ... */
-	P->pending_wait = 1;       /* ... and the next phase polls for every die's flag first */
-	(void)me; (void)total;
+	ph_ptr(p, 0x140, x->xtab); ph_ptr(p, 0x148, src); ph_u32(p, 0x150, nbytes); ph_u32(p, 0x154, myoff); ph_u32(p, 0x158, slot); ph_u32(p, 0x15c, (unsigned)ndies); ph_ptr(p, 0x160, x->xgen); ph_u32(p, 0x168, (unsigned)me);
+	p->w[30] |= 1;             /* a send (every CTA publishes its flag itself; the bit is informational) ... */
+	P->pending_wait = 1;       /* ... and the next phase polls for every die's and CTA's flag first */
+	(void)total;
 	P->xj++;
 	return x->inbox + slot;
 }
