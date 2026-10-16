@@ -25,7 +25,8 @@ require './fmath.pl';
 sub actq_shape {
     my ($n) = @_;
     my $C = $n / 128;
-    my $U = $C <= 20 ? $C : 16;
+    my $U = $ENV{ACTQ_U} || ($C <= 20 ? $C : 16);      # ACTQ_U caps the unroll (the die build keeps K=2560 under 255 registers)
+    die "actq: U=$U does not divide C=$C" if $C % $U;
     return ($C, $U, $C / $U);
 }
 

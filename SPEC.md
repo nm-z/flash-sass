@@ -577,6 +577,54 @@ the hyper-connection norms, `ssm_norm`, q/k norms, indexer norms and PLE norms.
   smem alignment (24-byte rows go through `STS.64`); MaxAs computes operand
   reuse flags itself and prints the bank-conflict count (426 here, mostly the
   accumulator operand of the FFMA streams — a tuning item).
+- **ffnact** (`kern/ffnact.sass`, emitter shared with actq in `kern/actq.pl`):
+  x = SiLU(g) ⊙ u then the per-32 quantiser, one warp per expert vector (CTA b =
+  vector b); twin `silu_gpu(g) * u` + `quant_act_gpu32`. 116 registers, bit-exact
+  for 11 experts × 640 at every magnitude (saturated gates included).
+- **embrow** (`kern/embrow.sass`): the raw Q3_K `token_embd` row of a token id
+  (10 blocks of 110 bytes; 6-bit scales unpacked as ggml does) written to the
+  four lanes of S; 10 CTAs × 256 threads, thread = value; twin `dequant(GG_Q3_K)`.
+- **argmax** (`kern/argmax.sass`): G CTAs scan the logits (first maximum per
+  thread), xor butterflies + smem per CTA, PART[c] per CTA, the last CTA to bump
+  CNT (ATOM.ADD, MEMBAR.GL.IVALLD, LDG.CV) reduces the partials with warp 0 and
+  resets CNT; ties → lowest index. Tested with planted maxima and ties.
+- **plerows** (`kern/plerows.sass`, twin `ple_rows_c` + `dequant(GG_IQ4_NL)`):
+  the n-gram row hash entirely on the GPU: context ids with the end/absent
+  rules of cx-flash `RowHash::rows_at`, 64-bit wrapping products from seven
+  16×16 XMAD partials added with IADD.CC/.X, XOR-mixed per order, `mixed mod
+  voc[h]` by a 64-step restoring division that stays in 32 bits (IMNMX.U32
+  select, no predicates), row = off[h] + rem; then the 90-byte IQ4_NL row is
+  read from the **host-mapped** table (45 LDG.U16 over PCIe) and decoded
+  (kvalues table in smem) into G[160 h + j]. One warp, lane = head. The
+  metadata used: multipliers [23703573157769, 20109073645365, 8052911324071],
+  head offsets 0, 20000003, …, 300001275, head vocabularies the 16 primes near
+  2·10⁷ (`ggufhdr … kv qwen4exp.ple.*`), ends = {tokenizer eos 248046}, absent =
+  ple.eos_token_id 248044 (cx-flash: `ends` from `tokenizer.ggml.eos_token_id`,
+  `absent` from `ple.eos_token_id`).
+- **plegate** (`kern/plegate.sass`, twin `ple_gate_gpu`): 4 CTAs (lane l): s_l =
+  Σ k̂·Q over the lane's 2560 (per-thread chains, butterfly, warps in order),
+  s' = s·(1/√2560), γ = σ(sign(s')·√max(|s'|, 1e-6)) with the IEEE sqrt
+  sequence, G_l = γ_l V. The s' = 0 case gives γ = 0.5 (sign 0), as in cx-flash.
+- **pleconv** (`kern/pleconv.sass`, twin `ple_conv_gpu`): from cx-flash's
+  `dconv_forward_body`: tap k multiplies x(t − (3−k)·3) (zero before the
+  sequence start), weights F16 `[c][k]` k-contiguous, x(t) saved to a ring of 10
+  slots after use; y by FMUL + 3 FFMA in tap order, S += G + SiLU(y). 10 CTAs ×
+  256 threads, 4 channels per thread. Bit-exact over 14 positions.
+- **MaxAs/Maxwell facts from this batch**: IADD/ISETP immediates are
+  sign-magnitude with a 19-bit magnitude (−0xa0000 silently assembled as
+  −0x20000; larger constants go through MOV32I) and `-0x0` assembles to
+  −0x80000; a `MOV32I` needs its 6 cycles before an `STS` reads the register (the
+  store read the previous value: every kvalue shifted by one entry); a negative
+  32-bit pointer offset needs its sign word in the `IADD.X` (pos − 2 for the
+  first tokens); `S2R SR_NCTAID.X` did not yield the grid size (the kernel
+  looped forever) — grid sizes are passed as parameters.
+- **Phase 2 status**: every per-block operation now has a bit-exact primitive:
+  hc norm/read/inject/mix/write, DeltaNet (conv1d, gates, step), attention
+  (qk norm+RoPE+KV append, partials, merge), router + top-10, expert activation,
+  per-32 quantiser, embedding row, PLE (rows, gate, conv), argmax. Not yet:
+  the indexer (only changes results beyond 2048 keys), the output_hc head
+  collapse (a composition of rmsnorm, BF16 GEMV slices, hc_silu, hc_mix with
+  the `output_hc_*` tensors), the MTP shapes (Phase 5).
 - Register-bank note: in the K-quant streams the mask for field v and the
   activation register of the same XMAD share a bank for 2 of every 8 XMADs, and
   the combine's `acc_v + acc_{v+4}` pairs share banks (MaxAs reports 187
