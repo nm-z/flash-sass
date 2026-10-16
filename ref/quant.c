@@ -781,3 +781,21 @@ void gemv_b32_ref(uint32_t type, const uint8_t *tile, int rows, int K, const int
 		y[r] = v[0] * xscale;
 	}
 }
+
+float quant_act_gpu(const float *x, int n, int16_t *q16, int32_t *sum32, int32_t *sum16) {
+	float amax = 0.f;
+	for (int i = 0; i < n; i++) { float a = fabsf(x[i]); if (a > amax) amax = a; }
+	float r = amax > 0.f ? 1.0f / amax : 0.f;
+	float inv = amax > 0.f ? r * 127.0f : 0.f;
+	for (int i = 0; i < n; i++) {
+		float t = x[i] * inv;
+		q16[i] = (int16_t)lrintf(t);
+	}
+	for (int g = 0; g < n / 16; g++) {
+		int32_t s = 0;
+		for (int e = 0; e < 16; e++) s += q16[16 * g + e];
+		sum16[g] = s;
+	}
+	for (int g = 0; g < n / 32; g++) sum32[g] = sum16[2 * g] + sum16[2 * g + 1];
+	return amax * (1.0f / 127.0f);
+}

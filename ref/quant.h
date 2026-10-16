@@ -116,3 +116,8 @@ float b32_tile_value(uint32_t type, const uint8_t *tile, int K, int r, int e);
 /* GPU order: per lane dot_b = sum (q - off) a (exact), acc = fma(d_b, (float)dot_b, acc)
  * over its 5 blocks, a 4-lane butterfly, then * xscale. */
 void gemv_b32_ref(uint32_t type, const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, float xscale, float *y);
+
+/* The GPU activation quantiser (kern/actq.sass), bit for bit: amax = max |x|,
+ * r = 1/amax (IEEE), inv = r * 127 (0 if amax == 0), q = lrintf(x * inv) as int16,
+ * sum32/sum16 = per-32/per-16 sums of the codes. Returns xscale = amax * (1/127). */
+float quant_act_gpu(const float *x, int n, int16_t *q16, int32_t *sum32, int32_t *sum16);

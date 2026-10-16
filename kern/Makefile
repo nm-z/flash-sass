@@ -149,3 +149,17 @@ mailbox.cubin: mailbox.sass skel_mailbox.cubin
 
 mailbox_test: mailbox_test.c
 	$(CC) -std=gnu99 -O2 -Wall -o $@ mailbox_test.c -I$(CUDA)/include -lcuda
+
+# activation quantiser (one warp per vector), per vector length
+skel_actq.cubin: actq.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+actq_k%.cubin: actq.sass skel_actq.cubin
+	cp skel_actq.cubin $@
+	GEMV_K=$* $(MAXAS) -i actq.sass $@
+
+actq_test: actq_test.c ../ref/quant.c ../ref/quant.h ../ref/gguf.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ actq_test.c ../ref/quant.c ../ref/gguf.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+actq: actq_k640.cubin actq_k2560.cubin actq_k6144.cubin actq_k10240.cubin actq_test
+.PHONY: actq

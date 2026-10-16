@@ -1,0 +1,194 @@
+# Kernel: actq
+#
+# Activation quantiser, one warp per fp32 vector of n = GEMV_K elements (640,
+# 2560, 6144 or 10240): int16 codes q[n], per-32 sums s32[n/32], per-16 sums
+# s16[n/16] and the output scale. Bit-exact twin: ref/quant.c quant_act_gpu.
+#
+#   amax = max |x|                         (FMNMX, order-free)
+#   r    = rcp_rn(amax)                    (MUFU.RCP + one Newton step, the ptxas
+#                                           fast path for rcp.rn.f32 = IEEE 1/amax)
+#   inv  = r * 127                         (0 if amax == 0)
+#   q_i  = F2I.RN(x_i * inv)               (lrintf(x * inv) in C)
+#   xscale = amax * (1/127)
+#
+# Lane l owns the 4-element chunks at 4 (l + 32 j); a chunk's int16 codes go out
+# as one STG.64, the per-16 sums come from a 4-lane and the per-32 sums from an
+# 8-lane SHFL reduction. Two streaming passes (max, then quantise) over U chunks
+# per iteration. Barriers: 1 = loads, 2 = store reads, 3 = MUFU/F2I, 5 = SHFL,
+# 6 = S2R.
+#
+# Params: 0:0x140:8 X  1:0x148:8 Q  2:0x150:8 S32  3:0x158:8 S16  4:0x160:8 SC  5:0x168:4 n
+
+<CONSTANT_MAPPING>
+    param_X0   : c[0x0][0x140]
+    param_X1   : c[0x0][0x144]
+    param_Q0   : c[0x0][0x148]
+    param_Q1   : c[0x0][0x14c]
+    param_S320 : c[0x0][0x150]
+    param_S321 : c[0x0][0x154]
+    param_S160 : c[0x0][0x158]
+    param_S161 : c[0x0][0x15c]
+    param_SC0  : c[0x0][0x160]
+    param_SC1  : c[0x0][0x164]
+</CONSTANT_MAPPING>
+
+<CODE>
+    my $n = $ENV{GEMV_K} || 2560;
+    my $C = $n / 128;                       # chunks per lane
+    my $U = $C <= 20 ? $C : 16;             # chunks per iteration
+    my $o = "<REGISTER_MAPPING>\n";
+    my $r = 0;
+    $o .= sprintf "    %d-%d : x<00-%02d>\n", $r, $r + 4*$U - 1, 4*$U - 1; $r += 4*$U;
+    $o .= sprintf "    %d-%d : w<00-%02d>\n", $r, $r + 2*$U - 1, 2*$U - 1; $r += 2*$U;
+    $o .= sprintf "    %d-%d : s16_<00-%02d>\n", $r, $r + $U - 1, $U - 1; $r += $U;
+    $o .= sprintf "    %d-%d : s32_<00-%02d>\n", $r, $r + $U - 1, $U - 1; $r += $U;
+    $o .= sprintf "    %d-%d : q<0-3>\n", $r, $r + 3; $r += 4;
+    $o .= sprintf "    %d-%d : m<0-3>\n", $r, $r + 3; $r += 4;
+    for my $name (qw(amax inv rr e mneg1 t lsum ls2 it tid lane xsc)) { $o .= sprintf "    %d : %s\n", $r++, $name; }
+    $r += $r & 1;
+    $o .= sprintf "    %d,%d : xp<0-1>\n    %d,%d : qp<0-1>\n    %d,%d : hp<0-1>\n    %d,%d : gp<0-1>\n    %d,%d : cp<0-1>\n",
+        $r, $r+1, $r+2, $r+3, $r+4, $r+5, $r+6, $r+7, $r+8, $r+9;
+    $o .= "</REGISTER_MAPPING>\n";
+    return $o;
+</CODE>
+
+<CODE>
+    my $n = $ENV{GEMV_K} || 2560;
+    my $C = $n / 128;
+    my $U = $C <= 20 ? $C : 16;
+    my $NI = $C / $U;                       # iterations per pass
+    my $o = '';
+    $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
+    $o .= "--:-:-:-:6      MOV32I mneg1, 0xbf800000;\n";
+    $o .= "20:-:-:-:6      ISETP.GE.U32.AND P0, PT, tid, 0x20, PT;\n";   # only warp 0 works
+    $o .= "--:-:-:-:6      MOV32I xsc, 0x3c010204;\n";                        # 1/127 (not representable as a 20-bit immediate)
+    $o .= "--:-:-:-:6      NOP;\n";
+    $o .= "--:-:-:-:6      NOP;\n";
+    $o .= "--:-:-:-:6  \@P0 EXIT;\n";
+    $o .= "--:-:-:-:6      LOP32I.AND lane, tid, 0x1f;\n";
+    $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P1, PT, lane, RZ, PT;\n";          # lane 0
+    $o .= "--:-:-:-:6      LOP32I.AND t, lane, 0x3;\n";
+    $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P2, PT, t, RZ, PT;\n";             # lane % 4 == 0: writes s16
+    $o .= "--:-:-:-:6      LOP32I.AND t, lane, 0x7;\n";
+    $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P3, PT, t, RZ, PT;\n";             # lane % 8 == 0: writes s32
+    # xp = X + 16 lane ; qp = Q + 8 lane ; hp = S16 + 4 (lane >> 2) ; gp = S32 + 4 (lane >> 3)
+    $o .= "--:-:-:-:6      SHL t, lane, 0x4;\n";
+    $o .= "--:-:-:-:6      IADD xp0.CC, t, param_X0;\n";
+    $o .= "--:-:-:-:6      IADD.X xp1, RZ, param_X1;\n";
+    $o .= "--:-:-:-:6      SHL t, lane, 0x3;\n";
+    $o .= "--:-:-:-:6      IADD qp0.CC, t, param_Q0;\n";
+    $o .= "--:-:-:-:6      IADD.X qp1, RZ, param_Q1;\n";
+    $o .= "--:-:-:-:6      SHR.U32 t, lane, 0x2;\n";
+    $o .= "--:-:-:-:6      SHL t, t, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD hp0.CC, t, param_S160;\n";
+    $o .= "--:-:-:-:6      IADD.X hp1, RZ, param_S161;\n";
+    $o .= "--:-:-:-:6      SHR.U32 t, lane, 0x3;\n";
+    $o .= "--:-:-:-:6      SHL t, t, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD gp0.CC, t, param_S320;\n";
+    $o .= "--:-:-:-:6      IADD.X gp1, RZ, param_S321;\n";
+    $o .= "--:-:-:-:6      MOV cp0, param_SC0;\n";
+    $o .= "--:-:-:-:6      MOV cp1, param_SC1;\n";
+    $o .= "--:-:-:-:1      MOV m0, RZ;\n";
+    $o .= "--:-:-:-:1      MOV m1, RZ;\n";
+    $o .= "--:-:-:-:1      MOV m2, RZ;\n";
+    $o .= "--:-:-:-:1      MOV m3, RZ;\n";
+    $o .= "--:-:-:-:6      MOV it, RZ;\n";
+
+    # ---- pass 1: amax ----
+    $o .= "\nPASS1:\n";
+    for my $u (0..$U-1) {
+        $o .= sprintf "--:-:1:-:%s      LDG.E.CI.128 x%02d, [xp+0x%x];\n", $u == $U-1 ? '2' : '1', 4*$u, 512*$u;
+    }
+    $o .= "--:-:-:-:6      IADD it, it, 0x1;\n";
+    $o .= sprintf "--:-:-:-:6      ISETP.LT.U32.AND P4, PT, it, 0x%x, PT;\n", $NI;
+    for my $u (0..$U-1) {
+        for my $k (0..3) {
+            my $wait = ($u == 0 && $k == 0) ? '01' : '--';
+            $o .= sprintf "%s:-:-:-:%s      FMNMX m%d, m%d, |x%02d|, !PT;\n", $wait, ($u == $U-1 && $k == 3) ? '6' : '1', $k, $k, 4*$u + $k;
+        }
+    }
+    $o .= sprintf "--:-:-:-:6      IADD xp0.CC, xp0, 0x%x;\n", 512*$U;
+    $o .= "--:-:-:-:6      IADD.X xp1, xp1, RZ;\n";
+    $o .= "--:-:-:-:6  \@P4 BRA PASS1;\n" if $NI > 1;
+    $o .= "--:-:-:-:1      FMNMX m0, m0, m1, !PT;\n";
+    $o .= "--:-:-:-:6      FMNMX m2, m2, m3, !PT;\n";
+    $o .= "--:-:-:-:6      FMNMX amax, m0, m2, !PT;\n";
+    for my $x (16, 8, 4, 2, 1) {
+        $o .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, amax, 0x%x, 0x1f;\n", $x;
+        $o .= "10:-:-:-:6      FMNMX amax, amax, t, !PT;\n";
+    }
+    # inv = rcp_rn(amax) * 127, 0 for amax == 0 ; xscale = amax / 127
+    $o .= "--:-:-:-:1      FSETP.EQ.AND P5, PT, amax, RZ, PT;\n";
+    $o .= "--:-:3:-:2      MUFU.RCP rr, amax;\n";
+    $o .= "--:-:-:-:6      FMUL xsc, amax, xsc;\n";
+    $o .= "04:-:-:-:6      FFMA e, amax, rr, mneg1;\n";
+    $o .= "--:-:-:-:6      FADD.FTZ e, -e, -RZ;\n";
+    $o .= "--:-:-:-:6      FFMA rr, rr, e, rr;\n";
+    $o .= "--:-:-:-:6      FMUL inv, rr, 127;\n";
+    $o .= "--:-:-:-:6  \@P5 MOV inv, RZ;\n";
+    $o .= "--:2:-:-:1  \@P1 STG.E [cp], xsc;\n";
+    if ($ENV{ACTQ_DBG}) {
+        $o .= "--:-:-:-:6  \@P1 STG.E [cp+0x4], amax;\n";
+        $o .= "--:-:-:-:6  \@P1 STG.E [cp+0x8], inv;\n";
+        $o .= "--:-:-:-:6  \@P1 STG.E [cp+0xc], rr;\n";
+        $o .= "--:-:-:-:6  \@P1 STG.E [cp+0x10], it;\n";
+        $o .= "--:-:-:-:6  \@P1 STG.E [cp+0x14], m0;\n";
+    }
+    # reset xp, it
+    $o .= "--:-:-:-:6      SHL t, lane, 0x4;\n";
+    $o .= "--:-:-:-:6      IADD xp0.CC, t, param_X0;\n";
+    $o .= "--:-:-:-:6      IADD.X xp1, RZ, param_X1;\n";
+    $o .= "--:-:-:-:6      MOV it, RZ;\n";
+
+    # ---- pass 2: quantise ----
+    $o .= "\nPASS2:\n";
+    for my $u (0..$U-1) {
+        $o .= sprintf "%s:-:1:-:%s      LDG.E.CI.128 x%02d, [xp+0x%x];\n", $u == 0 ? '02' : '--', $u == $U-1 ? '2' : '1', 4*$u, 512*$u;
+    }
+    $o .= "--:-:-:-:6      IADD it, it, 0x1;\n";
+    $o .= sprintf "--:-:-:-:6      ISETP.LT.U32.AND P4, PT, it, 0x%x, PT;\n", $NI;
+    for my $u (0..$U-1) {
+        my $wait = $u == 0 ? '01' : '--';
+        $o .= sprintf "%s:-:-:-:1      FMUL x%02d, x%02d, inv;\n", $wait, 4*$u, 4*$u;
+        $o .= sprintf "--:-:-:-:1      FMUL x%02d, x%02d, inv;\n", 4*$u + $_, 4*$u + $_ for 1..2;
+        $o .= sprintf "--:-:-:-:6      FMUL x%02d, x%02d, inv;\n", 4*$u + 3, 4*$u + 3;
+        $o .= sprintf "--:-:3:-:1      F2I.S32.F32 q%d, x%02d;\n", $_, 4*$u + $_ for 0..2;
+        $o .= sprintf "--:-:3:-:2      F2I.S32.F32 q3, x%02d;\n", 4*$u + 3;
+        $o .= "04:-:-:-:1      IADD lsum, q0, q1;\n";
+        $o .= "--:-:-:-:1      IADD ls2, q2, q3;\n";
+        $o .= sprintf "--:-:-:-:1      PRMT w%02d, q0, 0x5410, q1;\n", 2*$u;
+        $o .= sprintf "--:-:-:-:6      PRMT w%02d, q2, 0x5410, q3;\n", 2*$u + 1;
+        $o .= "--:-:-:-:1      IADD lsum, lsum, ls2;\n";
+        $o .= sprintf "--:2:-:-:6      STG.E.64 [qp+0x%x], w%02d;\n", 256*$u, 2*$u;
+        $o .= "--:-:5:-:3      SHFL.BFLY PT, t, lsum, 0x1, 0x1f;\n";
+        $o .= sprintf "10:-:-:-:6      IADD s16_%02d, lsum, t;\n", $u;
+        $o .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, s16_%02d, 0x2, 0x1f;\n", $u;
+        $o .= sprintf "10:-:-:-:6      IADD s16_%02d, s16_%02d, t;\n", $u, $u;
+        $o .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, s16_%02d, 0x4, 0x1f;\n", $u;
+        $o .= sprintf "--:2:-:-:1  \@P2 STG.E [hp+0x%x], s16_%02d;\n", 32*$u, $u;
+        $o .= sprintf "10:-:-:-:6      IADD s32_%02d, s16_%02d, t;\n", $u, $u;
+        $o .= sprintf "--:2:-:-:1  \@P3 STG.E [gp+0x%x], s32_%02d;\n", 16*$u, $u;
+    }
+    if ($ENV{ACTQ_DBG}) {
+        $o .= "--:-:-:-:6  \@P1 STG.E [cp+0x18], lsum;\n";
+        $o .= "--:-:-:-:6  \@P1 STG.E [cp+0x1c], t;\n";
+        $o .= "--:-:-:-:6  \@P1 STG.E [cp+0x20], s16_00;\n";
+        $o .= "--:-:-:-:6  \@P1 STG.E [cp+0x24], s32_00;\n";
+        $o .= "--:-:-:-:6  \@P1 STG.E [cp+0x28], it;\n";
+        $o .= "--:-:-:-:6  \@P1 STG.E [cp+0x2c], hp0;\n";
+        $o .= "--:-:-:-:6  \@P1 STG.E [cp+0x30], q0;\n";
+        $o .= "--:-:-:-:6      IADD cp0.CC, cp0, 0x40;\n";
+        $o .= "--:-:-:-:6      IADD.X cp1, cp1, RZ;\n";
+    }
+    $o .= sprintf "--:-:-:-:6      IADD xp0.CC, xp0, 0x%x;\n", 512*$U;
+    $o .= "--:-:-:-:6      IADD.X xp1, xp1, RZ;\n";
+    $o .= sprintf "--:-:-:-:6      IADD qp0.CC, qp0, 0x%x;\n", 256*$U;
+    $o .= "--:-:-:-:6      IADD.X qp1, qp1, RZ;\n";
+    $o .= sprintf "--:-:-:-:6      IADD hp0.CC, hp0, 0x%x;\n", 32*$U;
+    $o .= "--:-:-:-:6      IADD.X hp1, hp1, RZ;\n";
+    $o .= sprintf "--:-:-:-:6      IADD gp0.CC, gp0, 0x%x;\n", 16*$U;
+    $o .= "--:-:-:-:6      IADD.X gp1, gp1, RZ;\n";
+    $o .= "--:-:-:-:6  \@P4 BRA PASS2;\n" if $NI > 1;
+    $o .= "--:-:-:-:f      EXIT;\n";
+    return $o;
+</CODE>
