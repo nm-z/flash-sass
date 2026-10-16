@@ -3,7 +3,7 @@
 .target sm_52
 .address_size 64
 
-.visible .entry dnstep(.param .u64 ps, .param .u64 pq, .param .u64 pk, .param .u64 pv, .param .u64 pa, .param .u64 pb, .param .u64 pssma, .param .u64 po, .param .f32 eps)
+.visible .entry dnstep(.param .u64 ps, .param .u64 pq, .param .u64 pk, .param .u64 pv, .param .u64 pa, .param .u64 pb, .param .u64 pssma, .param .u64 po, .param .f32 eps, .param .u32 hb, .param .u32 kb)
 {
 	.shared .align 16 .b8 smem[2048];
 	.reg .u32 %r<2>;

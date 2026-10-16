@@ -53,6 +53,8 @@
     param_AS1  : c[0x0][0x174]
     param_WE0  : c[0x0][0x178]
     param_WE1  : c[0x0][0x17c]
+    param_NE0  : c[0x0][0x180]
+    param_NE1  : c[0x0][0x184]
 </CONSTANT_MAPPING>
 
 <REGISTER_MAPPING>
@@ -81,6 +83,8 @@
     136,137 : wep<0-1>
     138     : tidk
     139     : bidk
+    140     : ne
+    142,143 : nep<0-1>
 
     // prologue temporaries, dead before the loop body uses these registers
     90,91   : xp<0-1>
@@ -243,6 +247,15 @@
         $o .= $rowsetup->(0, 0);
         $o .= $actload->(0);
         return $o;
+    }
+    # ---- expert-outer loop ----
+    if ($ENV{GEMV_NEPTR}) {              # expert count from memory (*NE, written by moesel); none: nothing to do
+        $o .= "--:-:-:-:6      MOV nep0, param_NE0;\n";
+        $o .= "--:-:-:-:6      MOV nep1, param_NE1;\n";
+        $o .= "--:-:2:-:2      LDG.E ne, [nep];\n";
+        $o .= "02:-:-:-:6      ISETP.NE.U32.AND P4, PT, ne, RZ, PT;\n";
+        $o .= "--:-:-:-:6      NOP;\n" x 3;
+        $o .= "--:-:-:-:6 \@!P4 EXIT;\n";
     }
     # ---- expert-outer loop ----
     $o .= $actload->(0) if $moe eq 'gather';
@@ -429,7 +442,7 @@ LOOP:
     if ($ENV{GEMV_MOE}) {
         my $NE = $ENV{GEMV_EXPERTS} || 10;
         $o .= "--:-:-:-:6      IADD e, e, 0x1;\n";
-        $o .= sprintf "--:-:-:-:6      ISETP.LT.U32.AND P4, PT, e, 0x%x, PT;\n", $NE;
+        $o .= $ENV{GEMV_NEPTR} ? "--:-:-:-:6      ISETP.LT.U32.AND P4, PT, e, ne, PT;\n" : sprintf "--:-:-:-:6      ISETP.LT.U32.AND P4, PT, e, 0x%x, PT;\n", $NE;
         $o .= "--:-:-:-:6      NOP;\n" x 3;
         $o .= "--:-:-:-:6  \@P4 BRA EXPERT;\n";
     }

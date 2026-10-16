@@ -47,7 +47,8 @@ int main(int argc, char **argv) {
 	CK(cuMemAlloc(&dA, H * 4)); CK(cuMemAlloc(&dB, H * 4)); CK(cuMemAlloc(&dSA, H * 4)); CK(cuMemAlloc(&dO, H * D * 4));
 	CK(cuMemcpyHtoD(dS, S, sbytes)); CK(cuMemcpyHtoD(dQ, q, KH * D * 4)); CK(cuMemcpyHtoD(dK, k, KH * D * 4)); CK(cuMemcpyHtoD(dV, v, H * D * 4));
 	CK(cuMemcpyHtoD(dA, a, H * 4)); CK(cuMemcpyHtoD(dB, b, H * 4)); CK(cuMemcpyHtoD(dSA, sa, H * 4)); CK(cuMemsetD32(dO, 0x7fc00000u, H * D));
-	void *params[] = { &dS, &dQ, &dK, &dV, &dA, &dB, &dSA, &dO, &eps };
+	unsigned hb = 0, kb = 0;   /* standalone: global heads from 0 */
+	void *params[] = { &dS, &dQ, &dK, &dV, &dA, &dB, &dSA, &dO, &eps, &hb, &kb };
 	CK(cuLaunchKernel(fn, H, 1, 1, 256, 1, 1, 0, 0, params, NULL));
 	CK(cuCtxSynchronize());
 	CK(cuMemcpyDtoH(Sg, dS, sbytes)); CK(cuMemcpyDtoH(og, dO, H * D * 4));

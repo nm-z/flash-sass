@@ -17,6 +17,7 @@
     param_P20 : c[0x0][0x150]
     param_P21 : c[0x0][0x154]
     param_n   : c[0x0][0x158]
+    param_us  : c[0x0][0x15c]
 </CONSTANT_MAPPING>
 
 <REGISTER_MAPPING>
@@ -48,6 +49,9 @@
     38,39 : ap<0-1>
     40,41 : bp<0-1>
     42,43 : cp<0-1>
+    44,45 : a1<0-1>
+    46,47 : a2<0-1>
+    48,49 : a3<0-1>
 </REGISTER_MAPPING>
 
 <CODE>
@@ -59,7 +63,11 @@
     $o .= "--:-:6:-:1      S2R bid, SR_CTAID.X;\n";
     $o .= fm_consts(\%C);
     $o .= "20:-:-:-:6      ISCADD tg, bid, tid, 0x8;\n";
+    # P0: nothing to store (per thread); the early exit below is per warp (a warp whose
+    # first element is beyond n): a branch that splits a warp never reconverges here
     $o .= "--:-:-:-:6      ISETP.GE.U32.AND P0, PT, tg, param_n, PT;\n";
+    $o .= "--:-:-:-:6      LOP32I.AND t, tg, 0xffffffe0;\n";
+    $o .= "--:-:-:-:6      ISETP.GE.U32.AND P2, PT, t, param_n, PT;\n";
     $o .= "--:-:-:-:6      SHL t, tg, 0x2;\n";
     $o .= "--:-:-:-:6      IADD ap0.CC, t, param_P00;\n";
     $o .= "--:-:-:-:6      IADD.X ap1, RZ, param_P01;\n";
@@ -67,21 +75,37 @@
     $o .= "--:-:-:-:6      IADD.X bp1, RZ, param_P11;\n";
     $o .= "--:-:-:-:6      IADD cp0.CC, t, param_P20;\n";
     $o .= "--:-:-:-:6      IADD.X cp1, RZ, param_P21;\n";
-    $o .= "--:-:-:-:6  \@P0 EXIT;\n";
+    $o .= "--:-:-:-:6  \@P2 EXIT;\n";
     if ($op eq 'silu') {
+        # elements [m, n) are copied unchanged (the 4 inject values that ride along
+        # behind the 320 down values, kept out of the exchange slot for hcwrite)
+        $o .= "--:-:-:-:6      ISETP.LT.U32.AND P1, PT, tg, param_us, PT;\n";
         $o .= "--:-:1:-:2      LDG.E u0, [ap];\n";
-        $o .= "01:-:-:-:6      FMUL u0, u0, 0.25;\n";
-        $o .= fm_silu('y', 'u0', 'ft1', 'ft2', 'ft3', 'ft4', 'ft5', \%C);
-        $o .= "--:2:-:-:1      STG.E [bp], y;\n";
+        $o .= "01:-:-:-:6      FMUL u1, u0, 0.25;\n";
+        $o .= fm_silu('y', 'u1', 'ft1', 'ft2', 'ft3', 'ft4', 'ft5', \%C);
+        $o .= "--:-:-:-:6 \@!P1 MOV y, u0;\n";                               # [m, n): the value itself
+        $o .= "--:2:-:-:1 \@!P0 STG.E [bp], y;\n";
     } elsif ($op eq 'mix') {
-        $o .= sprintf "--:-:1:-:1      LDG.E u%d, [ap+0x%x];\n", $_, 10240*$_ for 0..3;
+        # the four up rows are param_us bytes apart (10240 for the whole vector; 4 n_i
+        # for a die's column slice [4][n_i]); xh and z keep the full-vector layout
+        $o .= "--:-:-:-:6      MOV t, param_us;\n";
+        $o .= "--:-:-:-:6      IADD a10.CC, ap0, t;\n";
+        $o .= "--:-:-:-:6      IADD.X a11, ap1, RZ;\n";
+        $o .= "--:-:-:-:6      IADD a20.CC, a10, t;\n";
+        $o .= "--:-:-:-:6      IADD.X a21, a11, RZ;\n";
+        $o .= "--:-:-:-:6      IADD a30.CC, a20, t;\n";
+        $o .= "--:-:-:-:6      IADD.X a31, a21, RZ;\n";
+        $o .= "--:-:1:-:1      LDG.E u0, [ap];\n";
+        $o .= "--:-:1:-:1      LDG.E u1, [a1];\n";
+        $o .= "--:-:1:-:1      LDG.E u2, [a2];\n";
+        $o .= "--:-:1:-:1      LDG.E u3, [a3];\n";
         $o .= sprintf "--:-:1:-:%s      LDG.E x%d, [bp+0x%x];\n", $_ == 3 ? '2' : '1', $_, 10240*$_ for 0..3;
         $o .= "01:-:-:-:6      MOV acc, RZ;\n";
         for my $l (0..3) { $o .= fm_sigmoid("g$l", "u$l", 'ft1', 'ft2', 'ft3', 'ft4', \%C); }
         $o .= "--:-:-:-:6      FMUL acc, g0, x0;\n";
         $o .= sprintf "--:-:-:-:6      FFMA acc, g%d, x%d, acc;\n", $_, $_ for 1..3;
         $o .= "--:-:-:-:6      FMUL acc, acc, 0.25;\n";
-        $o .= "--:2:-:-:1      STG.E [cp], acc;\n";
+        $o .= "--:2:-:-:1 \@!P0 STG.E [cp], acc;\n";
     } else {   # write
         $o .= "--:-:-:-:6      MOV ap0, param_P00;\n";                   # inj: the same 4 words for every thread
         $o .= "--:-:-:-:6      MOV ap1, param_P01;\n";
@@ -94,7 +118,7 @@
             $o .= "--:-:-:-:6      FMUL g$l, g$l, 2;\n";
         }
         $o .= sprintf "--:-:-:-:%s      FFMA x%d, g%d, y, x%d;\n", $_ == 3 ? '6' : '1', $_, $_, $_ for 0..3;
-        $o .= sprintf "--:2:-:-:1      STG.E [cp+0x%x], x%d;\n", 10240*$_, $_ for 0..3;
+        $o .= sprintf "--:2:-:-:1 \@!P0 STG.E [cp+0x%x], x%d;\n", 10240*$_, $_ for 0..3;
     }
     $o .= "02:-:-:-:f      EXIT;\n";
     return $o;

@@ -750,7 +750,17 @@ of q (dnstep reads q from smem only after the state update), and one to three
 of heads 33–35 came out wrong in roughly every other run of the block program
 (named-barrier arrivals are counted, so this END barrier pairs correctly with
 the op's own `BAR.SYNC 0x0`s as long as every warp passes the same sequence
-of them, which the early-EXIT rule guarantees); MaxAs counted `BAR.SYNC 0x1` as one
+of them, which the early-EXIT rule guarantees); **no branch may split a
+warp**: the ops carry no `SSY`/`.S` reconvergence, so a warp that diverges at
+a `BRA` (or an `EXIT` that only some lanes take) never reconverges inside the
+persistent kernel — the lagging lanes resume only when the other lanes reach
+the kernel's end, under whatever descriptor is current by then, and their
+stores vanish (seen as four zero `t` values and one zero row per 512 in `lup`,
+all from CTA 1 warp 2 lanes 0–3 after hcsilu/xsend split that warp at element
+320 of 324). Early exits must be warp-uniform (test the warp's first element)
+with per-thread work predicated, or the lanes past the end must redo harmless
+work (xsend clamps to the last word and rewrites it); the GEMV row loops are
+uniform already (`rowpair`); MaxAs counted `BAR.SYNC 0x1` as one
 barrier (it adds 1 to the immediate *string*; patched in `maxas-patch/MaxAs.pm`
 to parse hex) — the cubin's barrier count lives in the `.text` section flags
 (bits 20–25) and the hardware traps an id beyond it as an illegal instruction.
@@ -806,6 +816,34 @@ the gen2 x2 slot stay out). Layout from here on:
 - the loader (`hold`) takes a die index and loads that die's row ranges, expert
   subset and heads; one holder per die, all six arenas exported over IPC.
 
+**Split status (2026-10-16): one Gated DeltaNet block runs bit-exactly over six
+dies.** `kern/dies_test <fullcache> <blk> <T> <manifest>...` runs one holder per
+die (`hold ... split=d/6`: `prog.h split_of` decides the rows — hc down++inject
+rows [54d, +54), hc up the 4 lanes of the die's z column blocks (80 blocks
+→ 14/13 per die), qkv/conv1d/gate/α/β/ssm_a/states by value head (8 per die,
+with the key heads those use: dies 1 and 4 hold 4, the rest 3), ssm_out rows
+[2560d/6, …), experts [512d/6, …) with an `emap` table, the shared expert on
+die blk % 6, norms and the router replicated), builds each die's program
+(`prog_deltanet_block`, 47 phases: 7 exchanges = `xsend` + `xwait` pairs for
+down, z, on, y, down, z and the MoE partials, `moesel` picks the die's routed
+experts and zero-fills its partial, the gather/down GEMVs take their expert
+count from memory (`GEMV_NEPTR`), `sumn` adds the six partials in a fixed
+order), launches the six kernels and compares against the C twin: 486 of 486
+buffers exact over three runs of three tokens, every die identical. The same
+program on one die (exchanging with itself) is exact too. **0.67–0.72 ms per
+token per block on six dies** (0.985 on one die without exchanges); of die
+0's 650 µs, 223 are the seven exchanges (xsend 7–25 µs: the P2P copy to five
+peers plus the phase barrier; xwait 10–28 µs: the slowest die plus ~3–10 µs
+of flag latency), 253 the split GEMVs, ~140 replicated or elementwise phases
+(actq 44, router GEMV 27 + top-10 25, rms 15, hcwrite 10, …). Found on the
+way: (1) `sumn` advanced its pointer six cycles behind the `LDG` that used it
+(address registers are read late) and summed the wrong parts in a random
+subset of warps; (2) the warp-splitting branches (above); (3) MaxAs's S2R
+table; (4) xsend writes the data `STG.E.WT` and xwait, after the flags,
+re-fetches the slot with `LDG.CV` from every thread as a precaution against
+stale L2 lines (not shown necessary once (1) was fixed; to be measured and
+dropped if it is not).
+
 **End-to-end harness rule (Nate):** weights are loaded onto the dies **once**
 and stay resident across kernel iterations — a holder process allocates one
 arena per die, repacks the GGUF tensors into tiles, exports the arena with a
@@ -847,13 +885,23 @@ latency**, router 26 + its 1-row shexp gate 9, dnstep 53 (6 MB of state, 113
 GB/s), actq 10/10/15 (one CTA each), router top-10 22.5 (one warp), and ~4 µs
 for every elementwise phase — the per-phase floor (barrier + unit launch +
 one memory latency) is ≈ 4 µs, so the 47 phases carry ≈ 190 µs of floor.
-Fixes, in order of value: a BF16 GEMV that loops over K slices in registers
-(`GEMV_SLICES`, numerics `((p0+p1)+p2)+p3` unchanged) so hc down+inject is
-one phase over a 324-row matrix (the holder concatenates the two tensors)
-instead of eight, and the router + its gate one 513-row phase: −12 phases and
-−110 µs per block; actq spread over the CTAs (−25 µs); α/β as one 96-row
-GEMV. The floor matters even more once the rows are split six ways, so every
-phase that can be merged should be.
+Done since: the BF16 GEMV loops over K slices in registers (`GEMV_SLICES=4`:
+x reloaded per slice, the next slice's loads issued inside the current FFMA
+chain; numerics `((p0+p1)+p2)+p3` unchanged, bit-exact standalone: 320 rows
+of K=10240 in 53 µs = 124 GB/s), and the holder **merges rows** so one phase
+reads them: `hc_*_dj` = down ++ inject (324 × 10240), `ffn_gate_inp_x` =
+router ++ shared-expert gate (513 × 2560), `ssm_ab` = α ++ β (96 × 2560) with
+`ssm_ab.bias` = dt_bias ++ 48 zeros (+0 on the β rows; the twin adds the same
++0). The block is **31 phases, 985 µs**, still exact over 3 tokens. Found on
+the way: every GEMV issued the loads of all rows of its last CTA iteration
+before testing `row < rows`, so a matrix that ends an allocation faulted
+(`ssm_ab.bias` was the last tensor) — the BF16 kernel now predicates its
+weight / yold / bias loads on a `row < rows` predicate computed one iteration
+ahead, and the holder leaves 4 MB of mapped slack after the last tensor (the
+quantised GEMVs still over-read). Remaining single-die wins: actq spread
+over the CTAs (3 phases, 45 µs → ~10), the one-warp router top-10 (24 µs),
+and merging elementwise phases into their neighbours; the ≈4 µs floor
+matters even more once the rows are split six ways.
 
 ## Phases
 

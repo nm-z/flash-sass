@@ -31,21 +31,22 @@ int main(void) {
 	CK(cuMemAlloc(&d0, 10240 * 4)); CK(cuMemAlloc(&d1, 10240 * 4)); CK(cuMemAlloc(&d2, 10240 * 4));
 	float *a = malloc(10240 * 4), *b = malloc(10240 * 4), *c = malloc(10240 * 4), *r = malloc(10240 * 4), *g = malloc(10240 * 4);
 	/* silu */
-	for (int i = 0; i < 320; i++) a[i] = 40.f * frand();
+	for (int i = 0; i < 324; i++) a[i] = 40.f * frand();
 	hc_silu_gpu(a, r);
+	for (int i = 320; i < 324; i++) r[i] = a[i];   /* [us, n) is copied */
 	CK(cuModuleLoad(&mod, "hc_silu.cubin")); CK(cuModuleGetFunction(&fn, mod, "hcops"));
-	CK(cuMemcpyHtoD(d0, a, 320 * 4)); CK(cuMemsetD32(d1, 0x7fc00000u, 320));
-	unsigned n = 320;
-	void *p1[] = { &d0, &d1, &d2, &n };
+	CK(cuMemcpyHtoD(d0, a, 324 * 4)); CK(cuMemsetD32(d1, 0x7fc00000u, 324));
+	unsigned n = 324, us = 320;   /* silu over 320, 4 copied; mix: up rows 10240 B apart */
+	void *p1[] = { &d0, &d1, &d2, &n, &us };
 	CK(cuLaunchKernel(fn, 2, 1, 1, 256, 1, 1, 0, 0, p1, NULL)); CK(cuCtxSynchronize());
-	CK(cuMemcpyDtoH(g, d1, 320 * 4));
-	fails += cmp("hc_silu", g, r, 320);
+	CK(cuMemcpyDtoH(g, d1, 324 * 4));
+	fails += cmp("hc_silu", g, r, 324);
 	/* mix */
 	for (int i = 0; i < 10240; i++) { a[i] = 6.f * frand(); b[i] = 2.f * frand(); }
 	hc_mix_gpu(a, b, r);
 	CK(cuModuleLoad(&mod, "hc_mix.cubin")); CK(cuModuleGetFunction(&fn, mod, "hcops"));
 	CK(cuMemcpyHtoD(d0, a, 10240 * 4)); CK(cuMemcpyHtoD(d1, b, 10240 * 4)); CK(cuMemsetD32(d2, 0x7fc00000u, 2560));
-	n = 2560;
+	n = 2560; us = 10240;
 	CK(cuLaunchKernel(fn, 10, 1, 1, 256, 1, 1, 0, 0, p1, NULL)); CK(cuCtxSynchronize());
 	CK(cuMemcpyDtoH(g, d2, 2560 * 4));
 	fails += cmp("hc_mix", g, r, 2560);

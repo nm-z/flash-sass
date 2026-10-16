@@ -19,6 +19,7 @@
     param_U0  : c[0x0][0x158]
     param_U1  : c[0x0][0x15c]
     param_t   : c[0x0][0x160]
+    param_n   : c[0x0][0x164]
 </CONSTANT_MAPPING>
 
 <REGISTER_MAPPING>
@@ -57,13 +58,12 @@
     70,71 : s1p<0-1>
     72,73 : s2p<0-1>
     74,75 : swp<0-1>
+    76    : n4
 </REGISTER_MAPPING>
 
 <CODE>
     require './fmath.pl';
     my %C = map { $_ => $_ } qw(log2e ln2hi ln2lo c720 c120 c24 c6 c11 c9 c7 c5 c3 mneg1 chalf cone);
-    my $n = $ENV{CONV_N} || 10240;
-    my $slot = 4 * $n;                       # bytes per ring slot
     my $mulc = sub {
         my ($d, $rr, $cst) = @_;
         my @bits = grep { $cst & (1 << $_) } 0..31;
@@ -77,6 +77,10 @@
     $o .= "--:-:6:-:1      S2R bid, SR_CTAID.X;\n";
     $o .= fm_consts(\%C);
     $o .= "20:-:-:-:6      ISCADD tg, bid, tid, 0x8;\n";                 # global thread = 256 bid + tid
+    $o .= "--:-:-:-:6      SHL t, tg, 0x2;\n";                           # first channel of this thread
+    $o .= "--:-:-:-:6      ISETP.GE.U32.AND P0, PT, t, param_n, PT;\n";      # beyond n: nothing to do
+    $o .= "--:-:-:-:6      MOV n4, param_n;\n";
+    $o .= "--:-:-:-:6      SHL n4, n4, 0x2;\n";                            # bytes per ring slot
     $o .= "--:-:-:-:6      SHL t2, tg, 0x4;\n";                          # 16 tg: byte offset of 4 channels
     $o .= "--:-:-:-:6      IADD xp0.CC, t2, param_X0;\n";
     $o .= "--:-:-:-:6      IADD.X xp1, RZ, param_X1;\n";
@@ -92,11 +96,12 @@
         $o .= sprintf "--:-:-:-:6      IADD t3, RZ, param_t;\n";
         $o .= sprintf "--:-:-:-:6      IADD t3, t3, 0x%x;\n", $add if $add;
         $o .= "--:-:-:-:6      LOP32I.AND t3, t3, 0x3;\n";
-        $o .= $mulc->('t', 't3', $slot);
+        $o .= "--:-:-:-:6      XMAD t, t3, n4, RZ;\n";                       # slot offset (4 n < 2^16)
         $o .= "--:-:-:-:6      IADD t, t, t2;\n";
         $o .= sprintf "--:-:-:-:6      IADD %s0.CC, t, param_S0;\n", $pr;
         $o .= sprintf "--:-:-:-:6      IADD.X %s1, RZ, param_S1;\n", $pr;
     }
+    $o .= "--:-:-:-:6  \@P0 EXIT;\n";
     $o .= "--:-:1:-:1      LDG.E.128 x0, [xp];\n";
     $o .= "--:-:1:-:1      LDG.E.128 a0, [s0p];\n";
     $o .= "--:-:1:-:1      LDG.E.128 b0, [s1p];\n";

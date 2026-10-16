@@ -77,6 +77,13 @@ my @OPS = (
     [ 'b32q50acc',  'gemv_b32.sass',    'cta',  { GEMV_K => 640, GEMV_FMT => 'q5_0', GEMV_ACC => 1 } ],
     [ 'b32q80acc',  'gemv_b32.sass',    'cta',  { GEMV_K => 640, GEMV_FMT => 'q8_0', GEMV_ACC => 1 } ],
     [ 'b32iq4nlacc','gemv_b32.sass',    'cta',  { GEMV_K => 640, GEMV_FMT => 'iq4_nl', GEMV_ACC => 1 } ],
+    # ---- the 6-die split ----
+    [ 'xsend',      'xchg.sass',        'cta',  { XCHG_MODE => 'send' } ],
+    [ 'xwait',      'xchg.sass',        'cta',  { XCHG_MODE => 'wait' } ],
+    [ 'moesel',     'moesel.sass',      'warp', {} ],
+    [ 'sumn',       'sumn.sass',        'cta',  {} ],
+    [ 'q2moegn',    'gemv_q2_0.sass',   'cta',  { GEMV_K => 2560, GEMV_MOE => 'gather', GEMV_NEPTR => 1 } ],
+    [ 'q2moedn',    'gemv_q2_0.sass',   'cta',  { GEMV_K => 640, GEMV_MOE => 'down', GEMV_NEPTR => 1 } ],
 );
 
 sub expand_names {                       # x<00-15> -> x00 .. x15

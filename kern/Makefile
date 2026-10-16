@@ -397,8 +397,8 @@ die_test: die_test.c dieops.h ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref
 die: die.cubin die_test
 
 # ---- the resident weight holder (load once; tests map the arena over CUDA IPC) ----
-hold: hold.c ../ref/quant.c ../ref/gguf.c ../ref/quant.h ../ref/gguf.h
-	$(CC) -std=gnu99 -O2 -Wall -o $@ hold.c ../ref/quant.c ../ref/gguf.c -I../ref -I$(CUDA)/include -lcuda -lm
+hold: hold.c prog.c prog.h dieops.h ../ref/quant.c ../ref/gguf.c ../ref/quant.h ../ref/gguf.h
+	$(CC) -std=gnu99 -O2 -Wall -o $@ hold.c prog.c ../ref/quant.c ../ref/gguf.c -I../ref -I$(CUDA)/include -lcuda -lm
 
 # ---- DeltaNet readout norm + gate ----
 skel_dnnorm.cubin: dnnorm.ptx
@@ -463,6 +463,6 @@ allgather_nover.cubin: allgather.sass skel_allgather.cubin
 	cp skel_allgather.cubin $@
 	AG_NOVERIFY=1 $(MAXAS) -i allgather.sass $@
 
-# ---- a block through the persistent kernel vs the C block twin ----
-block_test: block_test.c prog.c prog.h holdc.c hold.h dieops.h ../ref/block.c ../ref/block.h ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c
-	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ block_test.c prog.c holdc.c ../ref/block.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c -I../ref -I$(CUDA)/include -lcuda -lm
+# ---- a block through the persistent kernel(s) vs the C block twin: n dies ----
+dies_test: dies_test.c prog.c prog.h holdc.c hold.h dieops.h ../ref/block.c ../ref/block.h ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ dies_test.c prog.c holdc.c ../ref/block.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c -I../ref -I$(CUDA)/include -lcuda -lm

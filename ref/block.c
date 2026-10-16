@@ -42,15 +42,21 @@ static void hc_read(const float *S, const float *norm, const uint16_t *dj, const
 	for (int l = 0; l < 4; l++) rmsnorm_gpu(S + 2560 * l, norm + 2560 * l, 2560, eps, b->xh + 2560 * l);
 	bf16_sliced(dj, 324, b->xh, b->down);
 	hc_silu_gpu(b->down, b->t);
+	for (int i = 0; i < 4; i++) b->t[320 + i] = b->down[320 + i];   /* inj rides behind t (hcsilu copies [320, 324)) */
 	gemv_bf16_ref(up, 10240, 320, b->t, b->up);
 	hc_mix_gpu(b->up, b->xh, b->z);
 	quant_act_gpu32(b->z, 2560, b->zq, b->zs32, b->zs16, b->zas);
 }
 
-void deltanet_block_gpu(const dn_hweights_t *w, dn_hbufs_t *b, unsigned t, float eps) {
+int split_expert_owner(int e, int n) {
+	for (int d = 0; d < n; d++) if (e >= 512 * d / n && e < 512 * (d + 1) / n) return d;
+	return -1;
+}
+
+void deltanet_block_gpu(const dn_hweights_t *w, dn_hbufs_t *b, unsigned t, float eps, int ndies, int blk, int stage) {
 	int8_t *zq8 = malloc(2560), *oq8 = malloc(6144), *hq8 = malloc(7040);
 	float *p = malloc(4 * 2560);
-	const float *inj = b->down + 320, *bb = b->a + 48;
+	const float *inj = b->t + 320, *bb = b->a + 48;
 	/* ---- Gated DeltaNet hyper-block ---- */
 	hc_read(b->S, w->hc_attn_norm, w->hc_attn_dj, w->hc_attn_up, b, eps);
 	q16to8(b->zq, zq8, 2560);
@@ -66,6 +72,7 @@ void deltanet_block_gpu(const dn_hweights_t *w, dn_hbufs_t *b, unsigned t, float
 	q16to8(b->oq, oq8, 6144);
 	gemv_ref_any(w->ssm_out_type, w->ssm_out, 2560, 6144, oq8, b->os32, b->os16, b->oas, b->y);
 	hc_write_gpu(inj, b->y, b->S);
+	if (stage == 1) { free(zq8); free(oq8); free(hq8); free(p); return; }
 	/* ---- MoE hyper-block ---- */
 	hc_read(b->S, w->hc_ffn_norm, w->hc_ffn_dj, w->hc_ffn_up, b, eps);
 	q16to8(b->zq, zq8, 2560);
@@ -84,12 +91,20 @@ void deltanet_block_gpu(const dn_hweights_t *w, dn_hbufs_t *b, unsigned t, float
 		quant_act_gpu32(x, 640, b->hq + 640 * e, b->hs32 + 20 * e, b->hs16 + 40 * e, b->has + 20 * e);
 	}
 	q16to8(b->hq, hq8, 7040);
+	/* each die accumulates the routed experts it owns, in slot order, starting from w p
+	 * (a die without one keeps zeros); the shared expert joins its die's partial last */
+	int first[6] = { 1, 1, 1, 1, 1, 1 };
+	for (int d = 0; d < ndies; d++) for (int r = 0; r < 2560; r++) b->part[d][r] = 0.f;
 	for (int e = 0; e < 10; e++) {
+		int d = split_expert_owner((int)b->idx[e], ndies);
 		gemv_q2_0_ref(w->ffn_down_exps + (size_t)b->idx[e] * std * 2560, 2560, 640, hq8 + 640 * e, b->hs32 + 20 * e, b->has + 20 * e, p);
-		for (int r = 0; r < 2560; r++) b->out[r] = e ? fmaf(b->w[e], p[r], b->out[r]) : b->w[0] * p[r];
+		for (int r = 0; r < 2560; r++) b->part[d][r] = first[d] ? b->w[e] * p[r] : fmaf(b->w[e], p[r], b->part[d][r]);
+		first[d] = 0;
 	}
 	gemv_ref_any(w->ffn_down_shexp_type, w->ffn_down_shexp, 2560, 640, hq8 + 6400, b->hs32 + 200, b->hs16 + 400, b->has + 200, p);
-	for (int r = 0; r < 2560; r++) b->out[r] = fmaf(b->s, p[r], b->out[r]);
+	float *ps = b->part[blk % ndies];
+	for (int r = 0; r < 2560; r++) ps[r] = fmaf(b->s, p[r], ps[r]);
+	for (int r = 0; r < 2560; r++) { float acc = b->part[0][r]; for (int d = 1; d < ndies; d++) acc = acc + b->part[d][r]; b->out[r] = acc; }
 	hc_write_gpu(inj, b->out, b->S);
 	free(zq8); free(oq8); free(hq8); free(p);
 }

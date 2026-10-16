@@ -1,5 +1,6 @@
 /* Phase programs for the persistent kernel (die.pl): descriptor builders per op
- * and the block programs. Parameter offsets are each op's standalone
+ * and the block programs of one die of the n-die split (n = 1: the whole block on
+ * one die, exchanges with itself). Parameter offsets are each op's standalone
  * CONSTANT_MAPPING (descriptor word 2 + (addr - 0x140) / 4, see die.pl). */
 #ifndef FLASH_PROG_H
 #define FLASH_PROG_H
@@ -8,7 +9,7 @@
 #include <stdint.h>
 
 typedef struct { uint32_t w[32]; } phase_t;
-typedef struct { phase_t *p; int n, cap; } prog_t;
+typedef struct { phase_t *p; int n, cap; int xj; } prog_t;   /* xj: exchanges issued (slot parity) */
 
 void prog_init(prog_t *P);
 void prog_free(prog_t *P);
@@ -20,51 +21,83 @@ void ph_f32(phase_t *p, int addr, float v);
 /* ---- one phase per op (pointers are device addresses) ---- */
 void ph_rms(prog_t *P, int op, CUdeviceptr X, CUdeviceptr W, CUdeviceptr Y, float eps, unsigned vectors);
 void ph_bf16(prog_t *P, int op, CUdeviceptr W, CUdeviceptr X, CUdeviceptr Y, unsigned rows, CUdeviceptr bias);
-void ph_hc(prog_t *P, int op, CUdeviceptr P0, CUdeviceptr P1, CUdeviceptr P2, unsigned n, unsigned units);
+void ph_hc(prog_t *P, int op, CUdeviceptr P0, CUdeviceptr P1, CUdeviceptr P2, unsigned n, unsigned us, unsigned units);
 void ph_actq(prog_t *P, int op, CUdeviceptr X, CUdeviceptr Q, CUdeviceptr S32, CUdeviceptr S16, CUdeviceptr AS, unsigned n, unsigned vectors);
 void ph_ffnact(prog_t *P, CUdeviceptr G, CUdeviceptr U, CUdeviceptr Q, CUdeviceptr S32, CUdeviceptr S16, CUdeviceptr AS, unsigned n, unsigned vectors);
 void ph_gemvk(prog_t *P, int op, CUdeviceptr W, CUdeviceptr X, CUdeviceptr S, CUdeviceptr Y, unsigned rows, CUdeviceptr AS);
-void ph_q2(prog_t *P, int op, CUdeviceptr W, CUdeviceptr X, CUdeviceptr S, CUdeviceptr Y, unsigned rows, CUdeviceptr D, CUdeviceptr AS, CUdeviceptr WE);
+void ph_q2(prog_t *P, int op, CUdeviceptr W, CUdeviceptr X, CUdeviceptr S, CUdeviceptr Y, unsigned rows, CUdeviceptr D, CUdeviceptr AS, CUdeviceptr WE, CUdeviceptr NE);
 void ph_b32(prog_t *P, int op, CUdeviceptr W, CUdeviceptr X, CUdeviceptr S, CUdeviceptr Y, unsigned rows, CUdeviceptr D, CUdeviceptr AS);
 void ph_conv1d(prog_t *P, CUdeviceptr X, CUdeviceptr STATE, CUdeviceptr W, CUdeviceptr U, unsigned t, unsigned n);
-void ph_dnstep(prog_t *P, CUdeviceptr S, CUdeviceptr Q, CUdeviceptr K, CUdeviceptr V, CUdeviceptr A, CUdeviceptr B, CUdeviceptr SSMA, CUdeviceptr O, float eps);
-void ph_dnnorm(prog_t *P, CUdeviceptr O, CUdeviceptr W, CUdeviceptr G, CUdeviceptr Y, float eps);
+void ph_dnstep(prog_t *P, CUdeviceptr S, CUdeviceptr Q, CUdeviceptr K, CUdeviceptr V, CUdeviceptr A, CUdeviceptr B, CUdeviceptr SSMA, CUdeviceptr O, float eps, unsigned hb, unsigned kb, unsigned heads);
+void ph_dnnorm(prog_t *P, CUdeviceptr O, CUdeviceptr W, CUdeviceptr G, CUdeviceptr Y, float eps, unsigned heads);
 void ph_router(prog_t *P, CUdeviceptr R, CUdeviceptr SH, CUdeviceptr IDX, CUdeviceptr W, CUdeviceptr S);
+void ph_moesel(prog_t *P, CUdeviceptr IDX, CUdeviceptr W, CUdeviceptr MAP, CUdeviceptr LIDX, CUdeviceptr LW, CUdeviceptr NE, CUdeviceptr PART);
+void ph_sumn(prog_t *P, CUdeviceptr SRC, unsigned stride, CUdeviceptr OUT, unsigned n, unsigned ndies);
+/* a GEMV phase for any weight type by GGUF type and K (acc: y = fma(*scale, dot, y)) */
+void ph_gemv_any(prog_t *P, uint32_t type, int K, CUdeviceptr W, CUdeviceptr Xq, CUdeviceptr S32, CUdeviceptr Y, unsigned rows, CUdeviceptr AS, int acc, CUdeviceptr scale);
 
 /* the GEMV opcode for a GGUF type and K (0 if none), and whether the op is Q2_0 / b32 / K-quant */
 int gemv_op(uint32_t type, int K, int acc);
 int gemv_op_is_q2(int op);
 int gemv_op_is_b32(int op);
 
-/* ---- a Gated DeltaNet block (one die, every row) ---- */
-/* the holder's merged rows: hc_*_dj = down ++ inject (324 x 10240), ffn_gate_inp_x =
- * router ++ shared-expert gate (513 x 2560), ssm_ab = alpha ++ beta (96 x 2560) with
- * ssm_ab_bias = dt_bias ++ zeros */
+/* ---- the exchange between dies ---- */
+#define XSLOT (64u << 10)                 /* bytes per inbox slot (two slots per die) */
+typedef struct {
+	CUdeviceptr inbox;    /* 2 x XSLOT */
+	CUdeviceptr flags;    /* u32[6]: last exchange completed by each die (absent dies 0xffffffff) */
+	CUdeviceptr xgen;     /* u32: this die's exchange counter */
+	CUdeviceptr xtab;     /* u64[12]: inbox base of die 0..5, flag base of die 0..5 (the same on every die) */
+} xchg_t;
+/* send this die's part (nbytes at src, at byte myoff of the slot) to every die and wait
+ * for all parts: two phases; returns the slot's address in this die's inbox */
+CUdeviceptr ph_xchg(prog_t *P, const xchg_t *x, int me, int ndies, CUdeviceptr src, unsigned nbytes, unsigned myoff, unsigned total);   /* total: bytes the slot holds once every part arrived */
+
+/* ---- what die d of n owns in a block (expert split + row split, see SPEC) ---- */
+typedef struct {
+	int d, n;
+	int dj0, djn;       /* hc down++inject rows [dj0, dj0+djn) of 324 */
+	int cb0, cbn;       /* z column blocks (32 wide) [cb0, cb0+cbn) of 80; hc up rows l*2560 + 32 cb */
+	int h0, hn;         /* value heads [h0, h0+hn) of 48 (gate rows 128 h, alpha/beta rows h, states) */
+	int klo, khi, nk;   /* key heads [klo, khi] they use: qkv rows q and k of these, then v of [h0, h0+hn) */
+	int y0, yn;         /* ssm_out rows */
+	int e0, en;         /* experts [e0, e0+en) of 512 */
+	int shexp;          /* this die runs the shared expert (blk % n == d) */
+} split_t;
+void split_of(split_t *s, int d, int n, int blk);
+/* local channel count of the die's qkv / conv1d: 128 (2 nk + hn) */
+#define SPLIT_NLOC(s) (128u * (2u * (unsigned)(s)->nk + (unsigned)(s)->hn))
+
+/* the die's tensors (the holder's per-die slices and merged rows: hc_*_dj = down ++
+ * inject, ffn_gate_inp_x = router ++ shared gate, ssm_ab = alpha ++ beta with
+ * ssm_ab_bias = dt_bias ++ zeros, emap = global expert -> local index or 0xffffffff) */
 typedef struct {
 	CUdeviceptr hc_attn_norm, hc_attn_dj, hc_attn_up;
 	CUdeviceptr hc_ffn_norm, hc_ffn_dj, hc_ffn_up;
 	CUdeviceptr attn_qkv, attn_gate, ssm_ab, ssm_ab_bias, ssm_conv1d, ssm_a, ssm_norm, ssm_out;
 	uint32_t attn_qkv_type, attn_gate_type, ssm_out_type;
-	CUdeviceptr ffn_gate_inp_x, ffn_gate_exps, ffn_up_exps, ffn_down_exps;
+	CUdeviceptr ffn_gate_inp_x, ffn_gate_exps, ffn_up_exps, ffn_down_exps, emap;
 	CUdeviceptr ffn_gate_shexp, ffn_up_shexp, ffn_down_shexp;
 	uint32_t ffn_gate_shexp_type, ffn_up_shexp_type, ffn_down_shexp_type;
 } dn_weights_t;
 
-/* activation / state buffers (device); sizes in floats unless noted. inj = down + 320,
- * b = a + 48, sh = r + 512 (merged GEMV outputs) */
+/* activation / state buffers of one die (device); sizes in floats unless noted; the
+ * l* buffers hold this die's part, the gathered vectors live in the inbox slots */
 typedef struct {
-	CUdeviceptr S;                    /* 10240 in/out stream */
-	CUdeviceptr xh, down, t, up, z;   /* 10240, 324 (down ++ inj), 320, 10240, 2560 */
+	CUdeviceptr S;                    /* 10240 in/out stream (replicated) */
+	CUdeviceptr xh, t;                /* 10240; 324 = SiLU(0.25 down) ++ inj */
+	CUdeviceptr ldown, lup, lz;       /* djn; 4 x 32 cbn; 32 cbn */
 	CUdeviceptr zq, zs32, zs16, zas;  /* int16 2560, i32 80, i32 160, f32 80 */
-	CUdeviceptr qkv, gate, a, u, o, on;  /* 10240, 6144, 96 (a ++ b), 10240, 6144, 6144 */
+	CUdeviceptr lqkv, lgate, la, lu, lo, lon;  /* nloc, 128 hn, 2 hn (a ++ b), nloc, 128 hn, 128 hn */
 	CUdeviceptr oq, os32, os16, oas;  /* int16 6144, 192, 384, 192 */
-	CUdeviceptr y;                    /* 2560 */
+	CUdeviceptr ly;                   /* yn */
 	CUdeviceptr r, idx, w, s;         /* 513 (r ++ sh), u32 10, f32 10, f32 1 */
+	CUdeviceptr lidx, lw, ne, part;   /* u32 10, f32 10, u32 1, 2560 (this die's partial) */
 	CUdeviceptr g, gu;                /* 11 x 640 each */
 	CUdeviceptr hq, hs32, hs16, has;  /* int16 11x640, i32 11x20, i32 11x40, f32 11x20 */
-	CUdeviceptr out;                  /* 2560 */
-	CUdeviceptr conv_state, dn_state; /* 4 x 10240 ring, 48 x 128 x 128 */
+	CUdeviceptr out;                  /* 2560 (the reduced MoE output) */
+	CUdeviceptr conv_state, dn_state; /* 4 x nloc ring, hn x 128 x 128 */
 } dn_bufs_t;
 
-void prog_deltanet_block(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps);
+void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps);
 #endif

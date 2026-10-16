@@ -3,7 +3,7 @@
 .target sm_52
 .address_size 64
 
-.visible .entry hcops(.param .u64 p0, .param .u64 p1, .param .u64 p2, .param .u32 n)
+.visible .entry hcops(.param .u64 p0, .param .u64 p1, .param .u64 p2, .param .u32 n, .param .u32 us)
 {
 	.reg .u32 %r<2>;
 	.reg .pred %p;
