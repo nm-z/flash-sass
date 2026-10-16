@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
 	db.out = dalloc(4 * 2560); db.conv_state = dalloc(4 * 4 * 10240); db.dn_state = dalloc((size_t)48 * 16384 * 4);
 	for (int i = 0; i < 10240; i++) hb->S[i] = 0.5f * frand();
 	CK(cuMemcpyHtoD(db.S, hb->S, 4 * 10240));
-	CUdeviceptr dPROG = dalloc(128 * 128), dCTL = dalloc(128);
+	CUdeviceptr dPROG = dalloc(128 * 128), dCTL = dalloc(0x40 + 4 * 512);
 	void *params[] = { &dPROG, NULL, &dCTL };
 	int fails = 0;
 	for (int t = 0; t < T; t++) {
@@ -141,6 +141,21 @@ int main(int argc, char **argv) {
 		bad += cmpbuf("out", hb->out, db.out, 4 * 2560, 4);
 		bad += cmpbuf("S", hb->S, db.S, 4 * 10240, 4);
 		if (bad) fails++;
+		if (t == T - 1 && getenv("BLOCK_PROF")) {   /* per-phase time from the die's %globaltimer stamps */
+			uint32_t *ts = malloc(4 * (16 + nph)); CK(cuMemcpyDtoH(ts, dCTL, 4 * (16 + nph)));
+			if (getenv("BLOCK_RAWCTL")) { printf("  ctl:"); for (int i = 0; i < 24; i++) printf(" %u", ts[i]); printf("\n"); }
+			unsigned byop[DIE_NOPS] = {0}; unsigned prev = ts[15];
+			printf("  phase timing (us): launch->phase0 %.1f\n", (ts[16] - prev) / 1e3);
+			for (unsigned i = 0; i < nph; i++) {
+				unsigned d = ts[16 + i] - prev; prev = ts[16 + i];
+				byop[P.p[i].w[0]] += d;
+				printf("   %2u %-10s units %5u %7.1f\n", i, die_opname[P.p[i].w[0]], P.p[i].w[1], d / 1e3);
+			}
+			printf("  by op:");
+			for (int o = 0; o < DIE_NOPS; o++) if (byop[o]) printf(" %s %.0f", die_opname[o], byop[o] / 1e3);
+			printf("\n  total %.1f us\n", (ts[16 + nph - 1] - ts[15]) / 1e3);
+			free(ts);
+		}
 		prog_free(&P);
 	}
 	hold_close(&ar);

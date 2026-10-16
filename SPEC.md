@@ -817,6 +817,44 @@ bit-exact primitives (`ref/block.c`, to be written) — that verifies the phase
 program and buffer wiring exactly — and then against cx-flash's node dumps at
 tolerance.
 
+**Phase 3 status (2026-10-16): one Gated DeltaNet block runs bit-exactly inside
+the persistent kernel.** `kern/prog.c` builds the phase program
+(`prog_deltanet_block`: 47 phases — hc read as rms2560 → 4 BF16 column slices
+of down+inject → hcsilu → up → hcmix → actq, qkv/gate GEMVs by GGUF type,
+α (BF16 + dt_bias) / β, conv1d, dnstep ×48, dnnorm, actq6144, ssm_out,
+hcwrite; then hc read, router (512 + 1 rows), top-10, expert gate/up gather,
+shared-expert gate/up, ffnact ×11, expert down with the routing weights,
+shared-expert down accumulated with its gate, hcwrite), `ref/block.c` is the
+C twin composed of the primitive twins in the same order, and
+`kern/block_test` runs both on block 0's real weights from a holder arena (+
+its `/dev/shm` tile cache for the host copies) over T tokens with the conv /
+DeltaNet states carried: every intermediate (qkv, gate, α, β, u, o, on, y, z,
+router logits, expert ids and weights, g, gu, hq, out, S) is exact for 3
+tokens, 4 runs. Block 0 exercises Q2_0 (experts), IQ4_XS (attn_qkv,
+gate_shexp), Q4_K (attn_gate), Q5_K (ssm_out), Q3_K (up_shexp) and the Q5_0
+accumulate path (down_shexp). One die, all rows:
+**1.11 ms per token per block** ≈ 71 MB of weights touched → 64 GB/s, i.e.
+the 47 small phases reach ~40 % of the die's bandwidth; the per-phase
+timestamps (`ctl[15]` at launch, `ctl[16 + p]` after phase p, `%globaltimer`;
+MaxAs's S2R table lacked the clock/timer registers and silently encoded
+`SR_GLOBALTIMERLO` as `SR_LANEID` — fixed in `maxas-patch/MaxAsGrammar.pm`)
+show where it goes (`BLOCK_PROF=1 block_test`, µs): attn_qkv IQ4_XS 13.9 MB
+121 (115 GB/s), ssm_out Q5_K 10.8 MB 110 (98 GB/s), attn_gate Q4_K 8.8 MB 76
+(116 GB/s), expert gate+up 10.2 MB 111 (92 GB/s), expert down 5.1 MB 66 (78
+GB/s), hc up (BF16 K=320) 48 ×2 (136 GB/s), the hc down slices 18 ×8 (89
+GB/s) **plus the eight 4-row hc_inject slices at 9.2 each = 74 µs of pure
+latency**, router 26 + its 1-row shexp gate 9, dnstep 53 (6 MB of state, 113
+GB/s), actq 10/10/15 (one CTA each), router top-10 22.5 (one warp), and ~4 µs
+for every elementwise phase — the per-phase floor (barrier + unit launch +
+one memory latency) is ≈ 4 µs, so the 47 phases carry ≈ 190 µs of floor.
+Fixes, in order of value: a BF16 GEMV that loops over K slices in registers
+(`GEMV_SLICES`, numerics `((p0+p1)+p2)+p3` unchanged) so hc down+inject is
+one phase over a 324-row matrix (the holder concatenates the two tensors)
+instead of eight, and the router + its gate one 513-row phase: −12 phases and
+−110 µs per block; actq spread over the CTAs (−25 µs); α/β as one 96-row
+GEMV. The floor matters even more once the rows are split six ways, so every
+phase that can be merged should be.
+
 ## Phases
 
 0. **Probes** — done (table above).

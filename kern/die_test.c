@@ -102,7 +102,7 @@ int main(void) {
 	if (getenv("DIE_UNITS0")) prog[0][1] = (uint32_t)atoi(getenv("DIE_UNITS0"));
 	if (getenv("DIE_ONLY_ACTQ")) memcpy(prog[0], prog[2], 128);
 	CUdeviceptr dPROG, dCTL;
-	CK(cuMemAlloc(&dPROG, sizeof prog)); CK(cuMemAlloc(&dCTL, 128));
+	CK(cuMemAlloc(&dPROG, sizeof prog)); CK(cuMemAlloc(&dCTL, 4096));
 	CK(cuMemcpyHtoD(dPROG, prog, sizeof prog)); CK(cuMemsetD32(dCTL, 0, 32));
 	unsigned nph = getenv("DIE_NPH") ? (unsigned)atoi(getenv("DIE_NPH")) : getenv("DIE_ONLY_ACTQ") ? 1 : 5;
 	{ float mx = 0; int am = -1; for (int i = 1216; i < 1248; i++) if (fabsf(x1[i]) > mx) { mx = fabsf(x1[i]); am = i; }
