@@ -1498,3 +1498,74 @@ remounts it when missing (`mount -t nfs -o ro,vers=3,hard,rsize=1048576`).
   `mmproj-F16.gguf` (qwen3vl_merger, ViT 1152 wide × 27 layers, deepstack); using it means
   running it (CPU or its own kernel), putting its output rows into the embedding stream, and
   giving the 3-axis rope positions of image tokens to the attention blocks.
+
+## Long context, KV cache, indexer, image input (2026-10-16)
+
+The engine runs 262,144 positions per response (`FLASH_MAXT`). Attention reads at most 2,048 + 3 keys per
+layer and token — the model's own sparse attention (llama.cpp's "QSA" path of `qwen4exp`) — so the cost
+of a token at the end of the window is the cost at 2,051 keys plus the indexer's scan of the pooled keys.
+This section supersedes the indexer paragraph of the block math (the cx-flash reading let the unfinished block
+compete by its prefix mean; llama.cpp, which the GGUF was made for, scores only complete blocks and always
+attends the unfinished one).
+
+**The semantics** (`ref/qsa.h`, `ref/qsa.c`; every kernel below is bit-exact to its function there):
+for the token at position t, nv = (t + 1) / 4 complete blocks of 4 tokens, tail = (t + 1) % 4 tokens of the
+unfinished block.
+- indexer query: the 4 heads of `W_iq z` (BF16, 4 × 128), each `RMS128(·) ⊙ q_norm`, then RoPE at position t on
+  dims 0..63 (pairs (p, p + 32), the attention's cos/sin table);
+- indexer key `ik = W_ik z` (128), kept raw in a ring of the last four; the token that completes a block pools it:
+  mean of the four raw keys ((r0 + r1) + r2) + r3 times 0.25, `RMS128 ⊙ k_norm`, RoPE at the position of the block's
+  first token, stored as fp16;
+- score of block b = Σ_h relu(q_h · pool_b) over the nv complete blocks (the 1/√128 of the reference does not
+  change the order); the best min(nv, 512) blocks, lower index first among equal scores, plus the tail block, are
+  attended (keys 4 b .. 4 b + 3 of each, ascending), everything else is dropped. With nv ≤ 512 nothing is dropped,
+  so below 2,051 tokens the sparse path is the dense one.
+
+**The KV cache** is int8 in blocks of 32 values with an fp16 scale (`gmax = max(max|x|, 2^-100)`,
+`inv = rcp(gmax) · 127`, `q = rint(x inv)`, `scale = f16(gmax / 127)`), K after RoPE, V as projected:
+`kq`, `vq` = int8 `[position][kv head][256]`, `ks`, `vs` = fp16 `[position][kv head][8]`, 1,088 bytes per
+position and layer (285 MB per layer at 262,144 positions, 3.4 GB for the twelve). It lives in **pinned host
+memory** mapped into every die (`FLASH_KV_HOST=0` keeps it in VRAM for small contexts): the VRAM that is left
+beside the weights (die 0 and die 2 have failing bands above 5.76 and 5.657 GiB) does not hold 3.4 GB. The gather
+over PCIe costs 0.42 ms per layer and token on a gen2/gen3 x8 die at the full 2,051 keys (0.09 ms from VRAM),
+about 5 ms per token at depth. The indexer pool (16.8 MB per layer, transposed so that a warp reads 32 blocks'
+dims coalesced) stays in VRAM next to the layer.
+
+**Layers on dies.** The attention layers no longer all run on one die: `ATTN_MAP` names the die of each of the
+twelve (`1,1,1,1,4,4,4,4,5,5,5,5`); its holder keeps that layer's q/k/v and indexer projections and norms, the
+engine its pool, ring, RoPE tables and scratch. The other dies wait in the exchange as before. Split shares
+`82,110,77,106,112,113` leave every die ≥ 300 MB.
+
+**New ops** (`kern/`, tested through the persistent kernel by `qsa_test`, `make qsa_test`):
+`attnqkq` (q/k norm + RoPE as `attnqk`, K / V quantised and appended at position t), `idxqk` (indexer query,
+key ring, pooled key, zeroes the selection state), `idxscore` (scores + the digit histogram of the top 8 bits;
+four pool chunks in flight per warp: 131 µs for 65,000 blocks = 128 GB/s), `idxsel` (radix select over the score
+bits in digits of 8, 8, 8 and 7 bits, five passes of one launch each, then an ordered compaction: exact top-k with
+lower-index tie-break, tested with 2/3 exact zeros, a few distinct values and all-equal scores), `kvgather`
+(the selected blocks into the compact fp32 K / V of ref/attn.h), `attnpartn` (`attnpart` with the key count
+derived from the token position: 4 · NBLK + tail once nv > NBLK). The attention per layer and token is 21
+phases; the indexer chain at 65,000 blocks is 250 µs (idxqk 10, idxscore 128, idxsel 16 + 14 + 15 + 18 + 44).
+Found on the way: a divergent loop before a `BAR.SYNC` splits the warp and the barrier releases early (idxsel's
+first version lost a third of its histogram counts and hung on small inputs; the loops now run a CTA-uniform trip
+count with predicated lanes); a `PRMT` must be read ≥ 6 cycles after it was issued.
+
+**Image input.** `flashvis` (`kern/flashvis.c`) keeps libmtmd (a llama.cpp build) and the projector
+`mmproj-BF16.gguf` (ViT 1152 × 27 layers, patch 16, merge 2; `clip.vision.is_deepstack_layers` is all false, so an
+image is just rows of 2560 that replace placeholder embeddings) on the CPU: 6 s for 640 × 480 (300 tokens, a 20 × 15
+grid). `flashd` decodes the request's `image_url` data URLs, caches each image's embeddings under `/var/tmp/flash-img`
+by content hash (the page sends the earlier turns' images again with every question), expands each
+`<|image_pad|>` of the rendered template to one token per row and sends `img <file> <first token>` before `chat`.
+The engine (`prepare_images`) converts the rows to fp16 into `img` on every die, sets `imap[position]`, and
+rebuilds the RoPE tables of the attention dies from the positions of the response: text token i has (L, L, L) with L
+its logical position, an image token (L, L + row, L + col) with L the image's first position, and the text after an
+image continues max(nx, ny) positions after it (interleaved M-RoPE: rope pair p takes axis p mod 3 of (t, y, x),
+`rope.dimension_sections` = [11, 11, 10, 0]; the same table row serves the indexer's query and pooled keys). `embrow`
+takes the image row when `imap` says so. Snapshots of the prefix cache stop before the first image. Capacity:
+`FLASH_MAXIMG` image tokens per response (2,048). The video preprocessor config of the model repo is in
+`kern/vision/`; video frames are not wired in.
+
+**Hardware (2026-10-16).** Die 2 took another uncorrectable ECC error (Xid 48) in its failing band when the first
+split of this work put 7.4 GB on it; reset with the `nvidia_modeset` recipe above (`rmmod nvidia_drm nvidia_modeset`,
+`nvidia-smi -r -i 2`, reload, `-pm 1`, `-ac 2505,1177`). The engine now notices a die whose launch failed (or that no
+token has come out of for `FLASH_WATCHDOG_S` = 600 s) instead of waiting forever, and rebuilds through the core's
+fault path.
