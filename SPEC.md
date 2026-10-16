@@ -1176,7 +1176,11 @@ used for the Q8_0 tensors of the main model.
   six-die engine reproduces llama.cpp's greedy tokens on the first prompt and
   its per-layer streams to ~1 %; blocks 0–4 and 3 stay bit-exact against the
   twin on six dies.
-- Next in code, in order: the reference agreement (running), MTP draft +
+- Correctness is established end to end: greedy decode of two prompts (35
+  generated tokens) is identical to upstream llama.cpp, per-layer streams
+  agree to ~1 %. `kern/flash` serves responses from stdin, one launch per die
+  per response, with the real PLE table pinned.
+- Next in code, in order: MTP draft +
   verify (amortises the per-phase fixed costs that dominate the split: cold
   instruction fetch ~5–12 µs per GEMV phase, ~3 µs barrier + dispatch), a
   resident pinned PLE table in a long-lived process for single-launch
