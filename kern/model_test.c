@@ -405,6 +405,13 @@ int main(int argc, char **argv) {
 		double t3 = now();
 		tsum += t3 - t2;
 		if (do_head) { CK(cuCtxSetCurrent(ctx[0])); CK(cuMemcpyDtoH(&tok_gpu, db[0].tokout, 4)); }
+		if (do_head && getenv("MODEL_TOPK")) {   /* the position's top-k logits, gathered from the dies' row slices (reference comparisons) */
+			int k = atoi(getenv("MODEL_TOPK")); static float *lg = NULL; if (!lg) lg = malloc(4 * 248320);
+			for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyDtoH(lg + sp[d][b0].o0, db[d].hlo, 4u * (unsigned)sp[d][b0].on)); }
+			printf("  pos %d top%d:", t, k);
+			for (int j = 0; j < k; j++) { int bi = 0; for (int i = 1; i < 248320; i++) if (lg[i] > lg[bi]) bi = i; printf(" %d:%.4f", bi, lg[bi]); lg[bi] = -3.4e38f; }
+			printf("\n");
+		}
 		int bad = 0;
 		if (!notwin) {
 			for (int d = 0; d < nd; d++) {
