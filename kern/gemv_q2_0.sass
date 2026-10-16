@@ -51,6 +51,8 @@
     param_D1   : c[0x0][0x16c]
     param_AS0  : c[0x0][0x170]
     param_AS1  : c[0x0][0x174]
+    param_WE0  : c[0x0][0x178]
+    param_WE1  : c[0x0][0x17c]
 </CONSTANT_MAPPING>
 
 <REGISTER_MAPPING>
@@ -71,6 +73,14 @@
     126     : rowstep
     127     : stepw
     128,129 : dp<0-1>
+    130     : e
+    131     : eoff
+    132     : we
+    133     : yold
+    134,135 : ixp<0-1>
+    136,137 : wep<0-1>
+    138     : tidk
+    139     : bidk
 
     // prologue temporaries, dead before the loop body uses these registers
     90,91   : xp<0-1>
@@ -117,72 +127,146 @@
         return $s;
     };
 
+    # MoE modes (expert-outer loop, GEMV_EXPERTS experts whose indices are in *D):
+    #   gather: rows = e erows + r, weights W + idx[e] estride + r S, y + 4 (e erows + r),
+    #           activations shared (gate/up of the routed experts)
+    #   down:   rows r of every expert, activations/sums/scales per expert (X, S, AS +
+    #           e strides), y[r] = fma(we[e], dot_e, y[r]) in expert order (e = 0: we dot)
+    # GEMV_ACC (no MoE): y[r] = fma(*WE, dot, y[r]) (the shared expert's down projection)
+    my $moe = $ENV{GEMV_MOE} || '';
+    my $acc = $ENV{GEMV_ACC} ? 1 : 0;
+    my $NE = $ENV{GEMV_EXPERTS} || 10;
+    my $erows = $ENV{GEMV_EROWS} || ($K == 640 ? 2560 : 640);
+    my $estride = $erows * $S;
+    my $astride = 2 * $K;                        # per-expert activation codes (down)
+    my $sstride = 4 * ($K / 32);                 # per-expert sums / scales (down)
+
+    # lane geometry from tid, bid (re-derived per expert: the loop body clobbers these aliases)
+    my $geom = sub {
+        my $s = '';
+        $s .= sprintf "--:-:-:-:6      LOP32I.AND lane, tid, 0x%x;\n", $L - 1;
+        $s .= sprintf "--:-:-:-:1      SHR.U32 grp, tid, 0x%x;\n", $lgL;
+        $s .= "--:-:-:-:6      LOP32I.AND half, lane, 0x1;\n";
+        $s .= "--:-:-:-:1      SHR.U32 blk0, lane, 0x1;\n";
+        $s .= "--:-:-:-:6      ISETP.EQ.U32.AND P0, PT, lane, RZ, PT;\n";
+        return $s;
+    };
+    # row, tile pointers and y pointer; $eo: add eoff (expert tile offset); $ye: y offset by expert
+    my $rowsetup = sub {
+        my ($eo, $ye) = @_;
+        my $s = sprintf "--:-:-:-:6      ISCADD row, bid, grp, 0x%x;\n", $lgR;
+        $s .= $mulc->('off', 'row', $S);
+        $s .= "--:-:-:-:6      IADD off, off, eoff;\n" if $eo;
+        # ws = W + off + 2 blk0
+        $s .= "--:-:-:-:6      ISCADD t1, blk0, off, 0x1;\n";
+        $s .= "--:-:-:-:6      IADD ws0.CC, t1, param_W0;\n";
+        $s .= "--:-:-:-:6      IADD.X ws1, RZ, param_W1;\n";
+        # wq = W + off + pad + 16 blk0 + 8 half
+        $s .= "--:-:-:-:6      ISCADD t1, blk0, off, 0x4;\n";
+        $s .= "--:-:-:-:6      ISCADD t1, half, t1, 0x3;\n";
+        $s .= sprintf "--:-:-:-:6      IADD t1, t1, 0x%x;\n", $pad;
+        $s .= "--:-:-:-:6      IADD wq0.CC, t1, param_W0;\n";
+        $s .= "--:-:-:-:6      IADD.X wq1, RZ, param_W1;\n";
+        # yp = Y + 4 row (+ 4 erows e)
+        $s .= "--:-:-:-:6      SHL t1, row, 0x2;\n";
+        if ($ye) {
+            $s .= sprintf "--:-:-:-:6      XMAD t0, e, 0x%x, RZ;\n", 4 * $erows;
+            $s .= "--:-:-:-:6      IADD t1, t1, t0;\n";
+        }
+        $s .= "--:-:-:-:6      IADD yp0.CC, t1, param_Y0;\n";
+        $s .= "--:-:-:-:6      IADD.X yp1, RZ, param_Y1;\n";
+        return $s;
+    };
+    # activations, sums and scales for this lane (+ per-expert strides when $pe)
+    my $actload = sub {
+        my ($pe) = @_;
+        my $s = '';
+        # activations: xp = X + 64 lane; half-block i at +64 L i
+        $s .= "--:-:-:-:6      SHL t1, lane, 0x6;\n";
+        if ($pe) { $s .= sprintf "--:-:-:-:6      XMAD t0, e, 0x%x, RZ;\n", $astride; $s .= "--:-:-:-:6      IADD t1, t1, t0;\n"; }
+        $s .= "--:-:-:-:6      IADD xp0.CC, t1, param_X0;\n";
+        $s .= "--:-:-:-:6      IADD.X xp1, RZ, param_X1;\n";
+        for my $i (0..4) {
+            for my $j (0..3) {
+                $s .= sprintf "--:-:2:-:1      LDG.E%s.128 act%02d, [xp+0x%x];\n", $ci, 16*$i + 4*$j, 64*$L*$i + 16*$j;
+            }
+        }
+        # sums: sp = S + 4 lane; half-block i at +4 L i
+        $s .= "--:-:-:-:6      SHL t1, lane, 0x2;\n";
+        if ($pe) { $s .= sprintf "--:-:-:-:6      XMAD t0, e, 0x%x, RZ;\n", $sstride; $s .= "--:-:-:-:6      IADD t1, t1, t0;\n"; }
+        $s .= "--:-:-:-:6      IADD sp0.CC, t1, param_S0;\n";
+        $s .= "--:-:-:-:6      IADD.X sp1, RZ, param_S1;\n";
+        for my $i (0..4) {
+            $s .= sprintf "--:-:2:-:%s      LDG.E%s s%d, [sp+0x%x];\n", $i == 4 ? '6' : '1', $ci, $i, 4*$L*$i;
+        }
+        # activation scales: half-block i at AS + 4 (lane + L i)
+        $s .= "--:-:-:-:6      IADD ap0.CC, t1, param_AS0;\n";
+        $s .= "--:-:-:-:6      IADD.X ap1, RZ, param_AS1;\n";
+        for my $i (0..4) {
+            $s .= sprintf "--:-:2:-:%s      LDG.E%s as%d, [ap+0x%x];\n", $i == 4 ? '6' : '1', $ci, $i, 4*$L*$i;
+        }
+        # park them in shared memory (registers are full); the loop reloads one per half-block
+        for my $i (0..4) {
+            $s .= sprintf "%s:4:-:-:%s      STS [smaddr+0x%x], as%d;\n", $i == 0 ? '02' : '--', $i == 4 ? '6' : '1', 4*$i, $i;
+        }
+        for my $i (0..4) {
+            $s .= sprintf "%s:-:-:-:%s      IADD3 nsum%d, RZ, -s%d, RZ;\n", $i == 0 ? '0a' : '--', $i == 4 ? '6' : '1', $i, $i;
+        }
+        return $s;
+    };
+
     my $o = '';
     $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
     $o .= "--:-:6:-:1      S2R bid, SR_CTAID.X;\n";
     $o .= "--:-:-:-:6      MOV rowstep, gridDimX;\n";
-    $o .= sprintf "20:-:-:-:6      LOP32I.AND lane, tid, 0x%x;\n", $L - 1;
-    $o .= sprintf "--:-:-:-:1      SHR.U32 grp, tid, 0x%x;\n", $lgL;
-    $o .= sprintf "--:-:-:-:1      SHL rowstep, rowstep, 0x%x;\n", $lgR;
-    $o .= "--:-:-:-:6      LOP32I.AND half, lane, 0x1;\n";
-    $o .= "--:-:-:-:1      SHR.U32 blk0, lane, 0x1;\n";
-    $o .= "--:-:-:-:1      ISETP.EQ.U32.AND P0, PT, lane, RZ, PT;\n";
-    $o .= sprintf "--:-:-:-:6      ISCADD row, bid, grp, 0x%x;\n", $lgR;
+    $o .= "20:-:-:-:1      MOV tidk, tid;\n";
+    $o .= "--:-:-:-:6      MOV bidk, bid;\n";
+    $o .= $geom->();
+    $o .= sprintf "--:-:-:-:6      SHL rowstep, rowstep, 0x%x;\n", $lgR;
     $o .= $mulc->('stepw', 'rowstep', $S);
     $o .= $mulc->('smaddr', 'tid', 20);              # shared slot: 5 activation scales per thread
-    $o .= $mulc->('off', 'row', $S);
-    # ws = W + off + 2 blk0
-    $o .= "--:-:-:-:6      ISCADD t1, blk0, off, 0x1;\n";
-    $o .= "--:-:-:-:6      IADD ws0.CC, t1, param_W0;\n";
-    $o .= "--:-:-:-:6      IADD.X ws1, RZ, param_W1;\n";
-    # wq = W + off + pad + 16 blk0 + 8 half
-    $o .= "--:-:-:-:6      ISCADD t1, blk0, off, 0x4;\n";
-    $o .= "--:-:-:-:6      ISCADD t1, half, t1, 0x3;\n";
-    $o .= sprintf "--:-:-:-:6      IADD t1, t1, 0x%x;\n", $pad;
-    $o .= "--:-:-:-:6      IADD wq0.CC, t1, param_W0;\n";
-    $o .= "--:-:-:-:6      IADD.X wq1, RZ, param_W1;\n";
-    # yp = Y + 4 row
-    $o .= "--:-:-:-:6      SHL t1, row, 0x2;\n";
-    $o .= "--:-:-:-:6      IADD yp0.CC, t1, param_Y0;\n";
-    $o .= "--:-:-:-:6      IADD.X yp1, RZ, param_Y1;\n";
     if ($ENV{GEMV_TRACE} || $ENV{GEMV_TIMING} || $ENV{GEMV_DPONLY}) {
         # dp = D + 48 L row + 48 lane (12 words per lane per row)
+        $o .= sprintf "--:-:-:-:6      ISCADD row, bid, grp, 0x%x;\n", $lgR;
         $o .= $mulc->('t0', 'row', 48 * $L);
         $o .= $mulc->('t1', 'lane', 48);
         $o .= "--:-:-:-:6      IADD t1, t1, t0;\n";
         $o .= "--:-:-:-:6      IADD dp0.CC, t1, param_D0;\n";
         $o .= "--:-:-:-:6      IADD.X dp1, RZ, param_D1;\n";
     }
-    # activations: xp = X + 64 lane; half-block i at +64 L i
-    $o .= "--:-:-:-:6      SHL t1, lane, 0x6;\n";
-    $o .= "--:-:-:-:6      IADD xp0.CC, t1, param_X0;\n";
-    $o .= "--:-:-:-:6      IADD.X xp1, RZ, param_X1;\n";
-    for my $i (0..4) {
-        for my $j (0..3) {
-            $o .= sprintf "--:-:2:-:1      LDG.E%s.128 act%02d, [xp+0x%x];\n", $ci, 16*$i + 4*$j, 64*$L*$i + 16*$j;
-        }
+    if ($acc && !$moe) {
+        $o .= "--:-:-:-:6      MOV wep0, param_WE0;\n";
+        $o .= "--:-:-:-:6      MOV wep1, param_WE1;\n";
+        $o .= "--:-:2:-:2      LDG.E we, [wep];\n";
     }
-    # sums: sp = S + 4 lane; half-block i at +4 L i
-    $o .= "--:-:-:-:6      SHL t1, lane, 0x2;\n";
-    $o .= "--:-:-:-:6      IADD sp0.CC, t1, param_S0;\n";
-    $o .= "--:-:-:-:6      IADD.X sp1, RZ, param_S1;\n";
-    for my $i (0..4) {
-        $o .= sprintf "--:-:2:-:%s      LDG.E%s s%d, [sp+0x%x];\n", $i == 4 ? '6' : '1', $ci, $i, 4*$L*$i;
+    if (!$moe) {
+        $o .= $rowsetup->(0, 0);
+        $o .= $actload->(0);
+        return $o;
     }
-    # activation scales: half-block i at AS + 4 (lane + L i)
-    $o .= "--:-:-:-:6      SHL t1, lane, 0x2;\n";
-    $o .= "--:-:-:-:6      IADD ap0.CC, t1, param_AS0;\n";
-    $o .= "--:-:-:-:6      IADD.X ap1, RZ, param_AS1;\n";
-    for my $i (0..4) {
-        $o .= sprintf "--:-:2:-:%s      LDG.E%s as%d, [ap+0x%x];\n", $i == 4 ? '6' : '1', $ci, $i, 4*$L*$i;
+    # ---- expert-outer loop ----
+    $o .= $actload->(0) if $moe eq 'gather';
+    $o .= "--:-:-:-:6      MOV e, RZ;\n";
+    $o .= "\nEXPERT:\n";
+    $o .= "--:-:-:-:1      MOV tid, tidk;\n";
+    $o .= "--:-:-:-:6      MOV bid, bidk;\n";
+    $o .= $geom->();
+    $o .= "--:-:-:-:6      SHL t1, e, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD ixp0.CC, t1, param_D0;\n";
+    $o .= "--:-:-:-:6      IADD.X ixp1, RZ, param_D1;\n";
+    $o .= "--:-:2:-:1      LDG.E eoff, [ixp];\n";
+    if ($moe eq 'down') {
+        $o .= "--:-:-:-:6      IADD wep0.CC, t1, param_WE0;\n";
+        $o .= "--:-:-:-:6      IADD.X wep1, RZ, param_WE1;\n";
+        $o .= "--:-:2:-:2      LDG.E we, [wep];\n";
     }
-    # park them in shared memory (registers are full); the loop reloads one per half-block
-    for my $i (0..4) {
-        $o .= sprintf "%s:4:-:-:%s      STS [smaddr+0x%x], as%d;\n", $i == 0 ? '02' : '--', $i == 4 ? '6' : '1', 4*$i, $i;
-    }
-    for my $i (0..4) {
-        $o .= sprintf "%s:-:-:-:%s      IADD3 nsum%d, RZ, -s%d, RZ;\n", $i == 0 ? '0a' : '--', $i == 4 ? '6' : '1', $i, $i;
-    }
+    $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P3, PT, e, RZ, PT;\n";          # first expert: y = we dot
+    # eoff = idx * estride (idx < 2^16)
+    $o .= sprintf "02:-:-:-:6      XMAD t0, eoff, 0x%x, RZ;\n", $estride & 0xffff;
+    if ($estride >> 16) { $o .= sprintf "--:-:-:-:6      XMAD.PSL eoff, eoff, 0x%x, t0;\n", $estride >> 16; }
+    else { $o .= "--:-:-:-:6      MOV eoff, t0;\n"; }
+    $o .= $rowsetup->(1, $moe eq 'gather');
+    $o .= $actload->(1) if $moe eq 'down';
     return $o;
 </CODE>
 
@@ -198,6 +282,8 @@ LOOP:
     my $ci = $ENV{GEMV_NOCI} ? '' : '.CI';
     return '' if $ENV{GEMV_NOLOAD};
     my $o = '';
+    # accumulating modes read the row's previous value first
+    $o .= "--:2:1:-:1      LDG.E yold, [yp];\n" if ($ENV{GEMV_MOE} || '') eq 'down' || $ENV{GEMV_ACC};
     unless ($ENV{GEMV_NOSCALE}) {
         for my $i (0..4) {
             $o .= sprintf "--:2:%s:-:1      LDG.E%s.U16 d%d, [ws+0x%x];\n", $ENV{GEMV_SCALEBAR} || 1, $ci, $i, $L*$i;
@@ -296,7 +382,18 @@ LOOP:
     $o .= "--:-:-:-:6      CS2R acc2, SR_CLOCKLO;\n" if $ENV{GEMV_TIMING};
     return $o;
 </CODE>
---:2:-:-:1  @P2 STG.E [yp], accf;
+<CODE>
+    my $moe = $ENV{GEMV_MOE} || '';
+    my $o = '';
+    if ($moe eq 'down') {
+        $o .= "--:-:-:-:6  \@P3 FMUL accf, accf, we;\n";
+        $o .= "--:-:-:-:6 \@!P3 FFMA accf, we, accf, yold;\n";
+    } elsif ($ENV{GEMV_ACC}) {
+        $o .= "--:-:-:-:6      FFMA accf, we, accf, yold;\n";
+    }
+    $o .= "--:2:-:-:1  \@P2 STG.E [yp], accf;\n";
+    return $o;
+</CODE>
 <CODE>
     # the trace build stored `row` just above; wait for that read before changing it
     return $ENV{GEMV_TRACE} ? "02:-:-:-:6      IADD row, row, rowstep;\n" : "--:-:-:-:1      IADD row, row, rowstep;\n";
@@ -327,5 +424,15 @@ LOOP:
 <CODE>
     return $ENV{GEMV_COUNT} ? "--:-:-:-:6      MOV m0, 0x1;\n--:-:-:-:6      RED.E.ADD [dp+0x40], m0;\n--:-:-:-:6      MOV m1, 0x1;\n--:-:-:-:6  \@P1 RED.E.ADD [dp+0x80], m1;\n" : '';
 </CODE>
---:-:-:-:6  @P1 BRA LOOP;
---:-:-:-:f      EXIT;
+<CODE>
+    my $o = "--:-:-:-:6  \@P1 BRA LOOP;\n";
+    if ($ENV{GEMV_MOE}) {
+        my $NE = $ENV{GEMV_EXPERTS} || 10;
+        $o .= "--:-:-:-:6      IADD e, e, 0x1;\n";
+        $o .= sprintf "--:-:-:-:6      ISETP.LT.U32.AND P4, PT, e, 0x%x, PT;\n", $NE;
+        $o .= "--:-:-:-:6      NOP;\n" x 3;
+        $o .= "--:-:-:-:6  \@P4 BRA EXPERT;\n";
+    }
+    $o .= "--:-:-:-:f      EXIT;\n";
+    return $o;
+</CODE>

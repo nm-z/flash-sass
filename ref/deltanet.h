@@ -27,3 +27,9 @@ void l2norm128_gpu(const float *q, float eps, float *qn);
  * x_c(t-2) + w[c][2] x_c(t-1)) + w[c][3] x_c(t) by FMUL then three fmaf, u = SiLU(y)
  * (fmath twin); x(t) is written into slot t mod 4. w is [c][k] (k contiguous). */
 void conv1d_silu_gpu(const float *x, float *state, const float *w, unsigned t, float *u, int n);
+
+/* kern/dnnorm.sass: readout norm + gate per value head (128 wide): lane l owns 4
+ * elements; ss by fmaf chains and the xor 16..1 butterfly; m = ss * (1/128); v = m +
+ * eps; s = sqrtf(v); r = rcp(s); y = ((o * r) * w) * sigmoid(gate). o, gate, y: 6144
+ * (48 heads x 128, head-major); w: 128 (ssm_norm). */
+void dnnorm_gpu(const float *o, const float *w, const float *gate, float eps, float *y);

@@ -74,3 +74,23 @@ void conv1d_silu_gpu(const float *x, float *state, const float *w, unsigned t, f
 		sw[c] = x[c];
 	}
 }
+
+void dnnorm_gpu(const float *o, const float *w, const float *gate, float eps, float *y) {
+	for (int h = 0; h < 48; h++) {
+		const float *x = o + 128 * h;
+		float v[32], t[32];
+		for (int l = 0; l < 32; l++) {
+			float ss = x[4 * l] * x[4 * l];
+			for (int k = 1; k < 4; k++) ss = fmaf(x[4 * l + k], x[4 * l + k], ss);
+			v[l] = ss;
+		}
+		for (int ofs = 16; ofs >= 1; ofs >>= 1) {
+			for (int l = 0; l < 32; l++) t[l] = v[l] + v[l ^ ofs];
+			memcpy(v, t, sizeof v);
+		}
+		float m = v[0] * (1.0f / 128.0f);
+		float s = sqrtf(m + eps);
+		float r = rcp_gpu(s);
+		for (int c = 0; c < 128; c++) y[128 * h + c] = ((x[c] * r) * w[c]) * sigmoid_gpu(gate[128 * h + c]);
+	}
+}

@@ -747,6 +747,32 @@ barrier (it adds 1 to the immediate *string*; patched in `maxas-patch/MaxAs.pm`
 to parse hex) — the cubin's barrier count lives in the `.text` section flags
 (bits 20–25) and the hardware traps an id beyond it as an illegal instruction.
 
+**MoE in one phase.** The Q2_0 GEMV generator has an expert-outer loop
+(`GEMV_MOE=gather|down`, `GEMV_EXPERTS` = 10): `gather` runs the 10 routed
+experts' gate (or up) matrices in one phase — rows e·640 + r, tile base W +
+idx[e]·estride read from the router's index table, activations shared;
+`down` runs the 10 down matrices over the 2560 output rows with the activations
+(the 11 expert vectors from ffnact) reloaded per expert and `y[r] = fma(w_e,
+dot_e, y[r])` in expert order (e = 0: w_0·dot_0). The shared expert's down
+projection follows as a separate phase in `GEMV_ACC` mode: `y[r] = fma(s, dot,
+y[r])` with s (σ of the shared gate) read from a pointer. `GEMV_BIAS` on the
+BF16 GEMV adds `ssm_dt.bias[r]` to the α logits. MoE per block is therefore 10
+phases: router GEMV, shared-gate dot, router, gate gather, up gather, shared
+gate, shared up, ffnact (11 vectors), down, shared down.
+
+**Open decision (Nate, 2026-10-16): layer pipeline vs tensor/expert split.**
+The spec's layout is a layer pipeline (whole blocks per die, 9/9/9/9/8/4): one
+die streams at a time, per-token latency ≈ Σ dies ≈ 27 ms at 140 GB/s. Row-
+splitting every GEMV over the 6 dies plus expert-splitting the MoE (each die
+owns 1/6 of the experts, computes the routed ones it holds, partial sums
+reduced) would stream from all dies at once (~4.5 ms of weight time) at the
+cost of ~12–15 all-gathers/reduces of 10–40 KB per block (P2P within a board,
+through host memory across boards, ~5–15 µs each → ~5–7 ms/token) and
+multi-die barriers; the per-die ops are the same kernels on sliced row ranges,
+so the block work below carries over; placement becomes uniform (~8 GB per die)
+and the program gains exchange phases. Decision pending; v1 proceeds with the
+pipeline unless Nate asks for the split now.
+
 **End-to-end harness rule (Nate):** weights are loaded onto the dies **once**
 and stay resident across kernel iterations — a holder process allocates one
 arena per die, repacks the GGUF tensors into tiles, exports the arena with a

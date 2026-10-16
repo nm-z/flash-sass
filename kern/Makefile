@@ -395,3 +395,70 @@ die_test: die_test.c dieops.h ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref
 
 .PHONY: die
 die: die.cubin die_test
+
+# ---- the resident weight holder (load once; tests map the arena over CUDA IPC) ----
+hold: hold.c ../ref/quant.c ../ref/gguf.c ../ref/quant.h ../ref/gguf.h
+	$(CC) -std=gnu99 -O2 -Wall -o $@ hold.c ../ref/quant.c ../ref/gguf.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+# ---- DeltaNet readout norm + gate ----
+skel_dnnorm.cubin: dnnorm.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+dnnorm.cubin: dnnorm.sass fmath.pl skel_dnnorm.cubin
+	cp skel_dnnorm.cubin $@
+	$(MAXAS) -i dnnorm.sass $@
+
+dnnorm_test: dnnorm_test.c ../ref/deltanet.c ../ref/deltanet.h ../ref/fmath.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ dnnorm_test.c ../ref/deltanet.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+.PHONY: dnnorm
+dnnorm: dnnorm.cubin dnnorm_test
+
+# ---- MoE / accumulate / bias GEMV variants ----
+gemv_q2_0_moeg.cubin: gemv_q2_0.sass skel_q2_0.cubin
+	cp skel_q2_0.cubin $@
+	GEMV_K=2560 GEMV_MOE=gather $(MAXAS) -i gemv_q2_0.sass $@
+
+gemv_q2_0_moed.cubin: gemv_q2_0.sass skel_q2_0.cubin
+	cp skel_q2_0.cubin $@
+	GEMV_K=640 GEMV_MOE=down $(MAXAS) -i gemv_q2_0.sass $@
+
+gemv_q2_0_acc640.cubin: gemv_q2_0.sass skel_q2_0.cubin
+	cp skel_q2_0.cubin $@
+	GEMV_K=640 GEMV_ACC=1 $(MAXAS) -i gemv_q2_0.sass $@
+
+gemv_bf16_bias.cubin: gemv_bf16.sass skel_bf16.cubin
+	cp skel_bf16.cubin $@
+	GEMV_K=2560 GEMV_BIAS=1 $(MAXAS) -i gemv_bf16.sass $@
+
+moe_test: moe_test.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ moe_test.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+.PHONY: moe
+moe: gemv_q2_0_moeg.cubin gemv_q2_0_moed.cubin gemv_q2_0_acc640.cubin gemv_bf16_bias.cubin moe_test
+
+# ---- 6-die all-gather microbenchmark ----
+skel_allgather.cubin: allgather.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+allgather.cubin: allgather.sass skel_allgather.cubin
+	cp skel_allgather.cubin $@
+	$(MAXAS) -i allgather.sass $@
+
+allgather_ag4.cubin: allgather.sass skel_allgather.cubin
+	cp skel_allgather.cubin $@
+	AG_CHUNKS=4 $(MAXAS) -i allgather.sass $@
+
+allgather_test: allgather_test.c
+	$(CC) -std=gnu99 -O2 -Wall -o $@ allgather_test.c -I$(CUDA)/include -lcuda -lm
+
+.PHONY: allgather
+allgather: allgather.cubin allgather_ag4.cubin allgather_test
+
+allgather_flags.cubin: allgather.sass skel_allgather.cubin
+	cp skel_allgather.cubin $@
+	AG_NOPAY=1 $(MAXAS) -i allgather.sass $@
+
+allgather_nover.cubin: allgather.sass skel_allgather.cubin
+	cp skel_allgather.cubin $@
+	AG_NOVERIFY=1 $(MAXAS) -i allgather.sass $@

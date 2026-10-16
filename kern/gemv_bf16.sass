@@ -29,6 +29,8 @@
     param_Y0   : c[0x0][0x150]
     param_Y1   : c[0x0][0x154]
     param_rows : c[0x0][0x158]
+    param_D0   : c[0x0][0x160]
+    param_D1   : c[0x0][0x164]
 </CONSTANT_MAPPING>
 
 <CODE>
@@ -52,9 +54,11 @@
     $o .= sprintf "    %d : rowstep\n", $tmp + 8;
     $o .= sprintf "    %d : stepw\n", $tmp + 9;
     $o .= sprintf "    %d : yold\n", $tmp + 10;
-    my $p = $tmp + 11; $p += $p & 1;
+    $o .= sprintf "    %d : bias\n", $tmp + 11;
+    my $p = $tmp + 12; $p += $p & 1;
     $o .= sprintf "    %d,%d : wp<0-1>\n", $p, $p + 1;
     $o .= sprintf "    %d,%d : yp<0-1>\n", $p + 2, $p + 3;
+    $o .= sprintf "    %d,%d : bp<0-1>\n", $p + 4, $p + 5;
     # prologue temporaries alias the weight registers
     $o .= sprintf "    %d,%d : xp<0-1>\n", $wbase, $wbase + 1;
     $o .= sprintf "    %d : lane\n    %d : grp\n    %d : tid\n    %d : bid\n    %d : off\n    %d : t0\n    %d : t1\n",
@@ -70,6 +74,7 @@
     my $R = 256 / $L;                     # rows per CTA iteration
     my $S = $ENV{GEMV_ROWSTRIDE} || 2 * $K;   # row stride bytes (20480 for a K=2560 slice of a K=10240 row)
     my $acc = $ENV{GEMV_ACC} ? 1 : 0;     # y += partial instead of y = partial
+    my $bias = $ENV{GEMV_BIAS} ? 1 : 0;   # y = partial + bias[row], bias at the dbg pointer (ssm_dt.bias on the alpha logits)
     my $lgL = int(log($L)/log(2) + 0.5);
     my $lgR = int(log($R)/log(2) + 0.5);
     my $wrows = 32 / $L;
@@ -101,6 +106,10 @@
     $o .= "--:-:-:-:6      SHL t1, row, 0x2;\n";
     $o .= "--:-:-:-:6      IADD yp0.CC, t1, param_Y0;\n";
     $o .= "--:-:-:-:6      IADD.X yp1, RZ, param_Y1;\n";
+    if ($bias) {
+        $o .= "--:-:-:-:6      IADD bp0.CC, t1, param_D0;\n";
+        $o .= "--:-:-:-:6      IADD.X bp1, RZ, param_D1;\n";
+    }
     # activations: xp = X + 32 lane; chunk j at +32 L j (two 16 B loads)
     $o .= "--:-:-:-:6      SHL t1, lane, 0x5;\n";
     $o .= "--:-:-:-:6      IADD xp0.CC, t1, param_X0;\n";
@@ -114,6 +123,7 @@
         $o .= sprintf "--:2:1:-:%s      LDG.E.CI.128 w%02d, [wp+0x%x];\n", ($j == $C-1 && !$acc) ? '2' : '1', 4*$j, 16*$L*$j;
     }
     $o .= "--:2:1:-:2      LDG.E yold, [yp];\n" if $acc;
+    $o .= "--:2:1:-:2      LDG.E bias, [bp];\n" if $bias;
     # predicates for this row, far from their consumers (see SPEC: ~18 cycles)
     $o .= "--:-:-:-:1      ISETP.LT.U32.AND P2, PT, row, param_rows, P0;\n";
     $o .= "--:-:-:-:1      IADD rowpair, rowpair, rowstep;\n";
@@ -144,6 +154,7 @@
         $o .= "10:-:-:-:6      FADD accf, accf, t;\n";
     }
     $o .= "--:-:-:-:6      FADD accf, yold, accf;\n" if $acc;
+    $o .= "--:-:-:-:6      FADD accf, accf, bias;\n" if $bias;
     $o .= "--:2:-:-:1  \@P2 STG.E [yp], accf;\n";
     $o .= "--:-:-:-:1      IADD row, row, rowstep;\n";
     $o .= "02:-:-:-:6      IADD wp0.CC, wp0, stepw;\n";
@@ -151,6 +162,10 @@
     $o .= "--:-:-:-:6      SHL t, rowstep, 0x2;\n";
     $o .= "--:-:-:-:6      IADD yp0.CC, yp0, t;\n";
     $o .= "--:-:-:-:6      IADD.X yp1, yp1, RZ;\n";
+    if ($bias) {
+        $o .= "--:-:-:-:6      IADD bp0.CC, bp0, t;\n";
+        $o .= "--:-:-:-:6      IADD.X bp1, bp1, RZ;\n";
+    }
     $o .= "--:-:-:-:6  \@P1 BRA LOOP;\n";
     $o .= "--:-:-:-:f      EXIT;\n";
     return $o;
