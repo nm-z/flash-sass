@@ -1100,6 +1100,12 @@ summed over the 5 prompt positions likewise through block 39 (llama.cpp crops
 its last layer to the output row). `model_test`'s die buffers for the qkv and
 conv rows are now sized by the die's key-head count (the old `2 * 4` heads
 overflowed with nk up to 9 and produced garbage before this was noticed).
+"Explain mixed-precision quantization." (8 prompt ids): free-running, our 32
+generated tokens equal llama.cpp's 32 (`271 248068 198 760 1156 369 9859 …
+883`); teacher-forced over its 40 ids, 34 of 39 next-token predictions equal
+the given ids (the 5 others are prompt positions, where the given id is not
+the model's choice). **Two prompts, 35 generated tokens, identical to
+llama.cpp.**
 
 **Dequantization against ggml (2026-10-16):** `ref/deqcheck` (built against the
 llama.cpp tree's libggml-base) compares `ref/quant.c`'s `dequant()` with ggml's
