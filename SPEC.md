@@ -393,6 +393,31 @@ head and runs slower (811 MHz measured), so it gets fewer blocks.
   cycles after its ISETP read the stale predicate (the wrap-around of the
   neighbour index) — every predicate consumer, not just branches and stores,
   needs the ~18-cycle gap.
+- **Mailbox primitive**: `kern/mailbox.sass` — one CTA stores a 40 KB payload
+  into the peer die's memory with STG.128 (P2P), BAR.SYNC, MEMBAR.SYS, lane 0
+  STG.E.WT's the sequence word; the receiver spins with LDG.E.CV, MEMBAR.SYS,
+  reads the payload with LDG.E.CV.128 and acknowledges the same way. **0 payload
+  mismatches over 10,000 round trips** on every pair tried; round trip (payload
+  one way + ack back): 0↔1 17 µs (same board), 0→2 28 µs (across the middle
+  board), 5→0 37 µs, 0→5 48 µs, 3→4 43 µs. Five hops per token ≈ 0.1–0.2 ms
+  against ~25 ms of memory time: fine as is; more CTAs issuing the stores would
+  cut it if ever needed.
+- **Per-die bytes (from the header dump, raw GGUF sizes)**: blocks are 0.76–0.79
+  GB each; with 9/9/9/9/8/4 blocks dies 0–3 hold 6.9 GB, die 4 6.16 GB, die 5
+  3.09 GB + `output.weight` 0.44 GB + MTP (Q4_K_M 2.8 GB on archy's HDD) ≈ 6.3
+  GB, plus `token_embd` 0.27 GB on die 0. Tiles add 1–5%; states, KV, mailboxes
+  and activations are small. Everything fits under the 7.6 GiB usable per die
+  with ~0.5 GB to spare on dies 0–3.
+- **MTP file (Q4_K_M, 2.8 GB, archy HDD) contents** (`ggufhdr`): blk.48 is a full
+  attention + MoE block (attn_q/k Q4_K, attn_v Q6_K, attn_output Q4_K, indexer
+  BF16, 512 experts: gate/up Q4_K, down Q8_0 (891 MB), shared expert Q4_K/Q8_0,
+  router `ffn_gate_inp` **F32**, hc_*_down Q4_K/Q6_K K=10240, hc_*_up **Q5_0
+  K=320**, hc_*_inject Q4_K) plus `nextn.eh_proj` Q4_K **K=5120**, `nextn.enorm`
+  (2560), `nextn.hnorm` (10240), `nextn.hc_head_down/up/norm`, and its own
+  `output.weight` (Q6_K, 521 MB) and `token_embd` (Q4_K, 358 MB). New kernel
+  shapes for Phase 5: F32 GEMV K=2560, Q4_K K=5120 (32 lanes × 5), Q4_K/Q6_K
+  K=10240 (as accumulating slices, as BF16), Q5_0 K=320. Die 5 budget with
+  everything: ≈ 3.1 + 0.44 + 2.8 = 6.3 GB.
 - Register-bank note: in the K-quant streams the mask for field v and the
   activation register of the same XMAD share a bank for 2 of every 8 XMADs, and
   the combine's `acc_v + acc_{v+4}` pairs share banks (MaxAs reports 187
