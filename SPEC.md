@@ -1393,3 +1393,54 @@ remounts it when missing (`mount -t nfs -o ro,vers=3,hard,rsize=1048576`).
   `max_tokens` or the stop token; fix: every die ORs a host-written abort word into its
   argmax pair so `amax` sees one consistent value); no prefix cache (every request
   re-runs the whole conversation at ~26 tok/s); greedy only; one request at a time.
+
+## Sampling, abort, and the persistent core (2026-10-16)
+
+- **Sampling defaults come from the GGUF**: `general.sampling.temp = 1.0`, `top_k = 20`,
+  `top_p = 0.95` (no repetition penalty, no min_p). flashd uses them unless the request sets
+  `temperature`, `top_k`, `top_p`, `seed`; `FLASHD_GREEDY=1` forces greedy. Temperature <= 0 or
+  top_k <= 1 keeps the old argmax path (argmax.sass + amax.sass).
+- **Sampler in the kernel** (llama.cpp's order: top-k, top-p on the temperature-1 probabilities of
+  those k, then temperature, then the draw):
+  - `topk.sass` (op `topk`, 16 CTAs): the K <= 32 largest logits of a die by the router's
+    extraction rounds (FMNMX chain + xor butterfly for the value, lowest index among the bit-equal
+    for the tie rule, winner knocked out), at three levels: warp over 12 registers per lane
+    (a warp takes 384 logits, so a die may have <= 49152 rows), warp 0 of each CTA over the 8
+    warp lists, the last CTA (ATOM counter like argmax) over the 16 CTA lists. Per-die list
+    (index, value) x 32 goes to every die in one 256 B exchange part.
+  - `sample.sass` (op `sample`, one warp): lane l loads rank l of each die's list (+ the die's
+    first row), K rounds of the same extraction give the global top K in lanes 0..K-1,
+    e = exp(v - v0), butterfly sum, Kogge-Stone scan, keep rank r iff the exclusive prefix <
+    top_p * sum, w = exp((v - v0) / T) for kept ranks, thr = u * sum(w), token = first rank
+    whose inclusive scan exceeds thr. u = RND[position] comes from the host (splitmix64 over the
+    request's seed, 24 bits), so no RNG is needed on the device and a seed reproduces a reply.
+    Every die runs it on the same gathered lists and gets the same token (the instruction
+    sequence and the data are identical; exp is fmath's polynomial, not MUFU).
+  - Both are bit-exact against `ref/sample.c` (`topk_gpu`, `sample_gpu`) over 200 random trials
+    of `kern/sample_test.c` (peaked, flat, heavily tied logits; K = 1..32; top_p 0.05..1;
+    1/T 0.5..2; the END flag when the token equals a stop id). Cost: about 45 us per token more
+    than argmax (the rounds are serial), prompt positions included.
+- **Abort on disconnect**: the framework's token-end code also reads `ctl[6]`, a token count the
+  host writes to every die (a few tokens ahead of all of them: the dies stay within one token of
+  each other because every token exchanges); the die whose count reaches it ends the turn like a
+  stop token. `flash`'s streaming loop writes it when the client socket fails; flashd closes the
+  engine connection as soon as a write to the browser fails.
+- **Persistent core** (`core.h`): what takes minutes to load stays in one process, `flashcore`: the
+  per-die contexts and peer access, the weight arenas opened over CUDA IPC from the `hold`
+  processes, and the 28.8 GB PLE table in pinned host memory. Why the table cannot live in
+  another process: CUDA 11.4 has no IPC for pinned host memory (`cuIpcGetMemHandle` takes device
+  pointers only) and `cuMemHostRegister` refuses file and shared mappings, so the process that
+  pins the table has to be the process whose kernels read it. The engine is `libengine.so`,
+  which flashcore `dlopen`s: buffers, programs, the request loop. `reload [path]` calls
+  `engine_fini` (frees every device allocation), `dlclose`, `dlopen`, `engine_init`, and falls
+  back to the previous library if the new one fails to load or initialise; `cubin <path>`
+  reloads the kernel without touching the library. Tested with `nullengine.so`: the table and
+  context pointers are identical across reloads, a missing library and a failing `engine_init`
+  both fall back. So changing host code costs seconds, changing the kernel costs seconds, and only
+  a change to the split (the holders) or to flashcore itself costs the long load.
+  `serve.sh holders|core|flashd|reload|status|stop` starts each piece.
+- **archy reset itself** at about 12:59 (no panic or Xid in the journal, the previous boot just
+  stops; it was back at 13:04). Everything resident was lost: the holders, the table, flashd. At
+  boot, `persuader-lfm.service` (enabled, pinned to die 1, 1.4 GB) came back and would not leave
+  room for the die-1 share, so it was stopped again as it had been the night before; the NFS
+  share is not in fstab and was remounted by hand.
