@@ -94,6 +94,7 @@ static int merged_source(const char *name) {
 	return 0;
 }
 static int wanted(const char *name, int b0, int b1, int extra_embd, int extra_out) {
+	if (strstr(name, ".indexer.")) return 0;   /* the sparse-attention indexer is not used below 2048 tokens */
 	if (!strncmp(name, "blk.", 4)) { int b = atoi(name + 4); return b >= b0 && b < b1 && !merged_source(name); }
 	if (!strncmp(name, "token_embd", 10)) return extra_embd;
 	if (!strncmp(name, "output", 6)) return extra_out;
@@ -122,6 +123,8 @@ static void select_rows(const char *name, int rows, int experts, sel_t *s) {
 	if (!strcmp(name, "output_hc_up.weight")) { s->nr = 4; for (int l = 0; l < 4; l++) s->r[l] = (range_t){ 2560 * l + 32 * p->cb0, 32 * p->cbn }; return; }
 	const char *x = suffix(name);
 	if (!x) return;
+	/* the shared expert runs on one die per block */
+	if (strstr(x, "_shexp.weight") && !p->shexp) { s->nr = 1; s->r[0] = (range_t){ 0, 0 }; return; }
 	if (!strcmp(x, "hc_attn_dj.weight") || !strcmp(x, "hc_ffn_dj.weight")) { s->nr = 1; s->r[0] = (range_t){ p->dj0, p->djn }; }
 	else if (!strcmp(x, "hc_attn_up.weight") || !strcmp(x, "hc_ffn_up.weight")) { s->nr = 4; for (int l = 0; l < 4; l++) s->r[l] = (range_t){ 2560 * l + 32 * p->cb0, 32 * p->cbn }; }
 	else if (!strcmp(x, "attn_qkv.weight") || !strcmp(x, "ssm_conv1d.weight")) {

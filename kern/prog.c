@@ -4,13 +4,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-void prog_init(prog_t *P) { P->cap = 64; P->n = 0; P->xj = 0; P->loop = 0; P->p = malloc(sizeof(phase_t) * P->cap); }
+void prog_init(prog_t *P) { P->cap = 64; P->n = 0; P->xj = 0; P->loop = 0; P->pending_wait = 0; P->p = malloc(sizeof(phase_t) * P->cap); }
 void prog_free(prog_t *P) { free(P->p); P->p = NULL; P->n = P->cap = 0; }
 phase_t *prog_add(prog_t *P, int op, unsigned units) {
 	if (P->n == P->cap) { P->cap *= 2; P->p = realloc(P->p, sizeof(phase_t) * P->cap); }
 	phase_t *p = &P->p[P->n++];
 	memset(p, 0, sizeof *p);
 	p->w[0] = (uint32_t)op; p->w[1] = units;
+	if (P->pending_wait) { p->w[30] |= 2; P->pending_wait = 0; }   /* wait for the exchange before running */
 	return p;
 }
 void ph_ptr(phase_t *p, int addr, CUdeviceptr v) { int w = 2 + (addr - 0x140) / 4; p->w[w] = (uint32_t)v; p->w[w + 1] = (uint32_t)(v >> 32); }
@@ -86,7 +87,7 @@ int gemv_op(uint32_t type, int K, int acc) {
 	case GG_Q4_K: return K == 2560 ? OP_Q4KK2560 : OP_Q4KK6144;
 	case GG_Q5_K: return K == 2560 ? OP_Q5KK2560 : OP_Q5KK6144;
 	case GG_Q3_K: return K == 2560 ? OP_Q3KK2560 : OP_Q3KK6144;
-	case GG_Q6_K: return K == 2560 ? OP_Q6KK2560 : 0;
+	case GG_Q6_K: return K == 2560 ? OP_Q6KK2560 : getenv("FAKE_Q6K") ? OP_Q5KK6144 : 0;   /* FAKE_Q6K: timing runs only (wrong numbers) until the K=6144 Q6_K kernel exists */
 	case GG_IQ4_XS: return K == 2560 ? OP_IQ4K2560 : OP_IQ4K6144;
 	case GG_Q4_0: return acc ? OP_B32Q40ACC : OP_B32Q40;
 	case GG_Q5_0: return acc ? OP_B32Q50ACC : OP_B32Q50;
@@ -111,8 +112,9 @@ CUdeviceptr ph_xchg(prog_t *P, const xchg_t *x, int me, int ndies, CUdeviceptr s
 	unsigned slot = (unsigned)(P->xj & 1) * XSLOT;
 	phase_t *p = prog_add(P, OP_XSEND, 16);
 	ph_ptr(p, 0x140, x->xtab); ph_ptr(p, 0x148, src); ph_u32(p, 0x150, nbytes); ph_u32(p, 0x154, myoff); ph_u32(p, 0x158, slot); ph_u32(p, 0x15c, (unsigned)ndies); ph_ptr(p, 0x160, x->xgen);
-	p = prog_add(P, OP_XWAIT, 16);
-	ph_ptr(p, 0x140, x->xtab); ph_u32(p, 0x148, (unsigned)me); ph_u32(p, 0x14c, (unsigned)ndies); ph_ptr(p, 0x150, x->xgen); ph_u32(p, 0x158, slot); ph_u32(p, 0x15c, total);
+	p->w[30] |= 1;             /* a send: the framework publishes the flag after this phase ... */
+	P->pending_wait = 1;       /* ... and the next phase polls for every die's flag first */
+	(void)me; (void)total;
 	P->xj++;
 	return x->inbox + slot;
 }
@@ -149,7 +151,7 @@ static CUdeviceptr ph_hc_read(prog_t *P, const split_t *s, const xchg_t *x, CUde
 	ph_bf16(P, OP_BF16K320, up, b->t, b->lup, 4 * cols, 0);
 	ph_hc(P, OP_HCMIX, b->lup, b->xh + 4u * 32u * (unsigned)s->cb0, b->lz, cols, 4 * cols, (cols + 255) / 256);
 	CUdeviceptr Z = ph_xchg(P, x, s->d, s->n, b->lz, 4 * cols, 4u * 32u * (unsigned)s->cb0, 4 * 2560);
-	ph_actq(P, OP_ACTQ2560, Z, b->zq, b->zs32, b->zs16, b->zas, 2560, 1);
+	ph_actq(P, OP_ACTQ256, Z, b->zq, b->zs32, b->zs16, b->zas, 256, 10);
 	return Z;
 }
 
@@ -195,7 +197,7 @@ void prog_attn_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weig
 	ph_hc_read(P, s, x, w->hc_attn_norm, w->hc_attn_dj, w->hc_attn_up, b, eps);
 	if (s->d == 0) ph_attn_core(P, w, b, t, eps);
 	CUdeviceptr AOUT = ph_xchg(P, x, s->d, s->n, b->aout, s->d == 0 ? 6144 * 4 : 0, 0, 6144 * 4);
-	ph_actq(P, OP_ACTQ6144, AOUT, b->oq, b->os32, b->os16, b->oas, 6144, 1);
+	ph_actq(P, OP_ACTQ256, AOUT, b->oq, b->os32, b->os16, b->oas, 256, 24);
 	ph_gemv_any(P, w->attn_output_type, 6144, w->attn_output, b->oq, b->os32, b->ly, (unsigned)s->yn, b->oas, 0, 0);
 	CUdeviceptr Y = ph_xchg(P, x, s->d, s->n, b->ly, 4u * (unsigned)s->yn, 4u * (unsigned)s->y0, 4 * 2560);
 	ph_hc(P, OP_HCWRITE, inj, Y, b->S, 2560, 0, 10);
@@ -217,7 +219,7 @@ void prog_head(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t 
 	ph_bf16(P, OP_BF16K320, w->output_hc_up, b->t, b->lup, 4 * cols, 0);
 	ph_hc(P, OP_HCMIX, b->lup, b->xh + 4u * 32u * (unsigned)s->cb0, b->lz, cols, 4 * cols, (cols + 255) / 256);
 	CUdeviceptr Z = ph_xchg(P, x, s->d, s->n, b->lz, 4 * cols, 4u * 32u * (unsigned)s->cb0, 4 * 2560);
-	ph_actq(P, OP_ACTQ2560, Z, b->zq, b->zs32, b->zs16, b->zas, 2560, 1);
+	ph_actq(P, OP_ACTQ256, Z, b->zq, b->zs32, b->zs16, b->zas, 256, 10);
 	ph_gemv_any(P, GG_Q5_K, 2560, w->output, b->zq, b->zs32, b->hlo, (unsigned)s->on, b->zas, 0, 0);
 	phase_t *p = prog_add(P, OP_ARGMAX, 16);
 	ph_ptr(p, 0x140, b->hlo); ph_ptr(p, 0x148, b->amo); ph_ptr(p, 0x150, b->apart); ph_ptr(p, 0x158, b->acnt); ph_u32(p, 0x160, (unsigned)s->on); ph_u32(p, 0x164, 16);
@@ -230,7 +232,7 @@ void prog_head(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t 
 void prog_ple_prefix(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps) {
 	phase_t *p = prog_add(P, OP_PLEROWS, 1);   /* every die hashes and gathers the 16 rows itself */
 	ph_ptr(p, 0x140, b->ids); ph_ptr(p, 0x148, b->ple_pc); ph_ptr(p, 0x150, b->ple_tab); ph_ptr(p, 0x158, b->pg); ph_ptr(p, 0x160, b->prows); ph_tokv(P, p, 0x168, 0, t);
-	ph_actq(P, OP_ACTQ2560, b->pg, b->pgq, b->pgs32, b->pgs16, b->pgas, 2560, 1);
+	ph_actq(P, OP_ACTQ256, b->pg, b->pgq, b->pgs32, b->pgs16, b->pgas, 256, 10);
 	ph_gemv_any(P, GG_Q2_0, 2560, w->ple_key, b->pgq, b->pgs32, b->lk, (unsigned)s->pkn, b->pgas, 0, 0);
 	CUdeviceptr K = ph_xchg(P, x, s->d, s->n, b->lk, 4u * (unsigned)s->pkn, 4u * (unsigned)s->pk0, 4 * 10240);
 	ph_rms(P, OP_RMS2560, K, w->ple_norm_key, b->kn, eps, 4);
@@ -256,7 +258,7 @@ void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_
 	ph_dnstep(P, b->dn_state, b->lu, b->lu + 512u * (unsigned)s->nk, b->lu + 1024u * (unsigned)s->nk, b->la, b->la + 4u * (unsigned)s->hn, w->ssm_a, b->lo, eps, (unsigned)s->h0, (unsigned)s->klo, (unsigned)s->hn);
 	ph_dnnorm(P, b->lo, w->ssm_norm, b->lgate, b->lon, eps, (unsigned)s->hn);
 	CUdeviceptr ON = ph_xchg(P, x, s->d, s->n, b->lon, 4 * hrows, 4u * 128u * (unsigned)s->h0, 4 * 6144);
-	ph_actq(P, OP_ACTQ6144, ON, b->oq, b->os32, b->os16, b->oas, 6144, 1);
+	ph_actq(P, OP_ACTQ256, ON, b->oq, b->os32, b->os16, b->oas, 256, 24);
 	ph_gemv_any(P, w->ssm_out_type, 6144, w->ssm_out, b->oq, b->os32, b->ly, (unsigned)s->yn, b->oas, 0, 0);
 	CUdeviceptr Y = ph_xchg(P, x, s->d, s->n, b->ly, 4u * (unsigned)s->yn, 4u * (unsigned)s->y0, 4 * 2560);
 	ph_hc(P, OP_HCWRITE, inj, Y, b->S, 2560, 0, 10);

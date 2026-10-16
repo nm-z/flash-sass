@@ -232,11 +232,18 @@ int main(int argc, char **argv) {
 		x->inbox = dalloc(2 * XSLOT); x->flags = dalloc(32); x->xgen = dalloc(16); x->xtab = dalloc(128);
 		uint32_t fl[6]; for (int e = 0; e < 6; e++) fl[e] = e < nd ? 0u : 0xffffffffu;
 		CK(cuMemcpyHtoD(x->flags, fl, sizeof fl));
-		dPROG[d] = dalloc(128 * 512); dCTL[d] = dalloc(0x40 + 4 * 512);
+		dPROG[d] = dalloc(128 * 512); dCTL[d] = dalloc(0x100 + 4 * 512);
 	}
 	uint64_t tab[12] = { 0 };
 	for (int d = 0; d < nd; d++) { tab[d] = (uint64_t)xc[d].inbox; tab[6 + d] = (uint64_t)xc[d].flags; }
-	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(xc[d].xtab, tab, sizeof tab)); }
+	for (int d = 0; d < nd; d++) {
+		CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(xc[d].xtab, tab, sizeof tab));
+		/* the framework's exchange header in ctl: [3] me, [4] ndies, [16 + 2e] = &flags_e[me], [28] = my flags */
+		uint32_t hdr[32] = { 0 }; hdr[3] = (uint32_t)d; hdr[4] = (uint32_t)nd;
+		for (int e = 0; e < nd; e++) { uint64_t a = (uint64_t)xc[e].flags + 4u * (unsigned)d; memcpy(&hdr[16 + 2 * e], &a, 8); }
+		uint64_t mf = (uint64_t)xc[d].flags; memcpy(&hdr[28], &mf, 8);
+		CK(cuMemcpyHtoD(dCTL[d], hdr, sizeof hdr));
+	}
 	printf("%d die(s):", nd);
 	for (int d = 0; d < nd; d++) printf(" [%d: gpu %d dj %d+%d cb %d+%d h %d+%d k %d..%d y %d+%d e %d+%d%s]", d, dev_of[d], sp[d].dj0, sp[d].djn, sp[d].cb0, sp[d].cbn, sp[d].h0, sp[d].hn, sp[d].klo, sp[d].khi, sp[d].y0, sp[d].yn, sp[d].e0, sp[d].en, sp[d].shexp ? " shexp" : "");
 	printf("\n");
@@ -291,10 +298,10 @@ int main(int argc, char **argv) {
 		if ((t3 - t2) > 1.5e-3 && getenv("DIES_STALL")) {   /* which die stalled where: the two longest phases per die */
 			for (int d = 0; d < nd; d++) {
 				CK(cuCtxSetCurrent(ctx[d]));
-				uint32_t *ts = malloc(4 * (16 + nph[d])); CK(cuMemcpyDtoH(ts, dCTL[d], 4 * (16 + nph[d])));
+				uint32_t *ts = malloc(4 * (64 + nph[d])); CK(cuMemcpyDtoH(ts, dCTL[d], 4 * (64 + nph[d])));
 				unsigned prev = ts[15], b1 = 0, i1 = 0, b2 = 0, i2 = 0;
-				for (unsigned i = 0; i < nph[d]; i++) { unsigned dd = ts[16 + i] - prev; prev = ts[16 + i]; if (dd > b1) { b2 = b1; i2 = i1; b1 = dd; i1 = i; } else if (dd > b2) { b2 = dd; i2 = i; } }
-				printf("   stall die %d: total %.0f us; phase %u %s %.0f us, phase %u %s %.0f us; launch->phase0 %.0f\n", d, (ts[16 + nph[d] - 1] - ts[15]) / 1e3, i1, die_opname[P[d].p[i1].w[0]], b1 / 1e3, i2, die_opname[P[d].p[i2].w[0]], b2 / 1e3, (ts[16] - ts[15]) / 1e3);
+				for (unsigned i = 0; i < nph[d]; i++) { unsigned dd = ts[64 + i] - prev; prev = ts[64 + i]; if (dd > b1) { b2 = b1; i2 = i1; b1 = dd; i1 = i; } else if (dd > b2) { b2 = dd; i2 = i; } }
+				printf("   stall die %d: total %.0f us; phase %u %s %.0f us, phase %u %s %.0f us; launch->phase0 %.0f\n", d, (ts[64 + nph[d] - 1] - ts[15]) / 1e3, i1, die_opname[P[d].p[i1].w[0]], b1 / 1e3, i2, die_opname[P[d].p[i2].w[0]], b2 / 1e3, (ts[64] - ts[15]) / 1e3);
 				free(ts);
 			}
 		}
@@ -374,16 +381,16 @@ int main(int argc, char **argv) {
 		if (bad) fails++;
 		if (t == T - 1 && getenv("DIES_PROF")) {
 			CK(cuCtxSetCurrent(ctx[0]));
-			uint32_t *ts = malloc(4 * (16 + nph[0])); CK(cuMemcpyDtoH(ts, dCTL[0], 4 * (16 + nph[0])));
+			uint32_t *ts = malloc(4 * (64 + nph[0])); CK(cuMemcpyDtoH(ts, dCTL[0], 4 * (64 + nph[0])));
 			unsigned byop[DIE_NOPS] = {0}; unsigned prev = ts[15];
 			for (unsigned i = 0; i < nph[0]; i++) {
-				unsigned dd = ts[16 + i] - prev; prev = ts[16 + i];
+				unsigned dd = ts[64 + i] - prev; prev = ts[64 + i];
 				byop[P[0].p[i].w[0]] += dd;
 				printf("   %2u %-10s units %5u %7.1f\n", i, die_opname[P[0].p[i].w[0]], P[0].p[i].w[1], dd / 1e3);
 			}
 			printf("  by op:");
 			for (int o = 0; o < DIE_NOPS; o++) if (byop[o]) printf(" %s %.0f", die_opname[o], byop[o] / 1e3);
-			printf("\n  total %.1f us\n", (ts[16 + nph[0] - 1] - ts[15]) / 1e3);
+			printf("\n  total %.1f us\n", (ts[64 + nph[0] - 1] - ts[15]) / 1e3);
 			free(ts);
 		}
 		for (int d = 0; d < nd; d++) prog_free(&P[d]);

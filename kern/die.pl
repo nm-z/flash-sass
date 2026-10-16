@@ -36,6 +36,7 @@ my @OPS = (
     [ 'ffnact',     'ffnact.sass',      'warp', { GEMV_K => 640 } ],
     [ 'actq6144',   'actq.sass',        'warp', { GEMV_K => 6144 } ],
     [ 'actq10240',  'actq.sass',        'warp', { GEMV_K => 10240 } ],
+    [ 'actq256',    'actq.sass',        'warp', { GEMV_K => 256 } ],    # n/256 units in parallel instead of one warp
     [ 'rms2560',    'rmsnorm.sass',     'warp', { GEMV_K => 2560 } ],
     [ 'rms10240',   'rmsnorm.sass',     'warp', { GEMV_K => 10240 } ],
     # normq (RMSNorm + quantiser, 228 registers) does not fit beside the framework; nothing in the v1 block needs it
@@ -251,6 +252,11 @@ print <<"EOF";
     21    : bar_t
     22    : bar_one
     24,25 : bar_cp<0-1>
+    14,15 : xa<0-1>
+    16,17 : xb<0-1>
+    20,21 : xc<0-1>
+    22,23 : xd<0-1>
+    24,25 : xe<0-1>
 $maps</REGISTER_MAPPING>
 
 --:-:6:-:1      S2R tid, SR_TID.X;
@@ -303,6 +309,41 @@ PHASE:
 --:-:1:-:1      LDS op, [RZ+0x@{[sprintf '%x', $DESC_OFF]}];
 --:-:1:-:2      LDS units, [RZ+0x@{[sprintf '%x', $DESC_OFF + 4]}];
 01:-:-:-:6      NOP;
+# ---- exchange wait (descriptor word 30 bit 1): warp 0 of every CTA polls this die's
+# six flags (ctl[28..29] -> u32[6], absent dies hold ~0) until all read >= the
+# exchange counter ctl[8], invalidates L1, and the CTA syncs ----
+--:-:1:-:2      LDS bar_g, [RZ+0x@{[sprintf '%x', $DESC_OFF + 0x78]}];
+01:-:-:-:6      LOP32I.AND bar_g, bar_g, 0x2;
+--:-:-:-:6      ISETP.EQ.U32.AND P5, PT, bar_g, RZ, PT;
+--:-:-:-:6      ISETP.GE.U32.AND P6, PT, tid, 0x20, PT;
+--:-:-:-:6      MOV bar_cp0, ctl0;
+--:-:-:-:6      MOV bar_cp1, ctl1;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P5 BRA XWDONE;
+--:-:-:-:6  \@P6 BRA XWBAR;
+--:-:1:-:1      LDG.E.CV bar_g, [bar_cp+0x20];
+--:-:1:-:2      LDG.E.64 xe0, [bar_cp+0x70];
+XWSPIN:
+01:-:3:-:1      LDG.E.CV bar_t, [xe];
+--:-:3:-:1      LDG.E.CV bar_old, [xe+0x4];
+--:-:3:-:1      LDG.E.CV bar_one, [xe+0x8];
+--:-:3:-:1      LDG.E.CV bar_g2, [xe+0xc];
+--:-:3:-:1      LDG.E.CV xb0, [xe+0x10];
+--:-:3:-:2      LDG.E.CV xb1, [xe+0x14];
+04:-:-:-:1      IMNMX.U32 bar_t, bar_t, bar_old, PT;
+--:-:-:-:1      IMNMX.U32 bar_one, bar_one, bar_g2, PT;
+--:-:-:-:6      IMNMX.U32 xb0, xb0, xb1, PT;
+--:-:-:-:6      IMNMX.U32 bar_t, bar_t, bar_one, PT;
+--:-:-:-:6      IMNMX.U32 bar_t, bar_t, xb0, PT;
+--:-:-:-:6      ISETP.GE.U32.AND P4, PT, bar_t, bar_g, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6 \@!P4 BRA XWSPIN;
+--:-:-:-:6      MEMBAR.GL.IVALLD;
+XWBAR:
+--:-:-:-:6      BAR.SYNC 0x1;
+XWDONE:
 $dispatch--:-:-:-:6      BRA PHASE_END;
 $body
 PHASE_END:
@@ -313,7 +354,21 @@ PHASE_END:
 --:-:-:-:6      MOV bar_cp0, ctl0;
 --:-:-:-:6      MOV bar_cp1, ctl1;
 --:-:-:-:6      MOV bar_one, 0x1;
---:-:-:-:6  \@P6 BRA BDONE;
+# a send phase (descriptor word 30 bit 0): CTA 0 thread 0 bumps the exchange counter
+# ctl[8] before counting in, so every CTA reads the new value after the barrier
+--:-:-:-:6      IADD bar_t, cta, tid;
+--:-:-:-:6      ISETP.EQ.U32.AND P4, PT, bar_t, RZ, PT;
+--:-:1:-:2      LDS bar_g2, [RZ+0x@{[sprintf '%x', $DESC_OFF + 0x78]}];
+01:-:-:-:6      LOP32I.AND bar_g2, bar_g2, 0x1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.NE.U32.AND P4, PT, bar_g2, RZ, P4;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:1:-:2  \@P4 LDG.E.CV bar_g2, [bar_cp+0x20];
+01:-:-:-:6  \@P4 IADD bar_g2, bar_g2, 0x1;
+--:2:-:-:6  \@P4 STG.E.WT [bar_cp+0x20], bar_g2;
+02:-:-:-:6  \@P6 BRA BDONE;
 --:-:1:-:2      LDG.E.CV bar_g, [bar_cp+0x4];
 --:-:-:-:6      MEMBAR.GL.IVALLD;
 01:-:2:-:2 \@!P5 ATOM.E.ADD bar_old, [bar_cp], bar_one;
@@ -347,7 +402,45 @@ BDONE:
 --:-:-:-:6      IADD bar_cp0.CC, bar_cp0, bar_g;
 --:-:-:-:6      IADD.X bar_cp1, bar_cp1, RZ;
 --:-:6:-:2  \@P4 S2R bar_g2, SR_GLOBALTIMERLO;
-20:-:-:-:6  \@P4 STG.E [bar_cp+0x40], bar_g2;
+20:-:-:-:6  \@P4 STG.E [bar_cp+0x100], bar_g2;
+# ---- exchange flag (word 30 bit 0): warp 0 of CTA 0 fences and lane 0 publishes the
+# exchange counter to flags[me] of every die (ctl[16 + 2e] holds that address) ----
+--:-:1:-:2      LDS bar_g, [RZ+0x@{[sprintf '%x', $DESC_OFF + 0x78]}];
+01:-:-:-:6      LOP32I.AND bar_g, bar_g, 0x1;
+--:-:-:-:6      ISETP.EQ.U32.AND P5, PT, bar_g, RZ, PT;
+--:-:-:-:6      ISETP.NE.U32.AND P6, PT, cta, RZ, PT;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, tid, 0x20, PT;
+--:-:-:-:6      MOV bar_cp0, ctl0;
+--:-:-:-:6      MOV bar_cp1, ctl1;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P5 BRA XFDONE;
+--:-:-:-:6  \@P6 BRA XFDONE;
+--:-:-:-:6  \@P3 BRA XFDONE;
+--:-:1:-:1      LDG.E.CV op, [bar_cp+0x20];
+--:-:1:-:1      LDG.E units, [bar_cp+0x10];
+--:-:1:-:1      LDG.E.64 xa0, [bar_cp+0x40];
+--:-:1:-:1      LDG.E.64 xb0, [bar_cp+0x48];
+--:-:1:-:1      LDG.E.64 xc0, [bar_cp+0x50];
+--:-:1:-:2      LDG.E.64 xd0, [bar_cp+0x58];
+--:-:-:-:6      MEMBAR.SYS;
+01:-:-:-:6      ISETP.GT.U32.AND P5, PT, units, 0x1, P4;
+--:-:-:-:6      ISETP.GT.U32.AND P6, PT, units, 0x2, P4;
+--:-:-:-:6      ISETP.GT.U32.AND P3, PT, units, 0x3, P4;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:2:-:-:1  \@P4 STG.E.WT [xa], op;
+--:2:-:-:1  \@P5 STG.E.WT [xb], op;
+--:2:-:-:1  \@P6 STG.E.WT [xc], op;
+--:2:-:-:6  \@P3 STG.E.WT [xd], op;
+--:-:-:-:6      ISETP.GT.U32.AND P5, PT, units, 0x4, P4;
+--:-:-:-:6      ISETP.GT.U32.AND P6, PT, units, 0x5, P4;
+# (xe aliases bar_cp: its load comes last, after every other use of the base)
+02:-:1:-:1      LDG.E.64 xa0, [bar_cp+0x68];
+--:-:1:-:2      LDG.E.64 xe0, [bar_cp+0x60];
+01:-:-:-:6      NOP;
+--:2:-:-:1  \@P5 STG.E.WT [xe], op;
+--:2:-:-:6  \@P6 STG.E.WT [xa], op;
+XFDONE:
 # ---- next phase ----
 --:-:-:-:6      IADD pidx, pidx, 0x1;
 --:-:-:-:6      ISETP.LT.U32.AND P6, PT, pidx, nph, PT;
@@ -357,6 +450,9 @@ BDONE:
 --:-:-:-:6  \@P6 BRA PHASE;
 # ---- token done: thread 0 bumps TOK (and CTA 0 mirrors it to ctl[2]); everyone
 # re-reads it behind a barrier and runs the program again while tok < ntok ----
+--:-:-:-:6      ISETP.NE.U32.AND P5, PT, tid, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
 --:-:-:-:6      BAR.SYNC 0x1;
 --:-:1:-:2 \@!P5 LDS bar_t, [RZ+0x@{[sprintf '%x', $TOK_OFF]}];
 01:-:-:-:6 \@!P5 IADD bar_t, bar_t, 0x1;

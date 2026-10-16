@@ -870,6 +870,31 @@ would dominate, so the six logical dies should avoid that board (physical
 board needs attention (reseat / slot swap / firmware). Measured with
 `DIES_NOTWIN=1 DIES_STALL=1`.
 
+**The persistent kernel proper (2026-10-16).** The framework loops over tokens
+inside one launch: a token counter in shared memory (`TOK`, mirrored to
+`ctl[2]`), descriptor word 31 marks the parameter words that get it added
+(positions, cache slots, the key count, the id index), embrow reads
+`ids[pos]`, attnqk indexes its RoPE tables by position, the head's `amax`
+writes `toks[tok]` and, past the prompt, `ids[tok+1]`, and the program repeats
+while `tok < ntok` (a kernel parameter). `model_test ... ehl` builds each die's
+program once and launches once: 6 tokens of embed → blocks 0–4 → head exact
+against the twin on six dies; 40 tokens in one launch run at 5.8 ms per token
+(252 phases per token), i.e. ~55 ms per token extrapolated to 48 blocks before
+any optimisation. The exchange counter and flags moved into the framework:
+descriptor word 30 bit 0 marks a send phase (CTA 0 thread 0 bumps `ctl[8]`
+before the grid barrier and publishes it to every die's flag slot after it,
+addresses from `ctl[16 + 2e]`), bit 1 marks a phase that first polls this
+die's flags (`ctl[28]`) — so an exchange is one phase, not two.
+
+**Hardware notes (archy, 2026-10-16).** Root ports: board 1 (dies 0, 1) is
+PCIe 3 ×8, boards 2 and 3 ×16, board 4 (dies 6, 7) hangs off the PCH at
+5 GT/s ×2. Boards 2 (dies 2, 3) run with ECC *enabled*, the others disabled.
+Die 2 took a double-bit ECC error (Xid 48, page 0x189128 retired, "reboot to
+activate") during a run and refused new contexts until `nvidia-smi -r -i 2`. Board 3 (dies 4, 5) shows the 2 ms
+P2P stalls; board 4 is stall-free but ~35 % slower per block. Full-model
+holders: ~6.5 GB per die (die 0: ~7.1 GB with the attention projections),
+loaded from NFS in ~30 min for six holders in parallel.
+
 **End-to-end harness rule (Nate):** weights are loaded onto the dies **once**
 and stay resident across kernel iterations — a holder process allocates one
 arena per die, repacks the GGUF tensors into tiles, exports the arena with a

@@ -237,11 +237,18 @@ int main(int argc, char **argv) {
 		x->inbox = dalloc(2 * XSLOT); x->flags = dalloc(32); x->xgen = dalloc(16); x->xtab = dalloc(128);
 		uint32_t fl[6]; for (int e = 0; e < 6; e++) fl[e] = e < nd ? 0u : 0xffffffffu;
 		CK(cuMemcpyHtoD(x->flags, fl, sizeof fl));
-		dPROG[d] = dalloc(128 * 4096); dCTL[d] = dalloc(0x40 + 4 * 4096);
+		dPROG[d] = dalloc(128 * 4096); dCTL[d] = dalloc(0x100 + 4 * 4096);
 	}
 	uint64_t tab[12] = { 0 };
 	for (int d = 0; d < nd; d++) { tab[d] = (uint64_t)xc[d].inbox; tab[6 + d] = (uint64_t)xc[d].flags; }
-	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(xc[d].xtab, tab, sizeof tab)); }
+	for (int d = 0; d < nd; d++) {
+		CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(xc[d].xtab, tab, sizeof tab));
+		/* the framework's exchange header in ctl: [3] me, [4] ndies, [16 + 2e] = &flags_e[me], [28] = my flags */
+		uint32_t hdr[32] = { 0 }; hdr[3] = (uint32_t)d; hdr[4] = (uint32_t)nd;
+		for (int e = 0; e < nd; e++) { uint64_t a = (uint64_t)xc[e].flags + 4u * (unsigned)d; memcpy(&hdr[16 + 2 * e], &a, 8); }
+		uint64_t mf = (uint64_t)xc[d].flags; memcpy(&hdr[28], &mf, 8);
+		CK(cuMemcpyHtoD(dCTL[d], hdr, sizeof hdr));
+	}
 	/* the initial stream: the embedding of ids[0], or random when no embedding runs */
 	if (!do_embed) { for (int i = 0; i < 10240; i++) hb->S[i] = 0.5f * frand(); for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(db[d].S, hb->S, 4 * 10240)); } }
 	printf("%d die(s), blocks [%d, %d)%s%s%s, %d tokens (%d prompt)\n", nd, b0, b1, do_embed ? ", embed" : "", do_head ? ", head" : "", do_loop ? ", one launch" : "", T, nprompt);
@@ -367,12 +374,12 @@ int main(int argc, char **argv) {
 		if (bad) fails++;
 		if (t == T - 1 && getenv("MODEL_PROF")) {
 			CK(cuCtxSetCurrent(ctx[0]));
-			uint32_t *ts = malloc(4 * (16 + nph[0])); CK(cuMemcpyDtoH(ts, dCTL[0], 4 * (16 + nph[0])));
+			uint32_t *ts = malloc(4 * (64 + nph[0])); CK(cuMemcpyDtoH(ts, dCTL[0], 4 * (64 + nph[0])));
 			double byop[DIE_NOPS] = {0}; unsigned prev = ts[15], cnt[DIE_NOPS] = {0};
-			for (unsigned i = 0; i < nph[0]; i++) { unsigned dd = ts[16 + i] - prev; prev = ts[16 + i]; byop[P[0].p[i].w[0]] += dd / 1e3; cnt[P[0].p[i].w[0]]++; }
+			for (unsigned i = 0; i < nph[0]; i++) { unsigned dd = ts[64 + i] - prev; prev = ts[64 + i]; byop[P[0].p[i].w[0]] += dd / 1e3; cnt[P[0].p[i].w[0]]++; }
 			printf("  die 0 by op (us, count):");
 			for (int o = 0; o < DIE_NOPS; o++) if (cnt[o]) printf(" %s %.0f/%u", die_opname[o], byop[o], cnt[o]);
-			printf("\n  total %.1f us in %u phases\n", (ts[16 + nph[0] - 1] - ts[15]) / 1e3, nph[0]);
+			printf("\n  total %.1f us in %u phases\n", (ts[64 + nph[0] - 1] - ts[15]) / 1e3, nph[0]);
 			free(ts);
 		}
 		for (int d = 0; d < nd; d++) prog_free(&P[d]);
