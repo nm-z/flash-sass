@@ -142,9 +142,53 @@ static int test_kv(unsigned T, unsigned NBLK) {
 	return bad;
 }
 
+static size_t pkt_idx(unsigned b, int d) { return (size_t)(b >> 5) * 4096 + (size_t)(d >> 2) * 128 + (b & 31) * 4 + (d & 3); }
+
+static int test_idxqk(unsigned T) {
+	const float eps = 1e-6f;
+	unsigned npos = T + 64, nblk = (T + 3) / 4, ngrp = (nblk + 31) / 32 + 1;
+	float *rcs = malloc(4 * 32 * (size_t)npos), *rsn = malloc(4 * 32 * (size_t)npos);
+	for (unsigned t = 0; t < npos; t++) rope_table_gpu(t, 1e7f, rcs + 32 * t, rsn + 32 * t);
+	float qn[128], kn[128]; for (int i = 0; i < 128; i++) { qn[i] = 0.5f + 0.5f * frand(); kn[i] = 0.5f + 0.5f * frand(); }
+	CUdeviceptr dIQK = dalloc(4 * 640), dQN = dalloc(4 * 128), dKN = dalloc(4 * 128), dCS = dalloc(4 * 32 * (size_t)npos), dSN = dalloc(4 * 32 * (size_t)npos), dIQ = dalloc(4 * 512), dRING = dalloc(4 * 512), dPKT = dalloc((size_t)ngrp * 8192), dHST = dalloc(4 * 1280);
+	CK(cuMemcpyHtoD(dQN, qn, 4 * 128)); CK(cuMemcpyHtoD(dKN, kn, 4 * 128)); CK(cuMemcpyHtoD(dCS, rcs, 4 * 32 * (size_t)npos)); CK(cuMemcpyHtoD(dSN, rsn, 4 * 32 * (size_t)npos));
+	CK(cuMemsetD32(dHST, 0xdeadbeefu, 1280));
+	desc_t prog[1];
+	d_init(&prog[0], OP_IDXQK, 6);
+	d_ptr(&prog[0], 0x140, dIQK); d_ptr(&prog[0], 0x148, dQN); d_ptr(&prog[0], 0x150, dKN); d_ptr(&prog[0], 0x158, dCS); d_ptr(&prog[0], 0x160, dSN); d_ptr(&prog[0], 0x168, dIQ);
+	d_ptr(&prog[0], 0x170, dRING); d_ptr(&prog[0], 0x178, dPKT); d_ptr(&prog[0], 0x180, dHST); d_tok(&prog[0], 0x188, 0); d_f32(&prog[0], 0x18c, eps);
+	float iqk[640], iq[512], iqg[512], ring[4 * 128];
+	uint16_t *pool = calloc((size_t)(nblk + 1) * 128, 2), *pktg = malloc((size_t)ngrp * 8192), *pkt = calloc((size_t)ngrp * 4096, 2);
+	uint32_t hst[1280];
+	int bad = 0, shown = 0;
+	for (unsigned t = 0; t < T; t++) {
+		for (int i = 0; i < 640; i++) iqk[i] = 1.5f * frand();
+		CK(cuMemcpyHtoD(dIQK, iqk, 4 * 640));
+		run_token(prog, 1, t);
+		for (int h = 0; h < 4; h++) idx_norm_rope_gpu(iqk + 128 * h, qn, eps, rcs + 32 * t, rsn + 32 * t, iq + 128 * h);
+		memcpy(ring + 128 * (t & 3), iqk + 512, 4 * 128);
+		if ((t & 3) == 3) {
+			unsigned b = t >> 2; uint16_t p[128];
+			idx_pool_gpu(ring, kn, eps, rcs + 32 * (t - 3), rsn + 32 * (t - 3), p);
+			for (int d = 0; d < 128; d++) { pool[(size_t)b * 128 + d] = p[d]; pkt[pkt_idx(b, d)] = p[d]; }
+		}
+		int b = 0;
+		CK(cuMemcpyDtoH(iqg, dIQ, 4 * 512)); b |= cmpb("iq", iq, iqg, 4 * 512, &shown);
+		float ringg[512]; CK(cuMemcpyDtoH(ringg, dRING, 4 * 512)); b |= cmpb("ring", ring, ringg, 4 * 128 * ((t & 3) + 1), &shown);
+		CK(cuMemcpyDtoH(pktg, dPKT, (size_t)ngrp * 8192)); b |= cmpb("pool", pkt, pktg, (size_t)ngrp * 8192, &shown);
+		CK(cuMemcpyDtoH(hst, dHST, 4 * 1280)); for (int i = 0; i < 1280; i++) if (hst[i]) { if (shown++ < 4) printf("  HST[%d] = %08x not zeroed\n", i, hst[i]); b = 1; break; }
+		CK(cuMemsetD32(dHST, 0xdeadbeefu, 1280));
+		if (b && !bad) printf("first mismatch at t = %u\n", t);
+		bad += b;
+	}
+	printf("idxqk: %u tokens: %s (%d tokens differ)\n", T, bad ? "MISMATCH" : "BIT-EXACT", bad);
+	return bad;
+}
+
 int main(int argc, char **argv) {
 	if (argc < 2) { fprintf(stderr, "usage: qsa_test kv <T> <NBLK>\n"); return 2; }
 	dev_init();
+	if (!strcmp(argv[1], "idxqk")) return test_idxqk(argc > 2 ? (unsigned)atoi(argv[2]) : 100) ? 3 : 0;
 	if (!strcmp(argv[1], "kv")) return test_kv(argc > 2 ? (unsigned)atoi(argv[2]) : 200, argc > 3 ? (unsigned)atoi(argv[3]) : 8) ? 3 : 0;
 	fprintf(stderr, "unknown test %s\n", argv[1]); return 2;
 }

@@ -105,6 +105,7 @@ my @OPS = (
     [ 'kvgather',   'kvgather.sass',    'warp', {} ],
     [ 'attnpartn',  'attnpartn.sass',   'cta',  {} ],
     [ 'attnqkq',    'attnqkq.sass',     'warp', {} ],
+    [ 'idxqk',     'idxqk.sass',      'warp', {} ],
 );
 
 sub expand_names {                       # x<00-15> -> x00 .. x15
