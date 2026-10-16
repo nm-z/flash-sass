@@ -6,6 +6,7 @@
 #include "deltanet.h"
 #include "router.h"
 #include "attn.h"
+#include "ple.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,6 +78,24 @@ void deltanet_block_gpu(const dn_hweights_t *w, dn_hbufs_t *b, unsigned t, float
 	hc_write_gpu(inj, b->y, b->S);
 	if (stage != 1) moe_half(w, b, eps, ndies, blk, zq8, hq8, p);
 	free(zq8); free(oq8); free(hq8); free(p);
+}
+
+void ple_prefix_gpu(const dn_hweights_t *w, dn_hbufs_t *b, unsigned t, float eps) {
+	uint64_t rows[16];
+	int8_t gq8[2560];
+	ple_rows_c(b->ids, t, w->ple_absent, &w->ple_end, 1, w->ple_mult, w->ple_off, w->ple_voc, rows);
+	for (int h = 0; h < 16; h++) dequant(GG_IQ4_NL, w->ple_tab + rows[h] * 90, b->pg + 160 * h, 160);
+	quant_act_gpu32(b->pg, 2560, b->pgq, b->pgs32, b->pgs16, b->pgas);
+	q16to8(b->pgq, gq8, 2560);
+	gemv_q2_0_ref(w->ple_key, 10240, 2560, gq8, b->pgs32, b->pgas, b->pK);
+	for (int l = 0; l < 4; l++) {
+		rmsnorm_gpu(b->pK + 2560 * l, w->ple_norm_key + 2560 * l, 2560, eps, b->kn + 2560 * l);
+		rmsnorm_gpu(b->S + 2560 * l, w->ple_norm_query + 2560 * l, 2560, eps, b->qn + 2560 * l);
+	}
+	gemv_bf16_ref(w->ple_value, 2560, 2560, b->pg, b->pV);
+	ple_gate_gpu(b->kn, b->qn, b->pV, b->pG, b->pgates);
+	for (int l = 0; l < 4; l++) rmsnorm_gpu(b->pG + 2560 * l, w->ple_norm_conv + 2560 * l, 2560, eps, b->px + 2560 * l);
+	ple_conv_gpu(b->px, b->ple_state, w->ple_conv_w, t, b->pG, b->S);
 }
 
 /* the full-attention block: hc read; q/k/v projections; per-head RMS + RoPE on q and k,

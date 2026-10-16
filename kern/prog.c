@@ -122,6 +122,7 @@ void split_of(split_t *s, int d, int n, int blk) {
 	s->h0 = 48 * d / n;    s->hn = 48 * (d + 1) / n - s->h0;
 	s->klo = s->h0 / 3;    s->khi = (s->h0 + s->hn - 1) / 3; s->nk = s->khi - s->klo + 1;
 	s->y0 = 2560 * d / n;  s->yn = 2560 * (d + 1) / n - s->y0;
+	s->pk0 = 10240 * d / n; s->pkn = 10240 * (d + 1) / n - s->pk0;
 	s->e0 = 512 * d / n;   s->en = 512 * (d + 1) / n - s->e0;
 	s->shexp = (blk % n) == d;
 }
@@ -190,6 +191,23 @@ void prog_attn_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weig
 	CUdeviceptr Y = ph_xchg(P, x, s->d, s->n, b->ly, 4u * (unsigned)s->yn, 4u * (unsigned)s->y0, 4 * 2560);
 	ph_hc(P, OP_HCWRITE, inj, Y, b->S, 2560, 0, 10);
 	ph_moe_half(P, s, x, w, b, eps);
+}
+
+void prog_ple_prefix(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps) {
+	phase_t *p = prog_add(P, OP_PLEROWS, 1);   /* every die hashes and gathers the 16 rows itself */
+	ph_ptr(p, 0x140, b->ids); ph_ptr(p, 0x148, b->ple_pc); ph_ptr(p, 0x150, b->ple_tab); ph_ptr(p, 0x158, b->pg); ph_ptr(p, 0x160, b->prows); ph_u32(p, 0x168, t);
+	ph_actq(P, OP_ACTQ2560, b->pg, b->pgq, b->pgs32, b->pgs16, b->pgas, 2560, 1);
+	ph_gemv_any(P, GG_Q2_0, 2560, w->ple_key, b->pgq, b->pgs32, b->lk, (unsigned)s->pkn, b->pgas, 0, 0);
+	CUdeviceptr K = ph_xchg(P, x, s->d, s->n, b->lk, 4u * (unsigned)s->pkn, 4u * (unsigned)s->pk0, 4 * 10240);
+	ph_rms(P, OP_RMS2560, K, w->ple_norm_key, b->kn, eps, 4);
+	ph_rms(P, OP_RMS2560, b->S, w->ple_norm_query, b->qn, eps, 4);
+	ph_bf16(P, OP_BF16K2560, w->ple_value, b->pg, b->lv, (unsigned)s->yn, 0);
+	CUdeviceptr V = ph_xchg(P, x, s->d, s->n, b->lv, 4u * (unsigned)s->yn, 4u * (unsigned)s->y0, 4 * 2560);
+	p = prog_add(P, OP_PLEGATE, 4);
+	ph_ptr(p, 0x140, b->kn); ph_ptr(p, 0x148, b->qn); ph_ptr(p, 0x150, V); ph_ptr(p, 0x158, b->pG); ph_ptr(p, 0x160, b->pgates);
+	ph_rms(P, OP_RMS2560, b->pG, w->ple_norm_conv, b->px, eps, 4);
+	p = prog_add(P, OP_PLECONV, 10);
+	ph_ptr(p, 0x140, b->px); ph_ptr(p, 0x148, b->ple_state); ph_ptr(p, 0x150, w->ple_conv1d); ph_ptr(p, 0x158, b->pG); ph_ptr(p, 0x160, b->S); ph_u32(p, 0x168, t);
 }
 
 void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps) {

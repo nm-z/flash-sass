@@ -20,6 +20,10 @@ typedef struct {
 	/* full-attention blocks */
 	const uint8_t *attn_q, *attn_k, *attn_v, *attn_output; uint32_t attn_q_type, attn_k_type, attn_v_type, attn_output_type;
 	const float *attn_q_norm, *attn_k_norm;
+	/* block 1's PLE: Q2_0 tiles of ple_key (10240 x 2560), BF16 ple_value (2560 x 2560), norms, conv taps as fp32 [10240][4];
+	 * the n-gram table (IQ4_NL rows of 90 bytes, host memory) and the row-hash constants */
+	const uint8_t *ple_key; const uint16_t *ple_value; const float *ple_norm_key, *ple_norm_query, *ple_norm_conv, *ple_conv_w;
+	const uint8_t *ple_tab; uint64_t ple_mult[3], ple_off[16], ple_voc[16]; uint32_t ple_absent, ple_end;
 } dn_hweights_t;
 
 /* inj = down + 320 (and t + 320, copied), b = a + 48, sh = r[512] */
@@ -40,7 +44,14 @@ typedef struct {
 	/* attention: qg = 24 x [q | gate], caches in ref/attn.h layouts (zero-filled, sized by the caller) */
 	float qg[12288], k[512], v[512], qo[6144], aout[6144], cs[32], sn[32];
 	float *kc, *vc;
+	/* PLE: g, its quantisation, K (10240) and kn, qn, V (2560), G (10240), gates, conv input, ring */
+	float pg[2560]; int16_t pgq[2560]; int32_t pgs32[80], pgs16[160]; float pgas[80];
+	float pK[10240], kn[10240], qn[10240], pV[2560], pG[10240], pgates[4], px[10240];
+	float ple_state[10][10240];
+	const uint32_t *ids;
 } dn_hbufs_t;
+/* S += PLE(S, the n-gram rows of position t) — the prefix of block 1 (ref/ple.h pieces) */
+void ple_prefix_gpu(const dn_hweights_t *w, dn_hbufs_t *b, unsigned t, float eps);
 
 /* y = W x for any supported weight type (tile layout), with the quantised x */
 void gemv_ref_any(uint32_t type, const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *s32, const int32_t *s16, const float *as, float *y);

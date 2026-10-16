@@ -130,6 +130,8 @@ static void select_rows(const char *name, int rows, int experts, sel_t *s) {
 	/* v1 of the attention block: die 0 runs the attention proper, the output projection is row-split */
 	else if (!strcmp(x, "attn_q.weight") || !strcmp(x, "attn_k.weight") || !strcmp(x, "attn_v.weight")) { s->nr = 1; s->r[0] = (range_t){ 0, p->d == 0 ? rows : 0 }; }
 	else if (!strcmp(x, "attn_output.weight")) { s->nr = 1; s->r[0] = (range_t){ p->y0, p->yn }; }
+	else if (!strcmp(x, "ple_key.weight")) { s->nr = 1; s->r[0] = (range_t){ p->pk0, p->pkn }; }
+	else if (!strcmp(x, "ple_value.weight")) { s->nr = 1; s->r[0] = (range_t){ p->y0, p->yn }; }
 	else if (!strcmp(x, "ffn_gate_exps.weight") || !strcmp(x, "ffn_up_exps.weight") || !strcmp(x, "ffn_down_exps.weight")) { s->nr = 1; s->r[0] = (range_t){ p->e0, p->en }; }
 }
 

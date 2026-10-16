@@ -11,6 +11,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include "block.h"
 #include "attn.h"
+#include "ple.h"
 #include "hold.h"
 #include "prog.h"
 #include "gguf.h"
@@ -26,6 +27,14 @@ CUresult cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev);
 static uint32_t rs = 909;
 static float frand(void) { rs = rs * 1664525u + 1013904223u; return ((rs >> 8) & 0xffff) / 32768.f - 1.f; }
 static double now(void) { struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t); return t.tv_sec + 1e-9 * t.tv_nsec; }
+/* IEEE half -> float (exact) */
+static float h2f(uint16_t h) {
+	uint32_t s = (uint32_t)(h & 0x8000) << 16, e = (h >> 10) & 0x1f, m = h & 0x3ff, u;
+	if (e == 0) { if (!m) u = s; else { int sh = 0; while (!(m & 0x400)) { m <<= 1; sh++; } m &= 0x3ff; u = s | ((uint32_t)(113 - sh) << 23) | (m << 13); } }
+	else if (e == 31) u = s | 0x7f800000u | (m << 13);
+	else u = s | ((e + 112) << 23) | (m << 13);
+	float f; memcpy(&f, &u, 4); return f;
+}
 
 #define MAXD 6
 static int nd, blk;
@@ -66,7 +75,7 @@ int main(int argc, char **argv) {
 	if (argc < 5) { fprintf(stderr, "usage: dies_test <fullcache> <blk> <T> <manifest0> [manifest1 ...]\n"); return 2; }
 	fullcache = argv[1]; blk = atoi(argv[2]); int T = atoi(argv[3]); nd = argc - 4; float eps = 1e-6f;
 	if (nd > MAXD) { fprintf(stderr, "at most %d dies\n", MAXD); return 2; }
-	int is_attn = BLK_IS_ATTN(blk);
+	int is_attn = BLK_IS_ATTN(blk), has_ple = blk == 1;
 	unsigned npos = ((unsigned)T + 8192 + 64 + 31) / 32 * 32;   /* cache positions: chunk round-up plus the loops' stray prefetches */
 	size_t kcf = ATTN_KC_FLOATS(npos), vcf = (size_t)npos * 512;
 	CK(cuInit(0));
@@ -110,6 +119,35 @@ int main(int argc, char **argv) {
 	hw.ffn_down_shexp = hostimg("ffn_down_shexp.weight"); hw.ffn_down_shexp_type = ttype(0, "ffn_down_shexp.weight");
 	dn_hbufs_t *hb = calloc(1, sizeof *hb); hb->dn_state = calloc(48 * 16384, 4);
 	if (is_attn) { hb->kc = calloc(kcf, 4); hb->vc = calloc(vcf, 4); }
+	/* PLE: a synthetic n-gram table (the real one is 29 GB) in host-mapped memory, scaled-down
+	 * head offsets / vocabularies, the model's multipliers; a token sequence with ends planted */
+	const size_t PLE_R = 1u << 20; uint8_t *ptab = NULL; uint32_t *ids = NULL; uint8_t ppc[160]; float *pconv = NULL;
+	if (has_ple) {
+		hw.ple_key = hostimg("ple_key.weight"); hw.ple_value = hostimg("ple_value.weight");
+		hw.ple_norm_key = hostimg("ple_norm_key.weight"); hw.ple_norm_query = hostimg("ple_norm_query.weight"); hw.ple_norm_conv = hostimg("ple_norm_conv.weight");
+		const uint16_t *cw = hostimg("ple_conv1d.weight");
+		pconv = malloc(4 * 10240 * 4);
+		for (int i = 0; i < 10240 * 4; i++) pconv[i] = h2f(cw[i]);
+		hw.ple_conv_w = pconv;
+		CK(cuMemHostAlloc((void **)&ptab, PLE_R * 90, CU_MEMHOSTALLOC_PORTABLE | CU_MEMHOSTALLOC_DEVICEMAP));
+		for (size_t r = 0; r < PLE_R; r++)
+			for (int k = 0; k < 5; k++) {   /* 5 blocks of fp16 scale + 16 nibble bytes */
+				uint16_t dd = (uint16_t)(0x3000 + (rs >> 16) % 0x1000); frand();   /* a sane fp16 scale */
+				memcpy(ptab + r * 90 + 18 * k, &dd, 2);
+				for (int j = 2; j < 18; j++) { ptab[r * 90 + 18 * k + j] = (uint8_t)(rs >> 24); frand(); }
+			}
+		hw.ple_tab = ptab;
+		memcpy(hw.ple_mult, ple_multipliers, sizeof hw.ple_mult);
+		for (int h = 0; h < 16; h++) { hw.ple_off[h] = (uint64_t)h * 65000; hw.ple_voc[h] = 60000 + 13 * h; }
+		hw.ple_absent = 248044; hw.ple_end = 248046;
+		memset(ppc, 0, sizeof ppc); memcpy(ppc, hw.ple_mult, 24);
+		for (int h = 0; h < 16; h++) { uint32_t o32 = (uint32_t)hw.ple_off[h], v32 = (uint32_t)hw.ple_voc[h]; memcpy(ppc + 24 + 4 * h, &o32, 4); memcpy(ppc + 88 + 4 * h, &v32, 4); }
+		memcpy(ppc + 152, &hw.ple_absent, 4); memcpy(ppc + 156, &hw.ple_end, 4);
+		ids = malloc(4 * (size_t)(T + 1));
+		for (int i = 0; i <= T; i++) { ids[i] = (uint32_t)((rs >> 8) % 248000); frand(); }
+		if (T > 5) ids[5] = hw.ple_end;
+		hb->ids = ids;
+	}
 	for (int i = 0; i < 10240; i++) hb->S[i] = 0.5f * frand();
 	/* RoPE tables for positions [0, T) as the twin computes them */
 	float *rcs = malloc(4 * 32 * T), *rsn = malloc(4 * 32 * T);
@@ -153,6 +191,17 @@ int main(int argc, char **argv) {
 		b->lidx = dalloc(64); b->lw = dalloc(64); b->ne = dalloc(16); b->part = dalloc(4 * 2560);
 		b->g = dalloc(4 * 7040); b->gu = dalloc(4 * 7040); b->hq = dalloc(2 * 7040); b->hs32 = dalloc(4 * 220); b->hs16 = dalloc(4 * 440); b->has = dalloc(4 * 220);
 		b->out = dalloc(4 * 2560); b->conv_state = dalloc(4 * 4 * nloc); b->dn_state = dalloc((size_t)s->hn * 16384 * 4);
+		if (has_ple) {
+			w->ple_key = dptr(d, "ple_key.weight"); w->ple_value = dptr(d, "ple_value.weight");
+			w->ple_norm_key = dptr(d, "ple_norm_key.weight"); w->ple_norm_query = dptr(d, "ple_norm_query.weight"); w->ple_norm_conv = dptr(d, "ple_norm_conv.weight");
+			w->ple_conv1d = dptr(d, "ple_conv1d.weight");
+			b->ids = dalloc(4 * (size_t)(T + 1)); CK(cuMemcpyHtoD(b->ids, ids, 4 * (size_t)(T + 1)));
+			b->ple_pc = dalloc(160); CK(cuMemcpyHtoD(b->ple_pc, ppc, 160));
+			CK(cuMemHostGetDevicePointer(&b->ple_tab, ptab, 0));
+			b->pg = dalloc(4 * 2560); b->pgq = dalloc(2 * 2560); b->pgs32 = dalloc(4 * 80); b->pgs16 = dalloc(4 * 160); b->pgas = dalloc(4 * 80);
+			b->lk = dalloc(4u * (unsigned)s->pkn); b->kn = dalloc(4 * 10240); b->qn = dalloc(4 * 10240); b->lv = dalloc(4u * (unsigned)s->yn);
+			b->pG = dalloc(4 * 10240); b->pgates = dalloc(16); b->px = dalloc(4 * 10240); b->ple_state = dalloc(4 * 10 * 10240); b->prows = dalloc(64);
+		}
 		if (is_attn) {
 			b->qg = dalloc(4 * 12288); b->k = dalloc(4 * 512); b->v = dalloc(4 * 512); b->qo = dalloc(4 * 6144); b->aout = dalloc(4 * 6144);
 			b->pm = dalloc(4 * 24 * 8); b->pd = dalloc(4 * 24 * 8); b->po = dalloc(4 * 24 * 8 * 256);
@@ -176,12 +225,16 @@ int main(int argc, char **argv) {
 	int fails = 0;
 	for (int t = 0; t < T; t++) {
 		double t0 = now();
+		if (getenv("DIES_TRACE")) fprintf(stderr, "[token %d] twin...\n", t);
 		int stage = getenv("DIES_STAGE") ? atoi(getenv("DIES_STAGE")) : 0;
+		if (has_ple) ple_prefix_gpu(&hw, hb, (unsigned)t, eps);
 		if (is_attn) attn_block_gpu(&hw, hb, (unsigned)t, eps, nd, blk, stage); else deltanet_block_gpu(&hw, hb, (unsigned)t, eps, nd, blk, stage);
 		double t1 = now();
 		prog_t P[MAXD]; unsigned nph[MAXD];
+		if (getenv("DIES_TRACE")) fprintf(stderr, "[token %d] twin done, building programs\n", t);
 		for (int d = 0; d < nd; d++) {
 			prog_init(&P[d]);
+			if (has_ple) prog_ple_prefix(&P[d], &sp[d], &xc[d], &dw[d], &db[d], (unsigned)t, eps);
 			if (is_attn) prog_attn_block(&P[d], &sp[d], &xc[d], &dw[d], &db[d], (unsigned)t, eps);
 			else prog_deltanet_block(&P[d], &sp[d], &xc[d], &dw[d], &db[d], (unsigned)t, eps);
 			nph[d] = (unsigned)P[d].n;
@@ -195,7 +248,9 @@ int main(int argc, char **argv) {
 			void *params[] = { &dPROG[d], &nph[d], &dCTL[d] };
 			CK(cuLaunchKernel(fn[d], 16, 1, 1, 256, 1, 1, 0, 0, params, NULL));
 		}
+		if (getenv("DIES_TRACE")) fprintf(stderr, "[token %d] launched, waiting\n", t);
 		for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuCtxSynchronize()); }
+		if (getenv("DIES_TRACE")) fprintf(stderr, "[token %d] done\n", t);
 		double t3 = now();
 		printf("token %d: %u phases; twin %.2f s, dies %.3f ms\n", t, nph[0], t1 - t0, (t3 - t2) * 1e3);
 		int bad = 0;
@@ -204,6 +259,16 @@ int main(int argc, char **argv) {
 			char what[32];
 			printf(" die %d\n", d);
 			const split_t *s = &sp[d];
+			if (has_ple) {
+				bad += cmpbuf("pg", hb->pg, db[d].pg, 4 * 2560, 4);
+				bad += cmpbuf("lk", hb->pK + s->pk0, db[d].lk, 4u * (unsigned)s->pkn, 4);
+				bad += cmpbuf("kn", hb->kn, db[d].kn, 4 * 10240, 4);
+				bad += cmpbuf("qn", hb->qn, db[d].qn, 4 * 10240, 4);
+				bad += cmpbuf("lv", hb->pV + s->y0, db[d].lv, 4u * (unsigned)s->yn, 4);
+				bad += cmpbuf("pG", hb->pG, db[d].pG, 4 * 10240, 4);
+				bad += cmpbuf("pgates", hb->pgates, db[d].pgates, 16, 4);
+				bad += cmpbuf("px", hb->px, db[d].px, 4 * 10240, 4);
+			}
 			bad += cmpbuf("xh", hb->xh, db[d].xh, 4 * 10240, 4);
 			bad += cmpbuf("ldown", hb->down + s->dj0, db[d].ldown, 4 * s->djn, 4);
 			if (getenv("DIES_DUMP")) {   /* the two inbox slots against the twin's down */

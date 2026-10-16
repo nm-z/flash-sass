@@ -60,7 +60,8 @@ typedef struct {
 	int cb0, cbn;       /* z column blocks (32 wide) [cb0, cb0+cbn) of 80; hc up rows l*2560 + 32 cb */
 	int h0, hn;         /* value heads [h0, h0+hn) of 48 (gate rows 128 h, alpha/beta rows h, states) */
 	int klo, khi, nk;   /* key heads [klo, khi] they use: qkv rows q and k of these, then v of [h0, h0+hn) */
-	int y0, yn;         /* ssm_out rows */
+	int y0, yn;         /* ssm_out / attn_output / ple_value rows (of 2560) */
+	int pk0, pkn;       /* ple_key rows (of 10240) */
 	int e0, en;         /* experts [e0, e0+en) of 512 */
 	int shexp;          /* this die runs the shared expert (blk % n == d) */
 } split_t;
@@ -82,6 +83,8 @@ typedef struct {
 	/* full-attention blocks (3, 7, ...): v1 keeps attn_q/k/v whole on die 0 only */
 	CUdeviceptr attn_q, attn_k, attn_v, attn_q_norm, attn_k_norm, attn_output;
 	uint32_t attn_q_type, attn_k_type, attn_v_type, attn_output_type;
+	/* block 1's PLE: ple_key Q2_0 (this die's rows of 10240), ple_value BF16 (rows of 2560), norms, conv F16 [10240][4] */
+	CUdeviceptr ple_key, ple_value, ple_norm_key, ple_norm_query, ple_norm_conv, ple_conv1d;
 } dn_weights_t;
 
 /* activation / state buffers of one die (device); sizes in floats unless noted; the
@@ -104,10 +107,16 @@ typedef struct {
 	 * layouts, zero-filled, >= n + 8192 + 64 positions), partials pm/pd [24][8], po
 	 * [24][8][256], aout 6144, RoPE tables cs/sn [positions][32] */
 	CUdeviceptr qg, k, v, qo, kc, vc, pm, pd, po, aout, rope_cs, rope_sn;
+	/* PLE (block 1): token ids (u32[positions]), the constants block (plerows PC layout),
+	 * the host-mapped table, g 2560 (+ its quantisation), this die's K rows, kn/qn 10240,
+	 * this die's V rows, G 10240, gates 4, conv input 10240, ring state [10][10240], rows debug */
+	CUdeviceptr ids, ple_pc, ple_tab, pg, pgq, pgs32, pgs16, pgas, lk, kn, qn, lv, pG, pgates, px, ple_state, prows;
 } dn_bufs_t;
 
 void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps);
 void prog_attn_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps);
+/* the PLE prefix of block 1 (before its DeltaNet block program): S += PLE(S, n-gram rows of position t) */
+void prog_ple_prefix(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps);
 /* attention blocks are every fourth block from 3 */
 #define BLK_IS_ATTN(blk) (((blk) & 3) == 3)
 #endif

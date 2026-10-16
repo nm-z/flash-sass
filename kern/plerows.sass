@@ -95,16 +95,17 @@
     };
     $o .= "--:-:6:-:1      S2R h, SR_TID.X;\n";
     $o .= "--:-:-:-:6      MOV pos, param_pos;\n";
+    # lanes 16..31 mirror heads 0..15 (same rows, same stores) instead of leaving early:
+    # a branch that splits the warp never reconverges inside the persistent kernel
+    $o .= "20:-:-:-:6      LOP32I.AND h, h, 0xf;\n";
     $o .= "--:-:-:-:6      MOV pp0, param_PC0;\n";
     $o .= "--:-:-:-:6      MOV pp1, param_PC1;\n";
-    $o .= "20:-:-:-:6      ISETP.GE.U32.AND P0, PT, h, 0x10, PT;\n";
     $o .= "--:-:-:-:6      ISETP.GE.U32.AND P1, PT, pos, 0x1, PT;\n";
     $o .= "--:-:-:-:6      ISETP.GE.U32.AND P2, PT, pos, 0x2, PT;\n";
     $o .= "--:-:-:-:6      ISETP.GE.U32.AND P5, PT, h, 0x8, PT;\n";                   # order-3 heads
     $o .= "--:-:-:-:6      SHL t, h, 0x2;\n";
     $o .= "--:-:-:-:6      IADD rp0.CC, pp0, t;\n";
     $o .= "--:-:-:-:6      IADD.X rp1, pp1, RZ;\n";
-    $o .= "--:-:-:-:6  \@P0 EXIT;\n";
     # constants
     $o .= "--:-:1:-:1      LDG.E.64 m00, [pp];\n";
     $o .= "--:-:1:-:1      LDG.E.64 m10, [pp+0x8];\n";
