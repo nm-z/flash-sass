@@ -566,7 +566,17 @@ the hyper-connection norms, `ssm_norm`, q/k norms, indexer norms and PLE norms.
   (r0+r1)+(r2+r3) at the end (xor 1, xor 2). Empty tiles are skipped (exact:
   scale would be 1). Merge: 24 CTAs × 256, M = max m_c, e_c = exp(m_c − M),
   den/o by mul-then-fmaf over c, × rcp(den) × σ(gate). The epilogue's exps run
-  6 interleaved in-place chains (`fm_exp_ip`, `fm_zip` in fmath.pl).
+  6 interleaved in-place chains (`fm_exp_ip`, `fm_zip` in fmath.pl). Bit-exact
+  for n = 1 … 65537 (tile and chunk boundaries included); 970 µs at 32k keys =
+  138 GB/s of K+V, i.e. at the memory ceiling. Rules relearned while debugging
+  it: a predicate used as an *ISETP input* also needs the ~18 cycles (a chained
+  `ISETP … P4` 6 cycles after the one that wrote P4 read the stale value and
+  skipped every second tile); the last LDS before a dependent wait needs stall 2
+  (sporadic wrong p for one head); `BAR.SYNC` must wait on the preceding STS read
+  barriers (dnstep did; stale reduction rows otherwise); `STS.128` needs 16-byte
+  smem alignment (24-byte rows go through `STS.64`); MaxAs computes operand
+  reuse flags itself and prints the bank-conflict count (426 here, mostly the
+  accumulator operand of the FFMA streams — a tuning item).
 - Register-bank note: in the K-quant streams the mask for field v and the
   activation register of the same XMAD share a bank for 2 of every 8 XMADs, and
   the combine's `acc_v + acc_{v+4}` pairs share banks (MaxAs reports 187

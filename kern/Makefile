@@ -154,7 +154,7 @@ mailbox_test: mailbox_test.c
 skel_actq.cubin: actq.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ $<
 
-actq_k%.cubin: actq.sass skel_actq.cubin
+actq_k%.cubin: actq.sass actq.pl fmath.pl skel_actq.cubin
 	cp skel_actq.cubin $@
 	GEMV_K=$* $(MAXAS) -i actq.sass $@
 
@@ -285,3 +285,31 @@ attn_test: attn_test.c ../ref/attn.c ../ref/attn.h ../ref/fmath.c
 
 .PHONY: attn
 attn: attnqk.cubin attnqk_test attnpart.cubin attnmerge.cubin attn_test
+
+# ---- MoE expert activation: SiLU(g) * u + per-32 quantiser ----
+skel_ffnact.cubin: ffnact.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+ffnact_k%.cubin: ffnact.sass actq.pl fmath.pl skel_ffnact.cubin
+	cp skel_ffnact.cubin $@
+	GEMV_K=$* $(MAXAS) -i ffnact.sass $@
+
+ffnact_test: ffnact_test.c ../ref/quant.c ../ref/quant.h ../ref/gguf.c ../ref/fmath.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ ffnact_test.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+.PHONY: ffnact
+ffnact: ffnact_k640.cubin ffnact_test actq_k640.cubin actq_k2560.cubin actq_test
+
+# ---- token embedding row (raw Q3_K decode, broadcast to the 4 lanes) ----
+skel_embrow.cubin: embrow.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+embrow.cubin: embrow.sass skel_embrow.cubin
+	cp skel_embrow.cubin $@
+	$(MAXAS) -i embrow.sass $@
+
+embrow_test: embrow_test.c ../ref/quant.c ../ref/quant.h ../ref/gguf.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ embrow_test.c ../ref/quant.c ../ref/gguf.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+.PHONY: embrow
+embrow: embrow.cubin embrow_test
