@@ -84,7 +84,7 @@ int engine_positions(void) { return MAXT; }
    A request whose first snap_s tokens are the same restores it and starts at position snap_s. ---- */
 static CUdeviceptr (*snap_dn)[NB], (*snap_conv)[NB], snap_ple[MAXD];
 static uint32_t *snap_ids; static int snap_s;
-static uint32_t prof_op[4096]; static int prof_nph;   /* die 0 program of the last response, for the "prof" command */
+static uint32_t prof_op[MAXD][4096]; static int prof_nph[MAXD];   /* every die's program of the last response, for the "prof" command */
 
 static void state_copy(int to_snapshot) {
 	for (int d = 0; d < nd; d++) {
@@ -275,7 +275,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 		prog_head(&P[d], &sp[d][0], &xc[d], &dw[d][0], &db[d], eps, 0, (unsigned)nprompt);
 		prog_token_end(&P[d], &xc[d], d, nd, db[d].S);
 		nph[d] = (unsigned)P[d].n;
-		if (d == 0) { prof_nph = (int)nph[0] < 4096 ? (int)nph[0] : 4096; for (int i = 0; i < prof_nph; i++) prof_op[i] = P[0].p[i].w[0]; }
+		prof_nph[d] = (int)nph[d] < 4096 ? (int)nph[d] : 4096; for (int i = 0; i < prof_nph[d]; i++) prof_op[d][i] = P[d].p[i].w[0];
 		if (nph[d] > 4096) { fprintf(stderr, "program too long (%u phases)\n", nph[d]); exit(1); }
 		CK(cuMemcpyHtoD(dPROG[d], P[d].p, sizeof(phase_t) * P[d].n));
 	}
@@ -505,17 +505,18 @@ int engine_session(FILE *in, FILE *out) {
 			free(line); return 2;
 		}
 		if (!strncmp(p, "prof", 4)) {   /* where the last token of the last response spent its time, from the phase timestamps CTA 0 writes at each phase end */
-			uint32_t *ts = malloc(4 * 4096); CK(cuCtxSetCurrent(ctx[0])); CK(cuMemcpyDtoH(ts, dCTL[0] + 0x100, 4 * (size_t)prof_nph));
+			int pd = atoi(p + 4); if (pd < 0 || pd >= nd) pd = 0; const int nph_ = prof_nph[pd]; const uint32_t *pop = prof_op[pd];   /* prof [die] */
+			uint32_t *ts = malloc(4 * 4096); CK(cuCtxSetCurrent(ctx[pd])); CK(cuMemcpyDtoH(ts, dCTL[pd] + 0x100, 4 * (size_t)nph_));
 			static double tot[OP_COUNT]; static int cnt[OP_COUNT]; memset(tot, 0, sizeof tot); memset(cnt, 0, sizeof cnt);
 			double all = 0; int big[8] = { -1, -1, -1, -1, -1, -1, -1, -1 };
-			for (int i = 1; i < prof_nph; i++) {
-				double us = (uint32_t)(ts[i] - ts[i - 1]) / 1e3; if (prof_op[i] >= OP_COUNT) continue;
-				tot[prof_op[i]] += us; cnt[prof_op[i]]++; all += us;
+			for (int i = 1; i < nph_; i++) {
+				double us = (uint32_t)(ts[i] - ts[i - 1]) / 1e3; if (pop[i] >= OP_COUNT) continue;
+				tot[pop[i]] += us; cnt[pop[i]]++; all += us;
 				for (int k = 0; k < 8; k++) if (big[k] < 0 || us > (uint32_t)(ts[big[k]] - ts[big[k] - 1]) / 1e3) { for (int j = 7; j > k; j--) big[j] = big[j - 1]; big[k] = i; break; }
 			}
-			fprintf(out, "prof: %d phases, %.2f ms between the first and last timestamp\n", prof_nph, all / 1e3);
+			fprintf(out, "prof: %d phases, %.2f ms between the first and last timestamp\n", nph_, all / 1e3);
 			for (int rep = 0; rep < 12; rep++) { int bi = -1; for (int o = 0; o < OP_COUNT; o++) if (cnt[o] && (bi < 0 || tot[o] > tot[bi])) bi = o; if (bi < 0 || tot[bi] <= 0) break; fprintf(out, "  %-10s %4d phases %9.1f us (%6.1f us each)\n", die_opname[bi], cnt[bi], tot[bi], tot[bi] / cnt[bi]); tot[bi] = 0; }
-			fprintf(out, "  longest:"); for (int k = 0; k < 8 && big[k] > 0; k++) fprintf(out, " #%d %s %.0f us;", big[k], die_opname[prof_op[big[k]]], (uint32_t)(ts[big[k]] - ts[big[k] - 1]) / 1e3);
+			fprintf(out, "  longest:"); for (int k = 0; k < 8 && big[k] > 0; k++) fprintf(out, " #%d %s %.0f us;", big[k], die_opname[pop[big[k]]], (uint32_t)(ts[big[k]] - ts[big[k] - 1]) / 1e3);
 			fprintf(out, "\n"); fflush(out); free(ts); continue;
 		}
 		if (!strncmp(p, "info", 4)) { fprintf(out, "info %d %u\n", MAXT, img_rows_max); fflush(out); continue; }
