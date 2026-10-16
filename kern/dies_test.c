@@ -237,7 +237,7 @@ int main(int argc, char **argv) {
 		x->xgen = dCTL[d] + 0x20;   /* the exchange count lives in ctl[8] between launches */
 	}
 	uint64_t tab[12] = { 0 };
-	for (int d = 0; d < nd; d++) { tab[d] = (uint64_t)xc[d].inbox; tab[6 + d] = (uint64_t)xc[d].flags; }
+	for (int d = 0; d < 6; d++) { tab[d] = (uint64_t)xc[d < nd ? d : 0].inbox; tab[6 + d] = (uint64_t)xc[d < nd ? d : 0].flags; }   /* absent dies alias die 0: duplicate writes of the same bytes */
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(xc[d].xtab, tab, sizeof tab));
 		/* the framework's exchange header in ctl: [3] me, [4] ndies, [16 + 2e] = &flags_e[me][0], [28] = my flags */
@@ -333,7 +333,7 @@ int main(int argc, char **argv) {
 				bad += cmpbuf("px", hb->px, db[d].px, 4 * 10240, 4);
 			}
 			bad += cmpbuf("xh", hb->xh, db[d].xh, 4 * 10240, 4);
-			bad += cmpbuf("ldown", hb->down + s->dj0, db[d].ldown, 4 * s->djn, 4);
+			/* ldown goes straight into the inbox slots now (bf16hcx), checked through t */
 			if (getenv("DIES_DUMP")) {   /* the two inbox slots against the twin's down */
 				float sl[8]; CK(cuMemcpyDtoH(sl, xc[d].inbox, 16)); CK(cuMemcpyDtoH(sl + 4, xc[d].inbox + XSLOT, 16));
 				printf("  slot0 %.9g %.9g %.9g %.9g  slot1 %.9g %.9g %.9g %.9g  down %.9g %.9g %.9g %.9g\n", sl[0], sl[1], sl[2], sl[3], sl[4], sl[5], sl[6], sl[7], hb->down[0], hb->down[1], hb->down[2], hb->down[3]);

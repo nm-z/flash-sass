@@ -902,6 +902,15 @@ leaves with the data instead of after the die's grid barrier and CTA 0's
 second fence; a waiting phase's warp 0 polls all 96 words (3 per lane,
 `VOTE.ALL` on `min >= XG`). The framework no longer touches `ctl[8]` or the
 flags itself (descriptor word 30 bit 0 is informational now).
+**Producers write into the inboxes (`GEMV_XOUT`):** a GEMV built with
+`GEMV_XOUT=1` (`bf16hcx`: the hc down ++ inject rows) takes the inbox table
+at its Y parameter and `XOFF = slot + myoff` at 0x168, stores every row to
+all six dies' slots (`STG.E.WT`, absent dies alias die 0 in the table) and
+is marked a send phase, so the copy phase (`xsend`) disappears for that
+exchange: `ph_bf16x` replaces `ph_bf16` + `ph_xchg` for both hc down
+exchanges of a block and the head's. The same treatment is due for hcmix
+(z), dnnorm (on), the ssm_out K-quant GEMV (y) and the expert down GEMV
+(partials).
 **Flag-array grid barrier:** no atomics and no last-arriver release: thread 0
 of every CTA writes the generation it arrives at (`GEN`, shared memory
 0xbf78, seeded from `ctl[1]`, +1 per phase, mirrored back by CTA 0) to

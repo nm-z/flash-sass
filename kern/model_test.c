@@ -257,7 +257,7 @@ int main(int argc, char **argv) {
 		x->xgen = dCTL[d] + 0x20;   /* the exchange count lives in ctl[8] between launches */
 	}
 	uint64_t tab[12] = { 0 };
-	for (int d = 0; d < nd; d++) { tab[d] = (uint64_t)xc[d].inbox; tab[6 + d] = (uint64_t)xc[d].flags; }
+	for (int d = 0; d < 6; d++) { tab[d] = (uint64_t)xc[d < nd ? d : 0].inbox; tab[6 + d] = (uint64_t)xc[d < nd ? d : 0].flags; }   /* absent dies alias die 0: duplicate writes of the same bytes */
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(xc[d].xtab, tab, sizeof tab));
 		/* the framework's exchange header in ctl: [3] me, [4] ndies, [16 + 2e] = &flags_e[me][0], [28] = my flags */

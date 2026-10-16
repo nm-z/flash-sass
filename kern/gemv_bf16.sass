@@ -36,6 +36,7 @@
     param_rows : c[0x0][0x158]
     param_D0   : c[0x0][0x160]
     param_D1   : c[0x0][0x164]
+    param_XOFF : c[0x0][0x168]
 </CONSTANT_MAPPING>
 
 <CODE>
@@ -69,6 +70,8 @@
     # the activation pointer lives for the whole kernel with slices, else only in the prologue
     if ($NS > 1) { $o .= sprintf "    %d,%d : xp<0-1>\n", $p + 6, $p + 7; }
     else         { $o .= sprintf "    %d,%d : xp<0-1>\n", $wbase, $wbase + 1; }
+    # GEMV_XOUT: the six inbox destinations (TAB bases + xoff + 4 row)
+    if ($ENV{GEMV_XOUT}) { my $q = $NS > 1 ? $p + 8 : $p + 6; $o .= sprintf "    %d-%d : dq<00-11>\n", $q, $q + 11; }
     # prologue temporaries alias the weight registers
     $o .= sprintf "    %d : lane\n    %d : grp\n    %d : tid\n    %d : bid\n    %d : off\n    %d : t0\n    %d : t1\n",
         $wbase + 2, $wbase + 3, $wbase + 4, $wbase + 5, $wbase + 6, $wbase + 7, $wbase + 8;
@@ -85,6 +88,7 @@
     my $S = $ENV{GEMV_ROWSTRIDE} || 2 * $K * $NS;   # row stride bytes
     my $acc = $ENV{GEMV_ACC} ? 1 : 0;     # y += partial instead of y = partial
     my $bias = $ENV{GEMV_BIAS} ? 1 : 0;   # y = partial + bias[row], bias at the dbg pointer (ssm_dt.bias on the alpha logits)
+    my $xout = $ENV{GEMV_XOUT} ? 1 : 0;   # y rows go to every die's inbox: TAB (at the Y param) + XOFF + 4 row, and the phase is a send
     my $lgL = int(log($L)/log(2) + 0.5);
     my $lgR = int(log($R)/log(2) + 0.5);
     my $wrows = 32 / $L;
@@ -111,6 +115,11 @@
     $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
     $o .= "--:-:6:-:1      S2R bid, SR_CTAID.X;\n";
     $o .= "--:-:-:-:6      MOV rowstep, gridDimX;\n";
+    if ($xout) {   # the six inbox bases, loaded first so their latency hides under the prologue
+        $o .= "--:-:-:-:6      MOV yp0, param_Y0;\n";
+        $o .= "--:-:-:-:6      MOV yp1, param_Y1;\n";
+        $o .= sprintf "--:-:2:-:%d      LDG.E.64 dq%02d, [yp+0x%x];\n", $_ == 5 ? 2 : 1, 2 * $_, 8 * $_ for 0..5;
+    }
     $o .= sprintf "20:-:-:-:6      LOP32I.AND lane, tid, 0x%x;\n", $L - 1;
     $o .= sprintf "--:-:-:-:1      SHR.U32 grp, tid, 0x%x;\n", $lgL;
     $o .= sprintf "--:-:-:-:6      SHL rowstep, rowstep, 0x%x;\n", $lgR;
@@ -125,10 +134,13 @@
     $o .= "--:-:-:-:6      ISCADD t1, lane, off, 0x4;\n";
     $o .= "--:-:-:-:6      IADD wp0.CC, t1, param_W0;\n";
     $o .= "--:-:-:-:6      IADD.X wp1, RZ, param_W1;\n";
-    # yp = Y + 4 row
+    # yp = Y + 4 row (xout: t1 = XOFF + 4 row, added to the six bases below)
     $o .= "--:-:-:-:6      SHL t1, row, 0x2;\n";
-    $o .= "--:-:-:-:6      IADD yp0.CC, t1, param_Y0;\n";
-    $o .= "--:-:-:-:6      IADD.X yp1, RZ, param_Y1;\n";
+    if ($xout) { $o .= "--:-:-:-:6      IADD t1, t1, param_XOFF;\n"; }
+    else {
+        $o .= "--:-:-:-:6      IADD yp0.CC, t1, param_Y0;\n";
+        $o .= "--:-:-:-:6      IADD.X yp1, RZ, param_Y1;\n";
+    }
     if ($bias) {
         $o .= "--:-:-:-:6      IADD bp0.CC, t1, param_D0;\n";
         $o .= "--:-:-:-:6      IADD.X bp1, RZ, param_D1;\n";
@@ -138,6 +150,9 @@
     $o .= "--:-:-:-:6      IADD xp0.CC, t1, param_X0;\n";
     $o .= "--:-:-:-:6      IADD.X xp1, RZ, param_X1;\n";
     $o .= $xload->(0, 1) if $NS == 1;     # resident for the whole kernel
+    if ($xout) {
+        $o .= sprintf "%s:-:-:-:6      IADD dq%02d.CC, dq%02d, t1;\n--:-:-:-:6      IADD.X dq%02d, dq%02d, RZ;\n", $_ ? "--" : "02", 2 * $_, 2 * $_, 2 * $_ + 1, 2 * $_ + 1 for 0..5;
+    }
     $o .= "\nLOOP:\n";
     $o .= $xload->(0, 0) if $NS > 1;      # slice 0 of this row
     for my $j (0..$C-1) {
@@ -201,14 +216,18 @@
     }
     $o .= "--:-:-:-:6      FADD $res, yold, $res;\n" if $acc;
     $o .= "--:-:-:-:6      FADD $res, $res, bias;\n" if $bias;
-    $o .= "--:2:-:-:1  \@P2 STG.E [yp], $res;\n";
+    if ($xout) { $o .= sprintf "--:2:-:-:1  \@P2 STG.E.WT [dq%02d], $res;\n", 2 * $_ for 0..5; }
+    else { $o .= "--:2:-:-:1  \@P2 STG.E [yp], $res;\n"; }
     $o .= "--:-:-:-:1      IADD row, row, rowstep;\n";
     $o .= "02:-:-:-:6      IADD wp0.CC, wp0, stepw;\n";
     $o .= "--:-:-:-:6      IADD.X wp1, wp1, RZ;\n";
     $o .= "--:-:-:-:6      ISETP.LT.U32.AND P3, PT, row, param_rows, PT;\n";   # next row (row is 12 cycles old)
     $o .= "--:-:-:-:6      SHL t, rowstep, 0x2;\n";
-    $o .= "--:-:-:-:6      IADD yp0.CC, yp0, t;\n";
-    $o .= "--:-:-:-:6      IADD.X yp1, yp1, RZ;\n";
+    if ($xout) { $o .= sprintf "--:-:-:-:6      IADD dq%02d.CC, dq%02d, t;\n--:-:-:-:6      IADD.X dq%02d, dq%02d, RZ;\n", 2 * $_, 2 * $_, 2 * $_ + 1, 2 * $_ + 1 for 0..5; }
+    else {
+        $o .= "--:-:-:-:6      IADD yp0.CC, yp0, t;\n";
+        $o .= "--:-:-:-:6      IADD.X yp1, yp1, RZ;\n";
+    }
     if ($bias) {
         $o .= "--:-:-:-:6      IADD bp0.CC, bp0, t;\n";
         $o .= "--:-:-:-:6      IADD.X bp1, bp1, RZ;\n";

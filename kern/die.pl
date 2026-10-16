@@ -63,6 +63,7 @@ my @OPS = (
     [ 'bf16k2560',  'gemv_bf16.sass',   'cta',  { GEMV_K => 2560 } ],
     [ 'bf16k320',   'gemv_bf16.sass',   'cta',  { GEMV_K => 320 } ],
     [ 'bf16hc',     'gemv_bf16.sass',   'cta',  { GEMV_K => 2560, GEMV_SLICES => 4 } ],
+    [ 'bf16hcx',    'gemv_bf16.sass',   'cta',  { GEMV_K => 2560, GEMV_SLICES => 4, GEMV_XOUT => 1 } ],
     [ 'q4kk2560',   'gemv_q4_k.sass',   'cta',  { GEMV_K => 2560 } ],
     [ 'q4kk6144',   'gemv_q4_k.sass',   'cta',  { GEMV_K => 6144 } ],
     [ 'q5kk2560',   'gemv_q4_k.sass',   'cta',  { GEMV_K => 2560, GEMV_FMT => 'q5_k' } ],
