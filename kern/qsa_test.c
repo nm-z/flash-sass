@@ -291,6 +291,7 @@ static int test_idxfull(unsigned nv, unsigned NBLK, int iters) {
 		CK(cuEventRecord(e0, 0)); CK(cuLaunchKernel(fn, 16, 1, 1, 256, 1, 1, 0, 0, params, NULL)); CK(cuEventRecord(e1, 0)); CK(cuCtxSynchronize());
 		float ms; CK(cuEventElapsedTime(&ms, e0, e1));
 		printf("  %d tokens (7 phases each) in %.2f ms: %.1f us per token\n", iters, ms, 1e3 * ms / iters);
+		{ uint32_t ts[16]; CK(cuMemcpyDtoH(ts, dCTL + 0x100, 4 * 7)); printf("  last token, us per phase (idxqk, idxscore, idxsel 2..6):"); for (int i = 1; i < 7; i++) printf(" %.1f", (uint32_t)(ts[i] - ts[i - 1]) / 1e3); printf("\n"); }
 	}
 	return bad;
 }

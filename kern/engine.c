@@ -455,7 +455,7 @@ static int client_gone(void *arg) {
  *   img <path> <s>           the tokens from s on are an image (see engine.h), for the next response
  *   snap <s>                 take a prefix-cache snapshot after s positions of the next response; a later response
  *                            whose prompt starts with the same s tokens resumes there instead of from 0
- *   info                     "info <positions>"
+ *   info                     "info <positions> <image token capacity>"
  *   cubin <path>             reload the kernel on every die
  *   reload [path]            replace this library (the weights and the PLE table stay loaded)
  *   quit                     stop the whole process */
@@ -492,7 +492,7 @@ int engine_session(FILE *in, FILE *out) {
 			fprintf(out, "  longest:"); for (int k = 0; k < 8 && big[k] > 0; k++) fprintf(out, " #%d %s %.0f us;", big[k], die_opname[prof_op[big[k]]], (uint32_t)(ts[big[k]] - ts[big[k] - 1]) / 1e3);
 			fprintf(out, "\n"); fflush(out); free(ts); continue;
 		}
-		if (!strncmp(p, "info", 4)) { fprintf(out, "info %d\n", MAXT); fflush(out); continue; }
+		if (!strncmp(p, "info", 4)) { fprintf(out, "info %d %u\n", MAXT, img_rows_max); fflush(out); continue; }
 		if (!strncmp(p, "cubin", 5)) {
 			char path[512]; if (sscanf(p + 5, "%511s", path) != 1) { fprintf(out, "error: cubin <path>\n"); fflush(out); continue; }
 			for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuModuleUnload(mod[d])); CK(cuModuleLoad(&mod[d], path)); CK(cuModuleGetFunction(&fn[d], mod[d], "die")); }
