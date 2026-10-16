@@ -844,6 +844,32 @@ re-fetches the slot with `LDG.CV` from every thread as a precaution against
 stale L2 lines (not shown necessary once (1) was fixed; to be measured and
 dropped if it is not).
 
+**Whole-token status (2026-10-16): every piece of a token runs bit-exactly on
+six dies, chained.** Beyond the DeltaNet block: the attention block (v1: die 0
+runs attn_q/k/v, attnqk, attnpart, attnmerge and broadcasts the 6144-wide
+output; attn_output is row-split), block 1's PLE prefix (plerows on every die
+from the host-mapped table, ple_key row-split + gathered, ple_value row-split
++ gathered, plegate / rms / pleconv replicated), the embedding (embrow,
+token_embd replicated raw) and the head (output_hc read gate, output.weight
+Q5_K row-split, argmax per die, the six (idx, max) pairs gathered and reduced
+identically by `amax`). `kern/model_test <fullcache> <b0> <b1> <T> eh
+<manifests>` runs embed → blocks [b0, b1) → head per token with every block's
+state carried and the greedy token feeding the next embedding: blocks 0–3
+exact for 4 tokens (208 phases). Also found: a per-lane early `EXIT` in
+plerows split warp 0 of CTA 0 and hung the grid barrier (its thread 0 never
+arrived) — the warp-splitting rule again.
+
+**The 2 ms stalls (open).** Back-to-back tokens on six dies show ~2.0 ms (at
+times 2.9–6.7 ms) pauses in an exchange phase on *all* dies at once, in ~10 %
+of tokens; none with one die, none with dies {0,1}, {0,2}, {1,3} or
+{0,1,2,3}; present with any set containing die 4 or 5 ({0,4}, {4,5}, …). So
+board 3 (PCI 0b/0c, root port 03.0) stalls P2P traffic through its switch —
+even between its own two dies. At 48 blocks per token (~340 exchanges) this
+would dominate, so the six logical dies should avoid that board (physical
+0–3 + 6, 7, the fourth board on the PCH root port, if it behaves) or the
+board needs attention (reseat / slot swap / firmware). Measured with
+`DIES_NOTWIN=1 DIES_STALL=1`.
+
 **End-to-end harness rule (Nate):** weights are loaded onto the dies **once**
 and stay resident across kernel iterations — a holder process allocates one
 arena per die, repacks the GGUF tensors into tiles, exports the arena with a
