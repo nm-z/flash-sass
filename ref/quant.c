@@ -289,3 +289,28 @@ void gemv_q2_0_ref_v2(const uint8_t *tile, int rows, int K, const int8_t *xq, co
 		y[r] = acc * xscale;
 	}
 }
+
+int bf16_lanes_per_row(int K) {
+	return K >= 2560 ? 32 : 8;   /* 2560 -> 80 elements per lane, 320 -> 40 */
+}
+
+void gemv_bf16_ref(const uint16_t *W, int rows, int K, const float *x, float *y) {
+	int L = bf16_lanes_per_row(K), C = K / (8 * L);
+	float v[32], w[32];
+	for (int r = 0; r < rows; r++) {
+		const uint16_t *row = W + (size_t)r * K;
+		for (int l = 0; l < L; l++) {
+			float acc = 0.f;
+			for (int j = 0; j < C; j++) {
+				int base = 8 * (l + L * j);
+				for (int i = 0; i < 8; i++) acc = fmaf(bf16_to_fp32(row[base + i]), x[base + i], acc);
+			}
+			v[l] = acc;
+		}
+		for (int o = L / 2; o >= 1; o >>= 1) {
+			for (int l = 0; l < L; l++) w[l] = v[l] + v[l ^ o];
+			memcpy(v, w, sizeof(float) * L);
+		}
+		y[r] = v[0];
+	}
+}

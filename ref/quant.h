@@ -41,4 +41,10 @@ void act_nsum64(const int8_t *q, int32_t *nsum64, int n);
  * sequence, acc = fma(fp32(d_b), float(dot_b + nsum64[b]), acc), then * xscale. */
 void gemv_q2_0_ref_v2(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *nsum64, float xscale, float *y);
 
+/* BF16 GEMV in the kernel's order: L lanes per row, lane l owns 8-element chunks
+ * at 8 (l + L j); one fp32 FMA chain per lane over its chunks in element order,
+ * then a SHFL butterfly over the L lanes. x is fp32, W is bf16 rows of K. */
+int bf16_lanes_per_row(int K);
+void gemv_bf16_ref(const uint16_t *W, int rows, int K, const float *x, float *y);
+
 #endif

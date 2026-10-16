@@ -256,7 +256,17 @@ head and runs slower (811 MHz measured), so it gets fewer blocks.
   blocks with `output.weight` (0.44 GB) + MTP on die 5 (Q4_K_M 2.8 GB is on archy;
   Q8_0 4.1 GB fits only with ≤4 blocks). Dies 6/7 sit behind a gen2 x2 slot and
   stay off the token path; the middle board is x8, fine for the 40 KB hop.
-- v2 plan, still worth doing for register count and generality: **lane = row**. A warp
+- **Result (02:40)**: with early predicates and a persistent-style grid (32–96
+  CTAs), both Q2_0 kernels are bit-exact on every test (K=2560 expert 0 ×3, all
+  327,680 rows at grids 32/48/64/96; K=640 expert 0 ×3 and all 1,310,720 rows)
+  and run at **139–140 GB/s** (236 MB in 1.69 ms; 252 MB in 1.80 ms), 96% of the
+  145 GB/s streaming ceiling, with or without MaxAs reuse flags. The v1
+  structure (lanes split K, activation slice in registers, SHFL reduction) stays:
+  in the persistent kernel the 80 activation registers are live only inside the
+  matvec phase.
+- Register-pressure alternative kept in reserve for shapes where the per-lane
+  activation slice does not fit (BF16 K=10240): **lane = row** with activations
+  broadcast from shared memory, K split across warps, fixed-order partial sums. A warp
   owns 32 rows, all lanes walk the same k, activations are broadcast from shared
   memory (LDS.128 = 8 int16, conflict-free broadcast), the Σa offsets become
   per-block constants, no SHFL reduction, no 80-register activation footprint,
@@ -295,9 +305,12 @@ head and runs slower (811 MHz measured), so it gets fewer blocks.
 ## Phases
 
 0. **Probes** — done (table above).
-1. **GEMV kernels**: Q2_0 K=2560 done and bit-exact; next Q2_0 K=640, then
-   BF16 (biggest per-token bytes), Q3_K, IQ4_XS, Q4_K, Q5_K, Q6_K, the block-32
-   formats. Each bit-exact against the C reference on real tensors.
+1. **GEMV kernels**: done and bit-exact at 134-140 GB/s: Q2_0 K=2560 and K=640,
+   BF16 K=2560 (router, indexer, ssm α/β, ple_value) and K=320 (hc_up). Next:
+   BF16 K=10240 as 4 ordered K=2560 partials (hc_down, hc_inject); then the
+   K-quants with a sub-block-major repack: Q4_K, Q5_K (the 437 MB/token head),
+   Q6_K, Q3_K; IQ4_XS via PRMT byte lookup; the block-32 formats last.
+   Each bit-exact against the C reference on real tensors.
 2. **Block kernels**: DeltaNet, attention + indexer, MoE, hyper-connections, PLE,
    checked against cx-flash per-layer dumps on identical inputs.
 3. **One die, 6 blocks**: persistent loop, grid barriers, correct state after 6 blocks.
