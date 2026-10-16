@@ -940,6 +940,11 @@ archy:~/claude/llama.cpp-up) knows `qwen4exp` and `Q2_0` (type 42) and runs
 as `llama-server -lm mmap -lzm on -fit off` on archy's CPU; `/tmp/ref-run.sh`
 tokenizes a prompt, greedy-decodes it with `n_probs` and writes the ids for
 `MODEL_IDS`; `model_test ... ehl` then reports the teacher-forced agreement.
+**Fewer phases (2026-10-16):** descriptor word 30 bit 2 (`prog_nobar`) skips the
+grid barrier after a phase whose successor is independent (the CTA only syncs):
+qkv / gate / αβ GEMVs of z, the four expert and shared gate / up GEMVs, attention
+q / k / v; `hcwsum` (hcops write with `HC_SUMN`) adds the dies' MoE partials in
+sumn's order inside the stream write, so `sumn` is gone (48 phases).
 **Flag-array grid barrier:** no atomics and no last-arriver release: thread 0
 of every CTA writes the generation it arrives at (`GEN`, shared memory
 0xbf78, seeded from `ctl[1]`, +1 per phase, mirrored back by CTA 0) to

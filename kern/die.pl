@@ -46,6 +46,7 @@ my @OPS = (
     [ 'hcmix',      'hcops.sass',       'cta',  { HC_OP => 'mix' } ],
     [ 'hcmixx',     'hcops.sass',       'cta',  { HC_OP => 'mix', HC_XOUT => 1 } ],
     [ 'hcwrite',    'hcops.sass',       'cta',  { HC_OP => 'write' } ],
+    [ 'hcwsum',     'hcops.sass',       'cta',  { HC_OP => 'write', HC_SUMN => 1 } ],   # the MoE partials' fixed-order sum fused into the write
     [ 'conv1d',     'conv1d.sass',      'cta',  {} ],
     [ 'dnstep',     'dnstep.sass',      'cta',  { DN_TILED => 1 } ],   # local value head j reads local key head j % 16 (value head h pairs with key head h % 16)
     [ 'dnnorm',     'dnnorm.sass',      'warp', {} ],
@@ -399,6 +400,15 @@ PHASE_END:
 --:-:-:-:6      SHL bar_t, lane, 0x2;
 --:-:-:-:6      SHL bar_g2, cta, 0x2;
 --:-:-:-:6      ISETP.LT.U32.AND P3, PT, lane, 0x10, PT;
+# descriptor word 30 bit 2: the next phase does not depend on this one (and writes
+# nothing this one reads), so no grid barrier: the CTA syncs and moves on
+--:-:2:-:2      LDS bar_old, [RZ+0x@{[sprintf '%x', $DESC_OFF + 0x78]}];
+02:-:-:-:6      LOP32I.AND bar_old, bar_old, 0x4;
+--:-:-:-:6      ISETP.NE.U32.AND P4, PT, bar_old, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P4 BRA BDONE;
 --:-:-:-:6  \@P6 BRA BDONE;
 04:-:-:-:6      IADD xa0.CC, bar_cp0, bar_t;
 --:-:-:-:6      IADD.X xa1, bar_cp1, RZ;

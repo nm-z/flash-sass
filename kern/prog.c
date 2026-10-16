@@ -16,6 +16,14 @@ phase_t *prog_add(prog_t *P, int op, unsigned units) {
 	if (P->pending_wait) { p->w[30] |= 2; P->pending_wait = 0; }   /* wait for the exchange before running */
 	return p;
 }
+/* the phase just added needs no grid barrier after it: the next phase neither reads what it
+   writes nor writes what it reads (independent GEMVs on the same input). Not for sends. */
+void prog_nobar(prog_t *P) {
+	if (getenv("PROG_NONOBAR") || !P->n) return;
+	phase_t *p = &P->p[P->n - 1];
+	if (p->w[30] & 1) { fprintf(stderr, "prog_nobar on a send phase\n"); exit(1); }
+	p->w[30] |= 4;
+}
 void ph_ptr(phase_t *p, int addr, CUdeviceptr v) { int w = 2 + (addr - 0x140) / 4; p->w[w] = (uint32_t)v; p->w[w + 1] = (uint32_t)(v >> 32); }
 void ph_u32(phase_t *p, int addr, uint32_t v) { p->w[2 + (addr - 0x140) / 4] = v; }
 void ph_f32(phase_t *p, int addr, float v) { uint32_t u; memcpy(&u, &v, 4); ph_u32(p, addr, u); }
@@ -197,9 +205,12 @@ static void ph_moe_half(prog_t *P, const split_t *s, const xchg_t *x, const dn_w
 	ph_router(P, b->r, b->r + 512 * 4, b->idx, b->w, b->s);
 	ph_moesel(P, b->idx, b->w, w->emap, b->lidx, b->lw, b->ne, b->part);
 	ph_q2(P, OP_Q2MOEGN, w->ffn_gate_exps, b->zq, b->zs32, b->g, 640, b->lidx, b->zas, 0, b->ne);
+	prog_nobar(P);   /* expert gate / up and shared gate / up: four GEMVs of z into disjoint rows */
 	ph_q2(P, OP_Q2MOEGN, w->ffn_up_exps, b->zq, b->zs32, b->gu, 640, b->lidx, b->zas, 0, b->ne);
 	if (s->shexp) {
+		prog_nobar(P);
 		ph_gemv_any(P, w->ffn_gate_shexp_type, 2560, w->ffn_gate_shexp, b->zq, b->zs32, b->zs16, b->g + 6400 * 4, 640, b->zas, 0, 0);
+		prog_nobar(P);
 		ph_gemv_any(P, w->ffn_up_shexp_type, 2560, w->ffn_up_shexp, b->zq, b->zs32, b->zs16, b->gu + 6400 * 4, 640, b->zas, 0, 0);
 		if (getenv("PROG_DUP")) ph_gemv_any(P, w->ffn_up_shexp_type, 2560, w->ffn_up_shexp, b->zq, b->zs32, b->zs16, b->gu + 6400 * 4, 640, b->zas, 0, 0);
 	}
@@ -207,15 +218,18 @@ static void ph_moe_half(prog_t *P, const split_t *s, const xchg_t *x, const dn_w
 	ph_q2(P, OP_Q2MOEDN, w->ffn_down_exps, b->hq, b->hs32, b->part, 2560, b->lidx, b->has, b->lw, b->ne);
 	if (s->shexp) ph_gemv_any(P, w->ffn_down_shexp_type, 640, w->ffn_down_shexp, b->hq + 10 * 640 * 2, b->hs32 + 10 * 20 * 4, b->hs16 + 10 * 40 * 4, b->part, 2560, b->has + 10 * 20 * 4, 1, b->s);
 	CUdeviceptr PARTS = ph_xchg(P, x, s->d, s->n, b->part, 2560 * 4, 2560u * 4u * (unsigned)s->d, 2560u * 4u * (unsigned)s->n);
-	ph_sumn(P, PARTS, 2560 * 4, b->out, 2560, (unsigned)s->n);
-	ph_hc(P, OP_HCWRITE, inj, b->out, b->S, 2560, 0, 10);
+	/* out = the fixed-order sum of the parts (sumn's order), fused into the stream write */
+	phase_t *p = prog_add(P, OP_HCWSUM, 10);
+	ph_ptr(p, 0x140, inj); ph_ptr(p, 0x148, PARTS); ph_ptr(p, 0x150, b->S); ph_u32(p, 0x158, 2560); ph_u32(p, 0x15c, 2560 * 4); ph_u32(p, 0x164, (unsigned)s->n); ph_ptr(p, 0x168, b->out);
 }
 
 /* attention proper on die 0 (v1): q/k/v GEMVs, per-head norm + RoPE + cache append,
  * flash-decoding partials over the t+1 keys, merge with the output gate */
 static void ph_attn_core(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps) {
 	ph_gemv_any(P, w->attn_q_type, 2560, w->attn_q, b->zq, b->zs32, b->zs16, b->qg, 12288, b->zas, 0, 0);
+	prog_nobar(P);
 	ph_gemv_any(P, w->attn_k_type, 2560, w->attn_k, b->zq, b->zs32, b->zs16, b->k, 512, b->zas, 0, 0);
+	prog_nobar(P);   /* q, k, v GEMVs of z into separate buffers */
 	ph_gemv_any(P, w->attn_v_type, 2560, w->attn_v, b->zq, b->zs32, b->zs16, b->v, 512, b->zas, 0, 0);
 	phase_t *p = prog_add(P, OP_ATTNQK, 26);
 	ph_ptr(p, 0x140, b->qg); ph_ptr(p, 0x148, b->k); ph_ptr(p, 0x150, b->v); ph_ptr(p, 0x158, w->attn_q_norm); ph_ptr(p, 0x160, w->attn_k_norm);
@@ -285,7 +299,9 @@ void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_
 	/* ---- attention-side hyper-block: Gated DeltaNet ---- */
 	CUdeviceptr Z = ph_hc_read(P, s, x, w->hc_attn_norm, w->hc_attn_dj, w->hc_attn_up, b, eps);
 	ph_gemv_any(P, w->attn_qkv_type, 2560, w->attn_qkv, b->zq, b->zs32, b->zs16, b->lqkv, nloc, b->zas, 0, 0);
+	prog_nobar(P);
 	ph_gemv_any(P, w->attn_gate_type, 2560, w->attn_gate, b->zq, b->zs32, b->zs16, b->lgate, hrows, b->zas, 0, 0);
+	prog_nobar(P);   /* qkv, gate and the alpha/beta rows all read z only */
 	ph_bf16(P, OP_BF16BIAS, w->ssm_ab, Z, b->la, 2u * (unsigned)s->hn, w->ssm_ab_bias);
 	ph_conv1d(P, b->lqkv, b->conv_state, w->ssm_conv1d, b->lu, t, nloc);
 	ph_dnstep(P, b->dn_state, b->lu, b->lu + 512u * (unsigned)s->nk, b->lu + 1024u * (unsigned)s->nk, b->la, b->la + 4u * (unsigned)s->hn, w->ssm_a, b->lo, eps, (unsigned)s->h0, (unsigned)s->klo, (unsigned)s->hn);

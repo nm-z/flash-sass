@@ -14,6 +14,7 @@ typedef struct { phase_t *p; int n, cap; int xj; int loop; int pending_wait; } p
 
 void prog_init(prog_t *P);
 void prog_free(prog_t *P);
+void prog_nobar(prog_t *P);   /* no grid barrier after the last phase (independent next phase) */
 phase_t *prog_add(prog_t *P, int op, unsigned units);
 void ph_ptr(phase_t *p, int addr, CUdeviceptr v);
 void ph_u32(phase_t *p, int addr, uint32_t v);
