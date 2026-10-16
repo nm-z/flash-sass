@@ -378,6 +378,21 @@ head and runs slower (811 MHz measured), so it gets fewer blocks.
   s = 0..3, reloading the 10 KB activation slice per s from L2 — no grid
   barrier between slices. The reference composes `gemv_bf16_ref` on the slices
   the same way.
+- **Grid barrier primitive (Phase 2 start)**: `kern/gridbar.sass` — after
+  BAR.SYNC, warp 0 reads the generation word (LDG.E.CV), MEMBAR.GL.IVALLD, lane
+  0 does ATOM.E.ADD on the counter and SHFL.IDX broadcasts the count so the
+  last-arriver test and the spin loop are warp-uniform (no divergence, no SSY);
+  the last arriver STG.E.WT's the counter to 0, fences, bumps the generation;
+  the others spin with LDG.E.CV; a fence and BAR.SYNC release the CTA. These
+  are exactly the forms ptxas emits for `membar.gl` / `ld.volatile` /
+  `st.volatile` / `atom.add` on sm_52 (`MEMBAR.GL.IVALLD` needed a grammar
+  flag). Visibility test (each CTA publishes the iteration before, reads its
+  neighbour's slot after; double-buffered by parity): **0 mismatches over
+  200,000 barriers** at 64 and 128 CTAs; 1.64 / 1.71 / 1.85 / 2.50 µs per
+  barrier for 16 / 32 / 64 / 128 CTAs. Lesson re-learned: a predicated MOV six
+  cycles after its ISETP read the stale predicate (the wrap-around of the
+  neighbour index) — every predicate consumer, not just branches and stores,
+  needs the ~18-cycle gap.
 - Register-bank note: in the K-quant streams the mask for field v and the
   activation register of the same XMAD share a bank for 2 of every 8 XMADs, and
   the combine's `acc_v + acc_{v+4}` pairs share banks (MaxAs reports 187

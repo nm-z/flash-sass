@@ -138,3 +138,14 @@ gridbar.cubin: gridbar.sass skel_gridbar.cubin
 
 gridbar_test: gridbar_test.c
 	$(CC) -std=gnu99 -O2 -Wall -o $@ gridbar_test.c -I$(CUDA)/include -lcuda
+
+# die-to-die mailbox (40 KB payload + sequence word over P2P), two-device test
+skel_mailbox.cubin: mailbox.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+mailbox.cubin: mailbox.sass skel_mailbox.cubin
+	cp skel_mailbox.cubin $@
+	$(MAXAS) -i mailbox.sass $@
+
+mailbox_test: mailbox_test.c
+	$(CC) -std=gnu99 -O2 -Wall -o $@ mailbox_test.c -I$(CUDA)/include -lcuda
