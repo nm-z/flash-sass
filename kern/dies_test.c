@@ -243,7 +243,7 @@ int main(int argc, char **argv) {
 		uint32_t hdr[32] = { 0 }; hdr[3] = (uint32_t)d; hdr[4] = (uint32_t)nd;
 		for (int e = 0; e < nd; e++) { uint64_t a = (uint64_t)xc[e].flags + 64u * (unsigned)d; memcpy(&hdr[16 + 2 * e], &a, 8); }
 		uint64_t mf = (uint64_t)xc[d].flags; memcpy(&hdr[28], &mf, 8);
-		CK(cuMemcpyHtoD(dCTL[d], hdr, sizeof hdr));
+		CK(cuMemsetD8(dCTL[d], 0, 0x100)); CK(cuMemcpyHtoD(dCTL[d], hdr, sizeof hdr));   /* ctl[32..47]: the grid barrier arrival flags */
 	}
 	printf("%d die(s):", nd);
 	for (int d = 0; d < nd; d++) printf(" [%d: gpu %d dj %d+%d cb %d+%d h %d+%d k %d..%d y %d+%d e %d+%d%s]", d, dev_of[d], sp[d].dj0, sp[d].djn, sp[d].cb0, sp[d].cbn, sp[d].h0, sp[d].hn, sp[d].klo, sp[d].khi, sp[d].y0, sp[d].yn, sp[d].e0, sp[d].en, sp[d].shexp ? " shexp" : "");

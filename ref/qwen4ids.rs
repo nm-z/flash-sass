@@ -1,5 +1,5 @@
 use recipe::*;
-use recipe::infer::{cached, input, out, pp, tg, time};
+use recipe::infer::{cached, input, mtp, out, pp, tg, time};
 
 const GGUF: &str = "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-UD-Q2_K_XL-00001-of-00003.gguf";
 
@@ -18,11 +18,11 @@ pub fn model() -> Model {
 				.keys(qwen4exp.ssm.group_count, qwen4exp.ssm.state_size).values(qwen4exp.ssm.state_size).out(width)
 				.delta_activations(Activation::Silu, Activation::Sigmoid)
 		};
-		model = model.hyper(qwen4exp.hyper_connection.count, &attention);
+		model = model.hyper(qwen4exp.hyper_connection.count, qwen4exp.hyper_connection.low_rank, &attention);
 		let scoring = match qwen4exp.expert_gating_func { 1 => Scoring::Softmax, 2 => Scoring::Sigmoid, value => panic!("unknown expert gating function {value}") };
 		let experts = recipe.model().gguf_moe(qwen4exp.expert_count, qwen4exp.expert_used_count, qwen4exp.expert_feed_forward_length,
 			Activation::Silu, scoring, qwen4exp.expert_weights_norm, qwen4exp.expert_shared_feed_forward_length != 0).fp(32);
-		model = model.hyper(qwen4exp.hyper_connection.count, &experts);
+		model = model.hyper(qwen4exp.hyper_connection.count, qwen4exp.hyper_connection.low_rank, &experts);
 	}
 	model.layer(vocabulary)
 }
@@ -31,7 +31,15 @@ fn main() {
 	let data = recipe.data(std::env::var("GGUF").unwrap_or_else(|_| GGUF.to_owned()));
 	let model = model();
 	let mut infer = recipe.infer();
-	let report = infer.chat([time, pp, tg, input, out, cached]).run(&model, &data);
+	if let Ok(path) = std::env::var("MTP") { infer = infer.mtp(path); }
+	if std::env::args().any(|arg| arg == "--memory") {
+		for (index, memory) in infer.memory(&model, &data, 128).unwrap().iter().enumerate() {
+			println!("planned {} {memory}", if index == 0 { "target" } else { "MTP" });
+			println!("weights_bytes {} values_bytes {} contexts_bytes {} input_bytes {} scratch_bytes {}", memory.weights, memory.values, memory.contexts, memory.input, memory.scratch);
+		}
+		return;
+	}
+	let report = infer.chat([time, pp, tg, input, out, cached, mtp]).run(&model, &data);
 	println!("generation tokens {} rate {} tok/s", report.out, report.tg());
 	println!("input_ids {:?}", report.input_ids);
 	println!("output_ids {:?}", report.output_ids);

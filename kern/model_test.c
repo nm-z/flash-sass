@@ -263,7 +263,7 @@ int main(int argc, char **argv) {
 		uint32_t hdr[32] = { 0 }; hdr[3] = (uint32_t)d; hdr[4] = (uint32_t)nd;
 		for (int e = 0; e < nd; e++) { uint64_t a = (uint64_t)xc[e].flags + 64u * (unsigned)d; memcpy(&hdr[16 + 2 * e], &a, 8); }
 		uint64_t mf = (uint64_t)xc[d].flags; memcpy(&hdr[28], &mf, 8);
-		CK(cuMemcpyHtoD(dCTL[d], hdr, sizeof hdr));
+		CK(cuMemsetD8(dCTL[d], 0, 0x100)); CK(cuMemcpyHtoD(dCTL[d], hdr, sizeof hdr));   /* ctl[32..47]: the grid barrier arrival flags */
 	}
 	/* the initial stream: the embedding of ids[0], or random when no embedding runs */
 	if (!do_embed) { for (int i = 0; i < 10240; i++) hb->S[i] = 0.5f * frand(); for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(db[d].S, hb->S, 4 * 10240)); } }

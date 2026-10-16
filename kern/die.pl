@@ -26,6 +26,7 @@ my $NCTA = 16;             # CTAs per die (1 per SM)
 my $DESC_OFF = 0xbf80;     # descriptor in shared memory (ops use smem from 0)
 my $TOK_OFF = 0xbf70;      # the token counter (u32), kept per CTA in shared memory
 my $XG_OFF = 0xbf74;       # the exchange count (u32), per CTA in shared memory (xsend bumps it)
+my $GEN_OFF = 0xbf78;      # the grid barrier generation (u32), per CTA in shared memory
 
 # opcode = index. tag, file, unit kind, environment for the generator
 my @OPS = (
@@ -282,6 +283,9 @@ $maps</REGISTER_MAPPING>
 # the exchange count (XG) likewise, seeded from ctl[8]; xsend bumps it per CTA
 02:-:1:-:2      LDG.E op, [fw+0x20];
 01:2:-:-:6      STS [RZ+0x@{[sprintf '%x', $XG_OFF]}], op;
+# and the grid barrier generation (GEN), seeded from ctl[1]
+02:-:1:-:2      LDG.E op, [fw+0x4];
+01:2:-:-:6      STS [RZ+0x@{[sprintf '%x', $GEN_OFF]}], op;
 # launch timestamp -> ctl[15]
 02:-:-:-:6      IADD op, cta, tid;
 --:-:-:-:6      ISETP.EQ.U32.AND P4, PT, op, RZ, PT;
@@ -374,38 +378,49 @@ PHASE_END:
 --:-:-:-:6      IADD.X dsp1, RZ, prog1;
 --:-:-:-:6      IADD fw0.CC, dsp0, op;
 --:-:-:-:6      IADD.X fw1, dsp1, RZ;
---:-:4:-:1 \@!P6 LDG.E vtid, [fw];
---:-:4:-:2 \@!P6 LDG.E vid, [dsp+0x7c];
+--:3:4:-:1 \@!P6 LDG.E vtid, [fw];
+--:3:4:-:2 \@!P6 LDG.E vid, [dsp+0x7c];
 --:-:-:-:6      MOV bar_cp0, ctl0;
 --:-:-:-:6      MOV bar_cp1, ctl1;
---:-:-:-:6      MOV bar_one, 0x1;
+# (the prefetch reads its address registers late: read barrier 3 guards fw/dsp, which
+# the barrier code below reuses as xa/xb)
+# flag-array barrier: thread 0 of every CTA writes the generation it arrives at
+# (GEN in shared memory + 1) to ctl[32 + cta]; lanes 0..15 of warp 0 poll the 16
+# words until all read >= it (VOTE.ALL keeps the warp together); no atomics, no
+# last-arriver release. CTA 0 thread 0 mirrors the generation to ctl[1].
+--:-:1:-:1      LDS bar_g, [RZ+0x@{[sprintf '%x', $GEN_OFF]}];
+--:-:-:-:6      SHL bar_t, lane, 0x2;
+--:-:-:-:6      SHL bar_g2, cta, 0x2;
+--:-:-:-:6      ISETP.LT.U32.AND P3, PT, lane, 0x10, PT;
 --:-:-:-:6  \@P6 BRA BDONE;
---:-:1:-:2      LDG.E.CV bar_g, [bar_cp+0x4];
+04:-:-:-:6      IADD xa0.CC, bar_cp0, bar_t;
+--:-:-:-:6      IADD.X xa1, bar_cp1, RZ;
+--:-:-:-:6      IADD xb0.CC, bar_cp0, bar_g2;
+--:-:-:-:6      IADD.X xb1, bar_cp1, RZ;
 --:-:-:-:6      MEMBAR.GL.IVALLD;
-01:-:2:-:2 \@!P5 ATOM.E.ADD bar_old, [bar_cp], bar_one;
-02:-:3:-:2      SHFL.IDX PT, bar_old, bar_old, RZ, 0x1f;
-04:-:-:-:6      IADD bar_t, bar_old, 0x1;
---:-:-:-:6      ISETP.EQ.U32.AND P3, PT, bar_t, 0x@{[sprintf '%x', $NCTA]}, PT;
---:-:-:-:6      NOP;
---:-:-:-:6      NOP;
---:-:-:-:6      NOP;
---:-:-:-:6 \@!P3 BRA BSPIN;
---:-:-:-:6 \@!P5 STG.E.WT [bar_cp], RZ;
---:-:-:-:6      MEMBAR.GL.IVALLD;
---:-:-:-:6      IADD bar_g2, bar_g, 0x1;
---:-:-:-:6 \@!P5 STG.E.WT [bar_cp+0x4], bar_g2;
---:-:-:-:6      BRA BREL;
+01:-:-:-:6      IADD bar_g, bar_g, 0x1;
+--:-:-:-:6      MOV32I bar_g2, 0xffffffff;
+--:2:-:-:6 \@!P5 STG.E.WT [xb+0x80], bar_g;
 BSPIN:
---:-:1:-:2      LDG.E.CV bar_g2, [bar_cp+0x4];
-01:-:-:-:6      ISETP.NE.U32.AND P4, PT, bar_g2, bar_g, PT;
+--:-:1:-:2  \@P3 LDG.E.CV bar_g2, [xa+0x80];
+01:-:-:-:6      ISETP.GE.U32.AND P4, PT, bar_g2, bar_g, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      VOTE.ALL P4, P4;
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
 --:-:-:-:6 \@!P4 BRA BSPIN;
-BREL:
 --:-:-:-:6      MEMBAR.GL.IVALLD;
+--:-:-:-:6      IADD bar_t, cta, tid;
+--:-:-:-:6      ISETP.EQ.U32.AND P4, PT, bar_t, RZ, PT;
+--:2:-:-:6      STS [RZ+0x@{[sprintf '%x', $GEN_OFF]}], bar_g;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:2:-:-:6  \@P4 STG.E [bar_cp+0x4], bar_g;
 BDONE:
---:-:-:-:6      BAR.SYNC 0x1;
+02:-:-:-:6      BAR.SYNC 0x1;
 # ---- phase timestamp: CTA 0 thread 0 writes %globaltimer.lo to ctl[16 + pidx] ----
 --:-:-:-:6      IADD bar_t, cta, tid;
 --:-:-:-:6      ISETP.EQ.U32.AND P4, PT, bar_t, RZ, PT;

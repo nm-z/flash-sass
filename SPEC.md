@@ -902,6 +902,17 @@ leaves with the data instead of after the die's grid barrier and CTA 0's
 second fence; a waiting phase's warp 0 polls all 96 words (3 per lane,
 `VOTE.ALL` on `min >= XG`). The framework no longer touches `ctl[8]` or the
 flags itself (descriptor word 30 bit 0 is informational now).
+**Flag-array grid barrier:** no atomics and no last-arriver release: thread 0
+of every CTA writes the generation it arrives at (`GEN`, shared memory
+0xbf78, seeded from `ctl[1]`, +1 per phase, mirrored back by CTA 0) to
+`ctl[32 + cta]` (`STG.E.WT`) and lanes 0–15 of warp 0 poll the 16 words
+(`LDG.E.CV`, `VOTE.ALL` on all ≥ generation); the hosts zero `ctl[0..0x100)`
+once. Found on the way: the descriptor prefetch's `LDG`s read their address
+registers late, and the barrier code reuses those registers (`xa`/`xb` alias
+`fw`/`dsp`) — without a read barrier on the prefetch (`--:3:4:-:1`, waited
+with `04:` before the first reuse) the descriptor loads took garbage
+addresses under load ("misaligned address" on the third token of
+`dies_test`, an illegal access in `model_test`; `die_test` alone passed).
 
 **The PCH board costs ~15–20 ms per token (2026-10-16).** Full-model profile
 (die 0, per token, logical dies on physical {0, 1, 6, 3, 4, 5}): 342 `xsend`
