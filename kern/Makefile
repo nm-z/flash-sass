@@ -253,3 +253,14 @@ router.cubin: router.sass fmath.pl skel_router.cubin
 
 router_test: router_test.c ../ref/router.c ../ref/router.h ../ref/fmath.c
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ router_test.c ../ref/router.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+# attention q/k norm + RoPE + KV append
+skel_attnqk.cubin: attnqk.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+attnqk.cubin: attnqk.sass skel_attnqk.cubin
+	cp skel_attnqk.cubin $@
+	$(MAXAS) -i attnqk.sass $@
+
+attnqk_test: attnqk_test.c ../ref/attn.c ../ref/attn.h ../ref/fmath.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ attnqk_test.c ../ref/attn.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm

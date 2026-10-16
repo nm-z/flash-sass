@@ -530,6 +530,13 @@ the hyper-connection norms, `ssm_norm`, q/k norms, indexer norms and PLE norms.
   per column), `write` (S_l += 2σ(0.25 inj_l)·y). All bit-exact. With the
   BF16 slice GEMVs (`hc_down` 10240→320, `hc_up` 320→10240, `hc_inject`
   10240→4) and `rmsnorm` these are the whole hyper-connection read/write path.
+- **Router** (`kern/router.sass`, twin `router_gpu`): one warp; m0 = max of the
+  512 logits; ten rounds of (max value, lowest index among the bit-equal
+  values) using XOR + ICMP.EQ candidates and IMNMX.U32 butterflies — no
+  predicates; the winner is replaced by −∞ with IADD + ICMP.EQ; weights
+  e_j = exp(m_j − m0) over the ten winners only (the full softmax denominator
+  cancels in the renormalisation), den summed in selection order, w = e·rcp(den);
+  shared gate σ(sh). Bit-exact on random and heavily tied logits.
 - Register-bank note: in the K-quant streams the mask for field v and the
   activation register of the same XMAD share a bank for 2 of every 8 XMADs, and
   the combine's `acc_v + acc_{v+4}` pairs share banks (MaxAs reports 187
