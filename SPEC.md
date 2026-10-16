@@ -954,6 +954,29 @@ butterfly), every lane computes sigmoid(u), the warp gathers g_l and xh[l][c]
 with `SHFL.IDX` and lane 0 forms hcmix's z_c = 0.25 (((g0 x0 + g1 x1) + g2 x2)
 + g3 x3) and stores it into every die's slot: hcsilu and hcmixx are gone (2
 phases per hc read, 194 per token). `PROG_NOHCUP=1` builds the old sequence.
+On six dies the first bf16hcup was *slower* (90–150 µs) and caused ~1–2 ms
+stalls in 7 of 30 tokens: lane 0 of every warp stored one float per column into
+six remote dies — thousands of 4-byte PCIe writes per phase, the same small-TLP
+flood that stalls the switches. Now CTA c owns the contiguous columns [c0, c1)
+(ceil(cols / 16) each, 8 per iteration), collects z in shared memory and stores
+its range to each die in one coalesced burst after the loop: 0 stalls in 30
+tokens, 0.543 ms per block-token (unfused 0.561). **Rule: remote (P2P) stores
+must be warp-coalesced; never scatter single words to peers.** Two register
+bugs on the way, both the same trap: the bf16 kernel's prologue temporaries
+(tid, bid, lane, grp, off, t1) alias the weight registers, so anything needed
+after the loop's first weight load must be computed before it (the final-store
+predicate and address) or live elsewhere (the RMS prologue's norm weights went
+into act40..79).
+**bf16hcrwx** (gemv_bf16 with `GEMV_RMS` + `GEMV_RMSW`): the attention side's
+stream write is applied inside the MoE side's RMS + hc down — both prologue
+passes form S + 2 sigmoid(inj_l / 4) y_c (hcwrite's FFMA) on the fly, CTA c stores
+its slice of the new stream to S2, and the MoE end's hcwsum reads S2 and writes S,
+so every block still starts and ends in S. Whole model on dies 0–5 (shares
+82,103,77,108,115,115): **1154 phases, 35.7–37.2 ms per token** (all fusions) vs
+1490 phases, 38.0 ms unfused; identical tokens. Remaining per-token time on die 0
+is dominated by the waits after exchanges (actq after a gather 9.1 ms, bf16hcup
+4.4, xsend 3.6, hcwsum 2.4, dnnormx 2.3): the slowest die's share sets them, and
+the memory-driven shares leave dies 4/5 with 15 % more work than average.
 A dollar-hash (last index) in an op generator is eaten by die.pl's comment
 stripper (everything after `#` on a line goes) — write `@n - 1`.
 **Flag-array grid barrier:** no atomics and no last-arriver release: thread 0
