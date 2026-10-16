@@ -44,10 +44,12 @@ my @OPS = (
     # normq (RMSNorm + quantiser, 228 registers) does not fit beside the framework; nothing in the v1 block needs it
     [ 'hcsilu',     'hcops.sass',       'cta',  { HC_OP => 'silu' } ],
     [ 'hcmix',      'hcops.sass',       'cta',  { HC_OP => 'mix' } ],
+    [ 'hcmixx',     'hcops.sass',       'cta',  { HC_OP => 'mix', HC_XOUT => 1 } ],
     [ 'hcwrite',    'hcops.sass',       'cta',  { HC_OP => 'write' } ],
     [ 'conv1d',     'conv1d.sass',      'cta',  {} ],
     [ 'dnstep',     'dnstep.sass',      'cta',  {} ],
     [ 'dnnorm',     'dnnorm.sass',      'warp', {} ],
+    [ 'dnnormx',    'dnnorm.sass',      'warp', { DN_XOUT => 1 } ],
     [ 'router',     'router.sass',      'warp', {} ],
     [ 'attnqk',     'attnqk.sass',      'warp', {} ],
     [ 'attnpart',   'attnpart.sass',    'cta',  {} ],
@@ -415,7 +417,7 @@ PHASE_END:
 --:-:1:-:2      LDS bar_old, [RZ+0x@{[sprintf '%x', $DESC_OFF + 0x78]}];
 01:-:-:-:6      LOP32I.AND bar_old, bar_old, 0x1;
 --:-:-:-:6      ISETP.NE.U32.AND P4, PT, bar_old, RZ, !P5;
---:-:-:-:6      SHL bar_t, cta, 0x2;
+--:-:-:-:6      SHL units, cta, 0x2;
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
 --:-:1:-:1  \@P4 LDG.E.64 xc0, [bar_cp+0x40];
@@ -427,17 +429,17 @@ PHASE_END:
 --:-:1:-:2  \@P4 LDS op, [RZ+0x@{[sprintf '%x', $XG_OFF]}];
 --:-:-:-:6  \@P4 MEMBAR.SYS;
 01:-:-:-:6      IADD op, op, 0x1;
---:-:-:-:6      IADD xc0.CC, xc0, bar_t;
+--:-:-:-:6      IADD xc0.CC, xc0, units;
 --:-:-:-:6      IADD.X xc1, xc1, RZ;
---:-:-:-:6      IADD xd0.CC, xd0, bar_t;
+--:-:-:-:6      IADD xd0.CC, xd0, units;
 --:-:-:-:6      IADD.X xd1, xd1, RZ;
---:-:-:-:6      IADD xf0.CC, xf0, bar_t;
+--:-:-:-:6      IADD xf0.CC, xf0, units;
 --:-:-:-:6      IADD.X xf1, xf1, RZ;
---:-:-:-:6      IADD xg0.CC, xg0, bar_t;
+--:-:-:-:6      IADD xg0.CC, xg0, units;
 --:-:-:-:6      IADD.X xg1, xg1, RZ;
---:-:-:-:6      IADD xh0.CC, xh0, bar_t;
+--:-:-:-:6      IADD xh0.CC, xh0, units;
 --:-:-:-:6      IADD.X xh1, xh1, RZ;
---:-:-:-:6      IADD xi0.CC, xi0, bar_t;
+--:-:-:-:6      IADD xi0.CC, xi0, units;
 --:-:-:-:6      IADD.X xi1, xi1, RZ;
 --:-:-:-:6      ISETP.EQ.U32.AND P2, PT, cta, RZ, P4;
 --:2:-:-:1  \@P4 STG.E.WT [xc], op;

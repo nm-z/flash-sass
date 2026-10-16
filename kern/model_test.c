@@ -117,10 +117,12 @@ int main(int argc, char **argv) {
 		if (getenv("MODEL_PLE")) {   /* the real table: shard 2's tensor data (320,001,536 rows x 90 B) as a file, mapped and pinned */
 			int fd = open(getenv("MODEL_PLE"), O_RDONLY); if (fd < 0) { perror(getenv("MODEL_PLE")); return 1; }
 			struct stat st; if (fstat(fd, &st)) { perror("fstat"); return 1; }
-			size_t sz = (size_t)st.st_size;
+			size_t sz = ((size_t)st.st_size + 4095) & ~(size_t)4095;   /* whole pages (the last row ends mid-page) */
 			ptab = mmap(NULL, sz, PROT_READ, MAP_SHARED, fd, 0); if (ptab == MAP_FAILED) { perror("mmap ple"); return 1; }
 			double tp0 = now();
-			CK(cuMemHostRegister(ptab, sz, CU_MEMHOSTREGISTER_PORTABLE | CU_MEMHOSTREGISTER_DEVICEMAP));
+			unsigned flags_try[3] = { CU_MEMHOSTREGISTER_PORTABLE | CU_MEMHOSTREGISTER_DEVICEMAP, CU_MEMHOSTREGISTER_DEVICEMAP, 0 }; CUresult rr = CUDA_ERROR_INVALID_VALUE;
+			for (int f = 0; f < 3 && rr != CUDA_SUCCESS; f++) { rr = cuMemHostRegister(ptab, sz, flags_try[f]); if (rr != CUDA_SUCCESS) fprintf(stderr, "cuMemHostRegister(flags %u) -> %d\n", flags_try[f], (int)rr); }
+			if (rr != CUDA_SUCCESS) return 1;
 			printf("PLE table %s: %.2f GB pinned in %.1f s\n", getenv("MODEL_PLE"), sz / 1e9, now() - tp0);
 			memcpy(poff, ple_head_offsets, sizeof poff); memcpy(pvoc, ple_head_vocab, sizeof pvoc);
 		} else {

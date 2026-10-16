@@ -18,6 +18,7 @@
     param_Y0  : c[0x0][0x158]
     param_Y1  : c[0x0][0x15c]
     param_eps : c[0x0][0x160]
+    param_xoff : c[0x0][0x168]
 </CONSTANT_MAPPING>
 
 <REGISTER_MAPPING>
@@ -50,14 +51,22 @@
     42,43 : wp<0-1>
     44,45 : gp<0-1>
     46,47 : yp<0-1>
+    48-59 : dq<00-11>
+    60    : xo
 </REGISTER_MAPPING>
 
 <CODE>
     require './fmath.pl';
     my %C = map { $_ => $_ } qw(log2e ln2hi ln2lo c720 c120 c24 c6 chalf cone mneg1);
+    my $xout = $ENV{DN_XOUT} ? 1 : 0;   # y goes to every die's inbox: TAB at the Y param + xoff + 16 lane + 512 head; the phase is a send
     my $o = '';
     $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
     $o .= "--:-:6:-:1      S2R head, SR_CTAID.X;\n";
+    if ($xout) {
+        $o .= "--:-:-:-:6      MOV yp0, param_Y0;\n";
+        $o .= "--:-:-:-:6      MOV yp1, param_Y1;\n";
+        $o .= sprintf "--:-:4:-:%d      LDG.E.64 dq%02d, [yp+0x%x];\n", $_ == 5 ? 2 : 1, 2 * $_, 8 * $_ for 0..5;
+    }
     $o .= fm_consts(\%C);
     $o .= "20:-:-:-:6      LOP32I.AND lane, tid, 0x1f;\n";
     $o .= "--:-:-:-:6      ISETP.GE.U32.AND P0, PT, tid, 0x20, PT;\n";
@@ -65,13 +74,16 @@
     $o .= "--:-:-:-:6      IADD wp0.CC, t, param_W0;\n";
     $o .= "--:-:-:-:6      IADD.X wp1, RZ, param_W1;\n";
     $o .= "--:-:-:-:6      ISCADD t, head, t, 0x9;\n";                           # + 512 head
+    $o .= "--:-:-:-:6      IADD xo, t, param_xoff;\n" if $xout;
     $o .= "--:-:-:-:6  \@P0 EXIT;\n";
     $o .= "--:-:-:-:6      IADD xp0.CC, t, param_O0;\n";
     $o .= "--:-:-:-:6      IADD.X xp1, RZ, param_O1;\n";
     $o .= "--:-:-:-:6      IADD gp0.CC, t, param_G0;\n";
     $o .= "--:-:-:-:6      IADD.X gp1, RZ, param_G1;\n";
-    $o .= "--:-:-:-:6      IADD yp0.CC, t, param_Y0;\n";
-    $o .= "--:-:-:-:6      IADD.X yp1, RZ, param_Y1;\n";
+    unless ($xout) {
+        $o .= "--:-:-:-:6      IADD yp0.CC, t, param_Y0;\n";
+        $o .= "--:-:-:-:6      IADD.X yp1, RZ, param_Y1;\n";
+    }
     $o .= "--:-:1:-:1      LDG.E.128 x0, [xp];\n";
     $o .= "--:-:2:-:1      LDG.E.128 w0, [wp];\n";
     $o .= "--:-:2:-:2      LDG.E.128 g0, [gp];\n";
@@ -99,7 +111,10 @@
     $o .= sprintf "%s:-:-:-:%d      FMUL x%d, x%d, rr;\n", $_ == 0 ? '02' : '--', $_ == 3 ? 6 : 1, $_, $_ for 0..3;
     $o .= sprintf "--:-:-:-:%d      FMUL x%d, x%d, w%d;\n", $_ == 3 ? 6 : 1, $_, $_, $_ for 0..3;
     $o .= sprintf "--:-:-:-:%d      FMUL x%d, x%d, sg%d;\n", $_ == 3 ? 6 : 1, $_, $_, $_ for 0..3;
-    $o .= "--:1:-:-:6      STG.E.128 [yp], x0;\n";
+    if ($xout) {
+        $o .= sprintf "%s:-:-:-:6      IADD dq%02d.CC, dq%02d, xo;\n--:-:-:-:6      IADD.X dq%02d, dq%02d, RZ;\n", $_ ? "--" : "04", 2 * $_, 2 * $_, 2 * $_ + 1, 2 * $_ + 1 for 0..5;
+        $o .= sprintf "--:1:-:-:%d      STG.E.WT.128 [dq%02d], x0;\n", $_ == 5 ? 6 : 1, 2 * $_ for 0..5;
+    } else { $o .= "--:1:-:-:6      STG.E.128 [yp], x0;\n"; }
     $o .= "01:-:-:-:f      EXIT;\n";
     return $o;
 </CODE>

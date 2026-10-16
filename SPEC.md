@@ -910,7 +910,11 @@ is marked a send phase, so the copy phase (`xsend`) disappears for that
 exchange: `ph_bf16x` replaces `ph_bf16` + `ph_xchg` for both hc down
 exchanges of a block and the head's. The same treatment is due for hcmix
 (z), dnnorm (on), the ssm_out K-quant GEMV (y) and the expert down GEMV
-(partials).
+(partials). Done for hcmix (`hcmixx`) and dnnorm (`dnnormx`) too: 1541
+phases per token (from 1843), 42–46 ms per token on {0, 1, 6, 3, 4, 5} — the
+PCH die still sets the pace (the fence after each producer's peer writes now
+shows up in the producer: bf16hcx 40 µs, hcmixx 20, and the wait in the
+consumer: actq256 57 µs).
 **Flag-array grid barrier:** no atomics and no last-arriver release: thread 0
 of every CTA writes the generation it arrives at (`GEN`, shared memory
 0xbf78, seeded from `ctl[1]`, +1 per phase, mirrored back by CTA 0) to

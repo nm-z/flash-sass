@@ -115,6 +115,22 @@ void ph_gemv_any(prog_t *P, uint32_t type, int K, CUdeviceptr W, CUdeviceptr Xq,
 }
 
 /* ---- exchange ---- */
+/* hcmix / dnnorm variants whose output lands in every die's inbox slot (HC_XOUT / DN_XOUT ops) */
+CUdeviceptr ph_hcx(prog_t *P, const xchg_t *x, int op, CUdeviceptr P0, CUdeviceptr P1, unsigned n, unsigned us, unsigned units, unsigned myoff) {
+	unsigned slot = (unsigned)(P->xj & 1) * XSLOT;
+	phase_t *p = prog_add(P, op, units);
+	ph_ptr(p, 0x140, P0); ph_ptr(p, 0x148, P1); ph_ptr(p, 0x150, x->xtab); ph_u32(p, 0x158, n); ph_u32(p, 0x15c, us); ph_u32(p, 0x160, slot + myoff);
+	p->w[30] |= 1; P->pending_wait = 1; P->xj++;
+	return x->inbox + slot;
+}
+CUdeviceptr ph_dnnormx(prog_t *P, const xchg_t *x, CUdeviceptr O, CUdeviceptr W, CUdeviceptr G, float eps, unsigned heads, unsigned myoff) {
+	unsigned slot = (unsigned)(P->xj & 1) * XSLOT;
+	phase_t *p = prog_add(P, OP_DNNORMX, heads);
+	ph_ptr(p, 0x140, O); ph_ptr(p, 0x148, W); ph_ptr(p, 0x150, G); ph_ptr(p, 0x158, x->xtab); ph_f32(p, 0x160, eps); ph_u32(p, 0x168, slot + myoff);
+	p->w[30] |= 1; P->pending_wait = 1; P->xj++;
+	return x->inbox + slot;
+}
+
 /* a GEMV whose rows go straight into every die's inbox slot (op built with GEMV_XOUT): the
    phase is a send, the next phase waits; returns the gathered slot */
 CUdeviceptr ph_bf16x(prog_t *P, const xchg_t *x, int op, CUdeviceptr W, CUdeviceptr X, unsigned rows, unsigned myoff) {
@@ -165,8 +181,7 @@ static CUdeviceptr ph_hc_read(prog_t *P, const split_t *s, const xchg_t *x, CUde
 	CUdeviceptr DOWN = ph_bf16x(P, x, OP_BF16HCX, dj, b->xh, (unsigned)s->djn, 4u * (unsigned)s->dj0);   /* down ++ inject rows straight into every die's slot */
 	ph_hc(P, OP_HCSILU, DOWN, b->t, 0, 324, 320, 2);
 	ph_bf16(P, OP_BF16K320, up, b->t, b->lup, 4 * cols, 0);
-	ph_hc(P, OP_HCMIX, b->lup, b->xh + 4u * 32u * (unsigned)s->cb0, b->lz, cols, 4 * cols, (cols + 255) / 256);
-	CUdeviceptr Z = ph_xchg(P, x, s->d, s->n, b->lz, 4 * cols, 4u * 32u * (unsigned)s->cb0, 4 * 2560);
+	CUdeviceptr Z = ph_hcx(P, x, OP_HCMIXX, b->lup, b->xh + 4u * 32u * (unsigned)s->cb0, cols, 4 * cols, (cols + 255) / 256, 4u * 32u * (unsigned)s->cb0);   /* the die's z columns straight into every die's slot */
 	ph_actq(P, OP_ACTQ256, Z, b->zq, b->zs32, b->zs16, b->zas, 256, 10);
 	return Z;
 }
@@ -233,8 +248,7 @@ void prog_head(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t 
 	CUdeviceptr DOWN = ph_bf16x(P, x, OP_BF16HCX, w->output_hc_down, b->xh, (unsigned)s->hdn, 4u * (unsigned)s->hd0);
 	ph_hc(P, OP_HCSILU, DOWN, b->t, 0, 320, 320, 2);
 	ph_bf16(P, OP_BF16K320, w->output_hc_up, b->t, b->lup, 4 * cols, 0);
-	ph_hc(P, OP_HCMIX, b->lup, b->xh + 4u * 32u * (unsigned)s->cb0, b->lz, cols, 4 * cols, (cols + 255) / 256);
-	CUdeviceptr Z = ph_xchg(P, x, s->d, s->n, b->lz, 4 * cols, 4u * 32u * (unsigned)s->cb0, 4 * 2560);
+	CUdeviceptr Z = ph_hcx(P, x, OP_HCMIXX, b->lup, b->xh + 4u * 32u * (unsigned)s->cb0, cols, 4 * cols, (cols + 255) / 256, 4u * 32u * (unsigned)s->cb0);   /* the die's z columns straight into every die's slot */
 	ph_actq(P, OP_ACTQ256, Z, b->zq, b->zs32, b->zs16, b->zas, 256, 10);
 	ph_gemv_any(P, GG_Q5_K, 2560, w->output, b->zq, b->zs32, b->zs16, b->hlo, (unsigned)s->on, b->zas, 0, 0);
 	phase_t *p = prog_add(P, OP_ARGMAX, 16);
@@ -272,8 +286,7 @@ void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_
 	ph_bf16(P, OP_BF16BIAS, w->ssm_ab, Z, b->la, 2u * (unsigned)s->hn, w->ssm_ab_bias);
 	ph_conv1d(P, b->lqkv, b->conv_state, w->ssm_conv1d, b->lu, t, nloc);
 	ph_dnstep(P, b->dn_state, b->lu, b->lu + 512u * (unsigned)s->nk, b->lu + 1024u * (unsigned)s->nk, b->la, b->la + 4u * (unsigned)s->hn, w->ssm_a, b->lo, eps, (unsigned)s->h0, (unsigned)s->klo, (unsigned)s->hn);
-	ph_dnnorm(P, b->lo, w->ssm_norm, b->lgate, b->lon, eps, (unsigned)s->hn);
-	CUdeviceptr ON = ph_xchg(P, x, s->d, s->n, b->lon, 4 * hrows, 4u * 128u * (unsigned)s->h0, 4 * 6144);
+	CUdeviceptr ON = ph_dnnormx(P, x, b->lo, w->ssm_norm, b->lgate, eps, (unsigned)s->hn, 4u * 128u * (unsigned)s->h0);
 	ph_actq(P, OP_ACTQ256, ON, b->oq, b->os32, b->os16, b->oas, 256, 24);
 	ph_gemv_any(P, w->ssm_out_type, 6144, w->ssm_out, b->oq, b->os32, b->os16, b->ly, (unsigned)s->yn, b->oas, 0, 0);
 	CUdeviceptr Y = ph_xchg(P, x, s->d, s->n, b->ly, 4u * (unsigned)s->yn, 4u * (unsigned)s->y0, 4 * 2560);

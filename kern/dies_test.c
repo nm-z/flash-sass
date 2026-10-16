@@ -345,7 +345,7 @@ int main(int argc, char **argv) {
 			}
 			snprintf(what, sizeof what, "t"); bad += cmpbuf(what, hb->t, db[d].t, 4 * 324, 4);
 			for (int l = 0; l < 4; l++) { snprintf(what, sizeof what, "lup%d", l); bad += cmpbuf(what, hb->up + 2560 * l + 32 * s->cb0, db[d].lup + 4u * 32u * (unsigned)(s->cbn * l), 4u * 32u * (unsigned)s->cbn, 4); }
-			bad += cmpbuf("lz", hb->z + 32 * s->cb0, db[d].lz, 4u * 32u * (unsigned)s->cbn, 4);
+			/* lz and lon land in the inbox slots now (hcmixx, dnnormx): checked through zq and oq */
 			bad += cmpbuf("zq", hb->zq, db[d].zq, 2 * 2560, 2);
 			if (is_attn) {
 				if (d == attn_die()) {
@@ -368,7 +368,6 @@ int main(int argc, char **argv) {
 				bad += cmpbuf("lu.q", hb->u + 128 * s->klo, db[d].lu, 4 * 128 * nk, 4);
 				bad += cmpbuf("lu.v", hb->u + 4096 + 128 * s->h0, db[d].lu + 4 * 256 * nk, 4 * 128 * hn, 4);
 				bad += cmpbuf("lo", hb->o + 128 * s->h0, db[d].lo, 4 * 128 * hn, 4);
-				bad += cmpbuf("lon", hb->on + 128 * s->h0, db[d].lon, 4 * 128 * hn, 4);
 				bad += cmpbuf("oq", hb->oq, db[d].oq, 2 * 6144, 2);
 				bad += cmpbuf("ly", hb->y + s->y0, db[d].ly, 4u * (unsigned)s->yn, 4);
 			}

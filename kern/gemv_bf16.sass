@@ -71,7 +71,7 @@
     if ($NS > 1) { $o .= sprintf "    %d,%d : xp<0-1>\n", $p + 6, $p + 7; }
     else         { $o .= sprintf "    %d,%d : xp<0-1>\n", $wbase, $wbase + 1; }
     # GEMV_XOUT: the six inbox destinations (TAB bases + xoff + 4 row)
-    if ($ENV{GEMV_XOUT}) { my $q = $NS > 1 ? $p + 8 : $p + 6; $o .= sprintf "    %d-%d : dq<00-11>\n", $q, $q + 11; }
+    if ($ENV{GEMV_XOUT}) { my $q = $NS > 1 ? $p + 8 : $p + 6; $o .= sprintf "    %d-%d : dq<00-11>\n", $q, $q + 11; $o .= sprintf "    %d : xo\n", $q + 12; }
     # prologue temporaries alias the weight registers
     $o .= sprintf "    %d : lane\n    %d : grp\n    %d : tid\n    %d : bid\n    %d : off\n    %d : t0\n    %d : t1\n",
         $wbase + 2, $wbase + 3, $wbase + 4, $wbase + 5, $wbase + 6, $wbase + 7, $wbase + 8;
@@ -136,8 +136,10 @@
     $o .= "--:-:-:-:6      IADD.X wp1, RZ, param_W1;\n";
     # yp = Y + 4 row (xout: t1 = XOFF + 4 row, added to the six bases below)
     $o .= "--:-:-:-:6      SHL t1, row, 0x2;\n";
-    if ($xout) { $o .= "--:-:-:-:6      IADD t1, t1, param_XOFF;\n"; }
-    else {
+    if ($xout) {   # xo = XOFF + 4 row (its own register: t1 is reused for the activation pointer below)
+        $o .= "--:-:-:-:6      SHL xo, row, 0x2;\n";
+        $o .= "--:-:-:-:6      IADD xo, xo, param_XOFF;\n";
+    } else {
         $o .= "--:-:-:-:6      IADD yp0.CC, t1, param_Y0;\n";
         $o .= "--:-:-:-:6      IADD.X yp1, RZ, param_Y1;\n";
     }
@@ -151,7 +153,7 @@
     $o .= "--:-:-:-:6      IADD.X xp1, RZ, param_X1;\n";
     $o .= $xload->(0, 1) if $NS == 1;     # resident for the whole kernel
     if ($xout) {
-        $o .= sprintf "%s:-:-:-:6      IADD dq%02d.CC, dq%02d, t1;\n--:-:-:-:6      IADD.X dq%02d, dq%02d, RZ;\n", $_ ? "--" : "02", 2 * $_, 2 * $_, 2 * $_ + 1, 2 * $_ + 1 for 0..5;
+        $o .= sprintf "%s:-:-:-:6      IADD dq%02d.CC, dq%02d, xo;\n--:-:-:-:6      IADD.X dq%02d, dq%02d, RZ;\n", $_ ? "--" : "02", 2 * $_, 2 * $_, 2 * $_ + 1, 2 * $_ + 1 for 0..5;
     }
     $o .= "\nLOOP:\n";
     $o .= $xload->(0, 0) if $NS > 1;      # slice 0 of this row

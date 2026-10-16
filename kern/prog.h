@@ -56,6 +56,8 @@ typedef struct {
  * for all parts: two phases; returns the slot's address in this die's inbox */
 CUdeviceptr ph_xchg(prog_t *P, const xchg_t *x, int me, int ndies, CUdeviceptr src, unsigned nbytes, unsigned myoff, unsigned total);   /* total: bytes the slot holds once every part arrived */
 CUdeviceptr ph_bf16x(prog_t *P, const xchg_t *x, int op, CUdeviceptr W, CUdeviceptr X, unsigned rows, unsigned myoff);   /* a GEMV_XOUT op: rows land in every die's slot */
+CUdeviceptr ph_hcx(prog_t *P, const xchg_t *x, int op, CUdeviceptr P0, CUdeviceptr P1, unsigned n, unsigned us, unsigned units, unsigned myoff);
+CUdeviceptr ph_dnnormx(prog_t *P, const xchg_t *x, CUdeviceptr O, CUdeviceptr W, CUdeviceptr G, float eps, unsigned heads, unsigned myoff);
 /* end of a token program that loops in the kernel: an odd exchange count would make the
  * last exchange of one token and the first of the next share a slot, so pad with an empty one */
 void prog_token_end(prog_t *P, const xchg_t *x, int me, int ndies, CUdeviceptr any);

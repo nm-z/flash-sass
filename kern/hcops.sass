@@ -18,6 +18,7 @@
     param_P21 : c[0x0][0x154]
     param_n   : c[0x0][0x158]
     param_us  : c[0x0][0x15c]
+    param_xoff : c[0x0][0x160]
 </CONSTANT_MAPPING>
 
 <REGISTER_MAPPING>
@@ -52,6 +53,8 @@
     44,45 : a1<0-1>
     46,47 : a2<0-1>
     48,49 : a3<0-1>
+    50-61 : dq<00-11>
+    62    : xo
 </REGISTER_MAPPING>
 
 <CODE>
@@ -59,6 +62,7 @@
     my %C = map { $_ => $_ } qw(log2e ln2hi ln2lo c720 c120 c24 c6 c11 c9 c7 c5 c3 mneg1 chalf cone);
     my $op = $ENV{HC_OP} || 'mix';
     my $o = '';
+    my $xout = $ENV{HC_XOUT} ? 1 : 0;   # mix: z goes to every die's inbox (TAB at P2 + xoff + 4 i); the phase is a send
     $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
     $o .= "--:-:6:-:1      S2R bid, SR_CTAID.X;\n";
     $o .= fm_consts(\%C);
@@ -73,8 +77,15 @@
     $o .= "--:-:-:-:6      IADD.X ap1, RZ, param_P01;\n";
     $o .= "--:-:-:-:6      IADD bp0.CC, t, param_P10;\n";
     $o .= "--:-:-:-:6      IADD.X bp1, RZ, param_P11;\n";
-    $o .= "--:-:-:-:6      IADD cp0.CC, t, param_P20;\n";
-    $o .= "--:-:-:-:6      IADD.X cp1, RZ, param_P21;\n";
+    if ($xout) {
+        $o .= "--:-:-:-:6      MOV cp0, param_P20;\n";
+        $o .= "--:-:-:-:6      MOV cp1, param_P21;\n";
+        $o .= sprintf "--:-:4:-:%d      LDG.E.64 dq%02d, [cp+0x%x];\n", $_ == 5 ? 2 : 1, 2 * $_, 8 * $_ for 0..5;
+        $o .= "--:-:-:-:6      IADD xo, t, param_xoff;\n";
+    } else {
+        $o .= "--:-:-:-:6      IADD cp0.CC, t, param_P20;\n";
+        $o .= "--:-:-:-:6      IADD.X cp1, RZ, param_P21;\n";
+    }
     $o .= "--:-:-:-:6  \@P2 EXIT;\n";
     if ($op eq 'silu') {
         # elements [m, n) are copied unchanged (the 4 inject values that ride along
@@ -105,7 +116,10 @@
         $o .= "--:-:-:-:6      FMUL acc, g0, x0;\n";
         $o .= sprintf "--:-:-:-:6      FFMA acc, g%d, x%d, acc;\n", $_, $_ for 1..3;
         $o .= "--:-:-:-:6      FMUL acc, acc, 0.25;\n";
-        $o .= "--:2:-:-:1 \@!P0 STG.E [cp], acc;\n";
+        if ($xout) {
+            $o .= sprintf "%s:-:-:-:6      IADD dq%02d.CC, dq%02d, xo;\n--:-:-:-:6      IADD.X dq%02d, dq%02d, RZ;\n", $_ ? "--" : "04", 2 * $_, 2 * $_, 2 * $_ + 1, 2 * $_ + 1 for 0..5;
+            $o .= sprintf "--:2:-:-:1 \@!P0 STG.E.WT [dq%02d], acc;\n", 2 * $_ for 0..5;
+        } else { $o .= "--:2:-:-:1 \@!P0 STG.E [cp], acc;\n"; }
     } else {   # write
         $o .= "--:-:-:-:6      MOV ap0, param_P00;\n";                   # inj: the same 4 words for every thread
         $o .= "--:-:-:-:6      MOV ap1, param_P01;\n";
