@@ -61,4 +61,11 @@ void q4_k_scale_min(const uint8_t *sc, int j, int *scale, int *min);
  * butterfly over L lanes; * xscale. */
 void gemv_q4_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, float xscale, float *y);
 
+/* Q5_K tile: Q4_K tile followed by per block 8 x 4 B high-bit words (bit e of word j =
+ * high bit of element e of sub-block j). Row stride 176 B per block. */
+int q5_k_tile_stride(int K);
+int repack_q5_k(const uint8_t *src, int rows, int K, uint8_t *dst);
+/* GPU order as gemv_q4_k_ref with dot = sum (q4 + 16 h) a */
+void gemv_q5_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, float xscale, float *y);
+
 #endif

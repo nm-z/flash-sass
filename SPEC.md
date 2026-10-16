@@ -286,6 +286,49 @@ head and runs slower (811 MHz measured), so it gets fewer blocks.
   reduction that silently used stale shuffle results.
 - Reference decoders for all 13 formats decode the real tensors without NaN and
   with plausible statistics (`ref/ref_test`).
+- **K-quants (2026-10-16 evening)**: `kern/gemv_q4_k.sass` is one generator for
+  Q4_K and Q5_K (`GEMV_FMT=q5_k`, assembled into the `gemv_q5_k` skeleton). The
+  tile is sub-block-major (`repack_q4_k`/`repack_q5_k`): per block a 16 B header
+  (d, dmin, 12 scale bytes), 8 × 16 B of nibbles (sub-block j, element 2i low /
+  2i+1 high), and for Q5_K 8 × 4 B words of high bits (bit e = element e). A
+  lane owns sub-block `lane & 7` of blocks `lane >> 3 + (L/8) i`; per sub-block it
+  decodes the 6-bit scale/min with predicated ops (`P3 = j >= 4`), streams the
+  nibbles as masked 16-bit fields through XMAD.U16.S16 into 8 accumulators, and
+  for Q5_K streams `qh >> t` (t = 0..3) with 1-bit masks into 8 more, then
+  `dot += dh << 4`. Bit-exact on every tensor tried: Q4_K `blk.0.attn_gate`
+  (6144 rows), `blk.3.attn_output` and `blk.1.ssm_out` (K = 6144), `attn_k`;
+  Q5_K `blk.3.attn_v`, `blk.0.ssm_out` (K = 6144) and **`output.weight`, all
+  248,320 rows, at 137.9 GB/s** (437 MB in 3.17 ms, grid 64 or 96). Registers:
+  168/192 (Q4_K K = 2560/6144), 186/212 (Q5_K); 1 CTA/SM in every case, which
+  is enough: the K=2560 kernels sit at the 140 GB/s ceiling. Small tensors
+  (≤ 11 MB) report 70–75 GB/s because a 120 µs launch never fills the device;
+  that is a launch artefact, irrelevant to the persistent kernel.
+- MaxAs research notes (haiku agent, 2026-10-16), kept here so they are not
+  re-derived: control word = 21 bits per instruction (stall 4 | yield 1 | wbar 3 |
+  rbar 3 | wait 6 | reuse 4); yield is raw bit 4, printed `Y`; "barriers take one
+  extra clock to become active" is the documented form of our measured stall ≥ 2
+  rule; predicate producers are modelled with latency 13 (we measured ~18 to a
+  branch). Operand reuse: the flag goes on the *earlier* reader, the cache is
+  2-way per operand slot (8 bytes), source `.reuse` tags are ignored unless `-n`,
+  and MaxAs's pass ignores predicates and does not treat labels as boundaries;
+  nothing documents whether a write invalidates a cached operand on Maxwell.
+  Our loops are bit-exact with and without automatic reuse over 1.9 M rows, so
+  the default builds keep it; a kernel that misbehaves gets a `-n` build as the
+  first experiment. Known MaxAs bugs: TODO opcodes (IMAD, IMUL, DEPBAR with
+  non-LE comparators) assemble silently with zero opcode bits; the register count
+  ignores vector widths (a 128-bit destination at the top of the file would be
+  undercounted — our maps put scalars last); the stall-table entries 12–15 are
+  unreliable (two sources disagree) — we never use stalls above 6 except `f` on
+  EXIT; `SCHEDULE_BLOCK` reorders only by register dependencies (no barriers, no
+  memory order), so we do not use it.
+- Register-bank note: in the K-quant streams the mask for field v and the
+  activation register of the same XMAD share a bank for 2 of every 8 XMADs, and
+  the combine's `acc_v + acc_{v+4}` pairs share banks (MaxAs reports 187
+  conflicts for Q5_K K = 6144). A conflict-free assignment exists (masks in banks
+  1,3,0,2; accumulators 2,1,3,0 / 3,0,2,1; high-bit sources `qh >> 4t` with masks
+  `1 << v`). Not done: the kernels are at the memory ceiling, and per token the
+  whole model's MACs are ~0.6 ms of issue time per die against ~4 ms of memory
+  time.
 
 ### Matvec shapes in the file (K = contiguous dimension)
 

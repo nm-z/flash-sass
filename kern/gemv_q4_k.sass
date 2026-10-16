@@ -1,25 +1,31 @@
 # Kernel: gemv_q4_k
 #
-# y[r] = xs * sum_k W[r][k] x[k] for a Q4_K row tile (see ref/quant.h: per block a
-# 16 B header {fp16 d, fp16 dmin, u8 scales[12]} and 8 x 16 B of sub-block-major
-# nibbles). GEMV_K=2560 (default, 16 lanes x 5 sub-blocks per row) or GEMV_K=6144
-# (32 lanes x 6 sub-blocks). Activations: int16 x[K]; sums: int32 per sub-block
-# (K/32 of them). CTA = 256 threads = 256/L rows per iteration.
+# K-quant GEMV generator: GEMV_FMT=q4_k (default) or GEMV_FMT=q5_k (assemble with
+# -k gemv_q5_k into the gemv_q5_k skeleton). GEMV_K=2560 (default) or 6144.
+#
+# y[r] = xs * sum_k W[r][k] x[k] for a sub-block-major row tile (ref/quant.h):
+#   [per block 16 B header {fp16 d, fp16 dmin, u8 scales[12]}] [per block 8 x 16 B
+#   nibbles, sub-block j in bytes 16j, element 2i low / 2i+1 high nibble]
+#   q5_k adds [per block 8 x 4 B high-bit words, bit e = element e of sub-block j].
+# Row stride 144 B (q4_k) or 176 B (q5_k) per block.
+# K=2560: 16 lanes x 5 sub-blocks per row; K=6144: 32 lanes x 6. Activations: int16
+# x[K]; sums: int32 per sub-block (K/32). CTA = 256 threads = 256/L rows.
 #
 # Per sub-block s = lane + L i (block b = s>>3, sub j = lane&7, constant per lane):
-#   dot = sum_e q[e] a[e] with the nibble words masked at shifts 0,4,8,12 in both
-#   halves (XMAD.U16.S16, 8 accumulators, 1.5 issue slots per MAC),
-#   value = d * ((float)dot * (float)sc) - dmin * (float)(min * sum32[s]),
-#   accumulated with FFMA in sub-block order per lane, SHFL butterfly over L lanes.
-# The C reference gemv_q4_k_ref performs the identical sequence.
+#   dot  = sum_e q4[e] a[e]  (+ 16 sum_e h[e] a[e] for q5_k)
+#   value = d * ((float)dot * (float)sc) - dmin * (float)(min * sum32[s])
+#   accumulated with FFMA in sub-block order per lane, then a SHFL butterfly.
+# The nibble stream masks one 4-bit field per 16-bit half at shifts 0,4,8,12 and
+# feeds XMAD.U16.S16 into 8 accumulators (H0 -> acc0-3, H1 -> acc4-7); the high-bit
+# stream does the same with 1-bit fields of qh >> t (t = 0..3) at positions 4v.
+# gemv_q4_k_ref / gemv_q5_k_ref perform the identical sequence.
 #
-# Scheduling (measured rules, see SPEC): fixed-latency 6; variable-latency ops set
-# a barrier and need stall >= 2 before a dependent wait; predicates are computed at
-# the loop top, far from their consumers. The MAC stream runs at stall 1 with two
-# alternating mask sets so every dependency is >= 8 issues apart; the scalar tails
-# use stall 6 (they are a small fraction of the issue slots).
-# Barriers: 1 = row loads, 2 = address/store reads and prologue loads, 3 = I2F,
-# 4 = F2F, 5 = SHFL, 6 = S2R.
+# Scheduling rules (measured, see SPEC): fixed-latency 6; variable-latency ops set a
+# barrier and need stall >= 2 before a dependent wait; predicates are computed at
+# the loop top; a mask LOP is >= 6 issues before its XMAD (masks for word k+1 are
+# computed before word k's XMADs: distance 12); the last XMAD before a combine
+# carries stall 6. Barriers: 1 = row loads, 2 = address/store reads and prologue
+# loads, 3 = I2F, 4 = F2F, 5 = SHFL, 6 = S2R.
 #
 # Params: 0:0x140:8 W  1:0x148:8 X16  2:0x150:8 S32  3:0x158:8 Y  4:0x160:4 rows  5:0x164:4 xs  6:0x168:8 dbg
 
@@ -39,26 +45,38 @@
 
 <CODE>
     my $K = $ENV{GEMV_K} || 2560;
+    my $q5 = ($ENV{GEMV_FMT} || 'q4_k') eq 'q5_k';
     my $L = $K >= 6144 ? 32 : 16;
     my $n = ($K / 32) / $L;                 # sub-blocks per lane: 5 or 6
-    my $na = 16 * $n;                       # activation registers (16-bit pairs): 80 or 96
+    my $na = 16 * $n;                       # activation registers (int16 pairs)
     my $q = $na;                            # nibble words: 4 per sub-block
     my $h = $q + 4 * $n;                    # header words: 4 per sub-block
-    my $m = $h + 4 * $n;                    # 8 masks
+    my $m = $h + 4 * $n;                    # 8 masks (bank = index % 4)
     my $a = $m + 8;                         # 8 accumulators, bank-permuted
-    my $s = $a + 8;                         # sums, then scalars
+    my $r = $a + 8;
     my $o = "<REGISTER_MAPPING>\n";
     $o .= sprintf "    0-%d : act<00-%02d>\n", $na - 1, $na - 1;
     $o .= sprintf "    %d-%d : q<00-%02d>\n", $q, $q + 4*$n - 1, 4*$n - 1;
     $o .= sprintf "    %d-%d : hdr<00-%02d>\n", $h, $h + 4*$n - 1, 4*$n - 1;
     $o .= sprintf "    %d-%d : m<0-7>\n", $m, $m + 7;
     for my $k (0..7) { $o .= sprintf "    %d : acc%d\n", $a + (($k + 1) & 7), $k; }
-    $o .= sprintf "    %d-%d : sum<0-%d>\n", $s, $s + $n - 1, $n - 1;
+    if ($q5) {
+        for my $k (0..7) { $o .= sprintf "    %d : acch%d\n", $r + (($k + 1) & 7), $k; }
+        $r += 8;
+        $o .= sprintf "    %d-%d : qh<0-%d>\n", $r, $r + $n - 1, $n - 1;
+        $r += $n;
+        $o .= sprintf "    %d-%d : hs<1-3>\n", $r, $r + 2;
+        $r += 3;
+        $o .= sprintf "    %d : dh\n", $r++;
+    }
+    $o .= sprintf "    %d-%d : sum<0-%d>\n", $r, $r + $n - 1, $n - 1;
+    $r += $n;
     my @sc = qw(sc mn dot dotf scf t1 t2 t2f dd dm accf t u1 u2 u3 shj row rowpair rowstep stepw);
-    my $r = $s + $n;
     for my $name (@sc) { $o .= sprintf "    %d : %s\n", $r++, $name; }
     $r += $r & 1;
     $o .= sprintf "    %d,%d : hb<0-1>\n    %d,%d : cq<0-1>\n    %d,%d : yp<0-1>\n", $r, $r+1, $r+2, $r+3, $r+4, $r+5;
+    $r += 6;
+    $o .= sprintf "    %d,%d : ch<0-1>\n", $r, $r+1 if $q5;
     # prologue temporaries alias the nibble registers
     $o .= sprintf "    %d,%d : xp<0-1>\n    %d,%d : sp<0-1>\n", $q, $q+1, $q+2, $q+3;
     $o .= sprintf "    %d : lane\n    %d : grp\n    %d : tid\n    %d : bid\n    %d : off\n    %d : t0\n    %d : t1p\n    %d : l8\n    %d : jj\n",
@@ -69,21 +87,22 @@
 
 <CODE>
     my $K = $ENV{GEMV_K} || 2560;
+    my $q5 = ($ENV{GEMV_FMT} || 'q4_k') eq 'q5_k';
     my $L = $K >= 6144 ? 32 : 16;
     my $n = ($K / 32) / $L;
     my $B = $K / 256;
     my $R = 256 / $L;                       # rows per CTA iteration
-    my $S = 144 * $B;                       # row stride
+    my $S = ($q5 ? 176 : 144) * $B;         # row stride
     my $lgL = int(log($L)/log(2) + 0.5);
     my $lgR = int(log($R)/log(2) + 0.5);
     my $wrows = 32 / $L;
     my $bstep = $L / 8;                     # blocks between a lane's consecutive sub-blocks
     my $mulc = sub {
-        my ($d, $r, $c) = @_;
+        my ($d, $rr, $c) = @_;
         my @bits = grep { $c & (1 << $_) } 0..31;
         my $first = shift @bits;
-        my $x = sprintf "--:-:-:-:6      SHL %s, %s, 0x%x;\n", $d, $r, $first;
-        $x .= sprintf "--:-:-:-:6      ISCADD %s, %s, %s, 0x%x;\n", $d, $r, $d, $_ for @bits;
+        my $x = sprintf "--:-:-:-:6      SHL %s, %s, 0x%x;\n", $d, $rr, $first;
+        $x .= sprintf "--:-:-:-:6      ISCADD %s, %s, %s, 0x%x;\n", $d, $rr, $d, $_ for @bits;
         return $x;
     };
     my $o = '';
@@ -104,7 +123,7 @@
     $o .= $mulc->('stepw', 'rowstep', $S);
     $o .= sprintf "--:-:-:-:6      LOP32I.AND rowpair, row, 0x%08x;\n", (~($wrows - 1)) & 0xffffffff;
     $o .= $mulc->('off', 'row', $S);
-    # hb = W + off + 16 l8 ; cq = W + off + 16 B + 128 l8 + 16 j
+    # hb = W + off + 16 l8 ; cq = W + off + 16 B + 128 l8 + 16 j ; ch = W + off + 144 B + 32 l8 + 4 j
     $o .= "--:-:-:-:6      ISCADD t1p, l8, off, 0x4;\n";
     $o .= "--:-:-:-:6      IADD hb0.CC, t1p, param_W0;\n";
     $o .= "--:-:-:-:6      IADD.X hb1, RZ, param_W1;\n";
@@ -113,6 +132,13 @@
     $o .= sprintf "--:-:-:-:6      IADD t1p, t1p, 0x%x;\n", 16 * $B;
     $o .= "--:-:-:-:6      IADD cq0.CC, t1p, param_W0;\n";
     $o .= "--:-:-:-:6      IADD.X cq1, RZ, param_W1;\n";
+    if ($q5) {
+        $o .= "--:-:-:-:6      ISCADD t1p, l8, off, 0x5;\n";
+        $o .= "--:-:-:-:6      ISCADD t1p, jj, t1p, 0x2;\n";
+        $o .= sprintf "--:-:-:-:6      IADD t1p, t1p, 0x%x;\n", 144 * $B;
+        $o .= "--:-:-:-:6      IADD ch0.CC, t1p, param_W0;\n";
+        $o .= "--:-:-:-:6      IADD.X ch1, RZ, param_W1;\n";
+    }
     # yp = Y + 4 row
     $o .= "--:-:-:-:6      SHL t1p, row, 0x2;\n";
     $o .= "--:-:-:-:6      IADD yp0.CC, t1p, param_Y0;\n";
@@ -138,6 +164,11 @@
     for my $i (0..$n-1) {
         $o .= sprintf "--:2:1:-:1      LDG.E.CI.128 hdr%02d, [hb+0x%x];\n", 4*$i, 16*$bstep*$i;
     }
+    if ($q5) {
+        for my $i (0..$n-1) {
+            $o .= sprintf "--:2:1:-:1      LDG.E.CI qh%d, [ch+0x%x];\n", $i, 32*$bstep*$i;
+        }
+    }
     for my $i (0..$n-1) {
         $o .= sprintf "--:2:1:-:%s      LDG.E.CI.128 q%02d, [cq+0x%x];\n", $i == $n-1 ? '2' : '1', 4*$i, 128*$bstep*$i;
     }
@@ -145,6 +176,43 @@
     $o .= "--:-:-:-:1      IADD rowpair, rowpair, rowstep;\n";
     $o .= "--:-:-:-:6      MOV accf, RZ;\n";
     $o .= "--:-:-:-:2      ISETP.LT.U32.AND P1, PT, rowpair, param_rows, PT;\n";
+
+    # one masked-field MAC stream: 4 source words, 4 masks each, 8 XMADs each into
+    # accumulators $accn 0..7 (H0 -> 0-3, H1 -> 4-7); the element of (word k, field v)
+    # is $elem->($k, $v, half).
+    my $stream = sub {
+        my ($i, $src, $maskf, $accn, $elem) = @_;
+        my $x = '';
+        $x .= sprintf "--:-:-:-:%s      LOP32I.AND m%d, %s, %s;\n", $_ == 3 ? '3' : '1', $_, $src->[0], $maskf->($_) for 0..3;
+        for my $k (0..3) {
+            my $set = ($k & 1) * 4;
+            $x .= sprintf "--:-:-:-:1      LOP32I.AND m%d, %s, %s;\n", (1 - ($k & 1)) * 4 + $_, $src->[$k+1], $maskf->($_) for ($k < 3 ? (0..3) : ());
+            my @ops;
+            for my $hh (0, 1) {
+                for my $v (0..3) {
+                    my $e = $elem->($k, $v, $hh);
+                    my $acc = $accn . (4*$hh + $v);
+                    push @ops, sprintf "--:-:-:-:1      XMAD.U16.S16 %s, m%d.%s, act%02d.%s, %s;\n",
+                        $acc, $set + $v, $hh ? 'H1' : 'H0', 16*$i + int($e/2), ($e & 1) ? 'H1' : 'H0', ($k == 0 ? 'RZ' : $acc);
+                }
+            }
+            $ops[7] =~ s/^--:-:-:-:1/--:-:-:-:6/ if $k == 3;   # the combine reads acc4 next
+            $x .= $_ for @ops;
+        }
+        return $x;
+    };
+    # combine 8 accumulators into $dst = sum_v (acc_v + acc_{4+v}) >> 4v
+    my $combine = sub {
+        my ($accn, $dst) = @_;
+        my $x = '';
+        $x .= sprintf "--:-:-:-:6      IADD %s%d, %s%d, %s%d;\n", $accn, $_, $accn, $_, $accn, $_ + 4 for 0..3;
+        $x .= sprintf "--:-:-:-:6      SHR %s%d, %s%d, 0x%x;\n", $accn, $_, $accn, $_, 4*$_ for 1..3;
+        $x .= sprintf "--:-:-:-:6      IADD %s, %s0, %s1;\n", $dst, $accn, $accn;
+        $x .= sprintf "--:-:-:-:6      IADD %s2, %s2, %s3;\n", $accn, $accn, $accn;
+        $x .= sprintf "--:-:-:-:6      IADD %s, %s, %s2;\n", $dst, $dst, $accn;
+        return $x;
+    };
+
     for my $i (0..$n-1) {
         my $h0 = sprintf "hdr%02d", 4*$i;
         my $h1 = sprintf "hdr%02d", 4*$i + 1;
@@ -172,39 +240,25 @@
         $o .= "--:-:3:-:1      I2F.F32.S32 scf, sc;\n";
         $o .= sprintf "--:-:-:-:6      XMAD.U16.S16 t2, mn, sum%d, RZ;\n", $i;
         $o .= "--:-:3:-:2      I2F.F32.S32 t2f, t2;\n";
-        # nibble MAC stream: word k holds elements 8k..8k+7 at 4-bit fields; mask shift
-        # 4u isolates element 8k+u (H0) and 8k+4+u (H1); accumulators 0-3 take H0, 4-7 H1.
+        # nibble stream: word k holds elements 8k..8k+7 at 4-bit fields
         my @w = map { sprintf "q%02d", 4*$i + $_ } 0..3;
-        my $mask = sub { my $u = shift; sprintf "0x%08x", (0x000F000F << (4*$u)) & 0xffffffff };
-        $o .= sprintf "--:-:-:-:%s      LOP32I.AND m%d, %s, %s;\n", $_ == 3 ? '3' : '1', $_, $w[0], $mask->($_) for 0..3;
-        for my $k (0..3) {
-            my $set = ($k & 1) * 4;
-            my @ops;
-            for my $u (0..3) {
-                my $e0 = 8*$k + $u;
-                push @ops, sprintf "--:-:-:-:1      XMAD.U16.S16 acc%d, m%d.H0, act%02d.%s, %s;\n", $u, $set + $u, 16*$i + int($e0/2), ($e0 & 1) ? 'H1' : 'H0', ($k == 0 ? 'RZ' : "acc$u");
-            }
-            for my $u (0..3) {
-                my $e1 = 8*$k + 4 + $u;
-                push @ops, sprintf "--:-:-:-:1      XMAD.U16.S16 acc%d, m%d.H1, act%02d.%s, %s;\n", 4 + $u, $set + $u, 16*$i + int($e1/2), ($e1 & 1) ? 'H1' : 'H0', ($k == 0 ? 'RZ' : 'acc' . (4 + $u));
-            }
-            # masks for the next word first (12 issues before their use), then this word's 8 XMADs
-            $o .= sprintf "--:-:-:-:1      LOP32I.AND m%d, %s, %s;\n", (1 - ($k & 1)) * 4 + $_, $w[$k+1], $mask->($_) for ($k < 3 ? (0..3) : ());
-            # the combine below reads acc4 right after the last XMAD wrote it: stall 6 there
-            $ops[7] =~ s/^--:-:-:-:1/--:-:-:-:6/ if $k == 3;
-            $o .= $_ for @ops;
+        $o .= $stream->($i, \@w, sub { sprintf "0x%08x", (0x000F000F << (4*$_[0])) & 0xffffffff },
+                        'acc', sub { my ($k, $v, $hh) = @_; 8*$k + 4*$hh + $v });
+        if ($q5) {
+            # high-bit stream: source t = qh >> t; field 4v of H0/H1 is element 4v+t / 16+4v+t
+            my $qh = "qh$i";
+            $o .= sprintf "--:-:-:-:1      SHR.U32 hs1, %s, 0x1;\n", $qh;
+            $o .= sprintf "--:-:-:-:1      SHR.U32 hs2, %s, 0x2;\n", $qh;
+            $o .= sprintf "--:-:-:-:6      SHR.U32 hs3, %s, 0x3;\n", $qh;
+            $o .= $stream->($i, [$qh, 'hs1', 'hs2', 'hs3'], sub { sprintf "0x%08x", (0x00010001 << (4*$_[0])) & 0xffffffff },
+                            'acch', sub { my ($k, $v, $hh) = @_; 16*$hh + 4*$v + $k });
         }
-        # combine: dot = sum_u (acc_u + acc_{4+u}) >> 4u   (stall 6: last writers are close)
-        $o .= "--:-:-:-:6      IADD acc0, acc0, acc4;\n";
-        $o .= "--:-:-:-:6      IADD acc1, acc1, acc5;\n";
-        $o .= "--:-:-:-:6      IADD acc2, acc2, acc6;\n";
-        $o .= "--:-:-:-:6      IADD acc3, acc3, acc7;\n";
-        $o .= "--:-:-:-:6      SHR acc1, acc1, 0x4;\n";
-        $o .= "--:-:-:-:6      SHR acc2, acc2, 0x8;\n";
-        $o .= "--:-:-:-:6      SHR acc3, acc3, 0xc;\n";
-        $o .= "--:-:-:-:6      IADD dot, acc0, acc1;\n";
-        $o .= "--:-:-:-:6      IADD acc2, acc2, acc3;\n";
-        $o .= "--:-:-:-:6      IADD dot, dot, acc2;\n";
+        $o .= $combine->('acc', 'dot');
+        if ($q5) {
+            $o .= $combine->('acch', 'dh');
+            $o .= "--:-:-:-:6      SHL dh, dh, 0x4;\n";
+            $o .= "--:-:-:-:6      IADD dot, dot, dh;\n";
+        }
         $o .= "--:-:3:-:6      I2F.F32.S32 dotf, dot;\n";
         $o .= "0c:-:-:-:6      FMUL t1, dotf, scf;\n";
         $o .= "--:-:-:-:6      FFMA accf, dd, t1, accf;\n";
@@ -222,6 +276,10 @@
     $o .= "--:-:-:-:6      IADD.X hb1, hb1, RZ;\n";
     $o .= "--:-:-:-:6      IADD cq0.CC, cq0, stepw;\n";
     $o .= "--:-:-:-:6      IADD.X cq1, cq1, RZ;\n";
+    if ($q5) {
+        $o .= "--:-:-:-:6      IADD ch0.CC, ch0, stepw;\n";
+        $o .= "--:-:-:-:6      IADD.X ch1, ch1, RZ;\n";
+    }
     $o .= "--:-:-:-:6      SHL t, rowstep, 0x2;\n";
     $o .= "--:-:-:-:6      IADD yp0.CC, yp0, t;\n";
     $o .= "--:-:-:-:6      IADD.X yp1, yp1, RZ;\n";

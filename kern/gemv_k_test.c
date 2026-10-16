@@ -1,12 +1,13 @@
 /*
  * gemv_k_test: K-quant GEMV kernels on real tensors, bit-exact against the C
- * reference in the kernel's accumulation order. Currently Q4_K.
+ * reference in the kernel's accumulation order. Q4_K and Q5_K.
  *
  *   gemv_k_test SHARD1 [tensor] [iters]
  *
- * Default tensor blk.3.attn_output.weight (Q4_K, K=6144, 2560 rows). K=2560
- * examples: blk.7.ssm_out... use any Q4_K tensor with K = 2560 or 6144, e.g.
- * blk.12.attn_qkv.weight. GEMV_GRID caps the grid (persistent-style looping).
+ * Default tensor blk.3.attn_output.weight (Q4_K, K=6144, 2560 rows). Any Q4_K or
+ * Q5_K tensor with K = 2560 or 6144 works, e.g. output.weight (Q5_K, 248320 rows)
+ * or blk.0.ssm_out.weight (Q5_K, K=6144). GEMV_GRID caps the grid
+ * (persistent-style looping).
  */
 #define _POSIX_C_SOURCE 200809L
 #include "gguf.h"
@@ -35,27 +36,29 @@ int main(int argc, char **argv) {
 	if (gguf_open(&g, argv[1])) return 1;
 	const gguf_tensor *t = gguf_find(&g, tname);
 	if (!t || !t->data) { fprintf(stderr, "%s: not found\n", tname); return 1; }
-	if (t->type != GG_Q4_K) { fprintf(stderr, "%s is %s; only Q4_K so far\n", tname, gguf_type_name(t->type)); return 1; }
+	if (t->type != GG_Q4_K && t->type != GG_Q5_K) { fprintf(stderr, "%s is %s; only Q4_K and Q5_K so far\n", tname, gguf_type_name(t->type)); return 1; }
+	int q5 = t->type == GG_Q5_K, gblk = q5 ? 176 : 144;
 	int K = (int)t->dims[0], rows = (int)(t->elems / K);
 	if (K != 2560 && K != 6144) { fprintf(stderr, "kernels exist for K=2560 and K=6144, tensor has K=%d\n", K); return 1; }
-	int L = q4_k_lanes_per_row(K), RPC = 256 / L, stride = q4_k_tile_stride(K);
-	printf("%s: Q4_K K=%d rows=%d (%.1f MB), %d lanes per row, tile stride %d\n", tname, K, rows, (double)rows * stride / 1e6, L, stride);
+	int L = q4_k_lanes_per_row(K), RPC = 256 / L, stride = q5 ? q5_k_tile_stride(K) : q4_k_tile_stride(K);
+	printf("%s: %s K=%d rows=%d (%.1f MB), %d lanes per row, tile stride %d\n", tname, gguf_type_name(t->type), K, rows, (double)rows * stride / 1e6, L, stride);
 
 	/* repack and check the tile against the standard dequantiser on a few rows */
 	uint8_t *tile = malloc((size_t)stride * rows);
 	double t0 = now();
-	repack_q4_k(t->data, rows, K, tile);
+	if (q5) repack_q5_k(t->data, rows, K, tile); else repack_q4_k(t->data, rows, K, tile);
 	double t1 = now();
 	{
 		float *a = malloc(sizeof(float) * K), *b = malloc(sizeof(float) * K);
 		int bad = 0, B = K / 256;
 		for (int r = 0; r < rows && r < 7; r += 3) {
-			dequant(GG_Q4_K, t->data + (size_t)r * B * 144, a, K);
-			const uint8_t *hdr = tile + (size_t)r * stride, *codes = hdr + 16 * B;
+			dequant(t->type, t->data + (size_t)r * B * gblk, a, K);
+			const uint8_t *hdr = tile + (size_t)r * stride, *codes = hdr + 16 * B, *hb = hdr + 144 * B;
 			for (int e = 0; e < K; e++) {
 				int s = e / 32, blk = s >> 3, j = s & 7, sc, mn;
 				q4_k_scale_min(hdr + 16 * blk + 4, j, &sc, &mn);
 				int q = (codes[128 * blk + 16 * j + ((e & 31) >> 1)] >> (4 * (e & 1))) & 0xF;
+				if (q5) { uint32_t hw; memcpy(&hw, hb + 32 * blk + 4 * j, 4); q += 16 * ((hw >> (e & 31)) & 1); }
 				uint16_t dh, mh;
 				memcpy(&dh, hdr + 16 * blk, 2); memcpy(&mh, hdr + 16 * blk + 2, 2);
 				b[e] = fp16_to_fp32(dh) * sc * q - fp16_to_fp32(mh) * mn;
@@ -81,7 +84,7 @@ int main(int argc, char **argv) {
 	for (int k = 0; k < K; k++) x16[k] = xq[k];
 	float *yref = malloc(sizeof(float) * rows), *y = malloc(sizeof(float) * rows);
 	t0 = now();
-	gemv_q4_k_ref(tile, rows, K, xq, sum32, xs, yref);
+	if (q5) gemv_q5_k_ref(tile, rows, K, xq, sum32, xs, yref); else gemv_q4_k_ref(tile, rows, K, xq, sum32, xs, yref);
 	t1 = now();
 	printf("reference %.1f ms\n", (t1 - t0) * 1e3);
 
@@ -90,9 +93,9 @@ int main(int argc, char **argv) {
 	CK(cuDeviceGet(&dev, 0));
 	CK(cuCtxCreate_v2(&ctx, CU_CTX_SCHED_SPIN, dev));
 	char cubin[64];
-	snprintf(cubin, sizeof cubin, "gemv_q4_k_k%d.cubin", K);
+	snprintf(cubin, sizeof cubin, "gemv_q%d_k_k%d.cubin", q5 ? 5 : 4, K);
 	CK(cuModuleLoad(&mod, cubin));
-	CK(cuModuleGetFunction(&fn, mod, "gemv_q4_k"));
+	CK(cuModuleGetFunction(&fn, mod, q5 ? "gemv_q5_k" : "gemv_q4_k"));
 	int nregs, maxb;
 	CK(cuFuncGetAttribute(&nregs, CU_FUNC_ATTRIBUTE_NUM_REGS, fn));
 	CK(cuOccupancyMaxActiveBlocksPerMultiprocessor(&maxb, fn, 256, 0));
