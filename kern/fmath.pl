@@ -115,4 +115,47 @@ sub fm_softplus {
     return $o;
 }
 
+# In-place exp: x = exp(clamp(x)); only two temps, so several chains can be
+# interleaved with fm_zip. Same operations as fm_exp (bit-identical results).
+sub fm_exp_ip {
+    my ($x, $ta, $tb, $C) = @_;
+    my $o = '';
+    $o .= sprintf "--:-:-:-:6      FMNMX %s, %s, 87, PT;\n", $x, $x;
+    $o .= sprintf "--:-:-:-:6      FMNMX %s, %s, -87, !PT;\n", $x, $x;
+    $o .= sprintf "--:-:-:-:6      FMUL %s, %s, %s;\n", $ta, $x, $C->{log2e};
+    $o .= sprintf "--:-:-:-:6      FADD %s, %s, 12582912;\n", $tb, $ta;
+    $o .= sprintf "--:-:-:-:6      FADD %s, %s, -12582912;\n", $tb, $tb;
+    $o .= sprintf "--:-:-:-:6      FFMA %s, %s, -%s, %s;\n", $x, $tb, $C->{ln2hi}, $x;
+    $o .= sprintf "--:-:-:-:6      FFMA %s, %s, -%s, %s;\n", $x, $tb, $C->{ln2lo}, $x;
+    $o .= sprintf "--:-:-:-:6      FFMA %s, %s, %s, %s;\n", $ta, $C->{c720}, $x, $C->{c120};
+    $o .= sprintf "--:-:-:-:6      FFMA %s, %s, %s, %s;\n", $ta, $ta, $x, $C->{c24};
+    $o .= sprintf "--:-:-:-:6      FFMA %s, %s, %s, %s;\n", $ta, $ta, $x, $C->{c6};
+    $o .= sprintf "--:-:-:-:6      FFMA %s, %s, %s, %s;\n", $ta, $ta, $x, $C->{chalf};
+    $o .= sprintf "--:-:-:-:6      FFMA %s, %s, %s, %s;\n", $ta, $ta, $x, $C->{cone};
+    $o .= sprintf "--:-:-:-:6      FFMA %s, %s, %s, %s;\n", $ta, $ta, $x, $C->{cone};
+    $o .= sprintf "--:-:3:-:2      F2I.S32.F32 %s, %s;\n", $tb, $tb;
+    $o .= sprintf "04:-:-:-:6      IADD %s, %s, 0x7f;\n", $tb, $tb;
+    $o .= sprintf "--:-:-:-:6      SHL %s, %s, 0x17;\n", $tb, $tb;
+    $o .= sprintf "--:-:-:-:6      FMUL %s, %s, %s;\n", $x, $ta, $tb;
+    return $o;
+}
+
+# Interleave independent instruction chains (strings of equal length) round
+# robin, lowering the per-instruction stall so each chain still sees >= 6
+# cycles between its own instructions. Barrier waits are kept.
+sub fm_zip {
+    my @chains = map { [ split /\n/, $_ ] } @_;
+    my $n = @chains;
+    my $stall = $n >= 6 ? 1 : $n >= 3 ? 2 : $n >= 2 ? 3 : 6;
+    my $o = '';
+    for my $i (0 .. $#{$chains[0]}) {
+        for my $c (@chains) {
+            my $l = $c->[$i];
+            $l =~ s/^(..:.:.:.:)(\d)/$1$stall/ if $n > 1;
+            $o .= "$l\n";
+        }
+    }
+    return $o;
+}
+
 1;

@@ -3,13 +3,15 @@
 # Attention q/k RMSNorm + RoPE + KV-cache append. Grid = 26 warps (one CTA of 32
 # threads each): CTA h < 24 normalises query head h (Q + 512 h, the gate half is
 # left where it is) with q_norm and writes QO + 256 h; CTA h >= 24 normalises key
-# head h-24 (K + 256 (h-24)) with k_norm, writes it to KC + 2048 t + 256 (h-24),
+# head h-24 (K + 256 (h-24)) with k_norm, writes it to the blocked K cache (below),
 # and copies V + 256 (h-24) to VC + 2048 t + 256 (h-24).
 # Lane l owns dims 8l..8l+7; RoPE pairs (p, p+32) for p < 32 live in lanes 0-3 and
 # 4-7 and exchange through SHFL.BFLY xor 4. Bit-exact twin: qk_norm_rope_gpu.
 #
 # Params: 0:0x140 Q  1:0x148 K  2:0x150 V  3:0x158 QN  4:0x160 KN  5:0x168 CS  6:0x170 SN
 #         7:0x178 QO  8:0x180 KC  9:0x188 VC  10:0x190 t (u32)  11:0x194 eps (f32)
+# K cache layout is blocked (ref/attn.h attn_kidx): position t, kv head kh, dims 4c..4c+3
+# live at KC + 65536 (t>>5) + 32768 kh + 512 c + 16 (t&31); lane l holds chunks 2l, 2l+1.
 
 <CONSTANT_MAPPING>
     param_Q0  : c[0x0][0x140]
@@ -100,7 +102,17 @@
     $o .= "--:-:-:-:6  \@P0 IADD op0, op0, ss;\n";                               # op0 = 256 kh + 32 lane + 2048 t
     $o .= "--:-:-:-:6  \@P0 IADD vp0.CC, op0, param_VC0;\n";
     $o .= "--:-:-:-:6  \@P0 IADD.X vp1, RZ, param_VC1;\n";
-    $o .= "--:-:-:-:6  \@P0 IADD op0.CC, op0, param_KC0;\n";
+    # K: KC + 65536 (t>>5) + 32768 kh + 1024 lane + 16 (t&31)
+    $o .= "--:-:-:-:6  \@P0 SHR.U32 ee, ss, 0x10;\n";                             # (2048 t) >> 16 = t >> 5
+    $o .= "--:-:-:-:6  \@P0 SHL ee, ee, 0x10;\n";
+    $o .= "--:-:-:-:6  \@P0 LOP32I.AND hh, ss, 0xf800;\n";                        # (t & 31) << 11
+    $o .= "--:-:-:-:6  \@P0 SHR.U32 hh, hh, 0x7;\n";                              # (t & 31) << 4
+    $o .= "--:-:-:-:6  \@P0 IADD ee, ee, hh;\n";
+    $o .= "--:-:-:-:6  \@P0 SHL hh, kh, 0xf;\n";
+    $o .= "--:-:-:-:6  \@P0 IADD ee, ee, hh;\n";
+    $o .= "--:-:-:-:6  \@P0 SHL hh, lane, 0xa;\n";
+    $o .= "--:-:-:-:6  \@P0 IADD ee, ee, hh;\n";
+    $o .= "--:-:-:-:6  \@P0 IADD op0.CC, ee, param_KC0;\n";
     $o .= "--:-:-:-:6  \@P0 IADD.X op1, RZ, param_KC1;\n";
     $o .= "--:-:-:-:6  \@P0 SHL vo0, kh, 0xa;\n";
     $o .= "--:-:-:-:6  \@P0 IADD vo0, vo0, t;\n";
@@ -156,7 +168,8 @@
     $o .= sprintf "--:-:-:-:%s \@!P2 FFMA w%d, o%d, sn%d, w%d;\n", $_ == 7 ? '6' : '1', $_, $_, $_, $_ for 0..7;
     $o .= sprintf "--:-:-:-:%s  \@P1 MOV x%d, w%d;\n", $_ == 7 ? '6' : '1', $_, $_ for 0..7;
     $o .= "--:2:-:-:1      STG.E.128 [op], x0;\n";
-    $o .= "--:2:-:-:1      STG.E.128 [op+0x10], x4;\n";
+    $o .= "--:2:-:-:1 \@!P0 STG.E.128 [op+0x10], x4;\n";
+    $o .= "--:2:-:-:1  \@P0 STG.E.128 [op+0x200], x4;\n";
     $o .= "02:-:-:-:f      EXIT;\n";
     return $o;
 </CODE>

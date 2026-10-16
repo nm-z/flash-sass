@@ -264,3 +264,24 @@ attnqk.cubin: attnqk.sass skel_attnqk.cubin
 
 attnqk_test: attnqk_test.c ../ref/attn.c ../ref/attn.h ../ref/fmath.c
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ attnqk_test.c ../ref/attn.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+# ---- attention core: partials + merge ----
+skel_attnpart.cubin: attnpart.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+attnpart.cubin: attnpart.sass fmath.pl skel_attnpart.cubin
+	cp skel_attnpart.cubin $@
+	$(MAXAS) -i attnpart.sass $@
+
+skel_attnmerge.cubin: attnmerge.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+attnmerge.cubin: attnmerge.sass fmath.pl skel_attnmerge.cubin
+	cp skel_attnmerge.cubin $@
+	$(MAXAS) -i attnmerge.sass $@
+
+attn_test: attn_test.c ../ref/attn.c ../ref/attn.h ../ref/fmath.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ attn_test.c ../ref/attn.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+.PHONY: attn
+attn: attnqk.cubin attnqk_test attnpart.cubin attnmerge.cubin attn_test

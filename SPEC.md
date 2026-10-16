@@ -537,6 +537,36 @@ the hyper-connection norms, `ssm_norm`, q/k norms, indexer norms and PLE norms.
   e_j = exp(m_j − m0) over the ten winners only (the full softmax denominator
   cancels in the renormalisation), den summed in selection order, w = e·rcp(den);
   shared gate σ(sh). Bit-exact on random and heavily tied logits.
+- **attnqk** (`kern/attnqk.sass`, twin `qk_norm_rope_gpu`): one warp per head
+  (24 q + 2 k), 8 dims per lane; RMS_256 (IEEE sqrt/rcp) ⊙ weight, NeoX RoPE on
+  dims 0..63 (pairs p, p+32 exchanged between lanes l and l^4 with SHFL; cos/sin
+  for the position come from a host table (double-precision angles, θ_p =
+  1e7^(−2p/64)), K and V appended to the fp32 caches. Bit-exact over positions.
+  Head offsets are bytes (2048 per q head, 1024 per k head) — computing them in
+  floats overlapped CTAs and gave nondeterministic mismatches.
+- **KV cache layout**: V is position-major `[pos][kv][256]`; K is blocked
+  `[pos/32][kv][64 dim-chunks][32 keys][4 dims]` (`attn_kidx` in `ref/attn.h`) so a
+  warp holding 32 consecutive keys reads one 4-dim chunk as a single contiguous
+  512-byte LDG.128. Both caches are zero-filled at allocation and sized for
+  n + 8192 + 64 positions (the score/V loops prefetch one step past the data).
+- **attnpart / attnmerge** (`kern/attnpart.sass`, `kern/attnmerge.sass`; twins
+  `attn_partials_gpu`, `attn_merge_gpu`): flash-decoding. 32 CTAs × 256 threads,
+  2 per SM: CTA b = (chunk c = b&7, head half hh, kv head) covers 6 query heads
+  over keys [c·CK, (c+1)·CK), CK = ceil(n/8192)·1024, in tiles of 1024 keys.
+  QK phase: thread t holds keys tb + 256s + t (4 slots), one K chunk per slot
+  (LDG.128) against 6 heads' q from shared memory (LDS.64 broadcast, halves
+  swapped so q and k land in different register banks) → 96 FFMAs per 4 dims;
+  scores start at 0, or −inf for keys ≥ n (K is finite, so the fmaf chain stays
+  −inf). Softmax per tile: slot max → xor butterfly → 8 warp maxima via smem;
+  m starts at −1e30 (never −inf, so exp(m − m_new) and exp(s − m_new) are always
+  finite and no special cases are needed; p is forced to 0 past n); den per
+  thread ((p0+p1)+p2)+p3, butterfly, warps summed in order. V phase: p for the
+  tile in smem [1024][6] (24-byte rows, 3 LDS.64), thread (dg = t>>2, r = t&3)
+  accumulates dims 4dg..+3 over keys tb + 4k + r; the 4 streams combine as
+  (r0+r1)+(r2+r3) at the end (xor 1, xor 2). Empty tiles are skipped (exact:
+  scale would be 1). Merge: 24 CTAs × 256, M = max m_c, e_c = exp(m_c − M),
+  den/o by mul-then-fmaf over c, × rcp(den) × σ(gate). The epilogue's exps run
+  6 interleaved in-place chains (`fm_exp_ip`, `fm_zip` in fmath.pl).
 - Register-bank note: in the K-quant streams the mask for field v and the
   activation register of the same XMAD share a bank for 2 of every 8 XMADs, and
   the combine's `acc_v + acc_{v+4}` pairs share banks (MaxAs reports 187
