@@ -9,7 +9,8 @@
 #include <stdint.h>
 
 typedef struct { uint32_t w[32]; } phase_t;
-typedef struct { phase_t *p; int n, cap; int xj; int loop; int pending_wait; } prog_t;   /* pending_wait: the next phase consumes an exchange */   /* xj: exchanges issued (slot parity); loop: token-relative
+typedef struct { phase_t *p; int n, cap; int xj; int loop; int pending_wait; uint32_t stop[2]; CUdeviceptr end; } prog_t;   /* stop[2], end: a generated token equal to stop[0] or stop[1] sets *end (ctl[5]) = 0x80000000 and the kernel exits after that token (0xffffffff: none) */
+   /* pending_wait: the next phase consumes an exchange */   /* xj: exchanges issued (slot parity); loop: token-relative
  * parameters are marked for the kernel's token loop instead of taking the position literally */
 
 void prog_init(prog_t *P);

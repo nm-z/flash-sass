@@ -21,6 +21,15 @@ typedef struct {
 	const uint8_t *data;   /* NULL when the mapping does not cover it (truncated file) */
 } gguf_tensor;
 
+/* one metadata entry: val points at the value as stored (for an array: u32 element type, u64 count,
+   then the elements; a string is u64 length + bytes) */
+typedef struct {
+	const char *key;
+	uint64_t klen;
+	uint32_t type;         /* 0 u8 1 i8 2 u16 3 i16 4 u32 5 i32 6 f32 7 bool 8 string 9 array 10 u64 11 i64 12 f64 */
+	const uint8_t *val;
+} gguf_kv;
+
 typedef struct {
 	int fd;
 	uint8_t *map;
@@ -29,6 +38,8 @@ typedef struct {
 	gguf_tensor *t;
 	uint64_t data_start;
 	uint64_t align;
+	uint64_t nkv;
+	gguf_kv *kv;
 } gguf_file;
 
 int gguf_open(gguf_file *g, const char *path);
@@ -37,5 +48,11 @@ const gguf_tensor *gguf_find(const gguf_file *g, const char *name);
 /* elements per block and bytes per block for a type; 0,0 if unknown */
 void gguf_block(uint32_t type, uint32_t *elems, uint32_t *bytes);
 const char *gguf_type_name(uint32_t type);
+
+/* metadata */
+const gguf_kv *gguf_get(const gguf_file *g, const char *key);
+int gguf_get_int(const gguf_file *g, const char *key, int64_t *out);                  /* any integer or bool; 0 if found */
+const char *gguf_get_str(const gguf_file *g, const char *key, uint64_t *len);         /* not NUL-terminated */
+int gguf_get_arr(const gguf_file *g, const char *key, uint32_t *etype, uint64_t *n, const uint8_t **data);   /* 0 if found */
 
 #endif

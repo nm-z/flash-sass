@@ -1,11 +1,9 @@
 /* flash: the Flash-Next decoder front-end. Loads once (the dies' arenas from the holders'
  * manifests, the PLE table into pinned host memory, every buffer for FLASH_MAXT positions),
- * then serves responses from stdin, one persistent kernel launch per die per response:
- *
- *   gen <n_new> <id> [<id> ...]   run the prompt ids and greedily decode n_new tokens
- *                                 (n_new = 0: teacher-forced predictions for every position)
- *   cubin <path>                  reload the kernel (default die.cubin) on every die
- *   quit
+ * then serves responses from stdin (or, with FLASH_SOCK=<path>, from one client at a time on
+ * that Unix socket: flashd), one persistent kernel launch per die per response. Commands: see
+ * session() (gen, chat, stop, info, cubin, quit); gen <n_new> = 0 gives teacher-forced
+ * predictions for every position.
  *
  * Output per response: "tokens: <toks[nprompt-1 .. T-1]>" (the prediction after each prompt
  * token's last position, then the generated ones; n_new = 0 prints toks[0 .. T-1]) and
@@ -20,6 +18,7 @@
 #include "prog.h"
 #include "split.h"
 #include "gguf.h"
+#include "flash.h"
 #include <cuda.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,6 +26,9 @@
 #include <time.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <signal.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 CUresult cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev);
 #define CK(x) do { CUresult r_ = (x); if (r_ != CUDA_SUCCESS) { const char *s_ = "?"; cuGetErrorString(r_, &s_); fprintf(stderr, "flash.c:%d: %s -> %s\n", __LINE__, #x, s_); exit(1); } } while (0)
@@ -44,17 +46,93 @@ static CUdeviceptr dptr(int d, int blk, const char *suffix) { return dptr_raw(d,
 static uint32_t ttype(int blk, const char *suffix) { const hold_tensor *t = hold_find(&ar[0], tn(blk, suffix)); if (!t) { fprintf(stderr, "no %s\n", tname); exit(1); } return t->type; }
 static CUdeviceptr dalloc(size_t bytes) { CUdeviceptr p; CK(cuMemAlloc(&p, bytes)); CK(cuMemsetD8(p, 0, bytes)); return p; }
 
+/* ---- the engine: everything main() loads once, used by every response ---- */
+static int MAXT; static float eps = 1e-6f;
+static CUmodule mod[MAXD]; static CUfunction fn[MAXD];
+static dn_weights_t (*dw)[NB]; static dn_bufs_t db[MAXD]; static xchg_t xc[MAXD]; static split_t (*sp)[NB];
+static CUdeviceptr dPROG[MAXD], dCTL[MAXD], (*dst_dn)[NB], (*dst_conv)[NB], (*dst_kc)[NB], (*dst_vc)[NB], dst_ple[MAXD];
+static size_t dn_bytes[MAXD][NB], conv_bytes[MAXD][NB], kcf, vcf;
+static uint32_t *h_ids, *h_toks;    /* pinned: the prompt, and the tokens as die 0 writes them */
+static uint32_t *h_tok;             /* pinned: ctl[2] (count, bit 31 = the turn ended) */
+static CUstream pollst;             /* die 0, non-blocking: reads the tokens while the kernel runs */
+
+static int session(FILE *in, FILE *out);
+int engine_positions(void) { return MAXT; }
+int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], void (*on_token)(void *, int, uint32_t), void *arg, run_stats *st) {
+	int T = nprompt + n_new;
+	if (nprompt < 1 || n_new < 0 || T > MAXT) return -1;
+	memcpy(h_ids, ids, 4 * (size_t)nprompt); memset(h_ids + nprompt, 0, 4 * (size_t)(T + 2 - nprompt));
+	double t0 = now();
+	prog_t *P = calloc(MAXD, sizeof *P); unsigned nph[MAXD];
+	for (int d = 0; d < nd; d++) {
+		CK(cuCtxSetCurrent(ctx[d]));
+		/* a fresh response: states, caches, the token counter and the end flag start from zero */
+		for (int bb = 0; bb < NB; bb++) {
+			if (BLK_IS_ATTN(bb)) { CK(cuMemsetD8(dst_kc[d][bb], 0, d == attn_die() ? kcf * 4 : 256)); CK(cuMemsetD8(dst_vc[d][bb], 0, d == attn_die() ? vcf * 4 : 256)); }
+			else { CK(cuMemsetD8(dst_dn[d][bb], 0, dn_bytes[d][bb])); CK(cuMemsetD8(dst_conv[d][bb], 0, conv_bytes[d][bb])); }
+		}
+		CK(cuMemsetD8(dst_ple[d], 0, 4 * 10 * 10240));
+		CK(cuMemsetD32(dCTL[d] + 0x8, 0, 1)); CK(cuMemsetD32(dCTL[d] + 0x14, 0, 1));
+		CK(cuMemcpyHtoD(db[d].ids, h_ids, 4 * ((size_t)T + 2)));
+		CK(cuMemsetD8(db[d].toks, 0, 4 * ((size_t)T + 2)));
+		prog_init(&P[d]); P[d].loop = 1;
+		P[d].stop[0] = stop[0]; P[d].stop[1] = stop[1]; P[d].end = dCTL[d] + 0x14;
+		prog_embed(&P[d], &dw[d][0], &db[d], 0);
+		for (int bb = 0; bb < NB; bb++) {
+			dn_bufs_t bb_ = db[d]; bb_.dn_state = dst_dn[d][bb]; bb_.conv_state = dst_conv[d][bb]; bb_.kc = dst_kc[d][bb]; bb_.vc = dst_vc[d][bb]; bb_.ple_state = dst_ple[d];
+			if (bb == 1) prog_ple_prefix(&P[d], &sp[d][bb], &xc[d], &dw[d][bb], &bb_, 0, eps);
+			if (BLK_IS_ATTN(bb)) prog_attn_block(&P[d], &sp[d][bb], &xc[d], &dw[d][bb], &bb_, 0, eps);
+			else prog_deltanet_block(&P[d], &sp[d][bb], &xc[d], &dw[d][bb], &bb_, 0, eps);
+		}
+		prog_head(&P[d], &sp[d][0], &xc[d], &dw[d][0], &db[d], eps, 0, (unsigned)nprompt);
+		prog_token_end(&P[d], &xc[d], d, nd, db[d].S);
+		nph[d] = (unsigned)P[d].n;
+		if (nph[d] > 4096) { fprintf(stderr, "program too long (%u phases)\n", nph[d]); exit(1); }
+		CK(cuMemcpyHtoD(dPROG[d], P[d].p, sizeof(phase_t) * P[d].n));
+	}
+	double t1 = now();
+	for (int d = 0; d < nd; d++) {
+		CK(cuCtxSetCurrent(ctx[d]));
+		unsigned ntok = (unsigned)T; void *params[] = { &dPROG[d], &nph[d], &dCTL[d], &ntok };
+		CK(cuLaunchKernel(fn[d], 16, 1, 1, 256, 1, 1, 0, 0, params, NULL));
+	}
+	/* stream: poll ctl[2] on die 0 through a non-blocking stream (the kernel runs on the legacy
+	   one), then the new tokens; once the kernel is done, one last read */
+	CK(cuCtxSetCurrent(ctx[0]));
+	int sent = nprompt - 1, count = 0, ended = 0, fin = 0; double tfirst = 0;
+	struct timespec nap = { 0, 500000 };
+	while (!fin) {
+		CUresult q = cuStreamQuery(0);
+		if (q != CUDA_SUCCESS && q != CUDA_ERROR_NOT_READY) CK(q);
+		fin = q == CUDA_SUCCESS;
+		CK(cuMemcpyDtoHAsync(h_tok, dCTL[0] + 0x8, 4, pollst)); CK(cuStreamSynchronize(pollst));
+		count = (int)(*h_tok & 0x7fffffffu); ended = (int)(*h_tok >> 31);
+		if (count > T) count = T;
+		if (count > sent) {
+			CK(cuMemcpyDtoHAsync(h_toks + sent, db[0].toks + 4u * (unsigned)sent, 4 * (size_t)(count - sent), pollst)); CK(cuStreamSynchronize(pollst));
+			if (!tfirst) tfirst = now();
+			for (; sent < count; sent++) if (on_token) on_token(arg, sent, h_toks[sent]);
+		}
+		if (!fin) nanosleep(&nap, NULL);
+	}
+	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuCtxSynchronize()); }
+	double t2 = now();
+	if (st) { st->ntok = count; st->ended = ended; st->nph = nph[0]; st->build_ms = (t1 - t0) * 1e3; st->run_ms = (t2 - t1) * 1e3; st->first_ms = tfirst ? (tfirst - t1) * 1e3 : 0; }
+	for (int d = 0; d < nd; d++) prog_free(&P[d]);
+	free(P);
+	return 0;
+}
+
 int main(int argc, char **argv) {
 	if (argc < 3) { fprintf(stderr, "usage: flash <ple.bin | -> <manifest0> [manifest1 ...]\n"); return 2; }
-	const char *plefile = argv[1]; nd = argc - 2; float eps = 1e-6f;
+	const char *plefile = argv[1]; nd = argc - 2;
 	if (nd > MAXD) { fprintf(stderr, "at most %d dies\n", MAXD); return 2; }
-	int MAXT = getenv("FLASH_MAXT") ? atoi(getenv("FLASH_MAXT")) : 2048;
+	MAXT = getenv("FLASH_MAXT") ? atoi(getenv("FLASH_MAXT")) : 2048;
 	const char *cubin = getenv("FLASH_CUBIN") ? getenv("FLASH_CUBIN") : "die.cubin";
 	unsigned npos = ((unsigned)MAXT + 8192 + 64 + 31) / 32 * 32;
-	size_t kcf = ATTN_KC_FLOATS(npos), vcf = (size_t)npos * 512;
+	kcf = ATTN_KC_FLOATS(npos); vcf = (size_t)npos * 512;
 	double ts0 = now();
 	CK(cuInit(0));
-	CUmodule mod[MAXD]; CUfunction fn[MAXD];
 	for (int d = 0; d < nd; d++) {
 		FILE *f = fopen(argv[2 + d], "r"); size_t bytes; int die;
 		if (!f || fscanf(f, "arena %zu die %d", &bytes, &die) != 2) { fprintf(stderr, "bad manifest %s\n", argv[2 + d]); return 1; }
@@ -101,9 +179,8 @@ int main(int argc, char **argv) {
 	float *rcs = malloc(4 * 32 * (size_t)MAXT), *rsn = malloc(4 * 32 * (size_t)MAXT);
 	for (int t = 0; t < MAXT; t++) rope_table_gpu((unsigned)t, 1e7f, rcs + 32 * t, rsn + 32 * t);
 	/* ---- the dies: weights, buffers, exchange, control ---- */
-	dn_weights_t (*dw)[NB] = calloc(MAXD, sizeof *dw); dn_bufs_t db[MAXD]; xchg_t xc[MAXD]; split_t (*sp)[NB] = calloc(MAXD, sizeof *sp);
-	CUdeviceptr dPROG[MAXD], dCTL[MAXD], (*dst_dn)[NB] = calloc(MAXD, sizeof *dst_dn), (*dst_conv)[NB] = calloc(MAXD, sizeof *dst_conv), (*dst_kc)[NB] = calloc(MAXD, sizeof *dst_kc), (*dst_vc)[NB] = calloc(MAXD, sizeof *dst_vc), dst_ple[MAXD];
-	size_t dn_bytes[MAXD][NB], conv_bytes[MAXD][NB];
+	dw = calloc(MAXD, sizeof *dw); sp = calloc(MAXD, sizeof *sp);
+	dst_dn = calloc(MAXD, sizeof *dst_dn); dst_conv = calloc(MAXD, sizeof *dst_conv); dst_kc = calloc(MAXD, sizeof *dst_kc); dst_vc = calloc(MAXD, sizeof *dst_vc);
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
 		split_t s0; split_of(&s0, d, nd, 0);
@@ -185,65 +262,77 @@ int main(int argc, char **argv) {
 	fprintf(stderr, "flash: %d dies, %d blocks, up to %d positions, ready in %.0f s\n", nd, NB, MAXT, now() - ts0);
 	printf("ready\n"); fflush(stdout);
 	/* ---- responses ---- */
-	uint32_t *ids = calloc((size_t)MAXT + 2, 4), *toks = calloc((size_t)MAXT + 2, 4);
-	char *line = NULL; size_t cap = 0;
-	while (getline(&line, &cap, stdin) > 0) {
-		char *p = line; while (*p == ' ') p++;
-		if (!strncmp(p, "quit", 4)) break;
-		if (!strncmp(p, "cubin", 5)) {
-			char path[512]; if (sscanf(p + 5, "%511s", path) != 1) { printf("error: cubin <path>\n"); fflush(stdout); continue; }
-			for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuModuleUnload(mod[d])); CK(cuModuleLoad(&mod[d], path)); CK(cuModuleGetFunction(&fn[d], mod[d], "die")); }
-			printf("ok: %s\n", path); fflush(stdout); continue;
+	CK(cuCtxSetCurrent(ctx[0]));
+	CK(cuStreamCreate(&pollst, CU_STREAM_NON_BLOCKING));
+	CK(cuMemAllocHost((void **)&h_ids, 4 * ((size_t)MAXT + 2))); CK(cuMemAllocHost((void **)&h_toks, 4 * ((size_t)MAXT + 2))); CK(cuMemAllocHost((void **)&h_tok, 64));
+	const char *sock = getenv("FLASH_SOCK");
+	if (!sock) session(stdin, stdout);
+	else {
+		/* one client at a time (flashd); a client that goes away mid-reply only loses the rest of it */
+		signal(SIGPIPE, SIG_IGN);
+		int ls = socket(AF_UNIX, SOCK_STREAM, 0); struct sockaddr_un sa = { .sun_family = AF_UNIX };
+		snprintf(sa.sun_path, sizeof sa.sun_path, "%s", sock); unlink(sock);
+		if (ls < 0 || bind(ls, (struct sockaddr *)&sa, sizeof sa) || listen(ls, 4)) { perror(sock); return 1; }
+		fprintf(stderr, "flash: listening on %s\n", sock);
+		for (;;) {
+			int c = accept(ls, NULL, NULL); if (c < 0) { perror("accept"); continue; }
+			FILE *in = fdopen(c, "r"), *out = fdopen(dup(c), "w");
+			int q = session(in, out);
+			fclose(in); fclose(out);
+			if (q) break;
 		}
-		if (strncmp(p, "gen", 3)) { printf("error: gen <n_new> <id>... | cubin <path> | quit\n"); fflush(stdout); continue; }
-		p += 3; char *end; long n_new = strtol(p, &end, 10); if (end == p || n_new < 0) { printf("error: gen <n_new> <id>...\n"); fflush(stdout); continue; }
-		int nprompt = 0; p = end;
-		for (;;) { long v = strtol(p, &end, 10); if (end == p) break; if (nprompt + 2 >= MAXT) break; ids[nprompt++] = (uint32_t)v; p = end; }
-		int T = nprompt + (int)n_new;
-		if (nprompt < 1 || T > MAXT) { printf("error: %d prompt ids + %ld new > %d positions\n", nprompt, n_new, MAXT); fflush(stdout); continue; }
-		memset(ids + nprompt, 0, 4 * (size_t)(T + 2 - nprompt));
-		double t0 = now();
-		prog_t *P = calloc(MAXD, sizeof *P); unsigned nph[MAXD];
-		for (int d = 0; d < nd; d++) {
-			CK(cuCtxSetCurrent(ctx[d]));
-			/* a fresh response: states, caches and the token counter start from zero */
-			for (int bb = 0; bb < NB; bb++) {
-				if (BLK_IS_ATTN(bb)) { CK(cuMemsetD8(dst_kc[d][bb], 0, d == attn_die() ? kcf * 4 : 256)); CK(cuMemsetD8(dst_vc[d][bb], 0, d == attn_die() ? vcf * 4 : 256)); }
-				else { CK(cuMemsetD8(dst_dn[d][bb], 0, dn_bytes[d][bb])); CK(cuMemsetD8(dst_conv[d][bb], 0, conv_bytes[d][bb])); }
-			}
-			CK(cuMemsetD8(dst_ple[d], 0, 4 * 10 * 10240));
-			CK(cuMemsetD32(dCTL[d] + 0x8, 0, 1));
-			CK(cuMemcpyHtoD(db[d].ids, ids, 4 * ((size_t)T + 2)));
-			CK(cuMemsetD8(db[d].toks, 0, 4 * ((size_t)T + 2)));
-			prog_init(&P[d]); P[d].loop = 1;
-			prog_embed(&P[d], &dw[d][0], &db[d], 0);
-			for (int bb = 0; bb < NB; bb++) {
-				dn_bufs_t bb_ = db[d]; bb_.dn_state = dst_dn[d][bb]; bb_.conv_state = dst_conv[d][bb]; bb_.kc = dst_kc[d][bb]; bb_.vc = dst_vc[d][bb]; bb_.ple_state = dst_ple[d];
-				if (bb == 1) prog_ple_prefix(&P[d], &sp[d][bb], &xc[d], &dw[d][bb], &bb_, 0, eps);
-				if (BLK_IS_ATTN(bb)) prog_attn_block(&P[d], &sp[d][bb], &xc[d], &dw[d][bb], &bb_, 0, eps);
-				else prog_deltanet_block(&P[d], &sp[d][bb], &xc[d], &dw[d][bb], &bb_, 0, eps);
-			}
-			prog_head(&P[d], &sp[d][0], &xc[d], &dw[d][0], &db[d], eps, 0, (unsigned)nprompt);
-			prog_token_end(&P[d], &xc[d], d, nd, db[d].S);
-			nph[d] = (unsigned)P[d].n;
-			if (nph[d] > 4096) { fprintf(stderr, "program too long (%u phases)\n", nph[d]); return 1; }
-			CK(cuMemcpyHtoD(dPROG[d], P[d].p, sizeof(phase_t) * P[d].n));
-		}
-		double t1 = now();
-		for (int d = 0; d < nd; d++) {
-			CK(cuCtxSetCurrent(ctx[d]));
-			unsigned ntok = (unsigned)T; void *params[] = { &dPROG[d], &nph[d], &dCTL[d], &ntok };
-			CK(cuLaunchKernel(fn[d], 16, 1, 1, 256, 1, 1, 0, 0, params, NULL));
-		}
-		for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuCtxSynchronize()); }
-		double t2 = now();
-		CK(cuCtxSetCurrent(ctx[0])); CK(cuMemcpyDtoH(toks, db[0].toks, 4 * (size_t)T));
-		printf("tokens:"); for (int t = n_new ? nprompt - 1 : 0; t < T; t++) printf(" %u", toks[t]); printf("\n");
-		printf("time: %.1f ms for %d positions (%.2f ms per position; %u phases; programs %.0f ms)\n", (t2 - t1) * 1e3, T, (t2 - t1) * 1e3 / T, nph[0], (t1 - t0) * 1e3);
-		fflush(stdout);
-		for (int d = 0; d < nd; d++) prog_free(&P[d]);
-		free(P);
+		close(ls); unlink(sock);
 	}
 	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); hold_close(&ar[d]); }
 	return 0;
+}
+
+/* chat streaming: one "tok <id>" line per generated token, as die 0 produces it */
+static void put_token(void *arg, int t, uint32_t tok) { (void)t; FILE *out = arg; fprintf(out, "tok %u\n", tok); fflush(out); }
+
+/* One client's commands (stdin, or one connection on FLASH_SOCK); returns 1 on quit, 0 at end of input.
+ *   gen <n_new> <id>...      the whole response at once: "tokens: ..." and "time: ..."
+ *   chat <n_new> <id>...     streamed: "tok <id>" per generated token, then
+ *                            "done <generated> <ended> <prompt> <run_ms> <first_token_ms>"
+ *   stop [<id> [<id>]]       end-of-turn ids for the following responses (none by default)
+ *   info                     "info <positions>"
+ *   cubin <path> | quit */
+static int session(FILE *in, FILE *out) {
+	static uint32_t *ids, *toks;
+	if (!ids) { ids = calloc((size_t)MAXT + 2, 4); toks = calloc((size_t)MAXT + 2, 4); }
+	uint32_t stop[2] = { 0xffffffffu, 0xffffffffu };
+	char *line = NULL; size_t cap = 0; int quit = 0;
+	while (getline(&line, &cap, in) > 0) {
+		char *p = line; while (*p == ' ') p++;
+		if (!strncmp(p, "quit", 4)) { quit = 1; break; }
+		if (!strncmp(p, "info", 4)) { fprintf(out, "info %d\n", MAXT); fflush(out); continue; }
+		if (!strncmp(p, "cubin", 5)) {
+			char path[512]; if (sscanf(p + 5, "%511s", path) != 1) { fprintf(out, "error: cubin <path>\n"); fflush(out); continue; }
+			for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuModuleUnload(mod[d])); CK(cuModuleLoad(&mod[d], path)); CK(cuModuleGetFunction(&fn[d], mod[d], "die")); }
+			fprintf(out, "ok: %s\n", path); fflush(out); continue;
+		}
+		if (!strncmp(p, "stop", 4)) {
+			char *e2; p += 4; stop[0] = stop[1] = 0xffffffffu;
+			for (int k = 0; k < 2; k++) { long v = strtol(p, &e2, 10); if (e2 == p) break; stop[k] = (uint32_t)v; p = e2; }
+			fprintf(out, "ok: stop %d %d\n", (int)stop[0], (int)stop[1]); fflush(out); continue;
+		}
+		int chat = !strncmp(p, "chat", 4);
+		if (!chat && strncmp(p, "gen", 3)) { fprintf(out, "error: gen|chat <n_new> <id>... | stop [<id> [<id>]] | info | cubin <path> | quit\n"); fflush(out); continue; }
+		p += chat ? 4 : 3; char *end; long n_new = strtol(p, &end, 10); if (end == p || n_new < 0) { fprintf(out, "error: gen|chat <n_new> <id>...\n"); fflush(out); continue; }
+		int nprompt = 0; p = end;
+		for (;;) { long v = strtol(p, &end, 10); if (end == p) break; if (nprompt + 2 >= MAXT) break; ids[nprompt++] = (uint32_t)v; p = end; }
+		run_stats st;
+		if (engine_run(ids, nprompt, (int)n_new, stop, chat ? put_token : NULL, out, &st)) { fprintf(out, "error: %d prompt ids + %ld new > %d positions\n", nprompt, n_new, MAXT); fflush(out); continue; }
+		if (chat) {
+			fprintf(out, "done %d %d %d %.1f %.1f\n", st.ntok - (nprompt - 1), st.ended, nprompt, st.run_ms, st.first_ms);
+		} else {
+			CK(cuCtxSetCurrent(ctx[0])); CK(cuMemcpyDtoH(toks, db[0].toks, 4 * (size_t)st.ntok));
+			fprintf(out, "tokens:"); for (int t = n_new ? nprompt - 1 : 0; t < st.ntok; t++) fprintf(out, " %u", toks[t]); fprintf(out, "\n");
+			fprintf(out, "time: %.1f ms for %d positions (%.2f ms per position; first token %.1f ms; %u phases; programs %.0f ms)%s\n",
+			        st.run_ms, st.ntok, st.run_ms / st.ntok, st.first_ms, st.nph, st.build_ms, st.ended ? "; end of turn" : "");
+		}
+		fflush(out);
+	}
+	free(line);
+	return quit;
 }

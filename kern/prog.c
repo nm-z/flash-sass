@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void prog_init(prog_t *P) { P->cap = 64; P->n = 0; P->xj = 0; P->loop = 0; P->pending_wait = 0; P->p = malloc(sizeof(phase_t) * P->cap); }
+void prog_init(prog_t *P) { P->cap = 64; P->n = 0; P->xj = 0; P->loop = 0; P->pending_wait = 0; P->stop[0] = P->stop[1] = 0xffffffffu; P->end = 0; P->p = malloc(sizeof(phase_t) * P->cap); }
 void prog_free(prog_t *P) { free(P->p); P->p = NULL; P->n = P->cap = 0; }
 phase_t *prog_add(prog_t *P, int op, unsigned units) {
 	if (P->n == P->cap) { P->cap *= 2; P->p = realloc(P->p, sizeof(phase_t) * P->cap); }
@@ -309,6 +309,7 @@ void prog_head(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t 
 	p = prog_add(P, OP_AMAX, 1);
 	ph_ptr(p, 0x140, PAIRS); ph_ptr(p, 0x148, w->obases); ph_u32(p, 0x150, (unsigned)s->n); ph_ptr(p, 0x158, b->tokout);
 	ph_ptr(p, 0x160, b->ids); ph_ptr(p, 0x168, b->toks); ph_tokv(P, p, 0x170, 0, t); ph_u32(p, 0x174, nprompt);
+	ph_u32(p, 0x178, P->stop[0]); ph_u32(p, 0x17c, P->stop[1]); ph_ptr(p, 0x180, P->end);
 }
 
 void prog_ple_prefix(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps) {

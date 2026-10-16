@@ -500,15 +500,19 @@ BDONE:
 --:-:-:-:6  \@P6 BRA PHASE;
 # ---- token done: thread 0 bumps TOK (and CTA 0 mirrors it to ctl[2]); everyone
 # re-reads it behind a barrier and runs the program again while tok < ntok ----
+# End of turn: amax sets ctl[5] = 0x80000000 when it picks a stop token after the
+# prompt (every die picks the same token, so every die stops after the same one).
+# Thread 0 ors it into TOK: the unsigned tok < ntok test fails on every CTA, and
+# ctl[2] tells the host both the count (low 31 bits) and that the turn ended.
 --:-:-:-:6      ISETP.NE.U32.AND P5, PT, tid, RZ, PT;
---:-:-:-:6      NOP;
---:-:-:-:6      NOP;
---:-:-:-:6      BAR.SYNC 0x1;
---:-:1:-:2 \@!P5 LDS bar_t, [RZ+0x@{[sprintf '%x', $TOK_OFF]}];
-01:-:-:-:6 \@!P5 IADD bar_t, bar_t, 0x1;
---:2:-:-:6 \@!P5 STS [RZ+0x@{[sprintf '%x', $TOK_OFF]}], bar_t;
 --:-:-:-:6      MOV bar_cp0, ctl0;
 --:-:-:-:6      MOV bar_cp1, ctl1;
+--:-:-:-:6      BAR.SYNC 0x1;
+--:-:1:-:1 \@!P5 LDS bar_t, [RZ+0x@{[sprintf '%x', $TOK_OFF]}];
+--:-:3:-:2 \@!P5 LDG.E.CV bar_old, [bar_cp+0x14];
+01:-:-:-:6 \@!P5 IADD bar_t, bar_t, 0x1;
+04:-:-:-:6 \@!P5 LOP.OR bar_t, bar_t, bar_old;
+--:2:-:-:6 \@!P5 STS [RZ+0x@{[sprintf '%x', $TOK_OFF]}], bar_t;
 --:2:-:-:6  \@P4 STG.E [bar_cp+0x8], bar_t;
 02:-:-:-:6      BAR.SYNC 0x1;
 --:-:1:-:2      LDS bar_t, [RZ+0x@{[sprintf '%x', $TOK_OFF]}];

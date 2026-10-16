@@ -65,11 +65,13 @@ int gguf_open(gguf_file *g, const char *path) {
 	g->ntensors = rd(&c, 8);
 	uint64_t nkv = rd(&c, 8);
 	g->align = 32;
+	g->kv = calloc(nkv ? nkv : 1, sizeof *g->kv);
 	for (uint64_t i = 0; i < nkv && !c.bad; i++) {
 		uint64_t kl;
 		const char *k = rds(&c, &kl);
 		if (c.bad) break;
 		uint32_t t = (uint32_t)rd(&c, 4);
+		g->kv[i] = (gguf_kv){ k, kl, t, c.p }; g->nkv = i + 1;
 		if (kl == 17 && !memcmp(k, "general.alignment", 17) && t == 4) { g->align = rd(&c, 4); continue; }
 		skip_value(&c, t);
 	}
@@ -108,6 +110,7 @@ int gguf_open(gguf_file *g, const char *path) {
 
 void gguf_close(gguf_file *g) {
 	if (g->t) { for (uint64_t i = 0; i < g->ntensors; i++) free((char *)g->t[i].name); free(g->t); }
+	free(g->kv);
 	if (g->map && g->map != MAP_FAILED) munmap(g->map, g->len);
 	if (g->fd >= 0) close(g->fd);
 	memset(g, 0, sizeof *g);
@@ -152,4 +155,41 @@ const char *gguf_type_name(uint32_t type) {
 	case GG_BF16: return "BF16"; case GG_Q2_0: return "Q2_0";
 	}
 	return "?";
+}
+
+/* ---- metadata ---- */
+const gguf_kv *gguf_get(const gguf_file *g, const char *key) {
+	size_t kl = strlen(key);
+	for (uint64_t i = 0; i < g->nkv; i++)
+		if (g->kv[i].klen == kl && !memcmp(g->kv[i].key, key, kl)) return &g->kv[i];
+	return NULL;
+}
+int gguf_get_int(const gguf_file *g, const char *key, int64_t *out) {
+	const gguf_kv *kv = gguf_get(g, key);
+	if (!kv) return -1;
+	const uint8_t *p = kv->val;
+	switch (kv->type) {
+	case 0: case 7: *out = p[0]; return 0;
+	case 1: *out = (int8_t)p[0]; return 0;
+	case 2: { uint16_t v; memcpy(&v, p, 2); *out = v; return 0; }
+	case 3: { int16_t v; memcpy(&v, p, 2); *out = v; return 0; }
+	case 4: { uint32_t v; memcpy(&v, p, 4); *out = v; return 0; }
+	case 5: { int32_t v; memcpy(&v, p, 4); *out = v; return 0; }
+	case 10: case 11: { int64_t v; memcpy(&v, p, 8); *out = v; return 0; }
+	default: return -1;
+	}
+}
+const char *gguf_get_str(const gguf_file *g, const char *key, uint64_t *len) {
+	const gguf_kv *kv = gguf_get(g, key);
+	if (!kv || kv->type != 8) return NULL;
+	uint64_t n; memcpy(&n, kv->val, 8);
+	if (len) *len = n;
+	return (const char *)kv->val + 8;
+}
+int gguf_get_arr(const gguf_file *g, const char *key, uint32_t *etype, uint64_t *n, const uint8_t **data) {
+	const gguf_kv *kv = gguf_get(g, key);
+	if (!kv || kv->type != 9) return -1;
+	memcpy(etype, kv->val, 4); memcpy(n, kv->val + 4, 8);
+	*data = kv->val + 12;
+	return 0;
 }
