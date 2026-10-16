@@ -1071,6 +1071,16 @@ over the CTAs (3 phases, 45 µs → ~10), the one-warp router top-10 (24 µs),
 and merging elementwise phases into their neighbours; the ≈4 µs floor
 matters even more once the rows are split six ways.
 
+**`kern/flash` — the decoder front-end (2026-10-16):** loads once (arenas from the
+holders' manifests, the PLE table into pinned host memory — `FLASH_PLE_OFF=192`
+reads shard 2 directly, `FLASH_PLE_CONSUME=1` eats a tmpfs copy from the end so
+both never sit in RAM together — and every buffer for `FLASH_MAXT` positions),
+then serves `gen <n_new> <ids...>` lines from stdin with **one launch per die per
+response** (prompt positions and generated ones are iterations of the kernel's
+token loop; the head writes `ids[t+1]` past the prompt), `cubin <path>` reloads
+the kernel, `quit`. Without a table (`-`) it runs on a zero compact table.
+First run: 1541 phases, ~49 ms per position on {0, 1, 6, 3, 4, 5}.
+
 ## State at the end of 2026-10-16
 
 - The whole 48-block model runs as one persistent kernel per die on six dies

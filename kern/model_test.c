@@ -126,7 +126,10 @@ int main(int argc, char **argv) {
 			int fd = open(getenv("MODEL_PLE"), O_RDONLY); if (fd < 0) { perror(getenv("MODEL_PLE")); return 1; }
 			struct stat st; if (fstat(fd, &st)) { perror("fstat"); return 1; }
 			size_t sz = ((size_t)st.st_size + 4095) & ~(size_t)4095;   /* whole pages (the last row ends mid-page) */
-			ptab = mmap(NULL, sz, PROT_READ, MAP_SHARED, fd, 0); if (ptab == MAP_FAILED) { perror("mmap ple"); return 1; }
+			off_t poff_ = getenv("MODEL_PLE_OFF") ? (off_t)atoll(getenv("MODEL_PLE_OFF")) : 0;   /* 192: shard 2 itself (its data section); 0: an extracted copy */
+			sz = (sz - (size_t)poff_ + 4095) & ~(size_t)4095;
+			ptab = mmap(NULL, sz, PROT_READ, MAP_SHARED, fd, (off_t)(poff_ & ~(off_t)4095)); if (ptab == MAP_FAILED) { perror("mmap ple"); return 1; }
+			ptab += poff_ & 4095;
 			memcpy(poff, ple_head_offsets, sizeof poff); memcpy(pvoc, ple_head_vocab, sizeof pvoc);
 			CK(cuMemHostAlloc((void **)&ctab, (size_t)T * 16 * 90 + 4096, CU_MEMHOSTALLOC_PORTABLE | CU_MEMHOSTALLOC_DEVICEMAP));
 			for (int t = 0; t < nprompt; t++) PLE_STAGE(t);   /* generated positions are staged per token (per-token mode) */
