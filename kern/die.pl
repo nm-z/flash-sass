@@ -101,6 +101,10 @@ my @OPS = (
     [ 'amax',       'amax.sass',        'warp', {} ],
     [ 'topk',       'topk.sass',        'cta',  {} ],
     [ 'sample',     'sample.sass',      'warp', {} ],
+    # ---- QSA: int8 KV cache, indexer, gather (ref/qsa.h) ----
+    [ 'kvgather',   'kvgather.sass',    'warp', {} ],
+    [ 'attnpartn',  'attnpartn.sass',   'cta',  {} ],
+    [ 'attnqkq',    'attnqkq.sass',     'warp', {} ],
 );
 
 sub expand_names {                       # x<00-15> -> x00 .. x15
