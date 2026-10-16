@@ -1071,6 +1071,33 @@ over the CTAs (3 phases, 45 µs → ~10), the one-warp router top-10 (24 µs),
 and merging elementwise phases into their neighbours; the ≈4 µs floor
 matters even more once the rows are split six ways.
 
+## State at the end of 2026-10-16
+
+- The whole 48-block model runs as one persistent kernel per die on six dies
+  (physical {0, 1, 6, 3, 4, 5}; `SPLIT_SHARES=86,103,103,103,103,102 ATTN_DIE=1`),
+  1541 phases per token, **45–46 ms per token (~22 tok/s)**, every block type,
+  the embedding, the PLE prefix (real table) and the head bit-exact against the
+  C twin on six dies; the random-prompt token sequence is stable across all of
+  today's kernel revisions.
+- Today's framework work: descriptor prefetch under the barrier, per-CTA
+  exchange flags published by the framework, flag-array grid barrier,
+  producers writing straight into the peers' inboxes (bf16hcx, hcmixx,
+  dnnormx: 302 phases fewer), weighted split off die 0's bad VRAM band, the
+  real PLE table in tests (compact per-position rows), teacher-forced and
+  free-running comparison harness against upstream llama.cpp on archy's CPU.
+- What sets the pace now is hardware, not code: logical die 2 sits on the PCH
+  board (x2 gen2), which costs ≈ 15–20 ms of every token in exchange waits
+  (two-die A/B: 0.74 vs 0.90 ms per block); physical die 2 (the x16 slot)
+  needs a **reboot of archy** to activate its pending page retirement
+  (`nvidia-smi -r` refuses). With die 2 back the same program should land
+  near 25–30 ms per token before any further code work.
+- Next in code, in order: the reference agreement (running), MTP draft +
+  verify (amortises the per-phase fixed costs that dominate the split: cold
+  instruction fetch ~5–12 µs per GEMV phase, ~3 µs barrier + dispatch), a
+  resident pinned PLE table in a long-lived process for single-launch
+  free-running decode, smaller op bodies, the remaining two exchanges per
+  block as producer writes.
+
 ## Phases
 
 0. **Probes** — done (table above).
