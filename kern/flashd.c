@@ -310,7 +310,7 @@ static void chat(int fd, const char *body, size_t bn) {
 	{ struct timeval tv = { 10, 0 }; setsockopt(fileno(in), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv); }
 	for (;;) {
 		if (!fgets(line, sizeof line, in)) {
-			if ((errno == EAGAIN || errno == EWOULDBLOCK) && stream && !g.gone) { clearerr(in); if (chunk(fd, ": keepalive\n\n", 13)) { g.gone = 1; break; } continue; }
+			if ((errno == EAGAIN || errno == EWOULDBLOCK) && !g.gone) { clearerr(in); if (stream && chunk(fd, ": keepalive\n\n", 13)) { g.gone = 1; break; } continue; }
 			break;
 		}
 		unsigned id; int e, npm; double r, f;
