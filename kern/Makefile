@@ -242,3 +242,14 @@ hcops_test: hcops_test.c ../ref/hc.c ../ref/hc.h ../ref/fmath.c
 
 hcops: hc_silu.cubin hc_mix.cubin hc_write.cubin hcops_test
 .PHONY: hcops
+
+# MoE router
+skel_router.cubin: router.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+router.cubin: router.sass fmath.pl skel_router.cubin
+	cp skel_router.cubin $@
+	$(MAXAS) -i router.sass $@
+
+router_test: router_test.c ../ref/router.c ../ref/router.h ../ref/fmath.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ router_test.c ../ref/router.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm

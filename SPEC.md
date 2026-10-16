@@ -522,6 +522,14 @@ the hyper-connection norms, `ssm_norm`, q/k norms, indexer norms and PLE norms.
   warp that diverges (lane 0 alone computing the gates) before BAR.SYNC let the
   barrier complete early and phase B read zeros — barrier arrivals must be
   warp-uniform, so every lane computes the gates and lane 0 stores.
+- **conv1d + SiLU** (`kern/conv1d.sass`, twin `conv1d_silu_gpu`): ring state
+  [4][10240] indexed by position mod 4; four channels per thread, FMUL + three
+  FFMA oldest-tap-first, SiLU via fmath; bit-exact over consecutive positions.
+- **Hyper-connection ops** (`kern/hcops.sass`, twins in `ref/hc.c`): `silu`
+  (t = SiLU(0.25 d), 320), `mix` (z = 0.25 Σ_l σ(up_l) ⊙ x̂_l by FMUL + 3 FFMA
+  per column), `write` (S_l += 2σ(0.25 inj_l)·y). All bit-exact. With the
+  BF16 slice GEMVs (`hc_down` 10240→320, `hc_up` 320→10240, `hc_inject`
+  10240→4) and `rmsnorm` these are the whole hyper-connection read/write path.
 - Register-bank note: in the K-quant streams the mask for field v and the
   activation register of the same XMAD share a bank for 2 of every 8 XMADs, and
   the combine's `acc_v + acc_{v+4}` pairs share banks (MaxAs reports 187
