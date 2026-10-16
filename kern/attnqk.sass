@@ -65,6 +65,7 @@
     68,69 : sp<0-1>
     70,71 : vp<0-1>
     72,73 : vo<0-1>
+    74    : tt
 </REGISTER_MAPPING>
 
 <CODE>
@@ -118,9 +119,12 @@
     $o .= "--:-:-:-:6  \@P0 IADD vo0, vo0, t;\n";
     $o .= "--:-:-:-:6  \@P0 IADD vo0.CC, vo0, param_V0;\n";
     $o .= "--:-:-:-:6  \@P0 IADD.X vo1, RZ, param_V1;\n";
-    # cos/sin for the lane's pairs: CS + 32 (lane & 3)
+    # cos/sin for the lane's pairs: CS + 128 t + 32 (lane & 3)  (CS, SN: tables over positions)
     $o .= "--:-:-:-:6      LOP32I.AND t, lane, 0x3;\n";
     $o .= "--:-:-:-:6      SHL t, t, 0x5;\n";
+    $o .= "--:-:-:-:6      MOV tt, param_t;\n";
+    $o .= "--:-:-:-:6      SHL tt, tt, 0x7;\n";
+    $o .= "--:-:-:-:6      IADD t, t, tt;\n";
     $o .= "--:-:-:-:6      IADD cp0.CC, t, param_CS0;\n";
     $o .= "--:-:-:-:6      IADD.X cp1, RZ, param_CS1;\n";
     $o .= "--:-:-:-:6      IADD sp0.CC, t, param_SN0;\n";

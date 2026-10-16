@@ -8,7 +8,7 @@
 # same answer); lane 0 writes OUT = {idx, max bits}. Every die runs it on the same
 # gathered pairs and gets the same token.
 #
-# Params: 0:0x140 PAIRS  1:0x148 BASES  2:0x150 ndies  3:0x158 OUT
+# Params: 0:0x140 PAIRS  1:0x148 BASES  2:0x150 ndies  3:0x158 OUT  4:0x160 IDS  5:0x168 TOKS  6:0x170 tok  7:0x174 nprompt
 
 <CONSTANT_MAPPING>
     param_PAIRS0 : c[0x0][0x140]
@@ -18,6 +18,12 @@
     param_ndies  : c[0x0][0x150]
     param_OUT0   : c[0x0][0x158]
     param_OUT1   : c[0x0][0x15c]
+    param_IDS0   : c[0x0][0x160]
+    param_IDS1   : c[0x0][0x164]
+    param_TOKS0  : c[0x0][0x168]
+    param_TOKS1  : c[0x0][0x16c]
+    param_tok    : c[0x0][0x170]
+    param_nprompt : c[0x0][0x174]
 </CONSTANT_MAPPING>
 
 <REGISTER_MAPPING>
@@ -32,6 +38,10 @@
     8,9   : pp<0-1>
     10,11 : bp<0-1>
     12,13 : op<0-1>
+    14,15 : ip<0-1>
+    16,17 : tp<0-1>
+    18    : tk
+    19    : tk1
 </REGISTER_MAPPING>
 
 <CODE>
@@ -67,8 +77,21 @@
     $o .= "--:-:-:-:6      MOV op0, param_OUT0;\n";
     $o .= "--:-:-:-:6      MOV op1, param_OUT1;\n";
     $o .= "--:-:-:-:6      NOP;\n";
+    # the token goes to TOKS[tok] (for the host) and, once past the prompt, to IDS[tok + 1]
+    # (the next embedding reads it there)
+    $o .= "--:-:-:-:6      MOV tk, param_tok;\n";
+    $o .= "--:-:-:-:6      IADD tk1, tk, 0x1;\n";
+    $o .= "--:-:-:-:6      ISETP.GE.U32.AND P4, PT, tk1, param_nprompt, P3;\n";   # lane 0 and tok + 1 >= nprompt
+    $o .= "--:-:-:-:6      SHL t, tk, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD tp0.CC, t, param_TOKS0;\n";
+    $o .= "--:-:-:-:6      IADD.X tp1, RZ, param_TOKS1;\n";
+    $o .= "--:-:-:-:6      SHL t, tk1, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD ip0.CC, t, param_IDS0;\n";
+    $o .= "--:-:-:-:6      IADD.X ip1, RZ, param_IDS1;\n";
     $o .= "--:2:-:-:1  \@P3 STG.E [op], i;\n";
-    $o .= "--:2:-:-:6  \@P3 STG.E [op+0x4], m;\n";
+    $o .= "--:2:-:-:1  \@P3 STG.E [op+0x4], m;\n";
+    $o .= "--:2:-:-:1  \@P3 STG.E [tp], i;\n";
+    $o .= "--:2:-:-:6  \@P4 STG.E [ip], i;\n";
     $o .= "02:-:-:-:f      EXIT;\n";
     return $o;
 </CODE>

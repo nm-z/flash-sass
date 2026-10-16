@@ -225,7 +225,8 @@ int main(int argc, char **argv) {
 			b->rope_cs = dalloc(4 * 32 * T); b->rope_sn = dalloc(4 * 32 * T);
 			CK(cuMemcpyHtoD(b->rope_cs, rcs, 4 * 32 * T)); CK(cuMemcpyHtoD(b->rope_sn, rsn, 4 * 32 * T));
 		}
-		if (mode == 1) { b->hlo = dalloc(4u * (unsigned)s->on); b->amo = dalloc(8); b->apart = dalloc(16 * 8); b->acnt = dalloc(4); b->tokout = dalloc(8); }
+		if (mode == 1) { b->hlo = dalloc(4u * (unsigned)s->on); b->amo = dalloc(8); b->apart = dalloc(16 * 8); b->acnt = dalloc(4); b->tokout = dalloc(8); b->toks = dalloc(4 * (size_t)T + 16); }
+		if (mode && !b->ids) b->ids = dalloc(4 * (size_t)T + 16);
 		CK(cuMemcpyHtoD(b->S, hb->S, 4 * 10240));
 		xchg_t *x = &xc[d];
 		x->inbox = dalloc(2 * XSLOT); x->flags = dalloc(32); x->xgen = dalloc(16); x->xtab = dalloc(128);
@@ -263,8 +264,8 @@ int main(int argc, char **argv) {
 		if (getenv("DIES_TRACE")) fprintf(stderr, "[token %d] twin done, building programs\n", t);
 		for (int d = 0; d < nd; d++) {
 			prog_init(&P[d]);
-			if (mode == 1) prog_head(&P[d], &sp[d], &xc[d], &dw[d], &db[d], eps);
-			else if (mode == 2) prog_embed(&P[d], &dw[d], &db[d], id);
+			if (mode == 1) prog_head(&P[d], &sp[d], &xc[d], &dw[d], &db[d], eps, (unsigned)t, 1u << 30);
+			else if (mode == 2) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(db[d].ids + 4u * (unsigned)t, &id, 4)); prog_embed(&P[d], &dw[d], &db[d], (unsigned)t); }
 			else {
 				if (has_ple) prog_ple_prefix(&P[d], &sp[d], &xc[d], &dw[d], &db[d], (unsigned)t, eps);
 				if (is_attn) prog_attn_block(&P[d], &sp[d], &xc[d], &dw[d], &db[d], (unsigned)t, eps);
@@ -278,7 +279,7 @@ int main(int argc, char **argv) {
 		double t2 = now();
 		for (int d = 0; d < nd; d++) {
 			CK(cuCtxSetCurrent(ctx[d]));
-			void *params[] = { &dPROG[d], &nph[d], &dCTL[d] };
+			unsigned ntok = 1; void *params[] = { &dPROG[d], &nph[d], &dCTL[d], &ntok };
 			CK(cuLaunchKernel(fn[d], 16, 1, 1, 256, 1, 1, 0, 0, params, NULL));
 		}
 		if (getenv("DIES_TRACE")) fprintf(stderr, "[token %d] launched, waiting\n", t);

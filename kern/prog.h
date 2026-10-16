@@ -9,7 +9,8 @@
 #include <stdint.h>
 
 typedef struct { uint32_t w[32]; } phase_t;
-typedef struct { phase_t *p; int n, cap; int xj; } prog_t;   /* xj: exchanges issued (slot parity) */
+typedef struct { phase_t *p; int n, cap; int xj; int loop; } prog_t;   /* xj: exchanges issued (slot parity); loop: token-relative
+ * parameters are marked for the kernel's token loop instead of taking the position literally */
 
 void prog_init(prog_t *P);
 void prog_free(prog_t *P);
@@ -17,6 +18,8 @@ phase_t *prog_add(prog_t *P, int op, unsigned units);
 void ph_ptr(phase_t *p, int addr, CUdeviceptr v);
 void ph_u32(phase_t *p, int addr, uint32_t v);
 void ph_f32(phase_t *p, int addr, float v);
+/* a token-relative u32 parameter: base + tok (the die's token counter) when the program loops in the kernel, else value */
+void ph_tokv(prog_t *P, phase_t *p, int addr, uint32_t base, uint32_t value);
 
 /* ---- one phase per op (pointers are device addresses) ---- */
 void ph_rms(prog_t *P, int op, CUdeviceptr X, CUdeviceptr W, CUdeviceptr Y, float eps, unsigned vectors);
@@ -52,6 +55,9 @@ typedef struct {
 /* send this die's part (nbytes at src, at byte myoff of the slot) to every die and wait
  * for all parts: two phases; returns the slot's address in this die's inbox */
 CUdeviceptr ph_xchg(prog_t *P, const xchg_t *x, int me, int ndies, CUdeviceptr src, unsigned nbytes, unsigned myoff, unsigned total);   /* total: bytes the slot holds once every part arrived */
+/* end of a token program that loops in the kernel: an odd exchange count would make the
+ * last exchange of one token and the first of the next share a slot, so pad with an empty one */
+void prog_token_end(prog_t *P, const xchg_t *x, int me, int ndies, CUdeviceptr any);
 
 /* ---- what die d of n owns in a block (expert split + row split, see SPEC) ---- */
 typedef struct {
@@ -116,7 +122,7 @@ typedef struct {
 	 * this die's V rows, G 10240, gates 4, conv input 10240, ring state [10][10240], rows debug */
 	CUdeviceptr ids, ple_pc, ple_tab, pg, pgq, pgs32, pgs16, pgas, lk, kn, qn, lv, pG, pgates, px, ple_state, prows;
 	/* head: this die's logits, its argmax (idx, max bits) + partials/counter, the gathered pairs, the token (u32 idx, u32 max bits) */
-	CUdeviceptr hlo, amo, apart, acnt, tokout;
+	CUdeviceptr hlo, amo, apart, acnt, tokout, toks;   /* toks: u32[positions], the generated tokens */
 } dn_bufs_t;
 
 void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps);
@@ -124,10 +130,10 @@ void prog_attn_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weig
 /* the PLE prefix of block 1 (before its DeltaNet block program): S += PLE(S, n-gram rows of position t) */
 void prog_ple_prefix(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps);
 /* S = 4 lanes of token_embd[id] (every die) */
-void prog_embed(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, unsigned id);
+void prog_embed(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, unsigned t);   /* S = token_embd[ids[t]] */
 /* the head: output_hc read gate -> z -> output.weight rows of this die -> argmax, the dies' (idx, max) pairs
  * gathered and combined identically everywhere into tokout = {idx, max bits} */
-void prog_head(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, float eps);
+void prog_head(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, float eps, unsigned t, unsigned nprompt);   /* toks[t] = token; ids[t+1] = token once t + 1 >= nprompt */
 /* attention blocks are every fourth block from 3 */
 #define BLK_IS_ATTN(blk) (((blk) & 3) == 3)
 #endif

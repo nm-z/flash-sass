@@ -29,16 +29,17 @@ int main(int argc, char **argv) {
 	CK(cuModuleLoad(&mod, "embrow.cubin"));
 	CK(cuModuleGetFunction(&fn, mod, "embrow"));
 	CUdeviceptr dE, dS;
-	CK(cuMemAlloc(&dE, bytes)); CK(cuMemAlloc(&dS, 4 * 10240));
+	CK(cuMemAlloc(&dE, bytes)); CK(cuMemAlloc(&dS, 4 * 10240)); CUdeviceptr dIDS; CK(cuMemAlloc(&dIDS, 16));
 	CK(cuMemcpyHtoD(dE, tab, bytes));
 	float *ref = malloc(4 * 2560), *got = malloc(4 * 10240);
 	int fails = 0;
 	const unsigned ids[] = { 0, 1, 2, 17, (unsigned)R - 1, (unsigned)R / 2 };
 	for (unsigned k = 0; k < sizeof ids / sizeof ids[0]; k++) {
-		unsigned id = ids[k];
+		unsigned id = ids[k], pos = 0;
 		dequant(GG_Q3_K, tab + (size_t)id * 1100, ref, 2560);
 		CK(cuMemsetD32(dS, 0x7fc00000u, 10240));
-		void *params[] = { &dE, &dS, &id };
+		CK(cuMemcpyHtoD(dIDS, &id, 4));
+		void *params[] = { &dE, &dS, &pos, &dIDS };
 		CK(cuLaunchKernel(fn, 10, 1, 1, 256, 1, 1, 0, 0, params, NULL));
 		CK(cuCtxSynchronize());
 		CK(cuMemcpyDtoH(got, dS, 4 * 10240));

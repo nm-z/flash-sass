@@ -93,7 +93,8 @@ int main(void) {
 
 	/* ---- the program ---- */
 	uint32_t prog[5][32];
-	desc_init(prog[0], OP_EMBROW, 10); desc_ptr(prog[0], 0x140, dE); desc_ptr(prog[0], 0x148, dS); desc_u32(prog[0], 0x150, id);
+	CUdeviceptr dIDS; CK(cuMemAlloc(&dIDS, 16)); CK(cuMemcpyHtoD(dIDS, &id, 4));   /* embrow: the row is IDS[pos] */
+	desc_init(prog[0], OP_EMBROW, 10); desc_ptr(prog[0], 0x140, dE); desc_ptr(prog[0], 0x148, dS); desc_u32(prog[0], 0x150, 0); desc_ptr(prog[0], 0x158, dIDS);
 	desc_init(prog[1], OP_PLEGATE, 4); desc_ptr(prog[1], 0x140, dKN); desc_ptr(prog[1], 0x148, dQN); desc_ptr(prog[1], 0x150, dV); desc_ptr(prog[1], 0x158, dG); desc_ptr(prog[1], 0x160, dGT);
 	desc_init(prog[2], OP_ACTQ2560, 1); desc_ptr(prog[2], 0x140, dX1); desc_ptr(prog[2], 0x148, dQ1); desc_ptr(prog[2], 0x150, dS32_1); desc_ptr(prog[2], 0x158, dS16_1); desc_ptr(prog[2], 0x160, dAS1); desc_u32(prog[2], 0x168, n1);
 	desc_init(prog[3], OP_FFNACT, E); desc_ptr(prog[3], 0x140, dGG); desc_ptr(prog[3], 0x148, dUU); desc_ptr(prog[3], 0x150, dQ2); desc_ptr(prog[3], 0x158, dS32_2); desc_ptr(prog[3], 0x160, dS16_2); desc_ptr(prog[3], 0x168, dAS2); desc_u32(prog[3], 0x170, n2);
@@ -109,7 +110,7 @@ int main(void) {
 	  printf("group 38: max |x| %.9g at %d (lane %d of chunk 9, 8-lane half %s)\n", mx, am, (am - 1152) / 4, ((am - 1152) / 4) & 4 ? "20-23" : "16-19");
 	  float m4[4] = { 0, 0, 0, 0 }; for (int i = 1216; i < 1248; i++) { int q = ((i - 1152) / 4 - 16) / 2; if (fabsf(x1[i]) > m4[q]) m4[q] = fabsf(x1[i]); }
 	  printf("  lane-pair maxima: %.9g %.9g %.9g %.9g\n", m4[0], m4[1], m4[2], m4[3]); }
-	void *params[] = { &dPROG, &nph, &dCTL };
+	unsigned ntok = 1; void *params[] = { &dPROG, &nph, &dCTL, &ntok };
 	int fails = 0;
 	for (int run = 0; run < 2; run++) {
 		CK(cuMemsetD32(dS, 0x7fc00000u, 10240)); CK(cuMemsetD32(dG, 0x7fc00000u, 10240)); CK(cuMemsetD32(dGT, 0x7fc00000u, 4));

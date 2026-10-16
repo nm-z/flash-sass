@@ -24,6 +24,7 @@ use warnings;
 my $BASE = 16;             # first op register
 my $NCTA = 16;             # CTAs per die (1 per SM)
 my $DESC_OFF = 0xbf80;     # descriptor in shared memory (ops use smem from 0)
+my $TOK_OFF = 0xbf70;      # the token counter (u32), kept per CTA in shared memory
 
 # opcode = index. tag, file, unit kind, environment for the generator
 my @OPS = (
@@ -226,6 +227,7 @@ print <<"EOF";
     param_nph   : c[0x0][0x148]
     param_ctl0  : c[0x0][0x150]
     param_ctl1  : c[0x0][0x154]
+    param_ntok  : c[0x0][0x158]
 </CONSTANT_MAPPING>
 
 <REGISTER_MAPPING>
@@ -261,10 +263,14 @@ $maps</REGISTER_MAPPING>
 --:-:-:-:6      MOV ctl1, param_ctl1;
 20:-:-:-:6      LOP32I.AND lane, tid, 0x1f;
 --:-:-:-:6      SHR.U32 warp, tid, 0x5;
-# launch timestamp -> ctl[15] (ctl<0-1> is an odd pair: address through fw)
+# the token counter lives in shared memory (TOK, below the descriptor), seeded from
+# ctl[2]; ctl<0-1> is an odd pair: address through fw
 --:-:-:-:6      MOV fw0, ctl0;
 --:-:-:-:6      MOV fw1, ctl1;
---:-:-:-:6      IADD op, cta, tid;
+--:-:1:-:2      LDG.E op, [fw+0x8];
+01:2:-:-:6      STS [RZ+0x@{[sprintf '%x', $TOK_OFF]}], op;
+# launch timestamp -> ctl[15]
+02:-:-:-:6      IADD op, cta, tid;
 --:-:-:-:6      ISETP.EQ.U32.AND P4, PT, op, RZ, PT;
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
@@ -272,7 +278,8 @@ $maps</REGISTER_MAPPING>
 20:1:-:-:6  \@P4 STG.E [fw+0x3c], op;
 
 PHASE:
-# descriptor -> smem (warp 0, lane = word)
+# descriptor -> smem (warp 0, lane = word); word 31 is a mask of the parameter words
+# that get the token counter added (positions, cache slots, key counts)
 01:-:-:-:6      ISETP.LT.U32.AND P6, PT, tid, 0x20, PT;
 --:-:-:-:6      SHL fw0, pidx, 0x7;
 --:-:-:-:6      IADD dsp0.CC, fw0, prog0;
@@ -281,8 +288,17 @@ PHASE:
 --:-:-:-:6      IADD fw0.CC, dsp0, op;
 --:-:-:-:6      IADD.X fw1, dsp1, RZ;
 --:-:-:-:6      IADD units, op, 0x@{[sprintf '%x', $DESC_OFF]};
---:-:1:-:2  \@P6 LDG.E op, [fw];
-01:2:-:-:6  \@P6 STS [units], op;
+--:-:1:-:1  \@P6 LDG.E op, [fw];
+--:-:1:-:1  \@P6 LDG.E bar_g, [dsp+0x7c];
+--:-:1:-:2      LDS bar_t, [RZ+0x@{[sprintf '%x', $TOK_OFF]}];
+01:-:-:-:6      SHR.U32 bar_g, bar_g, lane;
+--:-:-:-:6      LOP32I.AND bar_g, bar_g, 0x1;
+--:-:-:-:6      ISETP.NE.U32.AND P5, PT, bar_g, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P5 IADD op, op, bar_t;
+--:2:-:-:6  \@P6 STS [units], op;
 02:-:-:-:6      BAR.SYNC 0x1;
 --:-:1:-:1      LDS op, [RZ+0x@{[sprintf '%x', $DESC_OFF]}];
 --:-:1:-:2      LDS units, [RZ+0x@{[sprintf '%x', $DESC_OFF + 4]}];
@@ -335,6 +351,23 @@ BDONE:
 # ---- next phase ----
 --:-:-:-:6      IADD pidx, pidx, 0x1;
 --:-:-:-:6      ISETP.LT.U32.AND P6, PT, pidx, nph, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P6 BRA PHASE;
+# ---- token done: thread 0 bumps TOK (and CTA 0 mirrors it to ctl[2]); everyone
+# re-reads it behind a barrier and runs the program again while tok < ntok ----
+--:-:-:-:6      BAR.SYNC 0x1;
+--:-:1:-:2 \@!P5 LDS bar_t, [RZ+0x@{[sprintf '%x', $TOK_OFF]}];
+01:-:-:-:6 \@!P5 IADD bar_t, bar_t, 0x1;
+--:2:-:-:6 \@!P5 STS [RZ+0x@{[sprintf '%x', $TOK_OFF]}], bar_t;
+--:-:-:-:6      MOV bar_cp0, ctl0;
+--:-:-:-:6      MOV bar_cp1, ctl1;
+--:2:-:-:6  \@P4 STG.E [bar_cp+0x8], bar_t;
+02:-:-:-:6      BAR.SYNC 0x1;
+--:-:1:-:2      LDS bar_t, [RZ+0x@{[sprintf '%x', $TOK_OFF]}];
+--:-:-:-:6      MOV pidx, RZ;
+01:-:-:-:6      ISETP.LT.U32.AND P6, PT, bar_t, param_ntok, PT;
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;

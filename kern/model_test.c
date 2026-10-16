@@ -80,7 +80,7 @@ typedef struct { float *dn_state, *conv_state, *ple_state, *kc, *vc; } hstate_t;
 int main(int argc, char **argv) {
 	if (argc < 7) { fprintf(stderr, "usage: model_test <fullcache> <b0> <b1> <T> <flags: e h -> <manifest0> [manifest1 ...]\n"); return 2; }
 	fullcache = argv[1]; int b0 = atoi(argv[2]), b1 = atoi(argv[3]), T = atoi(argv[4]); const char *flags = argv[5]; nd = argc - 6; float eps = 1e-6f;
-	int do_embed = strchr(flags, 'e') != NULL, do_head = strchr(flags, 'h') != NULL;
+	int do_embed = strchr(flags, 'e') != NULL, do_head = strchr(flags, 'h') != NULL, do_loop = strchr(flags, 'l') != NULL;   /* l: one launch for all T tokens */
 	if (nd > MAXD || b1 > MAXB || b0 >= b1) { fprintf(stderr, "bad arguments\n"); return 2; }
 	int notwin = getenv("MODEL_NOTWIN") != NULL;
 	unsigned npos = ((unsigned)T + 8192 + 64 + 31) / 32 * 32;
@@ -194,7 +194,7 @@ int main(int argc, char **argv) {
 			b->pG = dalloc(4 * 10240); b->pgates = dalloc(16); b->px = dalloc(4 * 10240); b->prows = dalloc(64);
 			dst_ple[d] = dalloc(4 * 10 * 10240);
 		}
-		b->hlo = dalloc(4u * (unsigned)s0.on); b->amo = dalloc(8); b->apart = dalloc(16 * 8); b->acnt = dalloc(4); b->tokout = dalloc(8);
+		b->hlo = dalloc(4u * (unsigned)s0.on); b->amo = dalloc(8); b->apart = dalloc(16 * 8); b->acnt = dalloc(4); b->tokout = dalloc(8); b->toks = dalloc(4 * ((size_t)T + 2));
 		for (int bb = b0; bb < b1; bb++) {
 			split_t *s = &sp[d][bb]; split_of(s, d, nd, bb);
 			dn_weights_t *w = &dw[d][bb]; int is_attn = BLK_IS_ATTN(bb);
@@ -244,8 +244,70 @@ int main(int argc, char **argv) {
 	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(xc[d].xtab, tab, sizeof tab)); }
 	/* the initial stream: the embedding of ids[0], or random when no embedding runs */
 	if (!do_embed) { for (int i = 0; i < 10240; i++) hb->S[i] = 0.5f * frand(); for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(db[d].S, hb->S, 4 * 10240)); } }
-	printf("%d die(s), blocks [%d, %d)%s%s, %d tokens (%d prompt)\n", nd, b0, b1, do_embed ? ", embed" : "", do_head ? ", head" : "", T, nprompt);
+	printf("%d die(s), blocks [%d, %d)%s%s%s, %d tokens (%d prompt)\n", nd, b0, b1, do_embed ? ", embed" : "", do_head ? ", head" : "", do_loop ? ", one launch" : "", T, nprompt);
 	int fails = 0; unsigned tok_gpu = 0, tok_twin = 0; double tsum = 0;
+	if (do_loop) {
+		/* the twin runs every token first (its own greedy sequence) */
+		unsigned *tw = calloc((size_t)T + 1, 4);
+		double t0 = now();
+		if (!notwin) for (int t = 0; t < T; t++) {
+			unsigned idt = t < nprompt ? ids[t] : tok_twin;
+			if (do_embed) embed_gpu(&hwb[0], hb, idt);
+			for (int b = b0; b < b1; b++) {
+				hb->dn_state = hs[b].dn_state; hb->kc = hs[b].kc; hb->vc = hs[b].vc;
+				if (hs[b].conv_state) memcpy(hb->conv_state, hs[b].conv_state, sizeof hb->conv_state);
+				if (hs[b].ple_state) memcpy(hb->ple_state, hs[b].ple_state, sizeof hb->ple_state);
+				if (b == 1) ple_prefix_gpu(&hwb[b], hb, (unsigned)t, eps);
+				if (BLK_IS_ATTN(b)) attn_block_gpu(&hwb[b], hb, (unsigned)t, eps, nd, b, 0); else deltanet_block_gpu(&hwb[b], hb, (unsigned)t, eps, nd, b, 0);
+				if (hs[b].conv_state) memcpy(hs[b].conv_state, hb->conv_state, sizeof hb->conv_state);
+				if (hs[b].ple_state) memcpy(hs[b].ple_state, hb->ple_state, sizeof hb->ple_state);
+			}
+			if (do_head) { head_gpu(&hwb[0], hb, eps, nd); tok_twin = hb->tok; tw[t] = hb->tok; if (t + 1 >= nprompt && t + 1 < T) ((uint32_t *)ids)[t + 1] = 0; }
+		}
+		double t1 = now();
+		/* one program per die, token-relative, launched once for T tokens */
+		prog_t P[MAXD]; unsigned nph[MAXD];
+		for (int d = 0; d < nd; d++) {
+			prog_init(&P[d]); P[d].loop = 1;
+			if (do_embed) prog_embed(&P[d], &dw[d][0], &db[d], 0);
+			for (int b = b0; b < b1; b++) {
+				dn_bufs_t bb = db[d]; bb.dn_state = dst_dn[d][b]; bb.conv_state = dst_conv[d][b]; bb.kc = dst_kc[d][b]; bb.vc = dst_vc[d][b]; bb.ple_state = dst_ple[d];
+				if (b == 1) prog_ple_prefix(&P[d], &sp[d][b], &xc[d], &dw[d][b], &bb, 0, eps);
+				if (BLK_IS_ATTN(b)) prog_attn_block(&P[d], &sp[d][b], &xc[d], &dw[d][b], &bb, 0, eps);
+				else prog_deltanet_block(&P[d], &sp[d][b], &xc[d], &dw[d][b], &bb, 0, eps);
+			}
+			if (do_head) prog_head(&P[d], &sp[d][b0], &xc[d], &dw[d][0], &db[d], eps, 0, (unsigned)nprompt);
+			prog_token_end(&P[d], &xc[d], d, nd, db[d].S);
+			nph[d] = (unsigned)P[d].n;
+			CK(cuCtxSetCurrent(ctx[d]));
+			CK(cuMemcpyHtoD(dPROG[d], P[d].p, sizeof(phase_t) * P[d].n));
+		}
+		double t2 = now();
+		for (int d = 0; d < nd; d++) {
+			CK(cuCtxSetCurrent(ctx[d]));
+			unsigned ntok = (unsigned)T; void *params[] = { &dPROG[d], &nph[d], &dCTL[d], &ntok };
+			CK(cuLaunchKernel(fn[d], 16, 1, 1, 256, 1, 1, 0, 0, params, NULL));
+		}
+		for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuCtxSynchronize()); }
+		double t3 = now();
+		printf("%u phases per token; twin %.2f s for %d tokens; dies %.3f ms total = %.3f ms per token\n", nph[0], t1 - t0, T, (t3 - t2) * 1e3, (t3 - t2) * 1e3 / T);
+		unsigned *tg = calloc((size_t)T + 1, 4); int bad = 0;
+		for (int d = 0; d < nd; d++) {
+			CK(cuCtxSetCurrent(ctx[d]));
+			if (do_head) {
+				CK(cuMemcpyDtoH(tg, db[d].toks, 4 * (size_t)T));
+				int first = -1, nb = 0;
+				for (int t = 0; t < T; t++) if (tg[t] != tw[t]) { if (first < 0) first = t; nb++; }
+				if (!notwin) { if (nb) printf("  die %d tokens: %d of %d differ, first at %d (gpu %u twin %u)\n", d, nb, T, first, tg[first], tw[first]); else printf("  die %d tokens: all %d exact\n", d, T); }
+				bad += nb;
+			}
+			if (!notwin) { char nm[16]; snprintf(nm, sizeof nm, "S.%d", d); if (!cmpbuf(nm, hb->S, db[d].S, 4 * 10240, 4)) printf("  %s exact\n", nm); else bad++; }
+		}
+		if (do_head) { printf("  tokens:"); for (int t = 0; t < T && t < 40; t++) printf(" %u", tg[t]); printf("%s\n", T > 40 ? " ..." : ""); }
+		printf("%s\n", notwin ? "ran" : bad ? "FAIL" : "OK: one launch, every token exact");
+		for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); hold_close(&ar[d]); }
+		return bad && !notwin ? 3 : 0;
+	}
 	for (int t = 0; t < T; t++) {
 		unsigned id = t < nprompt ? ids[t] : tok_gpu;
 		if (t >= nprompt) ids[t] = tok_gpu;   /* the PLE's context sees the generated token */
@@ -268,25 +330,24 @@ int main(int argc, char **argv) {
 		prog_t P[MAXD]; unsigned nph[MAXD];
 		for (int d = 0; d < nd; d++) {
 			prog_init(&P[d]);
-			if (do_embed) prog_embed(&P[d], &dw[d][0], &db[d], id);
+			if (do_embed) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(db[d].ids + 4u * (unsigned)t, &id, 4)); prog_embed(&P[d], &dw[d][0], &db[d], (unsigned)t); }
 			for (int b = b0; b < b1; b++) {
 				dn_bufs_t bb = db[d]; bb.dn_state = dst_dn[d][b]; bb.conv_state = dst_conv[d][b]; bb.kc = dst_kc[d][b]; bb.vc = dst_vc[d][b]; bb.ple_state = dst_ple[d];
 				if (b == 1) prog_ple_prefix(&P[d], &sp[d][b], &xc[d], &dw[d][b], &bb, (unsigned)t, eps);
 				if (BLK_IS_ATTN(b)) prog_attn_block(&P[d], &sp[d][b], &xc[d], &dw[d][b], &bb, (unsigned)t, eps);
 				else prog_deltanet_block(&P[d], &sp[d][b], &xc[d], &dw[d][b], &bb, (unsigned)t, eps);
 			}
-			if (do_head) prog_head(&P[d], &sp[d][b0], &xc[d], &dw[d][0], &db[d], eps);
+			if (do_head) prog_head(&P[d], &sp[d][b0], &xc[d], &dw[d][0], &db[d], eps, (unsigned)t, (unsigned)nprompt);
 			nph[d] = (unsigned)P[d].n;
 			if (getenv("MODEL_NPH") && (unsigned)atoi(getenv("MODEL_NPH")) < nph[d]) nph[d] = (unsigned)atoi(getenv("MODEL_NPH"));
 			if (nph[d] > 4096) { fprintf(stderr, "program too long (%u phases)\n", nph[d]); return 1; }
 			CK(cuCtxSetCurrent(ctx[d]));
 			CK(cuMemcpyHtoD(dPROG[d], P[d].p, sizeof(phase_t) * P[d].n));
-			if (t >= nprompt) CK(cuMemcpyHtoD(db[d].ids + 4u * (unsigned)t, &tok_gpu, 4));
 		}
 		double t2 = now();
 		for (int d = 0; d < nd; d++) {
 			CK(cuCtxSetCurrent(ctx[d]));
-			void *params[] = { &dPROG[d], &nph[d], &dCTL[d] };
+			unsigned ntok = 1; void *params[] = { &dPROG[d], &nph[d], &dCTL[d], &ntok };
 			CK(cuLaunchKernel(fn[d], 16, 1, 1, 256, 1, 1, 0, 0, params, NULL));
 		}
 		for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuCtxSynchronize()); }

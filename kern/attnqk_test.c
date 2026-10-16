@@ -42,7 +42,8 @@ int main(void) {
 		for (int h = 0; h < 2; h++) { qk_norm_rope_gpu(k + 256 * h, kn, eps, cs, sn, kt); for (int d = 0; d < 256; d++) kc[attn_kidx(t, h, d)] = kt[d]; memcpy(vc + 512 * t + 256 * h, v + 256 * h, 1024); }
 		CK(cuMemcpyHtoD(dQ, q, 12288 * 4)); CK(cuMemcpyHtoD(dK, k, 2048)); CK(cuMemcpyHtoD(dV, v, 2048));
 		CK(cuMemcpyHtoD(dCS, cs, 128)); CK(cuMemcpyHtoD(dSN, sn, 128)); CK(cuMemsetD32(dQO, 0x7fc00000u, 6144));
-		void *params[] = { &dQ, &dK, &dV, &dQN, &dKN, &dCS, &dSN, &dQO, &dKC, &dVC, &t, &eps };
+		CUdeviceptr dCSb = dCS - 128u * t, dSNb = dSN - 128u * t;   /* the kernel indexes its tables by t */
+		void *params[] = { &dQ, &dK, &dV, &dQN, &dKN, &dCSb, &dSNb, &dQO, &dKC, &dVC, &t, &eps };
 		CK(cuLaunchKernel(fn, 26, 1, 1, 32, 1, 1, 0, 0, params, NULL)); CK(cuCtxSynchronize());
 		CK(cuMemcpyDtoH(qog, dQO, 6144 * 4));
 		int bq = 0;

@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void prog_init(prog_t *P) { P->cap = 64; P->n = 0; P->xj = 0; P->p = malloc(sizeof(phase_t) * P->cap); }
+void prog_init(prog_t *P) { P->cap = 64; P->n = 0; P->xj = 0; P->loop = 0; P->p = malloc(sizeof(phase_t) * P->cap); }
 void prog_free(prog_t *P) { free(P->p); P->p = NULL; P->n = P->cap = 0; }
 phase_t *prog_add(prog_t *P, int op, unsigned units) {
 	if (P->n == P->cap) { P->cap *= 2; P->p = realloc(P->p, sizeof(phase_t) * P->cap); }
@@ -16,6 +16,9 @@ phase_t *prog_add(prog_t *P, int op, unsigned units) {
 void ph_ptr(phase_t *p, int addr, CUdeviceptr v) { int w = 2 + (addr - 0x140) / 4; p->w[w] = (uint32_t)v; p->w[w + 1] = (uint32_t)(v >> 32); }
 void ph_u32(phase_t *p, int addr, uint32_t v) { p->w[2 + (addr - 0x140) / 4] = v; }
 void ph_f32(phase_t *p, int addr, float v) { uint32_t u; memcpy(&u, &v, 4); ph_u32(p, addr, u); }
+void ph_tokv(prog_t *P, phase_t *p, int addr, uint32_t base, uint32_t value) {
+	if (P->loop) { ph_u32(p, addr, base); p->w[31] |= 1u << (2 + (addr - 0x140) / 4); } else ph_u32(p, addr, value);   /* descriptor word 2 + i */
+}
 
 void ph_rms(prog_t *P, int op, CUdeviceptr X, CUdeviceptr W, CUdeviceptr Y, float eps, unsigned vectors) {
 	phase_t *p = prog_add(P, op, vectors);
@@ -53,7 +56,7 @@ void ph_b32(prog_t *P, int op, CUdeviceptr W, CUdeviceptr X, CUdeviceptr S, CUde
 }
 void ph_conv1d(prog_t *P, CUdeviceptr X, CUdeviceptr STATE, CUdeviceptr W, CUdeviceptr U, unsigned t, unsigned n) {
 	phase_t *p = prog_add(P, OP_CONV1D, (n + 1023) / 1024);
-	ph_ptr(p, 0x140, X); ph_ptr(p, 0x148, STATE); ph_ptr(p, 0x150, W); ph_ptr(p, 0x158, U); ph_u32(p, 0x160, t); ph_u32(p, 0x164, n);
+	ph_ptr(p, 0x140, X); ph_ptr(p, 0x148, STATE); ph_ptr(p, 0x150, W); ph_ptr(p, 0x158, U); ph_tokv(P, p, 0x160, 0, t); ph_u32(p, 0x164, n);
 }
 void ph_dnstep(prog_t *P, CUdeviceptr S, CUdeviceptr Q, CUdeviceptr K, CUdeviceptr V, CUdeviceptr A, CUdeviceptr B, CUdeviceptr SSMA, CUdeviceptr O, float eps, unsigned hb, unsigned kb, unsigned heads) {
 	phase_t *p = prog_add(P, OP_DNSTEP, heads);
@@ -112,6 +115,10 @@ CUdeviceptr ph_xchg(prog_t *P, const xchg_t *x, int me, int ndies, CUdeviceptr s
 	ph_ptr(p, 0x140, x->xtab); ph_u32(p, 0x148, (unsigned)me); ph_u32(p, 0x14c, (unsigned)ndies); ph_ptr(p, 0x150, x->xgen); ph_u32(p, 0x158, slot); ph_u32(p, 0x15c, total);
 	P->xj++;
 	return x->inbox + slot;
+}
+
+void prog_token_end(prog_t *P, const xchg_t *x, int me, int ndies, CUdeviceptr any) {
+	if (P->loop && (P->xj & 1)) ph_xchg(P, x, me, ndies, any, 0, 0, 16);
 }
 
 /* ---- the split ---- */
@@ -175,10 +182,10 @@ static void ph_attn_core(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, u
 	ph_gemv_any(P, w->attn_v_type, 2560, w->attn_v, b->zq, b->zs32, b->v, 512, b->zas, 0, 0);
 	phase_t *p = prog_add(P, OP_ATTNQK, 26);
 	ph_ptr(p, 0x140, b->qg); ph_ptr(p, 0x148, b->k); ph_ptr(p, 0x150, b->v); ph_ptr(p, 0x158, w->attn_q_norm); ph_ptr(p, 0x160, w->attn_k_norm);
-	ph_ptr(p, 0x168, b->rope_cs + 128u * t); ph_ptr(p, 0x170, b->rope_sn + 128u * t); ph_ptr(p, 0x178, b->qo); ph_ptr(p, 0x180, b->kc); ph_ptr(p, 0x188, b->vc);
-	ph_u32(p, 0x190, t); ph_f32(p, 0x194, eps);
+	ph_ptr(p, 0x168, b->rope_cs); ph_ptr(p, 0x170, b->rope_sn); ph_ptr(p, 0x178, b->qo); ph_ptr(p, 0x180, b->kc); ph_ptr(p, 0x188, b->vc);
+	ph_tokv(P, p, 0x190, 0, t); ph_f32(p, 0x194, eps);
 	p = prog_add(P, OP_ATTNPART, 32);
-	ph_ptr(p, 0x140, b->qo); ph_ptr(p, 0x148, b->kc); ph_ptr(p, 0x150, b->vc); ph_ptr(p, 0x158, b->pm); ph_ptr(p, 0x160, b->pd); ph_ptr(p, 0x168, b->po); ph_u32(p, 0x170, t + 1);
+	ph_ptr(p, 0x140, b->qo); ph_ptr(p, 0x148, b->kc); ph_ptr(p, 0x150, b->vc); ph_ptr(p, 0x158, b->pm); ph_ptr(p, 0x160, b->pd); ph_ptr(p, 0x168, b->po); ph_tokv(P, p, 0x170, 1, t + 1);
 	p = prog_add(P, OP_ATTNMERGE, 24);
 	ph_ptr(p, 0x140, b->pm); ph_ptr(p, 0x148, b->pd); ph_ptr(p, 0x150, b->po); ph_ptr(p, 0x158, b->qg); ph_ptr(p, 0x160, b->aout);
 }
@@ -195,12 +202,12 @@ void prog_attn_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weig
 	ph_moe_half(P, s, x, w, b, eps);
 }
 
-void prog_embed(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, unsigned id) {
+void prog_embed(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, unsigned t) {
 	phase_t *p = prog_add(P, OP_EMBROW, 10);
-	ph_ptr(p, 0x140, w->token_embd); ph_ptr(p, 0x148, b->S); ph_u32(p, 0x150, id);
+	ph_ptr(p, 0x140, w->token_embd); ph_ptr(p, 0x148, b->S); ph_tokv(P, p, 0x150, 0, t); ph_ptr(p, 0x158, b->ids);
 }
 
-void prog_head(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, float eps) {
+void prog_head(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, float eps, unsigned t, unsigned nprompt) {
 	unsigned cols = 32u * (unsigned)s->cbn;
 	/* the read gate without an inject: 320 down rows, nothing copied behind t */
 	ph_rms(P, OP_RMS2560, b->S, w->output_hc_norm, b->xh, eps, 4);
@@ -217,11 +224,12 @@ void prog_head(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t 
 	CUdeviceptr PAIRS = ph_xchg(P, x, s->d, s->n, b->amo, 8, 8u * (unsigned)s->d, 8u * (unsigned)s->n);
 	p = prog_add(P, OP_AMAX, 1);
 	ph_ptr(p, 0x140, PAIRS); ph_ptr(p, 0x148, w->obases); ph_u32(p, 0x150, (unsigned)s->n); ph_ptr(p, 0x158, b->tokout);
+	ph_ptr(p, 0x160, b->ids); ph_ptr(p, 0x168, b->toks); ph_tokv(P, p, 0x170, 0, t); ph_u32(p, 0x174, nprompt);
 }
 
 void prog_ple_prefix(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps) {
 	phase_t *p = prog_add(P, OP_PLEROWS, 1);   /* every die hashes and gathers the 16 rows itself */
-	ph_ptr(p, 0x140, b->ids); ph_ptr(p, 0x148, b->ple_pc); ph_ptr(p, 0x150, b->ple_tab); ph_ptr(p, 0x158, b->pg); ph_ptr(p, 0x160, b->prows); ph_u32(p, 0x168, t);
+	ph_ptr(p, 0x140, b->ids); ph_ptr(p, 0x148, b->ple_pc); ph_ptr(p, 0x150, b->ple_tab); ph_ptr(p, 0x158, b->pg); ph_ptr(p, 0x160, b->prows); ph_tokv(P, p, 0x168, 0, t);
 	ph_actq(P, OP_ACTQ2560, b->pg, b->pgq, b->pgs32, b->pgs16, b->pgas, 2560, 1);
 	ph_gemv_any(P, GG_Q2_0, 2560, w->ple_key, b->pgq, b->pgs32, b->lk, (unsigned)s->pkn, b->pgas, 0, 0);
 	CUdeviceptr K = ph_xchg(P, x, s->d, s->n, b->lk, 4u * (unsigned)s->pkn, 4u * (unsigned)s->pk0, 4 * 10240);
@@ -233,7 +241,7 @@ void prog_ple_prefix(prog_t *P, const split_t *s, const xchg_t *x, const dn_weig
 	ph_ptr(p, 0x140, b->kn); ph_ptr(p, 0x148, b->qn); ph_ptr(p, 0x150, V); ph_ptr(p, 0x158, b->pG); ph_ptr(p, 0x160, b->pgates);
 	ph_rms(P, OP_RMS2560, b->pG, w->ple_norm_conv, b->px, eps, 4);
 	p = prog_add(P, OP_PLECONV, 10);
-	ph_ptr(p, 0x140, b->px); ph_ptr(p, 0x148, b->ple_state); ph_ptr(p, 0x150, w->ple_conv1d); ph_ptr(p, 0x158, b->pG); ph_ptr(p, 0x160, b->S); ph_u32(p, 0x168, t);
+	ph_ptr(p, 0x140, b->px); ph_ptr(p, 0x148, b->ple_state); ph_ptr(p, 0x150, w->ple_conv1d); ph_ptr(p, 0x158, b->pG); ph_ptr(p, 0x160, b->S); ph_tokv(P, p, 0x168, 0, t);
 }
 
 void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps) {
