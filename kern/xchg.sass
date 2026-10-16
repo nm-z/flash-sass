@@ -120,36 +120,10 @@
         $o .= sprintf "01:2:-:-:%d  \@P%d STG.E.WT [da%02d], v;\n", $_ == 5 ? 6 : 1, $_, 2 * $_ for 0..5;
         $o .= "02:-:-:-:6  \@P6 BRA WORD;\n";
         $o .= "SENT:\n";
-        # one system fence per CTA: BAR.SYNC makes every thread's stores visible to thread
-        # 0, whose MEMBAR.SYS is cumulative (the PTX memory model). Thread 0 then bumps
-        # the CTA's exchange count (XG in shared memory at 0xbf74, seeded by the die
-        # framework from ctl[8]; every CTA's copy stays equal) and publishes it to
-        # flags_e[me][cta] of every die e (TAB[6 + e] + 64 me + 4 cta), so a receiver
-        # sees this die's part once the flags of all 16 CTAs reached the count — no
-        # grid barrier sits between the data and the flag. CTA 0 mirrors the count to
-        # *XG (ctl[8]) for the next launch.
-        $o .= "--:-:-:-:6      BAR.SYNC 0x0;\n";
-        $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P6, PT, tid, RZ, PT;\n";
-        $o .= "--:-:1:-:1      LDS g, [RZ+0xbf74];\n";
-        $o .= sprintf "--:-:1:-:%d      LDG.E.64 pb%02d, [tp+0x%x];\n", $_ == 5 ? 2 : 1, 2 * $_, 48 + 8 * $_ for 0..5;
-        $o .= "--:-:-:-:6      MOV t, param_sme;\n";
-        $o .= "--:-:-:-:6      SHL t, t, 0x6;\n";
-        $o .= "--:-:-:-:6      ISCADD t, bid, t, 0x2;\n";                      # 64 me + 4 cta
-        for my $e (0..5) {
-            $o .= sprintf "--:-:-:-:6      ISETP.GT.U32.AND P%d, PT, m, 0x%x, P6;\n", $e, $e;   # die e exists and I am thread 0
-            $o .= sprintf "01:-:-:-:6      IADD dq%02d.CC, pb%02d, t;\n", 2 * $e, 2 * $e;
-            $o .= sprintf "--:-:-:-:6      IADD.X dq%02d, pb%02d, RZ;\n", 2 * $e + 1, 2 * $e + 1;
-        }
-        $o .= "--:-:-:-:6      IADD g, g, 0x1;\n";
-        $o .= "--:-:-:-:6      MOV xp0, param_XG0;\n";
-        $o .= "--:-:-:-:6      MOV xp1, param_XG1;\n";
-        $o .= "--:-:-:-:6  \@P6 MEMBAR.SYS;\n";
-        $o .= "--:2:-:-:1  \@P6 STS [RZ+0xbf74], g;\n";
-        $o .= sprintf "--:2:-:-:%d  \@P%d STG.E.WT [dq%02d], g;\n", $_ == 5 ? 6 : 1, $_, 2 * $_ for 0..5;
-        $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P6, PT, bid, RZ, P6;\n";       # CTA 0 thread 0
-        $o .= "--:-:-:-:6      NOP;\n" x 3;
-        $o .= "--:2:-:-:6  \@P6 STG.E [xp], g;\n";
-        $o .= "02:-:-:-:f      EXIT;\n";
+        # the fence, the exchange count and the flags are the die framework's (descriptor
+        # word 30 bit 0 marks this a send phase: at its end thread 0 of every CTA fences
+        # and publishes the count to flags_e[me][cta] of every die)
+        $o .= "--:-:-:-:f      EXIT;\n";
     } else {
         # flag bases: fp_e = flags_e + 4 me (to store), sp = flags_me (to poll)
         $o .= sprintf "--:-:1:-:%d      LDG.E.64 pb%02d, [tp+0x%x];\n", $_ == 5 ? 2 : 1, 2 * $_, 48 + 8 * $_ for 0..5;

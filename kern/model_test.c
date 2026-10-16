@@ -261,7 +261,7 @@ int main(int argc, char **argv) {
 		CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(xc[d].xtab, tab, sizeof tab));
 		/* the framework's exchange header in ctl: [3] me, [4] ndies, [16 + 2e] = &flags_e[me][0], [28] = my flags */
 		uint32_t hdr[32] = { 0 }; hdr[3] = (uint32_t)d; hdr[4] = (uint32_t)nd;
-		for (int e = 0; e < nd; e++) { uint64_t a = (uint64_t)xc[e].flags + 64u * (unsigned)d; memcpy(&hdr[16 + 2 * e], &a, 8); }
+		for (int e = 0; e < 6; e++) { uint64_t a = e < nd ? (uint64_t)xc[e].flags + 64u * (unsigned)d : (uint64_t)dCTL[d] + 0xc0; memcpy(&hdr[16 + 2 * e], &a, 8); }   /* absent dies: a scratch word, so the framework's six flag stores are unconditional */
 		uint64_t mf = (uint64_t)xc[d].flags; memcpy(&hdr[28], &mf, 8);
 		CK(cuMemsetD8(dCTL[d], 0, 0x100)); CK(cuMemcpyHtoD(dCTL[d], hdr, sizeof hdr));   /* ctl[32..47]: the grid barrier arrival flags */
 	}

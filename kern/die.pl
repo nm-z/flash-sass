@@ -262,6 +262,10 @@ print <<"EOF";
     20,21 : xc<0-1>
     22,23 : xd<0-1>
     24,25 : xe<0-1>
+    26,27 : xf<0-1>
+    28,29 : xg<0-1>
+    30,31 : xh<0-1>
+    32,33 : xi<0-1>
 $maps</REGISTER_MAPPING>
 
 --:-:6:-:1      S2R tid, SR_TID.X;
@@ -401,6 +405,48 @@ PHASE_END:
 01:-:-:-:6      IADD bar_g, bar_g, 0x1;
 --:-:-:-:6      MOV32I bar_g2, 0xffffffff;
 --:2:-:-:6 \@!P5 STG.E.WT [xb+0x80], bar_g;
+# a send phase (descriptor word 30 bit 0): thread 0 of every CTA fences (its CTA's
+# stores to the peers' inboxes are ordered before it by the BAR.SYNC above), bumps the
+# CTA's exchange count XG and stores it to flags_e[me][cta] of every die e
+# (ctl[16 + 2e] = &flags_e[me][0]; the host points absent dies at a scratch word, so
+# all six stores are unconditional); CTA 0 mirrors the count to ctl[8]. This runs
+# while the other CTAs' arrivals propagate, ahead of the poll below.
+--:-:1:-:2      LDS bar_old, [RZ+0x@{[sprintf '%x', $DESC_OFF + 0x78]}];
+01:-:-:-:6      LOP32I.AND bar_old, bar_old, 0x1;
+--:-:-:-:6      ISETP.NE.U32.AND P4, PT, bar_old, RZ, !P5;
+--:-:-:-:6      SHL bar_t, cta, 0x2;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:1:-:1  \@P4 LDG.E.64 xc0, [bar_cp+0x40];
+--:-:1:-:1  \@P4 LDG.E.64 xd0, [bar_cp+0x48];
+--:-:1:-:1  \@P4 LDG.E.64 xf0, [bar_cp+0x50];
+--:-:1:-:1  \@P4 LDG.E.64 xg0, [bar_cp+0x58];
+--:-:1:-:1  \@P4 LDG.E.64 xh0, [bar_cp+0x60];
+--:-:1:-:1  \@P4 LDG.E.64 xi0, [bar_cp+0x68];
+--:-:1:-:2  \@P4 LDS op, [RZ+0x@{[sprintf '%x', $XG_OFF]}];
+--:-:-:-:6  \@P4 MEMBAR.SYS;
+01:-:-:-:6      IADD op, op, 0x1;
+--:-:-:-:6      IADD xc0.CC, xc0, bar_t;
+--:-:-:-:6      IADD.X xc1, xc1, RZ;
+--:-:-:-:6      IADD xd0.CC, xd0, bar_t;
+--:-:-:-:6      IADD.X xd1, xd1, RZ;
+--:-:-:-:6      IADD xf0.CC, xf0, bar_t;
+--:-:-:-:6      IADD.X xf1, xf1, RZ;
+--:-:-:-:6      IADD xg0.CC, xg0, bar_t;
+--:-:-:-:6      IADD.X xg1, xg1, RZ;
+--:-:-:-:6      IADD xh0.CC, xh0, bar_t;
+--:-:-:-:6      IADD.X xh1, xh1, RZ;
+--:-:-:-:6      IADD xi0.CC, xi0, bar_t;
+--:-:-:-:6      IADD.X xi1, xi1, RZ;
+--:-:-:-:6      ISETP.EQ.U32.AND P2, PT, cta, RZ, P4;
+--:2:-:-:1  \@P4 STG.E.WT [xc], op;
+--:2:-:-:1  \@P4 STG.E.WT [xd], op;
+--:2:-:-:1  \@P4 STG.E.WT [xf], op;
+--:2:-:-:1  \@P4 STG.E.WT [xg], op;
+--:2:-:-:1  \@P4 STG.E.WT [xh], op;
+--:2:-:-:1  \@P4 STG.E.WT [xi], op;
+--:2:-:-:1  \@P4 STS [RZ+0x@{[sprintf '%x', $XG_OFF]}], op;
+--:2:-:-:6  \@P2 STG.E [bar_cp+0x20], op;
 BSPIN:
 --:-:1:-:2  \@P3 LDG.E.CV bar_g2, [xa+0x80];
 01:-:-:-:6      ISETP.GE.U32.AND P4, PT, bar_g2, bar_g, PT;
@@ -413,7 +459,7 @@ BSPIN:
 --:-:-:-:6      NOP;
 --:-:-:-:6 \@!P4 BRA BSPIN;
 --:-:-:-:6      MEMBAR.GL.IVALLD;
---:-:-:-:6      IADD bar_t, cta, tid;
+02:-:-:-:6      IADD bar_t, cta, tid;
 --:-:-:-:6      ISETP.EQ.U32.AND P4, PT, bar_t, RZ, PT;
 --:2:-:-:6      STS [RZ+0x@{[sprintf '%x', $GEN_OFF]}], bar_g;
 --:-:-:-:6      NOP;
