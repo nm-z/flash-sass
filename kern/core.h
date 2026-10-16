@@ -34,7 +34,8 @@ typedef struct {
 /* exported by libengine.so */
 int engine_init(core_t *c);                  /* 0 on success; builds all device state */
 void engine_fini(void);                      /* frees it */
-/* serves one client's commands; returns 0 when the client is gone, 1 to quit the process, 2 to reload the library */
+/* serves one client's commands; returns 0 when the client is gone, 1 to quit the process, 2 to reload the library,
+   3 after a CUDA error (the core destroys and rebuilds the die contexts, keeping the PLE table, then reloads the library) */
 int engine_session(FILE *in, FILE *out);
 const char *engine_reload_path(void);        /* after a 2: the library to load next (NULL: the same file) */
 

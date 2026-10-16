@@ -22,6 +22,7 @@ int engine_session(FILE *in, FILE *out) {
 	char line[512];
 	while (fgets(line, sizeof line, in)) {
 		if (!strncmp(line, "quit", 4)) return 1;
+		if (!strncmp(line, "fault", 5)) return 3;   /* pretend the engine hit a CUDA error */
 		if (!strncmp(line, "reload", 6)) { rp[0] = 0; sscanf(line + 6, "%511s", rp); return 2; }
 		if (!strncmp(line, "echo ", 5)) { fputs(line + 5, out); fflush(out); }
 	}

@@ -5,7 +5,8 @@
  *   flashcore <ple.bin | -> <libengine.so> <manifest0> [manifest1 ...]
  *
  * The clients speak the line protocol of engine_session() (see engine.c) on stdin/stdout, or, with
- * FLASH_SOCK=<path>, one at a time on that Unix socket (flashd). `reload [path]` swaps the library.
+ * FLASH_SOCK=<path>, one at a time on that Unix socket (flashd). `reload [path]` swaps the library; a CUDA error
+ * in the engine rebuilds the die contexts and the engine (the table is owned by an anchor context on another die).
  * Env: FLASH_MAXT (positions, default 2048), FLASH_PLE_OFF (byte offset of the table in the PLE file,
  * 192 for shard 2 itself, 0 for an extracted copy; the file "-" means no table: the PLE rows read
  * zeros, timing only), FLASH_PLE_CONSUME (see below), plus the engine's own (SPLIT_SHARES, ATTN_DIE,
@@ -66,6 +67,29 @@ static int engine_reload(const char *path) {
 	return -1;
 }
 
+static char *manifest[CORE_MAXD];
+static CUcontext anchor;
+
+/* The die contexts, peer access and weight arenas; 0 on success. A device fault leaves the contexts unusable:
+   close_dies + open_dies rebuild them without touching the PLE table, which belongs to the anchor context. */
+static int open_dies(void) {
+	for (int d = 0; d < core.nd; d++) {
+		FILE *f = fopen(manifest[d], "r"); size_t bytes; int die;
+		if (!f || fscanf(f, "arena %zu die %d", &bytes, &die) != 2) { fprintf(stderr, "bad manifest %s\n", manifest[d]); if (f) fclose(f); return -1; }
+		fclose(f);
+		CUdevice dev; if (hold_ordinal(die) < 0) { fprintf(stderr, "die %d is not in CUDA_VISIBLE_DEVICES\n", die); return -1; }
+		if (cuDeviceGet(&dev, hold_ordinal(die)) || cuCtxCreate_v2(&core.ctx[d], CU_CTX_SCHED_SPIN, dev)) { fprintf(stderr, "cannot create a context on die %d\n", die); return -1; }
+		if (hold_open(&core.ar[d], manifest[d])) return -1;
+	}
+	for (int d = 0; d < core.nd; d++) { if (cuCtxSetCurrent(core.ctx[d])) return -1; for (int e = 0; e < core.nd; e++) if (e != d && cuCtxEnablePeerAccess(core.ctx[e], 0)) return -1; }
+	return 0;
+}
+static void close_dies(void) {
+	for (int d = 0; d < core.nd; d++) {
+		if (core.ctx[d]) { cuCtxSetCurrent(core.ctx[d]); hold_close(&core.ar[d]); cuCtxDestroy(core.ctx[d]); core.ctx[d] = NULL; }
+	}
+}
+
 int main(int argc, char **argv) {
 	if (argc < 4) { fprintf(stderr, "usage: flashcore <ple.bin | -> <libengine.so> <manifest0> [manifest1 ...]\n"); return 2; }
 	const char *plefile = argv[1], *libfile = argv[2];
@@ -75,17 +99,17 @@ int main(int argc, char **argv) {
 	double ts0 = now();
 	signal(SIGPIPE, SIG_IGN);
 	CK(cuInit(0));
-	for (int d = 0; d < core.nd; d++) {
-		FILE *f = fopen(argv[3 + d], "r"); size_t bytes; int die;
-		if (!f || fscanf(f, "arena %zu die %d", &bytes, &die) != 2) { fprintf(stderr, "bad manifest %s\n", argv[3 + d]); return 1; }
-		fclose(f);
-		CUdevice dev; if (hold_ordinal(die) < 0) { fprintf(stderr, "die %d is not in CUDA_VISIBLE_DEVICES\n", die); return 1; } CK(cuDeviceGet(&dev, hold_ordinal(die)));
-		CK(cuCtxCreate_v2(&core.ctx[d], CU_CTX_SCHED_SPIN, dev));
-		if (hold_open(&core.ar[d], argv[3 + d])) return 1;
+	for (int d = 0; d < core.nd; d++) manifest[d] = argv[3 + d];
+	/* the anchor: a context on a die the engine never runs on (FLASH_ANCHOR_DIE, default 7; the first die if that one is not
+	   visible) owns the pinned table, so destroying the die contexts after a device fault does not free it */
+	{
+		const char *ad = getenv("FLASH_ANCHOR_DIE"); int die = ad ? atoi(ad) : 7, ord = hold_ordinal(die);
+		if (ord < 0) { fprintf(stderr, "flashcore: anchor die %d is not visible, anchoring on the first die\n", die); ord = 0; }
+		CUdevice dev; CK(cuDeviceGet(&dev, ord)); CK(cuCtxCreate_v2(&anchor, 0, dev));
 	}
-	for (int d = 0; d < core.nd; d++) { CK(cuCtxSetCurrent(core.ctx[d])); for (int e = 0; e < core.nd; e++) if (e != d) CK(cuCtxEnablePeerAccess(core.ctx[e], 0)); }
+	if (open_dies()) return 1;
 	/* ---- the PLE table: pinned host memory, read from the file (CUDA 11.4 cannot pin a file mapping) ---- */
-	CK(cuCtxSetCurrent(core.ctx[0]));
+	CK(cuCtxSetCurrent(anchor));
 	const size_t PLE_ROWS = 320001536, PLE_BYTES = PLE_ROWS * 90;
 	int have = strcmp(plefile, "-") != 0;
 	size_t sz = have ? PLE_BYTES : (size_t)core.maxt * 16 * 90;   /* no table: a zero compact table (16 rows per position) keeps plerows in bounds */
@@ -131,6 +155,14 @@ int main(int argc, char **argv) {
 			in = fdopen(c, "r"); out = fdopen(dup(c), "w");
 		}
 		int q = e_session(in, out);
+		if (q == 3) {   /* the engine hit a CUDA error: the contexts are unusable, the table (anchor) is not */
+			fprintf(stderr, "flashcore: device fault; rebuilding the die contexts and the engine\n");
+			char keep[1024]; snprintf(keep, sizeof keep, "%s", libpath);
+			engine_unload(); close_dies();
+			int rc = open_dies() ? -1 : engine_load(keep);
+			fprintf(out, rc ? "error: could not recover from the device fault; the process exits\n" : "ok: contexts rebuilt, engine reloaded\n"); fflush(out);
+			if (rc) { if (ls >= 0) { fclose(in); fclose(out); } exit(1); }
+		}
 		if (q == 2) {
 			const char *next = e_reload_path();
 			char keep[1024]; snprintf(keep, sizeof keep, "%s", next ? next : "");
@@ -141,7 +173,7 @@ int main(int argc, char **argv) {
 		if (q == 1) break;
 	}
 	engine_unload();
-	for (int d = 0; d < core.nd; d++) { CK(cuCtxSetCurrent(core.ctx[d])); hold_close(&core.ar[d]); }
+	close_dies();
 	if (ls >= 0) { close(ls); unlink(sock); }
 	return 0;
 }

@@ -27,8 +27,8 @@
 
 CUresult cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev);
 /* during engine_init a failure unwinds to it (the core and its weights and table stay up); later ones are fatal */
-static jmp_buf init_jb; static int in_init;
-#define CK(x) do { CUresult r_ = (x); if (r_ != CUDA_SUCCESS) { const char *s_ = "?"; cuGetErrorString(r_, &s_); fprintf(stderr, "engine.c:%d: %s -> %s\n", __LINE__, #x, s_); if (in_init) longjmp(init_jb, 1); exit(1); } } while (0)
+static jmp_buf init_jb, run_jb; static int in_init, in_run;
+#define CK(x) do { CUresult r_ = (x); if (r_ != CUDA_SUCCESS) { const char *s_ = "?"; cuGetErrorString(r_, &s_); fprintf(stderr, "engine.c:%d: %s -> %s\n", __LINE__, #x, s_); if (in_init) longjmp(init_jb, 1); if (in_run) longjmp(run_jb, 1); exit(1); } } while (0)
 static double now(void) { struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts); return ts.tv_sec + ts.tv_nsec * 1e-9; }
 
 #define MAXD CORE_MAXD
@@ -72,6 +72,9 @@ int engine_positions(void) { return MAXT; }
 int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], const sampling *sm, int (*on_token)(void *, int, uint32_t), void *arg, run_stats *st) {
 	int T = nprompt + n_new;
 	if (nprompt < 1 || n_new < 0 || T > MAXT) return -1;
+	/* a CUDA error from here on unwinds to this point: the contexts are no longer usable, the core rebuilds them (return -2) */
+	in_run = 1;
+	if (setjmp(run_jb)) { in_run = 0; return -2; }
 	memcpy(h_ids, ids, 4 * (size_t)nprompt); memset(h_ids + nprompt, 0, 4 * (size_t)(T + 2 - nprompt));
 	double t0 = now();
 	int samp_k = (sm && sm->temp > 0.f && sm->top_k >= 2) ? (sm->top_k > 32 ? 32 : sm->top_k) : 0;
@@ -147,6 +150,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	if (st) { st->ntok = count; st->ended = ended; st->nph = nph[0]; st->build_ms = (t1 - t0) * 1e3; st->run_ms = (t2 - t1) * 1e3; st->first_ms = tfirst ? (tfirst - t1) * 1e3 : 0; }
 	for (int d = 0; d < nd; d++) prog_free(&P[d]);
 	free(P);
+	in_run = 0;
 	return 0;
 }
 
@@ -335,7 +339,9 @@ int engine_session(FILE *in, FILE *out) {
 		int nprompt = 0; p = end;
 		for (;;) { long v = strtol(p, &end, 10); if (end == p) break; if (nprompt + 2 >= MAXT) break; ids[nprompt++] = (uint32_t)v; p = end; }
 		run_stats st;
-		if (engine_run(ids, nprompt, (int)n_new, stop, &smp, chat ? put_token : NULL, out, &st)) { fprintf(out, "error: %d prompt ids + %ld new > %d positions\n", nprompt, n_new, MAXT); fflush(out); continue; }
+		int rc = engine_run(ids, nprompt, (int)n_new, stop, &smp, chat ? put_token : NULL, out, &st);
+		if (rc == -2) { fprintf(out, "error: device fault; the core rebuilds the contexts and the engine\n"); fflush(out); free(line); return 3; }
+		if (rc) { fprintf(out, "error: %d prompt ids + %ld new > %d positions\n", nprompt, n_new, MAXT); fflush(out); continue; }
 		if (chat) {
 			fprintf(out, "done %d %d %d %.1f %.1f\n", st.ntok - (nprompt - 1), st.ended, nprompt, st.run_ms, st.first_ms);
 		} else {
