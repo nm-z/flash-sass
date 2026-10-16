@@ -220,11 +220,49 @@ head and runs slower (811 MHz measured), so it gets fewer blocks.
   `deltanet_step`, `gqa_attn_step`, `indexer_topk`, `moe_route`, `hc_gates`,
   `ple_lookup`, `barrier_grid`, `mailbox_wait`, `mailbox_publish`, `sample`.
 
+## Phase 1 status (2026-10-16)
+
+- `kern/gemv_q2_0.sass` (MaxAs, 713 instructions, 128 registers, 2 CTAs/SM):
+  **bit-exact** against `ref/quant.c` on `blk.4.ffn_gate_exps.weight` for experts
+  0, 7, 511 and for all 327,680 rows at once (236 MB), with random, all-ones and
+  alternating activations. Verified by `kern/gemv_test`.
+- Speed: 57 GB/s of tile on the full tensor (4.1 ms), 36 GB/s on one expert
+  (launch-bound at 13 µs). Roofline is ~160 GB/s; profiling and scheduling next.
+- Toolchain fixes needed on the way, all in `maxas-patch/` and applied on archy:
+  `ISCADD R.CC` in the grammar; **EIATTR_REGCOUNT** in the global `.nv.info` is what
+  the 470 driver reads for the register count (MaxAs only rewrote the section
+  header, so kernels launched with 2 registers and faulted); unknown `.nv.info`
+  attributes are now kept instead of dropped.
+- Maxwell scheduling facts measured with `kern/semtest*.sass`: XMAD.U16.S16
+  half-selects, LOP32I, SHR, I2F, F2F, IADD3 negation, LDG.64/128/U16 and
+  SHFL.BFLY all behave as the SASS reads. A variable-latency instruction's write
+  barrier is not honoured by an instruction issued the next cycle: give SHFL (and
+  I2F/F2F/LDG when the consumer is adjacent) a stall of at least 2. Stall 1 gave a
+  reduction that silently used stale shuffle results.
+- Reference decoders for all 13 formats decode the real tensors without NaN and
+  with plausible statistics (`ref/ref_test`).
+
+### Matvec shapes in the file (K = contiguous dimension)
+
+| Format | K | Rows | Count |
+|---|---|---|---|
+| Q2_0 | 2560 | 640 ×512 experts (gate/up), 640, 6144, 10240, 12288 | 96 expert tensors + 42 |
+| Q2_0 | 640 | 2560 ×512 experts (down), 2560 | 48 expert tensors + 16 |
+| Q3_K | 2560 / 6144 | 640, 512, 6144, 10240, 12288 / 2560 | 87 / 3 |
+| IQ4_XS | 2560 / 6144 | 512, 640, 6144, 10240, 12288 / 2560 | 39 / 17 |
+| Q4_K | 2560 / 6144 | 512, 640, 6144, 10240 / 2560 | 23 / 15 |
+| Q5_K, Q6_K | 2560 / 6144 | 512, 640 / 2560 | 8+6 / 7+6 |
+| Q4_0, Q5_0, Q8_0, IQ4_NL | 640 | 2560 | 32 |
+| BF16 | 10240 | 320 (hc down), 4 (hc inject) | 96 + 96 |
+| BF16 | 320 | 10240 (hc up) | 96 |
+| BF16 | 2560 | 512 (router), 128/512 (indexer), 48 (ssm α/β), 2560 (ple_value) | 48 + 24 + 72 + 1 |
+
 ## Phases
 
-0. **Probes** — done (table above). Remaining: none.
-1. **GEMV kernels**: the 11 weight paths × int8 activation, bit-exact against a
-   C reference on real tensors. Needs the model file.
+0. **Probes** — done (table above).
+1. **GEMV kernels**: Q2_0 K=2560 done and bit-exact; next Q2_0 K=640, then
+   BF16 (biggest per-token bytes), Q3_K, IQ4_XS, Q4_K, Q5_K, Q6_K, the block-32
+   formats. Each bit-exact against the C reference on real tensors.
 2. **Block kernels**: DeltaNet, attention + indexer, MoE, hyper-connections, PLE,
    checked against cx-flash per-layer dumps on identical inputs.
 3. **One die, 6 blocks**: persistent loop, grid barriers, correct state after 6 blocks.

@@ -10,14 +10,23 @@
 #
 # Per half-block, per word (16 weights): 8 LOP32I isolate weight pairs at bit shift
 # 2s in both halves, then 16 XMAD.U16.S16 accumulate (q << 2s) * a into acc_s.
-# dot = sum_s acc_s >> 2s, minus the half-block activation sum (the q-1 offset),
-# then accf = fma(fp32(d_b), float(dot), accf). Reduce the 16 lanes with a
-# SHFL butterfly, scale by xs, lane 0 stores. Control codes are conservative
-# (stall 6 on every fixed-latency op); barriers: 1 = row loads, 2 = address/store
-# reads and prologue loads, 3 = I2F, 4 = F2F, 5 = SHFL, 6 = S2R.
+# dot = sum_s acc_s >> 2s, with the half-block activation sum (the q-1 offset)
+# folded into acc_0's first XMAD, then accf = fma(fp32(d_b), float(dot), accf).
+# Reduce the 16 lanes with a SHFL butterfly, scale by xs, lane 0 stores.
+#
+# Scheduling rules used (measured on the M60, see semtest2):
+#   fixed-latency ALU -> dependent ALU: 6 cycles; the 8 independent acc chains and
+#   the 8 masks keep dependent XMADs >= 8 issues apart at stall 1.
+#   variable-latency ops (LDG, I2F, F2F, SHFL, S2R) set a write barrier and need
+#   stall >= 2 before a dependent wait is honoured.
+# Barriers: 1 = row loads, 2 = address/store reads and prologue loads, 3 = I2F,
+# 4 = F2F, 5 = SHFL, 6 = S2R.
+#
+# GEMV_TRACE=1 in the environment at assembly time adds a per-lane debug trace
+# (12 words per row and lane) through the 7th parameter.
 #
 # Params:
-#   0:0x140:8 W   1:0x148:8 X16   2:0x150:8 S32   3:0x158:8 Y   4:0x160:4 rows   5:0x164:4 xs
+#   0:0x140:8 W   1:0x148:8 X16   2:0x150:8 S32   3:0x158:8 Y   4:0x160:4 rows   5:0x164:4 xs   6:0x168:8 trace
 
 <CONSTANT_MAPPING>
     gridDimX   : c[0x0][0x14]
@@ -68,28 +77,27 @@
     108     : t1
 
     // loop temporaries living in the mask registers between the last XMAD and the next LOP32I
-    90      : df
     91      : dot
     92      : dotf
 </REGISTER_MAPPING>
 
 --:-:6:-:1      S2R tid, SR_TID.X;
 --:-:6:-:1      S2R bid, SR_CTAID.X;
-20:-:-:-:6      LOP32I.AND lane16, tid, 0xf;
---:-:-:-:6      SHR.U32 grp, tid, 0x4;
---:-:-:-:6      LOP32I.AND half, lane16, 0x1;
---:-:-:-:6      SHR.U32 blk0, lane16, 0x1;
---:-:-:-:6      ISETP.EQ.U32.AND P0, PT, lane16, RZ, PT;
---:-:-:-:6      ISCADD row, bid, grp, 0x4;
---:-:-:-:6      LOP32I.AND rowpair, row, 0xfffffffe;
 --:-:-:-:6      MOV rowstep, gridDimX;
---:-:-:-:6      SHL rowstep, rowstep, 0x4;
+20:-:-:-:6      LOP32I.AND lane16, tid, 0xf;
+--:-:-:-:1      SHR.U32 grp, tid, 0x4;
+--:-:-:-:1      SHL rowstep, rowstep, 0x4;
+--:-:-:-:6      LOP32I.AND half, lane16, 0x1;
+--:-:-:-:1      SHR.U32 blk0, lane16, 0x1;
+--:-:-:-:1      ISETP.EQ.U32.AND P0, PT, lane16, RZ, PT;
+--:-:-:-:1      ISCADD row, bid, grp, 0x4;
 // stepw = rowstep * 720 = ((16 + 64) + 128) r + 512 r
 --:-:-:-:6      SHL t0, rowstep, 0x4;
 --:-:-:-:6      ISCADD t0, rowstep, t0, 0x6;
 --:-:-:-:6      ISCADD t0, rowstep, t0, 0x7;
 --:-:-:-:6      ISCADD stepw, rowstep, t0, 0x9;
 // off = row * 720
+--:-:-:-:6      LOP32I.AND rowpair, row, 0xfffffffe;
 --:-:-:-:6      SHL t0, row, 0x4;
 --:-:-:-:6      ISCADD t0, row, t0, 0x6;
 --:-:-:-:6      ISCADD t0, row, t0, 0x7;
@@ -108,6 +116,9 @@
 --:-:-:-:6      SHL t1, row, 0x2;
 --:-:-:-:6      IADD yp0.CC, t1, param_Y0;
 --:-:-:-:6      IADD.X yp1, RZ, param_Y1;
+<CODE>
+    return '' unless $ENV{GEMV_TRACE};
+    return <<'EOS';
 // debug trace pointer: dp = D + 768 * row + 48 * lane16 (12 words per lane per row)
 --:-:-:-:6      SHL t0, row, 0x8;
 --:-:-:-:6      ISCADD t0, row, t0, 0x9;
@@ -116,6 +127,8 @@
 --:-:-:-:6      IADD t1, t1, t0;
 --:-:-:-:6      IADD dp0.CC, t1, param_D0;
 --:-:-:-:6      IADD.X dp1, RZ, param_D1;
+EOS
+</CODE>
 // activations: xp = X + 64 * lane16, half-block i at +1024 i
 --:-:-:-:6      SHL t1, lane16, 0x6;
 --:-:-:-:6      IADD xp0.CC, t1, param_X0;
@@ -138,14 +151,13 @@
 --:-:2:-:1      LDG.E.CI s2, [sp+0x80];
 --:-:2:-:1      LDG.E.CI s3, [sp+0xc0];
 --:-:2:-:6      LDG.E.CI s4, [sp+0x100];
-02:-:-:-:6      IADD3 nsum0, RZ, -s0, RZ;
---:-:-:-:6      IADD3 nsum1, RZ, -s1, RZ;
---:-:-:-:6      IADD3 nsum2, RZ, -s2, RZ;
---:-:-:-:6      IADD3 nsum3, RZ, -s3, RZ;
+02:-:-:-:1      IADD3 nsum0, RZ, -s0, RZ;
+--:-:-:-:1      IADD3 nsum1, RZ, -s1, RZ;
+--:-:-:-:1      IADD3 nsum2, RZ, -s2, RZ;
+--:-:-:-:1      IADD3 nsum3, RZ, -s3, RZ;
 --:-:-:-:6      IADD3 nsum4, RZ, -s4, RZ;
 
 LOOP:
---:-:-:-:6      MOV accf, RZ;
 --:2:1:-:1      LDG.E.CI.U16 d0, [ws];
 --:2:1:-:1      LDG.E.CI.U16 d1, [ws+0x10];
 --:2:1:-:1      LDG.E.CI.U16 d2, [ws+0x20];
@@ -155,41 +167,47 @@ LOOP:
 --:2:1:-:1      LDG.E.CI.64 q2, [wq+0x80];
 --:2:1:-:1      LDG.E.CI.64 q4, [wq+0x100];
 --:2:1:-:1      LDG.E.CI.64 q6, [wq+0x180];
---:2:1:-:6      LDG.E.CI.64 q8, [wq+0x200];
+--:2:1:-:2      LDG.E.CI.64 q8, [wq+0x200];
+--:-:-:-:2      MOV accf, RZ;
 <CODE>
+    my $trace = $ENV{GEMV_TRACE} ? 1 : 0;
     my @out;
     for my $i (0..4) {
+        # scale to fp32 first; its consumer is the FFMA at the end of this half-block
+        my $wait = $i == 0 ? '03' : '--';
+        push @out, sprintf "%s:-:4:-:2      F2F.F32.F16 t, d%d;\n", $wait, $i;
         for my $w (0..1) {
             my $q = 'q' . (2*$i + $w);
             for my $s (0..7) {
                 my $mask = sprintf '0x%08x', (0x00030003 << (2*$s)) & 0xffffffff;
-                my $wait = ($i == 0 && $w == 0 && $s == 0) ? '03' : ($i == 1 && $w == 0 && $s == 0) ? '02' : '--';
-                push @out, sprintf "%s:-:-:-:6      LOP32I.AND m%d, %s, %s;\n", $wait, $s, $q, $mask;
+                my $wt = ($trace && $i == 1 && $w == 0 && $s == 0) ? '02' : '--';
+                push @out, sprintf "%s:-:-:-:1      LOP32I.AND m%d, %s, %s;\n", $wt, $s, $q, $mask;
             }
             for my $hsel (0, 1) {
                 for my $s (0..7) {
                     my $elem = 16*$w + 8*$hsel + $s;
                     my $reg  = 16*$i + int($elem / 2);
                     my $part = ($elem & 1) ? 'H1' : 'H0';
-                    my $add  = ($w == 0 && $hsel == 0) ? 'RZ' : "acc$s";
-                    push @out, sprintf "--:-:-:-:6      XMAD.U16.S16 acc%d, m%d.%s, act%02d.%s, %s;\n",
+                    my $add  = ($w == 0 && $hsel == 0) ? ($s == 0 ? "nsum$i" : 'RZ') : "acc$s";
+                    push @out, sprintf "--:-:-:-:1      XMAD.U16.S16 acc%d, m%d.%s, act%02d.%s, %s;\n",
                         $s, $s, ($hsel ? 'H1' : 'H0'), $reg, $part, $add;
                 }
             }
         }
+        # combine: acc_s >> 2s, summed as a tree; stalls follow the 6-cycle ALU latency
         for my $s (1..7) {
-            push @out, sprintf "--:-:-:-:6      SHR acc%d, acc%d, 0x%x;\n", $s, $s, 2*$s;
+            push @out, sprintf "--:-:-:-:1      SHR acc%d, acc%d, 0x%x;\n", $s, $s, 2*$s;
         }
-        push @out, "--:-:-:-:6      IADD dot, acc0, acc1;\n";
-        for my $s (2..7) {
-            push @out, sprintf "--:-:-:-:6      IADD dot, dot, acc%d;\n", $s;
-        }
-        push @out, sprintf "--:-:-:-:6      IADD dot, dot, nsum%d;\n", $i;
+        push @out, "--:-:-:-:1      IADD acc0, acc0, acc1;\n";
+        push @out, "--:-:-:-:2      IADD acc2, acc2, acc3;\n";
+        push @out, "--:-:-:-:2      IADD acc4, acc4, acc5;\n";
+        push @out, "--:-:-:-:2      IADD acc6, acc6, acc7;\n";
+        push @out, "--:-:-:-:4      IADD acc0, acc0, acc2;\n";
+        push @out, "--:-:-:-:6      IADD acc4, acc4, acc6;\n";
+        push @out, "--:-:-:-:6      IADD dot, acc0, acc4;\n";
         push @out, "--:-:3:-:6      I2F.F32.S32 dotf, dot;\n";
-        push @out, sprintf "--:-:4:-:6      F2F.F32.F16 df, d%d;\n", $i;
-        push @out, "0c:-:-:-:6      FFMA accf, df, dotf, accf;\n";
-        if ($i == 0) {
-            # debug trace of the first half-block (read barrier 2; half-block 1 waits on it)
+        push @out, "0c:-:-:-:6      FFMA accf, t, dotf, accf;\n";
+        if ($trace && $i == 0) {
             push @out, "--:2:-:-:1      STG.E [dp], q0;\n";
             push @out, "--:2:-:-:1      STG.E [dp+0x4], q1;\n";
             push @out, "--:2:-:-:1      STG.E [dp+0x8], act00;\n";
@@ -200,35 +218,42 @@ LOOP:
             push @out, "--:2:-:-:6      STG.E [dp+0x1c], accf;\n";
         }
     }
+    push @out, "--:2:-:-:6      STG.E [dp+0x20], accf;\n" if $trace;
     return join '', @out;
 </CODE>
---:2:-:-:6      STG.E [dp+0x20], accf;
---:-:5:-:6      SHFL.BFLY PT, t, accf, 0x8, 0x1f;
+--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x8, 0x1f;
 10:-:-:-:6      FADD accf, accf, t;
---:-:5:-:6      SHFL.BFLY PT, t, accf, 0x4, 0x1f;
+--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x4, 0x1f;
 10:-:-:-:6      FADD accf, accf, t;
---:-:5:-:6      SHFL.BFLY PT, t, accf, 0x2, 0x1f;
+--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x2, 0x1f;
 10:-:-:-:6      FADD accf, accf, t;
---:-:5:-:6      SHFL.BFLY PT, t, accf, 0x1, 0x1f;
+--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x1, 0x1f;
 10:-:-:-:6      FADD accf, accf, t;
---:2:-:-:1      STG.E [dp+0x24], accf;
---:2:-:-:6      STG.E [dp+0x28], row;
+<CODE>
+    return '' unless $ENV{GEMV_TRACE};
+    return "--:2:-:-:1      STG.E [dp+0x24], accf;\n--:2:-:-:6      STG.E [dp+0x28], row;\n";
+</CODE>
+--:-:-:-:1      ISETP.LT.U32.AND P2, PT, row, param_rows, P0;
 --:-:-:-:6      FMUL t, accf, param_xs;
---:-:-:-:6      ISETP.LT.U32.AND P2, PT, row, param_rows, P0;
---:2:-:-:6  @P2 STG.E [yp], t;
-02:-:-:-:6      IADD row, row, rowstep;
---:-:-:-:6      IADD rowpair, rowpair, rowstep;
---:-:-:-:6      IADD wq0.CC, wq0, stepw;
+--:2:-:-:1  @P2 STG.E [yp], t;
+--:-:-:-:1      IADD row, row, rowstep;
+--:-:-:-:1      IADD rowpair, rowpair, rowstep;
+02:-:-:-:6      IADD wq0.CC, wq0, stepw;
 --:-:-:-:6      IADD.X wq1, wq1, RZ;
 --:-:-:-:6      IADD ws0.CC, ws0, stepw;
 --:-:-:-:6      IADD.X ws1, ws1, RZ;
 --:-:-:-:6      SHL t, rowstep, 0x2;
 --:-:-:-:6      IADD yp0.CC, yp0, t;
 --:-:-:-:6      IADD.X yp1, yp1, RZ;
+<CODE>
+    return '' unless $ENV{GEMV_TRACE};
+    return <<'EOS';
 --:-:-:-:6      SHL t, rowstep, 0x8;
 --:-:-:-:6      ISCADD t, rowstep, t, 0x9;
 --:-:-:-:6      IADD dp0.CC, dp0, t;
 --:-:-:-:6      IADD.X dp1, dp1, RZ;
+EOS
+</CODE>
 --:-:-:-:6      ISETP.LT.U32.AND P1, PT, rowpair, param_rows, PT;
 --:-:-:-:6  @P1 BRA LOOP;
 --:-:-:-:f      EXIT;
