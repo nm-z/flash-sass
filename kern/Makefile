@@ -313,3 +313,64 @@ embrow_test: embrow_test.c ../ref/quant.c ../ref/quant.h ../ref/gguf.c
 
 .PHONY: embrow
 embrow: embrow.cubin embrow_test
+
+# ---- argmax over the logits ----
+skel_argmax.cubin: argmax.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+argmax.cubin: argmax.sass skel_argmax.cubin
+	cp skel_argmax.cubin $@
+	$(MAXAS) -i argmax.sass $@
+
+argmax_test: argmax_test.c
+	$(CC) -std=gnu99 -O2 -Wall -o $@ argmax_test.c -I$(CUDA)/include -lcuda -lm
+
+.PHONY: argmax
+argmax: argmax.cubin argmax_test
+
+# ---- PLE row hash + host-RAM gather + IQ4_NL decode ----
+skel_plerows.cubin: plerows.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+plerows.cubin: plerows.sass skel_plerows.cubin
+	cp skel_plerows.cubin $@
+	$(MAXAS) -i plerows.sass $@
+
+plerows_test: plerows_test.c ../ref/ple.c ../ref/ple.h ../ref/quant.c ../ref/gguf.c ../ref/fmath.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ plerows_test.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+.PHONY: plerows
+plerows: plerows.cubin plerows_test
+
+# ---- PLE dilated conv + SiLU + residual + stream add ----
+skel_pleconv.cubin: pleconv.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+pleconv.cubin: pleconv.sass fmath.pl skel_pleconv.cubin
+	cp skel_pleconv.cubin $@
+	$(MAXAS) -i pleconv.sass $@
+
+pleconv_test: pleconv_test.c ../ref/ple.c ../ref/ple.h ../ref/fmath.c ../ref/quant.c ../ref/gguf.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ pleconv_test.c ../ref/ple.c ../ref/fmath.c ../ref/quant.c ../ref/gguf.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+.PHONY: pleconv
+pleconv: pleconv.cubin pleconv_test
+
+plerows_ng.cubin: plerows.sass skel_plerows.cubin
+	cp skel_plerows.cubin $@
+	PLE_NOGATHER=1 $(MAXAS) -i plerows.sass $@
+
+# ---- PLE lane gate ----
+skel_plegate.cubin: plegate.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+plegate.cubin: plegate.sass fmath.pl skel_plegate.cubin
+	cp skel_plegate.cubin $@
+	$(MAXAS) -i plegate.sass $@
+
+plegate_test: plegate_test.c ../ref/ple.c ../ref/ple.h ../ref/fmath.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ plegate_test.c ../ref/ple.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+.PHONY: plegate ple
+plegate: plegate.cubin plegate_test
+ple: plerows.cubin plerows_ng.cubin plerows_test plegate pleconv
