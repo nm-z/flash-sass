@@ -1,7 +1,9 @@
 # Spec: Flash-Next persistent SASS kernel on archy's 4× M60
 
-Status (2026-10-15 23:30): Phase 0 done, numbers below. Phases 1+ need the model
-files, which are currently unreachable (see "Blockers").
+Status (2026-10-16): the whole model runs on six dies as one persistent kernel per die per
+response and reproduces llama.cpp greedily; the sections at the end ("State at the end of 2026-10-16", "Chat serving",
+"Sampling, abort, and the persistent core", "After the reset") are the current ones. The
+earlier sections are the design and the phase-by-phase log, kept as written.
 
 ## Rules
 
