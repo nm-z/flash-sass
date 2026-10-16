@@ -185,9 +185,120 @@ static int test_idxqk(unsigned T) {
 	return bad;
 }
 
+static int test_idxscore(unsigned nv, unsigned NBLK) {
+	unsigned ngrp = (nv + 31) / 32 + 1, t = 4 * nv + (urand() & 3) - ((nv > 0) ? 1 : 0);
+	if (nv == 0) t = 0;
+	float iq[512]; for (int i = 0; i < 512; i++) iq[i] = 1.5f * frand();
+	uint16_t *pool = calloc((size_t)(nv + 1) * 128, 2), *pkt = calloc((size_t)ngrp * 4096, 2);
+	for (unsigned b = 0; b < nv; b++) for (int d = 0; d < 128; d++) { uint16_t h = qsa_f2h(2.f * frand() + (b % 5 == 0 ? 0.7f : 0.f)); pool[(size_t)b * 128 + d] = h; pkt[pkt_idx(b, d)] = h; }
+	CUdeviceptr dPKT = dalloc((size_t)ngrp * 8192), dIQ = dalloc(4 * 512), dSC = dalloc(4 * ((size_t)ngrp * 32 + 32)), dHST = dalloc(4 * 1280);
+	CK(cuMemcpyHtoD(dPKT, pkt, (size_t)ngrp * 8192)); CK(cuMemcpyHtoD(dIQ, iq, 4 * 512));
+	CK(cuMemsetD32(dSC, 0x7fc00000u, ngrp * 32 + 32));
+	desc_t prog[1];
+	d_init(&prog[0], OP_IDXSCORE, 16);
+	d_ptr(&prog[0], 0x140, dPKT); d_ptr(&prog[0], 0x148, dIQ); d_ptr(&prog[0], 0x150, dSC); d_ptr(&prog[0], 0x158, dHST); d_tok(&prog[0], 0x160, 0); d_u32(&prog[0], 0x164, NBLK);
+	run_token(prog, 1, t);
+	float *sc = malloc(4 * (nv + 1)), *scg = malloc(4 * ((size_t)ngrp * 32 + 32));
+	idx_scores_gpu(iq, pool, nv, sc);
+	CK(cuMemcpyDtoH(scg, dSC, 4 * ((size_t)ngrp * 32 + 32)));
+	uint32_t hist[256] = { 0 }, histg[1280];
+	for (unsigned b = 0; b < nv; b++) { uint32_t u; memcpy(&u, &sc[b], 4); hist[u >> 23]++; }
+	CK(cuMemcpyDtoH(histg, dHST, 4 * 1280));
+	int bad = 0, shown = 0;
+	if (nv > NBLK) { bad |= cmpb("scores", sc, scg, 4 * (size_t)nv, &shown); bad |= cmpb("hist", hist, histg, 4 * 256, &shown); }
+	else for (unsigned i = 0; i < nv; i++) if (scg[i] == scg[i] && scg[i] != 0.f) { printf("  wrote scores although nv <= NBLK\n"); bad = 1; break; }
+	printf("idxscore: nv %u NBLK %u: %s\n", nv, NBLK, bad ? "MISMATCH" : "BIT-EXACT");
+	return bad;
+}
+
+static int test_idxsel(unsigned nv, unsigned NBLK, int mode, int npass) {
+	unsigned t = 4 * nv - 1;
+	float *sc = malloc(4 * (nv + 8)); uint32_t *sel = calloc(NBLK + 8, 4), *selg = malloc(4 * (NBLK + 8)), *selw = calloc(NBLK + 8, 4);
+	for (unsigned b = 0; b < nv; b++) {
+		float v = fabsf(frand()) * 3.f;
+		if (mode == 1 && (urand() % 3)) v = 0.f;                   /* mostly exact zeros: a tie at the threshold */
+		if (mode == 2) v = (float)(urand() % 7) * 0.5f;             /* a few distinct values */
+		if (mode == 3) v = 1.25f;                                   /* all equal */
+		sc[b] = v;
+	}
+	CUdeviceptr dSC = dalloc(4 * (nv + 8)), dHST = dalloc(4 * 1280), dSEL = dalloc(4 * (NBLK + 8));
+	CK(cuMemcpyHtoD(dSC, sc, 4 * nv));
+	uint32_t hst[1280] = { 0 };
+	for (unsigned b = 0; b < nv; b++) { uint32_t u; memcpy(&u, &sc[b], 4); hst[u >> 23]++; }
+	CK(cuMemcpyHtoD(dHST, hst, 4 * 1280));
+	CK(cuMemsetD32(dSEL, 0xffffffffu, NBLK + 8));
+	desc_t prog[5];
+	for (int p = 0; p < 5; p++) { d_init(&prog[p], OP_IDXSEL, 16); d_ptr(&prog[p], 0x140, dSC); d_ptr(&prog[p], 0x148, dHST); d_ptr(&prog[p], 0x150, dSEL); d_tok(&prog[p], 0x158, 0); d_u32(&prog[p], 0x15c, NBLK); d_u32(&prog[p], 0x160, 2 + p); }
+	run_token(prog, (unsigned)npass, t);
+	unsigned k = idx_select_gpu(sc, nv, NBLK, sel);
+	CK(cuMemcpyDtoH(selg, dSEL, 4 * (NBLK + 8)));
+	int bad = 0, shown = 0;
+	if (getenv("QSA_DEBUG") && nv <= 8000)
+	{ uint32_t hg[1280]; CK(cuMemcpyDtoH(hg, dHST, 4 * 1280)); uint32_t *bits = malloc(4 * nv), Th = 0; unsigned gt = 0, eq = 0; for (unsigned b = 0; b < nv; b++) memcpy(&bits[b], &sc[b], 4);
+		for (unsigned i = 0; i < nv; i++) { unsigned c = 0; for (unsigned j = 0; j < nv; j++) if (bits[j] > bits[i] || (bits[j] == bits[i] && j < i)) c++; if (c == (nv < NBLK ? nv : NBLK) - 1) Th = bits[i]; }
+		for (unsigned i = 0; i < nv; i++) { if (bits[i] > Th) gt++; else if (bits[i] == Th) eq++; }
+		for (int p = 2; p <= 6; p++) printf("  pass %d scan: pre %08x kk %u\n", p, hg[1056 + 2 * p], hg[1057 + 2 * p]);
+		{ uint32_t eh[4][256] = { { 0 } }; unsigned sh[4] = { 23, 15, 7, 0 }, mk[4] = { 0xff, 0xff, 0xff, 0x7f }; uint32_t pf[4] = { 0 };
+			for (int L = 0; L < 4; L++) { pf[L] = L ? (L == 1 ? Th >> 23 : L == 2 ? Th >> 15 : Th >> 7) : 0; for (unsigned i = 0; i < nv; i++) { if (L == 0 || (bits[i] >> (sh[L - 1])) == pf[L]) eh[L][(bits[i] >> sh[L]) & mk[L]]++; }
+				unsigned bad2 = 0, s2 = 0, es = 0; for (int i = 0; i < 256; i++) { s2 += hg[256 * L + i]; es += eh[L][i]; if (hg[256 * L + i] != eh[L][i]) { if (bad2 < 4 && L == 1) printf("    G2 bin %02x: gpu %u host %u\n", i, hg[256 * L + i], eh[L][i]); bad2++; } } printf("  G%d: %u bins differ, gpu sum %u host sum %u\n", L + 1, bad2, s2, es); } }
+		printf("  G1[0x7e] = %u, above: ", hg[0x7e]); { unsigned a = 0; for (int i = 0x7f; i < 256; i++) a += hg[i]; printf("%u\n", a); }
+		printf("  T: gpu %08x host %08x ; need: gpu %u host %u (gt %u eq %u); hist2 sum %u hist3 sum %u hist4 sum %u\n", hg[1088], Th, hg[1089], NBLK - gt, gt, eq, 0u, 0u, 0u); free(bits); }
+	bad |= cmpb("sel", sel, selg, 4 * (size_t)k, &shown);
+	printf("idxsel: nv %u NBLK %u mode %d: %s\n", nv, NBLK, mode, bad ? "MISMATCH" : "BIT-EXACT");
+	if (bad) { printf("  twin:"); for (unsigned i = 0; i < k && i < 24; i++) printf(" %u", sel[i]); printf("\n  gpu :"); for (unsigned i = 0; i < k && i < 24; i++) printf(" %u", selg[i]); printf("\n"); }
+	(void)selw;
+	return bad;
+}
+
+/* the whole indexer: idxqk, idxscore, the five idxsel passes, against the twins; then the time of the 8 phases per token */
+static int test_idxfull(unsigned nv, unsigned NBLK, int iters) {
+	const float eps = 1e-6f;
+	unsigned t = 4 * nv - 1, npos = t + 8 + (unsigned)iters, ngrp = (npos / 4 + 31) / 32 + 1, nsc = ngrp * 32 + 32;
+	float *rcs = malloc(4 * 32 * (size_t)npos), *rsn = malloc(4 * 32 * (size_t)npos);
+	for (unsigned i = 0; i < npos; i++) rope_table_gpu(i, 1e7f, rcs + 32 * i, rsn + 32 * i);
+	float qn[128], kn[128], iqk[640]; for (int i = 0; i < 128; i++) { qn[i] = 0.5f + 0.5f * frand(); kn[i] = 0.5f + 0.5f * frand(); }
+	for (int i = 0; i < 640; i++) iqk[i] = 1.5f * frand();
+	uint16_t *pkt = calloc((size_t)ngrp * 4096, 2);
+	for (unsigned b = 0; b < nv; b++) for (int d = 0; d < 128; d++) pkt[pkt_idx(b, d)] = qsa_f2h(2.f * frand() + (b % 5 == 0 ? 0.7f : 0.f));
+	CUdeviceptr dIQK = dalloc(4 * 640), dQN = dalloc(512), dKN = dalloc(512), dCS = dalloc(4 * 32 * (size_t)npos), dSN = dalloc(4 * 32 * (size_t)npos), dIQ = dalloc(2048), dRING = dalloc(2048), dPKT = dalloc((size_t)ngrp * 8192), dHST = dalloc(4 * 1280), dSC = dalloc(4 * (size_t)nsc), dSEL = dalloc(4 * (NBLK + 8));
+	CK(cuMemcpyHtoD(dIQK, iqk, 4 * 640)); CK(cuMemcpyHtoD(dQN, qn, 512)); CK(cuMemcpyHtoD(dKN, kn, 512)); CK(cuMemcpyHtoD(dCS, rcs, 4 * 32 * (size_t)npos)); CK(cuMemcpyHtoD(dSN, rsn, 4 * 32 * (size_t)npos));
+	CK(cuMemcpyHtoD(dPKT, pkt, (size_t)ngrp * 8192));
+	desc_t prog[8];
+	d_init(&prog[0], OP_IDXQK, 6);
+	d_ptr(&prog[0], 0x140, dIQK); d_ptr(&prog[0], 0x148, dQN); d_ptr(&prog[0], 0x150, dKN); d_ptr(&prog[0], 0x158, dCS); d_ptr(&prog[0], 0x160, dSN); d_ptr(&prog[0], 0x168, dIQ);
+	d_ptr(&prog[0], 0x170, dRING); d_ptr(&prog[0], 0x178, dPKT); d_ptr(&prog[0], 0x180, dHST); d_tok(&prog[0], 0x188, 0); d_f32(&prog[0], 0x18c, eps);
+	d_init(&prog[1], OP_IDXSCORE, 16);
+	d_ptr(&prog[1], 0x140, dPKT); d_ptr(&prog[1], 0x148, dIQ); d_ptr(&prog[1], 0x150, dSC); d_ptr(&prog[1], 0x158, dHST); d_tok(&prog[1], 0x160, 0); d_u32(&prog[1], 0x164, NBLK);
+	for (int p = 0; p < 5; p++) { d_init(&prog[2 + p], OP_IDXSEL, 16); d_ptr(&prog[2 + p], 0x140, dSC); d_ptr(&prog[2 + p], 0x148, dHST); d_ptr(&prog[2 + p], 0x150, dSEL); d_tok(&prog[2 + p], 0x158, 0); d_u32(&prog[2 + p], 0x15c, NBLK); d_u32(&prog[2 + p], 0x160, 2 + p); }
+	run_token(prog, 7, t);
+	/* the twin from what the device holds: its pool, its IQ */
+	uint16_t *pktg = malloc((size_t)ngrp * 8192); float iqg[512]; CK(cuMemcpyDtoH(pktg, dPKT, (size_t)ngrp * 8192)); CK(cuMemcpyDtoH(iqg, dIQ, 2048));
+	float iq[512]; for (int h = 0; h < 4; h++) idx_norm_rope_gpu(iqk + 128 * h, qn, eps, rcs + 32 * t, rsn + 32 * t, iq + 128 * h);
+	uint16_t *pool = malloc((size_t)nv * 256); for (unsigned b = 0; b < nv; b++) for (int d = 0; d < 128; d++) pool[(size_t)b * 128 + d] = pktg[pkt_idx(b, d)];
+	float *sc = malloc(4 * (size_t)nv); idx_scores_gpu(iq, pool, nv, sc);
+	uint32_t *sel = malloc(4 * (NBLK + 8)), *selg = malloc(4 * (NBLK + 8)); unsigned k = idx_select_gpu(sc, nv, NBLK, sel);
+	CK(cuMemcpyDtoH(selg, dSEL, 4 * (NBLK + 8)));
+	int bad = 0, shown = 0; bad |= cmpb("iq", iq, iqg, 2048, &shown);
+	if (nv > NBLK) bad |= cmpb("sel", sel, selg, 4 * (size_t)k, &shown);
+	printf("idxfull: nv %u NBLK %u: %s\n", nv, NBLK, bad ? "MISMATCH" : "BIT-EXACT");
+	if (iters > 0) {   /* the time of the 7 phases: iters tokens in one launch (the context grows by iters/4 blocks) */
+		CK(cuMemcpyHtoD(dPROG, prog, sizeof(desc_t) * 7)); unsigned nph = 7, tk = t;
+		CK(cuMemcpyHtoD(dCTL + 8, &tk, 4));
+		unsigned ntok = t + 1 + (unsigned)iters; void *params[] = { &dPROG, &nph, &dCTL, &ntok };
+		CUevent e0, e1; CK(cuEventCreate(&e0, 0)); CK(cuEventCreate(&e1, 0));
+		CK(cuEventRecord(e0, 0)); CK(cuLaunchKernel(fn, 16, 1, 1, 256, 1, 1, 0, 0, params, NULL)); CK(cuEventRecord(e1, 0)); CK(cuCtxSynchronize());
+		float ms; CK(cuEventElapsedTime(&ms, e0, e1));
+		printf("  %d tokens (7 phases each) in %.2f ms: %.1f us per token\n", iters, ms, 1e3 * ms / iters);
+	}
+	return bad;
+}
+
 int main(int argc, char **argv) {
 	if (argc < 2) { fprintf(stderr, "usage: qsa_test kv <T> <NBLK>\n"); return 2; }
 	dev_init();
+	if (!strcmp(argv[1], "idxscore")) return test_idxscore(argc > 2 ? (unsigned)atoi(argv[2]) : 700, argc > 3 ? (unsigned)atoi(argv[3]) : 512) ? 3 : 0;
+	if (!strcmp(argv[1], "idxsel")) return test_idxsel(argc > 2 ? (unsigned)atoi(argv[2]) : 700, argc > 3 ? (unsigned)atoi(argv[3]) : 512, argc > 4 ? atoi(argv[4]) : 0, argc > 5 ? atoi(argv[5]) : 5) ? 3 : 0;
+	if (!strcmp(argv[1], "idxfull")) return test_idxfull(argc > 2 ? (unsigned)atoi(argv[2]) : 2000, argc > 3 ? (unsigned)atoi(argv[3]) : 512, argc > 4 ? atoi(argv[4]) : 0) ? 3 : 0;
 	if (!strcmp(argv[1], "idxqk")) return test_idxqk(argc > 2 ? (unsigned)atoi(argv[2]) : 100) ? 3 : 0;
 	if (!strcmp(argv[1], "kv")) return test_kv(argc > 2 ? (unsigned)atoi(argv[2]) : 200, argc > 3 ? (unsigned)atoi(argv[3]) : 8) ? 3 : 0;
 	fprintf(stderr, "unknown test %s\n", argv[1]); return 2;

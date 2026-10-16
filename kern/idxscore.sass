@@ -1,0 +1,150 @@
+# Kernel: idxscore
+#
+# QSA indexer scoring (ref/qsa.h idx_scores_gpu): score[b] = sum over the 4 indexer heads of relu(q_h . pool[b]) for the
+# nv = (t + 1) >> 2 complete blocks, and the first digit histogram of the selection (the top 8 bits of the score bits, which
+# are a non-negative float's order: HST[digit] += 1). Does nothing while nv <= NBLK (every block is attended).
+# The pool is transposed (idxqk.sass): group g of 32 blocks at PKT + 8192 g, chunk c (dims 4c..4c+3) at +256 c, block
+# 8 byte. Grid = 16 CTAs x 8 warps; warp wg = 8 cta + warp scores the groups g = wg, wg + 128, ...: lane l = block 32 g + l, 32
+# chunks of 4 dims (LDG.64 of 4 fp16, coalesced over the lanes), q from shared memory (broadcast LDS.128), per head
+# a fmaf chain over the 128 dims in order; relu = max(x, 0) + 0 (no -0); the head sum ((s0 + s1) + s2) + s3.
+# smem: q [4][128] f32 at 0 (2 KB), histogram [256] u32 at 0x800.
+#
+# Params: 0:0x140 PKT  1:0x148 IQ  2:0x150 SC (f32 [nv])  3:0x158 HST (u32; digit histogram at word 0)  4:0x160 t (u32)  5:0x164 NBLK
+
+<CONSTANT_MAPPING>
+    param_PKT0 : c[0x0][0x140]
+    param_PKT1 : c[0x0][0x144]
+    param_IQ0  : c[0x0][0x148]
+    param_IQ1  : c[0x0][0x14c]
+    param_SC0  : c[0x0][0x150]
+    param_SC1  : c[0x0][0x154]
+    param_HST0 : c[0x0][0x158]
+    param_HST1 : c[0x0][0x15c]
+    param_t    : c[0x0][0x160]
+    param_nblk : c[0x0][0x164]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0-3   : acc<0-3>
+    4-7   : kf<0-3>
+    8,9   : hd<0-1>
+    12-27 : qv<00-15>
+    28    : tid
+    29    : lane
+    30    : warp
+    31    : cta
+    32    : nv
+    33    : ng
+    34    : g
+    35    : t
+    36    : t2
+    37    : one
+    38    : sm
+    39    : sc
+    40,41 : pkp<0-1>
+    42,43 : scp<0-1>
+    44,45 : hgp<0-1>
+    46,47 : qgp<0-1>
+    48    : t3
+    49    : u0
+    50    : u1
+</REGISTER_MAPPING>
+
+<CODE>
+    my $o = '';
+    my $nop3 = "--:-:-:-:6      NOP;\n" x 3;
+    $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
+    $o .= "--:-:6:-:1      S2R cta, SR_CTAID.X;\n";
+    $o .= "--:-:-:-:6      MOV t, param_t;\n";
+    $o .= "--:-:-:-:6      IADD t, t, 0x1;\n";
+    $o .= "--:-:-:-:6      SHR.U32 nv, t, 0x2;\n";
+    $o .= "--:-:-:-:6      NOP;\n";
+    $o .= "--:-:-:-:6      ISETP.LE.U32.AND P0, PT, nv, param_nblk, PT;\n";          # nothing to select: every block is attended
+    $o .= $nop3;
+    $o .= "--:-:-:-:6  \@P0 EXIT;\n";
+    $o .= "20:-:-:-:6      SHR.U32 warp, tid, 0x5;\n";
+    $o .= "--:-:-:-:6      LOP32I.AND lane, tid, 0x1f;\n";
+    $o .= "--:-:-:-:6      MOV one, 0x1;\n";
+    # q -> smem (threads 0..127: 16 bytes each); histogram := 0 (threads 0..255)
+    $o .= "--:-:-:-:6      ISETP.LT.U32.AND P1, PT, tid, 0x80, PT;\n";
+    $o .= "--:-:-:-:6      SHL sm, tid, 0x4;\n";
+    $o .= "--:-:-:-:6      IADD qgp0.CC, sm, param_IQ0;\n";
+    $o .= "--:-:-:-:6      IADD.X qgp1, RZ, param_IQ1;\n";
+    $o .= "--:-:1:-:2  \@P1 LDG.E.128 qv00, [qgp];\n";
+    $o .= "--:-:-:-:6      SHL t2, tid, 0x2;\n";
+    $o .= "--:-:-:-:6      STS [t2+0x800], RZ;\n";
+    $o .= "01:3:-:-:1  \@P1 STS.128 [sm], qv00;\n";
+    $o .= "04:-:-:-:6      BAR.SYNC 0x0;\n";
+    # ng = (nv + 31) >> 5 groups; warp wg = 8 cta + warp: g = wg, wg + 128, ...
+    $o .= "--:-:-:-:6      IADD ng, nv, 0x1f;\n";
+    $o .= "--:-:-:-:6      SHR.U32 ng, ng, 0x5;\n";
+    $o .= "--:-:-:-:6      SHL g, cta, 0x3;\n";
+    $o .= "--:-:-:-:6      IADD g, g, warp;\n";
+    $o .= "--:-:-:-:6      SHL t2, lane, 0x3;\n";                                  # 8 lane
+    $o .= "--:-:-:-:6      SHL t3, lane, 0x2;\n";                                  # 4 lane (the score)
+    $o .= "--:-:-:-:6      IADD hgp0.CC, RZ, param_HST0;\n";
+    $o .= "--:-:-:-:6      IADD.X hgp1, RZ, param_HST1;\n";
+    $o .= "\nGLOOP:\n";
+    $o .= "--:-:-:-:6      ISETP.GE.U32.AND P0, PT, g, ng, PT;\n";
+    $o .= $nop3;
+    $o .= "--:-:-:-:6  \@P0 BRA FLUSH;\n";
+    # pkp = PKT + 8192 g + 8 lane
+    $o .= "--:-:-:-:6      SHL t, g, 0xd;\n";
+    $o .= "--:-:-:-:6      IADD t, t, t2;\n";
+    $o .= "--:-:-:-:6      IADD pkp0.CC, t, param_PKT0;\n";
+    $o .= "--:-:-:-:6      IADD.X pkp1, RZ, param_PKT1;\n";
+    $o .= "08:-:-:-:6      MOV acc0, RZ;\n";
+    $o .= "--:-:-:-:6      MOV acc1, RZ;\n";
+    $o .= "--:-:-:-:6      MOV acc2, RZ;\n";
+    $o .= "--:-:-:-:6      MOV acc3, RZ;\n";
+    for my $c (0 .. 31) {
+        $o .= sprintf "--:-:1:-:1      LDG.E.64 hd0, [pkp+0x%x];\n", 256 * $c;
+        for my $h (0 .. 3) { $o .= sprintf "--:-:%s:-:%s      LDS.128 qv%02d, [RZ+0x%x];\n", $h == 0 ? '2' : '2', $h == 3 ? '2' : '1', 4 * $h, 512 * $h + 16 * $c; }
+        $o .= "01:-:3:-:1      F2F.F32.F16 kf0, hd0;\n";
+        $o .= "--:-:-:-:1      SHR.U32 u0, hd0, 0x10;\n";
+        $o .= "--:-:3:-:1      F2F.F32.F16 kf2, hd1;\n";
+        $o .= "--:-:-:-:6      SHR.U32 u1, hd1, 0x10;\n";
+        $o .= "--:-:3:-:1      F2F.F32.F16 kf1, u0;\n";
+        $o .= "--:-:3:-:2      F2F.F32.F16 kf3, u1;\n";
+        for my $j (0 .. 3) {
+            for my $h (0 .. 3) {
+                my $w = ($j == 0 && $h == 0) ? '06' : '--';
+                $o .= sprintf "%s:-:-:-:2      FFMA acc%d, qv%02d, kf%d, acc%d;\n", $w, $h, 4 * $h + $j, $j, $h;
+            }
+        }
+    }
+    # relu + 0, head sum, store, histogram
+    $o .= sprintf "--:-:-:-:%s      FMNMX acc%d, acc%d, RZ, !PT;\n", $_ == 3 ? '6' : '1', $_, $_ for 0 .. 3;
+    $o .= sprintf "--:-:-:-:%s      FADD acc%d, acc%d, RZ;\n", $_ == 3 ? '6' : '1', $_, $_ for 0 .. 3;
+    $o .= "--:-:-:-:6      FADD acc0, acc0, acc1;\n";
+    $o .= "--:-:-:-:6      FADD acc0, acc0, acc2;\n";
+    $o .= "--:-:-:-:6      FADD acc0, acc0, acc3;\n";
+    # SC + 128 g + 4 lane
+    $o .= "--:-:-:-:6      SHL t, g, 0x7;\n";
+    $o .= "--:-:-:-:6      IADD t, t, t3;\n";
+    $o .= "--:-:-:-:6      IADD scp0.CC, t, param_SC0;\n";
+    $o .= "--:-:-:-:6      IADD.X scp1, RZ, param_SC1;\n";
+    $o .= "--:-:-:-:6      SHL t, g, 0x5;\n";
+    $o .= "--:-:-:-:6      IADD t, t, lane;\n";                                    # the block
+    $o .= "--:4:-:-:1      STG.E [scp], acc0;\n";
+    $o .= "--:-:-:-:6      ISETP.LT.U32.AND P1, PT, t, nv, PT;\n";
+    $o .= "--:-:-:-:6      SHR.U32 sc, acc0, 0x17;\n";                             # digit: bits 30..23
+    $o .= "--:-:-:-:6      SHL sc, sc, 0x2;\n";
+    $o .= $nop3;
+    $o .= "--:-:-:-:1  \@P1 ATOMS.ADD RZ, [sc+0x800], one;\n";
+    $o .= "--:-:-:-:6      IADD g, g, 0x80;\n";
+    $o .= "--:-:-:-:6      SHL t2, lane, 0x3;\n";
+    $o .= "--:-:-:-:6      BRA GLOOP;\n";
+    # every warp is done: the CTA's histogram goes to the global one (threads 0..255)
+    $o .= "\nFLUSH:\n";
+    $o .= "04:-:-:-:6      BAR.SYNC 0x0;\n";
+    $o .= "--:-:-:-:6      SHL t2, tid, 0x2;\n";
+    $o .= "--:-:1:-:2      LDS t, [t2+0x800];\n";
+    $o .= "01:-:-:-:6      ISETP.NE.U32.AND P1, PT, t, RZ, PT;\n";
+    $o .= "--:-:-:-:6      IADD hgp0.CC, t2, param_HST0;\n";
+    $o .= "--:-:-:-:6      IADD.X hgp1, RZ, param_HST1;\n";
+    $o .= $nop3;
+    $o .= "--:2:-:-:6  \@P1 RED.E.ADD [hgp], t;\n";
+    $o .= "0a:-:-:-:f      EXIT;\n";
+    return $o;
+</CODE>

@@ -106,6 +106,8 @@ my @OPS = (
     [ 'attnpartn',  'attnpartn.sass',   'cta',  {} ],
     [ 'attnqkq',    'attnqkq.sass',     'warp', {} ],
     [ 'idxqk',     'idxqk.sass',      'warp', {} ],
+    [ 'idxscore',  'idxscore.sass',   'cta',  {} ],
+    [ 'idxsel',    'idxsel.sass',     'cta',  {} ],
 );
 
 sub expand_names {                       # x<00-15> -> x00 .. x15
