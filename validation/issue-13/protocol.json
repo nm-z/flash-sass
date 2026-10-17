@@ -1,0 +1,19 @@
+[
+  "ok: engine reloaded",
+  "config rev=bac5b88b665ee6973488dd40b363ded3134136f6 kv_host=0 ple_disk=1 maxt=230000 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=4096 trace_tokens=3 cubin=/home/nate/claude/flash-sass-prs/issue-10/kern/die_trace.cubin cubin_fnv=31d9edc99f48f530",
+  "ok: stop -1 -1",
+  "ok: sample seed 0 temp 0 top_k 0 top_p 1 (greedy)",
+  "tok 248045",
+  "tok 846",
+  "tok 248046",
+  "done 3 0 3 143.3 86.1 0 0",
+  "trace_begin request=1 die=0 first=2 count=3 nph=1154 ctas=1 nblk=512",
+  "trace_begin request=1 die=1 first=2 count=3 nph=1214 ctas=1 nblk=512",
+  "trace_begin request=1 die=2 first=2 count=3 nph=1154 ctas=1 nblk=512",
+  "trace_begin request=1 die=3 first=2 count=3 nph=1154 ctas=1 nblk=512",
+  "trace_begin request=1 die=4 first=2 count=3 nph=1214 ctas=1 nblk=512",
+  "trace_begin request=1 die=5 first=2 count=3 nph=1214 ctas=1 nblk=512",
+  "hosttrace_begin request=1 first=2 count=3 clock=CLOCK_MONOTONIC",
+  "PASS: six complete die traces and host events",
+  "ok: engine reloaded"
+]
