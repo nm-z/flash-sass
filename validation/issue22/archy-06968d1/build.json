@@ -1,0 +1,39 @@
+{
+  "source_revision": "06968d1a5d6d7fdaf12106236cc39a1cb5cdf389",
+  "hostname": "archy",
+  "finished_utc": "2026-10-17T20:29:29.938272+00:00",
+  "command": [
+    "make",
+    "CUDA=/opt/cuda",
+    "PTXAS11=/opt/cuda-11.4/bin/ptxas",
+    "FLASH_REV=06968d1a5d6d7fdaf12106236cc39a1cb5cdf389",
+    "die.cubin",
+    "model_test"
+  ],
+  "exit": 0,
+  "seconds": 9.083931751003547,
+  "artifacts": {
+    "die.cubin": {
+      "bytes": 444968,
+      "sha256": "0fa2a17fa41c07aac507f9bc218a777601719a8e2b6eb8b40ec93867d4768027"
+    },
+    "model_test": {
+      "bytes": 149944,
+      "sha256": "ea28c9ab470011122dcfa5ca8e25ee429ac48d17b9f0217410dc71d765c6fa7f"
+    }
+  },
+  "maxas": {
+    "Cubin.pm": {
+      "bytes": 22031,
+      "sha256": "0fa8cb6989248b38ee44b27f0ef6a14809b06c1f7f332df12a587412998fe3ad"
+    },
+    "MaxAs.pm": {
+      "bytes": 51412,
+      "sha256": "853d3151595462bb1a46ecd879bcb0a1a3fe3ae1dbcb772ef8d07ee8bf8cd34b"
+    },
+    "MaxAsGrammar.pm": {
+      "bytes": 53245,
+      "sha256": "b63669d7e128651c68e106976c4d9e23457156ee8338cd1b8776683bbaad1f01"
+    }
+  }
+}

@@ -56,3 +56,24 @@ Missing required declarations return exit 2 unless `--diagnostic` is explicit; m
 Freeze held-out token sequences at short lengths and at 2,048, 3,100, 8,000, 65,000 and 262,000 positions, subject to supported capacity and recorded resource limits. At a budget of 512, include positions with more than 512 complete blocks so that selection actually excludes keys. Report native sparse versus repository sparse differences separately from INT8-versus-higher-precision KV differences. Preserve per-position results, sequence-level aggregates, failed examples, layer-level diagnostics where needed, and the exact metadata and commands.
 
 The independent execution records, candidate GPU captures, chosen acceptance thresholds, measured quality results, and long-context coverage have not been supplied by this PR. Store large captures outside Git and commit their hashes, reproducible acquisition commands, compact metrics and provenance records.
+
+### Recorded actual-weight captures
+
+[Archy evidence](validation/issue22/archy-06968d1) records executable source
+06968d1a5d6d7fdaf12106236cc39a1cb5cdf389 and its binary/cubin identities.
+
+All four full-48-layer GPU runs completed with actual embedding, disk-PLE and
+output-head weights. They cover four positions at the production budget of 512
+blocks and nine positions at a budget of one block, each with VRAM and pinned-host
+KV. Every exported logit is finite. Each placement pair is byte-identical across
+the full vocabulary: 993,280 floats per four-position run and 2,234,880 floats per
+nine-position run. The input IDs are valid consecutive-token microfixtures,
+not a held-out natural-language dataset.
+
+Raw logits are retained as deterministic gzip files, alongside input IDs,
+capture metadata, command/environment records, hashes and output. The freeze and
+compare commands completed successfully; their diagnostic reports show zero
+logit error and leave quality_pass null and independent_checkpoint_evidence false.
+These are same-implementation placement comparisons without a scalar twin or
+independent original checkpoint. The remaining quality measurements above are
+still required.

@@ -1,0 +1,46 @@
+{
+  "teacher_forced": true,
+  "implementation": {
+    "name": "flash-sass",
+    "revision": "06968d1a5d6d7fdaf12106236cc39a1cb5cdf389",
+    "independent_reference": false
+  },
+  "command": [
+    "/home/nate/claude/flash-sass-prs/quality-build-06968d1/kern/model_test",
+    "/unused-with-MODEL_NOTWIN",
+    "0",
+    "48",
+    "9",
+    "eh",
+    "/tmp/hold-h0.manifest",
+    "/tmp/hold-h1.manifest",
+    "/tmp/hold-h2.manifest",
+    "/tmp/hold-h3.manifest",
+    "/tmp/hold-h4.manifest",
+    "/tmp/hold-h5.manifest"
+  ],
+  "environment": {
+    "MODEL_ATTN": "qsa",
+    "MODEL_NOTWIN": "1",
+    "MODEL_PLE": "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+    "MODEL_PLE_OFF": "192",
+    "CUDA_VISIBLE_DEVICES": "0,1,2,3,4,5",
+    "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
+    "SPLIT_SHARES": "112,97,81,116,97,97",
+    "ATTN_DIE": "1",
+    "ATTN_MAP": "1,1,1,1,4,4,4,4,5,5,5,5",
+    "MODEL_IDS": "/home/nate/claude/flash-sass-prs/quality-validation-06968d1/gpu/t9-budget1-kv1-ids.txt",
+    "MODEL_CAPTURE": "/home/nate/claude/flash-sass-prs/quality-validation-06968d1/gpu/t9-budget1-kv1-raw",
+    "FLASH_NBLK": "1",
+    "FLASH_KV_HOST": "1"
+  },
+  "source_scope": "Same implementation and microfixture IDs, different KV placement; original-checkpoint reference and quality not established",
+  "base_model": {
+    "id": "unknown_original_checkpoint_identity",
+    "revision": null
+  },
+  "tokenizer": {
+    "sha256": null
+  },
+  "weights_manifest": "gpu/weights-sha256.json"
+}
