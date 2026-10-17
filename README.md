@@ -34,29 +34,6 @@ See [BATCH.md](BATCH.md) and [PAIR_TESTING.md](PAIR_TESTING.md).
 - V340L version
 
 ## What one token runs
-A **phase** is one step of the model's math that all 16 SMs of a die do together, followed by a grid
-barrier. The host builds the whole token as an array of 128-byte phase descriptors (`kern/prog.c`)
-and the persistent kernel loops over them (`kern/die.pl`). Steps that depend on each other cannot
-overlap, so phases follow the model's dependency order; operations at the same dependency depth
-share one phase. The dies also exchange activations between phases (`xsend`), and the wait for the
-slowest peer shows up in the phase after an exchange (`actq256`, `hcwsum`).
-
-The model runs on six dies and every die runs its own copy of the program, so a "token" is six
-lists of phases that proceed in lockstep. The lists are almost the same. The only difference is
-attention: the 12 attention layers live on three dies (1, 4 and 5, four layers each), so those
-**attention dies** run extra phases (the attention steps and their projections), and the other three (0, 2 and 3), the **plain dies**, do not.
-A plain die runs **1,154 phases** per token and an attention die **1,214**.
-
-Measured with `PROF_ALL=1 kern/prof.sh <die>` on the last token of a short greedy reply (six dies,
-`SPLIT_SHARES=112,97,81,116,97,97`; 27.95 ms per token, 35.9 tok/s). The table's plain-die numbers
-are from die 3 and its attention-die numbers from die 1. The profiler times a phase from the end of
-the previous one, so the first phase is untimed (1,153 and 1,213 below). Times (µs per phase, ms per
-token) are the plain die's, except the attention rows, which are the attention die's.
-
-Each row below is a **kind** of phase (its name is the op the kernel runs). The same kind appears
-many times in one token's list, for example once per block, and each appearance is one phase. So
-"phases per token" is how many phases of that kind the token contains, "µs per phase" is how long
-one of them takes, and the last column is those two multiplied.
 
 | Kind | What it does | phases per token (plain die / attention die) | µs per phase | ms per token (all phases of this kind) |
 |---|---|---|---|---|
