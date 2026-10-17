@@ -20,9 +20,13 @@ all)   # everything at once: the holders (35 min of repacking) and the core (14 
 	$0 holders; $0 core; $0 vis
 	for i in $(seq 7200); do [ -S "$SOCK" ] && break; read -t 1 < /dev/zero 2>/dev/null; done
 	$0 flashd ;;
-holders)
-	for i in 0 1 2 3 4 5; do
-		HOLD_VISIBLE=1 CUDA_VISIBLE_DEVICES=$i setsid -f ./hold "$GGUF1" $i 0 48 /tmp/hold-h$i.manifest token_embd output split=$i/6 > /tmp/hold-h$i.out 2> /tmp/hold-h$i.err < /dev/null
+holders)   # DIES="3 4 5" ./serve.sh holders starts just those
+	# every holder keeps an exclusive flock on its die's reservation file (the convention of the embedding services in ~/codex/asm-port: they take the same
+	# lock with `flock -x -n` and refuse to start while it is held), so nothing else lands on a die the engine is loaded on
+	LOCKDIR=${GPU_LOCKDIR:-/home/nate/codex/asm-port}
+	for i in ${DIES:-0 1 2 3 4 5}; do
+		uuid=$(nvidia-smi -i $i --query-gpu=uuid --format=csv,noheader)
+		HOLD_VISIBLE=1 CUDA_VISIBLE_DEVICES=$i setsid -f flock -x -n "$LOCKDIR/$uuid.lock" ./hold "$GGUF1" $i 0 48 /tmp/hold-h$i.manifest token_embd output split=$i/6 > /tmp/hold-h$i.out 2> /tmp/hold-h$i.err < /dev/null
 	done ;;
 core)
 	CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 FLASH_MAXT=${FLASH_MAXT:-262144} FLASH_ENGINE_MAXT=${FLASH_ENGINE_MAXT:-150000} FLASH_KV_HOST=${FLASH_KV_HOST:-0} FLASH_MAXIMG=${FLASH_MAXIMG:-4096} FLASH_PLE_OFF=${FLASH_PLE_OFF:-192} FLASH_SOCK=$SOCK \

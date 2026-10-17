@@ -1583,3 +1583,27 @@ fault path.
 3. *Tokens per second.* Decode is 36 tok/s at short context and 28 / 19 tok/s at 3,100 / 8,000 tokens (host-pinned KV
    gather). Of the 27.9 ms/token at short context, ~6.4 ms is `actq256` (the wait after an exchange for the slowest die),
    ~8 ms the hyper-connection ops, ~1.4 ms `xsend`; weight streaming is ~4.5 ms. `prof [die]` (kern/prof.sh) shows each die.
+
+**GPU maintenance results (2026-10-16, ECC on for all eight dies after a cold power cycle).** `kern/powercycle.sh` cold-cycled
+archy when `nvidia-smi -r` deadlocked in the driver (a compositor, `kwin_wayland` of the login greeter, held `/dev/nvidia1`):
+the 45 s guard unit powered it off over a hung driver (sync, SysRq `u`, `o`) and a magic packet woke it from S5 (wake-on-LAN
+works). ECC is now enabled everywhere: 7,618 MiB per die, 7.25 GiB allocatable. `memtest` with ECC on (4 patterns, whole
+free memory): **dies 0, 1, 3, 4, 5 clean** (no corrected or uncorrected errors, no retired pages) — die 0's "bad band above
+5.76 GiB" (cx-flash config) did not reproduce; **die 2 fails at 5.375–5.500 GiB** (allocation order, bottom-up) every time, 8
+rounds of retire + reset (58 pages retired now, was 52) did not move it, so die 2 is fenced at 5.375 GiB. Dies 6 and 7 were
+not tested (other agents' `llama-server`s run on them). Archy's `/mnt/sentry-nfs/flash-next-q2` is in `/etc/fstab` now (nofail,
+automount); the holders take an exclusive `flock` on `~/codex/asm-port/GPU-<uuid>.lock` of their die, the convention of the
+embedding services (which refuse to start while it is held) — the Nemotron embedding service had landed on dies 3–5 at boot and
+made three holders run out of memory; it is stopped (`systemctl --user stop sol-stop-hook-embed-m60.service`) while the engine
+is loaded and will fail its lock check until the holders exit.
+
+**Does the KV cache fit in VRAM? (arithmetic, 2026-10-16).** Per die: 7.25 GiB allocatable (die 2: 5.375 GiB), measured
+overhead 0.21 GB (hold + core contexts, engine buffers, indexer pool; die 0 0.27), KV 1,088 B/position/layer. Weights
+(arena) total 40.8 GB. Sum of the budgets 43.8 GB − 40.8 GB = 3.0 GB for KV = **~190,000 positions** in VRAM with ECC on
+everywhere and only die 2 fenced; 200,000 is short by ~0.07 GB (inside the error of the overhead estimate), 262,144 by 0.95 GB.
+So nothing has to be quantized further and ECC does not have to go off for 190k–200k; 262,144 would need either ~1 GB more
+(ECC off on two clean dies gives 2 × 0.54 GB; or a recovered part of die 2's upper band through `cuMemCreate` chunks) or
+older positions in host memory. The shares `112,99,79,112,99,99` are solved against these numbers (`/tmp/fit4.sh` style: HOLD_DRY
+arenas + overhead + KV per attention die); `FLASH_ENGINE_MAXT` (and `./serve.sh reload FLASH_ENGINE_MAXT=n`) sets the
+positions the engine serves, so the first real load measures the true headroom and the context can be raised without reloading
+the weights.
