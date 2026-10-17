@@ -21,7 +21,7 @@ typedef struct { int s; char path[240]; } engine_img;
  * starts with the same tokens resumes from it. Returns -1 on bad sizes, -2 after a CUDA error (the contexts need
  * rebuilding). Images: snapshots stop before the first one. */
 int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], const sampling *sm, int snap_at, const engine_img *imgs, int nimg, const engine_cb *cb, run_stats *st);   /* -3: a bad image file or too many image tokens */
-/* wanted=-1: free slot; otherwise wait for the numbered slot. -4: cancelled. */
+/* wanted=-1: free slot; otherwise wait for the numbered slot. Invalid slot: -1; cancelled while waiting: -4. */
 int engine_run_slot(int wanted, const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], const sampling *sm, int snap_at, const engine_img *imgs, int nimg, const engine_cb *cb, run_stats *st);
 int engine_positions(void);          /* FLASH_MAXT: prompt + reply positions per response */
 

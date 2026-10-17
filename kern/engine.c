@@ -1,7 +1,7 @@
 /* engine: the reloadable half of the Flash-Next decoder (libengine.so). flashcore.c keeps the
  * contexts, the weight arenas and the PLE table resident and dlopen()s this library; engine_init
- * builds every device buffer and program-independent table for FLASH_MAXT positions, then
- * engine_session() serves one client's commands, one persistent kernel launch per die per response
+ * builds sequence buffers and program-independent tables for FLASH_MAXT total positions, then
+ * engine_session() serves each client and schedules bounded persistent-kernel turns per die
  * (see the command list at engine_session). `reload [path]` replaces the library in seconds without
  * touching the weights or the table. Env: SPLIT_SHARES, ATTN_DIE (ref/split.c), FLASH_CUBIN. */
 #include "block.h"
@@ -306,7 +306,7 @@ static int prepare_images(const engine_img *imgs, int nimg, int nprompt, int T) 
 
 int engine_run_slot(int wanted, const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], const sampling *sm, int snap_at, const engine_img *imgs, int nimg, const engine_cb *cb, run_stats *st) {
 	int T;
-    if (nprompt < 1 || n_new < 0 || nprompt > MAXT || n_new > MAXT - nprompt) return -1;
+    if (wanted < -1 || wanted >= nsequences || nprompt < 1 || n_new < 0 || nprompt > MAXT || n_new > MAXT - nprompt) return -1;
     T = nprompt + n_new;
     int slot = seqsched_claim(&schedule, wanted, cb ? cb->alive : NULL, cb ? cb->arg : NULL);
     if (slot < 0) return __atomic_load_n(&schedule.broken, __ATOMIC_ACQUIRE) ? -2 : -4;
