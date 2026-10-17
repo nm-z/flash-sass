@@ -11,8 +11,8 @@
  * with the GGUF's vocabulary (tok.c), and run on the engine (flash, FLASH_SOCK) greedily until
  * <|im_end|>/EOS or max_tokens. The reply streams as server-sent events: reasoning tokens as
  * delta.reasoning_content up to </think>, the answer as delta.content, and the final event
- * carries timings (prompt_per_second, predicted_per_second). One request runs at a time; the
- * others wait on the engine lock (GET endpoints never wait).
+ * carries timings (prompt_per_second, predicted_per_second). Each request has an engine
+ * connection; flashcore admits bounded slots and schedules token/chunk turns.
  *
  *   flashd <shard-1.gguf> <flash-socket> <host:port>      env FLASHD_NAME, FLASHD_THINKING (0: off by default) */
 #define _GNU_SOURCE
@@ -42,7 +42,14 @@ static int POSITIONS = 2048, THINK_DEFAULT = 1;
 static long REASONING_MAX = 262144, ANSWER_MAX = 131072;
 static double DEF_TEMP = 0.0, DEF_TOPP = 1.0; static int DEF_TOPK = 0;   /* general.sampling.* from the GGUF; temperature 0 = greedy */
 static uint32_t ID_END, ID_THINK_END;
-static pthread_mutex_t ENGINE = PTHREAD_MUTEX_INITIALIZER;
+/* tok.c reuses BPE scratch: lock encoding only, never a response. */
+static pthread_mutex_t TOKENIZER = PTHREAD_MUTEX_INITIALIZER;
+static unsigned long long REQUEST_ID;
+static int SEQUENCES = 1, QUANTUM = 1;
+static int encode(const tok_vocab *v, const char *s, size_t n, int special, uint32_t *ids, int cap) {
+    pthread_mutex_lock(&TOKENIZER); int rc = tok_encode(v, s, n, special, ids, cap);
+    pthread_mutex_unlock(&TOKENIZER); return rc;
+}
 
 /* ---- output ---- */
 static int wr(int fd, const char *s, size_t n) {
@@ -75,6 +82,7 @@ typedef struct {
 	unsigned char pend[8]; int npend;
 	sbuf content, reasoning;
 	long created;
+    char request_id[80];
 	long n_reason, n_answer; int cap_hit;   /* tokens so far in each part; set when one reaches its budget */
 } gen;
 
@@ -83,7 +91,7 @@ static void emit_delta(gen *g, const char *field, const char *s, size_t n) {
 	if (g->stream && !g->gone) {
 		sbuf b = {0};
 		sb_printf(&b, "data: {\"choices\":[{\"index\":0,\"delta\":{\"%s\":", field); sb_json_str(&b, s, n);
-		sb_printf(&b, "},\"finish_reason\":null}],\"created\":%ld,\"id\":\"chatcmpl-flash\",\"model\":\"%s\",\"object\":\"chat.completion.chunk\"}\n\n", g->created, NAME);
+		sb_printf(&b, "},\"finish_reason\":null}],\"created\":%ld,\"id\":\"%s\",\"model\":\"%s\",\"object\":\"chat.completion.chunk\"}\n\n", g->created, g->request_id, NAME);
 		if (chunk(g->fd, b.s, b.n)) g->gone = 1;
 		sb_free(&b);
 	}
@@ -157,7 +165,7 @@ static const char *vis_image(const unsigned char *bytes, size_t n, imgrec *r) {
 	while (ll + 1 < sizeof line) { char c; if (recv(s, &c, 1, 0) != 1) { close(s); return "the vision encoder closed the connection"; } if (c == '\n') break; line[ll++] = c; }
 	line[ll] = 0;
 	unsigned ntok, nx, ny, dim; long npos;
-	if (sscanf(line, "ok %u %u %u %ld %u", &ntok, &nx, &ny, &npos, &dim) != 5) { close(s); static char em[200]; snprintf(em, sizeof em, "the vision encoder: %.150s", line); return em; }
+	if (sscanf(line, "ok %u %u %u %ld %u", &ntok, &nx, &ny, &npos, &dim) != 5) { close(s); static __thread char em[200]; snprintf(em, sizeof em, "the vision encoder: %.150s", line); return em; }
 	size_t body = (size_t)ntok * dim * 4 + (size_t)ntok * 12; unsigned char *buf = malloc(body); size_t got = 0;
 	while (got < body) { ssize_t k = recv(s, buf + got, body - got, 0); if (k <= 0) break; got += (size_t)k; }
 	close(s);
@@ -242,11 +250,11 @@ static void chat(int fd, const char *body, size_t bn) {
 	char *prompt = jinja_render(TPL, a, vars, &pn, err, sizeof err);
 	if (!prompt) { error(fd, 400, err); arena_free(a); return; }
 
-	pthread_mutex_lock(&ENGINE);
+	
 	uint32_t *ids = malloc(4 * (pn + 16));
-	int np = tok_encode(V, prompt, pn, 1, ids, (int)pn + 16);
+	int np = encode(V, prompt, pn, 1, ids, (int)pn + 16);
 	if (np < 1 || np + 1 >= POSITIONS) {
-		pthread_mutex_unlock(&ENGINE); free(ids); free(prompt); arena_free(a);
+		 free(ids); free(prompt); arena_free(a);
 		error(fd, 400, np < 1 ? "empty prompt" : "the prompt is longer than the engine's context"); return;
 	}
 	/* the engine returns n_new + 1 tokens (the one predicted at the last prompt position, then n_new more) */
@@ -262,7 +270,7 @@ static void chat(int fd, const char *body, size_t bn) {
 		size_t pn2; char *p2 = jinja_render(TPL, a, vars, &pn2, err, sizeof err);
 		jv_set(a, vars, "messages", 8, msgs);
 		if (p2) {
-			uint32_t *ids2 = malloc(4 * (pn2 + 16)); int n2 = tok_encode(V, p2, pn2, 1, ids2, (int)pn2 + 16);
+			uint32_t *ids2 = malloc(4 * (pn2 + 16)); int n2 = encode(V, p2, pn2, 1, ids2, (int)pn2 + 16);
 			int l = 0; while (l < n2 && l < np && ids2[l] == ids[l]) l++;
 			snap = l < np - 1 ? l : np - 1;
 			if (snap < 16) snap = 0;
@@ -274,7 +282,7 @@ static void chat(int fd, const char *body, size_t bn) {
 	int istart[8] = { 0 };
 	if (nim) {
 		int found = 0, first_img = -1; for (int i = 0; i < np; i++) if ((int)ids[i] == ID_IMGPAD) found++;
-		if (found != nim || ID_IMGPAD < 0) { pthread_mutex_unlock(&ENGINE); free(ids); free(prompt); arena_free(a); error(fd, 400, "the chat template did not place one image token per image"); return; }
+		if (found != nim || ID_IMGPAD < 0) {  free(ids); free(prompt); arena_free(a); error(fd, 400, "the chat template did not place one image token per image"); return; }
 		uint32_t *ex = malloc(4 * ((size_t)np + img_tokens + 16)); int k = 0, im = 0;
 		for (int i = 0; i < np; i++) {
 			if ((int)ids[i] == ID_IMGPAD) { if (first_img < 0) first_img = i; istart[im] = k; for (unsigned q = 0; q < imgs[im].ntok; q++) ex[k++] = ids[i]; im++; }
@@ -282,11 +290,11 @@ static void chat(int fd, const char *body, size_t bn) {
 		}
 		free(ids); ids = ex; np = k;
 		if (snap > first_img) snap = first_img < 16 ? 0 : first_img;
-		if (np + 1 >= POSITIONS) { pthread_mutex_unlock(&ENGINE); free(ids); free(prompt); arena_free(a); error(fd, 400, "the prompt is longer than the engine's context"); return; }
+		if (np + 1 >= POSITIONS) {  free(ids); free(prompt); arena_free(a); error(fd, 400, "the prompt is longer than the engine's context"); return; }
 		n_new = max_tokens - 1 < POSITIONS - np ? max_tokens - 1 : POSITIONS - np;
 	}
 	FILE *out = NULL, *in = engine_open(&out);
-	if (!in) { pthread_mutex_unlock(&ENGINE); free(ids); free(prompt); arena_free(a); error(fd, 500, "the engine is not running"); return; }
+	if (!in) {  free(ids); free(prompt); arena_free(a); error(fd, 500, "the engine is not running"); return; }
 	fprintf(out, "stop %u %u\n", ID_END, tok_eos(V) == ID_END ? 0xffffffffu : tok_eos(V));
 	fprintf(out, "sample %llu %.6g %ld %.6g\n", seed, temp, topk <= 0 ? 32 : topk, topp);
 	for (int i = 0; i < nim; i++) fprintf(out, "img %s %d\n", imgs[i].path, istart[i]);
@@ -295,16 +303,17 @@ static void chat(int fd, const char *body, size_t bn) {
 	free(ids);
 
 	gen g = { .fd = fd, .stream = stream, .created = (long)time(NULL) };
+    snprintf(g.request_id, sizeof g.request_id, "chatcmpl-flash-%ld-%ld-%llu", g.created, (long)getpid(), __atomic_add_fetch(&REQUEST_ID, 1, __ATOMIC_RELAXED));
 	g.in_think = pn >= 8 && !memcmp(prompt + pn - 8, "<think>\n", 8);
 	if (stream) {
 		const char *h = "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n";
 		if (wrs(fd, h)) g.gone = 1;
 		sbuf b = {0};
-		sb_printf(&b, "data: {\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":null},\"finish_reason\":null}],\"created\":%ld,\"id\":\"chatcmpl-flash\",\"model\":\"%s\",\"object\":\"chat.completion.chunk\"}\n\n", g.created, NAME);
+		sb_printf(&b, "data: {\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":null},\"finish_reason\":null}],\"created\":%ld,\"id\":\"%s\",\"model\":\"%s\",\"object\":\"chat.completion.chunk\"}\n\n", g.created, g.request_id, NAME);
 		if (!g.gone && chunk(fd, b.s, b.n)) g.gone = 1;
 		sb_free(&b);
 	}
-	char line[256]; int ngen = 0, ended = 0, resumed = 0, snapped = 0, done = 0, failed = 0; double run_ms = 0, first_ms = 0;
+	char line[256]; int ngen = 0, ended = 0, resumed = 0, snapped = 0, done = 0, failed = 0, sequence = -1; double run_ms = 0, first_ms = 0;
 	/* a long prompt takes minutes before the first token: an idle stream is cut by proxies (Cloudflare closes after 100 s), so an SSE comment goes out
 	   every 10 s while the engine is silent */
 	{ struct timeval tv = { 10, 0 }; setsockopt(fileno(in), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv); }
@@ -315,12 +324,12 @@ static void chat(int fd, const char *body, size_t bn) {
 		}
 		unsigned id; int e, npm; double r, f;
 		if (sscanf(line, "tok %u", &id) == 1) { on_token(&g, id); if (g.gone || g.cap_hit) break; }
-		else if (sscanf(line, "done %d %d %d %lf %lf %d %d", &ngen, &e, &npm, &r, &f, &resumed, &snapped) >= 5) { ended = e; run_ms = r; first_ms = f; done = 1; break; }
+		else if (sscanf(line, "done %d %d %d %lf %lf %d %d %d", &ngen, &e, &npm, &r, &f, &resumed, &snapped, &sequence) >= 5) { ended = e; run_ms = r; first_ms = f; done = 1; break; }
 		else if (!strncmp(line, "error", 5)) { fprintf(stderr, "flashd: engine: %s", line); failed = 1; break; }
 	}
 	if (!done && !g.gone && !g.cap_hit) failed = 1;   /* the engine's stream ended without its "done" line: the response is not complete */
 	fclose(in); fclose(out);
-	pthread_mutex_unlock(&ENGINE);
+	
 	free(prompt);
 	if (failed) {   /* an engine error or an engine that went away is an error to the client, not a normal completion with finish_reason "length" */
 		fprintf(stderr, "flashd: the engine failed during the response (%ld reasoning + %ld answer tokens had been generated)\n", g.n_reason, g.n_answer);
@@ -339,13 +348,13 @@ static void chat(int fd, const char *body, size_t bn) {
 	if (g.gone) fprintf(stderr, "flashd: client left after %d bytes of text; the engine is told to stop\n", (int)(g.content.n + g.reasoning.n));
 	double pp = first_ms > 0 ? (np - resumed) / (first_ms / 1e3) : 0, dec_ms = run_ms - first_ms, dec = (ngen > 1 && dec_ms > 0) ? (ngen - 1) / (dec_ms / 1e3) : 0;
 	sbuf t = {0};
-	sb_printf(&t, "{\"prompt_n\":%d,\"cache_n\":%d,\"prompt_ms\":%.1f,\"prompt_per_second\":%.2f,\"predicted_n\":%d,\"predicted_ms\":%.1f,\"predicted_per_second\":%.2f,\"decode_intervals\":%d,\"decode_ms\":%.1f}", np, resumed, first_ms, pp, ngen, dec_ms > 0 ? dec_ms : 0, dec, ngen > 1 ? ngen - 1 : 0, dec_ms > 0 ? dec_ms : 0);   /* predicted_per_second = decode_intervals / decode_ms: the time after the first generated token, over the G - 1 tokens after it; predicted_n is all G */
+	sb_printf(&t, "{\"prompt_n\":%d,\"cache_n\":%d,\"prompt_ms\":%.1f,\"prompt_per_second\":%.2f,\"predicted_n\":%d,\"predicted_ms\":%.1f,\"predicted_per_second\":%.2f,\"decode_intervals\":%d,\"decode_ms\":%.1f,\"sequence_slot\":%d}", np, resumed, first_ms, pp, ngen, dec_ms > 0 ? dec_ms : 0, dec, ngen > 1 ? ngen - 1 : 0, dec_ms > 0 ? dec_ms : 0, sequence);   /* predicted_per_second = decode_intervals / decode_ms: the time after the first generated token, over the G - 1 tokens after it; predicted_n is all G */
 	const char *fin = ended ? "stop" : "length";
 	fprintf(stderr, "flashd: %d prompt (%d from the cache, snapshot at %d) + %d generated tokens, %.1f ms (first %.1f), %s, pp %.1f decode %.1f tok/s\n", np, resumed, snapped, ngen, run_ms, first_ms, fin, pp, dec);
 	if (stream) {
 		if (!g.gone) {
 			sbuf b = {0};
-			sb_printf(&b, "data: {\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"%s\"}],\"created\":%ld,\"id\":\"chatcmpl-flash\",\"model\":\"%s\",\"object\":\"chat.completion.chunk\",\"usage\":{\"completion_tokens\":%d,\"prompt_tokens\":%d,\"total_tokens\":%d},\"timings\":%s}\n\n", fin, g.created, NAME, ngen, np, ngen + np, t.s);
+			sb_printf(&b, "data: {\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"%s\"}],\"created\":%ld,\"id\":\"%s\",\"model\":\"%s\",\"object\":\"chat.completion.chunk\",\"usage\":{\"completion_tokens\":%d,\"prompt_tokens\":%d,\"total_tokens\":%d},\"timings\":%s}\n\n", fin, g.created, g.request_id, NAME, ngen, np, ngen + np, t.s);
 			chunk(fd, b.s, b.n); sb_free(&b);
 			chunk(fd, "data: [DONE]\n\n", 14); wrs(fd, "0\r\n\r\n");
 		}
@@ -354,7 +363,7 @@ static void chat(int fd, const char *body, size_t bn) {
 		sb_puts(&b, "{\"choices\":[{\"index\":0,\"finish_reason\":\""); sb_puts(&b, fin); sb_puts(&b, "\",\"message\":{\"role\":\"assistant\",\"content\":");
 		sb_json_str(&b, g.content.s ? g.content.s : "", g.content.n);
 		if (g.reasoning.n) { sb_puts(&b, ",\"reasoning_content\":"); sb_json_str(&b, g.reasoning.s, g.reasoning.n); }
-		sb_printf(&b, "}}],\"created\":%ld,\"id\":\"chatcmpl-flash\",\"model\":\"%s\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":%d,\"prompt_tokens\":%d,\"total_tokens\":%d},\"timings\":%s}", g.created, NAME, ngen, np, ngen + np, t.s);
+		sb_printf(&b, "}}],\"created\":%ld,\"id\":\"%s\",\"model\":\"%s\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":%d,\"prompt_tokens\":%d,\"total_tokens\":%d},\"timings\":%s}", g.created, g.request_id, NAME, ngen, np, ngen + np, t.s);
 		reply(fd, 200, "application/json", b.s, b.n); sb_free(&b);
 	}
 	sb_free(&t); sb_free(&g.content); sb_free(&g.reasoning); arena_free(a);
@@ -364,7 +373,7 @@ static void chat(int fd, const char *body, size_t bn) {
 static void *serve(void *arg) {
 	int fd = (int)(long)arg; struct timeval tv = { 30, 0 };
 	setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
-	setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof tv);   /* a client that stops reading must not hold the engine lock: a send that blocks 30 s fails and the response is dropped */
+	setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof tv);   /* a client that stops reading must release its sequence slot: a send that blocks 30 s fails and the response is dropped */
 	char *req = malloc(1 << 16); size_t n = 0; char *hend = NULL;
 	while (!hend && n < (1 << 16) - 1) {
 		ssize_t k = recv(fd, req + n, (1 << 16) - 1 - n, 0); if (k <= 0) { free(req); close(fd); return NULL; }
@@ -416,7 +425,7 @@ int main(int argc, char **argv) {
 	FILE *out = NULL, *in = engine_open(&out);
 	if (!in) { fprintf(stderr, "cannot reach the engine at %s\n", SOCK); return 1; }
 	fprintf(out, "info\n"); fflush(out);
-	char line[128]; if (fgets(line, sizeof line, in) && sscanf(line, "info %d %u", &POSITIONS, &IMG_ROWS) >= 1) {} else { fprintf(stderr, "engine did not answer info\n"); return 1; }
+	char line[128]; if (fgets(line, sizeof line, in) && sscanf(line, "info %d %u %d %d", &POSITIONS, &IMG_ROWS, &SEQUENCES, &QUANTUM) >= 1) {} else { fprintf(stderr, "engine did not answer info\n"); return 1; }
 	fclose(in); fclose(out);
 
 	char host[128]; int port;
