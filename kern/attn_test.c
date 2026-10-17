@@ -28,6 +28,19 @@ static int cmp(const char *what, const float *ref, const float *got, size_t cnt,
 	return bad;
 }
 
+
+/* FLASH_PADDING_POISON_TEST: test-only padding, never visible data. */
+static int padding_poison_value_(const char *mode, float *value) {
+    if (!mode || !strcmp(mode, "off")) return 0;
+    uint32_t bits;
+    if (!strcmp(mode, "nan")) bits = 0x7fc12345u;
+    else if (!strcmp(mode, "inf")) bits = 0x7f800000u;
+    else if (!strcmp(mode, "-inf")) bits = 0xff800000u;
+    else if (!strcmp(mode, "max")) bits = 0x7f7fffffu;
+    else { fprintf(stderr, "invalid padding poison: %s\n", mode); exit(2); }
+    memcpy(value, &bits, sizeof bits);
+    return 1;
+}
 int main(int argc, char **argv) {
 	unsigned n = argc > 1 ? (unsigned)strtoul(argv[1], 0, 0) : 3000;
 	int iters = argc > 2 ? atoi(argv[2]) : 0;
@@ -47,7 +60,22 @@ int main(int argc, char **argv) {
 	attn_merge_gpu(pm, pd, po, gate, out);
 	printf("n=%u: reference %.2f s\n", n, now() - t0);
 
-	CK(cuInit(0));
+	
+    const char *poison_k_mode = getenv("ATTN_POISON_K");
+    const char *poison_v_mode = getenv("ATTN_POISON_V");
+    if (!poison_k_mode) poison_k_mode = getenv("ATTN_POISON_PADDING");
+    if (!poison_v_mode) poison_v_mode = getenv("ATTN_POISON_PADDING");
+    float poison_k_value = 0.f, poison_v_value = 0.f;
+    int poison_k = padding_poison_value_(poison_k_mode, &poison_k_value);
+    int poison_v = padding_poison_value_(poison_v_mode, &poison_v_value);
+
+    for (unsigned j = n; j < npos; j++)
+        for (int kv = 0; kv < 2; kv++)
+            for (int d = 0; d < 256; d++) {
+                if (poison_k) kc[attn_kidx(j, kv, d)] = poison_k_value;
+                if (poison_v) vc[(size_t)j * 512 + kv * 256 + d] = poison_v_value;
+            }
+CK(cuInit(0));
 	CUdevice dev; CUcontext ctx; CUmodule mp, mm; CUfunction fp, fm;
 	CK(cuDeviceGet(&dev, 0));
 	CK(cuCtxCreate_v2(&ctx, CU_CTX_SCHED_SPIN, dev));

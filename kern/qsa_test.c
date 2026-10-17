@@ -59,7 +59,28 @@ static int cmpb(const char *what, const void *ref, const void *got, size_t n, in
 	return 1;
 }
 
+
+/* FLASH_PADDING_POISON_TEST: test-only padding, never visible data. */
+static int padding_poison_value_(const char *mode, float *value) {
+    if (!mode || !strcmp(mode, "off")) return 0;
+    uint32_t bits;
+    if (!strcmp(mode, "nan")) bits = 0x7fc12345u;
+    else if (!strcmp(mode, "inf")) bits = 0x7f800000u;
+    else if (!strcmp(mode, "-inf")) bits = 0xff800000u;
+    else if (!strcmp(mode, "max")) bits = 0x7f7fffffu;
+    else { fprintf(stderr, "invalid padding poison: %s\n", mode); exit(2); }
+    memcpy(value, &bits, sizeof bits);
+    return 1;
+}
 static int test_kv(unsigned T, unsigned NBLK) {
+    const char *poison_k_mode = getenv("QSA_POISON_K");
+    const char *poison_v_mode = getenv("QSA_POISON_V");
+    if (!poison_k_mode) poison_k_mode = getenv("QSA_POISON_PADDING");
+    if (!poison_v_mode) poison_v_mode = getenv("QSA_POISON_PADDING");
+    float poison_k_value = 0.f, poison_v_value = 0.f;
+    int poison_k = padding_poison_value_(poison_k_mode, &poison_k_value);
+    int poison_v = padding_poison_value_(poison_v_mode, &poison_v_value);
+
 	const float eps = 1e-6f;
 	unsigned npos = T + 64;
 	float *rcs = malloc(4 * 32 * (size_t)npos), *rsn = malloc(4 * 32 * (size_t)npos);
@@ -111,7 +132,25 @@ static int test_kv(unsigned T, unsigned NBLK) {
 			CK(cuMemcpyHtoD(dSEL, sel, 4 * NBLK));
 		}
 		CK(cuMemcpyHtoD(dQG, qg, 4 * 12288)); CK(cuMemcpyHtoD(dK, k, 4 * 512)); CK(cuMemcpyHtoD(dV, v, 4 * 512));
-		run_token(prog, 4, t);
+
+        int poison_terminal = (poison_k || poison_v) && t + 1 == T;
+        if (!poison_terminal) run_token(prog, 4, t);
+        else {
+            run_token(prog, 2, t);
+            CK(cuMemcpyDtoH(kcg, dKC, kcf * sizeof(float)));
+            CK(cuMemcpyDtoH(vcg, dVC, vcf * sizeof(float)));
+            unsigned poison_n = qsa_nkeys(t, NBLK);
+            for (unsigned j = poison_n; j < cpos; j++)
+                for (int kv = 0; kv < 2; kv++)
+                    for (int d = 0; d < 256; d++) {
+                        if (poison_k) kcg[attn_kidx(j, kv, d)] = poison_k_value;
+                        if (poison_v) vcg[(size_t)j * 512 + kv * 256 + d] = poison_v_value;
+                    }
+            CK(cuMemcpyHtoD(dKC, kcg, kcf * sizeof(float)));
+            CK(cuMemcpyHtoD(dVC, vcg, vcf * sizeof(float)));
+            run_token(prog + 2, 2, t);
+        }
+
 		/* the twin: q/k norm + RoPE, int8 append, gather, attention */
 		for (int h = 0; h < 24; h++) qk_norm_rope_gpu(qg + 512 * h, qn, eps, rcs + 32 * t, rsn + 32 * t, qo + 256 * h);
 		for (int h = 0; h < 2; h++) {
@@ -141,6 +180,7 @@ static int test_kv(unsigned T, unsigned NBLK) {
 		unsigned nb = ns + ((t + 1) & 3 ? 1 : 0);
 		for (unsigned j = 0; j < nb; j++) for (unsigned i = 0; i < 4; i++) {
 			unsigned slot = 4 * j + i;
+			if (poison_terminal && slot >= n) continue;
 			for (int kv = 0; kv < 2; kv++) for (int d = 0; d < 256; d += 4) {
 				b |= cmpb("kc", &kc[attn_kidx(slot, kv, d)], &kcg[attn_kidx(slot, kv, d)], 16, &shown);
 				b |= cmpb("vc", &vc[(size_t)slot * 512 + 256 * kv + d], &vcg[(size_t)slot * 512 + 256 * kv + d], 16, &shown);
