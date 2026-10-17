@@ -31,7 +31,7 @@ CPU validation:
 After building qsa_test and attn_test on the target host:
 
     cd kern
-    python3 checked_cli_test.py --out /tmp/checked-cli-new
+    perl checked_cli_test.pl --out /tmp/checked-cli-new
 
 The negative CLI suite hides CUDA and intercepts cuInit/cuLaunchKernel with a
 guard that exits 99. Invalid invocations must return 2 instead. The recorded
