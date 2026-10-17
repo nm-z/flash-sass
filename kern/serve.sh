@@ -14,6 +14,7 @@ SOCK=${FLASH_SOCK:-/tmp/flash.sock}
 # the split of the weights over the six dies and the die of each attention layer (its projections, indexer pool and RoPE tables live there;
 # the int8 KV caches are in VRAM, FLASH_KV_HOST=1 puts them in pinned host memory). ECC is on for all dies (7.25 GiB allocatable each; memtest 2026-10-16:
 # dies 0,1,3,4,5 clean, die 2 fails from 5.375 GiB and is fenced there, so it gets the small share). The shares were solved with the measured per-die overhead, see SPEC "Open work"
+export CUDA_DEVICE_ORDER=PCI_BUS_ID   # CUDA numbers the dies the way nvidia-smi does, so a die index names the same card in the fence lookup, the holders and the tools
 export SPLIT_SHARES=${SPLIT_SHARES:-112,99,79,112,99,99} ATTN_MAP=${ATTN_MAP:-1,1,1,1,4,4,4,4,5,5,5,5} ATTN_DIE=${ATTN_DIE:-1}
 case $1 in
 all)   # everything at once: the holders (35 min of repacking) and the core (14 min of PLE table) load side by side, the core waits for the holders
