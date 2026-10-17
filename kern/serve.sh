@@ -60,5 +60,5 @@ stop)   # the engine; the holders (weights) and fences stay
 unload)   # everything, the fences included: the dies are free again (a fence must start on an empty die)
 	$0 stop; pkill -x hold; pkill -x fence ;;
 *)
-	echo "usage: serve.sh all|holders|core|vis|flashd|reload [lib]|status|stop|unload" >&2; exit 2 ;;
+	echo "usage: serve.sh all|holders|core|vis|flashd|reload [lib]|status|stop|unload|gen2" >&2; exit 2 ;;
 esac
