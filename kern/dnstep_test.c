@@ -37,6 +37,7 @@ int main(int argc, char **argv) {
 	for (int i = 0; i < KH * D; i++) { q[i] = frand() * 2.f; k[i] = frand() * 2.f; }
 	for (int i = 0; i < H * D; i++) v[i] = frand();
 	for (int h = 0; h < H; h++) { a[h] = 3.f * frand(); b[h] = 3.f * frand(); sa[h] = -expf(frand()); }
+	if (getenv("DN_TINY")) { memset(q, 0, KH * D * 4); memset(k, 0, KH * D * 4); for (int h = 0; h < KH; h++) q[h * D] = k[h * D] = 1e-3f; }
 	memcpy(S2, S, sbytes);
 	for (int h = 0; h < H; h++) {
 		int kh = tiled ? (h & 15) : h / 3;
