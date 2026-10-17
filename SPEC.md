@@ -1640,3 +1640,14 @@ Tools: `memtest` (`chunk=`, `skip=`, `only=`, `reserve=`), `fence`, `bisect.sh`,
   200k prompt is over two hours and a long conversation is usable only through the prefix snapshot (one snapshot today; each further one costs the DeltaNet
   states, 0.12 GB, and keeps the KV rows below it alive). A multi-token (chunked) prefill is the way to change that.
 - Training-only references (Muon, load-balancing loss) have no inference consequence.
+
+**PCIe links and PLE rows from disk (2026-10-17).** After the cold power cycle the engine ran at 12 tok/s instead of 36 (73 ms per token): the profile showed `xsend` at 174 us instead
+of ~12 us and 2 ms stalls, and the slot-4 root port (00:03.0) re-latched BadTLP / BadDLLP / replay rollover / replay timeout within one request after the flags were cleared. The
+gen2 target on the root port (`setpci -s 00:03.0 CAP_EXP+0x30.w=0002`, then LnkCtl bit 5) made it clean at once: 35.9 tok/s, 27.9 ms per token. Slots 1, 2 and 4 are now all at gen2
+(`kern/pcie-gen2.sh`, `serve.sh gen2`; it does not survive a reboot): slot 1 clean, slot 4 clean, slot 2 still logs RxErr/BadTLP/BadDLLP (no replay timeouts, no visible stall;
+card 2 is the one with the bad memory band). The nominal bandwidth halves (about 8 GB/s, slot 1 trains x8: 4 GB/s); the exchanges are 40 KB messages, so latency and replays matter, not bandwidth.
+`FLASH_PLE_DISK=1` (core start): the 28.8 GB table stays in its file, the core pins only a compact table (16 rows x 90 B per position, 379 MB at 262,144 positions) and a ready flag per position;
+the engine reads the 16 rows of a position from the file just ahead of it (`ple_pump`, prompt positions up to 128 ahead, a decode position as soon as its token is known) and stores the
+response's id in the flag, which `plerows` waits for (compact mode, param 0x170/0x178). Checked: the same 24 tokens at temperature 0 as with the table in RAM; warm 35 tok/s decode, 28-30 tok/s
+prefill; no 26 GB load. Cold rows are the cost: the file is on sentry's NFS (a disk with ~6 ms random reads, 16 rows per token): an all-new 52-token prompt took 5.4 s to the first token
+(about 100 ms per position) against 1.6 s with the rows cached, and decode 8.5 tok/s while the rows are cold. posix_fadvise(RANDOM) did not change it. The rows need a fast random-read home (the local SSD: ~0.1 ms).

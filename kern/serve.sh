@@ -53,6 +53,8 @@ reload)   # reload [<lib>] [FLASH_ENGINE_MAXT=n FLASH_KV_HOST=0|1 ...]
 status)
 	pgrep -xa hold | cut -c1-60; pgrep -xa flashcore | cut -c1-60; pgrep -xa flashd | cut -c1-60
 	tail -n 3 /tmp/flashcore.err /tmp/flashd.err ;;
+gen2)   # the three root ports of the cards (slots 1, 2, 4) at gen2: the slot-4 link makes errors at gen3 (replays of 2 ms: 73 ms per token instead of 28). Lasts until the next reboot.
+	bash "$(dirname "$0")/pcie-gen2.sh" ${*:2} ;;
 stop)   # the engine; the holders (weights) and fences stay
 	pkill -x flashd; pkill -x flashcore; pkill -x flashvis ;;
 unload)   # everything, the fences included: the dies are free again (a fence must start on an empty die)
