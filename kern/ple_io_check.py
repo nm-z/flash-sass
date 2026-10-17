@@ -24,6 +24,19 @@ send('info');cap=line().split();assert cap[0]=='info' and int(cap[1])>=192,cap
 control();baseline,done,error=ask([10,11]);assert done and not error
 for mode in ('partial','eintr'):
  control(mode,0,3,17);toks,done,error=ask([10,11]);assert done and not error and toks==baseline,(mode,error,toks);print(mode,'recovered to identical tokens',flush=True)
+# The token following an observed stop is never consumed. The initial two
+# prompt rows are staged before launch; position 2 first becomes known at EOS.
+send('stop %d'%baseline[0]);assert line().startswith('ok: stop ')
+try:
+ for mode in ('eof','eio'):
+  control(mode,2,3,17)
+  stopped,done,error=ask([10,11],190)
+  assert done and not error and stopped==baseline[:1],(mode,stopped,done,error)
+  assert int(done.split()[2])==1,done
+  assert status()['failed']==0
+  print(mode,'unused row after early stop was not read',flush=True)
+finally:
+ send('stop');assert line().startswith('ok: stop ');control()
 control();longbase,done,error=ask([10,11],190,snap=1);assert done and not error
 for mode in ('eof','eio'):
  control(mode,0,3,17);before=status()['launches'];toks,done,error=ask([12,13]);assert not done and error and not toks,(toks,done,error);assert 'PLE I/O position 0 head 3' in error and 'bytes 17/90' in error,error;st=status();assert st['launches']==before and st['snapshot']==0,st

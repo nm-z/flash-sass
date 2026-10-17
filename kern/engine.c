@@ -207,7 +207,7 @@ static int run_segment(runctx *r, const unsigned *nph, int ntok_) {
 			for (; r->sent < r->count; r->sent++)
 				if (r->cb && r->cb->token && r->cb->token(r->cb->arg, r->sent, h_toks[r->sent]) && !r->aborted && !r->ended) abort_run(r);
 		}
-		if (!fin) ple_pump(r, 8);
+		if (!fin && !r->ended) ple_pump(r, 8);
 		if (!r->aborted && !fin && r->cb && r->cb->alive && now() - last_alive > 0.02) { last_alive = now(); if (r->cb->alive(r->cb->arg) && !r->ended) abort_run(r); }
 		/* a die whose kernel failed (an illegal address, a trap) ends its launch while the others spin in an exchange: look at all of them, and give
 		   up when the token count has not moved for FLASH_WATCHDOG_S seconds (a deadlock) */
