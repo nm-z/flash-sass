@@ -523,3 +523,12 @@ quant_range_test: quant_range_test.c ../ref/qsa.c ../ref/qsa.h ../ref/fmath.c ..
 .PHONY: test-quant-range
 test-quant-range: quant_range_test
 	./quant_range_test
+
+output_tokens_test: output_tokens_test.c flashd.c tok.c tok.h jinja.c json.c ../ref/gguf.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ output_tokens_test.c tok.c jinja.c json.c ../ref/gguf.c -I../ref -lm -lpthread
+
+dn_l2norm_test: dn_l2norm_test.c ../ref/deltanet.c ../ref/fmath.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ dn_l2norm_test.c ../ref/deltanet.c ../ref/fmath.c -I../ref -lm
+
+ple_eos_test: ple_eos_test.c ../ref/ple.c ../ref/fmath.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ ple_eos_test.c ../ref/ple.c ../ref/fmath.c -I../ref -lm
