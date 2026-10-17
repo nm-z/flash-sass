@@ -2,7 +2,8 @@
  * the copy engine, so weak cells raise their ECC errors now (Xid 48 -> the page is retired at
  * the next reset) instead of in the middle of a response.
  *
- *   memtest <die> [passes]       exit 0: clean; 3: an uncorrectable ECC error (context lost);
+ *   memtest <die> [passes] [skip=N,M,..]   skip: chunks (128 MiB, in allocation order) that are allocated but never touched,
+ *                                the fence around a known bad band; exit 0: clean; 3: an uncorrectable ECC error (context lost);
  *                                4: a value mismatch without an ECC report; 1: setup error */
 #include <cuda.h>
 #include <stdint.h>
@@ -22,7 +23,8 @@ int main(int argc, char **argv) {
 	CUresult r = cuCtxCreate_v2(&ctx, 0, dev);
 	if (r == CUDA_ERROR_ECC_UNCORRECTABLE) { printf("die %d: context refused (uncorrectable ECC pending)\n", die); return 3; }
 	if (r) { fprintf(stderr, "memtest: context %d\n", (int)r); return 1; }
-	CUdeviceptr ch[256]; int n = 0, cur = -1;   /* cur: the chunk being written or read when a call fails (chunks come from the driver bottom-up) */
+	CUdeviceptr ch[256]; int n = 0, cur = -1; char skip[256] = { 0 };
+	for (int a = 3; a < argc; a++) if (!strncmp(argv[a], "skip=", 5)) for (char *s = argv[a] + 5; *s;) { char *e; long v = strtol(s, &e, 10); if (e == s) break; if (v >= 0 && v < 256) skip[v] = 1; s = *e == ',' ? e + 1 : e; }   /* cur: the chunk being written or read when a call fails (chunks come from the driver bottom-up) */
 	while (n < 256 && cuMemAlloc(&ch[n], CHUNK) == CUDA_SUCCESS) n++;
 	size_t fr = 0, tot = 0; cuMemGetInfo(&fr, &tot);
 	printf("die %d: %d x %zu MB allocated (%.2f of %.2f GiB; %zu MB left)\n", die, n, CHUNK >> 20, (double)n * CHUNK / (1u << 30), (double)tot / (1u << 30), fr >> 20);
@@ -30,9 +32,9 @@ int main(int argc, char **argv) {
 	const uint32_t pat[4] = { 0x00000000u, 0xffffffffu, 0xaaaaaaaau, 0x55555555u };
 	for (int p = 0; p < passes; p++)
 		for (int k = 0; k < 4; k++) {
-			for (int i = 0; i < n; i++) { cur = i; if ((r = cuMemsetD32(ch[i], pat[k], CHUNK / 4))) goto fail; }
-			if ((r = cuCtxSynchronize())) goto fail;
+			for (int i = 0; i < n; i++) { if (skip[i]) continue; cur = i; if ((r = cuMemsetD32(ch[i], pat[k], CHUNK / 4)) || (r = cuCtxSynchronize())) goto fail; }
 			for (int i = 0; i < n; i++) {
+				if (skip[i]) continue;
 				cur = i; if ((r = cuMemcpyDtoH(h, ch[i], CHUNK))) goto fail;
 				for (size_t j = 0; j < CHUNK / 4; j++)
 					if (h[j] != pat[k]) { printf("die %d: chunk %d word %zu reads %08x, wrote %08x\n", die, i, j, h[j], pat[k]); return 4; }
