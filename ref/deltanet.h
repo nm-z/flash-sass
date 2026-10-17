@@ -5,7 +5,7 @@
  * i = key index (0..127). Thread (g, p), g = 0..31, p = 0..7, owns columns
  * c = 4g..4g+3 and keys i = 16p..16p+15.
  *
- *   q^ = q * rcp(max(sqrt(sum q^2), eps))      (sum: 4-per-lane fmaf chains, xor 16..1 butterfly)
+ *   q^ = q * rcp(sqrt(sum q^2 + eps))      (eps inside the root, as Transformers and flash-linear-attention have it, issue #2; sum: 4-per-lane fmaf chains, xor 16..1 butterfly)
  *   k^ likewise
  *   alpha = exp(ssm_a * softplus(a)), beta = sigmoid(b)          (fmath twins)
  *   S[c][i] = alpha * S[c][i]
@@ -18,7 +18,7 @@
 #define FLASH_DELTANET_H
 /* S: 128*128 floats (updated in place), q/k/v: 128 floats, a/b/ssm_a scalars, o: 128 floats out */
 void deltanet_step_gpu(float *S, const float *q, const float *k, const float *v, float a, float b, float ssm_a, float eps, float *o);
-/* the L2 normalisation alone (q^ = q * rcp(max(sqrt(sum q^2), eps))), 128 elements */
+/* the L2 normalisation alone (q^ = q * rcp(sqrt(sum q^2 + eps))), 128 elements */
 void l2norm128_gpu(const float *q, float eps, float *qn);
 #endif
 
