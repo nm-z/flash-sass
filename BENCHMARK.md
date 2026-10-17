@@ -9,7 +9,8 @@ and a VRAM socket built from the same engine and cubin. Both must report all
       --host-socket /tmp/flash-host.sock --vram-socket /tmp/flash-vram.sock \
       --source-sha FULL_COMMIT_SHA --artifact /path/libengine.so \
       --artifact /path/die.cubin --artifact /path/flashcore \
-      --weight-manifest weights.json --build-record build.json --out NEW_DIRECTORY
+      --weight-manifest weights.json --build-record build.json \
+      --core-records cores.json --out NEW_DIRECTORY
 
 weights.json is an array of {path, bytes, mtime_ns, sha256}. Compute full checkpoint
 hashes once before timing; the runner checks file size and mtime against that
@@ -65,8 +66,9 @@ phase time already includes its own memory-access stalls.
 Records include engine config, source/patch, binary hashes, exact checkpoint
 hashes, fixed IDs, requested count, warmups/order, placement, capacity, PLE mode,
 runtime environment allowlist, GPU UUIDs, driver, clocks, temperature, ECC/PCIe
-status and host identity. Full command output is preserved even for unsupported
-driver counter queries. Successful summaries have status.json and exit.json;
+status and host identity. A full driver XML dump is required before and after the run. A failed metadata
+query cannot enter a passing aggregate. Per-request GPU samples also include
+active throttle flags, power-cap and thermal-slowdown flags, and power readings. Successful summaries have status.json and exit.json;
 errors leave FAILED.json, exit.json and all collected raw records.
 
 The runner reports the legacy engine run/first fields as reported_post_first_ms.
@@ -77,8 +79,25 @@ publication. Complete shared CLI/HTTP timing primitives remain issue #15.
 
     python3 kern/paired_depth_bench_test.py
 
-Ten deterministic tests cover phase-zero inclusion, large timestamp epochs,
+Twelve deterministic tests cover phase-zero inclusion, large timestamp epochs,
 layout/missing/duplicate/publication errors, PLE bounds, one-output absence of
 decode intervals, manifest mismatches and PLE short-read rejection.
 The target-GPU paired experiment and raw evidence belong to issue #10, so runner
 changes can be reviewed separately from conclusions about historical throughput.
+
+### Core launch records
+
+cores.json must name host and vram. Each record contains argv, launch_environment,
+engine_reload_commands and limitations. Launch environment includes at least
+FLASH_MAXT, CUDA_VISIBLE_DEVICES and CUDA_DEVICE_ORDER. Record all other
+model-affecting settings too. The explicit reload-command list distinguishes
+launch-time environment from settings applied later by the reload protocol.
+An original core and a private comparison core may have different core capacities
+or PLE staging allocations even when their effective engine configs match;
+record those differences in limitations. These are operator-supplied records,
+not a claim that /proc/PID/environ reflects later setenv calls.
+
+The previous experimental runner's -d ECC,PCIE,CLOCK,TEMPERATURE metadata query
+returned exit 2 on driver 470 because PCIE is not a supported display selector.
+Its raw error is retained in the older run manifest. The updated runner uses
+nvidia-smi -q -x and refuses to call a failed metadata capture complete.

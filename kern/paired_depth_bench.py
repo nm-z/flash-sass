@@ -20,7 +20,30 @@ def identity(path):
     return dict(path=str(p),bytes=b.st_size,mtime_ns=b.st_mtime_ns,sha256=h)
 def p95(x):return sorted(x)[math.ceil(.95*len(x))-1]
 def gpu():
-    return run(["nvidia-smi","--query-gpu=index,uuid,driver_version,pci.bus_id,memory.used,memory.free,utilization.gpu,temperature.gpu,clocks.current.sm,clocks.current.memory,ecc.mode.current,pcie.link.gen.current,pcie.link.width.current","--format=csv"])
+    return run(["nvidia-smi","--query-gpu=index,uuid,driver_version,pci.bus_id,memory.used,memory.free,utilization.gpu,temperature.gpu,clocks.current.sm,clocks.current.memory,ecc.mode.current,pcie.link.gen.current,pcie.link.width.current,clocks_throttle_reasons.active,clocks_throttle_reasons.sw_power_cap,clocks_throttle_reasons.sw_thermal_slowdown,power.draw,power.limit","--format=csv"])
+def driver_snapshot():
+    # Driver 470 supports the full XML dump, but not the PCIE -d selector.
+    result=run(["nvidia-smi","-q","-x"])
+    if result["exit"] or "<nvidia_smi_log>" not in result["stdout"]:
+        raise ValueError("driver metadata query failed: "+json.dumps(result))
+    return result
+def core_records(path):
+    data=json.loads(pathlib.Path(path).read_text())
+    if not isinstance(data,dict) or set(data)!={"host","vram"}:
+        raise ValueError("core records must name exactly host and vram")
+    for name,record in data.items():
+        if not isinstance(record,dict):raise ValueError("invalid core record "+name)
+        argv=record.get("argv");env=record.get("launch_environment")
+        if not isinstance(argv,list) or not argv or any(not isinstance(x,str) or not x for x in argv):
+            raise ValueError("missing core argv "+name)
+        if not isinstance(env,dict) or any(not isinstance(k,str) or not isinstance(v,str) for k,v in env.items()):
+            raise ValueError("invalid launch environment "+name)
+        if not isinstance(record.get("engine_reload_commands"),list):
+            raise ValueError("engine reload commands must be an explicit list "+name)
+        for key in ("FLASH_MAXT","CUDA_VISIBLE_DEVICES","CUDA_DEVICE_ORDER"):
+            if key not in env:raise ValueError("missing launch setting "+name+"."+key)
+        if not isinstance(record.get("limitations"),list):raise ValueError("explicit limitations list required "+name)
+    return data
 def fields(line):return dict(x.split("=",1) for x in line.split()[1:] if "=" in x)
 class Core:
     def __init__(self,path,timeout):
@@ -133,7 +156,9 @@ def main():
     p.add_argument("--trace",action="store_true");p.add_argument("--timeout",type=float,default=18000)
     p.add_argument("--source-sha",required=True);p.add_argument("--dirty-patch");p.add_argument("--artifact",action="append",required=True)
     p.add_argument("--weight-manifest",required=True);p.add_argument("--build-record",required=True)
+    p.add_argument("--core-records",required=True,help="JSON: per-core launch argv/environment, reload commands and limitations")
     a=p.parse_args()
+    launch=core_records(a.core_records)
     if not re.fullmatch("[0-9a-f]{40}",a.source_sha):p.error("source-sha must be a full SHA")
     if a.outputs<2 or a.outputs>256 or a.pairs<5 or a.warmup_outputs<2:p.error("outputs2..256, pairs>=5, warmup>=2")
     depths=[int(x) for x in a.depths.split(",")]
@@ -147,12 +172,12 @@ def main():
         if st.st_size!=w["bytes"] or st.st_mtime_ns!=w["mtime_ns"]:raise ValueError("stale weight identity")
     manifest=dict(argv=sys.argv,source_sha=a.source_sha,dirty_patch=pathlib.Path(a.dirty_patch).read_text() if a.dirty_patch else None,
                   runner=identity(__file__),artifacts=[identity(x) for x in a.artifact],weights=weights,
-                  build=json.loads(pathlib.Path(a.build_record).read_text()),prompt=identity(out/"prompt-ids.json"),
+                  build=json.loads(pathlib.Path(a.build_record).read_text()),core_launch_records=launch,core_records_identity=identity(a.core_records),prompt=identity(out/"prompt-ids.json"),
                   sampling=dict(seed=0,temperature=0,stop_ids=[]),warmup_outputs=a.warmup_outputs,pairs=a.pairs,outputs=a.outputs,
                   fixture="synthetic fixed token IDs; real checkpoint forward; no answer-quality acceptance",
                   utc=time.strftime("%Y-%m-%dT%H:%M:%SZ",time.gmtime()),gpu_before=gpu(),host=run(["uname","-a"]),
                   environment={k:v for k,v in os.environ.items() if k.startswith(("FLASH_","CUDA_","SPLIT_","ATTN_","DIE_"))},
-                  driver_counters_before=run(["nvidia-smi","-q","-d","ECC,PCIE,CLOCK,TEMPERATURE"]))
+                  driver_counters_before=driver_snapshot())
     cores={};results=[];exitcode=1
     try:
         configs={}
@@ -189,6 +214,7 @@ def main():
                     raw=[x/1e6 for r in rr for x in r["intervals_ns"]]
                     means=[r["client_decode_ms"]/r["decode_intervals"] for r in rr]
                     summary.append(dict(depth=depth,placement=name,runs=len(rr),intervals=len(raw),median_run_ms_per_token=statistics.median(means),p95_interval_ms=p95(raw),median_tok_s=1000/statistics.median(means)))
+        manifest["driver_counters_after"]=driver_snapshot();save(out/"manifest.json",manifest)
         save(out/"summary.json",summary);save(out/"status.json",dict(status="PASS",runs=sum(r.get("status")=="complete" for r in results)))
         exitcode=0
     except Exception as e:

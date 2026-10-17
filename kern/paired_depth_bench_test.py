@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-import copy,unittest
-from paired_depth_bench import phase_summary,host_summary,matched
+import copy,json,tempfile,unittest
+from pathlib import Path
+from unittest.mock import patch
+from paired_depth_bench import phase_summary,host_summary,matched,driver_snapshot,core_records
 META=dict(first="2048",count="2",nph="2",ctas="1")
 def fixture():
     rows=[]
@@ -47,6 +49,19 @@ class Tests(unittest.TestCase):
     def test_manifest_gate(self):
         matched(dict(kv_host="0",layers="48/48"),dict(kv_host="1",layers="48/48"),{"kv_host"})
         with self.assertRaises(ValueError):matched(dict(kv_host="0",layers="12/48"),dict(kv_host="1",layers="48/48"),{"kv_host"})
+    def test_failed_driver_query_cannot_pass(self):
+        with patch("paired_depth_bench.run",return_value=dict(exit=2,stdout="Failed to parse flags",stderr="")):
+            with self.assertRaises(ValueError):driver_snapshot()
+        with patch("paired_depth_bench.run",return_value=dict(exit=0,stdout="<nvidia_smi_log></nvidia_smi_log>",stderr="")):
+            self.assertEqual(driver_snapshot()["exit"],0)
+    def test_core_launch_records(self):
+        record=dict(argv=["flashcore","-","libengine.so","manifest"],launch_environment=dict(FLASH_MAXT="8192",CUDA_VISIBLE_DEVICES="0,1",CUDA_DEVICE_ORDER="PCI_BUS_ID"),engine_reload_commands=[],limitations=[])
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)/"launch.json";p.write_text(json.dumps(dict(host=record,vram=record)))
+            self.assertEqual(core_records(p)["host"]["argv"][0],"flashcore")
+            bad=copy.deepcopy(record);del bad["launch_environment"]["FLASH_MAXT"]
+            p.write_text(json.dumps(dict(host=bad,vram=record)))
+            with self.assertRaises(ValueError):core_records(p)
     def test_host_short_read(self):
         r=dict(position="2048",observed_ns="100",callback_start_ns="101",callback_end_ns="102",ple_staging_start_ns="1",ple_staging_end_ns="2",ple_ready_ns="3",ple_short_reads="1")
         with self.assertRaises(ValueError):host_summary([r],dict(first="2048",count="1",clock="CLOCK_MONOTONIC"))
