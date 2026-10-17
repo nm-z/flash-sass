@@ -49,8 +49,13 @@ the six-die split (`SPLIT_SHARES`) are set for the author's machine; read `kern/
 `kern/serve.sh` and `SPEC.md` before expecting it to run elsewhere.
 
 ```
+git clone https://github.com/NervanaSystems/maxas maxas
+cp maxas-patch/*.pm maxas/lib/MaxAs/
 make -C kern die.cubin libengine.so flashcore flashd hold
 ```
+
+`kern/bootstrap.sh [dir]` does all of that in a new directory from a fresh clone (about a minute), builds the binaries `serve.sh` starts and the unit tests,
+and runs the tests that need no GPU and, on one free die (`BOOT_DIE`, default 6), the ones that do. It does not start the engine.
 
 ## Licence
 
