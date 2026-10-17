@@ -160,14 +160,15 @@
         $o .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, ss, 0x%x, 0x1f;\n", $x;
         $o .= "10:-:-:-:6      FADD ss, ss, t;\n";
     }
-    # nrm = sqrt_rn(ss)
+    # nrm = sqrt_rn(ss + eps): eps inside the root, as Transformers (rsqrt(sum(x x) + eps)) and flash-linear-attention (x / sqrt(sum(x x) + 1e-6)) have it;
+    # it was max(sqrt(ss), eps) (ggml_l2_norm's form), see issue #2. ss + eps >= eps > 0, so the rsqrt below is never of zero.
+    $o .= "--:-:-:-:6      FADD ss, ss, param_eps;\n";
     $o .= "--:-:3:-:2      MUFU.RSQ rr, ss;\n";
     $o .= "04:-:-:-:1      FMUL.FTZ s0, ss, rr;\n";
     $o .= "--:-:-:-:6      FMUL.FTZ hh, rr, 0.5;\n";
     $o .= "--:-:-:-:6      FADD.FTZ ee, -s0, -RZ;\n";
     $o .= "--:-:-:-:6      FFMA ee, s0, ee, ss;\n";
     $o .= "--:-:-:-:6      FFMA nrm, ee, hh, s0;\n";
-    $o .= "--:-:-:-:6      FMNMX nrm, nrm, param_eps, !PT;\n";               # max(nrm, eps)
     $o .= fm_rcp('rr', 'nrm', 'ee', \%C);
     $o .= sprintf "--:-:-:-:%s      FMUL x%d, x%d, rr;\n", $_ == 3 ? '6' : '1', $_, $_ for 0..3;
     $o .= "--:2:-:-:6      STS.128 [smaddr], x0;\n";
