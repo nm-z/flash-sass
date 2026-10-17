@@ -15,6 +15,7 @@
 #include "gguf.h"
 #include "engine.h"
 #include "core.h"
+#include "ple_read_pool.h"
 #include <setjmp.h>
 #include <cuda.h>
 #include <stdio.h>
@@ -97,6 +98,8 @@ static uint32_t *h_ids, *h_toks;    /* pinned: the prompt, and the tokens as die
 /* ---- FLASH_PLE_DISK: the 28.8 GB PLE table stays in its file. A token needs 16 rows of 90 B; the host reads them into the pinned compact table (16 rows per position) just
    ahead of the position that runs and then stores this response's id in a ready flag, which plerows (compact mode) waits for. ---- */
 static int ple_disk, ple_fd = -1; static off_t ple_off; static uint8_t *ple_host; static size_t ple_rdy_off;
+static struct ple_read_pool ple_reads;
+static unsigned ple_readers = PLE_READ_HEADS;
 static uint32_t *h_rdy;                    /* the u32 ready flag of each position (pinned) */
 static uint32_t ple_rid;                   /* this response's id (never 0): a flag is valid when it equals it, so nothing needs resetting between responses */
 static uint32_t ple_absent_id, ple_end_id; /* the constants block's absent / end ids: the hash of a position needs the same ones */
@@ -263,8 +266,8 @@ static void abort_run(runctx *r) {
 }
 
 /* stage the PLE rows of the positions that are known and close ([ple_next, min(known, finished + PLE_AHEAD)), at most `budget` of them): position q is known when
-   q < nprompt or the token q - 1 has arrived (q <= count); its 16 row numbers are the hash of ids[q-2..q], the rows are read from the file (the misses side by side: the
-   WILLNEED hints go out first) and the flag is stored last */
+   q < nprompt or the token q - 1 has arrived (q <= count); its 16 row numbers are the hash of ids[q-2..q].
+   WILLNEED hints precede a batch of parallel row reads; the flag is stored after every reader completes. */
 static void ple_pump(runctx *r, int budget) {
 	if (!ple_disk) return;
 	int c = r->count < ple_start ? ple_start : r->count;
@@ -277,10 +280,14 @@ static void ple_pump(runctx *r, int budget) {
 		uint64_t rows[16]; uint32_t endid = ple_end_id;
 		ple_rows_c(ple_seq, (size_t)q, ple_absent_id, &endid, 1, ple_multipliers, ple_head_offsets, ple_head_vocab, rows);
 		uint8_t *dst = ple_host + (size_t)q * 16 * 90;
-		for (int h = 0; h < 16; h++) posix_fadvise(ple_fd, ple_off + (off_t)(rows[h] * 90), 90, POSIX_FADV_WILLNEED);
+		off_t offsets[PLE_READ_HEADS]; struct ple_read_result results[PLE_READ_HEADS];
+		for (int h = 0; h < PLE_READ_HEADS; h++) {
+			offsets[h] = ple_off + (off_t)(rows[h] * 90);
+			posix_fadvise(ple_fd, offsets[h], PLE_READ_ROW_BYTES, POSIX_FADV_WILLNEED);
+		}
+		ple_read_batch(&ple_reads, ple_fd, offsets, dst, results);
 		for (int h = 0; h < 16; h++) {
-			size_t got = 0; off_t at = ple_off + (off_t)(rows[h] * 90);
-			while (got < 90) { ssize_t n = pread(ple_fd, dst + h * 90 + got, 90 - got, at + (off_t)got); if (n <= 0) break; got += (size_t)n; }
+			size_t got = results[h].got;
 			if (got < 90) { memset(dst + h * 90 + got, 0, 90 - got); if (!ple_short_reads++) fprintf(stderr, "engine: PLE row read failed at position %d (head %d)\n", q, h); }
 		}
 		__atomic_store_n(&h_rdy[q], ple_rid, __ATOMIC_RELEASE);
@@ -503,6 +510,10 @@ int engine_init(core_t *c) {
 		in_init = 0; return -1;
 	}
 	two_position = pair_env && !strcmp(pair_env, "1");
+	if (ple_read_parse_readers(getenv("FLASH_PLE_READERS"), &ple_readers)) {
+		fprintf(stderr, "engine: FLASH_PLE_READERS must be a decimal integer from 1 to 16\n");
+		longjmp(init_jb, 1);
+	}
 	if (getenv("FLASH_ENGINE_MAXT")) { int m = atoi(getenv("FLASH_ENGINE_MAXT")); if (m > 0 && m <= c->maxt) MAXT = m; }   /* a library reloaded with FLASH_ENGINE_MAXT=n serves fewer positions than the core was started for (the KV caches shrink) */
 	const char *cubin = getenv("FLASH_CUBIN") ? getenv("FLASH_CUBIN") : "die.cubin";
 	img_rows_max = getenv("FLASH_MAXIMG") ? (unsigned)atoi(getenv("FLASH_MAXIMG")) : 2048;   /* image tokens per response (fp16 rows of 2560 on every die) */
@@ -530,6 +541,10 @@ int engine_init(core_t *c) {
 	for (int h = 0; h < 16; h++) { uint32_t o32 = (uint32_t)ple_head_offsets[h], v32 = (uint32_t)ple_head_vocab[h]; memcpy(ppc + 24 + 4 * h, &o32, 4); memcpy(ppc + 88 + 4 * h, &v32, 4); }
 	memcpy(ppc + 152, &pabsent, 4); memcpy(ppc + 156, &pend, 4);
 	ple_disk = c->ple_disk; ple_fd = c->ple_fd; ple_off = c->ple_off; ple_host = c->ple_host; ple_rdy_off = c->ple_rdy_off;
+	if (ple_disk) {
+		int err = ple_read_pool_init(&ple_reads, ple_readers);
+		if (err) { fprintf(stderr, "engine: starting PLE readers failed: %s\n", strerror(err)); longjmp(init_jb, 1); }
+	}
 	h_rdy = ple_disk ? (uint32_t *)(c->ple_host + c->ple_rdy_off) : NULL;
 	ple_absent_id = pabsent; ple_end_id = pend;
 	free(ple_seq); ple_seq = ple_disk ? calloc((size_t)MAXT + 2, 4) : NULL; ple_next = ple_start = 0;
@@ -655,6 +670,7 @@ int engine_init(core_t *c) {
 }
 
 void engine_fini(void) {
+	ple_read_pool_destroy(&ple_reads);
 	if (!core) return;
 	for (int d = 0; d < nd; d++) { if (pollst[d]) { cuCtxSetCurrent(ctx[d]); cuStreamDestroy(pollst[d]); pollst[d] = 0; } }
 	cuCtxSetCurrent(ctx[0]);
@@ -744,8 +760,8 @@ int engine_session(FILE *in, FILE *out) {
 		if (!strncmp(p, "config", 6)) {   /* what this engine is: the identity to attach to a measurement (the commit it was built from, where the KV lives, the layers it runs, the kernel image) */
 			char ad[64] = ""; for (int d = 0; d < nd; d++) if (has_attn[d]) { char one[8]; snprintf(one, sizeof one, "%s%d", ad[0] ? "," : "", d); strncat(ad, one, sizeof ad - strlen(ad) - 1); }
 			const char *sh = getenv("SPLIT_SHARES"), *am = getenv("ATTN_MAP");
-			fprintf(out, "config rev=%s kv_host=%d ple_disk=%d maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u two_position=%d cubin=%s cubin_fnv=%016llx\n",
-			        FLASH_REV, kv_host, ple_disk, MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, two_position, cubin_path, (unsigned long long)cubin_fnv);
+			fprintf(out, "config rev=%s kv_host=%d ple_disk=%d ple_readers=%u maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u two_position=%d cubin=%s cubin_fnv=%016llx\n",
+			        FLASH_REV, kv_host, ple_disk, ple_disk ? ple_readers : 0, MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, two_position, cubin_path, (unsigned long long)cubin_fnv);
 			fflush(out); continue;
 		}
 		if (!strncmp(p, "cubin", 5)) {
