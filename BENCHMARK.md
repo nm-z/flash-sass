@@ -5,7 +5,7 @@ It does not reload either core or any weight holder. Supply a host-pinned socket
 and a VRAM socket built from the same engine and cubin. Both must report all
 48 layers, a 512-block budget and identical remaining config fields.
 
-    python3 kern/paired_depth_bench.py \
+    perl kern/paired_depth_bench.pl \
       --host-socket /tmp/flash-host.sock --vram-socket /tmp/flash-vram.sock \
       --source-sha FULL_COMMIT_SHA --artifact /path/libengine.so \
       --artifact /path/die.cubin --artifact /path/flashcore \
@@ -77,7 +77,7 @@ publication. Complete shared CLI/HTTP timing primitives remain issue #15.
 
 ## Validation
 
-    python3 kern/paired_depth_bench_test.py
+    perl kern/paired_depth_bench_test.pl
 
 Eighteen deterministic tests cover phase-zero inclusion, large timestamp epochs,
 layout/missing/duplicate/publication errors, PLE bounds, one-output absence of
