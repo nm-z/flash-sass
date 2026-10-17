@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Cancel an owned socket core's prefill request and verify its next response.
 
-Configured for archy's existing IPC holders, like pair_model_test.py. The
-reference must be results.json from that runner at the same source revision.
+Configured for archy's existing IPC holders. The reference must be a successful
+full-model comparison's results.json at the same source revision and binaries;
+see PAIR_TESTING.md for its scalar-reference case and state comparison protocol.
 """
 import argparse
 import contextlib

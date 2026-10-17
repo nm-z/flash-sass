@@ -43,19 +43,18 @@ establish new agreement with an external model oracle.
 
 ## Full 48-layer comparison on archy
 
-The checked-in runner is intentionally configured for archy's existing six IPC
-weight holders and GGUF files. It launches separate short-lived cores, obtains
+The full-model comparison harness uses archy's existing six IPC weight holders
+and GGUF files. It launches separate short-lived cores, obtains
 compatible shared GPU locks, uses a small 128-position cache, and sends commands
 only to its own stdin/stdout cores. The resident serving process is not reloaded.
 Review the paths and six-die split in the runner before using another machine.
 
-```sh
-make -C kern die.cubin libengine.so flashcore tok_test
-python3 kern/pair_model_test.py . /tmp/flash-pair-check --sha "$(git rev-parse HEAD)"
-python3 kern/pair_model_test.py . /tmp/flash-pair-host-kv-check --kv-host 1 --sha "$(git rev-parse HEAD)"
-```
+The machine-specific comparison harness is maintained outside this branch. The
+PR validation record identifies the tested source revision, commands, effective
+configuration, binary hashes and result directories. Build its engine artifacts
+with `make -C kern die.cubin libengine.so flashcore tok_test`.
 
-The runner compares generated token arrays, completed-position counts, and
+The comparison checks generated token arrays, completed-position counts, and
 `statehash` readbacks after identical request sequences. Readbacks cover all live
 DeltaNet and convolution states, the PLE ring, valid positional KV codes/scales,
 indexer key rings/pools and final vocabulary logits on each die. They exclude
@@ -87,11 +86,7 @@ warm repetitions and equivalent cache settings are needed for performance claims
 ```sh
 make -C kern prefill_plan_test
 ./kern/prefill_plan_test
-python3 kern/pair_model_test.py . /tmp/flash-chunk-check \
-  --chunk 1 --chunk 2 --chunk 3 --chunk 64 --scalar-chunk 64 \
-  --sha "$(git rev-parse HEAD)"
-python3 kern/pair_model_test.py . /tmp/flash-chunk-host-kv-check \
-  --kv-host 1 --chunk 64 --sha "$(git rev-parse HEAD)"
+# After recording a successful model comparison at this revision:
 python3 kern/prefill_cancel_test.py . /tmp/flash-chunk-cancel-check \
   --reference /tmp/flash-chunk-check/results.json --sha "$(git rev-parse HEAD)"
 ```
@@ -101,13 +96,18 @@ resume, snapshot and chunk combinations for exact ordered coverage, odd tails an
 exclusion of the final prompt position. It also checks cancellation/resume planning,
 strict environment parsing and arithmetic near `INT_MAX`.
 
-The model runner compares each mode with the full-head scalar reference. Chunk
+The external model harness compares each mode with the full-head scalar reference. Chunk
 sizes one, two and three exercise B1-only chunks, pairs and odd scalar tails;
 64 exercises a chunk larger than the prompt. Automatic pairing and its explicit
 scalar override are tested separately. In addition to tokens and state readbacks,
 each case checks the actual paired-position and completed-chunk counters against
 the expected execution plan. `gen 0` confirms that the teacher-forced full-head
 diagnostic is preserved. These are correctness checks, not performance benchmarks.
+
+The comparison matrix uses chunk sizes 1, 2, 3 and 64 plus scalar chunk 64 with
+VRAM KV, and repeats chunk 64 with host KV. Its successful `results.json` supplies
+the scalar `p17` reference for the cancellation check below. The PR records the
+commands, source revision, binary hashes and result paths for completed runs.
 
 The cancellation check starts its own core on a unique temporary Unix socket,
 requests a snapshot after five positions, sends a 61-position prompt with chunks
