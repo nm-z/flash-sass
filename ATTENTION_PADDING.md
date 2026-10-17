@@ -6,6 +6,33 @@ This change does not remove speculative vector loads. Allocations must still cov
 
 QK predicates P0..P3 correspond to the thread's four score slots and remain live through QK accumulation. In V accumulation, stream A's key is `tbase+(tid&3)+8*iteration` and stream B is four keys later. P0/P1 are recomputed for those indices before their FFMAs. Dense uses `param_n`; capped attention uses its computed `nn`. Neither change changes CTA ownership, tile boundaries or the order of valid operations.
 
+## Actual read extents
+
+For a positive logical key count `n`, let `q=ceil(n/8192)` and `C=1024*q`.
+Partition `c` starts at `c*C` and sets `tend=min((c+1)*C,n)`. The entry branch
+skips a partition starting at or beyond `n`; each remaining partition advances
+by 1024 while below `tend`. Thus the final executed tile starts at
+`B=1024*floor((n-1)/1024)`.
+
+K addresses start at `2048*B + 32768*kv + 65536*warp + 16*lane`.
+Four score slots add `slot*0x80000`. The final unused QK prefetch accesses
+dimension chunk 64, adding `64*0x200`. With `kv=1`, `warp=7`, `lane=31`,
+`slot=3`, and the full 16-byte vector, the exclusive byte bound is
+`2048*round_up(n,1024)+512` relative to KC. Whole blocked K storage for
+`round_up(n,1024)+32` positions suffices.
+
+V executes `I=ceil(min(n-B,1024)/8)` iterations in that final tile. A/B streams
+load positions `B+8*i+r` and `B+8*i+r+4`, and the final unused next-A prefetch
+loads through `B+8*I+3`, for `r=tid&3`. Its exclusive position bound is
+`round_up(n,8)+4`. Both existing conservative allocation contracts exceed these
+bounds for supported lengths/budgets. At zero keys neither cache is loaded,
+but the checked attention API rejects the zero-key softmax rather than defining
+an output for it.
+
+The V predicates have at least 21 explicitly scheduled cycles before their
+first consumer, including stall 6 on both comparisons and the final probability
+load. Correctness does not depend on a cache miss hiding predicate latency.
+
 ## Regression controls
 
 `ATTN_POISON_K` and `ATTN_POISON_V` independently accept `off`, `nan`, `inf`, `-inf` or `max`. The dense test computes the reference from the valid data, then poisons only GPU padding. It compares maxima, denominators, weighted partials and final output.
