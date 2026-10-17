@@ -112,7 +112,14 @@ test-gemv: all
 	./gemv_test $(SHARD1) blk.4.ffn_down_exps.weight 0 20
 
 clean:
-	rm -f *.cubin *.dis *.so *.so.new die.sass dieops.h flashcore flashd flashvis hold memtest fence *_test
+	rm -f *.cubin *.dis *.so *.so.new die.sass dieops.h flashcore flashd flashvis hold memtest fence *_test model_quality model_quality_json.o
+
+# CPU-only FP32 logit comparison. OpenSSL supplies file SHA-256 identities.
+model_quality_json.o: json.c json.h
+	$(CC) -O2 -c json.c -o $@
+
+model_quality: model_quality.cc model_quality_json.o json.h
+	$(CXX) -std=c++17 -O2 -fno-fast-math -ffp-contract=off -Wall -Wextra -o $@ model_quality.cc model_quality_json.o -lcrypto
 
 .PHONY: all test test-gemv clean
 

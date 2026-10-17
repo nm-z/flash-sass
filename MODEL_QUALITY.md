@@ -26,22 +26,26 @@ Capture writes one complete vocabulary row per input position. Its logits alone 
 
 Run the reference in an independently maintained implementation with the same base model, tokenizer, complete input IDs, vocabulary mapping and explicitly declared attention/quantization policy. Save FP32 logits after each input token. Record exact implementation revision, checkpoint file hashes, tokenizer hash, command, runtime, hardware and numerical settings. Distinguish comparisons against native sparse attention, dense attention, and the repository's selected subset.
 
+Build the CPU-only C++17 comparator with `make -C kern model_quality` (an OpenSSL development library is required). Run its fixture checks with `perl kern/model_quality_test.pl`. The following commands run from `kern`:
+
 ```bash
-python3 model_quality.py freeze --kind candidate \
+./model_quality freeze --kind candidate \
   --ids /absolute/path/new-candidate-capture/ids.u32 \
   --logits /absolute/path/new-candidate-capture/logits.f32 --vocab-size 248320 \
   --raw-info /absolute/path/new-candidate-capture/capture_info.json \
   --metadata candidate-provenance.json --out frozen-candidate
-python3 model_quality.py freeze --kind reference \
+./model_quality freeze --kind reference \
   --ids reference-ids.u32 --logits reference-logits.f32 --vocab-size 248320 \
   --metadata reference-provenance.json --out frozen-reference
-python3 model_quality.py compare --candidate frozen-candidate \
+./model_quality compare --candidate frozen-candidate \
   --reference frozen-reference --top-k 10 --out comparison.json
 ```
 
 The metadata object contains `teacher_forced:true`, `base_model:{id,revision}`, `tokenizer:{sha256}`, `checkpoint:{files:[{path or source_uri,sha256}]}`, `implementation:{name,revision,independent_reference}`, and `command`. Immutable revision hashes and SHA-256 syntax are checked. Locally available checkpoint files are hashed and verified; remote identities remain producer declarations. The reference's independence boolean is also a declaration, not execution evidence.
 
 Frozen artifacts are hashed again when compared. Inputs must match exactly, every input ID must be in the aligned vocabulary, and vocabulary columns are reordered by token ID. Nonfinite logits fail. The comparator reports raw and centered logit errors, relative L2, cosine similarity, reference-to-candidate KL, probability differences, top-1 agreement, top-k overlap, teacher-forced NLL/perplexity and target rank. The last row has no next-token label. Log-softmax subtracts the maximum before normalization to preserve probabilities under large shared logit offsets; cutoff ties choose lower token IDs.
+
+The native comparator reads one FP32 vocabulary row at a time and computes metrics in FP64. It uses a stable shifted log-softmax and accumulates per-row NLL differences directly. Hash verification identifies supplied artifacts; files must remain unchanged between hashing and comparison. Neither hashes nor producer declarations attest how logits were generated.
 
 Predeclare acceptance limits before running the held-out evaluation using the applicable `--max-mean-kl`, `--max-rmse`, `--max-abs-logit`, `--min-top1-agreement` and `--max-mean-nll-increase` options. There is no universal threshold that proves quality across quantizers or attention approximations.
 
