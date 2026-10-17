@@ -14,6 +14,12 @@ test: ref_test
 	./ref_test $(SHARD1)
 
 clean:
-	rm -f ref_test ggufhdr
+	rm -f ref_test ggufhdr attn_contract_test
 
-.PHONY: all test clean
+attn_contract_test: attn_contract_test.c attn.c attn.h checked.c checked.h qsa.c qsa.h fmath.c fmath.h
+	$(CC) $(CFLAGS) -fno-fast-math -ffp-contract=off -o $@ attn_contract_test.c checked.c qsa.c attn.c fmath.c -lm
+
+test-attn-contract: attn_contract_test
+	./attn_contract_test
+
+.PHONY: all test test-attn-contract clean

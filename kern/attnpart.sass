@@ -13,8 +13,10 @@
 #   V phase: p for the tile sits in smem [1024][6]; thread (dg = t >> 2, r = t & 3)
 #     accumulates dims 4 dg..4 dg+3 over keys tb + 4 k + r (k in order); the 4 streams
 #     are combined (r0 + r1) + (r2 + r3) at the end of the chunk.
-# Bit-exact twin: ref/attn.c attn_partials_gpu. K/V caches must be zero-filled at
-# allocation and hold >= n + 8192 + 64 positions (the loops' stray prefetches).
+# Bit-exact twin: ref/attn.c attn_partials_gpu. K/V padding may contain arbitrary
+# bits. Readable extents: K round_up(n,1024)+32 blocked positions; V
+# round_up(n,8)+4 positions. n+8192+64 is a sufficient conservative bound.
+# n means the logical key count (computed nn in attnpartn); see ATTENTION_PADDING.md.
 #
 # Params: 0:0x140 QO  1:0x148 KC  2:0x150 VC  3:0x158 PM  4:0x160 PD  5:0x168 PO  6:0x170 n (u32)
 # smem: q 0x0000 (6 KB), p 0x1800 (24 KB), red_max 0x7800 (8 x 32 B), red_den 0x7900

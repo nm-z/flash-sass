@@ -129,7 +129,7 @@ typedef struct {
 	CUdeviceptr out;                  /* 2560 (the reduced MoE output) */
 	CUdeviceptr conv_state, dn_state; /* 4 x nloc ring, hn x 128 x 128 */
 	/* attention (die 0): qg 24 x [q 256 | gate 256], k/v 512, qo 6144, caches (ref/attn.h
-	 * layouts, zero-filled, >= n + 8192 + 64 positions), partials pm/pd [24][8], po
+	 * layouts, readable >= n + 8192 + 64 positions; invalid rows need not be zero), partials pm/pd [24][8], po
 	 * [24][8][256], aout 6144, RoPE tables cs/sn [positions][32] */
 	CUdeviceptr qg, k, v, qo, kc, vc, pm, pd, po, aout, rope_cs, rope_sn;
 	/* PLE (block 1): token ids (u32[positions]), the constants block (plerows PC layout),
