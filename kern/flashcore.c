@@ -37,8 +37,29 @@ static const char *(*e_reload_path)(void);
 
 /* load the engine library and initialise it; 0 on success. A library that fails to load or
  * initialise is unloaded again so the caller can fall back. */
+static char libcopy[1100];   /* the private copy the running library was opened from */
+static void cleanup_copy(void) { if (libcopy[0]) unlink(libcopy); }
+static int copy_file(const char *from, const char *to) {
+	FILE *a = fopen(from, "rb"), *b = a ? fopen(to, "wb") : NULL; if (!b) { if (a) fclose(a); return -1; }
+	char buf[1 << 16]; size_t k; int bad = 0;
+	while ((k = fread(buf, 1, sizeof buf, a)) > 0) if (fwrite(buf, 1, k, b) != k) { bad = 1; break; }
+	bad |= ferror(a) != 0; bad |= fclose(b) != 0; fclose(a);
+	if (bad) { unlink(to); return -1; }
+	return 0;
+}
+static int engine_open(const char *file, const char *path);
+/* the library is always opened from a private copy of the file: the file at <path> can be replaced by a build at any time, and a failed reload must
+ * bring back the library that was running, not whatever now sits at its name (see engine_reload) */
 static int engine_load(const char *path) {
-	void *h = dlopen(path, RTLD_NOW | RTLD_LOCAL);
+	static int gen, registered; char cp[1100]; snprintf(cp, sizeof cp, "/tmp/flashcore-%d-gen%d.so", (int)getpid(), ++gen);
+	if (copy_file(path, cp)) { fprintf(stderr, "flashcore: cannot copy %s to %s\n", path, cp); return -1; }
+	if (engine_open(cp, path)) { unlink(cp); return -1; }
+	snprintf(libcopy, sizeof libcopy, "%s", cp);
+	if (!registered) { atexit(cleanup_copy); registered = 1; }
+	return 0;
+}
+static int engine_open(const char *file, const char *path) {
+	void *h = dlopen(file, RTLD_NOW | RTLD_LOCAL);
 	if (!h) { fprintf(stderr, "flashcore: %s\n", dlerror()); return -1; }
 	int (*i)(core_t *) = dlsym(h, "engine_init");
 	void (*f)(void) = dlsym(h, "engine_fini");
@@ -59,12 +80,13 @@ static void engine_unload(void) {
 /* replace the library (path NULL: reload the current file); on failure bring the old one back */
 static int engine_reload(const char *path) {
 	char old[1024]; snprintf(old, sizeof old, "%s", libpath);
+	char oldcopy[1100]; snprintf(oldcopy, sizeof oldcopy, "%s", libcopy);   /* the image that is running now, kept on disk until the new one is up */
 	char next[1024]; snprintf(next, sizeof next, "%s", path && *path ? path : libpath);
 	engine_unload();
-	if (!engine_load(next)) return 0;
-	fprintf(stderr, "flashcore: falling back to %s\n", old);
-	if (engine_load(old)) { fprintf(stderr, "flashcore: cannot bring %s back; exiting\n", old); exit(1); }
-	return -1;
+	if (!engine_load(next)) { if (oldcopy[0]) unlink(oldcopy); return 0; }
+	fprintf(stderr, "flashcore: the new library did not come up; falling back to the previous image of %s\n", old);
+	if (oldcopy[0] && !engine_open(oldcopy, old)) { snprintf(libcopy, sizeof libcopy, "%s", oldcopy); return -1; }
+	fprintf(stderr, "flashcore: cannot bring the previous library back; exiting\n"); exit(1);
 }
 
 static char *manifest[CORE_MAXD];
