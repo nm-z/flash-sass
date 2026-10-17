@@ -138,6 +138,7 @@ typedef struct {
 	size_t count[MAXD];
 	run_stats stats;
 } reuse_result;
+static int reuse_device_fault;
 static void reuse_drop(reuse_result *r) {
 	for (int d = 0; d < nd; d++) free(r->logits[d]);
 	memset(r, 0, sizeof *r);
@@ -148,7 +149,10 @@ static int reuse_run(FILE *out, const char *stage, const uint32_t *ids, int prom
 	const sampling sm = {0, 0.f, 1.f, 0};
 	memset(r, 0, sizeof *r);
 	int rc = engine_run(ids, prompt, 2, stop, &sm, snapshot, NULL, 0, NULL, &r->stats);
-	if (rc) { fprintf(out, "reusecheck RUN_FAIL stage=%s rc=%d\n", stage, rc); return 1; }
+	if (rc) {
+		if (rc == -2) reuse_device_fault = 1;
+		fprintf(out, "reusecheck RUN_FAIL stage=%s rc=%d\n", stage, rc); return 1;
+	}
 	int bad = reuse_check_guards(out, stage);
 	r->ntokens = r->stats.ntok - (prompt - 1);
 	if (r->ntokens != 3) {
@@ -254,7 +258,10 @@ int engine_session(FILE *in, FILE *out) {
 			(line[10] == ' ' || line[10] == '\n' || line[10] == '\0')) {
 		int longer = 96, shorter = 64, snapshot = 16;
 		sscanf(line + 10, "%d %d %d", &longer, &shorter, &snapshot);
-		free(line); reuse_check(out, longer, shorter, snapshot); return 0;
+		free(line); reuse_device_fault = 0;
+		reuse_check(out, longer, shorter, snapshot);
+		/* Preserve the production core's CUDA-context recovery protocol. */
+		return reuse_device_fault ? 3 : 0;
 	}
 	for (ssize_t i = n; i > 0; i--) if (ungetc((unsigned char)line[i - 1], in) == EOF) {
 		free(line); fprintf(out, "error: validation parser pushback failed\n"); fflush(out); return 0;
