@@ -31,3 +31,18 @@ Historical traces predating lifecycle fields can still be analyzed as historical
 Measure overhead using identical prompts, continuations and runtime settings with ordinary and tracing images. Instrumented throughput is a separate result. Keep all raw CSVs and completion records. Assembly and scalar parity alone do not establish target-GPU trace correctness.
 
 This implements profiling infrastructure for #13; the matched investigation is #10, the runner is #14, and shared CLI/HTTP timing definitions are #15.
+
+## Request lifecycle and paired-prefill regression
+
+The eight-case owned-core regression passed at executable source
+`72620653d4bb3dc10e3cb405695550db7152bae7`. Normal completion, stop/resume,
+client disconnect, argument error, image error, recovery and actual paired
+prefill/resume have matching lifecycle metadata on all six dies and the host.
+The request IDs advance on failed attempts and stale trace data is unavailable.
+
+Run `python3 kern/trace_lifecycle_check.py --socket OWNED_SOCKET --source-sha REV
+--out NEW_DIRECTORY --pair-check` against an owned, traced engine with
+`FLASH_TWO_POSITION=1`. The committed [raw evidence and exact scope](../validation/issue13/lifecycle-7262065/README.md)
+include build identities, full compressed traces and the launch environment.
+Device-fault injection, cross-reload ID continuity and controlled tracing overhead
+are not established by this run.

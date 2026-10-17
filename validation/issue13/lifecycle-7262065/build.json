@@ -1,0 +1,49 @@
+{
+  "source_revision": "72620653d4bb3dc10e3cb405695550db7152bae7",
+  "hostname": "archy",
+  "finished_utc": "2026-10-17T20:42:31.760302+00:00",
+  "command": [
+    "make",
+    "CUDA=/opt/cuda",
+    "PTXAS11=/opt/cuda-11.4/bin/ptxas",
+    "FLASH_REV=72620653d4bb3dc10e3cb405695550db7152bae7",
+    "die.cubin",
+    "die_trace.cubin",
+    "libengine.so",
+    "flashcore"
+  ],
+  "exit": 0,
+  "seconds": 15.398551124999358,
+  "artifacts": {
+    "die.cubin": {
+      "bytes": 485608,
+      "sha256": "116d828f20139d144d46d7d8115a28e35313dac1f6c24ba81c1b5c0984f50e14"
+    },
+    "die_trace.cubin": {
+      "bytes": 489384,
+      "sha256": "54f39d86d0d708c95115fd429a06cc37125f77b992123e072061235f5b3dc0f2"
+    },
+    "libengine.so": {
+      "bytes": 174136,
+      "sha256": "0ecd9a26da5d133d93253bdf464f7bb1ccc9796445c714a77099c6207037643b"
+    },
+    "flashcore": {
+      "bytes": 41328,
+      "sha256": "0257e1fbf4a6505bc54ed230b93abe22d5f21ed66daa22345a85b73f6a673d06"
+    }
+  },
+  "maxas": {
+    "Cubin.pm": {
+      "bytes": 22031,
+      "sha256": "0fa8cb6989248b38ee44b27f0ef6a14809b06c1f7f332df12a587412998fe3ad"
+    },
+    "MaxAs.pm": {
+      "bytes": 51412,
+      "sha256": "853d3151595462bb1a46ecd879bcb0a1a3fe3ae1dbcb772ef8d07ee8bf8cd34b"
+    },
+    "MaxAsGrammar.pm": {
+      "bytes": 53245,
+      "sha256": "b63669d7e128651c68e106976c4d9e23457156ee8338cd1b8776683bbaad1f01"
+    }
+  }
+}
