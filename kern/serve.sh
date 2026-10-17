@@ -1,8 +1,10 @@
 #!/bin/bash
-# serve.sh <all|holders|core|vis|flashd|reload [lib]|status|stop|unload>: run the Flash-Next engine on archy.
+# serve.sh <all|holders|core|prewarm|vis|flashd|reload [lib]|status|stop|unload>: run the Flash-Next engine on archy.
 #   holders   the six weight holders (dies 0-5; ~40 min from NFS; restart only when the split changes)
 #   vis       flashvis: the vision encoder (libmtmd on the CPU; the projector is loaded once, seconds per image)
 #   core      flashcore: contexts, arenas and the 28.8 GB PLE table (~7 min), then the engine library
+#   prewarm   read GGUF2 into the reclaimable file cache without starting any service
+# FLASH_PLE_DISK=1 FLASH_PLE_PREWARM=1 warms GGUF2 before core startup (off by default).
 #   flashd    the HTTP front-end on 127.0.0.1:18090 (the chat page's gateway finds it through NMZ_CHAT_EXTRA)
 #   reload    swap libengine.so (default: the same path, rebuilt) in the running core: seconds, nothing reloads
 # Change host code: `make libengine.so && ./serve.sh reload`; kernel code: `make die.cubin` then
@@ -16,9 +18,36 @@ SOCK=${FLASH_SOCK:-/tmp/flash.sock}
 # dies 0,1,3,4,5 clean, die 2 fails from 5.375 GiB and is fenced there, so it gets the small share). The shares were solved with the measured per-die overhead, see SPEC "Open work"
 export CUDA_DEVICE_ORDER=PCI_BUS_ID   # CUDA numbers the dies the way nvidia-smi does, so a die index names the same card in the fence lookup, the holders and the tools
 export SPLIT_SHARES=${SPLIT_SHARES:-112,97,81,116,97,97} ATTN_MAP=${ATTN_MAP:-1,1,1,1,4,4,4,4,5,5,5,5} ATTN_DIE=${ATTN_DIE:-1}
+# Read through the normal filesystem page cache; dd reports bytes and elapsed time.
+prewarm_ple() {
+	if [[ ! -f "$GGUF2" || ! -r "$GGUF2" ]]; then
+		printf 'PLE prewarm: not a readable regular file: %s\n' "$GGUF2" >&2
+		return 1
+	fi
+	printf 'PLE prewarm: reading %s into the filesystem page cache\n' "$GGUF2" >&2
+	if ! dd if="$GGUF2" of=/dev/null bs=8M; then
+		printf 'PLE prewarm: read failed; core will not start\n' >&2
+		return 1
+	fi
+	printf 'PLE prewarm: complete; cached pages remain reclaimable\n' >&2
+}
+case $1 in
+all|core)
+	case "${FLASH_PLE_PREWARM-0}" in
+	0) ;;
+	1)
+		if [[ "${FLASH_PLE_DISK+x}" != x ]]; then
+			printf 'FLASH_PLE_PREWARM=1 requires disk-backed PLE; set FLASH_PLE_DISK=1\n' >&2
+			exit 2
+		fi ;;
+	*)
+		printf 'FLASH_PLE_PREWARM must be 0 or 1; got %q\n' "$FLASH_PLE_PREWARM" >&2
+		exit 2 ;;
+	esac ;;
+esac
 case $1 in
 all)   # everything at once: the holders (35 min of repacking) and the core (14 min of PLE table) load side by side, the core waits for the holders
-	$0 holders; $0 core; $0 vis
+	"$0" holders; "$0" core || exit $?; "$0" vis
 	for i in $(seq 7200); do [ -S "$SOCK" ] && break; read -t 1 < /dev/zero 2>/dev/null; done
 	$0 flashd ;;
 holders)   # DIES="3 4 5" ./serve.sh holders starts just those
@@ -41,7 +70,10 @@ holders)   # DIES="3 4 5" ./serve.sh holders starts just those
 		fi
 		HOLD_VISIBLE=1 CUDA_VISIBLE_DEVICES=$i setsid -f flock -s -n "$lock" ./hold "$GGUF1" $i 0 48 /tmp/hold-h$i.manifest $([ $i = ${EMBED_DIE:-0} ] && echo token_embd) output split=$i/6 > /tmp/hold-h$i.out 2> /tmp/hold-h$i.err < /dev/null
 	done ;;
+prewarm)
+	prewarm_ple || exit 1 ;;
 core)
+	if [[ "${FLASH_PLE_PREWARM-0}" = 1 ]]; then prewarm_ple || exit 1; fi
 	CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 FLASH_MAXT=${FLASH_MAXT:-262144} FLASH_ENGINE_MAXT=${FLASH_ENGINE_MAXT:-230000} FLASH_KV_HOST=${FLASH_KV_HOST:-0} FLASH_MAXIMG=${FLASH_MAXIMG:-4096} FLASH_PLE_OFF=${FLASH_PLE_OFF:-192} FLASH_SOCK=$SOCK \
 		setsid -f ./flashcore "$GGUF2" "$PWD/libengine.so" /tmp/hold-h{0,1,2,3,4,5}.manifest > /tmp/flashcore.out 2> /tmp/flashcore.err < /dev/null ;;
 vis)
@@ -60,5 +92,5 @@ stop)   # the engine; the holders (weights) and fences stay
 unload)   # everything, the fences included: the dies are free again (a fence must start on an empty die)
 	$0 stop; pkill -x hold; pkill -x fence ;;
 *)
-	echo "usage: serve.sh all|holders|core|vis|flashd|reload [lib]|status|stop|unload|gen2" >&2; exit 2 ;;
+	echo "usage: serve.sh all|holders|core|prewarm|vis|flashd|reload [lib]|status|stop|unload|gen2" >&2; exit 2 ;;
 esac

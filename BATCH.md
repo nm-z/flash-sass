@@ -11,7 +11,8 @@ first (prefill chunks generalise the same way later).
 ## Implemented known-position pass
 
 `FLASH_TWO_POSITION=1` enables a causal forward over pairs of known prompt IDs.
-The default remains B1. Pairs stop before the final prompt position; an odd tail,
+With both prefill settings unset, the default remains B1. Pairs stop before the
+final prompt position; an odd tail,
 the final prompt position and generated-token decoding run through the B1 program.
 Snapshots split the known prefix at their exact position. This is the execution
 foundation for prefill; draft proposals, speculative acceptance and rollback are
@@ -35,6 +36,35 @@ through its separate inbox allocations. Other BF16 variants, quantized GEMVs and
 stateful kernels replay their existing arithmetic for both positions. They do not
 yet amortize every weight or recurrent-state load. Distinct MoE expert lists remain
 independent; no expert-union optimization is claimed.
+
+## Implemented chunked prefill
+
+`FLASH_PREFILL_CHUNK=N` bounds each host submission to at most N known prompt
+positions. An absent setting or `0` disables it; decimal sizes `1..4096` are
+accepted and malformed or out-of-range settings fail engine initialization.
+Sizes above one enable the paired pass by default. An explicit
+`FLASH_TWO_POSITION=0` selects scalar microbatches within the same headless chunks;
+`FLASH_TWO_POSITION=1` retains pairing even when chunking is disabled.
+
+For requests that generate tokens, the prefix program omits the vocabulary head
+and sampler. It consumes only `[resume, nprompt-1)`, splitting chunks at exact
+snapshot boundaries. Within each chunk, pairs run first and an odd tail runs B1.
+The final prompt position and generated positions use the full B1 program. The
+existing `gen 0` teacher-forced diagnostic keeps the full heads at all positions.
+Sampling continues to use absolute position indices, so skipping unused prefix
+heads does not shift the seeded sampler.
+
+Client liveness is polled before every chunk, including when the preceding launch
+finished before the in-flight poll. A disconnected request stops submitting chunks;
+an active launch retains the existing cooperative abort protocol. Only a fully
+completed snapshot boundary is saved. `config`, `statehash` and `gen` statistics
+report the configured size and completed chunks; the streaming chat format stays
+the same.
+
+The chunk size controls scheduling, not the number of activation vectors allocated:
+the device programs use B1 or B2 and reuse their buffers throughout a chunk.
+General B=N matrix kernels, concurrent request scheduling and speculative MTP
+acceptance remain separate work.
 
 See [PAIR_TESTING.md](PAIR_TESTING.md) for the component and model comparisons.
 The remaining sections describe the broader optimization and speculative-decoding

@@ -45,14 +45,14 @@ static int padding_poison_value_(const char *mode, float *value) {
     memcpy(value, &bits, sizeof bits);
     return 1;
 }
+#include "checked.h"
 int main(int argc, char **argv) {
-	char *end = NULL; errno = 0;
-	unsigned long requested = argc > 1 ? strtoul(argv[1], &end, 0) : 3000;
-	if (errno || (argc > 1 && (!*argv[1] || *end)) || !requested || requested > (1u << 21)) {
-		fprintf(stderr, "n must be in 1..2097152\n"); return 2;
-	}
-	unsigned n = (unsigned)requested;
-	int iters = argc > 2 ? atoi(argv[2]) : 0;
+ unsigned n=3000,it=0;
+ if(argc>3||(argc>1&&checked_parse_unsigned(argv[1],1,262144,&n))||(argc>2&&checked_parse_unsigned(argv[2],0,262144,&it))){
+  fprintf(stderr,"usage: attn_test [keys1..262144] [iters0..262144], unsigned decimal digits only\n");return 2;
+ }
+ int iters=(int)it;
+
 	unsigned npos = (n + 8192 + 64 + 31) / 32 * 32;      /* chunk round-up plus the loops' stray prefetches */
 	size_t kcf = ATTN_KC_FLOATS(npos), vcf = (size_t)npos * 512;
 	float *qo = malloc(6144 * 4), *gate = malloc(12288 * 4), *kc = calloc(kcf, 4), *vc = calloc(vcf, 4);
