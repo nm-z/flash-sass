@@ -133,7 +133,7 @@ typedef struct {
 	CUdeviceptr imap, img;   /* image input: imap[position] = a row of img (fp16 [row][2560]) or 0xffffffff for a token; 0: no images */
 	CUdeviceptr ids, ple_pc, ple_tab, pg, pgq, pgs32, pgs16, pgas, lk, kn, qn, lv, pG, pgates, px, ple_state, prows;
 	unsigned ple_compact;   /* 1: ple_tab holds the 16 rows of every position (16 pos + h), not the hashed table */
-	CUdeviceptr ple_rdy; unsigned ple_rid;   /* ple_rid != 0: plerows waits until the u32 ple_rdy[pos] equals ple_rid (the host stages the rows of each position and then sets it: FLASH_PLE_DISK) */
+	CUdeviceptr ple_rdy, ple_error; unsigned ple_rid;   /* ple_rid != 0: plerows waits until the u32 ple_rdy[pos] equals ple_rid (the host stages the rows of each position and then sets it: FLASH_PLE_DISK) */
 	/* head: this die's logits, its argmax (idx, max bits) + partials/counter, the gathered pairs, the token (u32 idx, u32 max bits) */
 	CUdeviceptr hlo, amo, apart, acnt, tokout, toks;   /* toks: u32[positions], the generated tokens */
 	CUdeviceptr tkout, tkpart, tkcnt, rnd;   /* sampling: this die top-K list (32 x {idx, value bits}), the CTA lists, the counter, u[positions] floats */
