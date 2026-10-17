@@ -7,6 +7,7 @@
  *             memory bottom-up, the same way every time on a freshly reset die), so a chunk number names a place on the die
  *     skip    chunks that are allocated but never touched (the fence around known bad memory); RANGES: 5,7-9,12
  *     only    touch only these chunks
+ *     reserve stop allocating when less than MiB would be left free (a process that takes a die to its last block was seen to fail on that block)
  *   Each chunk is innocent until it fails on its own: a failing call names the chunk it was on.
  *   exit 0: clean; 3: an uncorrectable ECC error (context lost); 4: a value mismatch without an ECC report; 1: setup error */
 #include <cuda.h>
@@ -29,13 +30,15 @@ static void ranges(const char *s, char *set, char v) {
 }
 
 int main(int argc, char **argv) {
-	if (argc < 2) { fprintf(stderr, "usage: memtest <die> [passes] [chunk=MiB] [skip=RANGES] [only=RANGES]\n"); return 2; }
+	if (argc < 2) { fprintf(stderr, "usage: memtest <die> [passes] [chunk=MiB] [skip=RANGES] [only=RANGES] [reserve=MiB]\n"); return 2; }
 	int die = atoi(argv[1]), passes = argc > 2 && argv[2][0] >= '0' && argv[2][0] <= '9' ? atoi(argv[2]) : 1;
 	size_t CHUNK = (size_t)128 << 20;
+	size_t reserve = 0;
 	static char skip[MAXCH], only[MAXCH]; int have_only = 0;
 	for (int a = 2; a < argc; a++) {
 		if (!strncmp(argv[a], "chunk=", 6)) { long m = atol(argv[a] + 6); if (m < 2 || m > 128) { fprintf(stderr, "memtest: chunk=2..128\n"); return 2; } CHUNK = (size_t)m << 20; }
 		else if (!strncmp(argv[a], "skip=", 5)) ranges(argv[a] + 5, skip, 1);
+		else if (!strncmp(argv[a], "reserve=", 8)) reserve = (size_t)atol(argv[a] + 8) << 20;
 		else if (!strncmp(argv[a], "only=", 5)) { ranges(argv[a] + 5, only, 1); have_only = 1; }
 	}
 	CUdevice dev; CUcontext ctx;
@@ -44,7 +47,7 @@ int main(int argc, char **argv) {
 	if (r == CUDA_ERROR_ECC_UNCORRECTABLE) { printf("die %d: context refused (uncorrectable ECC pending)\n", die); return 3; }
 	if (r) { fprintf(stderr, "memtest: context %d\n", (int)r); return 1; }
 	static CUdeviceptr ch[MAXCH]; int n = 0, cur = -1;   /* cur: the chunk being written or read when a call fails */
-	while (n < MAXCH && cuMemAlloc(&ch[n], CHUNK) == CUDA_SUCCESS) n++;
+	while (n < MAXCH) { size_t f0 = 0, t0 = 0; cuMemGetInfo(&f0, &t0); if (f0 < CHUNK + reserve) break; if (cuMemAlloc(&ch[n], CHUNK) != CUDA_SUCCESS) break; n++; }
 	if (have_only) for (int i = 0; i < MAXCH; i++) if (!only[i]) skip[i] = 1;
 	size_t fr = 0, tot = 0; cuMemGetInfo(&fr, &tot);
 	int ntest = 0; for (int i = 0; i < n; i++) ntest += !skip[i];

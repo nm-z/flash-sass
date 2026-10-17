@@ -1607,3 +1607,17 @@ older positions in host memory. The shares `112,99,79,112,99,99` are solved agai
 arenas + overhead + KV per attention die); `FLASH_ENGINE_MAXT` (and `./serve.sh reload FLASH_ENGINE_MAXT=n`) sets the
 positions the engine serves, so the first real load measures the true headroom and the context can be raised without reloading
 the weights.
+
+**Die 2, what the memory tests showed (2026-10-16, ECC on, 7.44 GiB per die).** Dies 0, 1, 3, 4 and 5 passed 3 passes of 4 patterns over 7.25 GiB each (die 0's
+"bad band" from the cx-flash config did not reproduce). Die 2's page-retirement table filled up (64 pages, Xid 64 "Table full"), so it can no longer repair itself.
+Its bottom 5.37 GiB passed every run in every mode; above that the tests failed, at the 128 MiB chunk level from chunk 43 (5.375 GiB) on, and at the 2 MiB block
+level in dozens of blocks between 5.37 and ~6.1 GiB (`bisect.sh`: 70 guilty blocks of 565 suspects in one numbering, `bisect-fence.sh`: 52 guilty ordinals in 2751–2928
+before it was stopped; the edge above ~6.1 GiB was never found). Two things made this slow and misleading: (1) a failing run says only that some block it touched is
+bad: the error reaches the process late, so the block a failing call was "on" is just where it surfaced (an early loop walked through 500 innocent blocks that way);
+(2) block numbers are per process, and a second process on the same die gets a different free-list, so a list of bad blocks found in one process does not transfer to another.
+Fence rule that holds: **die 2 is fenced above 5.37 GiB** (`fences/die2.txt`: `2 2750-3769`, blocks of 2 MiB in the fence process's allocation order; `kern/fence.c` keeps
+them allocated while the engine runs). Proven end to end: fence process + memtest over the rest, 5 passes at 2 MiB chunks (5.25 GiB) and 3 passes at 128 MiB chunks
+(5.12 GiB), both clean. Seen and not explained: a process that allocates a die with no margin fails on its *last* allocated block (three fence configurations, always the
+last ordinal; skipping it, or leaving 64 MiB unallocated, makes the run clean), so memtest has `reserve=MiB` and `serve.sh` verifies a fenced die with `reserve=128`.
+Usable on die 2: **~5.25 GiB**. The 1.9 GiB above is not worth more time; the capacity is recovered in software instead (token_embd on one die, see "Open work").
+Tools: `memtest` (`chunk=`, `skip=`, `only=`, `reserve=`), `fence`, `bisect.sh`, `bisect-fence.sh`, `blockmap.sh`, `proveset.sh`, `reset-die.sh`, `powercycle.sh`.

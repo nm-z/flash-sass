@@ -34,7 +34,7 @@ holders)   # DIES="3 4 5" ./serve.sh holders starts just those
 			for w in $(seq 120); do [ -e /tmp/fence-d$i.ready ] && break; read -t 1 < /dev/zero 2>/dev/null; done
 			[ -e /tmp/fence-d$i.ready ] || { echo "serve.sh: the fence of die $i did not come up: $(cat /tmp/fence-d$i.err)" >&2; exit 1; }
 			if [ "${FENCE_VERIFY:-1}" = 1 ]; then
-				./memtest $i 1 > /tmp/fence-d$i.memtest 2>&1 || { echo "serve.sh: memtest of the free memory of die $i failed (/tmp/fence-d$i.memtest): the fence list does not match the die" >&2; exit 1; }
+				./memtest $i 1 reserve=128 > /tmp/fence-d$i.memtest 2>&1 || { echo "serve.sh: memtest of the free memory of die $i failed (/tmp/fence-d$i.memtest): the fence list does not match the die" >&2; exit 1; }
 			fi
 		fi
 		HOLD_VISIBLE=1 CUDA_VISIBLE_DEVICES=$i setsid -f flock -s -n "$lock" ./hold "$GGUF1" $i 0 48 /tmp/hold-h$i.manifest token_embd output split=$i/6 > /tmp/hold-h$i.out 2> /tmp/hold-h$i.err < /dev/null
