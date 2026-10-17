@@ -6,7 +6,7 @@ name: Draft on conflict
 #
 # The default GITHUB_TOKEN is refused for converting a pull request to draft ("Resource not accessible by integration"),
 # so this needs a repository secret DRAFT_TOKEN: a fine-grained personal access token for this repository with
-# "Pull requests: read and write". Without it the job fails (push, manual run) or only warns (schedule).
+# "Pull requests: read and write". Without it the job only warns; the same script then runs from a systemd user timer on the maintainer's machine.
 on:
   push:
     branches: [master]
@@ -33,9 +33,8 @@ jobs:
         shell: bash
         run: |
           if [ -z "$GH_TOKEN" ]; then
-            echo "::error::repository secret DRAFT_TOKEN is not set; GITHUB_TOKEN cannot convert a pull request to draft"
-            [ "$GITHUB_EVENT_NAME" = schedule ] && exit 0
-            exit 1
+            echo "::warning::repository secret DRAFT_TOKEN is not set, so this job did nothing (GITHUB_TOKEN cannot convert a pull request to draft); the sweep runs from the local timer instead"
+            exit 0
           fi
           .github/scripts/draft-conflicting.sh | tee -a "$GITHUB_STEP_SUMMARY"
         env:
