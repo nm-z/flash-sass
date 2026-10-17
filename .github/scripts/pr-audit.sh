@@ -28,14 +28,24 @@ if [ -n "$bad" ]; then
 	printf '%s\n' "$bad" | sed 's/^/    /'
 fi
 # the same by shebang and by python called from an added script line, on the PR's diff
-gh api "repos/$REPO/pulls/$PR" -H 'Accept: application/vnd.github.v3.diff' > "$WORK/pr.diff" || true
+have_diff=1
+gh api "repos/$REPO/pulls/$PR" -H 'Accept: application/vnd.github.v3.diff' > "$WORK/pr.diff" 2> "$WORK/diff.err" || have_diff=0
+if [ "$have_diff" = 0 ]; then
+	# GitHub refuses the diff of a PR with more than 300 files: read the first line of every added script outside validation/ instead
+	note "NOTE the PR diff is unavailable ($(head -c 80 "$WORK/diff.err")); checking script shebangs file by file"
+	head_sha=$(jq -r .head.sha "$WORK/pr.json"); : > "$WORK/pr.diff"
+	awk -F'\t' '$1 != "removed" && $2 !~ /^validation\// && ($2 ~ /\.(sh|pl|pm|rb|lua)$/ || $2 !~ /\.[A-Za-z0-9]+$/) {print $2}' "$WORK/files.tsv" | head -60 | while read -r f; do
+		first=$(gh api "repos/$REPO/contents/$f?ref=$head_sha" -H 'Accept: application/vnd.github.raw' 2> /dev/null | head -1 || true)
+		printf '+++ b/%s\n+%s\n' "$f" "$first" >> "$WORK/pr.diff"
+	done
+fi
 shebang=$(awk '/^\+\+\+ b\//{f=substr($0,7)} /^\+#!.*(python|node|deno|bun|php)/{print f": "substr($0,2)}' "$WORK/pr.diff" | head -20)
 if [ -n "$shebang" ]; then
 	fail=1
 	note "FAIL added shebang for a language we do not use:"
 	printf '%s\n' "$shebang" | sed 's/^/    /'
 fi
-callpy=$(awk '/^\+\+\+ b\//{f=substr($0,7)} f ~ /(\.sh|\.pl|\.pm|Makefile|\.mk|\.ya?ml)$/ && /^\+[^#]*python[0-9.]*[ \t]/ && !/^\+\+\+/{print f": "substr($0,2,120)}' "$WORK/pr.diff" | head -10)
+callpy=$(awk '/^\+\+\+ b\//{f=substr($0,7)} f !~ /pr-audit\.sh$/ && f ~ /(\.sh|\.pl|\.pm|Makefile|\.mk|\.ya?ml)$/ && /^\+[^#]*python[0-9.]*[ \t]/ && !/^\+\+\+/{print f": "substr($0,2,120)}' "$WORK/pr.diff" | head -10)
 if [ -n "$callpy" ]; then
 	note "NOTE python is invoked from an added line (check it is not a requirement of the PR):"
 	printf '%s\n' "$callpy" | sed 's/^/    /'
