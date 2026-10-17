@@ -519,8 +519,13 @@ fence: fence.c
 	$(CC) -std=gnu99 -O2 -Wall -o $@ fence.c -I$(CUDA)/include -lcuda
 
 
-attnpartn_regress: attnpartn_regress.c dieops.h ../ref/attn.c ../ref/fmath.c
+attnpartn_regress: attnpartn_regress.c cta_trace.h dieops.h ../ref/attn.c ../ref/fmath.c ../ref/attn.h ../ref/fmath.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ attnpartn_regress.c ../ref/attn.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+# Validation-only engine: uses the production engine and saves paired decode
+# callbacks plus per-CTA traces. Load only in a validator-owned flashcore.
+libengine_cta_remap.so: cta_remap_bench.c cta_trace.h $(ENGINE_SRC) core.h engine.h dieops.h
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -DFLASH_REV='"$(FLASH_REV)"' -o $@.new cta_remap_bench.c $(filter-out engine.c,$(ENGINE_SRC)) -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
 
 output_tokens_test: output_tokens_test.c flashd.c tok.c tok.h jinja.c json.c ../ref/gguf.c
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ output_tokens_test.c tok.c jinja.c json.c ../ref/gguf.c -I../ref -lm -lpthread
