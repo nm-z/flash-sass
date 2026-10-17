@@ -517,3 +517,9 @@ memtest: memtest.c
 
 fence: fence.c
 	$(CC) -std=gnu99 -O2 -Wall -o $@ fence.c -I$(CUDA)/include -lcuda
+
+quant_range_test: quant_range_test.c ../ref/qsa.c ../ref/qsa.h ../ref/fmath.c ../ref/fmath.h
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -UNDEBUG -Wall -Wextra -o $@ quant_range_test.c ../ref/qsa.c ../ref/fmath.c -I../ref -lm
+.PHONY: test-quant-range
+test-quant-range: quant_range_test
+	./quant_range_test

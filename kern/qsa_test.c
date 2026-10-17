@@ -59,6 +59,14 @@ static int cmpb(const char *what, const void *ref, const void *got, size_t n, in
 	return 1;
 }
 
+
+#include <float.h>
+static void quant_extremes_(float*v,unsigned token){
+ float z=ldexpf(127.f,-25),a[18]={0,1e-6f,-1e-6f,1e7f,-1e7f,
+ nextafterf(QSA_KV_MAX_ABS,0),QSA_KV_MAX_ABS,nextafterf(QSA_KV_MAX_ABS,INFINITY),FLT_MAX,-FLT_MAX,
+ nextafterf(z,0),z,nextafterf(z,INFINITY),-nextafterf(z,0),-z,-nextafterf(z,INFINITY),127.f*0x1p-24f,127.f*0x1p-14f};
+ for(unsigned i=0;i<512;i++){float x=a[(i/32+token)%18];v[i]=(i%3==0)?0:(i&1)?-x:x;}
+}
 static int test_kv(unsigned T, unsigned NBLK) {
 	const float eps = 1e-6f;
 	unsigned npos = T + 64;
@@ -102,6 +110,7 @@ static int test_kv(unsigned T, unsigned NBLK) {
 		if (t % 7 == 3) for (int i = 0; i < 512; i++) v[i] *= 1e-4f;          /* tiny scales (fp16 subnormals) */
 		if (t % 11 == 5) for (int i = 256; i < 512; i++) v[i] = 0.f;          /* an all-zero kv head */
 		if (t % 13 == 6) for (int i = 0; i < 512; i++) v[i] *= 3e3f;
+		if(getenv("QSA_KV_EXTREMES"))quant_extremes_(v,t);
 		unsigned nv = (t + 1) >> 2, ns = nv < NBLK ? nv : NBLK;
 		if (nv > NBLK) {   /* a pseudo-random ascending selection of NBLK of the nv blocks */
 			unsigned *perm = malloc(4 * nv); for (unsigned i = 0; i < nv; i++) perm[i] = i;
@@ -126,6 +135,9 @@ static int test_kv(unsigned T, unsigned NBLK) {
 		unsigned n = qsa_gather_gpu(kq, ks, vq, vs, sel, t, NBLK, kc, vc);
 		if (check_attn) attn_decode_gpu(qo, kc, vc, n, qg, out);
 		CK(cuMemcpyDtoH(kqg, dKQ, (size_t)npos * 512)); CK(cuMemcpyDtoH(vqg, dVQ, (size_t)npos * 512)); CK(cuMemcpyDtoH(ksg, dKS, (size_t)npos * 32)); CK(cuMemcpyDtoH(vsg, dVS, (size_t)npos * 32));
+        for(unsigned j=0;j<16;j++){size_t si=(size_t)t*16+j;if(!isfinite(qsa_h2f(ksg[si]))||!isfinite(qsa_h2f(vsg[si]))){fprintf(stderr,"nonfinite KV scale at t=%u group=%u\n",t,j);b=1;}}
+        for(unsigned j=0;j<512;j++){size_t qi=(size_t)t*512+j,si=(size_t)t*16+j/32;if(!isfinite(kv_deq_gpu(kqg[qi],ksg[si]))||!isfinite(kv_deq_gpu(vqg[qi],vsg[si])))b=1;}
+
 		{ float *qog = malloc(4 * 6144); CK(cuMemcpyDtoH(qog, dQO, 4 * 6144));
 			/* Corrupt only the readback: prove that an isolated query failure reaches main. */
 			if (getenv("QSA_INJECT_QO_MISMATCH") && t + 1 == T) ((unsigned char *)qog)[0] ^= 1;
@@ -147,6 +159,7 @@ static int test_kv(unsigned T, unsigned NBLK) {
 			}
 		}
 		CK(cuMemcpyDtoH(outg, dAOUT, 4 * 6144));
+        for(int j=0;j<6144;j++)if(!isfinite(outg[j]))b=1;
 		b |= cmpb("out", out, outg, 4 * 6144, &shown);
 		}
 		if (b && !bad) printf("first mismatch at t = %u (n = %u keys, %u blocks selected)\n", t, n, ns);
