@@ -2,6 +2,8 @@
 """Measure matched host/VRAM resident cores with fixed tokens and raw events.
 Synthetic token prompts exercise the real model; they are not quality tests.
 Only connects to supplied cores. Does not reload cores or weight holders.
+Live traced measurements require explicit successful lifecycle metadata.
+Historical analysis accepts older missing metadata as unknown, never inferred success.
 """
 import argparse,csv,gzip,hashlib,json,math,os,pathlib,random,re,socket,statistics,subprocess,sys,time
 from collections import defaultdict
@@ -59,8 +61,38 @@ class Core:
 def matched(a,b,allow):
     diff={k:[a.get(k),b.get(k)] for k in set(a)|set(b) if a.get(k)!=b.get(k) and k not in allow}
     if diff:raise ValueError("unexplained manifest differences: "+json.dumps(diff,sort_keys=True))
+def trace_lifecycle(meta, *, require_current=False, expected_requested=None, allow_ended=True):
+    """Historical missing fields remain unknown; live evidence requires all fields."""
+    required={"status","aborted","ended","completed","requested"}
+    present=required.intersection(meta)
+    if not present:
+        if require_current:raise ValueError("live trace lacks lifecycle metadata")
+        return dict(reported=False,status="legacy_unreported")
+    if present!=required:raise ValueError("partial trace lifecycle metadata")
+    if meta["aborted"] not in ("0","1") or meta["ended"] not in ("0","1"):
+        raise ValueError("invalid trace lifecycle boolean")
+    for key in ("completed","requested"):
+        if not isinstance(meta[key],str) or not re.fullmatch(r"[0-9]+",meta[key]):
+            raise ValueError("invalid trace lifecycle count "+key)
+    completed,requested=int(meta["completed"]),int(meta["requested"])
+    ended=int(meta["ended"])
+    if meta["status"]!="completed" or meta["aborted"]!="0":
+        raise ValueError("unsuccessful trace request: "+str(meta["status"]))
+    if not 1<=completed<=requested:raise ValueError("impossible trace lifecycle counts")
+    if not ended and completed!=requested:raise ValueError("incomplete trace request")
+    if ended and not allow_ended:raise ValueError("stopped trace is not a fixed-continuation benchmark")
+    if expected_requested is not None and requested!=expected_requested:
+        raise ValueError("trace belongs to different requested positions")
+    if "first" in meta and "count" in meta:
+        first,count=int(meta["first"]),int(meta["count"])
+        if first<0 or count<1 or first+count>completed:
+            raise ValueError("trace window exceeds completed positions")
+    return dict(reported=True,status="completed",aborted=0,ended=ended,
+                completed=completed,requested=requested)
+
 def phase_summary(rows,meta):
     """Partition local-die elapsed time, without adding overlapping die work."""
+    lifecycle=trace_lifecycle(meta)
     nph,count,first=(int(meta[x]) for x in ("nph","count","first"))
     if nph<1 or count<1 or int(meta["ctas"])!=1:raise ValueError("bad trace dimensions")
     seen=0;previous=0;tokens=[];ops=defaultdict(lambda:[0]*5);keys=set();opcounts=defaultdict(int)
@@ -89,7 +121,7 @@ def phase_summary(rows,meta):
     intervals=[tokens[i]["publication_ns"]-tokens[i-1]["publication_ns"] for i in range(1,count)]
     if any(x<=0 for x in intervals):raise ValueError("bad device interval")
     labels=("dispatch","exchange_wait","body_excluding_ple_wait","barrier_send","ple_wait")
-    return dict(metadata=meta,tokens=tokens,intervals_ns=intervals,decode_ms=sum(intervals)/1e6,
+    return dict(metadata=meta,lifecycle=lifecycle,tokens=tokens,intervals_ns=intervals,decode_ms=sum(intervals)/1e6,
                 op_mean_us={op:{name:value/1000/max(1,count-1) for name,value in zip(labels,v)} for op,v in ops.items()},
                 op_counts=dict(opcounts),selected_keys=sorted(keys),
                 note="Local clock per die; these die totals overlap and cannot be summed.")
@@ -101,6 +133,7 @@ def capture(core,command,prefix,kind):
         while (x:=core.line())!=kind+"_end":f.write(x+"\n")
     return path,fields(meta)
 def host_summary(rows,meta):
+    trace_lifecycle(meta)
     data=list(rows);first,count=int(meta["first"]),int(meta["count"])
     if len(data)!=count or meta["clock"]!="CLOCK_MONOTONIC":raise ValueError("bad host trace dimensions")
     previous=0
@@ -135,12 +168,14 @@ def request(core,ids,outputs,prefix,trace,dies,expected_resume):
         traces=[];request_id=None
         for die in range(dies):
             path,meta=capture(core,f"trace {die}",str(prefix)+f"-die-{die}","trace")
+            trace_lifecycle(meta,require_current=True,expected_requested=len(ids)+outputs-1,allow_ended=False)
             if int(meta["count"])!=outputs or int(meta["first"])!=len(ids)-1 or int(meta["die"])!=die:raise ValueError("wrong trace request dimensions")
             if request_id is None:request_id=meta["request"]
             if meta["request"]!=request_id:raise ValueError("different die trace requests")
             with gzip.open(path,"rt") as f:summary=phase_summary(csv.DictReader(f),meta)
             save(str(path)+".summary.json",summary);traces.append(summary)
         path,meta=capture(core,"hosttrace",str(prefix)+"-host","hosttrace")
+        row["lifecycle"]=trace_lifecycle(meta,require_current=True,expected_requested=len(ids)+outputs-1,allow_ended=False)
         if meta["request"]!=request_id or int(meta["count"])!=outputs:raise ValueError("different host trace request")
         with gzip.open(path,"rt") as f:host=host_summary(csv.DictReader(f),meta)
         row["device_publication_decode_ms_by_die"]=[t["decode_ms"] for t in traces]

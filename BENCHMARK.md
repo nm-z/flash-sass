@@ -79,9 +79,10 @@ publication. Complete shared CLI/HTTP timing primitives remain issue #15.
 
     python3 kern/paired_depth_bench_test.py
 
-Twelve deterministic tests cover phase-zero inclusion, large timestamp epochs,
+Eighteen deterministic tests cover phase-zero inclusion, large timestamp epochs,
 layout/missing/duplicate/publication errors, PLE bounds, one-output absence of
-decode intervals, manifest mismatches and PLE short-read rejection.
+decode intervals, manifest mismatches, PLE short-read rejection, and explicit
+lifecycle classification for completed, stopped, aborted, failed and malformed traces.
 The target-GPU paired experiment and raw evidence belong to issue #10, so runner
 changes can be reviewed separately from conclusions about historical throughput.
 
@@ -101,3 +102,20 @@ The previous experimental runner's -d ECC,PCIE,CLOCK,TEMPERATURE metadata query
 returned exit 2 on driver 470 because PCIE is not a supported display selector.
 Its raw error is retained in the older run manifest. The updated runner uses
 nvidia-smi -q -x and refuses to call a failed metadata capture complete.
+
+### Lifecycle and driver-query evidence
+
+New live traced measurements require explicit status, aborted, ended, completed
+and requested fields from PR #30. Aborted, failed, stopped and incomplete
+continuations cannot enter a fixed-length passing aggregate. Historical records
+without these fields remain analyzable as legacy_unreported; absence of fields
+does not establish success. Partial or explicit failure metadata is rejected
+even during historical analysis.
+
+[The 18-test parser log](validation/issue14/lifecycle-parser-tests.log) verifies
+these classification rules. The [archy metadata smoke](validation/issue14/metadata-smoke)
+at runner source ec86562bdbdec08f2f79e2f39aaa87eefd1c467f successfully obtained
+the full eight-GPU XML and per-GPU query, and parsed the supplied launch records.
+It is a metadata/parser smoke, not a model-forward or throughput run.
+The supplemental job-4 launch record was reconstructed after that experiment;
+it does not recover the missing original job-3 launch environment.

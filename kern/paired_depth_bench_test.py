@@ -2,7 +2,7 @@
 import copy,json,tempfile,unittest
 from pathlib import Path
 from unittest.mock import patch
-from paired_depth_bench import phase_summary,host_summary,matched,driver_snapshot,core_records
+from paired_depth_bench import phase_summary,host_summary,matched,driver_snapshot,core_records,trace_lifecycle
 META=dict(first="2048",count="2",nph="2",ctas="1")
 def fixture():
     rows=[]
@@ -65,4 +65,34 @@ class Tests(unittest.TestCase):
     def test_host_short_read(self):
         r=dict(position="2048",observed_ns="100",callback_start_ns="101",callback_end_ns="102",ple_staging_start_ns="1",ple_staging_end_ns="2",ple_ready_ns="3",ple_short_reads="1")
         with self.assertRaises(ValueError):host_summary([r],dict(first="2048",count="1",clock="CLOCK_MONOTONIC"))
+    def test_legacy_lifecycle_is_analysis_only(self):
+        result=phase_summary(fixture(),META)
+        self.assertEqual(result["lifecycle"],dict(reported=False,status="legacy_unreported"))
+        with self.assertRaises(ValueError):trace_lifecycle(META,require_current=True)
+    def test_current_lifecycle_success(self):
+        meta=dict(META,status="completed",aborted="0",ended="0",completed="2050",requested="2050")
+        result=trace_lifecycle(meta,require_current=True,expected_requested=2050,allow_ended=False)
+        self.assertTrue(result["reported"])
+        self.assertEqual(phase_summary(fixture(),meta)["lifecycle"]["completed"],2050)
+    def test_failed_lifecycle_cannot_be_historical_success(self):
+        for status in ("aborted","argument_error","image_error","device_error","running","none"):
+            meta=dict(META,status=status,aborted="1" if status=="aborted" else "0",ended="1",completed="2050",requested="2050")
+            with self.subTest(status=status):
+                with self.assertRaises(ValueError):phase_summary(fixture(),meta)
+                rows=[dict(position=str(2048+i),observed_ns=str(100+10*i),callback_start_ns=str(101+10*i),callback_end_ns=str(102+10*i),ple_staging_start_ns="0",ple_staging_end_ns="0",ple_ready_ns="0",ple_short_reads="0") for i in range(2)]
+                with self.assertRaises(ValueError):host_summary(rows,dict(meta,clock="CLOCK_MONOTONIC"))
+    def test_stop_is_analyzable_but_not_fixed_continuation(self):
+        meta=dict(META,count="1",status="completed",aborted="0",ended="1",completed="2049",requested="2050")
+        self.assertEqual(phase_summary(fixture()[:2],meta)["lifecycle"]["ended"],1)
+        with self.assertRaises(ValueError):trace_lifecycle(meta,require_current=True,allow_ended=False)
+    def test_partial_or_malformed_lifecycle(self):
+        with self.assertRaises(ValueError):trace_lifecycle(dict(META,status="completed"))
+        good=dict(META,status="completed",aborted="0",ended="0",completed="2050",requested="2050")
+        for change in (dict(aborted="2"),dict(ended="false"),dict(completed="-1"),dict(requested="nan"),dict(completed="2049"),dict(completed="2051")):
+            with self.subTest(change=change):
+                with self.assertRaises(ValueError):trace_lifecycle(dict(good,**change))
+    def test_wrong_request_or_excess_window_rejected(self):
+        meta=dict(META,status="completed",aborted="0",ended="0",completed="2050",requested="2050")
+        with self.assertRaises(ValueError):trace_lifecycle(meta,require_current=True,expected_requested=2051)
+        with self.assertRaises(ValueError):trace_lifecycle(dict(meta,count="3"))
 if __name__=="__main__":unittest.main()
