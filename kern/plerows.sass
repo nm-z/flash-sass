@@ -26,6 +26,9 @@
     param_ROWS1 : c[0x0][0x164]
     param_pos   : c[0x0][0x168]
     param_cmp   : c[0x0][0x16c]
+    param_RDY0  : c[0x0][0x170]
+    param_RDY1  : c[0x0][0x174]
+    param_rid   : c[0x0][0x178]
 </CONSTANT_MAPPING>
 
 <REGISTER_MAPPING>
@@ -174,6 +177,18 @@
     $o .= "--:-:-:-:6      IADD.X rp1, RZ, param_ROWS1;\n";
     $o .= "--:2:-:-:1      STG.E [rp], off;\n";
     if ($ENV{PLE_NOGATHER}) { $o .= "02:-:-:-:f      EXIT;\n"; return $o; }
+    # the host stager (param_rid != 0, FLASH_PLE_DISK): wait until it has staged the rows of this position, RDY[pos] == rid. LDG.CV: the flag is written by the CPU and a cached
+    # line would be stale. rid is never 0 and is a new value for every response, so the flags need no reset. Every lane polls the same word.
+    $o .= "--:-:-:-:6      MOV t3, param_rid;\n";
+    $o .= "--:-:-:-:6      ISETP.NE.U32.AND P0, PT, t3, RZ, PT;\n";                    # P0: a stager is running
+    $o .= "--:-:-:-:6      SHL t, pos, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD ip0.CC, t, param_RDY0;\n";
+    $o .= "--:-:-:-:6      IADD.X ip1, RZ, param_RDY1;\n";
+    $o .= "\nWAITRDY:\n";
+    $o .= "--:-:5:-:2  \@P0 LDG.E.CV t2, [ip];\n";
+    $o .= "10:-:-:-:6      ISETP.NE.U32.AND P3, PT, t2, t3, P0;\n";                   # P3: a stager is running and the flag is not there yet
+    $o .= "--:-:-:-:6      NOP;\n" x 3;
+    $o .= "--:-:-:-:6  \@P3 BRA WAITRDY;\n";
     # tp = TAB + 90 row (64-bit)
     $o .= "--:-:-:-:1      XMAD p0, off, 0x5a, RZ;\n";
     $o .= "--:-:-:-:6      XMAD p1, off.H1, 0x5a, RZ;\n";
