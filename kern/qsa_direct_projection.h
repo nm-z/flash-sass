@@ -5,6 +5,20 @@
 #include "quant.h"
 #include "gguf.h"
 typedef struct{int enabled,real;uint32_t type[3];unsigned char*w[4];size_t bytes[4];CUdeviceptr dw[4],z,zq,s32,s16,as;float input[2560];FILE*inputs;}direct_projection;
+/* Cached weights use the holder's repacked row layout. The block-32 kernels
+ * implement K=640 and cannot be dispatched for these K=2560 projections. */
+static size_t direct_projection_stride(uint32_t type) {
+ switch(type) {
+ case GG_BF16:return 2560u*2u;
+ case GG_Q2_0:return (size_t)q2_0_tile_stride(2560);
+ case GG_Q3_K:return (size_t)q3_k_tile_stride(2560);
+ case GG_Q4_K:return (size_t)q4_k_tile_stride(2560);
+ case GG_Q5_K:return (size_t)q5_k_tile_stride(2560);
+ case GG_Q6_K:return (size_t)q6_k_tile_stride(2560);
+ case GG_IQ4_XS:return (size_t)iq4_xs_tile_stride(2560);
+ default:return 0;
+ }
+}
 static unsigned char*direct_load_weight(const char*dir,int block,const char*name,size_t*bytes){
  char path[1024];int pn=snprintf(path,sizeof path,"%s/blk.%d.%s",dir,block,name);if(pn<0||(size_t)pn>=sizeof path)exit(2);
  FILE*f=fopen(path,"rb");if(!f){perror(path);exit(2);}if(fseek(f,0,SEEK_END))exit(2);long n=ftell(f);if(n<=0||fseek(f,0,SEEK_SET))exit(2);
@@ -25,9 +39,11 @@ static void direct_projection_init(direct_projection*p,direct_frame*f,unsigned s
  memset(p,0,sizeof*p);p->enabled=!postprojected;
  if(!p->enabled){if(getenv("QSA_INPUTS")||getenv("QSA_MODEL_CACHE")){fprintf(stderr,"postprojection and original-input modes are exclusive\n");exit(2);}printf("projection_mode=POSTPROJECTION_DIAGNOSTIC checkpoint_provenance=not_supplied\n");return;}
  const char*dir=getenv("QSA_MODEL_CACHE");p->real=dir!=NULL;
- if(dir){int block=getenv("QSA_BLOCK")?atoi(getenv("QSA_BLOCK")):3;char extra;const char*types=getenv("QSA_TYPES");if(block<0||block>=48||!types||sscanf(types,"%u,%u,%u%c",p->type,p->type+1,p->type+2,&extra)!=3){fprintf(stderr,"real weights require valid QSA_TYPES and QSA_BLOCK\n");exit(2);}
+ if(dir){int block=3;const char*bs=getenv("QSA_BLOCK");if(bs){char*end;long b=strtol(bs,&end,10);if(!*bs||*end||b<0||b>=48){fprintf(stderr,"QSA_BLOCK must be an integer 0..47\n");exit(2);}block=(int)b;}char extra;const char*types=getenv("QSA_TYPES");if(block<0||block>=48||!types||sscanf(types,"%u,%u,%u%c",p->type,p->type+1,p->type+2,&extra)!=3){fprintf(stderr,"real weights require valid QSA_TYPES and QSA_BLOCK\n");exit(2);}
   const char*names[4]={"attn_q.weight","attn_k.weight","attn_v.weight","indexer_x.weight"};for(int i=0;i<4;i++)p->w[i]=direct_load_weight(dir,block,names[i],p->bytes+i);
   if(p->bytes[3]!=(size_t)640*2560*2){fprintf(stderr,"wrong indexer_x size\n");exit(2);}
+  const unsigned rows[3]={12288,512,512};
+  for(int i=0;i<3;i++){size_t stride=direct_projection_stride(p->type[i]);if(!stride||p->bytes[i]!=rows[i]*stride){fprintf(stderr,"unsupported type or wrong repacked projection size: %s type=%u bytes=%zu expected=%zu\n",names[i],p->type[i],p->bytes[i],rows[i]*stride);exit(2);}}
   direct_load_norm(dir,block,"attn_q_norm.weight",f->qn,sizeof f->qn);direct_load_norm(dir,block,"attn_k_norm.weight",f->kn,sizeof f->kn);direct_load_norm(dir,block,"indexer.q_norm.weight",f->iqn,sizeof f->iqn);direct_load_norm(dir,block,"indexer.k_norm.weight",f->ikn,sizeof f->ikn);
   for(int i=0;i<3;i++)if(p->type[i]!=GG_BF16&&!gemv_op(p->type[i],2560,0)){fprintf(stderr,"unsupported projection type %u\n",p->type[i]);exit(2);}
  }else{int rows[4]={12288,512,512,640};for(int i=0;i<4;i++){p->bytes[i]=(size_t)rows[i]*2560*2;p->w[i]=malloc(p->bytes[i]);if(!p->w[i])exit(1);uint16_t*w=(uint16_t*)p->w[i];for(size_t j=0;j<p->bytes[i]/2;j++){float v=(float)((int)(direct_hash((uint32_t)j+seed+997u*(unsigned)i)%33)-16)/256.f;uint32_t u;memcpy(&u,&v,4);w[j]=(uint16_t)(u>>16);}if(i<3)p->type[i]=GG_BF16;}}

@@ -13,6 +13,25 @@ static uint64_t direct_file_hash(const char *path){if(!path)return 0;FILE*f=fope
 static int direct_compare(const char *name,const void *want,CUdeviceptr dev,size_t n,int *shown){void*got=malloc(n?n:1);if(!got)exit(1);if(n)CK(cuMemcpyDtoH(got,dev,n));int bad=cmpb(name,want,got,n,shown);free(got);return bad;}
 static void direct_flip(float*x){uint32_t u;memcpy(&u,x,4);u^=1;memcpy(x,&u,4);}
 static unsigned direct_param(const desc_t*d,int addr){return d->w[2+(addr-0x140)/4];}
+typedef struct { CUdeviceptr base; size_t bytes; } direct_guard;
+static direct_guard direct_guards[64];
+static unsigned direct_nguards;
+static CUdeviceptr direct_alloc_guard(size_t bytes,int host) {
+ if(direct_nguards==64){fprintf(stderr,"guard table exhausted\n");exit(1);}
+ CUdeviceptr base=host?halloc(bytes+512):dalloc(bytes+512);
+ CK(cuMemsetD8(base,0xa5,256));CK(cuMemsetD8(base+256+bytes,0xa5,256));
+ direct_guards[direct_nguards++]=(direct_guard){base,bytes};return base+256;
+}
+static int direct_check_guards(void) {
+ unsigned char got[256];int bad=0;
+ for(unsigned i=0;i<direct_nguards;i++)for(unsigned end=0;end<2;end++){
+  direct_guard g=direct_guards[i];CK(cuMemcpyDtoH(got,g.base+(end?256+g.bytes:0),sizeof got));
+  for(unsigned j=0;j<sizeof got;j++)if(got[j]!=0xa5){fprintf(stderr,"allocation %u %s guard changed at %u\n",i,end?"suffix":"prefix",j);bad=1;break;}
+ }
+ return bad;
+}
+#define dalloc(bytes) direct_alloc_guard((bytes),0)
+#define halloc(bytes) direct_alloc_guard((bytes),1)
 static void direct_assert(const desc_t*p,unsigned nph,unsigned budget){
  unsigned cnt[DIE_NOPS]={0};
  for(unsigned i=0;i<nph;i++){unsigned op=p[i].w[0];if(op<DIE_NOPS)cnt[op]++;int addr=op==OP_IDXSCORE?0x164:op==OP_IDXSEL?0x15c:op==OP_KVGATHER?0x17c:op==OP_ATTNPARTN?0x174:0;if((addr&&direct_param(p+i,addr)!=budget)||(op==OP_KVGATHER&&p[i].w[1]!=budget+1)){fprintf(stderr,"descriptor budget assertion failed\n");exit(3);}}
@@ -56,7 +75,7 @@ static int test_direct(unsigned visible,unsigned budget,unsigned steps,unsigned 
  printf("visible=%u steps=%u budget=%u hostKV=%d seed=%u prefix_seeded_once=yes future_sentinels=yes current_mode=%s projected_fnv=%016llx\n",visible,steps,budget,host,seed,projected?"POSTPROJECTION_DIAGNOSTIC":"ORIGINAL_INPUT_PROJECTIONS",(unsigned long long)direct_file_hash(projected));
  int bad=0,shown=0;const char*inject=getenv("QSA_DIRECT_INJECT");
  for(unsigned step=0;step<steps;step++){
-  unsigned t=t0+step,nv=(t+1)/4,n=qsa_nkeys(t,budget);float cs[32],sn[32];
+  unsigned t=t0+step,nv=(t+1)/4,n=qsa_nkeys(t,budget),gathered=4*((nv<budget?nv:budget)+(((t+1)&3)?1:0));float cs[32],sn[32];
   if(step&&frames){if(fread(&frame,sizeof frame,1,frames)!=1)return 2;if(memcmp(frame.qn,initial.qn,sizeof frame.qn)||memcmp(frame.kn,initial.kn,sizeof frame.kn)||memcmp(frame.iqn,initial.iqn,sizeof frame.iqn)||memcmp(frame.ikn,initial.ikn,sizeof frame.ikn)){fprintf(stderr,"norm weights changed\n");return 2;}}
   if(step&&projection.enabled)direct_projection_cpu(&projection,&frame,t,seed);
   for(size_t j=0;j<sizeof frame/sizeof(float);j++)if(!isfinite(((float*)&frame)[j])){fprintf(stderr,"nonfinite frame at step %u\n",step);return 2;}
@@ -77,11 +96,12 @@ static int test_direct(unsigned visible,unsigned budget,unsigned steps,unsigned 
   if((t&3)==3){size_t off=(size_t)((t/4)>>5)*8192;DC("new pool group",(const char*)pkt+off,dPKT+off,8192);}
   if(nv>budget){if(inject&&!strcmp(inject,"selection"))sel[0]^=1;DC("score bits",score,dSC,4*(size_t)nv);DC("selected IDs",sel,dSEL,4*budget);}
   if(inject&&!strcmp(inject,"gather"))direct_flip(kc+attn_kidx(0,0,0));
-  float*kg=malloc(4*kcf),*vg=malloc(4*(size_t)n*512);if(!kg||!vg)return 1;CK(cuMemcpyDtoH(kg,dKC,4*kcf));CK(cuMemcpyDtoH(vg,dVC,4*(size_t)n*512));int gb=0;
-  for(unsigned j=0;j<n;j++)for(int kv=0;kv<2;kv++)for(int d=0;d<256;d++){size_t ki=attn_kidx(j,kv,d),vi=(size_t)j*512+kv*256+d;if(memcmp(kg+ki,kc+ki,4)||memcmp(vg+vi,vc+vi,4))gb++;}free(kg);free(vg);if(gb){if(shown++<6)printf("compact K/V mismatch: %d\n",gb);b=1;}
+  float*kg=malloc(4*kcf),*vg=malloc(4*(size_t)gathered*512);if(!kg||!vg)return 1;CK(cuMemcpyDtoH(kg,dKC,4*kcf));CK(cuMemcpyDtoH(vg,dVC,4*(size_t)gathered*512));int gb=0;
+  for(unsigned j=0;j<gathered;j++)for(int kv=0;kv<2;kv++)for(int d=0;d<256;d++){size_t ki=attn_kidx(j,kv,d),vi=(size_t)j*512+kv*256+d;if(memcmp(kg+ki,kc+ki,4)||memcmp(vg+vi,vc+vi,4))gb++;}free(kg);free(vg);if(gb){if(shown++<6)printf("compact K/V mismatch: %d\n",gb);b=1;}
   DC("partial maxima",pm,dPM,sizeof pm);DC("partial denominators",pd,dPD,sizeof pd);DC("partial values",po,dPO,sizeof po);if(inject&&!strcmp(inject,"output"))direct_flip(out);DC("attention output",out,dOUT,sizeof out);
 #undef DC
-  printf("visible=%u complete=%u tail=%u selected=%u keys=%u exclusion=%s %s\n",t+1,nv,(t+1)&3,nv<budget?nv:budget,n,nv>budget?"yes":"no",b?"FAIL":"EXACT");bad+=b;
+  b|=direct_check_guards();
+  printf("visible=%u complete=%u tail=%u selected=%u keys=%u guarded_allocations=%u exclusion=%s %s\n",t+1,nv,(t+1)&3,nv<budget?nv:budget,n,direct_nguards,nv>budget?"yes":"no",b?"FAIL":"EXACT");bad+=b;
  }
  direct_projection_fini(&projection);if(frames)fclose(frames);free(kq);free(vq);free(ks);free(vs);free(pool);free(pkt);free(score);free(kc);free(vc);free(sel);
  printf("direct QSA %s: %u steps, %d mismatching steps; synthetic cache fixture\n",bad?"FAIL":"PASS",steps,bad);return bad?3:0;
