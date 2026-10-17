@@ -1,0 +1,13 @@
+[Unit]
+Description=Persistence mode and maximum application clocks on the M60 and K80 dies
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/nvidia-smi -pm 1
+ExecStart=/bin/sh -c "for i in 0 1 2 3 4 5; do /usr/bin/nvidia-smi -i $i -ac 2505,1177; done; for i in 6 7; do /usr/bin/nvidia-smi -i $i -ac 2505,875; done"
+ExecStart=/bin/sh -c "for i in 0 1 2 3 4 5 6 7; do /usr/bin/nvidia-smi -i $i --auto-boost-default=0; done"
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
