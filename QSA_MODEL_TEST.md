@@ -54,3 +54,21 @@ The CPU-only cache exporter builds without CUDA symbol references. Compilation
 does not establish model parity. Complete target-GPU teacher-forced comparisons,
 mismatch-injection results and full-layer sparse-context evidence remain required.
 Independent checkpoint quality is separate issue #22.
+
+## Recorded block-3 GPU integration
+
+[Raw commands, build identities, checkpoint identities, and output](validation/issue9/block3-1e299ef)
+were collected on archy with executable source
+1e299ef5e169ed9a88f2f6c8d0241831ab688f72.
+
+Actual resident block-3 weights and the six-die production split passed nine
+consecutive teacher-forced positions exactly in both VRAM and pinned-host KV.
+The one-block selection budget reaches exclusions on this short sequence and
+covers every modulo-four tail. Deliberate selection and layer mismatches each
+returned exit 3 in both placements (four expected failures).
+
+This is a single actual-weight attention block with a synthetic initial stream,
+without embedding or output head. It verifies the connected production-QSA
+path and its mismatch reporting at that scope. Full-model scalar/GPU agreement,
+production-budget sparse boundaries, snapshot/reuse and launch-mode coverage
+remain separate gates. It does not establish independent checkpoint quality.
