@@ -515,7 +515,7 @@ the hyper-connection norms, `ssm_norm`, q/k norms, indexer norms and PLE norms.
 - **DeltaNet head step** `kern/dnstep.sass` (twin `deltanet_step_gpu`): one CTA
   per value head; value-major 128×128 fp32 state; thread (g, p) owns 4 columns
   × 16 keys (coalesced 64 B column pieces); warps 0/1 L2-normalise q/k (IEEE
-  sqrt and rcp, max with eps), warp 2 copies v and computes α = exp(ssm_a ·
+  sqrt and rcp, eps added to the sum of squares before the root), warp 2 copies v and computes α = exp(ssm_a ·
   softplus(a)), β = σ(b) with fmath; decay, 16-term FFMA chains per column with
   xor 1/2/4 part reductions, e = v − r, be = β e, rank-1 update, readout with q̂,
   × 1/√128. **Bit-exact on all 48 heads (state and output)** for both key-head
@@ -601,9 +601,9 @@ the hyper-connection norms, `ssm_norm`, q/k norms, indexer norms and PLE norms.
   (kvalues table in smem) into G[160 h + j]. One warp, lane = head. The
   metadata used: multipliers [23703573157769, 20109073645365, 8052911324071],
   head offsets 0, 20000003, …, 300001275, head vocabularies the 16 primes near
-  2·10⁷ (`ggufhdr … kv qwen4exp.ple.*`), ends = {tokenizer eos 248046}, absent =
-  ple.eos_token_id 248044 (cx-flash: `ends` from `tokenizer.ggml.eos_token_id`,
-  `absent` from `ple.eos_token_id`).
+  2·10⁷ (`ggufhdr … kv qwen4exp.ple.*`), ends = {ple.eos_token_id 248044}, absent = ple.eos_token_id 248044.
+  (Earlier this read `ends = {tokenizer eos 248046}` after cx-flash, which takes `ends` from `tokenizer.ggml.eos_token_id`; llama.cpp qwen4exp and
+  Transformers use `ple_eos_token_id` for both the reset and the fill, issue #1.)
 - **plegate** (`kern/plegate.sass`, twin `ple_gate_gpu`): 4 CTAs (lane l): s_l =
   Σ k̂·Q over the lane's 2560 (per-thread chains, butterfly, warps in order),
   s' = s·(1/√2560), γ = σ(sign(s')·√max(|s'|, 1e-6)) with the IEEE sqrt
