@@ -35,72 +35,52 @@ See [BATCH.md](BATCH.md) and [PAIR_TESTING.md](PAIR_TESTING.md).
 
 ## What one token runs
 
-| Kind | What it does | phases per token (plain die / attention die) | µs per phase | ms per token (all phases of this kind) |
-|---|---|---|---|---|
-| **exchange and quantize** | | | | **6.26** |
-| `xsend` | send this die's slice to its peers (P2P stores, fence, flag) | 111 / 111 | 12.8 | 1.42 |
-| `actq256` | quantize an activation to int8 + scale; where a die waits for its peers | 146 / 146 | 33.1 | 4.84 |
-| **hyper-connection** | | | | **8.26** |
-| `bf16hcrwx` | RMSNorm of the stream + hc down and inject (BF16), plus the pending stream write | 48 / 48 | 40.3 | 1.93 |
-| `bf16hcrx` | the same without the pending write | 49 / 49 | 32.0 | 1.57 |
-| `bf16hcup` | SiLU + hc up + lane mix + inbox write | 97 / 97 | 25.3 | 2.46 |
-| `hcwsum` | stream write with the MoE partials' fixed-order sum fused in | 48 / 48 | 47.9 | 2.30 |
-| **MoE** | | | | **5.14** |
-| `router` | router GEMV and softmax | 48 / 48 | 23.3 | 1.12 |
-| `moesel` | top-10 expert selection | 48 / 48 | 5.6 | 0.27 |
-| `q2moegn` | expert gate and up GEMVs (Q2_0), this die's share of the experts | 96 / 96 | 18.4 | 1.77 |
-| `ffnact` | SiLU(gate) · up, quantized for the down projection | 48 / 48 | 13.0 | 0.62 |
-| `q2moedn` | expert down GEMV (Q2_0) | 48 / 48 | 21.2 | 1.02 |
-| `q2k2560`, `q2acc640`, `b32q40acc`, `b32q50acc`, `b32iq4nlacc` | shared-expert and other small matrices in their own formats | 20 / 24 | 15–26 | 0.34 |
-| **projections (GEMV by weight format and input length K)** | | | | **6.61** |
-| `q3kk2560` | Q3_K, K = 2560 | 50 / 49 | 34.2 | 1.71 |
-| `bf16k2560` | BF16, K = 2560 | 49 / 53 | 27.8 | 1.36 |
-| `iq4k2560`, `iq4k6144` | IQ4_XS, K = 2560 / 6144 | 19 + 17 / 22 + 17 | 42.8 / 33.1 | 0.81 + 0.56 |
-| `q4kk2560`, `q4kk6144` | Q4_K, K = 2560 / 6144 | 8 + 15 / 11 + 15 | 35.3 / 29.4 | 0.28 + 0.44 |
-| `q5kk2560`, `q5kk6144` | Q5_K, K = 2560 / 6144; one `q5kk2560` is the share of the 248,320-row output head (0.69 ms, the longest phase) | 1 + 7 / 4 + 7 | 688 / 41.0 | 0.69 + 0.29 |
-| `q6kk1536`, `q6kk1536acc` | Q6_K, K = 6144 as four K = 1536 slices summed in a fixed order | 6 + 18 / 6 + 18 | 18.3 / 13.6 | 0.11 + 0.24 |
-| `q3kk6144` | Q3_K, K = 6144 | 3 / 3 | 35.2 | 0.11 |
-| **DeltaNet (36 blocks)** | | | | **1.53** |
-| `bf16bias` | BF16 GEMV with bias | 36 / 36 | 7.0 | 0.25 |
-| `conv1d` | causal conv (k = 4) + SiLU | 36 / 36 | 5.7 | 0.20 |
-| `dnstep` | the recurrence step (state update, read-out) | 36 / 36 | 18.1 | 0.65 |
-| `dnnormx` | output norm and gate, quantized | 36 / 36 | 11.8 | 0.42 |
-| **attention (12 layers, 4 on each attention die)** | | | | **0.48 on an attention die** |
-| `attnqkq` | q/k norm, RoPE, KV append | 0 / 4 | 6.1 | 0.02 |
-| `idxqk`, `idxscore` | indexer q·k and block scores | 0 / 4 + 4 | 5.6 / 4.4 | 0.04 |
-| `idxsel` | the five top-k selection passes of the indexer | 0 / 20 | 3.9 | 0.08 |
-| `kvgather` | gather the admitted KV blocks | 0 / 4 | 18.9 | 0.08 |
-| `attnpartn`, `attnmerge` | partial attention over the gathered keys, merge | 0 / 4 + 4 | 57.1 / 9.0 | 0.23 + 0.04 |
-| **embedding, PLE step, picking the token** | | | | **0.15** |
-| `xcopy` | copy the embedding stream that arrived from the die holding `token_embd` | 1 / 1 | 33.8 | 0.03 |
-| `plerows` | PLE: the 16 n-gram rows from the host (waits until the host has read them) | 1 / 1 | 57.3 | 0.06 |
-| `rms2560` | PLE norms of the key, the query and the conv input | 3 / 3 | 8.2 | 0.02 |
-| `plegate` | PLE gates | 1 / 1 | 6.1 | 0.01 |
-| `pleconv` | PLE conv over the last 4 tokens | 1 / 1 | 9.2 | 0.01 |
-| `argmax` | this die's largest logit and its index, over its share of the output head (greedy; the sampler has its own `topk` and `sample`) | 1 / 1 | 11.3 | 0.01 |
-| `amax` | the largest of the six dies' pairs: the token | 1 / 1 | 7.2 | 0.01 |
+| Kind | What it does | phases per token (plain die / attention die) | µs per phase | ms per token (all phases of this kind) | exchanges it carries |
+|---|---|---|---|---|---|
+| **exchange and quantize** | | | | **6.26** | |
+| `xsend` | send this die's slice to its peers (P2P stores, fence, flag) | 111 / 111 | 12.8 | 1.42 | 50 projection, 49 contraction, 13 broadcast (112 sent; the profile times 111) |
+| `actq256` | quantize an activation to int8 + scale; where a die waits for its peers | 146 / 146 | 33.1 | 4.84 | |
+| **hyper-connection** | | | | **8.26** | |
+| `bf16hcrwx` | RMSNorm of the stream + hc down and inject (BF16), plus the pending stream write | 48 / 48 | 40.3 | 1.93 | 48 projection |
+| `bf16hcrx` | the same without the pending write | 49 / 49 | 32.0 | 1.57 | 49 projection |
+| `bf16hcup` | SiLU + hc up + lane mix + inbox write | 97 / 97 | 25.3 | 2.46 | 97 projection |
+| `hcwsum` | stream write with the MoE partials' fixed-order sum fused in | 48 / 48 | 47.9 | 2.30 | |
+| **MoE** | | | | **5.14** | |
+| `router` | router GEMV and softmax | 48 / 48 | 23.3 | 1.12 | |
+| `moesel` | top-10 expert selection | 48 / 48 | 5.6 | 0.27 | |
+| `q2moegn` | expert gate and up GEMVs (Q2_0), this die's share of the experts | 96 / 96 | 18.4 | 1.77 | |
+| `ffnact` | SiLU(gate) · up, quantized for the down projection | 48 / 48 | 13.0 | 0.62 | |
+| `q2moedn` | expert down GEMV (Q2_0) | 48 / 48 | 21.2 | 1.02 | |
+| `q2k2560`, `q2acc640`, `b32q40acc`, `b32q50acc`, `b32iq4nlacc` | shared-expert and other small matrices in their own formats | 20 / 24 | 15–26 | 0.34 | |
+| **projections (GEMV by weight format and input length K)** | | | | **6.61** | |
+| `q3kk2560` | Q3_K, K = 2560 | 50 / 49 | 34.2 | 1.71 | |
+| `bf16k2560` | BF16, K = 2560 | 49 / 53 | 27.8 | 1.36 | |
+| `iq4k2560`, `iq4k6144` | IQ4_XS, K = 2560 / 6144 | 19 + 17 / 22 + 17 | 42.8 / 33.1 | 0.81 + 0.56 | |
+| `q4kk2560`, `q4kk6144` | Q4_K, K = 2560 / 6144 | 8 + 15 / 11 + 15 | 35.3 / 29.4 | 0.28 + 0.44 | |
+| `q5kk2560`, `q5kk6144` | Q5_K, K = 2560 / 6144; one `q5kk2560` is the share of the 248,320-row output head (0.69 ms, the longest phase) | 1 + 7 / 4 + 7 | 688 / 41.0 | 0.69 + 0.29 | |
+| `q6kk1536`, `q6kk1536acc` | Q6_K, K = 6144 as four K = 1536 slices summed in a fixed order | 6 + 18 / 6 + 18 | 18.3 / 13.6 | 0.11 + 0.24 | |
+| `q3kk6144` | Q3_K, K = 6144 | 3 / 3 | 35.2 | 0.11 | |
+| **DeltaNet (36 blocks)** | | | | **1.53** | |
+| `bf16bias` | BF16 GEMV with bias | 36 / 36 | 7.0 | 0.25 | |
+| `conv1d` | causal conv (k = 4) + SiLU | 36 / 36 | 5.7 | 0.20 | |
+| `dnstep` | the recurrence step (state update, read-out) | 36 / 36 | 18.1 | 0.65 | |
+| `dnnormx` | output norm and gate, quantized | 36 / 36 | 11.8 | 0.42 | 36 projection |
+| **attention (12 layers, 4 on each attention die)** | | | | **0.48 on an attention die** | |
+| `attnqkq` | q/k norm, RoPE, KV append | 0 / 4 | 6.1 | 0.02 | |
+| `idxqk`, `idxscore` | indexer q·k and block scores | 0 / 4 + 4 | 5.6 / 4.4 | 0.04 | |
+| `idxsel` | the five top-k selection passes of the indexer | 0 / 20 | 3.9 | 0.08 | |
+| `kvgather` | gather the admitted KV blocks | 0 / 4 | 18.9 | 0.08 | |
+| `attnpartn`, `attnmerge` | partial attention over the gathered keys, merge | 0 / 4 + 4 | 57.1 / 9.0 | 0.23 + 0.04 | |
+| **embedding, PLE step, picking the token** | | | | **0.15** | |
+| `xcopy` | copy the embedding stream that arrived from the die holding `token_embd` | 1 / 1 | 33.8 | 0.03 | |
+| `plerows` | PLE: the 16 n-gram rows from the host (waits until the host has read them) | 1 / 1 | 57.3 | 0.06 | |
+| `rms2560` | PLE norms of the key, the query and the conv input | 3 / 3 | 8.2 | 0.02 | |
+| `plegate` | PLE gates | 1 / 1 | 6.1 | 0.01 | |
+| `pleconv` | PLE conv over the last 4 tokens | 1 / 1 | 9.2 | 0.01 | |
+| `argmax` | this die's largest logit and its index, over its share of the output head (greedy; the sampler has its own `topk` and `sample`) | 1 / 1 | 11.3 | 0.01 | |
+| `amax` | the largest of the six dies' pairs: the token | 1 / 1 | 7.2 | 0.01 | |
 
-**Exchanges per token: 342, the same on every die.** Each die sends its slice to the other five and waits for theirs.
-
-| Exchange | Type | Per token | Done by |
-|---|---|---|---|
-| hyper-connection down + inject (2 per block, 1 in the output head) | projection (gather) | 97 | fused into `bf16hcrwx`, `bf16hcrx` |
-| hyper-connection up (2 per block, 1 in the output head) | projection (gather) | 97 | fused into `bf16hcup` |
-| DeltaNet output norm and gate | projection (gather) | 36 | fused into `dnnormx` |
-| `ssm_out` / `attn_output` result (1 per block) | projection (gather) | 48 | `xsend` |
-| PLE key and value | projection (gather) | 2 | `xsend` |
-| **projections** | | **280** | |
-| MoE expert partial sums (1 per block), added in a fixed order | contraction (sum) | 48 | `xsend`, then `hcwsum` |
-| argmax (max, index) pairs of the output head | contraction (reduce) | 1 | `xsend`, then `amax` |
-| **contractions** | | **49** | |
-| attention output, from the die that ran the layer to all | broadcast | 12 | `xsend` |
-| token embedding, from the die holding `token_embd` | broadcast | 1 | `xsend`, then `xcopy` |
-| **broadcasts** | | **13** | |
-
-A DeltaNet block makes 6 projection exchanges and 1 contraction, an attention block 5 projections, 1
-broadcast and 1 contraction. 230 of the 342 are fused into the GEMV that produces the data, which
-writes straight into the peers' memory; the other 112 are `xsend` phases (the profile lists 111,
-because it does not time a token's first phase).
+Each token makes 342 exchanges, the same on every die: 280 projections (every die gathers the slices of a row-split result), 49 contractions (the MoE partial sums and the argmax pairs, summed across dies in a fixed order) and 13 broadcasts (the 12 attention outputs and the token embedding). The last column counts them; 230 are carried by the GEMV phases that produce the data and 112 by `xsend`.
 
 The counts follow the model: 48 means once per block, 36 once per DeltaNet block, 4 once per
 attention layer on a die that holds four. Each block pays one `router`, `moesel`, `ffnact` and
