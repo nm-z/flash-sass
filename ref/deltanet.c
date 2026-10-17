@@ -14,8 +14,7 @@ void l2norm128_gpu(const float *q, float eps, float *qn) {
 		for (int l = 0; l < 32; l++) t[l] = v[l] + v[l ^ o];
 		memcpy(v, t, sizeof v);
 	}
-	float nrm = sqrtf(v[0]);
-	if (nrm < eps) nrm = eps;        /* max(nrm, eps) */
+	float nrm = sqrtf(v[0] + eps);   /* sqrt(sum(x x) + eps): Transformers and flash-linear-attention put eps inside the root; this was max(sqrt(sum), eps), ggml_l2_norm's form (issue #2) */
 	float r = rcp_gpu(nrm);
 	for (int i = 0; i < 128; i++) qn[i] = q[i] * r;
 }
