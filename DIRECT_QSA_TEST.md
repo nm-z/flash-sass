@@ -7,7 +7,7 @@ The default inputs are fixed FP32[2560] activations and deterministic BF16 proje
 ```sh
 make -C kern qsa_direct_test die.cubin
 cd kern
-CUDA_VISIBLE_DEVICES=GPU-... python3 run_qsa_direct_matrix.py --out /tmp/qsa-direct-results
+CUDA_VISIBLE_DEVICES=GPU-... perl run_qsa_direct_matrix.pl --out /tmp/qsa-direct-results
 ```
 
 Reserve one idle GPU first. The matrix covers N=1, 2047..2058, 3100..3103, 8000..8003, 65000..65003, 262000..262003 and the last supported position 262144, with production block budget 512 and both pinned-host and VRAM KV. It also checks sequential seeding for a manageable 64-token prefix, additional seeds, equal/adjacent cutoff scores and oldest/newest/clustered/scattered selections. `--quick` is explicitly a subset. Negative controls inject selected-ID, gather and final-output mismatches and require exit 3.
