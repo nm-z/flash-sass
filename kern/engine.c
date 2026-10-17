@@ -17,6 +17,7 @@
 #include "timings.h"
 static __thread flash_timing last_timing;
 static __thread int last_timing_valid;
+static __thread double timing_request_start, timing_run_start;
 #include "core.h"
 #include <setjmp.h>
 #include <cuda.h>
@@ -27,6 +28,8 @@ static __thread int last_timing_valid;
 #include <fcntl.h>
 #include <unistd.h>
 #include <signal.h>
+#include <errno.h>
+#include <limits.h>
 #include <poll.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -147,6 +150,7 @@ typedef struct {
 static void abort_run(runctx *r) {
 	/* the client is gone: every die ends the turn when its token count reaches a value a few tokens ahead of all of
 	   them (the dies are within one token of each other), so they stop together */
+	last_timing.aborted = 1;
 	r->aborted = 1; *h_abort = (uint32_t)r->count + 8;
 	if (*h_abort < (uint32_t)r->ntok) for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoDAsync(dCTL[d] + 0x18, h_abort, 4, pollst[d])); CK(cuStreamSynchronize(pollst[d])); }
 	CK(cuCtxSetCurrent(ctx[0]));
@@ -202,9 +206,14 @@ static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 		CK(cuMemcpyDtoHAsync(h_tok, dCTL[0] + 0x8, 4, pollst[0])); CK(cuStreamSynchronize(pollst[0]));
 		r->count = (int)(*h_tok & 0x7fffffffu); r->ended = (int)(*h_tok >> 31);
 		if (r->count > r->T) r->count = r->T;
+        /* TLS checkpoints survive CUDA longjmp; counters are a lower bound until final sync. */
+        last_timing.completed=r->count;last_timing.stop_known=0;
+        last_timing.aborted=r->aborted;last_timing.counts_known=1;
+        last_timing.run_ms=(now()-timing_run_start)*1e3;
 		if (r->count > r->sent) {
 			CK(cuMemcpyDtoHAsync(h_toks + r->sent, db[0].toks + 4u * (unsigned)r->sent, 4 * (size_t)(r->count - r->sent), pollst[0])); CK(cuStreamSynchronize(pollst[0]));
 			if (!r->tfirst) r->tfirst = now();
+            last_timing.first_valid=1;last_timing.first_ms=(r->tfirst-timing_run_start)*1e3;
 			uint64_t observed = trace_n ? host_ns() : 0;
 			for (; r->sent < r->count; r->sent++) {
 				int ti = trace_slot(r->sent);
@@ -290,18 +299,24 @@ static int prepare_images(const engine_img *imgs, int nimg, int nprompt, int T) 
 }
 
 int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], const sampling *sm, int snap_at, const engine_img *imgs, int nimg, const engine_cb *cb, run_stats *st) {
-	last_timing_valid=0;
-	int T = nprompt + n_new;
-	trace_first = (unsigned)(nprompt - 1); trace_valid = 0;
-	if (nprompt < 1 || n_new < 0 || T > MAXT) return -1;
+    timing_request_start=now();timing_run_start=0;
+    last_timing=(flash_timing){.prompt=nprompt,.error_code=-1,.build_ms=NAN,.run_ms=NAN};
+    last_timing_valid=1;trace_valid=0;
+    if(!flash_timing_request_fits(nprompt,n_new,MAXT))return -1;
+    int T=nprompt+n_new;
+    trace_first=(unsigned)(nprompt-1);
 	trace_request++; memset(trace_host, 0, sizeof trace_host);
 	/* a CUDA error from here on unwinds to this point: the contexts are no longer usable, the core rebuilds them (return -2) */
 	in_run = 1;
-	if (setjmp(run_jb)) { in_run = 0; snap_s = 0; return -2; }
+    if(setjmp(run_jb)) {
+        in_run=0;snap_s=0;last_timing.error_code=-2;last_timing.counts_final=0;
+        if(timing_run_start)last_timing.run_ms=(now()-timing_run_start)*1e3;
+        else last_timing.build_ms=(now()-timing_request_start)*1e3;
+        return -2;
+    }
 	memcpy(h_ids, ids, 4 * (size_t)nprompt); memset(h_ids + nprompt, 0, 4 * (size_t)(T + 2 - nprompt));
 	int irc = prepare_images(imgs, nimg, nprompt, T);
-	if (irc) { in_run = 0; return irc; }
-	double t0 = now();
+	if (irc) { in_run = 0; last_timing.error_code=irc;last_timing.build_ms=(now()-timing_request_start)*1e3;return irc; }
 	int samp_k = (sm && sm->temp > 0.f && sm->top_k >= 2) ? (sm->top_k > 32 ? 32 : sm->top_k) : 0;
 	float samp_topp = sm && sm->topp > 0.f ? sm->topp : 1.0f, samp_invT = samp_k ? 1.0f / sm->temp : 1.0f;
 	if (samp_k) {   /* u[t] in [0, 1): splitmix64 over the seed, 24 bits each */
@@ -311,6 +326,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	/* the prefix cache: resume from the snapshot if the prompt starts with its tokens (at least one prompt token must
 	   still run, to produce the logits of the last one) */
 	int resume = (snap_s > 0 && snap_s <= nprompt - 1 && !memcmp(ids, snap_ids, 4 * (size_t)snap_s)) ? snap_s : 0;
+    last_timing.resumed=resume;last_timing.completed=resume;last_timing.counts_known=1;last_timing.error_code=0;
 	if (snap_at > nprompt - 1) snap_at = nprompt - 1;
 	for (int i = 0; i < nimg; i++) if (snap_at > imgs[i].s) snap_at = imgs[i].s;   /* the snapshot would not know the image */
 	if (snap_at <= resume) snap_at = 0;
@@ -366,6 +382,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
         }
 	}
 	double t1 = now();
+    timing_run_start=t1;last_timing.build_ms=(t1-timing_request_start)*1e3;last_timing.run_ms=0;
 	runctx r = { .T = T, .nprompt = nprompt, .sent = nprompt - 1, .cb = cb };
 	ple_pump(&r, PLE_AHEAD);   /* the first rows are in place before the kernels start (the position they start at waits for its flag) */
 	if (snap_at) {   /* run the prompt up to the snapshot position, copy the states, go on */
@@ -378,12 +395,24 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	if (!r.aborted) run_segment(&r, nph, T);
 	double t2 = now();
 	if (trace_n && r.count > (int)trace_first) { trace_valid = (unsigned)r.count - trace_first; if (trace_valid > trace_n) trace_valid = trace_n; }
-	if (st) { st->ntok = r.count; st->ended = r.ended; st->nph = nph[0]; st->resumed = resume; st->snapshot = snap_at; st->build_ms = (t1 - t0) * 1e3; st->run_ms = (t2 - t1) * 1e3; st->first_ms = r.tfirst ? (r.tfirst - t1) * 1e3 : 0; }
+	if (st) { st->ntok = r.count; st->ended = r.ended; st->nph = nph[0]; st->resumed = resume; st->snapshot = snap_at; st->build_ms = (t1 - timing_request_start) * 1e3; st->run_ms = (t2 - t1) * 1e3; st->first_ms = r.tfirst ? (r.tfirst - t1) * 1e3 : 0; }
+    uint32_t model_stop_flag=0;CK(cuCtxSetCurrent(ctx[0]));
+    CK(cuMemcpyDtoH(&model_stop_flag,dCTL[0]+0x14,sizeof model_stop_flag));
     last_timing=(flash_timing){.prompt=nprompt,.resumed=resume,.completed=r.count,
-        .ended=r.ended,.aborted=r.aborted,.first_valid=(r.tfirst!=0),
-        .build_ms=(t1-t0)*1e3,.run_ms=(t2-t1)*1e3,
+        .ended=!!(model_stop_flag&0x80000000u),.stop_known=1,.aborted=r.aborted,.first_valid=(r.tfirst!=0),
+        .counts_known=1,.counts_final=1,.error_code=0,
+        .build_ms=(t1-timing_request_start)*1e3,.run_ms=(t2-t1)*1e3,
         .first_ms=r.tfirst?(r.tfirst-t1)*1e3:0};
     last_timing_valid=1;
+    /* Optional CTA-0 trace: all events below are die 0 SR_GLOBALTIMER.
+       Publication of the final token is the last phase's stage 7. */
+    if(trace_valid && prof_nph[0]>0) {
+        uint64_t begin[8],first[8],last[8];size_t phases=(size_t)prof_nph[0];
+        CK(cuCtxSetCurrent(ctx[0]));CK(cuMemcpyDtoH(begin,dTRACE[0],sizeof begin));
+        CK(cuMemcpyDtoH(first,dTRACE[0]+(phases-1)*64,sizeof first));
+        CK(cuMemcpyDtoH(last,dTRACE[0]+((size_t)trace_valid*phases-1)*64,sizeof last));
+        flash_timing_device(&last_timing,begin[0],first[7],last[7],trace_valid);
+    }
 
 	for (int d = 0; d < nd; d++) prog_free(&P[d]);
 	free(P);
@@ -605,13 +634,17 @@ int engine_session(FILE *in, FILE *out) {
 	uint32_t *ids = s_ids, *toks = s_toks;
 	uint32_t stop[2] = { 0xffffffffu, 0xffffffffu };
 	sampling smp = { 0, 0.f, 1.0f, 0 };   /* greedy until the client sends "sample" */
+	int emit_timing = 0;
 	int snap_req = 0;                     /* "snap <s>": take a prefix-cache snapshot after s positions of the next response */
 	char *line = NULL; size_t cap = 0; int quit = 0;
 	while (getline(&line, &cap, in) > 0) {
 		char *p = line; while (*p == ' ') p++;
         if(!strncmp(p,"chat",4)||!strncmp(p,"gen",3))last_timing_valid=0;
+        if(!strcmp(p,"timings on\n")||!strcmp(p,"timings on\r\n")){
+            emit_timing=1;fprintf(out,"ok: timings 1\n");fflush(out);continue;
+        }
         if(!strncmp(p,"timings",7)&&strspn(p+7," \t\r\n")==strlen(p+7)){
-            char json[2048];
+            char json[4096];
             if(!last_timing_valid)fprintf(out,"timings null\n");
             else if(!flash_timing_json(json,sizeof json,&last_timing))fprintf(out,"timings %s\n",json);
             else fprintf(out,"error: timing JSON overflow\n");
@@ -675,12 +708,14 @@ int engine_session(FILE *in, FILE *out) {
 		}
 		int chat = !strncmp(p, "chat", 4);
 		if (!chat && strncmp(p, "gen", 3)) { fprintf(out, "error: gen|chat <n_new> <id>... | stop [<id> [<id>]] | info | cubin <path> | quit\n"); fflush(out); continue; }
-		p += chat ? 4 : 3; char *end; long n_new = strtol(p, &end, 10); if (end == p || n_new < 0) { fprintf(out, "error: gen|chat <n_new> <id>...\n"); fflush(out); continue; }
+		p += chat ? 4 : 3; char *end; errno=0;long n_new = strtol(p, &end, 10); if (end == p || errno==ERANGE || n_new < 0 || n_new > INT_MAX) { fprintf(out, "error: gen|chat <n_new> <id>...\n"); fflush(out); continue; }
 		int nprompt = 0; p = end;
 		for (;;) { long v = strtol(p, &end, 10); if (end == p) break; if (nprompt + 2 >= MAXT) break; ids[nprompt++] = (uint32_t)v; p = end; }
 		run_stats st;
 		engine_cb cb = { chat ? put_token : NULL, client_gone, out };
 		int rc = engine_run(ids, nprompt, (int)n_new, stop, &smp, snap_req, pend, npend, &cb, &st);
+        /* Emit before done/error: a device fault closes this session for a rebuild. */
+        if(emit_timing && last_timing_valid){char json[4096];if(!flash_timing_json(json,sizeof json,&last_timing))fprintf(out,"timings %s\n",json);}
 		snap_req = 0; npend = 0;
 		if (rc == -3) { fprintf(out, "error: bad image data (a file, a position or too many image tokens)\n"); fflush(out); continue; }
 		if (rc == -2) { fprintf(out, "error: device fault; the core rebuilds the contexts and the engine\n"); fflush(out); free(line); return 3; }

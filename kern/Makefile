@@ -494,7 +494,7 @@ tok_test: tok_test.c tok.c tok.h ucd.h ../ref/gguf.c ../ref/gguf.h
 jinja_test: jinja_test.c jinja.c jinja.h json.c json.h
 	$(CC) -std=gnu99 -O2 -Wall -o $@ jinja_test.c jinja.c json.c -lm
 
-flashd: flashd.c tok.c tok.h jinja.c jinja.h json.c json.h ucd.h ../ref/gguf.c ../ref/gguf.h
+flashd: timings.h flashd.c tok.c tok.h jinja.c jinja.h json.c json.h ucd.h ../ref/gguf.c ../ref/gguf.h
 	$(CC) -std=gnu99 -O2 -Wall -o $@ flashd.c tok.c jinja.c json.c ../ref/gguf.c -I../ref -lm -lpthread
 
 sample_test: sample_test.c dieops.h ../ref/sample.c ../ref/sample.h ../ref/fmath.c
@@ -529,4 +529,4 @@ die_trace16.cubin: die_trace16.sass skel_die.cubin
 	$(MAXAS) -i die_trace16.sass $@
 
 timings_test: timings_test.c timings.h
-	$(CC) -std=gnu99 -O2 -Wall -Wextra -o $@ timings_test.c -lm
+	$(CC) -std=gnu99 -O2 -Wall -Wextra -UNDEBUG -o $@ timings_test.c -lm
