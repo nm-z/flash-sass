@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
 	CUresult r = cuCtxCreate_v2(&ctx, 0, dev);
 	if (r == CUDA_ERROR_ECC_UNCORRECTABLE) { printf("die %d: context refused (uncorrectable ECC pending)\n", die); return 3; }
 	if (r) { fprintf(stderr, "memtest: context %d\n", (int)r); return 1; }
-	CUdeviceptr ch[256]; int n = 0;
+	CUdeviceptr ch[256]; int n = 0, cur = -1;   /* cur: the chunk being written or read when a call fails (chunks come from the driver bottom-up) */
 	while (n < 256 && cuMemAlloc(&ch[n], CHUNK) == CUDA_SUCCESS) n++;
 	size_t fr = 0, tot = 0; cuMemGetInfo(&fr, &tot);
 	printf("die %d: %d x %zu MB allocated (%.2f of %.2f GiB; %zu MB left)\n", die, n, CHUNK >> 20, (double)n * CHUNK / (1u << 30), (double)tot / (1u << 30), fr >> 20);
@@ -30,10 +30,10 @@ int main(int argc, char **argv) {
 	const uint32_t pat[4] = { 0x00000000u, 0xffffffffu, 0xaaaaaaaau, 0x55555555u };
 	for (int p = 0; p < passes; p++)
 		for (int k = 0; k < 4; k++) {
-			for (int i = 0; i < n; i++) if ((r = cuMemsetD32(ch[i], pat[k], CHUNK / 4))) goto fail;
+			for (int i = 0; i < n; i++) { cur = i; if ((r = cuMemsetD32(ch[i], pat[k], CHUNK / 4))) goto fail; }
 			if ((r = cuCtxSynchronize())) goto fail;
 			for (int i = 0; i < n; i++) {
-				if ((r = cuMemcpyDtoH(h, ch[i], CHUNK))) goto fail;
+				cur = i; if ((r = cuMemcpyDtoH(h, ch[i], CHUNK))) goto fail;
 				for (size_t j = 0; j < CHUNK / 4; j++)
 					if (h[j] != pat[k]) { printf("die %d: chunk %d word %zu reads %08x, wrote %08x\n", die, i, j, h[j], pat[k]); return 4; }
 			}
@@ -43,6 +43,6 @@ int main(int argc, char **argv) {
 	return 0;
 fail:;
 	const char *s = "?"; cuGetErrorString(r, &s);
-	printf("die %d: %s\n", die, s);
+	printf("die %d: %s (while on chunk %d = %.3f-%.3f GiB of the allocation order, pattern pass)\n", die, s, cur, (double)cur * CHUNK / (1u << 30), (double)(cur + 1) * CHUNK / (1u << 30));
 	return r == CUDA_ERROR_ECC_UNCORRECTABLE ? 3 : 1;
 }
