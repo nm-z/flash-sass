@@ -71,10 +71,14 @@ See [BATCH.md](BATCH.md) and [PAIR_TESTING.md](PAIR_TESTING.md).
 | `idxsel` | the five top-k selection passes of the indexer | 0 / 20 | 3.9 | 0.08 |
 | `kvgather` | gather the admitted KV blocks | 0 / 4 | 18.9 | 0.08 |
 | `attnpartn`, `attnmerge` | partial attention over the gathered keys, merge | 0 / 4 + 4 | 57.1 / 9.0 | 0.23 + 0.04 |
-| **once per token** | | | | **0.15** |
+| **embedding, PLE step, picking the token** | | | | **0.15** |
 | `xcopy` | copy the embedding stream that arrived from the die holding `token_embd` | 1 / 1 | 33.8 | 0.03 |
-| `plerows`, `plegate`, `pleconv`, `rms2560` ×3 | the PLE (n-gram) step: the 16 host rows, gates, conv, norms | 1, 1, 1, 3 | 57 / 6 / 9 / 8 | 0.10 |
-| `amax`, `argmax` | pick the token (greedy; the sampler has its own `topk` and `sample` phases) | 1 / 1 | 7 / 11 | 0.02 |
+| `plerows` | PLE: the 16 n-gram rows from the host (waits until the host has read them) | 1 / 1 | 57.3 | 0.06 |
+| `rms2560` | PLE norms of the key, the query and the conv input | 3 / 3 | 8.2 | 0.02 |
+| `plegate` | PLE gates | 1 / 1 | 6.1 | 0.01 |
+| `pleconv` | PLE conv over the last 4 tokens | 1 / 1 | 9.2 | 0.01 |
+| `argmax` | this die's largest logit and its index, over its share of the output head (greedy; the sampler has its own `topk` and `sample`) | 1 / 1 | 11.3 | 0.01 |
+| `amax` | the largest of the six dies' pairs: the token | 1 / 1 | 7.2 | 0.01 |
 
 **Exchanges per token: 342, the same on every die.** Each die sends its slice to the other five and waits for theirs.
 
