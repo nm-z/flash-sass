@@ -19,7 +19,7 @@ static uint32_t urand(void) { rs = rs * 1664525u + 1013904223u; return rs >> 8; 
 
 int main(void) {
 	const size_t R = 1u << 20;                   /* rows in the fake table */
-	const uint32_t absent = 248044, endid = 248046;
+	const uint32_t absent = PLE_EOS_TOKEN, endid = getenv("PLE_DISTINCT_IDS") ? 248046u : PLE_EOS_TOKEN;
 	uint64_t off[16], voc[16];
 	for (int h = 0; h < 16; h++) { off[h] = (uint64_t)h * 65000; voc[h] = 60000 + 13 * h; }
 	CK(cuInit(0));
@@ -44,6 +44,7 @@ int main(void) {
 	const int T = 40;
 	uint32_t ids[40];
 	for (int i = 0; i < T; i++) ids[i] = urand() % 248320;
+	ids[0] = 42; ids[1] = 248046; ids[2] = 198;
 	ids[10] = endid; ids[20] = endid; ids[21] = endid; ids[30] = absent;
 	CUdeviceptr dIDS, dPC, dG, dROWS;
 	CK(cuMemAlloc(&dIDS, 4 * T)); CK(cuMemAlloc(&dPC, 160)); CK(cuMemAlloc(&dG, 2560 * 4)); CK(cuMemAlloc(&dROWS, 64));

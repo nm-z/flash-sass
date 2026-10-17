@@ -1,5 +1,80 @@
 # Spec: Flash-Next persistent SASS kernel on archy's 4× M60
 
+## Current implementation and evidence (2026-10-17)
+
+This section describes [source 267141f](https://github.com/nm-z/flash-sass/tree/267141f98e47f38625c1bf60be03678d6089c913).
+Later sections retain development history and proposals; statements that the indexer or on-demand PLE is absent are superseded by the implementation described here.
+The initial “Rules” describe the design target, including MTP, rather than a claim that every item is implemented.
+
+### Sparse attention: logical keys, scan work, and retained memory
+
+Let **N** be visible positions including the current token after append, **B=floor(N/4)** complete blocks, and **r=N mod 4** tail positions.
+At the default block budget of 512, the logical attended-key count is **4 min(B,512)+r**, at most 2051.
+Every key is retained through N=2051. The first excluded complete block is at **N=2052**, when 513 complete blocks compete for 512 slots.
+Only the unfinished tail is unconditional; a completed block, including the newest one, can be excluded.
+Exclusion applies to that attention operation. Stored historical KV is not evicted. See [qsa_nkeys and gather](https://github.com/nm-z/flash-sass/blob/267141f98e47f38625c1bf60be03678d6089c913/ref/qsa.c#L50-L70).
+
+| Visible positions N | Complete blocks | Tail | Selected logical keys | Excluded complete blocks |
+|---:|---:|---:|---:|---:|
+| 2048 | 512 | 0 | 2048 | 0 |
+| 2051 | 512 | 3 | 2051 | 0 |
+| 2052 | 513 | 0 | 2048 | 1 |
+| 3100 | 775 | 0 | 2048 | 263 |
+| 8000 | 2000 | 0 | 2048 | 1488 |
+| 65000 | 16250 | 0 | 2048 | 15738 |
+| 262000 | 65500 | 0 | 2048 | 64988 |
+
+Bounded selected attention does **not** make all decode work constant: indexer score/selection scans grow with B, and retained caches grow with N.
+At capacity MAXT, allocations round positions to `maxp=(MAXT+127)&~127`.
+Across twelve attention layers, raw INT8 KV plus FP16 scales uses **12×1088×maxp bytes**; pooled keys add **12×64×maxp bytes**.
+These formulas exclude compact scratch, query/key rings, DeltaNet/conv/PLE state, snapshots, images, weights and allocator overhead.
+
+| Engine capacity | Rounded maxp | Raw KV + scales | Pooled keys |
+|---:|---:|---:|---:|
+| 230000 | 230016 | 3,003,088,896 B (2.797 GiB) | 176,652,288 B (0.165 GiB) |
+| 262144 | 262144 | 3,422,552,064 B (3.188 GiB) | 201,326,592 B (0.188 GiB) |
+
+These are allocation arithmetic, not measured free memory. GB uses 10^9 bytes; GiB uses 2^30.
+Physical gather rows include block/tail padding and are distinct from logical attended keys.
+**65000 blocks means 260000 complete tokens**; a 65000-token prompt has 16250 complete blocks.
+The historical 250 µs indexer figure names blocks, not tokens, and is a component measurement under its recorded conditions.
+
+### Runtime defaults and execution
+
+- The [library](https://github.com/nm-z/flash-sass/blob/267141f98e47f38625c1bf60be03678d6089c913/kern/engine.c#L354-L376) defaults to host KV when `FLASH_KV_HOST` is unset.
+  The [serve launcher](https://github.com/nm-z/flash-sass/blob/267141f98e47f38625c1bf60be03678d6089c913/kern/serve.sh#L45-L46) defaults to VRAM KV, a 262144-position core, and a 230000-position engine limit.
+  The runtime `config` command is the authority for a measurement's realized placement, capacity, layers, block budget, split, die mapping, and cubin identity.
+- `FLASH_NBLK` accepts 1..4096 and defaults to 512. A larger budget changes the exclusion boundary. A run with 4096 blocks is still uncapped at both 3100 and 8000 positions.
+- Production descriptors enable QSA. The legacy `model_test` dense path is a separate baseline; its success alone does not validate the production append/indexer/selection/gather chain ([#9](https://github.com/nm-z/flash-sass/issues/9)).
+- The five `idxsel` passes are **phases within the persistent program**. They are not five host CUDA launches.
+  Execution uses one launch per participating die **per run segment**. Creating a prefix snapshot can split a request into two segments.
+  Prefill remains serial at this source revision; multi-sequence scheduling/chunking is [#7](https://github.com/nm-z/flash-sass/issues/7).
+- Optional `FLASH_PLE_DISK` is implemented: the host stages 16 compressed 90-byte rows per position and publishes readiness to the waiting PLE phase.
+  The full resident-table mode and the disk mode have different RAM, storage-cache, host-polling and PCIe behavior.
+  New disk-staging and PCIe-link results do not identify the settings of the older throughput record.
+  Explicit disk I/O failure propagation is tracked in [#24](https://github.com/nm-z/flash-sass/issues/24).
+
+### Claim, source, and validation status
+
+| Claim | Source / work item | Status at the reviewed source |
+|---|---|---|
+| Production uses capped QSA | `engine.c`, `prog.c:ph_attn_qsa` | Implemented; whole-model QSA acceptance tracked in #9 |
+| Local scalar twins mirror chosen instruction order | `ref/qsa.c`, `ref/attn.c`, `ref/fmath.c` | Local parity contract; not original-checkpoint quality evidence |
+| Omitting positive score scale preserves ordering | #11 | True for exact-real strict order; rounded FP32 scaling can create ties and change selected IDs |
+| Attention CTA remap improves work distribution | `6672543`, #12 | Source permutation implemented; GPU equality/timing evidence belongs to its dedicated validation PR |
+| 36 / 28 / 19 tok/s historical record identifies a cause | #10 | Executable/configuration provenance missing; cause unproven |
+| Current HTTP decode includes prefill | `flashd.c`, #15 | Incorrect: its denominator already excludes first-observed-token time; CLI's legacy average uses another interval |
+| Independent numerical agreement and checkpoint quality | #22 | Separate experiments; missing cases must remain unmeasured |
+| MTP and IndexCache performance claims | Development plans below | MTP is planned here; IndexCache is an optional approximation that can change outputs |
+
+Positive score scaling preserves order over real numbers, but FP32 rounding can merge distinct scores at the cutoff.
+The pinned reference's pool dtype, FP32 division and backend-dependent top-k ties must be compared with the local FP16 pool and deterministic lower-ID tie rule.
+See [#11](https://github.com/nm-z/flash-sass/issues/11) for the executable contract and counterexample.
+External papers describe their own algorithms and experiments; they do not validate this implementation's precision, quality, or performance.
+
+## Historical design and implementation log
+
+
 Status (2026-10-16): the whole model runs on six dies as one persistent kernel per die per
 response and reproduces llama.cpp greedily; the sections at the end ("State at the end of 2026-10-16", "Chat serving",
 "Sampling, abort, and the persistent core", "After the reset") are the current ones. The
@@ -515,7 +590,7 @@ the hyper-connection norms, `ssm_norm`, q/k norms, indexer norms and PLE norms.
 - **DeltaNet head step** `kern/dnstep.sass` (twin `deltanet_step_gpu`): one CTA
   per value head; value-major 128×128 fp32 state; thread (g, p) owns 4 columns
   × 16 keys (coalesced 64 B column pieces); warps 0/1 L2-normalise q/k (IEEE
-  sqrt and rcp, max with eps), warp 2 copies v and computes α = exp(ssm_a ·
+  sqrt and rcp, eps added to the sum of squares before the root), warp 2 copies v and computes α = exp(ssm_a ·
   softplus(a)), β = σ(b) with fmath; decay, 16-term FFMA chains per column with
   xor 1/2/4 part reductions, e = v − r, be = β e, rank-1 update, readout with q̂,
   × 1/√128. **Bit-exact on all 48 heads (state and output)** for both key-head
@@ -601,9 +676,9 @@ the hyper-connection norms, `ssm_norm`, q/k norms, indexer norms and PLE norms.
   (kvalues table in smem) into G[160 h + j]. One warp, lane = head. The
   metadata used: multipliers [23703573157769, 20109073645365, 8052911324071],
   head offsets 0, 20000003, …, 300001275, head vocabularies the 16 primes near
-  2·10⁷ (`ggufhdr … kv qwen4exp.ple.*`), ends = {tokenizer eos 248046}, absent =
-  ple.eos_token_id 248044 (cx-flash: `ends` from `tokenizer.ggml.eos_token_id`,
-  `absent` from `ple.eos_token_id`).
+  2·10⁷ (`ggufhdr … kv qwen4exp.ple.*`), ends = {ple.eos_token_id 248044}, absent = ple.eos_token_id 248044.
+  (Earlier this read `ends = {tokenizer eos 248046}` after cx-flash, which takes `ends` from `tokenizer.ggml.eos_token_id`; llama.cpp qwen4exp and
+  Transformers use `ple_eos_token_id` for both the reset and the fill, issue #1.)
 - **plegate** (`kern/plegate.sass`, twin `ple_gate_gpu`): 4 CTAs (lane l): s_l =
   Σ k̂·Q over the lane's 2560 (per-thread chains, butterfly, warps in order),
   s' = s·(1/√2560), γ = σ(sign(s')·√max(|s'|, 1e-6)) with the IEEE sqrt
