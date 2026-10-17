@@ -1,0 +1,9 @@
+flashcore: PLE rows are read from /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf on demand (FLASH_PLE_DISK): 1 MB pinned instead of 28.8 GB, no table load
+flashcore: 6 dies, weights and PLE table resident after 1 s
+engine: 2 sequence slots, 256 positions per slot, prefill quantum 1 (B=1 time slicing)
+engine: 6 dies, 48 blocks, up to 256 positions, 92 MB of buffers per die, ready in 1.1 s
+flashcore: engine /home/nate/claude/flash-sass-prs/sequence-build-c67d391/kern/libengine.so ready in 1.1 s
+ready
+flashcore: listening on /tmp/flash-owned-slots2-kv0-q1-b1-pair0.sock
+engine: die 1 finished its launch (token count 2 of 2)
+engine: die 1 finished its launch (token count 96 of 96)

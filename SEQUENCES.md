@@ -30,3 +30,9 @@ perl kern/sequence_check.pl /path/to/test-core.sock sequence-results.json
 ```
 
 Use both `FLASH_QUANTUM=1` and a larger quantum, and test both KV placements when memory permits. Set `FLASH_NBLK=1` in a small-context integration run to exercise selection and gather while two slots are interleaved; also preserve a run with the production budget of 512. A CUDA build or CPU scheduler pass alone does not establish model output equivalence. Exact tested commits, commands and results belong in `validation/issue-7/`.
+
+## Resident-model regression on archy
+
+Source `c67d391c8d04e790d1b25a4ced31e5515c41e7fe` was built and executed on archy using the existing six weight holders and fresh owned core sockets. Both complete sequence matrices passed: VRAM KV with budget 1 and quantum 1, and host KV with budget 512 and quantum 8. Each used two 256-position slots, all 48 layers, disk PLE and one image row. Greedy and seeded serial/interleaved outputs, independent snapshot creation/resume, short-decode progress during a long prefill, stop, cancellation/reuse and image/text isolation passed. The real checkpoint tokenizer output tests and CPU scheduler tests also passed on archy.
+
+Raw request/response records, commands, exit codes, GPU identities, build hashes and configuration are in [validation/issue-7/archy-c67d391](validation/issue-7/archy-c67d391). This matrix validates multi-slot scalar execution. Single-slot paired execution has a separate integration regression; it is not inferred from these passes.
