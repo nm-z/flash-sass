@@ -314,12 +314,13 @@ $o .= "--:-:-:-:6      LOP32I.AND t3, tid, 0x3;\n--:-:-:-:6      IADD t3, t3, tb
     $o .= "--:5:4:-:1      LDS.64 pa0, [ps];\n";
     $o .= "--:5:4:-:1      LDS.64 pa2, [ps+0x8];\n";
     $o .= "--:5:4:-:6      LDS.64 pa4, [ps+0x10];\n";
+    # P0 needs >=18 scheduled cycles before its first FFMA; do not rely on cache misses.
     $o .= "\nVLOOP:\n";
-$o .= "--:-:-:-:6      IADD t2, t3, 4;\n--:-:-:-:1      ISETP.LT.U32.AND P0, PT, t3, param_n, PT;\n--:-:-:-:1      ISETP.LT.U32.AND P1, PT, t2, param_n, PT;\n";
+$o .= "--:-:-:-:6      IADD t2, t3, 4;\n--:-:-:-:6      ISETP.LT.U32.AND P0, PT, t3, param_n, PT;\n--:-:-:-:6      ISETP.LT.U32.AND P1, PT, t2, param_n, PT;\n";
     $o .= "--:3:2:-:1      LDG.E.CI.128 vb0, [vp+0x2000];\n";
     $o .= "--:5:6:-:1      LDS.64 pb0, [ps+0x60];\n";
     $o .= "--:5:6:-:1      LDS.64 pb2, [ps+0x68];\n";
-    $o .= "--:5:6:-:1      LDS.64 pb4, [ps+0x70];\n";
+    $o .= "--:5:6:-:6      LDS.64 pb4, [ps+0x70];\n";
     my $first = 1;
     for my $h (0..5) { for my $i (0..3) {
         $o .= sprintf "%s:-:-:-:1      \@P0 FFMA %s, pa%d, va%d, %s;\n", $first ? '09' : '--', $vreg->($h, $i), $h, $i, $vreg->($h, $i);
