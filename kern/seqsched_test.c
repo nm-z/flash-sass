@@ -17,14 +17,16 @@ static void wait_issued(unsigned long long n) {
  double start=0;
  for (;;) {
   pthread_mutex_lock(&s.mu); int ready=s.issued >= n; pthread_mutex_unlock(&s.mu);
-  if (ready) return; deadline_yield(&start);
+  if (ready) return;
+  deadline_yield(&start);
  }
 }
 static void wait_admission(void) {
  double start=0;
  for (;;) {
   pthread_mutex_lock(&s.mu); int ready=s.head != NULL; pthread_mutex_unlock(&s.mu);
-  if (ready) return; deadline_yield(&start);
+  if (ready) return;
+  deadline_yield(&start);
  }
 }
 static void *ordered(void *p) {

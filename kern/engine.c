@@ -291,7 +291,7 @@ static int prepare_images(const engine_img *imgs, int nimg, int nprompt, int T) 
 			h_imap[g->s + (int)k] = (uint32_t)(rows + (int)k);
 			pos3[g->s + (int)k][0] = (uint32_t)L + rel[3 * k]; pos3[g->s + (int)k][1] = (uint32_t)L + rel[3 * k + 1]; pos3[g->s + (int)k][2] = (uint32_t)L + rel[3 * k + 2];
 		}
-		fclose(f); free(e); 
+		fclose(f); free(e);
 		if (!bad) { t = g->s + (int)hd[0]; L += (long)hd[3]; rows += (int)hd[0]; }
 		free(rel);
 	}

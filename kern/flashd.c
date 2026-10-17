@@ -250,7 +250,7 @@ static void chat(int fd, const char *body, size_t bn) {
 	char *prompt = jinja_render(TPL, a, vars, &pn, err, sizeof err);
 	if (!prompt) { error(fd, 400, err); arena_free(a); return; }
 
-	
+
 	uint32_t *ids = malloc(4 * (pn + 16));
 	int np = encode(V, prompt, pn, 1, ids, (int)pn + 16);
 	if (np < 1 || np + 1 >= POSITIONS) {
@@ -329,7 +329,7 @@ static void chat(int fd, const char *body, size_t bn) {
 	}
 	if (!done && !g.gone && !g.cap_hit) failed = 1;   /* the engine's stream ended without its "done" line: the response is not complete */
 	fclose(in); fclose(out);
-	
+
 	free(prompt);
 	if (failed) {   /* an engine error or an engine that went away is an error to the client, not a normal completion with finish_reason "length" */
 		fprintf(stderr, "flashd: the engine failed during the response (%ld reasoning + %ld answer tokens had been generated)\n", g.n_reason, g.n_answer);
