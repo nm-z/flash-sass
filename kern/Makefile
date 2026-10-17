@@ -504,6 +504,9 @@ sample_test: sample_test.c dieops.h ../ref/sample.c ../ref/sample.h ../ref/fmath
 qsa_test: qsa_test.c dieops.h ../ref/qsa.c ../ref/qsa.h ../ref/attn.c ../ref/attn.h ../ref/fmath.c ../ref/quant.c ../ref/gguf.c
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ qsa_test.c ../ref/qsa.c ../ref/attn.c ../ref/fmath.c ../ref/quant.c ../ref/gguf.c -I../ref -I$(CUDA)/include -lcuda -lm
 
+attnpartn_unitmap: attnpartn_unitmap.c
+	$(CC) -std=gnu99 -O2 -Wall -Wextra -o $@ $<
+
 # ---- the vision encoder daemon (libmtmd from a llama.cpp build; LLAMA_CPP names its tree) ----
 LLAMA_CPP ?= $(HOME)/claude/llama.cpp-up
 flashvis: flashvis.c
