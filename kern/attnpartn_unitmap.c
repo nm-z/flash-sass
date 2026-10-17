@@ -5,13 +5,24 @@
 #include <string.h>
 static void old_(int b, int *kv, int *hh, int *c) { *c = b & 7; *hh = (b >> 3) & 1; *kv = b >> 4; }
 static void new_(int b, int *kv, int *hh, int *c) { *c = b >> 2; *hh = (b >> 1) & 1; *kv = b & 1; }
-int main(void) {
+int main(int argc, char **argv) {
+	int duplicate = argc == 2 && !strcmp(argv[1], "--inject-duplicate");
+	int missing = argc == 2 && !strcmp(argv[1], "--inject-missing");
+	if (argc > 2 || (argc == 2 && !duplicate && !missing)) {
+		fprintf(stderr, "usage: %s [--inject-duplicate|--inject-missing]\n", argv[0]); return 2;
+	}
+	int bad = 0;
 	void (*dec[2])(int, int *, int *, int *) = { old_, new_ }; const char *nm[2] = { "old", "new" };
 	for (int m = 0; m < 2; m++) {   /* a bijection of the 32 unit ids onto (kv, hh, c) */
 		int seen[2][2][8]; memset(seen, 0, sizeof seen); int ok = 1;
-		for (int b = 0; b < 32; b++) { int kv, hh, c; dec[m](b, &kv, &hh, &c); if (kv > 1 || hh > 1 || c > 7 || seen[kv][hh][c]++) ok = 0; }
+		for (int b = 0; b < 32; b++) {
+			if (missing && b == 31) continue;
+			int kv, hh, c; dec[m](duplicate && b == 31 ? 30 : b, &kv, &hh, &c);
+			if (kv < 0 || kv > 1 || hh < 0 || hh > 1 || c < 0 || c > 7 || seen[kv][hh][c]++) ok = 0;
+		}
 		for (int kv = 0; kv < 2; kv++) for (int hh = 0; hh < 2; hh++) for (int c = 0; c < 8; c++) if (seen[kv][hh][c] != 1) ok = 0;
 		printf("%s decode: %s\n", nm[m], ok ? "bijection onto (kv, hh, c)" : "NOT a bijection");
+		bad += !ok;
 	}
 	int ns[] = { 500, 1024, 2048, 2049, 2050, 2051, 4096, 8192 };
 	printf("%6s | %-34s | %-34s\n", "n keys", "old: busy units / CTAs / deepest CTA", "new: busy units / CTAs / deepest CTA");
@@ -25,5 +36,5 @@ int main(void) {
 		}
 		printf("%6d | %-34s | %-34s\n", n, col[0], col[1]);
 	}
-	return 0;
+	return bad ? 1 : 0;
 }

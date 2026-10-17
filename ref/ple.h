@@ -14,6 +14,9 @@
 #define PLE_NGRAM 3
 #define PLE_HEADS 16
 #define PLE_ROW_VALUES 160
+/* qwen4exp.ple.eos_token_id: the token that ends the n-gram history (everything at or before it in the window reads as this id) and the id a missing predecessor reads as.
+   NOT the tokenizer EOS (248046, <|im_end|>): llama.cpp uses ple_eos_token_id for both, see issue #1 */
+#define PLE_EOS_TOKEN 248044u
 extern const uint64_t ple_multipliers[PLE_NGRAM];
 extern const uint64_t ple_head_offsets[PLE_HEADS];
 extern const uint64_t ple_head_vocab[PLE_HEADS];

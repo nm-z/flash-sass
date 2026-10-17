@@ -124,7 +124,7 @@ static void emit_text(gen *g, const char *s, size_t n) {
 }
 static void on_token(gen *g, uint32_t id) {
 	if (id == ID_THINK_END) { g->in_think = 0; return; }
-	if (tok_is_special(V, id)) return;
+	if (tok_is_hidden(V, id)) return;   /* control and unknown tokens only: <tool_call> and </tool_call> are USER_DEFINED and are part of the answer */
 	if (g->in_think ? ++g->n_reason > REASONING_MAX : ++g->n_answer > ANSWER_MAX) { g->cap_hit = 1; return; }
 	char piece[256]; int n = tok_piece(V, id, piece, sizeof piece);
 	if (n > 0) emit_text(g, piece, (size_t)n);
