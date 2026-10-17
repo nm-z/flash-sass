@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Compare exact parent/remap cubins on one exclusively locked M60; keep raw evidence."""
-import argparse, fcntl, hashlib, json, os, pathlib, statistics, subprocess, sys, time
+import argparse, fcntl, hashlib, json, os, pathlib, re, statistics, subprocess, sys, time
 
 def record(path, data):
     pathlib.Path(path).write_text(json.dumps(data, indent=2) + "\n")
@@ -26,6 +26,8 @@ def main():
     p.add_argument("--seeds", default="0,77,4242"); p.add_argument("--repeats", type=int, default=32)
     p.add_argument("--instrumentation", default="none", help="literal build flags/patch identity if tracing")
     a = p.parse_args()
+    if not all(re.fullmatch(r"[0-9a-f]{40}", s) for s in (a.old_source, a.new_source, a.harness_source)):
+        p.error("source identities must be full 40-character git commit IDs")
     counts, seeds = [int(x) for x in a.keys.split(",")], [int(x) for x in a.seeds.split(",")]
     if min(counts)<1 or max(counts)>16384 or a.repeats<4 or a.repeats%2:
         p.error("keys 1..16384 and an even repetition count >=4 required")
