@@ -38,3 +38,14 @@ guard that exits 99. Invalid invocations must return 2 instead. The recorded
 43 cases passed on archy. Scalar tests passed on engi, including one-key attention,
 gather success and unchanged outputs on invalid calls. Raw logs and binary hashes
 are under validation/issue20.
+
+## Refreshed master integration
+
+Source 682433079f9d2d02682d32a0a1b2407c50a06488 includes the current master fixes.
+The archy build of checked_test, qsa_test and attn_test succeeded; the scalar
+suite passed and all 46 invalid CLI cases returned 2 before the CUDA traps.
+The outer SSH wrapper timed out at 30 seconds, so its exit 124 is retained
+separately from the completed child-case report. These are boundary tests;
+no successful GPU kernel execution is claimed by the CLI guard suite.
+Evidence is in validation/issue20/current-archy. The unsuccessful engi GPU
+link attempt is retained in current-engi; archy supplied the successful build.
