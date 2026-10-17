@@ -50,15 +50,15 @@ A plain die runs **1,154 phases** per token and an attention die **1,214**.
 Measured with `PROF_ALL=1 kern/prof.sh <die>` on the last token of a short greedy reply (six dies,
 `SPLIT_SHARES=112,97,81,116,97,97`; 27.95 ms per token, 35.9 tok/s). The table's plain-die numbers
 are from die 3 and its attention-die numbers from die 1. The profiler times a phase from the end of
-the previous one, so the first phase is untimed (1,153 and 1,213 below). Times (µs per run, ms per
+the previous one, so the first phase is untimed (1,153 and 1,213 below). Times (µs per phase, ms per
 token) are the plain die's, except the attention rows, which are the attention die's.
 
-Each row below is a *kind* of phase. The same kind shows up many times in one token's list (for
-example once per block), and each time it shows up is one **run**: all SMs of the die do that step,
-then hit the barrier. "Runs per token" counts those appearances, "µs per run" is how long one takes,
-and the last column is runs times µs.
+Each row below is a **kind** of phase (its name is the op the kernel runs). The same kind appears
+many times in one token's list, for example once per block, and each appearance is one phase. So
+"phases per token" is how many phases of that kind the token contains, "µs per phase" is how long
+one of them takes, and the last column is those two multiplied.
 
-| Phase | What it does | runs per token (plain die / attention die) | µs per run | ms per token, all runs together |
+| Kind | What it does | phases per token (plain die / attention die) | µs per phase | ms per token (all phases of this kind) |
 |---|---|---|---|---|
 | **exchange and quantize** | | | | **6.26** |
 | `xsend` | send this die's slice to its peers (P2P stores, fence, flag) | 111 / 111 | 12.8 | 1.42 |
