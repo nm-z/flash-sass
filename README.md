@@ -25,6 +25,15 @@ engine. Five BF16 variants share weight loads; remaining operations replay their
 arithmetic with separate position buffers. The final prompt token and generation stay B1.
 See [BATCH.md](BATCH.md) and [PAIR_TESTING.md](PAIR_TESTING.md).
 
+## Timing measurements
+
+[TIMINGS.md](TIMINGS.md) defines the shared CLI/HTTP timing schema, counts and
+rate denominators. Enable CLI records with `timings 1`; HTTP includes the same
+record under `timings.engine` and request/transport events under `timings.http`.
+Host-observed decode, device publication intervals and complete request timing
+are separate measurements. A request with fewer than two generated outputs has
+no measured decode interval rate. Optional device tracing and its validation
+commands are documented with the schema.
 
 #### Planned: 
 - MTP head
