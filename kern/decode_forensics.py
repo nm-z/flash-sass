@@ -33,12 +33,30 @@ def timeline(s):
     return {"components_us_per_token":parts,"device_us_per_token":exact,"reconciliation_residual_us":residual}
 def process(root,out,tag,traced):
     root=Path(root);manifest=load(root/"manifest.json");results=load(root/"results.json")
+    status=load(root/"status.json");exit_status=load(root/"exit.json")
+    if status.get("status")!="PASS" or exit_status.get("exit")!=0:raise ValueError("capture did not finish successfully")
+    if manifest["pairs"]!=5 or manifest["outputs"]!=129:raise ValueError("unexpected repetition or output count")
     configs=manifest["configs"]
+    if set(configs)!={"host","vram"} or configs["host"]["kv_host"]!="1" or configs["vram"]["kv_host"]!="0":
+        raise ValueError("missing paired KV placements")
+    if {k:v for k,v in configs["host"].items() if k!="kv_host"}!={k:v for k,v in configs["vram"].items() if k!="kv_host"}:
+        raise ValueError("unmatched realized configurations")
     for v in configs.values():
         if int(v["nblk"])!=512 or v["layers"]!="48/48":raise ValueError("unexpected model configuration")
-    inputs={};runs=[];phase=[];groups=defaultdict(list);skips=[]
+    inputs={};runs=[];phase=[];groups=defaultdict(list);skips=[];seen=set()
     for row in results:
-        if row["status"]!="complete":skips.append(row);continue
+        if row["status"]!="complete":
+            if row["status"]!="capacity_skip" or row["depth"]+128<=row["capacity"]:raise ValueError("unexpected rejected sample")
+            skips.append(row);continue
+        key=(row["depth"],row["pair"],row["placement"])
+        if key in seen or row["pair"] not in range(5) or row["placement"] not in configs:raise ValueError("duplicate or invalid pair")
+        seen.add(key)
+        observed=row["client_observed_ns"]
+        if len(observed)!=129 or row["intervals_ns"]!=[b-a for a,b in zip(observed,observed[1:])]:
+            raise ValueError("client intervals do not match raw observations")
+        if any(x<=0 for x in row["intervals_ns"]) or abs(sum(row["intervals_ns"])/1e6-row["client_decode_ms"])>1e-9:
+            raise ValueError("invalid client decode duration")
+        if row["done"]["generated"]!=129 or row["done"]["prompt"]!=row["depth"]:raise ValueError("wrong completion dimensions")
         if row["decode_intervals"]!=128 or len(row["generated_ids"])!=129 or row["done"]["ended"]:raise ValueError("invalid decode sample")
         if row["done"]["resumed"]!=row["depth"]-1:raise ValueError("missing prefix reuse")
         k=(row["depth"],row["pair"]);ids=row["generated_ids"]
@@ -63,8 +81,11 @@ def process(root,out,tag,traced):
             short["client_minus_device0_us_per_token"]=1000*short["client_ms_per_token"]-ds[0]["device_us_per_token"]
             phase.append({"depth":row["depth"],"pair":row["pair"],"placement":row["placement"],"dies":ds})
         runs.append(short);groups[(row["depth"],row["placement"])].append(short)
+    if status["runs"]!=len(runs):raise ValueError("capture count does not match results")
     summary=[]
     for (depth,placement),rows in sorted(groups.items()):
+        if len(rows)!=5 or len(groups.get((depth,"vram" if placement=="host" else "host"),[]))!=5:
+            raise ValueError("incomplete placement pairs")
         vals=[r["client_ms_per_token"] for r in rows]
         summary.append(dict(depth=depth,placement=placement,runs=len(rows),median_ms_per_token=statistics.median(vals),median_tok_s=1000/statistics.median(vals),p95_interval_ms=p95([n/1e6 for r in rows for n in r["intervals_ns"]]),per_run_ms_per_token=vals))
     result=dict(schema="flash-sass.decode-forensics.v1",tag=tag,traced=traced,manifest=manifest,summary=summary,capacity_skips=skips,runs=runs,note="Full model forward on fixed synthetic token IDs. No language/task quality claim. GPU epochs are local; do not sum complete die timelines.")
@@ -84,6 +105,6 @@ def main():
         da=s["die0_timeline"]["components_us_per_token"];db=e["die0_timeline"]["components_us_per_token"]
         witness[place]={"pair":2,"client_delta_us_per_token":1000*(e["client_ms_per_token"]-s["client_ms_per_token"]),"die0_delta_us_per_token":e["die0_timeline"]["device_us_per_token"]-s["die0_timeline"]["device_us_per_token"],"timeline_delta_us_per_token":{k:db[k]-da[k] for k in da},"distinct_attention_work_delta_us":{k:e["distinct_attention_layer_work_us"][k]-s["distinct_attention_layer_work_us"][k] for k in s["distinct_attention_layer_work_us"]}}
     save(out/"matched-phase-deltas.json",witness)
-    (out/"IDENTITIES.json").write_text(json.dumps({x.name:{"bytes":x.stat().st_size,"sha256":sha(x)} for x in out.iterdir() if x.is_file() and x.name!="IDENTITIES.json"},indent=2)+"\n")
+    (out/"IDENTITIES.json").write_text(json.dumps({str(x.relative_to(out)):{"bytes":x.stat().st_size,"sha256":sha(x)} for x in sorted(out.rglob("*")) if x.is_file() and x!=out/"IDENTITIES.json"},indent=2)+"\n")
     print(json.dumps({"summary":trace["summary"],"witness":witness},indent=2))
 if __name__=="__main__":main()

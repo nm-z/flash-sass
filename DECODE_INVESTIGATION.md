@@ -6,7 +6,7 @@ The historical 3,100-to-8,000 comparison would be 35.714 to 52.632 ms/token, a 1
 
 ## Completed experiment
 
-On archy, reuse the six resident weight arenas and compare the same full 48-layer model with budget 512, optional disk PLE, and host-pinned versus VRAM KV. The controlled two-core setup uses an 8,192-position capacity so both placements fit while preserving the resident holders. The production core normally has a 230,000-position serving limit; its original library, cubin and settings were restored after the experiment.
+On archy, reuse the six resident weight arenas and compare the same full 48-layer model with budget 512, optional disk PLE, and host-pinned versus VRAM KV. The paired two-core setup uses an 8,192-position engine capacity so both placements fit while preserving the resident holders. The production core normally has a 230,000-position serving limit; its original library, cubin and settings were restored after the experiment.
 
 Each prompt consists of fixed synthetic token IDs from seed 4242. These exercise the actual checkpoint forward pass but do not test language quality. First populate a snapshot through prompt position N-2. Then run five interleaved placement pairs with the same prompt and continuation, greedy sampling and stop tokens disabled. Each measurement generates 129 outputs and measures the 128 intervals between them. Reported N is **prompt length**; the measured visible length grows from N through N+128.
 
@@ -60,11 +60,30 @@ This identifies the extra wait in these runs. It does not identify the historica
 
 At 8,000 tokens, early repetitions also show changing die-4 clocks: the post-run samples include 1,101, 1,126 and 1,151 MHz before returning to 1,177 MHz. Per-layer work on that die and the other dies' receiver waits change with the repetitions. A sampled clock is not a continuous measurement over the entire interval.
 
-## Untraced follow-up and remaining gates
+## Completed untraced follow-up and remaining gates
 
-A second matched series without tracing is being recorded separately. Its first 3,100-token repetitions already demonstrate why clock metadata matters: die 4 fell to 531 MHz while applications clocks requested 1,177 MHz. The sampled driver report shows **SW Power Cap active**, with **SW Thermal Slowdown inactive**, a temperature of 86°C, and a target temperature of 85°C. The recorded flag does not justify relabeling the cause as thermal throttling.
+The second series completed all 20 measured requests without tracing: five interleaved pairs at each of 3,100 and 8,000 prompt tokens, again with 129 outputs and 128 intervals per request. All continuations matched across KV placement. Both jobs exited 0 and recorded restoration of the normal 230,000-position serving configuration.
 
-This clock-confounded series must not be used as a clean estimate of tracing overhead. Full results, clocks and raw intervals will be attached without selectively dropping slow samples. Remaining acceptance includes a matched instrumentation-overhead experiment with controlled clocks, profiler traffic/stall counters, and supported longer-context cases. The original 36/28/19 provenance remains unavailable.
+| Prompt tokens | Host KV median ms/token | Host KV tok/s | VRAM KV median ms/token | VRAM KV tok/s |
+|---:|---:|---:|---:|---:|
+| 3,100 | 49.593 | 20.164 | 46.775 | 21.379 |
+| 8,000 | 45.664 | 21.899 | 42.747 | 23.394 |
+
+These are the recorded observations, including every repetition. They cannot establish a benefit from longer context or a cost of tracing. During this series die 4 fell to 531 MHz while applications clocks requested 1,177 MHz. The sampled driver report shows **SW Power Cap active**, with **SW Thermal Slowdown inactive**, a temperature of 86°C, and a target temperature of 85°C. The recorded flag does not justify relabeling the cause as thermal throttling. The clock sample also does not continuously measure every token interval.
+
+This clock-confounded series is unsuitable for a clean estimate of tracing overhead against the earlier series. Remaining acceptance includes a matched instrumentation-overhead experiment with controlled clocks, profiler traffic/stall counters, and supported longer-context cases. The original 36/28/19 provenance remains unavailable.
+
+## Metadata audit and limits
+
+The two completed series used the same engine-library SHA256 and core-executable SHA256. The traced and untraced cubins have separately recorded identities. Engine source is pinned to bac5b88; the resident core's source revision was not embedded, so its binary identity is the supported statement. Neither a later source merge nor a later metadata fix changes what these historical runs executed.
+
+The old runner attempted nvidia-smi -q -d ECC,PCIE,CLOCK,TEMPERATURE. Driver 470 rejected that display selector with exit 2. The raw failure remains in the manifests; the ordinary per-run GPU query still supplied UUID, driver, clocks, ECC mode, PCIe link, temperature and memory snapshots. Full before/after driver-counter capture was therefore incomplete. PR #32 now requires a successful full XML query and rejects metadata failures.
+
+The traced runner also captured an empty parent environment. The setup script records the private core's explicit launch settings and the resident engine's reload arguments, but it does not recover every original core launch setting. The untraced series explicitly records the runner/private-core launch environment. These operator setup records are retained separately and are not presented as a retrospectively complete trace manifest.
+
+The resident core was constructed with a larger capacity than the private host core, even though both engine configurations report 8,192. Core-level PLE staging allocation can consequently differ. The weight holders are shared, disk PLE uses shard two at offset 192, and storage cache state was not flushed or independently controlled. Effective configuration equality does not erase those allocation and cache-state limits.
+
+The compact artifacts preserve raw client observation times, generated IDs, every run mean, every die/opcode total and all rejected capacity cases. The analyzer requires successful capture exits, complete five-pair groups, matching configurations apart from KV placement, matching continuations, and exact reconstruction of the 128 client intervals before producing its summaries.
 
 ## Reproduction and evidence
 
@@ -75,18 +94,22 @@ Analyze the captured outputs:
 ~~~bash
 python3 kern/decode_forensics.py \
   --traced /path/to/paired-depth-trace3/runs \
+  --untraced /path/to/paired-depth-untraced4/runs \
   --out validation/issue10
 ~~~
 
-Add --untraced /path/to/paired-depth-untraced4/runs to include a completed untraced series.
-
 - [All run intervals, manifests, outputs and die-0 timelines](validation/issue10/traced.json.gz)
+- [Untraced intervals, manifests and all 20 runs](validation/issue10/untraced.json.gz)
+- [Untraced per-depth summary and every run mean](validation/issue10/untraced-summary.json)
 - [All die/opcode totals for all 60 runs](validation/issue10/traced-all-die-phase-totals.json.gz)
 - [Per-depth summary and every run mean](validation/issue10/traced-summary.json)
 - [Illustrative matched phase deltas](validation/issue10/matched-phase-deltas.json)
 - [Later die-4 power/clock snapshot](validation/issue10/die4-power-clock-snapshot.txt)
+- [Raw two-position phase excerpts and complete illustrative host traces](validation/issue10/review/raw-excerpts)
+- [Full raw archive identities](validation/issue10/review/raw-trace-archive.json)
+- [Setup scripts, commands and restoration records](validation/issue10/review/setup)
 - [Artifact SHA256 identities](validation/issue10/IDENTITIES.json)
 
-The complete raw per-phase CSV collection is retained at /home/nate/claude/flash-sass-prs/paired-depth-trace3/runs on archy. Its full content is not duplicated in git. The compact review artifacts preserve every run and opcode total; further raw excerpts and an archive identity list are attached as available.
+The complete raw per-phase CSV collection is retained at /home/nate/claude/flash-sass-prs/paired-depth-trace3/runs on archy. Its full content is not duplicated in git. The compact review artifacts preserve every run and opcode total. Two-position phase excerpts are attached for dies 0 and 4 at 3,100/8,000 in both KV placements, together with the complete corresponding host traces. The archive manifest identifies every original CSV stream by size and SHA256.
 
 Refs #10. Trace format and lifecycle work are in #13; reproducible capture in #14; shared timing API in #15; representative gather inputs in #16.
