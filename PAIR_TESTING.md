@@ -87,7 +87,7 @@ warm repetitions and equivalent cache settings are needed for performance claims
 make -C kern prefill_plan_test
 ./kern/prefill_plan_test
 # After recording a successful model comparison at this revision:
-python3 kern/prefill_cancel_test.py . /tmp/flash-chunk-cancel-check \
+perl kern/prefill_cancel_test.pl . /tmp/flash-chunk-cancel-check \
   --reference /tmp/flash-chunk-check/results.json --sha "$(git rev-parse HEAD)"
 ```
 
