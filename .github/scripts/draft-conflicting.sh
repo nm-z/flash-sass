@@ -5,7 +5,9 @@
 set -euo pipefail
 REPO=${GH_REPO:-$(gh repo view --json nameWithOwner --jq .nameWithOwner)}
 MARK='<!-- draft-on-conflict -->'
-for n in $(gh pr list --repo "$REPO" --state open --json number,isDraft --jq '.[] | select(.isDraft | not) | .number'); do
+# a failed listing must fail the sweep (a failure inside the for-list below would be swallowed)
+ready=$(gh pr list --repo "$REPO" --state open --json number,isDraft --jq '.[] | select(.isDraft | not) | .number')
+for n in $ready; do
 	state=UNKNOWN
 	for try in 1 2 3 4 5 6 7 8 9 10; do
 		state=$(gh pr view "$n" --repo "$REPO" --json mergeable --jq .mergeable)
