@@ -123,7 +123,7 @@ int main(int argc, char **argv) {
 	}
 	uint64_t base = number(argv[2]), trials64 = number(argv[3]), seed = number(argv[4]);
 	unsigned readers;
-	if (trials64 < 1 || trials64 > 512 || ple_read_parse_readers(argc == 6 ? argv[5] : NULL, &readers) || readers < 2) {
+	if (trials64 < 1 || trials64 > 512 || ple_read_parse_readers(argc == 6 ? argv[5] : "16", &readers) || readers < 2) {
 		fprintf(stderr, "batches must be 1..512 and parallel readers 2..16\n"); return 2;
 	}
 	unsigned trials = (unsigned)trials64;

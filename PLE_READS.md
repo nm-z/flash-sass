@@ -8,7 +8,8 @@ The producer waits for the whole batch before publishing the position's ready fl
 ## Configuration and lifetime
 
 - `FLASH_PLE_DISK=1` enables the existing disk-backed PLE path.
-- `FLASH_PLE_READERS` defaults to `16`. Decimal values `1..16` are accepted;
+- `FLASH_PLE_READERS` defaults to `1`. Set it to `16` for sixteen concurrent reads.
+  Decimal values `1..16` are accepted;
   empty, malformed, and out-of-range values fail engine initialization.
 - `FLASH_PLE_READERS=1` executes the reads inline, without worker threads. Use
   this control to compare I/O timing or when warm-cache wake-up overhead matters.

@@ -55,7 +55,7 @@ static void check_rows(int fd, struct ple_read_pool *pool, const off_t offsets[1
 }
 int main(void) {
 	unsigned readers;
-	assert(!ple_read_parse_readers(NULL, &readers) && readers == 16);
+	assert(!ple_read_parse_readers(NULL, &readers) && readers == 1);
 	const char *bad[] = {"", "0", "17", "-1", "+1", " 1", "1 ", "1x", "999999999999999999"};
 	for (unsigned i = 0; i < sizeof bad / sizeof *bad; i++) assert(ple_read_parse_readers(bad[i], &readers) == EINVAL);
 	char path[] = "/tmp/flash-ple-read-test-XXXXXX";

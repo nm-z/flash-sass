@@ -99,7 +99,7 @@ static uint32_t *h_ids, *h_toks;    /* pinned: the prompt, and the tokens as die
    ahead of the position that runs and then stores this response's id in a ready flag, which plerows (compact mode) waits for. ---- */
 static int ple_disk, ple_fd = -1; static off_t ple_off; static uint8_t *ple_host; static size_t ple_rdy_off;
 static struct ple_read_pool ple_reads;
-static unsigned ple_readers = PLE_READ_HEADS;
+static unsigned ple_readers = 1;
 static uint32_t *h_rdy;                    /* the u32 ready flag of each position (pinned) */
 static uint32_t ple_rid;                   /* this response's id (never 0): a flag is valid when it equals it, so nothing needs resetting between responses */
 static uint32_t ple_absent_id, ple_end_id; /* the constants block's absent / end ids: the hash of a position needs the same ones */

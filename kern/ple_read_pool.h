@@ -37,10 +37,10 @@ struct ple_read_pool {
 	struct ple_read_result *results;
 };
 
-/* Absent selects 16; empty, malformed, or out-of-range settings fail. */
+/* Serial is the default; empty, malformed, or out-of-range settings fail. */
 static int ple_read_parse_readers(const char *s, unsigned *readers) {
 	unsigned n = 0;
-	if (!s) { *readers = PLE_READ_HEADS; return 0; }
+	if (!s) { *readers = 1; return 0; }
 	if (!*s) return EINVAL;
 	for (; *s; s++) {
 		if (*s < '0' || *s > '9') return EINVAL;
