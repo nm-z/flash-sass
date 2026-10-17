@@ -3,6 +3,9 @@ An inference engine for **Qwen3.8-Flash-Next**, specifically the Q2 variant of:
 https://huggingface.co/ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF
 Using **Maxwell SASS** (via [MaxAs](https://github.com/NervanaSystems/maxas)) for multiple **Tesla M60** GPUs. Each die runs **one persistent kernel per response** Weights stay in the GGUF's own block formats and are dotted as integers with packed `XMAD`.
 
+- row split
+- expert split
+
 ## Measurments on 4 M60 cards, 6 dies used
 - The full 48-block model (DeltaNet, attention + indexer, 512-expert MoE, hyper-connections, the
   n-gram "PLE" table read from pinned host RAM) as one program of ~1150 phases per token.
