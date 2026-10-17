@@ -515,7 +515,7 @@ the hyper-connection norms, `ssm_norm`, q/k norms, indexer norms and PLE norms.
 - **DeltaNet head step** `kern/dnstep.sass` (twin `deltanet_step_gpu`): one CTA
   per value head; value-major 128×128 fp32 state; thread (g, p) owns 4 columns
   × 16 keys (coalesced 64 B column pieces); warps 0/1 L2-normalise q/k (IEEE
-  sqrt and rcp, max with eps), warp 2 copies v and computes α = exp(ssm_a ·
+  sqrt and rcp, eps added to the sum of squares before the root), warp 2 copies v and computes α = exp(ssm_a ·
   softplus(a)), β = σ(b) with fmath; decay, 16-term FFMA chains per column with
   xor 1/2/4 part reductions, e = v − r, be = β e, rank-1 update, readout with q̂,
   × 1/√128. **Bit-exact on all 48 heads (state and output)** for both key-head
