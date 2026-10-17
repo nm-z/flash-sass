@@ -26,10 +26,12 @@ fail=0
 for ((i = 1; i <= n; i++)); do
 	for mode in special raw; do
 		if [ "$mode" = raw ]; then flag=--no-parse-special; arg=raw; else flag=; arg=; fi
-		want=$("$ref" -m "$gguf" -f "$dir/case$i" --ids --log-disable --no-escape $flag)
-		got=$(./tok_test "$gguf" "$dir/case$i" $arg)
+		want=$("$ref" -m "$gguf" -f "$dir/case$i" --ids --log-disable --no-escape $flag); wrc=$?
+		got=$(./tok_test "$gguf" "$dir/case$i" $arg); grc=$?
+		if [ $wrc -ne 0 ] || [ $grc -ne 0 ]; then fail=$((fail + 1)); echo "case $i ($mode): a command failed (llama-tokenize rc $wrc, tok_test rc $grc); two failures with empty output must not count as agreement"; continue; fi
 		if [ "$want" != "$got" ]; then fail=$((fail + 1)); echo "case $i ($mode) differs: $(head -c 60 "$dir/case$i" | od -c | head -2 | tr -s ' ')"; echo "  llama.cpp $want"; echo "  tok_test  $got"; fi
 	done
 done
-echo "tok_check: $n cases x 2 modes, $fail differences"
+echo "tok_check: $n cases x 2 modes, $fail differences or failures"
 rm -r "$dir"
+[ "$fail" -eq 0 ]   # the exit status is the verdict (it was the status of the cleanup)

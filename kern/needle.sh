@@ -17,4 +17,8 @@ DOC=$(awk -v n="$N" -v at="$AT" -v code="$CODE" 'BEGIN {
 }')
 REQ=$(jq -n --arg doc "$DOC" '{messages:[{role:"user",content:($doc + "\nWhat is the access code of the vault? Answer with the six hex digits only.")}],max_tokens:60,temperature:0,chat_template_kwargs:{enable_thinking:false}}')
 echo "needle $CODE at ${PCT}% of $N paragraphs"
-curl -s -m 3600 "$URL/v1/chat/completions" -H 'Content-Type: application/json' -d "$REQ" | jq -r '"answer: \(.choices[0].message.content)", "usage: \(.usage)", "timings: \(.timings)"'
+RESP=$(curl -sS -m 3600 "$URL/v1/chat/completions" -H "Content-Type: application/json" -d "$REQ") || { echo "needle: FAIL, the request failed" >&2; exit 2; }
+ANS=$(printf "%s" "$RESP" | jq -r ".choices[0].message.content // empty") || { echo "needle: FAIL, the reply is not JSON: $(printf "%s" "$RESP" | head -c 200)" >&2; exit 2; }
+echo "answer: $ANS"
+printf "%s" "$RESP" | jq -r "\"usage: \(.usage)\", \"timings: \(.timings)\""
+case "$ANS" in *"$CODE"*) echo "needle: PASS" ;; *) echo "needle: FAIL, expected $CODE (the engine error, if any: $(printf "%s" "$RESP" | jq -rc ".error // empty"))" >&2; exit 1 ;; esac

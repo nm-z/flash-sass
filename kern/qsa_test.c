@@ -289,12 +289,12 @@ static int test_idxfull(unsigned nv, unsigned NBLK, int iters) {
 	if (iters > 0) {   /* the time of the 7 phases: iters tokens in one launch (the context grows by iters/4 blocks) */
 		CK(cuMemcpyHtoD(dPROG, prog, sizeof(desc_t) * 7)); unsigned nph = 7, tk = t;
 		CK(cuMemcpyHtoD(dCTL + 8, &tk, 4));
-		unsigned ntok = t + 1 + (unsigned)iters; void *params[] = { &dPROG, &nph, &dCTL, &ntok };
+		unsigned ntok = t + (unsigned)iters; void *params[] = { &dPROG, &nph, &dCTL, &ntok };
 		CUevent e0, e1; CK(cuEventCreate(&e0, 0)); CK(cuEventCreate(&e1, 0));
 		CK(cuEventRecord(e0, 0)); CK(cuLaunchKernel(fn, 16, 1, 1, 256, 1, 1, 0, 0, params, NULL)); CK(cuEventRecord(e1, 0)); CK(cuCtxSynchronize());
 		float ms; CK(cuEventElapsedTime(&ms, e0, e1));
 		printf("  %d tokens (7 phases each) in %.2f ms: %.1f us per token\n", iters, ms, 1e3 * ms / iters);
-		{ uint32_t ts[16]; CK(cuMemcpyDtoH(ts, dCTL + 0x100, 4 * 7)); printf("  last token, us per phase (idxqk, idxscore, idxsel 2..6):"); for (int i = 1; i < 7; i++) printf(" %.1f", (uint32_t)(ts[i] - ts[i - 1]) / 1e3); printf("\n"); }
+		{ uint32_t ts[16]; CK(cuMemcpyDtoH(ts, dCTL + 0x100, 4 * 7)); printf("  last token, us per phase (idxscore, idxsel 2..6; idxqk, the first phase, has no start stamp):"); for (int i = 1; i < 7; i++) printf(" %.1f", (uint32_t)(ts[i] - ts[i - 1]) / 1e3); printf("\n"); }
 	}
 	return bad;
 }
