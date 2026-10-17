@@ -3,7 +3,7 @@
 import argparse,hashlib,json,os,pathlib,subprocess,tempfile
 p=argparse.ArgumentParser();p.add_argument('--out',required=True);a=p.parse_args();out=pathlib.Path(a.out);out.mkdir(parents=True,exist_ok=True)
 binaries={k:str(pathlib.Path(k+'_test').resolve()) for k in ('qsa','attn')}
-qcases=[[],['unknown'],['embimg','extra'],['kv','1','512','extra'],['idxsel','0','512'],['idxsel','700','512','0','6'],['idxscore','65537'],['idxfull','0'],['gathertime','2']]
+qcases=[[],['unknown'],['embimg','extra'],['kv','1','512','extra'],['idxsel','0','512'],['idxsel','700','512','0','6'],['idxscore','65537'],['idxfull','0'],['gathertime','2'],['gathertime','0','511'],['gathertime','0','65524'],['idxfull','65536','512','2']]
 bad=['0','-1','+1','',' 1','1 ','1x','1.0','1e3','0x10','262145','4294967295','9999999999999999999999']
 qcases += [['kv',x,'512'] for x in bad]+[['kv','1',x] for x in ['0','-1','4097']]
 acases=[[x] for x in bad]+[['1',x] for x in ['-1','+1','1x','262145']]+[['1','0','extra']]
