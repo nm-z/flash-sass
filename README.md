@@ -44,12 +44,12 @@ See [BATCH.md](BATCH.md) and [PAIR_TESTING.md](PAIR_TESTING.md).
 | `bf16hcrwx` | RMSNorm, hc down, inject (BF16), write | 48 / 48 | 40.3 | 1.93 | 48 projection |
 | `bf16hcrx` | RMSNorm, hc down, inject (BF16) | 49 / 49 | 32.0 | 1.57 | 49 projection |
 | `bf16hcup` | SiLU + hc up + lane mix + inbox write | 97 / 97 | 25.3 | 2.46 | 97 projection |
-| `hcwsum` | stream write | 48 / 48 | 47.9 | 2.30 | |
+| `hcwsum` | stream write, sum of the six MoE partials | 48 / 48 | 47.9 | 2.30 | |
 | **MoE** | | | | **5.14** | |
 | `router` | router GEMV and softmax | 48 / 48 | 23.3 | 1.12 | |
 | `moesel` | top-10 expert selection | 48 / 48 | 5.6 | 0.27 | |
 | `q2moegn` | expert gate and up GEMVs (Q2_0) | 96 / 96 | 18.4 | 1.77 | |
-| `ffnact` | SiLU(gate) · up, quantize, down projection | 48 / 48 | 13.0 | 0.62 | |
+| `ffnact` | SiLU(gate) · up, quantize | 48 / 48 | 13.0 | 0.62 | |
 | `q2moedn` | expert down GEMV (Q2_0) | 48 / 48 | 21.2 | 1.02 | |
 | `q2k2560`, `q2acc640`, `b32q40acc`, `b32q50acc`, `b32iq4nlacc` | shared-expert, small matrices | 20 / 24 | 15–26 | 0.34 | |
 | **projections (GEMV by weight format and input length K)** | | | | **6.61** | |
@@ -81,10 +81,11 @@ See [BATCH.md](BATCH.md) and [PAIR_TESTING.md](PAIR_TESTING.md).
 | `amax` | the largest of the six dies' pairs: the token | 1 / 1 | 7.2 | 0.01 | |
 
 Each token makes:
-       - 342 exchanges on each die
-       - 280 projections
-       - 49 contractions
-       - 13 broadcasts
+
+- 342 exchanges on each die
+- 280 projections
+- 49 contractions
+- 13 broadcasts
 
 ## Layout
 | Path | Contents |
