@@ -12,9 +12,9 @@ GGUF1=${GGUF1:-/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-000
 GGUF2=${GGUF2:-/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf}
 SOCK=${FLASH_SOCK:-/tmp/flash.sock}
 # the split of the weights over the six dies and the die of each attention layer (its projections, indexer pool and RoPE tables live there;
-# the int8 KV caches are in pinned host memory). Die 0 and die 2 each have a failing band of VRAM (die 2 above 5.657 GiB, die 0 above 5.76 GiB)
-# and get the small shares; every die keeps >= 300 MB free (see SPEC, "Long context")
-export SPLIT_SHARES=${SPLIT_SHARES:-82,110,79,110,111,108} ATTN_MAP=${ATTN_MAP:-1,1,1,1,4,4,4,4,5,5,5,5} ATTN_DIE=${ATTN_DIE:-1}
+# the int8 KV caches are in VRAM, FLASH_KV_HOST=1 puts them in pinned host memory). ECC is on for all dies (7.25 GiB allocatable each; memtest 2026-10-16:
+# dies 0,1,3,4,5 clean, die 2 fails from 5.375 GiB and is fenced there, so it gets the small share). The shares were solved with the measured per-die overhead, see SPEC "Open work"
+export SPLIT_SHARES=${SPLIT_SHARES:-112,99,79,112,99,99} ATTN_MAP=${ATTN_MAP:-1,1,1,1,4,4,4,4,5,5,5,5} ATTN_DIE=${ATTN_DIE:-1}
 case $1 in
 all)   # everything at once: the holders (35 min of repacking) and the core (14 min of PLE table) load side by side, the core waits for the holders
 	$0 holders; $0 core; $0 vis
@@ -25,14 +25,14 @@ holders)
 		HOLD_VISIBLE=1 CUDA_VISIBLE_DEVICES=$i setsid -f ./hold "$GGUF1" $i 0 48 /tmp/hold-h$i.manifest token_embd output split=$i/6 > /tmp/hold-h$i.out 2> /tmp/hold-h$i.err < /dev/null
 	done ;;
 core)
-	CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 FLASH_MAXT=${FLASH_MAXT:-262144} FLASH_MAXIMG=${FLASH_MAXIMG:-4096} FLASH_PLE_OFF=${FLASH_PLE_OFF:-192} FLASH_SOCK=$SOCK \
+	CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 FLASH_MAXT=${FLASH_MAXT:-262144} FLASH_ENGINE_MAXT=${FLASH_ENGINE_MAXT:-150000} FLASH_KV_HOST=${FLASH_KV_HOST:-0} FLASH_MAXIMG=${FLASH_MAXIMG:-4096} FLASH_PLE_OFF=${FLASH_PLE_OFF:-192} FLASH_SOCK=$SOCK \
 		setsid -f ./flashcore "$GGUF2" "$PWD/libengine.so" /tmp/hold-h{0,1,2,3,4,5}.manifest > /tmp/flashcore.out 2> /tmp/flashcore.err < /dev/null ;;
 vis)
 	setsid -f ./flashvis "${MMPROJ:-$HOME/models-hdd-backup/Qwen3.8-Flash-Next-GGUF/mmproj-BF16.gguf}" "$GGUF1" "${FLASHVIS_SOCK:-/tmp/flashvis.sock}" "${VIS_THREADS:-10}" > /tmp/flashvis.out 2> /tmp/flashvis.err < /dev/null ;;
 flashd)
 	FLASHVIS_SOCK=${FLASHVIS_SOCK:-/tmp/flashvis.sock} FLASHD_NAME=${FLASHD_NAME:-Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass} setsid -f ./flashd "$GGUF1" "$SOCK" 127.0.0.1:18090 > /tmp/flashd.out 2> /tmp/flashd.err < /dev/null ;;
-reload)
-	echo "reload ${2:-}" | socat -t 120 - "UNIX-CONNECT:$SOCK" ;;
+reload)   # reload [<lib>] [FLASH_ENGINE_MAXT=n FLASH_KV_HOST=0|1 ...]
+	shift; echo "reload $*" | socat -t 120 - "UNIX-CONNECT:$SOCK" ;;
 status)
 	pgrep -xa hold | cut -c1-60; pgrep -xa flashcore | cut -c1-60; pgrep -xa flashd | cut -c1-60
 	tail -n 3 /tmp/flashcore.err /tmp/flashd.err ;;
