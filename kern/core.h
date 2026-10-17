@@ -16,9 +16,10 @@
 #include "hold.h"
 #include <cuda.h>
 #include <stdint.h>
+#include <sys/types.h>
 #include <stdio.h>
 
-#define CORE_ABI 1
+#define CORE_ABI 2   /* 2: core_t gained ple_disk, ple_fd, ple_off, ple_rdy_off (the PLE rows are read from the file on demand) */
 #define CORE_MAXD 6
 
 typedef struct {
@@ -29,6 +30,10 @@ typedef struct {
 	hold_arena ar[CORE_MAXD]; /* the weights of die d */
 	uint8_t *ple_host;        /* the pinned PLE table; ple_compact: it is a zero table of 16 rows per position (no table loaded) */
 	int ple_compact;
+	int ple_disk;             /* FLASH_PLE_DISK: ple_host is a compact table (16 rows per position) and ready flags at ple_rdy_off; the engine stages the rows of each position from ple_fd */
+	int ple_fd;               /* the PLE file, open read-only (ple_disk) */
+	off_t ple_off;            /* byte offset of the table in that file */
+	size_t ple_rdy_off;       /* byte offset of the u32 ready flags [maxt + 2] in ple_host */
 } core_t;
 
 /* exported by libengine.so */

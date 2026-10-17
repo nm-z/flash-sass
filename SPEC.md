@@ -1640,3 +1640,111 @@ Tools: `memtest` (`chunk=`, `skip=`, `only=`, `reserve=`), `fence`, `bisect.sh`,
   200k prompt is over two hours and a long conversation is usable only through the prefix snapshot (one snapshot today; each further one costs the DeltaNet
   states, 0.12 GB, and keeps the KV rows below it alive). A multi-token (chunked) prefill is the way to change that.
 - Training-only references (Muon, load-balancing loss) have no inference consequence.
+
+**PCIe links and PLE rows from disk (2026-10-17).** After the cold power cycle the engine ran at 12 tok/s instead of 36 (73 ms per token): the profile showed `xsend` at 174 us instead
+of ~12 us and 2 ms stalls, and the slot-4 root port (00:03.0) re-latched BadTLP / BadDLLP / replay rollover / replay timeout within one request after the flags were cleared. The
+gen2 target on the root port (`setpci -s 00:03.0 CAP_EXP+0x30.w=0002`, then LnkCtl bit 5) made it clean at once: 35.9 tok/s, 27.9 ms per token. Slots 1, 2 and 4 are now all at gen2
+(`kern/pcie-gen2.sh`, `serve.sh gen2`; it does not survive a reboot): slot 1 clean, slot 4 clean, slot 2 still logs RxErr/BadTLP/BadDLLP (no replay timeouts, no visible stall;
+card 2 is the one with the bad memory band). The nominal bandwidth halves (about 8 GB/s, slot 1 trains x8: 4 GB/s); the exchanges are 40 KB messages, so latency and replays matter, not bandwidth.
+`FLASH_PLE_DISK=1` (core start): the 28.8 GB table stays in its file, the core pins only a compact table (16 rows x 90 B per position, 379 MB at 262,144 positions) and a ready flag per position;
+the engine reads the 16 rows of a position from the file just ahead of it (`ple_pump`, prompt positions up to 128 ahead, a decode position as soon as its token is known) and stores the
+response's id in the flag, which `plerows` waits for (compact mode, param 0x170/0x178). Checked: the same 24 tokens at temperature 0 as with the table in RAM; warm 35 tok/s decode, 28-30 tok/s
+prefill; no 26 GB load. Cold rows are the cost: the file is on sentry's NFS (a disk with ~6 ms random reads, 16 rows per token): an all-new 52-token prompt took 5.4 s to the first token
+(about 100 ms per position) against 1.6 s with the rows cached, and decode 8.5 tok/s while the rows are cold. posix_fadvise(RANDOM) did not change it. The rows need a fast random-read home (the local SSD: ~0.1 ms).
+
+**PCIe link speed matrix, all 27 combinations (2026-10-17, `kern/linkmatrix_test.sh`).** Decode tok/s through flashd (3 requests of 40 tokens at temperature 0 per row, fixed shuffled order) for the link speed of the
+root ports of card 1 (slot 1, dies 0 1; trains x8), card 2 (slot 2, dies 2 3) and card 3 (slot 4, dies 4 5). This supersedes the paragraph above that put all three slots at gen2.
+
+| card 1 | card 2 | card 3 | decode tok/s |
+|---|---|---|---|
+| gen1 | gen1 | gen1 | 31.3 |
+| gen1 | gen1 | gen2 | 31.6 |
+| gen1 | gen1 | gen3 | 23.8 |
+| gen1 | gen2 | gen1 | 31.5 |
+| gen1 | gen2 | gen2 | 31.4 |
+| gen1 | gen2 | gen3 | 11.0 |
+| gen1 | gen3 | gen1 | 31.4 |
+| gen1 | gen3 | gen2 | 31.5 |
+| gen1 | gen3 | gen3 | 19.6 |
+| gen2 | gen1 | gen1 | 33.9 |
+| gen2 | gen1 | gen2 | 34.2 |
+| gen2 | gen1 | gen3 | 20.7 |
+| gen2 | gen2 | gen1 | 33.9 |
+| gen2 | gen2 | gen2 | 34.4 |
+| gen2 | gen2 | gen3 | 24.3 |
+| gen2 | gen3 | gen1 | 34.2 |
+| gen2 | gen3 | gen2 | 34.3 |
+| gen2 | gen3 | gen3 | 11.5 |
+| gen3 | gen1 | gen1 | 34.2 |
+| gen3 | gen1 | gen2 | 34.6 |
+| gen3 | gen1 | gen3 | 32.1 |
+| gen3 | gen2 | gen1 | 34.2 |
+| gen3 | gen2 | gen2 | 35.5 |
+| gen3 | gen2 | gen3 | 23.1 |
+| gen3 | gen3 | gen1 | 34.2 |
+| gen3 | gen3 | gen2 | 35.0 |
+| gen3 | gen3 | gen3 | 21.0 |
+
+Card 3 at gen3 is the only thing that makes it slow, and erratically: 11 to 32 tok/s, and the same configuration (gen3 gen3 gen3) gave 32.4, 21.0, 21.0 and 20.4 tok/s on four runs; at gen1 or gen2 every row is 31 to 35.5.
+Card 2's speed makes no difference; card 1 matters a little (it trains x8): gen1 about 31.5, gen2 about 34, gen3 about 34 to 35.9. Retest of the three best configs (5 requests, 2 rounds):
+gen3 gen3 gen2 35.9, gen3 gen1 gen2 35.1, gen2 gen2 gen2 34.9 tok/s.
+
+Correctable-error events (`kern/aerpoll.c`: poll the AER status register and clear it, so each new event is counted; lower bounds) per 1000 tokens, summed over both ends of each card's link to the CPU, by that link's speed
+(RxErr / BadTLP / BadDLLP / Rollover / Timeout): card 3 gen1 0/0/0/0/0, gen2 61/0/0/0/0, **gen3 2,783,215 / 433,058 / 12,703 / 152 / 62,115** (about 2,800 receiver errors, 430 bad packets and 62 replay timeouts per token);
+card 2 gen1 0, gen2 10,503 / 624 / 1 / 0 / 8 (no visible slowdown), gen3 0 / 60 / 0 / 0 / 12; card 1 gen1 0, gen2 0, gen3 6 / 1 / 0 / 0 / 0. With all 18 devices of the six dies' paths polled
+(3 root ports, 3 switch upstream ports, 6 switch downstream ports, 6 dies) the only errors are on the card-to-CPU links; the dies' own links log nothing and the GPUs' NVML replay counters stay 0. The error count does not predict
+the speed (rows with about 300,000 receiver errors ran between 11 and 32 tok/s): each retrain at gen3 gives a differently bad link and the stalls hurt depending on when they land. These are CRC failures and resends, not ECC.
+Persistent setting: `pcie-slot4-gen2.service` (`kern/pcie-slot4-gen2.{sh,service}`, installed in /etc/systemd/system, enabled, runs before `gpu-application-clocks.service`) sets the slot-4 root port (00:03.0) to gen2 at every boot;
+cards 1 and 2 stay at their default gen3. `serve.sh gen2` does the same by hand.
+
+## Adding MTP (speculative decoding): spec (2026-10-17)
+
+Supersedes the placement and ordering parts of "MTP scoping (2026-10-16)" and the MTP paragraph of the block math; the tensor facts there still hold. Nothing of this is built. Numbers marked *est.* are estimates, not measurements.
+
+**Goal.** More than one token per step when the main model agrees with a cheap guess, without changing the output distribution. Acceptance criteria: greedy output identical to the engine without MTP, token for token; at temperature > 0 the sampled
+token at each position is still drawn from the main model's distribution (see "Verification rule"); decode tok/s above the 34.6 of today (35.9 best, `linkmatrix_test.sh`) at the context lengths in use; no change to the memory plan of the main model (200k to 262,144 positions with KV in VRAM and ECC on): the MTP block goes on die 6.
+
+**What MTP is in this checkpoint** (`mtp-Qwen3.8-Flash-Next-Q8_0.gguf`, 4,126 MB, one block `blk.48`). Per draft the input is the main model's *4-lane expanded residual* S (10,240 wide, 40 KB; the card's figure feeds the MTP modules from the residual
+before the output GR Read) and the token y_{t+1} the main model just produced: `e = RMS(token_embd[y_{t+1}]) ⊙ nextn.enorm` (2,560), `u_l = RMS(S_l) ⊙ nextn.hnorm[l]` per lane, `lane_l = eh_proj [e ; u_l]` (5,120 → 2,560, the same matrix for all four lanes), then one ordinary
+attention + MoE hyper-block pair (QSA attention with its own KV cache and indexer pool, 512 experts, top 10, shared expert), then `nextn.hc_head_*` (collapse of the lanes) and a vocabulary head: the draft y_{t+2}. Bytes: routed experts 2,674 MB (5.22 MB each, 52 MB for the 10 of a token), `token_embd` + `output.weight`
+1,351 MB (675 MB each), everything else 102 MB (attention + indexer 63 MB, nextn + hyper-connections 35 MB, router, shared expert). Its KV cache is one more attention layer: 1,088 B per position, 285 MB at 262,144 (218 MB at 200k), pool 17 MB.
+
+**Placement: the MTP model on die 6, nothing of it in the main model's VRAM (Nate's suggestion, which replaces the host-RAM plan first written here).** The main model's six dies are full (160 to 200 MiB free each), but dies 6 and 7, the PCH card (x2 gen2 to the CPU, SM clock 875 MHz),
+hold none of it: 7.25 GiB allocatable each, 1.4 GB of it taken by another service on each. The whole MTP file fits unquantized on die 6: 4,126 MB + its KV layer (285 MB at 262,144 positions) + pool (17 MB) is about 4.4 GB, beside the 1.4 GB service. The vocabulary head (675 MB Q8_0) can be row-split over dies 6 and 7
+(same card, same PLX switch), 2 x 340 MB. So: the experts stay resident (52 MB per draft at 160 GB/s, 0.3 ms, instead of 4.4 ms over PCIe), the MTP file's own embedding table and head are used as shipped (no coarser tables, no requantization), and its KV is in VRAM. The earlier decisions on host-RAM experts, shared tables and
+host KV for this layer are dropped.
+
+*Traffic between the MTP die and the main engine* is small but not nil. Per step: the 4-lane residual S of the last accepted position (40 KB) and its token y (4 B) go to die 6, the draft token (4 B) comes back to the dies that prepare the next pass. During prefill the MTP layer's KV needs (S_t, y_{t+1}) of every prompt position, 40 KB per position, sent as the
+prompt runs (off the critical path). At the 22 to 26 us per send measured over this card ("After the reset: board 3's link"), about 50 to 100 us per step against 28.9 ms. The MTP die is not in the main model's per-layer exchange group, so the 15 to 20 ms per token the PCH card cost when it carried layers does not apply to it.
+
+*What it needs from Nate:* dies 6 and 7 are held by other services (the LFM2 server on 6, the Qwen3 embedding server on 7, `flock -x` on their lock files, which the holders' `flock -s` cannot share): either co-residence is agreed (the MTP process takes a shared lock they allow, or they drop theirs) or those services move.
+
+**Decisions left.** (a) Co-residence on dies 6 and 7 as above. (b) Order: the two-position pass is the prerequisite of MTP, of chunked prefill and of concurrent requests (issue #7). Build it first with a free drafter (prompt lookup: the tokens that followed an earlier occurrence of the last n-gram) so the batching is proven and the gain measured with no MTP weights at all, then plug the MTP block in as a better drafter.
+
+**Verification rule.** Step t sampled y_{t+1} from the main model as today. The pass for the next step carries two positions: y_{t+1} (certain) and the draft d (a guess for y_{t+2}). After the pass the main model's logits at position t+1 give a sample y_{t+2} (same RNG, same top-k/top-p). If y_{t+2} == d, the second position's
+logits are valid and give y_{t+3} for free: two tokens in the step. If not, the second position's work is discarded and y_{t+2} stands. The draw is from the main distribution either way, so the output distribution is unchanged; the draft only decides whether the speculative position was useful. With temperature 0 this is the argmax test of the earlier spec.
+
+**What a step is.** (1) main pass over 2 positions (all kernels take two activations: the GEMVs keep two accumulator sets and read the weights once, `dnstep` updates the DeltaNet state for position 1 then 2 into a scratch copy, the attention kernels apply the causal mask between the two, the MoE reads the union of the two token's 10 experts, exchanges carry 2x);
+(2) sample, compare with d; (3) commit: on accept both positions' DeltaNet and conv state, indexer ring and KV appends stand; on reject restore the state after position 1 (the scratch copy makes that free: commit by swapping the buffer pointers) and the KV rows of position 2 are simply overwritten later (they are positional); (4) draft for the next step from the S of the last accepted position
+and its token (the MTP block as above; on card 2). The draft is on the critical path of the next step, because its token is an input of that step; overlapping it with the main pass (a draft one step stale) is a later optimisation.
+
+**Expected gain** (est.). Tokens per step 1 + p (p = P(sample == draft)); step time 1 + c times today's 28.9 ms, c = (draft + extra cost of the second position) / 28.9. Draft *est.* 4 ms (the block's ~24 phases 0.6 with its resident experts, the head split over two dies 2.5, the sends 0.2 and the handoff), the second position *est.* 3.5 ms (the profile
+is dominated by per-phase latency, which a second activation shares), so c is about 0.26. Speedup (1 + p) / (1 + c) and tok/s from 34.6:
+
+| p | c = 0.15 | c = 0.26 | c = 0.40 |
+|---|---|---|---|
+| 0.6 | 1.39x (48) | 1.27x (44) | 1.14x (39) |
+| 0.7 | 1.48x (51) | 1.35x (47) | 1.21x (42) |
+| 0.8 | 1.57x (54) | 1.43x (50) | 1.29x (45) |
+| 0.9 | 1.65x (57) | 1.51x (52) | 1.36x (47) |
+
+So expect 1.3x to 1.5x, 44 to 52 tok/s: worth it, not a doubling. p is unknown; M0 measures it. At temperature 1 p is lower than at temperature 0.
+
+**Milestones, each with its own check.**
+- **M0, acceptance probe.** Run the MTP block as a drafter only (no speculation: the draft for t+2 is computed each step and compared with the token the engine really produces next; counts are logged). Needs the block's kernels on die 6 but not the two-position pass. Gives p on real chat and code, greedy and temperature 1, and the true draft latency. Decide to go on from p and c.
+  Check: the block against a CPU twin (`ref/`, composed from the existing hyper-block, attention and MoE twins plus eh_proj/hnorm/enorm) bit-exact on one position.
+- **M1, two-position pass + prompt-lookup drafter.** The restructure above, with a drafter that costs nothing. Check: greedy output identical with and without speculation on the needle and chat prompts; accept/reject paths forced (a drafter that is always wrong, always right); the DeltaNet/conv/ring state after a reject equals a run that never speculated.
+- **M2, MTP as the drafter.** Plug M0's block in; measure tok/s and p at 4k, 32k, 200k context. Check as M1.
+- **M3, tune.** Overlap the draft with the next pass, drop phases, rebalance (the main split is unchanged: the MTP block lives on die 6 and costs the main dies no memory).
+
+**Risks.** The second position makes `attnpartn` and the indexer chain run for two positions (about 0.25 ms per layer each at depth, SPEC); acceptance is unknown until M0 and lower at temperature 1; the MoE union of two tokens' experts is up to 20 reads per layer instead of 10 (the weights streaming share, 4.5 ms of the 28.9 ms, grows toward 9 ms in the worst case, which is included in the 3.5 ms est. only on average).
