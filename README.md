@@ -41,14 +41,19 @@ overlap, so phases follow the model's dependency order; operations at the same d
 share one phase. The dies also exchange activations between phases (`xsend`), and the wait for the
 slowest peer shows up in the phase after an exchange (`actq256`, `hcwsum`).
 
-Measured with `PROF_ALL=1 kern/prof.sh <die>` on the last token of a short greedy reply (six dies,
-`SPLIT_SHARES=112,97,81,116,97,97`, attention on dies 1, 4, 5; 27.95 ms per token, 35.9 tok/s).
-Dies 0, 2 and 3 carry no attention layers and run **1,154 phases** per token; dies 1, 4 and 5 carry
-four attention layers each and run **1,214**. The profiler times a phase from the end of the
-previous one, so the first phase is untimed (1,153 and 1,213 below). Times are die 3's, except the
-attention rows, which are die 1's.
+The model runs on six dies and every die runs its own copy of the program, so a "token" is six
+lists of phases that proceed in lockstep. The lists are almost the same. The only difference is
+attention: the 12 attention layers live on three dies (1, 4 and 5, four layers each), so those
+**attention dies** run extra phases (the attention steps and their projections), and the other three (0, 2 and 3), the **plain dies**, do not.
+A plain die runs **1,154 phases** per token and an attention die **1,214**.
 
-| Phase | What it does | per token (die 3 / die 1) | µs each | ms per token |
+Measured with `PROF_ALL=1 kern/prof.sh <die>` on the last token of a short greedy reply (six dies,
+`SPLIT_SHARES=112,97,81,116,97,97`; 27.95 ms per token, 35.9 tok/s). The table's plain-die numbers
+are from die 3 and its attention-die numbers from die 1. The profiler times a phase from the end of
+the previous one, so the first phase is untimed (1,153 and 1,213 below). Times (µs each, ms per
+token) are the plain die's, except the attention rows, which are the attention die's.
+
+| Phase | What it does | per token (plain die / attention die) | µs each | ms per token |
 |---|---|---|---|---|
 | **exchange and quantize** | | | | **6.26** |
 | `xsend` | send this die's slice to its peers (P2P stores, fence, flag) | 111 / 111 | 12.8 | 1.42 |
@@ -78,7 +83,7 @@ attention rows, which are die 1's.
 | `conv1d` | causal conv (k = 4) + SiLU | 36 / 36 | 5.7 | 0.20 |
 | `dnstep` | the recurrence step (state update, read-out) | 36 / 36 | 18.1 | 0.65 |
 | `dnnormx` | output norm and gate, quantized | 36 / 36 | 11.8 | 0.42 |
-| **attention (12 layers; die 1 has 4)** | | | | **0.48 on die 1** |
+| **attention (12 layers, 4 on each attention die)** | | | | **0.48 on an attention die** |
 | `attnqkq` | q/k norm, RoPE, KV append | 0 / 4 | 6.1 | 0.02 |
 | `idxqk`, `idxscore` | indexer q·k and block scores | 0 / 4 + 4 | 5.6 / 4.4 | 0.04 |
 | `idxsel` | the five top-k selection passes of the indexer | 0 / 20 | 3.9 | 0.08 |
