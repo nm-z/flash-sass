@@ -514,3 +514,7 @@ memtest: memtest.c
 
 fence: fence.c
 	$(CC) -std=gnu99 -O2 -Wall -o $@ fence.c -I$(CUDA)/include -lcuda
+
+
+attnpartn_regress: attnpartn_regress.c dieops.h ../ref/attn.c ../ref/fmath.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ attnpartn_regress.c ../ref/attn.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
