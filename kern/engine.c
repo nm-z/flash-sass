@@ -46,15 +46,26 @@ static CUdeviceptr dptr_raw(int d, const char *name) { CUdeviceptr p = hold_ptr(
 static CUdeviceptr dptr(int d, int blk, const char *suffix) { return dptr_raw(d, tn(blk, suffix)); }
 static uint32_t ttype(int blk, const char *suffix) { const hold_tensor *t = hold_find(&ar[0], tn(blk, suffix)); if (!t) { fprintf(stderr, "no %s\n", tname); if (in_init) longjmp(init_jb, 1); exit(1); } return t->type; }
 /* every device allocation is recorded so engine_fini can free it */
-typedef struct { CUdeviceptr p; CUcontext c; } allocrec;
+typedef struct { CUdeviceptr p; CUcontext c; size_t bytes; } allocrec;
 static allocrec *allocs; static int nallocs, capallocs; static size_t alloc_bytes;
 static CUdeviceptr dalloc(size_t bytes) {
 	CUdeviceptr p; CUcontext c;
 	CK(cuMemAlloc(&p, bytes)); CK(cuCtxGetCurrent(&c));
 	if (nallocs == capallocs) { capallocs = capallocs ? 2 * capallocs : 1024; allocs = realloc(allocs, sizeof *allocs * (size_t)capallocs); }
-	allocs[nallocs++] = (allocrec){ p, c }; alloc_bytes += bytes;
+	allocs[nallocs++] = (allocrec){ p, c, bytes }; alloc_bytes += bytes;
 	CK(cuMemsetD8(p, 0, bytes));
 	return p;
+}
+/* Clone an activation allocation's shape, leaving the new position zero-filled.
+ * Cached weights, positional KV, recurrent state and token arrays are shared. */
+static CUdeviceptr scratch_like(CUdeviceptr p) {
+	if (!p) return 0;
+	for (int i = 0; i < nallocs; i++) if (allocs[i].p == p) {
+		size_t bytes = allocs[i].bytes;
+		return dalloc(bytes);
+	}
+	fprintf(stderr, "engine: unregistered paired activation allocation\n");
+	longjmp(init_jb, 1);
 }
 
 /* ---- the engine: everything main() loads once, used by every response ---- */
@@ -62,6 +73,9 @@ static int MAXT; static float eps = 1e-6f;
 static CUmodule mod[MAXD]; static CUfunction fn[MAXD];
 static uint32_t *s_ids, *s_toks;   /* engine_session scratch (positions each) */
 static dn_weights_t (*dw)[NB]; static dn_bufs_t db[MAXD]; static xchg_t xc[MAXD]; static split_t (*sp)[NB];
+static dn_bufs_t db_pair[MAXD]; static xchg_t xc_pair[MAXD];
+static int two_position;       /* opt-in causal forward over two known prompt ids */
+static int last_positions, last_paired_positions;
 static CUdeviceptr dPROG[MAXD], dCTL[MAXD], (*dst_dn)[NB], (*dst_conv)[NB], (*dst_kq)[NB], (*dst_ks)[NB], (*dst_vq)[NB], (*dst_vs)[NB], (*dst_pkt)[NB], (*dst_ring)[NB], (*snap_ring)[NB], dst_ple[MAXD];
 static size_t dn_bytes[MAXD][NB], conv_bytes[MAXD][NB], kcf, vcf;
 static int kv_host = 1;                  /* FLASH_KV_HOST=0: the int8 KV caches in VRAM (small contexts) instead of pinned host memory */
@@ -119,7 +133,77 @@ static host_trace trace_host[256];
 static int trace_slot(int p) { return p >= 0 && (unsigned)p >= trace_first && (unsigned)p - trace_first < trace_n ? (int)((unsigned)p - trace_first) : -1; }
 static uint64_t host_ns(void) { struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts); return (uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec; }
 static uint32_t prof_units[MAXD][4096], prof_flags[MAXD][4096];
-static uint32_t prof_op[MAXD][4096]; static int prof_nph[MAXD];   /* every die's program of the last response, for the "prof" command */
+static uint32_t prof_op[MAXD][4096], prof_index[MAXD][4096];
+static int prof_nph[MAXD]; static unsigned prof_desc[MAXD];   /* every die's program of the last response, for the "prof" command */
+
+/* A validation-only readback, requested explicitly with `statehash`. Hash each
+ * named buffer separately so paired/single passes can be compared beyond tokens. */
+static uint64_t device_fnv(CUdeviceptr p, size_t bytes, uint64_t h) {
+	unsigned char buf[65536];
+	for (size_t at = 0; at < bytes; ) {
+		size_t n = bytes - at < sizeof buf ? bytes - at : sizeof buf;
+		CK(cuMemcpyDtoH(buf, p + at, n));
+		for (size_t i = 0; i < n; i++) { h ^= buf[i]; h *= 0x100000001b3ull; }
+		at += n;
+	}
+	return h;
+}
+static void state_hashes(FILE *out) {
+	const uint64_t seed = 0xcbf29ce484222325ull;
+	fprintf(out, "statehash positions=%d paired_positions=%d\n", last_positions, last_paired_positions);
+	for (int d = 0; d < nd; d++) {
+		CK(cuCtxSetCurrent(ctx[d]));
+		for (int bb = 0; bb < nlayers_run; bb++) {
+			uint64_t h = seed;
+			if (BLK_IS_ATTN(bb)) {
+				if (!dst_kq[d][bb]) continue;
+				h = device_fnv(dst_ring[d][bb], 2048, h);
+				h = device_fnv(dst_kq[d][bb], (size_t)last_positions * 512, h);
+				h = device_fnv(dst_vq[d][bb], (size_t)last_positions * 512, h);
+				h = device_fnv(dst_ks[d][bb], (size_t)last_positions * 32, h);
+				h = device_fnv(dst_vs[d][bb], (size_t)last_positions * 32, h);
+				/* Full transposed tiles, including their finite zero/stale padding. */
+				h = device_fnv(dst_pkt[d][bb], ((size_t)last_positions / 4 + 31) / 32 * 8192, h);
+			} else {
+				h = device_fnv(dst_dn[d][bb], dn_bytes[d][bb], h);
+				h = device_fnv(dst_conv[d][bb], conv_bytes[d][bb], h);
+			}
+			fprintf(out, "statehash die=%d layer=%d state=%016llx\n", d, bb, (unsigned long long)h);
+		}
+		uint64_t ple = device_fnv(dst_ple[d], 4 * 10 * 10240, seed);
+		uint64_t logits = device_fnv(db[d].hlo, 4u * (unsigned)sp[d][0].on, seed);
+		fprintf(out, "statehash die=%d ple=%016llx logits=%016llx\n", d, (unsigned long long)ple, (unsigned long long)logits);
+	}
+	CK(cuCtxSetCurrent(ctx[0]));
+	fprintf(out, "statehash done\n"); fflush(out);
+}
+
+static void alloc_second_position(int d) {
+	dn_bufs_t *b = &db_pair[d];
+	*b = db[d];
+#define SECOND(field) b->field = scratch_like(b->field)
+	SECOND(S); SECOND(S2); SECOND(xh); SECOND(t);
+	SECOND(ldown); SECOND(lup); SECOND(lz);
+	SECOND(zq); SECOND(zs32); SECOND(zs16); SECOND(zas);
+	SECOND(lqkv); SECOND(lgate); SECOND(la); SECOND(lu); SECOND(lo); SECOND(lon);
+	SECOND(oq); SECOND(os32); SECOND(os16); SECOND(oas); SECOND(ly);
+	SECOND(r); SECOND(idx); SECOND(w); SECOND(s);
+	SECOND(lidx); SECOND(lw); SECOND(ne); SECOND(part);
+	SECOND(g); SECOND(gu); SECOND(hq); SECOND(hs32); SECOND(hs16); SECOND(has); SECOND(out);
+	SECOND(qg); SECOND(k); SECOND(v); SECOND(qo); SECOND(kc); SECOND(vc);
+	SECOND(pm); SECOND(pd); SECOND(po); SECOND(aout);
+	SECOND(iqk); SECOND(iq); SECOND(sc); SECOND(hst); SECOND(sel);
+	SECOND(pg); SECOND(pgq); SECOND(pgs32); SECOND(pgs16); SECOND(pgas);
+	SECOND(lk); SECOND(kn); SECOND(qn); SECOND(lv); SECOND(pG); SECOND(pgates); SECOND(px); SECOND(prows);
+	SECOND(hlo); SECOND(amo); SECOND(apart); SECOND(acnt); SECOND(tokout);
+	SECOND(tkout); SECOND(tkpart); SECOND(tkcnt);
+#undef SECOND
+	/* Each position has both exchange slots, while a logical paired exchange has
+	 * one generation and one publication to the common peer flags. */
+	xc_pair[d] = xc[d];
+	xc_pair[d].inbox = dalloc(2 * XSLOT);
+	xc_pair[d].xtab = dalloc(128);
+}
 
 static void state_copy(int to_snapshot) {
 	for (int d = 0; d < nd; d++) {
@@ -136,10 +220,54 @@ static void state_copy(int to_snapshot) {
 	}
 }
 
-/* ---- one response is one or two launches of the persistent kernel: [start, snap_at) (only when a snapshot is
-   taken) and [.., T) ---- */
+/* Both positions use the same layer state and positional caches, with separate
+ * activations, router selections, compact gathers and exchange inboxes. */
+static void model_program(prog_t *P, int d, unsigned position, unsigned nprompt,
+                          const uint32_t stop[2], int samp_k, float topp, float invT,
+                          int include_head) {
+	const dn_bufs_t *b = position ? &db_pair[d] : &db[d];
+	const xchg_t *x = position ? &xc_pair[d] : &xc[d];
+	if (!position) for (int i = 0; i < 4096; i++) prof_layer[d][i] = -1;
+	prog_init(P); P->loop = 1; P->token_offset = position;
+	P->stop[0] = stop[0]; P->stop[1] = stop[1]; P->end = dCTL[d] + 0x14;
+	P->samp_k = samp_k; P->samp_topp = topp; P->samp_invT = invT;
+	prog_embed_bcast(P, x, d, nd, embed_die, &dw[d][0], b, 0);
+	for (int bb = 0; bb < nlayers_run; bb++) {
+		int phase_first = P->n;
+		dn_bufs_t layer = *b;
+		layer.dn_state = dst_dn[d][bb]; layer.conv_state = dst_conv[d][bb]; layer.ple_state = dst_ple[d];
+		layer.qsa = 1; layer.nblk = nblk_qsa;
+		layer.kq = dst_kq[d][bb]; layer.ks = dst_ks[d][bb]; layer.vq = dst_vq[d][bb]; layer.vs = dst_vs[d][bb];
+		layer.pkt = dst_pkt[d][bb]; layer.ring = dst_ring[d][bb];
+		if (bb == 1) prog_ple_prefix(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
+		if (BLK_IS_ATTN(bb)) prog_attn_block(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
+		else prog_deltanet_block(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
+		if (!position) for (int i = phase_first; i < P->n && i < 4096; i++) prof_layer[d][i] = bb;
+	}
+	if (include_head) prog_head(P, &sp[d][0], x, &dw[d][0], b, eps, 0, nprompt);
+	prog_token_end(P, x, d, nd, b->S);
+}
+
+static void upload_programs(const prog_t *P, unsigned *nph, unsigned positions) {
+	for (int d = 0; d < nd; d++) {
+		CK(cuCtxSetCurrent(ctx[d]));
+		nph[d] = (unsigned)P[d].n;
+		if (nph[d] > 4096) { fprintf(stderr, "program too long (%u descriptors)\n", nph[d]); longjmp(run_jb, 1); }
+        prof_desc[d] = nph[d]; prof_nph[d] = 0;
+        for (int i = 0; i < P[d].n; i += (P[d].p[i].w[30] & 8u) ? 2 : 1) {
+            int j = prof_nph[d]++;
+            prof_index[d][j] = (uint32_t)i; prof_op[d][j] = P[d].p[i].w[0];
+            prof_units[d][j] = P[d].p[i].w[1]; prof_flags[d][j] = P[d].p[i].w[30];
+        }
+		CK(cuMemcpyHtoD(dPROG[d], P[d].p, sizeof(phase_t) * (size_t)P[d].n));
+		CK(cuMemsetD32(dCTL[d] + 0x24, positions, 1));
+	}
+}
+
+/* ---- persistent launches bounded by snapshots and known-prefix tails ---- */
 typedef struct {
 	int T, nprompt, ntok, sent, count, ended, aborted;
+	int paired_positions;
 	double tfirst;
 	const engine_cb *cb;
 } runctx;
@@ -228,6 +356,24 @@ static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 		if (!fin) nanosleep(&nap, NULL);
 	}
 	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuCtxSynchronize()); }
+}
+
+/* The paired program may only consume known ids. Stop before the last prompt
+ * position, whose head produces the first generated token. */
+static void run_known_prefix(runctx *r, const prog_t *single, const prog_t *pair, int end) {
+	unsigned nph[MAXD];
+	if (r->aborted || r->count >= end) return;
+	if (pair && end - r->count >= 2) {
+		int start = r->count;
+		int paired_end = end - ((end - r->count) & 1);
+		upload_programs(pair, nph, 2);
+		run_segment(r, nph, paired_end);
+		r->paired_positions += r->count - start;
+	}
+	if (!r->aborted && r->count < end) {
+		upload_programs(single, nph, 1);
+		run_segment(r, nph, end);
+	}
 }
 
 /* ---- images: the embeddings that replace placeholder tokens, and the M-RoPE positions of every token ----
@@ -324,9 +470,10 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	if (ple_disk) {   /* a new id for this response (never 0); the rows of the positions it runs are staged from `resume` on */
 		ple_rid = ple_rid + 1 ? ple_rid + 1 : 1; ple_start = ple_next = resume; ple_short_reads = 0;
 		memcpy(ple_seq, ids, 4 * (size_t)nprompt);
-		for (int d = 0; d < nd; d++) db[d].ple_rid = ple_rid;
+		for (int d = 0; d < nd; d++) { db[d].ple_rid = ple_rid; db_pair[d].ple_rid = ple_rid; }
 	}
 	prog_t *P = calloc(MAXD, sizeof *P); unsigned nph[MAXD];
+	prog_t *pair = two_position ? calloc(MAXD, sizeof *pair) : NULL;
 	if (resume) state_copy(0);
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
@@ -343,51 +490,48 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 		CK(cuMemsetD32(dCTL[d] + 0x8, (unsigned)resume, 1)); CK(cuMemsetD32(dCTL[d] + 0x14, 0, 2));   /* token count, end flag, abort count */
 		CK(cuMemcpyHtoD(db[d].ids, h_ids, 4 * ((size_t)T + 2)));
 		CK(cuMemsetD8(db[d].toks, 0, 4 * ((size_t)T + 2)));
-		prog_init(&P[d]); P[d].loop = 1;
-		for (int p = 0; p < 4096; p++) prof_layer[d][p] = -1;
-		P[d].stop[0] = stop[0]; P[d].stop[1] = stop[1]; P[d].end = dCTL[d] + 0x14;
-		P[d].samp_k = samp_k; P[d].samp_topp = samp_topp; P[d].samp_invT = samp_invT;
 		if (samp_k) CK(cuMemcpyHtoD(db[d].rnd, h_rnd, 4 * ((size_t)T + 2)));
-		prog_embed_bcast(&P[d], &xc[d], d, nd, embed_die, &dw[d][0], &db[d], 0);
-		for (int bb = 0; bb < nlayers_run; bb++) {
-			int phase_first = P[d].n;
-			dn_bufs_t bb_ = db[d]; bb_.dn_state = dst_dn[d][bb]; bb_.conv_state = dst_conv[d][bb]; bb_.ple_state = dst_ple[d];
-			bb_.qsa = 1; bb_.nblk = nblk_qsa; bb_.kq = dst_kq[d][bb]; bb_.ks = dst_ks[d][bb]; bb_.vq = dst_vq[d][bb]; bb_.vs = dst_vs[d][bb]; bb_.pkt = dst_pkt[d][bb]; bb_.ring = dst_ring[d][bb];
-			if (bb == 1) prog_ple_prefix(&P[d], &sp[d][bb], &xc[d], &dw[d][bb], &bb_, 0, eps);
-			if (BLK_IS_ATTN(bb)) prog_attn_block(&P[d], &sp[d][bb], &xc[d], &dw[d][bb], &bb_, 0, eps);
-			else prog_deltanet_block(&P[d], &sp[d][bb], &xc[d], &dw[d][bb], &bb_, 0, eps);
-			for (int p = phase_first; p < P[d].n && p < 4096; p++) prof_layer[d][p] = bb;
+		model_program(&P[d], d, 0, (unsigned)nprompt, stop, samp_k, samp_topp, samp_invT, 1);
+		if (pair) {
+			prog_t second;
+			model_program(&second, d, 1, (unsigned)nprompt, stop, samp_k, samp_topp, samp_invT, 1);
+			prog_init(&pair[d]);
+			if (prog_pair(&pair[d], &P[d], &second)) { fprintf(stderr, "engine: incompatible position programs on die %d\n", d); prog_free(&second); longjmp(run_jb, 1); }
+			/* alloc_second_position gives every position disjoint scratch/inboxes. */
+			prog_pair_fuse_bf16(&pair[d], 1);
+			prog_free(&second);
 		}
-		prog_head(&P[d], &sp[d][0], &xc[d], &dw[d][0], &db[d], eps, 0, (unsigned)nprompt);
-		prog_token_end(&P[d], &xc[d], d, nd, db[d].S);
-		nph[d] = (unsigned)P[d].n;
-		prof_nph[d] = (int)nph[d] < 4096 ? (int)nph[d] : 4096; for (int i = 0; i < prof_nph[d]; i++) { prof_op[d][i] = P[d].p[i].w[0]; prof_units[d][i] = P[d].p[i].w[1]; prof_flags[d][i] = P[d].p[i].w[30]; }
-		if (nph[d] > 4096) { fprintf(stderr, "program too long (%u phases)\n", nph[d]); exit(1); }
-		CK(cuMemcpyHtoD(dPROG[d], P[d].p, sizeof(phase_t) * P[d].n));
-        if (trace_n) {
-            unsigned count = (unsigned)(T - nprompt + 1); if (count > trace_n) count = trace_n;
-            uint32_t tr[5] = {(uint32_t)dTRACE[d], (uint32_t)(dTRACE[d] >> 32), trace_first, count, 1};
-            CK(cuMemsetD8(dTRACE[d], 0, (size_t)count * nph[d] * 64));
-            CK(cuMemcpyHtoD(dCTL[d] + 0xd0, tr, sizeof tr));
-        }
 	}
+	upload_programs(P, nph, 1);
+    /* Paired prefix positions end before trace_first. Clear once, using the
+       scalar program that executes every position in the generated window. */
+    if (trace_n) for (int d = 0; d < nd; d++) {
+        CK(cuCtxSetCurrent(ctx[d]));
+        unsigned count = (unsigned)(T - nprompt + 1); if (count > trace_n) count = trace_n;
+        uint32_t tr[5] = {(uint32_t)dTRACE[d], (uint32_t)(dTRACE[d] >> 32), trace_first, count, 1};
+        CK(cuMemsetD8(dTRACE[d], 0, (size_t)count * nph[d] * 64));
+        CK(cuMemcpyHtoD(dCTL[d] + 0xd0, tr, sizeof tr));
+    }
 	double t1 = now();
-	runctx r = { .T = T, .nprompt = nprompt, .sent = nprompt - 1, .cb = cb };
+	runctx r = { .T = T, .nprompt = nprompt, .sent = nprompt - 1, .count = resume, .cb = cb };
 	ple_pump(&r, PLE_AHEAD);   /* the first rows are in place before the kernels start (the position they start at waits for its flag) */
 	if (snap_at) {   /* run the prompt up to the snapshot position, copy the states, go on */
-		run_segment(&r, nph, snap_at);
+		run_known_prefix(&r, P, pair, snap_at);
 		if (!r.aborted) {
 			state_copy(1);
 			memcpy(snap_ids, ids, 4 * (size_t)snap_at); snap_s = snap_at;
 		}
 	}
-	if (!r.aborted) run_segment(&r, nph, T);
+	if (pair && !r.aborted) run_known_prefix(&r, P, pair, nprompt - 1);
+	if (!r.aborted) { upload_programs(P, nph, 1); run_segment(&r, nph, T); }
 	double t2 = now();
 	trace_completed = (unsigned)r.count; trace_aborted = r.aborted != 0; trace_ended = r.ended != 0;
 	trace_status = r.aborted ? "aborted" : "completed";
 	if (trace_n && r.count > (int)trace_first) { trace_valid = (unsigned)r.count - trace_first; if (trace_valid > trace_n) trace_valid = trace_n; }
-	if (st) { st->ntok = r.count; st->ended = r.ended; st->nph = nph[0]; st->resumed = resume; st->snapshot = snap_at; st->build_ms = (t1 - t0) * 1e3; st->run_ms = (t2 - t1) * 1e3; st->first_ms = r.tfirst ? (r.tfirst - t1) * 1e3 : 0; }
+	last_positions = r.count; last_paired_positions = r.paired_positions;
+	if (st) { st->ntok = r.count; st->ended = r.ended; st->nph = nph[0]; st->resumed = resume; st->snapshot = snap_at; st->build_ms = (t1 - t0) * 1e3; st->run_ms = (t2 - t1) * 1e3; st->first_ms = r.tfirst ? (r.tfirst - t1) * 1e3 : 0; st->paired_positions = r.paired_positions; }
 	for (int d = 0; d < nd; d++) prog_free(&P[d]);
+	if (pair) { for (int d = 0; d < nd; d++) prog_free(&pair[d]); free(pair); }
 	free(P);
 	in_run = 0;
 	return 0;
@@ -401,6 +545,13 @@ int engine_init(core_t *c) {
 	core = c; in_init = 1;
 	if (setjmp(init_jb)) { in_init = 0; engine_fini(); return -1; }
 	MAXT = c->maxt;
+	last_positions = last_paired_positions = 0;
+	const char *pair_env = getenv("FLASH_TWO_POSITION");
+	if (pair_env && strcmp(pair_env, "0") && strcmp(pair_env, "1")) {
+		fprintf(stderr, "engine: FLASH_TWO_POSITION must be 0 or 1\n");
+		in_init = 0; return -1;
+	}
+	two_position = pair_env && !strcmp(pair_env, "1");
 	if (getenv("FLASH_ENGINE_MAXT")) { int m = atoi(getenv("FLASH_ENGINE_MAXT")); if (m > 0 && m <= c->maxt) MAXT = m; }   /* a library reloaded with FLASH_ENGINE_MAXT=n serves fewer positions than the core was started for (the KV caches shrink) */
 	const char *cubin = getenv("FLASH_CUBIN") ? getenv("FLASH_CUBIN") : "die.cubin";
 	img_rows_max = getenv("FLASH_MAXIMG") ? (unsigned)atoi(getenv("FLASH_MAXIMG")) : 2048;   /* image tokens per response (fp16 rows of 2560 on every die) */
@@ -526,6 +677,7 @@ int engine_init(core_t *c) {
 		if (trace_n) dTRACE[d] = dalloc((size_t)trace_n * 4096 * 64);
 		dPROG[d] = dalloc(128 * 4096); dCTL[d] = dalloc(0x100 + 4 * 4096);
 		x->xgen = dCTL[d] + 0x20;
+		if (two_position) alloc_second_position(d);
 	}
 	embed_die = -1; for (int d = 0; d < nd; d++) if (dw[d][0].token_embd) { embed_die = d; break; }
 	if (embed_die < 0) { fprintf(stderr, "engine: no die holds token_embd\n"); if (in_init) longjmp(init_jb, 1); exit(1); }
@@ -538,6 +690,10 @@ int engine_init(core_t *c) {
 		for (int e = 0; e < 6; e++) { uint64_t a = e < nd ? (uint64_t)xc[e].flags + 64u * (unsigned)d : (uint64_t)dCTL[d] + 0xc0; memcpy(&hdr[16 + 2 * e], &a, 8); }
 		uint64_t mf = (uint64_t)xc[d].flags; memcpy(&hdr[28], &mf, 8);
 		CK(cuMemsetD8(dCTL[d], 0, 0x100)); CK(cuMemcpyHtoD(dCTL[d], hdr, sizeof hdr));
+	}
+	if (two_position) {
+		for (int d = 0; d < 6; d++) tab[d] = (uint64_t)xc_pair[d < nd ? d : 0].inbox;
+		for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(xc_pair[d].xtab, tab, sizeof tab)); }
 	}
 	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuStreamCreate(&pollst[d], CU_STREAM_NON_BLOCKING)); }
 	CK(cuCtxSetCurrent(ctx[0]));
@@ -570,6 +726,7 @@ void engine_fini(void) {
 	free(h_imap); h_imap = NULL; imap_dirty = rope_dirty_T = 0;
 	memset(db, 0, sizeof db); memset(xc, 0, sizeof xc); memset(dPROG, 0, sizeof dPROG); memset(dCTL, 0, sizeof dCTL); memset(dst_ple, 0, sizeof dst_ple);
 	memset(dTRACE, 0, sizeof dTRACE); trace_n = trace_valid = 0;
+	memset(db_pair, 0, sizeof db_pair); memset(xc_pair, 0, sizeof xc_pair); two_position = 0;
 	core = NULL;
 }
 
@@ -622,7 +779,9 @@ int engine_session(FILE *in, FILE *out) {
 		if (!strncmp(p, "hosttrace", 9)) { host_trace_dump(out); fflush(out); continue; }
 		if (!strncmp(p, "prof", 4)) {   /* where the last token of the last response spent its time, from the phase timestamps CTA 0 writes at each phase end */
 			int pd = atoi(p + 4); if (pd < 0 || pd >= nd) pd = 0; const int nph_ = prof_nph[pd]; const uint32_t *pop = prof_op[pd];   /* prof [die] */
-			uint32_t *ts = malloc(4 * 4096); CK(cuCtxSetCurrent(ctx[pd])); CK(cuMemcpyDtoH(ts, dCTL[pd] + 0x100, 4 * (size_t)nph_));
+			uint32_t *ts = malloc(4 * 4096); CK(cuCtxSetCurrent(ctx[pd])); CK(cuMemcpyDtoH(ts, dCTL[pd] + 0x100, 4 * (size_t)prof_desc[pd]));
+			/* Secondary descriptors have no timestamp; compact logical phase ends. */
+			for (int i = 0; i < nph_; i++) ts[i] = ts[prof_index[pd][i]];
 			static double tot[OP_COUNT]; static int cnt[OP_COUNT]; memset(tot, 0, sizeof tot); memset(cnt, 0, sizeof cnt);
 			double all = 0; int big[8] = { -1, -1, -1, -1, -1, -1, -1, -1 };
 			for (int i = 1; i < nph_; i++) {
@@ -635,12 +794,13 @@ int engine_session(FILE *in, FILE *out) {
 			fprintf(out, "  longest:"); for (int k = 0; k < 8 && big[k] > 0; k++) fprintf(out, " #%d %s %.0f us;", big[k], die_opname[pop[big[k]]], (uint32_t)(ts[big[k]] - ts[big[k] - 1]) / 1e3);
 			fprintf(out, "\n"); fflush(out); free(ts); continue;
 		}
+		if (!strncmp(p, "statehash", 9)) { state_hashes(out); continue; }
 		if (!strncmp(p, "info", 4)) { fprintf(out, "info %d %u\n", MAXT, img_rows_max); fflush(out); continue; }
 		if (!strncmp(p, "config", 6)) {   /* what this engine is: the identity to attach to a measurement (the commit it was built from, where the KV lives, the layers it runs, the kernel image) */
 			char ad[64] = ""; for (int d = 0; d < nd; d++) if (has_attn[d]) { char one[8]; snprintf(one, sizeof one, "%s%d", ad[0] ? "," : "", d); strncat(ad, one, sizeof ad - strlen(ad) - 1); }
 			const char *sh = getenv("SPLIT_SHARES"), *am = getenv("ATTN_MAP");
-			fprintf(out, "config rev=%s kv_host=%d ple_disk=%d maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u trace_tokens=%u cubin=%s cubin_fnv=%016llx\n",
-			        FLASH_REV, kv_host, ple_disk, MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, trace_n, cubin_path, (unsigned long long)cubin_fnv);
+			fprintf(out, "config rev=%s kv_host=%d ple_disk=%d maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u trace_tokens=%u two_position=%d cubin=%s cubin_fnv=%016llx\n",
+			        FLASH_REV, kv_host, ple_disk, MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, trace_n, two_position, cubin_path, (unsigned long long)cubin_fnv);
 			fflush(out); continue;
 		}
 		if (!strncmp(p, "cubin", 5)) {
@@ -686,8 +846,8 @@ int engine_session(FILE *in, FILE *out) {
 			CK(cuCtxSetCurrent(ctx[0])); CK(cuMemcpyDtoH(toks, db[0].toks, 4 * (size_t)st.ntok));
 			fprintf(out, "tokens:"); for (int t = n_new ? nprompt - 1 : 0; t < st.ntok; t++) fprintf(out, " %u", toks[t]); fprintf(out, "\n");
 			/* st.ntok is the final position count; the first st.resumed positions came from the snapshot and were not run, so they are not in the average */
-			fprintf(out, "time: %.1f ms for %d positions run (%d from the snapshot; %.2f ms per position run; first token %.1f ms; %u phases; programs %.0f ms)%s\n",
-			        st.run_ms, st.ntok - st.resumed, st.resumed, st.run_ms / (st.ntok - st.resumed > 0 ? st.ntok - st.resumed : 1), st.first_ms, st.nph, st.build_ms, st.ended ? "; end of turn" : "");
+			fprintf(out, "time: %.1f ms for %d positions run (%d from the snapshot; %.2f ms per position run; first token %.1f ms; %u phases; programs %.0f ms; %d paired positions)%s\n",
+			        st.run_ms, st.ntok - st.resumed, st.resumed, st.run_ms / (st.ntok - st.resumed > 0 ? st.ntok - st.resumed : 1), st.first_ms, st.nph, st.build_ms, st.paired_positions, st.ended ? "; end of turn" : "");
 		}
 		fflush(out);
 	}

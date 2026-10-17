@@ -518,6 +518,18 @@ memtest: memtest.c
 fence: fence.c
 	$(CC) -std=gnu99 -O2 -Wall -o $@ fence.c -I$(CUDA)/include -lcuda
 
+# Two-position descriptor and state equivalence tests.
+pair_prog_test: pair_prog_test.c prog.c prog.h dieops.h ../ref/quant.c ../ref/gguf.c ../ref/split.c
+	$(CC) -std=gnu99 -O2 -Wall -o $@ pair_prog_test.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I$(CUDA)/include -lm
+
+pair_state_test: pair_state_test.c prog.c prog.h dieops.h ../ref/quant.c ../ref/gguf.c ../ref/split.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ pair_state_test.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+pair_bf16_test: pair_bf16_test.c dieops.h
+	$(CC) -std=gnu99 -O2 -Wall -o $@ pair_bf16_test.c -I$(CUDA)/include -lcuda
+
+pair_bf16_plan_test: pair_bf16_plan_test.c prog.c prog.h dieops.h ../ref/quant.c ../ref/gguf.c ../ref/split.c
+	$(CC) -std=gnu99 -O2 -Wall -o $@ pair_bf16_plan_test.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I$(CUDA)/include -lm
 
 # Profiling images use separate generated files; changing a shell variable cannot leave a stale production image.
 die_trace.sass: die.pl trace.pl $(DIE_OPS)

@@ -1,7 +1,7 @@
 # flash-sass
 An inference engine for **Qwen3.8-Flash-Next**, specifically the Q2 variant of: 
 https://huggingface.co/ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF
-Using **Maxwell SASS** (via [MaxAs](https://github.com/NervanaSystems/maxas)) for multiple **Tesla M60** GPUs. Each die runs **one persistent kernel per response** Weights stay in the GGUF's own block formats and are dotted as integers with packed `XMAD`.
+Using **Maxwell SASS** (via [MaxAs](https://github.com/NervanaSystems/maxas)) for multiple **Tesla M60** GPUs. By default each die runs **one persistent kernel per response** Weights stay in the GGUF's own block formats and are dotted as integers with packed `XMAD`.
 
 - row split
 - expert split
@@ -19,10 +19,17 @@ Using **Maxwell SASS** (via [MaxAs](https://github.com/NervanaSystems/maxas)) fo
   the engine library is reloaded, `flashd` (a llama-server-style HTTP/SSE front-end that renders the
   GGUF's own Jinja chat template), and a tokenizer written from the GGUF's metadata.
 
+An opt-in **two-position pass** pairs known prompt positions with one synchronization and
+publication per logical phase. Set `FLASH_TWO_POSITION=1` when starting or reloading the
+engine. Five BF16 variants share weight loads; remaining operations replay their scalar
+arithmetic with separate position buffers. The final prompt token and generation stay B1.
+See [BATCH.md](BATCH.md) and [PAIR_TESTING.md](PAIR_TESTING.md).
+
+
 #### Planned: 
 - MTP head
 - unified KV cache
-- batched prefill
+- general matrix-batched prefill
 - concurrent requests
 - V340L version
 

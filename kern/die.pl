@@ -27,6 +27,10 @@ my $DESC_OFF = 0xbf80;     # descriptor in shared memory (ops use smem from 0)
 my $TOK_OFF = 0xbf70;      # the token counter (u32), kept per CTA in shared memory
 my $XG_OFF = 0xbf74;       # the exchange count (u32), per CTA in shared memory (xsend bumps it)
 my $GEN_OFF = 0xbf78;      # the grid barrier generation (u32), per CTA in shared memory
+my $PAIR_DESC_OFF = 0xbe80; # second position's unchanged 128-byte descriptor
+my $STEP_OFF = 0xbf50;     # physical descriptors consumed by this phase (1 or 2)
+my $PAIR_MODE_OFF = 0xbf54; # word 30 bits 3/4: generic paired / fused paired body
+my $FLAGS_OFF = 0xbf58;    # primary descriptor's exchange / barrier flags
 
 # opcode = index. tag, file, unit kind, environment for the generator
 my @OPS = (
@@ -109,6 +113,12 @@ my @OPS = (
     [ 'idxscore',  'idxscore.sass',   'cta',  {} ],
     [ 'idxsel',    'idxsel.sass',     'cta',  {} ],
     [ 'xcopy',     'xcopy.sass',      'cta',  {} ],
+    # Paired BF16 opcodes are appended to retain the scalar descriptor ABI.
+    [ 'bf16biasp',  'gemv_bf16_pair.sass', 'cta', { GEMV_K => 2560, GEMV_BIAS => 1 } ],
+    [ 'bf16k2560p', 'gemv_bf16_pair.sass', 'cta', { GEMV_K => 2560 } ],
+    [ 'bf16k320p',  'gemv_bf16_pair.sass', 'cta', { GEMV_K => 320 } ],
+    [ 'bf16hcp',    'gemv_bf16_pair.sass', 'cta', { GEMV_K => 2560, GEMV_SLICES => 4 } ],
+    [ 'bf16hcxp',   'gemv_bf16_pair.sass', 'cta', { GEMV_K => 2560, GEMV_SLICES => 4, GEMV_XOUT => 1 } ],
 );
 
 sub expand_names {                       # x<00-15> -> x00 .. x15
@@ -139,11 +149,11 @@ sub load_op {
     my $has_grid = 0;
     if ($text =~ s|<CONSTANT_MAPPING>(.*?)</CONSTANT_MAPPING>||s) {
         for my $l (split /\n/, $1) {
-            next unless $l =~ /^\s*(\w+)\s*:\s*c\[0x0\]\[0x([0-9a-f]+)\]/;
-            my ($name, $addr) = ($1, hex $2);
+            next unless $l =~ /^\s*(\w+)\s*:\s*c\[0x([02])\]\[0x([0-9a-f]+)\]/;
+            my ($name, $bank, $addr) = ($1, $2, hex $3);
             if ($addr == 0x14) { $has_grid = 1; next; }
-            die "$file: parameter $name at 0x$2 outside the descriptor" if $addr < 0x140 || $addr >= 0x140 + 4 * 30;
-            push @params, [ $name, 2 + ($addr - 0x140) / 4 ];
+            die "$file: parameter $name at 0x$3 outside the descriptor" if $addr < 0x140 || $addr >= 0x140 + 4 * 30;
+            push @params, [ $name, 2 + ($addr - 0x140) / 4, $bank eq '2' ? $PAIR_DESC_OFF : $DESC_OFF ];
         }
     }
     # registers: keep each mapping line (templates included, so MaxAs still knows the
@@ -185,8 +195,9 @@ sub load_op {
     # parameter prologue
     my $pro = '';
     for my $i (0 .. $#params) {
-        my ($name, $word) = @{$params[$i]};
-        $pro .= sprintf "--:-:1:-:%d      LDS %s_%s, [RZ+0x%x];\n", $i == $#params ? 2 : 1, $tag, $name, $DESC_OFF + 4 * $word;
+        my ($name, $word, $desc) = @{$params[$i]};
+        $desc = $DESC_OFF unless defined $desc;
+        $pro .= sprintf "--:-:1:-:%d      LDS %s_%s, [RZ+0x%x];\n", $i == $#params ? 2 : 1, $tag, $name, $desc + 4 * $word;
     }
     $pro .= "01:-:-:-:6      NOP;\n" if @params;
     my $map = join('', @maplines) . join('', map { sprintf "    %d : %s_%s\n", $BASE + $_->[0], $tag, $_->[1] } @pregs);
@@ -232,7 +243,7 @@ for my $k (0 .. $#OPS) {
     }
     $body .= "--:-:-:-:6      ISETP.GE.U32.AND P6, PT, vid, units, PT;\n";
     $body .= "--:-:-:-:6      NOP;\n" x 3;
-    $body .= "--:-:-:-:6  \@P6 BRA PHASE_END;\n";
+    $body .= "--:-:-:-:6  \@P6 BRA POSITION_END;\n";
     $body .= "${tag}_BEGIN:\n";
     $body .= $op->{code};
     $body .= "${tag}_END:\n";
@@ -244,7 +255,7 @@ for my $k (0 .. $#OPS) {
     $body .= "--:-:-:-:6      ISETP.LT.U32.AND P6, PT, vid, units, PT;\n";
     $body .= "--:-:-:-:6      NOP;\n" x 3;
     $body .= "--:-:-:-:6  \@P6 BRA ${tag}_BEGIN;\n";
-    $body .= "--:-:-:-:6      BRA PHASE_END;\n";
+    $body .= "--:-:-:-:6      BRA POSITION_END;\n";
 }
 
 my @trace = map { trace_code($_, $TOK_OFF) } 0..7;
@@ -355,6 +366,48 @@ $trace[0]# descriptor -> smem (warp 0, lane = word; the words were prefetched); 
 --:-:1:-:1      LDS op, [RZ+0x@{[sprintf '%x', $DESC_OFF]}];
 --:-:1:-:2      LDS units, [RZ+0x@{[sprintf '%x', $DESC_OFF + 4]}];
 01:-:-:-:6      NOP;
+# A paired phase is two adjacent scalar descriptors. Save the primary flags, and
+# load the second descriptor (with its own token mask) before running either body.
+# Bit 3 marks a pair, bit 4 a fused body that consumes both descriptor banks.
+--:-:1:-:2      LDS bar_g, [RZ+0x@{[sprintf '%x', $DESC_OFF + 0x78]}];
+01:2:-:-:6      STS [RZ+0x@{[sprintf '%x', $FLAGS_OFF]}], bar_g;
+--:-:-:-:6      LOP32I.AND bar_old, bar_g, 0x18;
+--:2:-:-:6      STS [RZ+0x@{[sprintf '%x', $PAIR_MODE_OFF]}], bar_old;
+--:-:-:-:6      SHR.U32 bar_old, bar_old, 0x3;
+--:-:-:-:6      LOP32I.AND bar_old, bar_old, 0x1;
+--:-:-:-:6      IADD bar_g2, bar_old, 0x1;
+--:2:-:-:6      STS [RZ+0x@{[sprintf '%x', $STEP_OFF]}], bar_g2;
+--:-:-:-:6      ISETP.EQ.U32.AND P5, PT, bar_old, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+02:-:-:-:6  \@P5 BRA PAIR_LOADED;
+--:-:-:-:6      IADD bar_t, pidx, 0x1;
+--:-:-:-:6      SHL bar_t, bar_t, 0x7;
+--:-:-:-:6      IADD dsp0.CC, prog0, bar_t;
+--:-:-:-:6      IADD.X dsp1, prog1, RZ;
+--:-:-:-:6      SHL op, lane, 0x2;
+--:-:-:-:6      IADD fw0.CC, dsp0, op;
+--:-:-:-:6      IADD.X fw1, dsp1, RZ;
+--:-:-:-:6      ISETP.LT.U32.AND P6, PT, tid, 0x20, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:4:-:1  \@P6 LDG.E vtid, [fw];
+--:-:4:-:2  \@P6 LDG.E vid, [dsp+0x7c];
+--:-:1:-:2      LDS bar_t, [RZ+0x@{[sprintf '%x', $TOK_OFF]}];
+09:-:-:-:6      SHR.U32 vid, vid, lane;
+--:-:-:-:6      LOP32I.AND vid, vid, 0x1;
+--:-:-:-:6      ISETP.NE.U32.AND P5, PT, vid, RZ, P6;
+--:-:-:-:6      IADD units, op, 0x@{[sprintf '%x', $PAIR_DESC_OFF]};
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P5 IADD vtid, vtid, bar_t;
+--:2:-:-:6  \@P6 STS [units], vtid;
+02:-:-:-:6      BAR.SYNC 0x1;
+PAIR_LOADED:
+--:-:1:-:1      LDS op, [RZ+0x@{[sprintf '%x', $DESC_OFF]}];
+--:-:1:-:2      LDS units, [RZ+0x@{[sprintf '%x', $DESC_OFF + 4]}];
+01:-:-:-:6      NOP;
 $trace[1]# ---- exchange wait (descriptor word 30 bit 1): warp 0 of every CTA polls this die's
 # flags (ctl[28..29] -> u32[6][16], one per sending die and CTA; absent dies hold ~0;
 # lane l reads words l, l + 32, l + 64) until all 96 read >= the exchange count (XG
@@ -391,15 +444,47 @@ XWSPIN:
 XWBAR:
 --:-:-:-:6      BAR.SYNC 0x1;
 XWDONE:
-$trace[2]$dispatch--:-:-:-:6      BRA PHASE_END;
+$trace[2]OP_DISPATCH:
+$dispatch--:-:-:-:6      BRA POSITION_END;
 $body
+POSITION_END:
+# Units of a stateful op belong to the same CTA for both positions. Finish every
+# unit and make its writes visible before replaying this op with position 1.
+# Independent ops also take this path; the grid barrier and peer flags happen
+# once, after both positions. A fused pair has already produced both outputs.
+3f:-:-:-:6      BAR.SYNC 0x1;
+--:-:1:-:2      LDS bar_g, [RZ+0x@{[sprintf '%x', $PAIR_MODE_OFF]}];
+01:-:-:-:6      ISETP.EQ.U32.AND P5, PT, bar_g, 0x8, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+# Every warp must sample MODE before any warp resets it for the second body.
+--:-:-:-:6      BAR.SYNC 0x1;
+--:-:-:-:6 \@!P5 BRA PHASE_END;
+--:-:-:-:6      MEMBAR.GL.IVALLD;
+--:-:-:-:6      MOV bar_g, RZ;
+--:2:-:-:6      STS [RZ+0x@{[sprintf '%x', $PAIR_MODE_OFF]}], bar_g;
+--:-:-:-:6      SHL bar_t, lane, 0x2;
+--:-:-:-:6      IADD bar_old, bar_t, 0x@{[sprintf '%x', $PAIR_DESC_OFF]};
+--:-:-:-:6      IADD bar_t, bar_t, 0x@{[sprintf '%x', $DESC_OFF]};
+--:-:-:-:6      ISETP.LT.U32.AND P6, PT, tid, 0x20, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:1:-:2  \@P6 LDS bar_g, [bar_old];
+01:2:-:-:6  \@P6 STS [bar_t], bar_g;
+02:-:-:-:6      BAR.SYNC 0x1;
+--:-:1:-:1      LDS op, [RZ+0x@{[sprintf '%x', $DESC_OFF]}];
+--:-:1:-:2      LDS units, [RZ+0x@{[sprintf '%x', $DESC_OFF + 4]}];
+01:-:-:-:6      BRA OP_DISPATCH;
+
 PHASE_END:
 $trace[3]# ---- grid barrier (warp 0 counts in; everyone waits at BAR 1) ----
 --:-:-:-:6      BAR.SYNC 0x1;
 --:-:-:-:6      ISETP.GE.U32.AND P6, PT, tid, 0x20, PT;
 --:-:-:-:6      ISETP.NE.U32.AND P5, PT, tid, RZ, PT;
-# prefetch the next descriptor (pidx + 1, or 0 at the token wrap) while the barrier runs
---:-:-:-:6      IADD bar_t, pidx, 0x1;
+# prefetch the next logical phase (skip a pair's second descriptor)
+--:-:1:-:2      LDS bar_t, [RZ+0x@{[sprintf '%x', $STEP_OFF]}];
+01:-:-:-:6      IADD bar_t, pidx, bar_t;
 --:-:-:-:6      ISETP.LT.U32.AND P3, PT, bar_t, nph, PT;
 --:-:-:-:6      SHL op, lane, 0x2;
 --:-:-:-:6      NOP;
@@ -426,7 +511,7 @@ $trace[3]# ---- grid barrier (warp 0 counts in; everyone waits at BAR 1) ----
 --:-:-:-:6      ISETP.LT.U32.AND P3, PT, lane, 0x10, PT;
 # descriptor word 30 bit 2: the next phase does not depend on this one (and writes
 # nothing this one reads), so no grid barrier: the CTA syncs and moves on
---:-:2:-:2      LDS bar_old, [RZ+0x@{[sprintf '%x', $DESC_OFF + 0x78]}];
+--:-:2:-:2      LDS bar_old, [RZ+0x@{[sprintf '%x', $FLAGS_OFF]}];
 02:-:-:-:6      LOP32I.AND bar_old, bar_old, 0x4;
 --:-:-:-:6      ISETP.NE.U32.AND P4, PT, bar_old, RZ, PT;
 --:-:-:-:6      NOP;
@@ -448,7 +533,7 @@ $trace[3]# ---- grid barrier (warp 0 counts in; everyone waits at BAR 1) ----
 # (ctl[16 + 2e] = &flags_e[me][0]; the host points absent dies at a scratch word, so
 # all six stores are unconditional); CTA 0 mirrors the count to ctl[8]. This runs
 # while the other CTAs' arrivals propagate, ahead of the poll below.
---:-:1:-:2      LDS bar_old, [RZ+0x@{[sprintf '%x', $DESC_OFF + 0x78]}];
+--:-:1:-:2      LDS bar_old, [RZ+0x@{[sprintf '%x', $FLAGS_OFF]}];
 01:-:-:-:6      LOP32I.AND bar_old, bar_old, 0x1;
 --:-:-:-:6      ISETP.NE.U32.AND P4, PT, bar_old, RZ, !P5;
 --:-:-:-:6      SHL units, cta, 0x2;
@@ -513,7 +598,8 @@ BDONE:
 --:-:6:-:2  \@P4 S2R bar_g2, SR_GLOBALTIMERLO;
 20:-:-:-:6  \@P4 STG.E [bar_cp+0x100], bar_g2;
 $trace[4]# ---- next phase ----
---:-:-:-:6      IADD pidx, pidx, 0x1;
+--:-:1:-:2      LDS bar_t, [RZ+0x@{[sprintf '%x', $STEP_OFF]}];
+01:-:-:-:6      IADD pidx, pidx, bar_t;
 --:-:-:-:6      ISETP.LT.U32.AND P6, PT, pidx, nph, PT;
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
@@ -531,8 +617,15 @@ $trace[4]# ---- next phase ----
 --:-:-:-:6      BAR.SYNC 0x1;
 --:-:1:-:1 \@!P5 LDS bar_t, [RZ+0x@{[sprintf '%x', $TOK_OFF]}];
 --:-:3:-:1 \@!P5 LDG.E.CV bar_old, [bar_cp+0x14];
---:-:3:-:2 \@!P5 LDG.E.CV bar_g2, [bar_cp+0x18];
-01:-:-:-:6 \@!P5 IADD bar_t, bar_t, 0x1;
+--:-:3:-:1 \@!P5 LDG.E.CV bar_g2, [bar_cp+0x18];
+--:-:3:-:2 \@!P5 LDG.E.CV bar_one, [bar_cp+0x24];
+# ctl[9] is the number of known positions in a pass. Zero retains the B=1 ABI.
+05:-:-:-:6      ISETP.EQ.U32.AND P3, PT, bar_one, RZ, !P5;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P3 MOV bar_one, 0x1;
+--:-:-:-:6 \@!P5 IADD bar_t, bar_t, bar_one;
 04:-:-:-:6 \@!P5 LOP.OR bar_t, bar_t, bar_old;
 # Abort: the host writes ctl[6] = a token count a few tokens ahead of every die (0: none); the
 # die whose count reaches it ends the turn exactly like a stop token, so all dies stop together.
