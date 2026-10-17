@@ -1543,7 +1543,7 @@ four pool chunks in flight per warp: 131 µs for 65,000 blocks = 128 GB/s), `idx
 bits in digits of 8, 8, 8 and 7 bits, five passes of one launch each, then an ordered compaction: exact top-k with
 lower-index tie-break, tested with 2/3 exact zeros, a few distinct values and all-equal scores), `kvgather`
 (the selected blocks into the compact fp32 K / V of ref/attn.h), `attnpartn` (`attnpart` with the key count
-derived from the token position: 4 · NBLK + tail once nv > NBLK). The attention per layer and token is 21
+derived from the token position: 4 · NBLK + tail once nv > NBLK). The attention per layer and token is 15
 phases; the indexer chain at 65,000 blocks is 250 µs (idxqk 10, idxscore 128, idxsel 16 + 14 + 15 + 18 + 44).
 Found on the way: a divergent loop before a `BAR.SYNC` splits the warp and the barrier releases early (idxsel's
 first version lost a third of its histogram counts and hung on small inputs; the loops now run a CTA-uniform trip
@@ -1569,3 +1569,17 @@ split of this work put 7.4 GB on it; reset with the `nvidia_modeset` recipe abov
 `nvidia-smi -r -i 2`, reload, `-pm 1`, `-ac 2505,1177`). The engine now notices a die whose launch failed (or that no
 token has come out of for `FLASH_WATCHDOG_S` = 600 s) instead of waiting forever, and rebuilds through the core's
 fault path.
+
+**Open work, in Nate's priority order (2026-10-16): GPU maintenance first, then the KV cache, then tokens per second.**
+1. *GPU maintenance.* ECC on for all eight dies (an ECC change needs a GPU reset or a cold boot; a reset that hangs in the
+   driver needs `kern/powercycle.sh`, which cuts a stuck shutdown with SysRq guards and wakes archy by magic packet).
+   Memtest every die with ECC on and fence only the *measured* bad bands (die 2 above ~5.65 GiB, die 0 above ~5.76 GiB are
+   inherited from cx-flash and the Xid 48 log, not yet mapped). A bad band does not have to cost the whole upper half: with
+   `cuMemCreate` (2 MB physical chunks, driver 470) the good chunks above a bad one can be tested and mapped into one range.
+2. *KV in VRAM.* The host-pinned KV cache is a consequence of the bad bands, not a design goal. With the bands fenced and ECC
+   on, show by arithmetic whether weights + 200k–262,144 positions of int8 KV fit the six dies; only if they provably do not
+   is anything else (ECC off, a coarser intermediate) on the table. Hybrid placement (recent positions in VRAM, older in
+   host memory) is the fallback.
+3. *Tokens per second.* Decode is 36 tok/s at short context and 28 / 19 tok/s at 3,100 / 8,000 tokens (host-pinned KV
+   gather). Of the 27.9 ms/token at short context, ~6.4 ms is `actq256` (the wait after an exchange for the slowest die),
+   ~8 ms the hyper-connection ops, ~1.4 ms `xsend`; weight streaming is ~4.5 ms. `prof [die]` (kern/prof.sh) shows each die.
