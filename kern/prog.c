@@ -5,9 +5,84 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
-void prog_init(prog_t *P) { P->cap = 64; P->n = 0; P->xj = 0; P->loop = 0; P->pending_wait = 0; P->stop[0] = P->stop[1] = 0xffffffffu; P->end = 0; P->samp_k = 0; P->samp_topp = 1.0f; P->samp_invT = 1.0f; P->p = malloc(sizeof(phase_t) * P->cap); }
+void prog_init(prog_t *P) { P->cap = 64; P->n = 0; P->xj = 0; P->loop = 0; P->token_offset = 0; P->pending_wait = 0; P->stop[0] = P->stop[1] = 0xffffffffu; P->end = 0; P->samp_k = 0; P->samp_topp = 1.0f; P->samp_invT = 1.0f; P->p = malloc(sizeof(phase_t) * P->cap); }
 void prog_free(prog_t *P) { free(P->p); P->p = NULL; P->n = P->cap = 0; }
+int prog_pair(prog_t *out, const prog_t *a, const prog_t *b) {
+    /* Validate before changing out. Parameters name separate activations and
+       consecutive causal positions; logical exchanges are published once. */
+    if (!out || !a || !b || out == a || out == b || a->n <= 0 || a->n != b->n ||
+        a->n > INT_MAX / 2 || !a->p || !b->p || a->xj != b->xj ||
+        a->loop != b->loop || a->pending_wait != b->pending_wait ||
+        a->stop[0] != b->stop[0] || a->stop[1] != b->stop[1] || a->end != b->end ||
+        a->samp_k != b->samp_k || a->samp_topp != b->samp_topp ||
+        a->samp_invT != b->samp_invT ||
+        (a->loop && (a->token_offset == UINT32_MAX || b->token_offset != a->token_offset + 1u)))
+        return -1;
+    for (int i = 0; i < a->n; i++) {
+        const phase_t *x = &a->p[i], *y = &b->p[i];
+        if (x->w[0] != y->w[0] || x->w[1] != y->w[1] || x->w[30] != y->w[30] ||
+            (x->w[30] & 24u)) return -1;
+    }
+    size_t n = (size_t)a->n * 2u;
+    if (n > SIZE_MAX / sizeof(phase_t)) return -2;
+    phase_t *p = malloc(n * sizeof *p);
+    if (!p) return -2;
+    for (int i = 0; i < a->n; i++) {
+        p[2*i] = a->p[i]; p[2*i+1] = b->p[i];
+        p[2*i].w[30] |= 8u;
+    }
+    free(out->p);
+    *out = *a;
+    out->p = p; out->n = out->cap = (int)n;
+    return 0;
+}
+static uint64_t desc_ptr(const phase_t *p, int word) {
+    return p->w[word] | ((uint64_t)p->w[word + 1] << 32);
+}
+static int overlaps(uint64_t a, uint64_t an, uint64_t b, uint64_t bn) {
+    return an && bn && (a <= b ? b - a < an : a - b < bn);
+}
+int prog_pair_fuse_bf16(prog_t *P, int disjoint_xout) {
+    int fused = 0;
+    for (int i = 0; i + 1 < P->n; i++) {
+        phase_t *a = &P->p[i], *b = a + 1;
+        if ((a->w[30] & 24u) != 8u) continue;
+        i++;
+        if (a->w[0] != b->w[0] || a->w[1] != b->w[1] ||
+            desc_ptr(a, 2) != desc_ptr(b, 2) || a->w[8] != b->w[8] ||
+            a->w[31] || b->w[31]) continue;
+        int op, k = 2560, slices = 1, bias = 0, xout = 0;
+        switch (a->w[0]) {
+        case OP_BF16BIAS: op = OP_BF16BIASP; bias = 1; break;
+        case OP_BF16K2560: op = OP_BF16K2560P; break;
+        case OP_BF16K320: op = OP_BF16K320P; k = 320; break;
+        case OP_BF16HC: op = OP_BF16HCP; slices = 4; break;
+        case OP_BF16HCX: op = OP_BF16HCXP; slices = 4; xout = 1; break;
+        default: continue;
+        }
+        if (xout && !disjoint_xout) continue;
+        if (!xout) {
+            uint64_t yn = 4ull * a->w[8], xn = 4ull * k * slices;
+            uint64_t wn = 2ull * k * slices * a->w[8];
+            uint64_t y[2] = { desc_ptr(a, 6), desc_ptr(b, 6) };
+            int alias = overlaps(y[0], yn, y[1], yn);
+            for (int j = 0; j < 2; j++) {
+                alias |= overlaps(y[j], yn, desc_ptr(a, 2), wn);
+                alias |= overlaps(y[j], yn, desc_ptr(a, 4), xn);
+                alias |= overlaps(y[j], yn, desc_ptr(b, 4), xn);
+                if (bias) {
+                    alias |= overlaps(y[j], yn, desc_ptr(a, 10), yn);
+                    alias |= overlaps(y[j], yn, desc_ptr(b, 10), yn);
+                }
+            }
+            if (alias) continue;
+        }
+        a->w[0] = (uint32_t)op; a->w[30] |= 16u; fused++;
+    }
+    return fused;
+}
 phase_t *prog_add(prog_t *P, int op, unsigned units) {
 	if (P->n == P->cap) { P->cap *= 2; P->p = realloc(P->p, sizeof(phase_t) * P->cap); }
 	phase_t *p = &P->p[P->n++];
@@ -28,7 +103,7 @@ void ph_ptr(phase_t *p, int addr, CUdeviceptr v) { int w = 2 + (addr - 0x140) / 
 void ph_u32(phase_t *p, int addr, uint32_t v) { p->w[2 + (addr - 0x140) / 4] = v; }
 void ph_f32(phase_t *p, int addr, float v) { uint32_t u; memcpy(&u, &v, 4); ph_u32(p, addr, u); }
 void ph_tokv(prog_t *P, phase_t *p, int addr, uint32_t base, uint32_t value) {
-	if (P->loop) { ph_u32(p, addr, base); p->w[31] |= 1u << (2 + (addr - 0x140) / 4); } else ph_u32(p, addr, value);   /* descriptor word 2 + i */
+	if (P->loop) { ph_u32(p, addr, base + P->token_offset); p->w[31] |= 1u << (2 + (addr - 0x140) / 4); } else ph_u32(p, addr, value);   /* descriptor word 2 + i */
 }
 
 void ph_rms(prog_t *P, int op, CUdeviceptr X, CUdeviceptr W, CUdeviceptr Y, float eps, unsigned vectors) {
