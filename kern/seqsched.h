@@ -1,11 +1,11 @@
-/* Bounded FIFO sequence admission and FIFO GPU turns. No CUDA dependency. */
+/* Bounded sequence admission and FIFO GPU turns. No CUDA dependency. */
 #ifndef FLASH_SEQSCHED_H
 #define FLASH_SEQSCHED_H
 #include <pthread.h>
 #include <time.h>
 #include <string.h>
 #define SEQ_MAX 16
-typedef struct seq_wait { struct seq_wait *next; } seq_wait;
+typedef struct seq_wait { struct seq_wait *next; int wanted; } seq_wait;
 typedef struct {
     pthread_mutex_t mu;
     pthread_cond_t cv;
@@ -19,17 +19,22 @@ static void seqsched_init(seqsched *s, int n) {
 }
 static int seqsched_claim(seqsched *s, int wanted, int (*alive)(void *), void *arg) {
     if (wanted < -1 || wanted >= s->n) return -1;
-    seq_wait w = {0}; int found = -1;
+    seq_wait w = { .wanted = wanted }; int found = -1;
     pthread_mutex_lock(&s->mu);
     if (s->tail) s->tail->next = &w; else s->head = &w;
     s->tail = &w;
     for (;;) {
         if (__atomic_load_n(&s->broken, __ATOMIC_ACQUIRE) || (alive && alive(arg))) break;
-        if (s->head == &w) {
+        /* Admit the oldest eligible waiter. A caller waiting for occupied slot 0
+         * must not prevent another caller from using an available slot 1. */
+        seq_wait *eligible = NULL;
+        int candidate = -1;
+        for (seq_wait *q = s->head; q && !eligible; q = q->next)
             for (int i = 0; i < s->n; i++)
-                if (!s->busy[i] && (wanted < 0 || wanted == i)) { found = i; break; }
-            if (found >= 0) { s->busy[found] = 1; break; }
-        }
+                if (!s->busy[i] && (q->wanted < 0 || q->wanted == i)) {
+                    eligible = q; candidate = i; break;
+                }
+        if (eligible == &w) { found = candidate; s->busy[found] = 1; break; }
         struct timespec ts; clock_gettime(CLOCK_REALTIME, &ts);
         ts.tv_nsec += 100000000;
         if (ts.tv_nsec >= 1000000000) { ts.tv_sec++; ts.tv_nsec -= 1000000000; }

@@ -6,7 +6,7 @@ Each slot owns its token IDs, sampling random values, raw INT8 KV, pooled indexe
 
 ## Scheduling
 
-The core accepts concurrent socket connections. Admission waits for an available slot; `chat_slot <slot> <n_new> <ids...>` and `gen_slot <slot> <n_new> <ids...>` select a particular slot. Ordinary `chat` and `gen` use the first available slot. Slot allocation is FIFO, and waiting clients can cancel. The HTTP frontend keeps its own connection for each request and locks only the tokenizer's shared BPE scratch.
+The core accepts concurrent socket connections. Admission waits for an available slot; `chat_slot <slot> <n_new> <ids...>` and `gen_slot <slot> <n_new> <ids...>` select a particular slot. Ordinary `chat` and `gen` use the first available slot. Slot allocation serves the oldest eligible waiter, and waiting clients can cancel. A request for an occupied explicit slot does not block an unrelated free slot. The HTTP frontend keeps its own connection for each request and locks only the tokenizer's shared BPE scratch.
 
 GPU work still uses the existing one-position kernels. A FIFO scheduler gives each admitted request a turn. During decode a turn runs one position. During prefill it runs at most `FLASH_QUANTUM` positions (1–128, default 1); it yields at the prefill boundary and at a requested snapshot. This lets short requests make progress during another request's long prefill. It does not promise increased aggregate token throughput or reuse a weight read across multiple positions. The two-position kernel work is separate.
 

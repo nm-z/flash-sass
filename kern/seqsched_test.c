@@ -55,6 +55,9 @@ int main(void) {
  int slot=seqsched_claim(&s,0,NULL,NULL); assert(slot==0);
  pthread_t waiter; assert(!pthread_create(&waiter,NULL,waiting,NULL));
  wait_admission();
+ /* A queued request for busy slot 0 cannot block an automatic claim of slot 1. */
+ int other=seqsched_claim(&s,-1,NULL,NULL); assert(other==1);
+ seqsched_release(&s,other);
  __atomic_store_n(&cancelled,1,__ATOMIC_RELEASE);
  pthread_mutex_lock(&s.mu); pthread_cond_broadcast(&s.cv); pthread_mutex_unlock(&s.mu);
  assert(!pthread_join(waiter,NULL)); assert(claim_result==-1);
@@ -63,6 +66,6 @@ int main(void) {
  __atomic_store_n(&s.broken,1,__ATOMIC_RELEASE);
  assert(seqsched_claim(&s,-1,NULL,NULL)==-1);
  assert(seqsched_enter(&s)==-1); seqsched_leave(&s);
- seqsched_destroy(&s); puts("seqsched: FIFO turns, bounded slots, cancellation, reuse and fault propagation passed");
+ seqsched_destroy(&s); puts("seqsched: FIFO turns, eligible admission, bounded slots, cancellation, reuse and fault propagation passed");
  return 0;
 }
