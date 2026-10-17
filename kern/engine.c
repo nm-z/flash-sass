@@ -80,6 +80,16 @@ static uint64_t file_fnv(const char *path) {
 	fclose(f); return h;
 }
 static uint32_t *h_ids, *h_toks;    /* pinned: the prompt, and the tokens as die 0 writes them */
+/* ---- FLASH_PLE_DISK: the 28.8 GB PLE table stays in its file. A token needs 16 rows of 90 B; the host reads them into the pinned compact table (16 rows per position) just
+   ahead of the position that runs and then stores this response's id in a ready flag, which plerows (compact mode) waits for. ---- */
+static int ple_disk, ple_fd = -1; static off_t ple_off; static uint8_t *ple_host; static size_t ple_rdy_off;
+static uint32_t *h_rdy;                    /* the u32 ready flag of each position (pinned) */
+static uint32_t ple_rid;                   /* this response's id (never 0): a flag is valid when it equals it, so nothing needs resetting between responses */
+static uint32_t ple_absent_id, ple_end_id; /* the constants block's absent / end ids: the hash of a position needs the same ones */
+static uint32_t *ple_seq;                  /* the ids of the response so far: the prompt, then each generated token as it arrives */
+static int ple_next, ple_start;            /* the first position whose rows are not staged yet; the position the response starts at */
+static unsigned long long ple_short_reads; /* rows that could not be read (staged as zeros; the flag is set anyway so that no die waits for ever) */
+#define PLE_AHEAD 128                      /* positions staged ahead of the one that runs */
 static float *h_rnd;                /* pinned: u[position] for the sampler */
 static uint32_t *h_tok;             /* pinned: ctl[2] (count, bit 31 = the turn ended) */
 static CUstream pollst[MAXD];       /* per die, non-blocking: the kernel runs on the legacy stream, these do not wait for it */
@@ -128,6 +138,31 @@ static void abort_run(runctx *r) {
 	CK(cuCtxSetCurrent(ctx[0]));
 }
 
+/* stage the PLE rows of the positions that are known and close ([ple_next, min(known, finished + PLE_AHEAD)), at most `budget` of them): position q is known when
+   q < nprompt or the token q - 1 has arrived (q <= count); its 16 row numbers are the hash of ids[q-2..q], the rows are read from the file (the misses side by side: the
+   WILLNEED hints go out first) and the flag is stored last */
+static void ple_pump(runctx *r, int budget) {
+	if (!ple_disk) return;
+	int c = r->count < ple_start ? ple_start : r->count;
+	int known = r->nprompt > c + 1 ? r->nprompt : c + 1;
+	if (known > r->T) known = r->T;
+	int lim = c + PLE_AHEAD < known ? c + PLE_AHEAD : known;
+	for (; ple_next < lim && budget > 0; ple_next++, budget--) {
+		int q = ple_next;
+		if (q >= r->nprompt) ple_seq[q] = h_toks[q - 1];
+		uint64_t rows[16]; uint32_t endid = ple_end_id;
+		ple_rows_c(ple_seq, (size_t)q, ple_absent_id, &endid, 1, ple_multipliers, ple_head_offsets, ple_head_vocab, rows);
+		uint8_t *dst = ple_host + (size_t)q * 16 * 90;
+		for (int h = 0; h < 16; h++) posix_fadvise(ple_fd, ple_off + (off_t)(rows[h] * 90), 90, POSIX_FADV_WILLNEED);
+		for (int h = 0; h < 16; h++) {
+			size_t got = 0; off_t at = ple_off + (off_t)(rows[h] * 90);
+			while (got < 90) { ssize_t n = pread(ple_fd, dst + h * 90 + got, 90 - got, at + (off_t)got); if (n <= 0) break; got += (size_t)n; }
+			if (got < 90) { memset(dst + h * 90 + got, 0, 90 - got); if (!ple_short_reads++) fprintf(stderr, "engine: PLE row read failed at position %d (head %d)\n", q, h); }
+		}
+		__atomic_store_n(&h_rdy[q], ple_rid, __ATOMIC_RELEASE);
+	}
+}
+
 /* launch the program on every die for tokens up to ntok and wait for it, streaming the generated tokens */
 static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 	r->ntok = ntok_;
@@ -139,7 +174,7 @@ static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 	/* poll ctl[2] on die 0 through a non-blocking stream (the kernel runs on the legacy one), then the new tokens;
 	   once the kernel is done, one last read */
 	CK(cuCtxSetCurrent(ctx[0]));
-	struct timespec nap = { 0, 500000 };
+	struct timespec nap = { 0, ple_disk ? 50000 : 500000 };   /* with the PLE rows staged on demand a new token is learned of as soon as possible: the next position's rows wait on it */
 	double last_alive = now();
 	int warned = 0;
 	double last_chk = now(), last_move = now(), watchdog_s = getenv("FLASH_WATCHDOG_S") ? atof(getenv("FLASH_WATCHDOG_S")) : 600.0; int last_count = -1;
@@ -156,6 +191,7 @@ static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 			for (; r->sent < r->count; r->sent++)
 				if (r->cb && r->cb->token && r->cb->token(r->cb->arg, r->sent, h_toks[r->sent]) && !r->aborted && !r->ended) abort_run(r);
 		}
+		if (!fin) ple_pump(r, 8);
 		if (!r->aborted && !fin && r->cb && r->cb->alive && now() - last_alive > 0.02) { last_alive = now(); if (r->cb->alive(r->cb->arg) && !r->ended) abort_run(r); }
 		/* a die whose kernel failed (an illegal address, a trap) ends its launch while the others spin in an exchange: look at all of them, and give
 		   up when the token count has not moved for FLASH_WATCHDOG_S seconds (a deadlock) */
@@ -254,6 +290,11 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	for (int i = 0; i < nimg; i++) if (snap_at > imgs[i].s) snap_at = imgs[i].s;   /* the snapshot would not know the image */
 	if (snap_at <= resume) snap_at = 0;
 	if (!resume) snap_s = 0;   /* this response rewrites the attention caches from position 0 */
+	if (ple_disk) {   /* a new id for this response (never 0); the rows of the positions it runs are staged from `resume` on */
+		ple_rid = ple_rid + 1 ? ple_rid + 1 : 1; ple_start = ple_next = resume; ple_short_reads = 0;
+		memcpy(ple_seq, ids, 4 * (size_t)nprompt);
+		for (int d = 0; d < nd; d++) db[d].ple_rid = ple_rid;
+	}
 	prog_t *P = calloc(MAXD, sizeof *P); unsigned nph[MAXD];
 	if (resume) state_copy(0);
 	for (int d = 0; d < nd; d++) {
@@ -292,6 +333,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	}
 	double t1 = now();
 	runctx r = { .T = T, .nprompt = nprompt, .sent = nprompt - 1, .cb = cb };
+	ple_pump(&r, PLE_AHEAD);   /* the first rows are in place before the kernels start (the position they start at waits for its flag) */
 	if (snap_at) {   /* run the prompt up to the snapshot position, copy the states, go on */
 		run_segment(&r, nph, snap_at);
 		if (!r.aborted) {
@@ -340,6 +382,10 @@ int engine_init(core_t *c) {
 	memset(ppc, 0, sizeof ppc); memcpy(ppc, pmult, 24);
 	for (int h = 0; h < 16; h++) { uint32_t o32 = (uint32_t)ple_head_offsets[h], v32 = (uint32_t)ple_head_vocab[h]; memcpy(ppc + 24 + 4 * h, &o32, 4); memcpy(ppc + 88 + 4 * h, &v32, 4); }
 	memcpy(ppc + 152, &pabsent, 4); memcpy(ppc + 156, &pend, 4);
+	ple_disk = c->ple_disk; ple_fd = c->ple_fd; ple_off = c->ple_off; ple_host = c->ple_host; ple_rdy_off = c->ple_rdy_off;
+	h_rdy = ple_disk ? (uint32_t *)(c->ple_host + c->ple_rdy_off) : NULL;
+	ple_absent_id = pabsent; ple_end_id = pend;
+	free(ple_seq); ple_seq = ple_disk ? calloc((size_t)MAXT + 2, 4) : NULL; ple_next = ple_start = 0;
 	float *rcs = malloc(4 * 32 * (size_t)MAXT), *rsn = malloc(4 * 32 * (size_t)MAXT);
 	for (int t = 0; t < MAXT; t++) rope_table_gpu((unsigned)t, 1e7f, rcs + 32 * t, rsn + 32 * t);
 	/* ---- the dies: weights, buffers, exchange, control ---- */
@@ -372,6 +418,7 @@ int engine_init(core_t *c) {
 		b->imap = dalloc(4 * ((size_t)MAXT + 2)); CK(cuMemsetD32(b->imap, 0xffffffffu, (size_t)MAXT + 2));
 		if (img_rows_max) b->img = dalloc(2 * 2560 * (size_t)img_rows_max);
 		b->ple_pc = dalloc(160); CK(cuMemcpyHtoD(b->ple_pc, ppc, 160)); CK(cuMemHostGetDevicePointer(&b->ple_tab, c->ple_host, 0)); b->ple_compact = (unsigned)c->ple_compact;
+		b->ple_rdy = c->ple_disk ? b->ple_tab + c->ple_rdy_off : 0; b->ple_rid = 0;   /* ple_rid is set per response (engine_run) */
 		b->pg = dalloc(4 * 2560); b->pgq = dalloc(2 * 2560); b->pgs32 = dalloc(4 * 80); b->pgs16 = dalloc(4 * 160); b->pgas = dalloc(4 * 80);
 		b->lk = dalloc(4u * (unsigned)s0.pkn); b->kn = dalloc(4 * 10240); b->qn = dalloc(4 * 10240); b->lv = dalloc(4u * (unsigned)s0.yn);
 		b->pG = dalloc(4 * 10240); b->pgates = dalloc(16); b->px = dalloc(4 * 10240); b->prows = dalloc(64);
@@ -460,6 +507,7 @@ void engine_fini(void) {
 	for (int d = 0; d < nd; d++) { if (pollst[d]) { cuCtxSetCurrent(ctx[d]); cuStreamDestroy(pollst[d]); pollst[d] = 0; } }
 	cuCtxSetCurrent(ctx[0]);
 	if (h_kv) { cuCtxSetCurrent(ctx[0]); cuMemFreeHost(h_kv); h_kv = NULL; }
+	free(ple_seq); ple_seq = NULL; h_rdy = NULL; ple_disk = 0;
 	if (h_ids) cuMemFreeHost(h_ids);
 	if (h_toks) cuMemFreeHost(h_toks);
 	if (h_rnd) cuMemFreeHost(h_rnd);
@@ -540,8 +588,8 @@ int engine_session(FILE *in, FILE *out) {
 		if (!strncmp(p, "config", 6)) {   /* what this engine is: the identity to attach to a measurement (the commit it was built from, where the KV lives, the layers it runs, the kernel image) */
 			char ad[64] = ""; for (int d = 0; d < nd; d++) if (has_attn[d]) { char one[8]; snprintf(one, sizeof one, "%s%d", ad[0] ? "," : "", d); strncat(ad, one, sizeof ad - strlen(ad) - 1); }
 			const char *sh = getenv("SPLIT_SHARES"), *am = getenv("ATTN_MAP");
-			fprintf(out, "config rev=%s kv_host=%d maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u cubin=%s cubin_fnv=%016llx\n",
-			        FLASH_REV, kv_host, MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, cubin_path, (unsigned long long)cubin_fnv);
+			fprintf(out, "config rev=%s kv_host=%d ple_disk=%d maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u cubin=%s cubin_fnv=%016llx\n",
+			        FLASH_REV, kv_host, ple_disk, MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, cubin_path, (unsigned long long)cubin_fnv);
 			fflush(out); continue;
 		}
 		if (!strncmp(p, "cubin", 5)) {
