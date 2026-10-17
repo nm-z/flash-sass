@@ -53,6 +53,11 @@ are from die 3 and its attention-die numbers from die 1. The profiler times a ph
 the previous one, so the first phase is untimed (1,153 and 1,213 below). Times (µs per run, ms per
 token) are the plain die's, except the attention rows, which are the attention die's.
 
+Each row below is a *kind* of phase. The same kind shows up many times in one token's list (for
+example once per block), and each time it shows up is one **run**: all SMs of the die do that step,
+then hit the barrier. "Runs per token" counts those appearances, "µs per run" is how long one takes,
+and the last column is runs times µs.
+
 | Phase | What it does | runs per token (plain die / attention die) | µs per run | ms per token, all runs together |
 |---|---|---|---|---|
 | **exchange and quantize** | | | | **6.26** |
