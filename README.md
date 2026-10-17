@@ -2,7 +2,7 @@
 
 An inference engine for one model, **Qwen3.8-Flash-Next** (the GSQ-RCO Q2_0 GGUF), written as
 hand-assembled **Maxwell SASS** (via [MaxAs](https://github.com/NervanaSystems/maxas)) for **Tesla M60**
-GPUs (sm_52, 8 GB dies). Each GPU die runs **one persistent kernel per response**: the token loop,
+GPUs (sm_52, 8 GB dies). By default each GPU die runs **one persistent kernel per response**: the token loop,
 every layer, the sampler and the exchange with the other dies are inside it, so there are no
 per-token launches, copies or host round trips. Weights stay in the GGUF's own block formats and
 are dotted as integers with packed `XMAD`; the host side is plain C.
@@ -23,8 +23,14 @@ It is a research project for one model on one machine, not a general engine.
   the engine library is reloaded, `flashd` (a llama-server-style HTTP/SSE front-end that renders the
   GGUF's own Jinja chat template), and a tokenizer written from the GGUF's metadata.
 
-Not done: speculative decoding with the MTP head, batched prefill (the prompt is processed one
-token at a time, at decode speed), more than one request at a time, any GPU but the M60.
+An opt-in **two-position pass** pairs known prompt positions with one synchronization and
+publication per logical phase. Set `FLASH_TWO_POSITION=1` when starting or reloading the
+engine. Five BF16 variants share weight loads; remaining operations replay their scalar
+arithmetic with separate position buffers. The final prompt token and generation stay B1.
+See [BATCH.md](BATCH.md) and [PAIR_TESTING.md](PAIR_TESTING.md).
+
+Not done: speculative decoding with the MTP head, general matrix-batched prefill,
+more than one request at a time, any GPU but the M60.
 
 ## Layout
 
