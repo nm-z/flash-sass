@@ -353,12 +353,12 @@ static int test_embimg(void) {
 	return bad;
 }
 
-/* the time of kvgather over 2051 attended keys with the int8 cache in VRAM or in pinned host memory */
+/* Legacy zero-filled, repeated-layout timing over 51 positions; not a bandwidth measurement. */
 static int test_gathertime(int host, unsigned nv) {
     if(nv<512||nv>65523){fprintf(stderr,"legacy gathertime requires nv512..65523; use qsa_gather_bench\n");return 2;}
     unsigned legacy_lo=0xffffffffu,legacy_hi=0,legacy_sum=0;
     for(unsigned j=0;j<51;j++){unsigned n=qsa_nkeys(4u*nv+j-1u,512);if(n<legacy_lo)legacy_lo=n;if(n>legacy_hi)legacy_hi=n;legacy_sum+=n;}
-    printf("legacy gathertime: fixed reused selection; visible_start=%u visible_end=%u positions=51 keys_first=%u keys_last=%u keys_min=%u keys_max=%u keys_mean=%.9f; counter gate not run; use qsa_gather_bench for changing IDs\n",4u*nv,4u*nv+50u,qsa_nkeys(4u*nv-1u,512),qsa_nkeys(4u*nv+49u,512),legacy_lo,legacy_hi,legacy_sum/51.0);
+    printf("legacy gathertime: UNVERIFIED ZERO-FILLED FIXTURE, fixed reused selection; visible_start=%u visible_end=%u positions=51 keys_first=%u keys_last=%u keys_min=%u keys_max=%u keys_mean=%.9f; counter gate not run; use qsa_gather_bench for changing IDs\n",4u*nv,4u*nv+50u,qsa_nkeys(4u*nv-1u,512),qsa_nkeys(4u*nv+49u,512),legacy_lo,legacy_hi,legacy_sum/51.0);
 
 	unsigned NBLK = 512, t = 4 * nv - 1, npos = 4 * nv + 400;
 	size_t cpos = (4 * (NBLK + 1) + 2048 + 31) / 32 * 32;
