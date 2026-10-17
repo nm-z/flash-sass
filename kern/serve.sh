@@ -23,13 +23,13 @@ all)   # everything at once: the holders (35 min of repacking) and the core (14 
 holders)   # DIES="3 4 5" ./serve.sh holders starts just those
 	# every holder (and fence) keeps a shared flock on its die's reservation file (the convention of the embedding services in ~/codex/asm-port: they
 	# take the same lock with `flock -x -n` and refuse to start while anyone holds it), so nothing else lands on a die the engine is loaded on.
-	# A die with a fence file (fences/die<N>.txt: "<block MiB> <bad block ranges>", found with memtest/blockmap) first gets a `fence` process that keeps its
+	# A die with a fence file (fences/<gpu uuid>.txt, so the fence follows the physical card when cards change slots: "<block MiB> <bad block ranges>", found with memtest/blockmap) first gets a `fence` process that keeps its
 	# bad blocks allocated, then a memtest of the free memory (FENCE_VERIFY=0 skips it) proves the list still matches the die, then the holder starts.
 	LOCKDIR=${GPU_LOCKDIR:-/home/nate/codex/asm-port}
 	for i in ${DIES:-0 1 2 3 4 5}; do
 		uuid=$(nvidia-smi -i $i --query-gpu=uuid --format=csv,noheader); lock="$LOCKDIR/$uuid.lock"
-		if [ -s fences/die$i.txt ]; then
-			read -r fmib franges < fences/die$i.txt; rm -f /tmp/fence-d$i.ready
+		if [ -s "fences/$uuid.txt" ]; then
+			read -r fmib franges < "fences/$uuid.txt"; rm -f /tmp/fence-d$i.ready
 			setsid -f flock -s -n "$lock" ./fence $i $fmib $franges > /tmp/fence-d$i.err 2>&1 < /dev/null
 			for w in $(seq 120); do [ -e /tmp/fence-d$i.ready ] && break; read -t 1 < /dev/zero 2>/dev/null; done
 			[ -e /tmp/fence-d$i.ready ] || { echo "serve.sh: the fence of die $i did not come up: $(cat /tmp/fence-d$i.err)" >&2; exit 1; }
