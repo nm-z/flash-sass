@@ -1,0 +1,33 @@
+name: Draft on conflict
+
+# A ready pull request that no longer merges is converted to a draft, with a comment (see .github/scripts/draft-conflicting.sh).
+# push to master: other pull requests can become conflicting right then. schedule: GitHub does not run pull_request workflows
+# on a PR that has merge conflicts, so a periodic sweep is the catch-all. workflow_dispatch: run it by hand.
+on:
+  push:
+    branches: [master]
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: draft-on-conflict
+  cancel-in-progress: false
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+      - name: Convert conflicting pull requests to draft
+        run: .github/scripts/draft-conflicting.sh | tee -a "$GITHUB_STEP_SUMMARY"
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
