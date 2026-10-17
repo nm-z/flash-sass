@@ -20,7 +20,8 @@ uint32_t tok_eos(const tok_vocab *v);                    /* tokenizer.ggml.eos_t
 int tok_add_bos(const tok_vocab *v); uint32_t tok_bos(const tok_vocab *v);
 const char *tok_template(const tok_vocab *v);            /* tokenizer.chat_template (NUL-terminated) or NULL */
 const char *tok_text(const tok_vocab *v, uint32_t id, size_t *len);   /* the vocabulary entry as stored */
-int tok_is_special(const tok_vocab *v, uint32_t id);   /* control, user-defined or unknown (not text the model wrote) */
+int tok_is_special(const tok_vocab *v, uint32_t id);   /* control, user-defined or unknown: what the tokenizer recognises as special (not what the output hides, see tok_is_hidden) */
+int tok_is_hidden(const tok_vocab *v, uint32_t id);    /* control or unknown: not shown in a response; user-defined tokens (<tool_call>) are */
 int tok_meta_num(const tok_vocab *v, const char *key, double *out);   /* a numeric GGUF metadata value (int, bool or float); 0 if present */
 
 #endif
