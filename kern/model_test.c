@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
 		nprompt = 0; while (nprompt < T && fscanf(f, "%u", &ids[nprompt]) == 1) nprompt++;
 		fclose(f);
 	} else for (int i = 0; i < T; i++) { ids[i] = (uint32_t)((rs >> 8) % 248000u); frand(); }
-	const size_t PLE_R = 1u << 20; uint8_t *ptab = NULL, *ctab = NULL; unsigned pcompact = 0; uint8_t ppc[160]; uint64_t pmult[3], poff[16], pvoc[16]; uint32_t pabsent = 248044, pend = 248046;
+	const size_t PLE_R = 1u << 20; uint8_t *ptab = NULL, *ctab = NULL; unsigned pcompact = 0; uint8_t ppc[160]; uint64_t pmult[3], poff[16], pvoc[16]; uint32_t pabsent = PLE_EOS_TOKEN, pend = PLE_EOS_TOKEN;
 /* the 16 real rows of position t -> the compact table slot the GPU reads (plerows compact mode) */
 #define PLE_STAGE(t) do { uint64_t rows_[16]; ple_rows_c(ids, (size_t)(t), pabsent, &pend, 1, pmult, poff, pvoc, rows_); for (int h_ = 0; h_ < 16; h_++) memcpy(ctab + ((size_t)(t) * 16 + h_) * 90, ptab + rows_[h_] * 90, 90); } while (0)
 	int has_ple = b0 <= 1 && 1 < b1;

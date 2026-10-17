@@ -315,6 +315,10 @@ tok_vocab *tok_load(const char *path) {
 
 int tok_is_special(const tok_vocab *v, uint32_t id) { return (int)id < v->n && v->type[id] != TT_NORMAL && v->type[id] != TT_BYTE; }
 
+/* what the output path must not show: control and unknown tokens (llama.cpp suppresses UNKNOWN | CONTROL). USER_DEFINED tokens such as <tool_call> and
+   </tool_call> are text the model wrote and are shown (issue #3); tok_is_special is the tokenizer-side notion and includes them. */
+int tok_is_hidden(const tok_vocab *v, uint32_t id) { return (int)id < v->n && (v->type[id] == TT_CONTROL || v->type[id] == TT_UNKNOWN); }
+
 int tok_meta_num(const tok_vocab *v, const char *key, double *out) {
 	const gguf_kv *kv = gguf_get(&v->g, key);
 	if (!kv) return -1;
