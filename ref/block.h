@@ -5,6 +5,18 @@
 #define FLASH_BLOCK_H
 #include <stdint.h>
 
+/* Per-layer scalar QSA state; model_test owns allocation. This is the
+ * instruction-order twin, not an independent mathematical oracle. */
+typedef struct {
+	unsigned nblk;
+	int8_t *kq, *vq;
+	uint16_t *ks, *vs, *pool, *pkt;
+	float *kc, *vc, *score;
+	uint32_t *sel;
+	float ring[4 * 128], iqk[640], iq[512];
+	float qo[6144], aout[6144], pm[24 * 8], pd[24 * 8], po[24 * 8 * 256];
+} model_qsa_t;
+
 /* host images of the block's tensors, in the device layouts (hold's cache files) */
 /* merged rows as the holder lays them out: hc_*_dj = down ++ inject (324 x 10240),
  * ffn_gate_inp_x = router ++ shared gate (513 x 2560), ssm_ab = alpha ++ beta (96 x
@@ -20,6 +32,7 @@ typedef struct {
 	/* full-attention blocks */
 	const uint8_t *attn_q, *attn_k, *attn_v, *attn_output; uint32_t attn_q_type, attn_k_type, attn_v_type, attn_output_type;
 	const float *attn_q_norm, *attn_k_norm;
+	const uint16_t *indexer_x; const float *indexer_qn, *indexer_kn;
 	/* block 1's PLE: Q2_0 tiles of ple_key (10240 x 2560), BF16 ple_value (2560 x 2560), norms, conv taps as fp32 [10240][4];
 	 * the n-gram table (IQ4_NL rows of 90 bytes, host memory) and the row-hash constants */
 	const uint8_t *ple_key; const uint16_t *ple_value; const float *ple_norm_key, *ple_norm_query, *ple_norm_conv, *ple_conv_w;
@@ -45,7 +58,7 @@ typedef struct {
 	float *dn_state;             /* 48 x 128 x 128 */
 	/* attention: qg = 24 x [q | gate], caches in ref/attn.h layouts (zero-filled, sized by the caller) */
 	float qg[12288], k[512], v[512], qo[6144], aout[6144], cs[32], sn[32];
-	float *kc, *vc;
+	float *kc, *vc; model_qsa_t *qsa;
 	/* PLE: g, its quantisation, K (10240) and kn, qn, V (2560), G (10240), gates, conv input, ring */
 	float pg[2560]; int16_t pgq[2560]; int32_t pgs32[80], pgs16[160]; float pgas[80];
 	float pK[10240], kn[10240], qn[10240], pV[2560], pG[10240], pgates[4], px[10240];

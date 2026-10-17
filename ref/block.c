@@ -8,6 +8,7 @@
 #include "router.h"
 #include "attn.h"
 #include "ple.h"
+#include "qsa.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -130,6 +131,37 @@ void ple_prefix_gpu(const dn_hweights_t *w, dn_hbufs_t *b, unsigned t, float eps
 	ple_conv_gpu(b->px, b->ple_state, w->ple_conv_w, t, b->pG, b->S);
 }
 
+/* Same append/indexer/selection/gather/attention stages as ph_attn_qsa. */
+static void model_qsa_core(const dn_hweights_t *w, dn_hbufs_t *b, unsigned t, float eps) {
+	model_qsa_t *q = b->qsa;
+	float ktmp[256], cs[32], sn[32];
+	unsigned nv = (t + 1) / 4;
+	gemv_bf16_ref(w->indexer_x, 640, 2560, b->z, q->iqk);
+	for (int kv = 0; kv < 2; kv++) {
+		qk_norm_rope_gpu(b->k + 256 * kv, w->attn_k_norm, eps, b->cs, b->sn, ktmp);
+		for (int g = 0; g < 8; g++) {
+			size_t row = (size_t)t * 2 + (unsigned)kv;
+			kv_quant32_gpu(ktmp + 32 * g, q->kq + row * 256 + 32 * g, q->ks + row * 8 + g);
+			kv_quant32_gpu(b->v + 256 * kv + 32 * g, q->vq + row * 256 + 32 * g, q->vs + row * 8 + g);
+		}
+	}
+	for (int h = 0; h < 4; h++) idx_norm_rope_gpu(q->iqk + 128 * h, w->indexer_qn, eps, b->cs, b->sn, q->iq + 128 * h);
+	memcpy(q->ring + (t & 3) * 128, q->iqk + 512, 128 * 4);
+	if ((t & 3) == 3) {
+		unsigned block = t / 4; uint16_t *pool = q->pool + (size_t)block * 128;
+		rope_table_gpu(t - 3, 1e7f, cs, sn);
+		idx_pool_gpu(q->ring, w->indexer_kn, eps, cs, sn, pool);
+		for (int d = 0; d < 128; d++) q->pkt[(size_t)(block >> 5) * 4096 + (size_t)(d >> 2) * 128 + (block & 31) * 4 + (d & 3)] = pool[d];
+	}
+	idx_scores_gpu(q->iq, q->pool, nv, q->score);
+	idx_select_gpu(q->score, nv, q->nblk, q->sel);
+	unsigned n = qsa_gather_gpu(q->kq, q->ks, q->vq, q->vs, q->sel, t, q->nblk, q->kc, q->vc);
+	memcpy(q->qo, b->qo, sizeof q->qo);
+	attn_partials_gpu(b->qo, q->kc, q->vc, n, q->pm, q->pd, q->po);
+	attn_merge_gpu(q->pm, q->pd, q->po, b->qg, b->aout);
+	memcpy(q->aout, b->aout, sizeof q->aout);
+}
+
 /* the full-attention block: hc read; q/k/v projections; per-head RMS + RoPE on q and k,
  * the KV cache gets position t; decode attention over the t+1 keys with the output
  * gate (ref/attn.h, as the attnqk / attnpart / attnmerge kernels); attn_output; hc
@@ -145,11 +177,14 @@ void attn_block_gpu(const dn_hweights_t *w, dn_hbufs_t *b, unsigned t, float eps
 	gemv_ref_any(w->attn_v_type, w->attn_v, 512, 2560, zq8, b->zs32, b->zs16, b->zas, b->v);
 	rope_table_gpu(t, 1e7f, b->cs, b->sn);
 	for (int h = 0; h < 24; h++) qk_norm_rope_gpu(b->qg + 512 * h, w->attn_q_norm, eps, b->cs, b->sn, b->qo + 256 * h);
+	if (b->qsa) model_qsa_core(w, b, t, eps);
+	else {
 	for (int kv = 0; kv < 2; kv++) {
 		qk_norm_rope_gpu(b->k + 256 * kv, w->attn_k_norm, eps, b->cs, b->sn, ktmp);
 		for (int d = 0; d < 256; d++) { b->kc[attn_kidx(t, kv, d)] = ktmp[d]; b->vc[(size_t)t * 512 + 256 * kv + d] = b->v[256 * kv + d]; }
 	}
 	attn_decode_gpu(b->qo, b->kc, b->vc, t + 1, b->qg, b->aout);
+	}
 	quant_act_gpu32(b->aout, 6144, b->oq, b->os32, b->os16, b->oas);
 	q16to8(b->oq, oq8, 6144);
 	gemv_ref_any(w->attn_output_type, w->attn_output, 2560, 6144, oq8, b->os32, b->os16, b->oas, b->y);

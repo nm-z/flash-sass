@@ -9,7 +9,12 @@
  *     fullcache: a holder's tile cache with every tensor the twin needs (blocks, head,
  *       embedding); manifest_i: die i's running holder (hold ... <b0> <b1> ... split=i/n)
  * Env: MODEL_NPH caps every die's program; MODEL_PROF prints die 0's per-op times;
- * MODEL_NOTWIN skips the twin (timing); MODEL_IDS=file reads prompt ids (u32 text). */
+ * MODEL_NOTWIN skips the twin (timing); MODEL_IDS=file reads prompt ids (u32 text).
+ * MODEL_ATTN=dense (default) or qsa (production INT8 chain). FLASH_NBLK defaults
+ * to 512; FLASH_KV_HOST defaults to 1. QSA validation requires all teacher-forced
+ * ids. MODEL_INJECT=layer|logits|selection must make comparison fail; selection
+ * needs T >= 4*(FLASH_NBLK+1). Per-token mode checks every token/layer, loop mode
+ * every prediction and the final token layer stages. */
 #define _POSIX_C_SOURCE 200809L
 #include "block.h"
 #include "attn.h"
@@ -51,13 +56,14 @@ static hold_arena ar[MAXD];
 static char tname[128];
 static const char *tn(int blk, const char *suffix) { snprintf(tname, sizeof tname, "blk.%d.%s", blk, suffix); return tname; }
 static void *hostimg_raw(const char *name) {
-	char fn[512]; snprintf(fn, sizeof fn, "%s/%s", fullcache, name);
-	FILE *f = fopen(fn, "rb"); if (!f) { perror(fn); exit(1); }
-	fseek(f, 0, SEEK_END); long n = ftell(f); fseek(f, 0, SEEK_SET);
-	void *p = malloc((size_t)n + 16);
-	if (fread(p, 1, (size_t)n, f) != (size_t)n) { fprintf(stderr, "short read %s\n", fn); exit(1); }
-	fclose(f);
-	return p;
+    char fn[512]; snprintf(fn, sizeof fn, "%s/%s", fullcache, name);
+    int fd = open(fn, O_RDONLY); struct stat st;
+    if (fd < 0) { perror(fn); exit(1); }
+    if (fstat(fd, &st) || st.st_size <= 0) { perror(fn); close(fd); exit(1); }
+    void *p = mmap(NULL, (size_t)st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+    close(fd);
+    if (p == MAP_FAILED) { perror(fn); exit(1); }
+    return p;
 }
 static void *hostimg(int blk, const char *suffix) { return hostimg_raw(tn(blk, suffix)); }
 static CUdeviceptr dptr_raw(int d, const char *name) { CUdeviceptr p = hold_ptr(&ar[d], name); if (!p) { fprintf(stderr, "die %d: no %s\n", d, name); exit(1); } return p; }
@@ -79,6 +85,8 @@ static int cmpbuf(const char *what, const void *ref, CUdeviceptr dev, size_t byt
 	return bad;
 }
 
+#include "model_qsa_test.h"
+
 /* the twin's per-block state (dn_hbufs_t carries one block's) */
 typedef struct { float *dn_state, *conv_state, *ple_state, *kc, *vc; } hstate_t;
 
@@ -86,8 +94,41 @@ int main(int argc, char **argv) {
 	if (argc < 7) { fprintf(stderr, "usage: model_test <fullcache> <b0> <b1> <T> <flags: e h -> <manifest0> [manifest1 ...]\n"); return 2; }
 	fullcache = argv[1]; int b0 = atoi(argv[2]), b1 = atoi(argv[3]), T = atoi(argv[4]); const char *flags = argv[5]; nd = argc - 6; float eps = 1e-6f;
 	int do_embed = strchr(flags, 'e') != NULL, do_head = strchr(flags, 'h') != NULL, do_loop = strchr(flags, 'l') != NULL;   /* l: one launch for all T tokens */
-	if (nd > MAXD || b1 > MAXB || b0 >= b1) { fprintf(stderr, "bad arguments\n"); return 2; }
+	if (nd < 1 || nd > MAXD || b0 < 0 || b1 > MAXB || b0 >= b1 || T < 1) { fprintf(stderr, "bad arguments\n"); return 2; }
 	int notwin = getenv("MODEL_NOTWIN") != NULL;
+	const char *attn_mode = getenv("MODEL_ATTN") ? getenv("MODEL_ATTN") : "dense";
+	if (strcmp(attn_mode, "dense") && strcmp(attn_mode, "qsa")) {
+		fprintf(stderr, "MODEL_ATTN must be dense or qsa\n"); return 2;
+	}
+	model_qsa = !strcmp(attn_mode, "qsa");
+	model_host = getenv("FLASH_KV_HOST") ? atoi(getenv("FLASH_KV_HOST")) != 0 : 1;
+	model_budget = getenv("FLASH_NBLK") ? (unsigned)atoi(getenv("FLASH_NBLK")) : QSA_NBLK;
+	if (model_qsa && (model_budget < 1 || model_budget > 4096)) {
+		fprintf(stderr, "FLASH_NBLK must be in [1,4096]\n"); return 2;
+	}
+	if (model_qsa && getenv("MODEL_NPH")) {
+		fprintf(stderr, "MODEL_NPH cannot truncate a production QSA validation program\n"); return 2;
+	}
+	int model_attention_layers = 0;
+	for (int b = b0; b < b1; b++) if (BLK_IS_ATTN(b)) model_attention_layers++;
+	if (model_qsa && !model_attention_layers) {
+		fprintf(stderr, "MODEL_ATTN=qsa needs at least one attention block\n"); return 2;
+	}
+	if (getenv("MODEL_INJECT")) {
+		const char *inj = getenv("MODEL_INJECT");
+		if (!model_qsa || notwin ||
+		    (strcmp(inj, "layer") && strcmp(inj, "logits") && strcmp(inj, "selection")) ||
+		    (!strcmp(inj, "logits") && !do_head) ||
+		    (!strcmp(inj, "selection") && (unsigned)T < 4u * (model_budget + 1u))) {
+			fprintf(stderr, "MODEL_INJECT requires QSA validation and a reachable requested comparison\n"); return 2;
+		}
+	}
+	model_maxp = qsa_cache_positions((unsigned)T);
+	unsigned compact_positions = qsa_compact_positions(model_budget);
+	model_kcf = ATTN_KC_FLOATS(compact_positions);
+	model_vcf = (size_t)compact_positions * 512;
+	printf("attention mode: %s%s\n", attn_mode, model_qsa ? " (production INT8 QSA; instruction-order twin)" : " (FP32 dense baseline)");
+	if (model_qsa) printf("FLASH_NBLK=%u FLASH_KV_HOST=%d; cache positions=%u compact positions=%u\n", model_budget, model_host, model_maxp, compact_positions);
 	unsigned npos = ((unsigned)T + 8192 + 64 + 31) / 32 * 32;
 	size_t kcf = ATTN_KC_FLOATS(npos), vcf = (size_t)npos * 512;
 	CK(cuInit(0));
@@ -110,6 +151,12 @@ int main(int argc, char **argv) {
 		nprompt = 0; while (nprompt < T && fscanf(f, "%u", &ids[nprompt]) == 1) nprompt++;
 		fclose(f);
 	} else for (int i = 0; i < T; i++) { ids[i] = (uint32_t)((rs >> 8) % 248000u); frand(); }
+	if (model_qsa && !notwin && nprompt != T) {
+		fprintf(stderr, "QSA comparison needs identical teacher-forced IDs at all %d positions; MODEL_IDS supplied %d. Use MODEL_NOTWIN for separate free-running smoke/timing.\n", T, nprompt); return 2;
+	}
+	for (int i = 0; i < nprompt; i++) if (ids[i] >= 248320u) {
+		fprintf(stderr, "MODEL_IDS token %d outside vocabulary: %u\n", i, ids[i]); return 2;
+	}
 	const size_t PLE_R = 1u << 20; uint8_t *ptab = NULL, *ctab = NULL; unsigned pcompact = 0; uint8_t ppc[160]; uint64_t pmult[3], poff[16], pvoc[16]; uint32_t pabsent = 248044, pend = 248046;
 /* the 16 real rows of position t -> the compact table slot the GPU reads (plerows compact mode) */
 #define PLE_STAGE(t) do { uint64_t rows_[16]; ple_rows_c(ids, (size_t)(t), pabsent, &pend, 1, pmult, poff, pvoc, rows_); for (int h_ = 0; h_ < 16; h_++) memcpy(ctab + ((size_t)(t) * 16 + h_) * 90, ptab + rows_[h_] * 90, 90); } while (0)
@@ -158,6 +205,7 @@ int main(int argc, char **argv) {
 	if (!notwin) {
 		for (int b = b0; b < b1; b++) {
 			dn_hweights_t *w = &hwb[b]; int is_attn = BLK_IS_ATTN(b);
+			if (model_qsa) model_href[b] = calloc(10240, 4);
 			w->hc_attn_norm = hostimg(b, "hc_attn_norm.weight"); w->hc_attn_dj = hostimg(b, "hc_attn_dj.weight"); w->hc_attn_up = hostimg(b, "hc_attn_up.weight");
 			w->hc_ffn_norm = hostimg(b, "hc_ffn_norm.weight"); w->hc_ffn_dj = hostimg(b, "hc_ffn_dj.weight"); w->hc_ffn_up = hostimg(b, "hc_ffn_up.weight");
 			if (!is_attn) {
@@ -173,7 +221,14 @@ int main(int argc, char **argv) {
 				w->attn_v = hostimg(b, "attn_v.weight"); w->attn_v_type = ttype(b, "attn_v.weight");
 				w->attn_output = hostimg(b, "attn_output.weight"); w->attn_output_type = ttype(b, "attn_output.weight");
 				w->attn_q_norm = hostimg(b, "attn_q_norm.weight"); w->attn_k_norm = hostimg(b, "attn_k_norm.weight");
-				hs[b].kc = calloc(kcf, 4); hs[b].vc = calloc(vcf, 4);
+				if (model_qsa) {
+					w->indexer_x = hostimg(b, "indexer_x.weight");
+					w->indexer_qn = hostimg(b, "indexer.q_norm.weight");
+					w->indexer_kn = hostimg(b, "indexer.k_norm.weight");
+					model_qsa_host_alloc(b);
+				} else {
+					hs[b].kc = calloc(kcf, 4); hs[b].vc = calloc(vcf, 4);
+				}
 			}
 			w->ffn_gate_inp_x = hostimg(b, "ffn_gate_inp_x.weight");
 			w->ffn_gate_exps = hostimg(b, "ffn_gate_exps.weight"); w->ffn_up_exps = hostimg(b, "ffn_up_exps.weight"); w->ffn_down_exps = hostimg(b, "ffn_down_exps.weight");
@@ -196,6 +251,8 @@ int main(int argc, char **argv) {
 	/* ---- the dies ---- */
 	dn_weights_t (*dw)[MAXB] = calloc(MAXD, sizeof *dw); dn_bufs_t db[MAXD]; xchg_t xc[MAXD]; split_t sp[MAXD][MAXB];
 	CUdeviceptr dPROG[MAXD], dCTL[MAXD], dst_dn[MAXD][MAXB], dst_conv[MAXD][MAXB], dst_kc[MAXD][MAXB], dst_vc[MAXD][MAXB], dst_ple[MAXD];
+	memset(dst_dn, 0, sizeof dst_dn); memset(dst_conv, 0, sizeof dst_conv);
+	memset(dst_kc, 0, sizeof dst_kc); memset(dst_vc, 0, sizeof dst_vc); memset(dst_ple, 0, sizeof dst_ple);
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
 		split_t s0; split_of(&s0, d, nd, 0);
@@ -225,6 +282,7 @@ int main(int argc, char **argv) {
 		b->hlo = dalloc(4u * (unsigned)s0.on); b->amo = dalloc(8); b->apart = dalloc(16 * 8); b->acnt = dalloc(4); b->tokout = dalloc(8); b->toks = dalloc(4 * ((size_t)T + 2));
 		for (int bb = b0; bb < b1; bb++) {
 			split_t *s = &sp[d][bb]; split_of(s, d, nd, bb);
+			if (model_qsa) model_trace[d][bb] = dalloc(4 * 10240);
 			dn_weights_t *w = &dw[d][bb]; int is_attn = BLK_IS_ATTN(bb);
 			w->hc_attn_norm = dptr(d, bb, "hc_attn_norm.weight"); w->hc_attn_dj = dptr(d, bb, "hc_attn_dj.weight"); w->hc_attn_up = dptr(d, bb, "hc_attn_up.weight");
 			w->hc_ffn_norm = dptr(d, bb, "hc_ffn_norm.weight"); w->hc_ffn_dj = dptr(d, bb, "hc_ffn_dj.weight"); w->hc_ffn_up = dptr(d, bb, "hc_ffn_up.weight");
@@ -241,7 +299,17 @@ int main(int argc, char **argv) {
 				w->attn_v = dptr(d, bb, "attn_v.weight"); w->attn_v_type = ttype(bb, "attn_v.weight");
 				w->attn_output = dptr(d, bb, "attn_output.weight"); w->attn_output_type = ttype(bb, "attn_output.weight");
 				w->attn_q_norm = dptr(d, bb, "attn_q_norm.weight"); w->attn_k_norm = dptr(d, bb, "attn_k_norm.weight");
-				dst_kc[d][bb] = dalloc(d == attn_die() ? kcf * 4 : 256); dst_vc[d][bb] = dalloc(d == attn_die() ? vcf * 4 : 256);
+				if (model_qsa) {
+					w->indexer_x = dptr(d, bb, "indexer_x.weight");
+					w->indexer_qn = dptr(d, bb, "indexer.q_norm.weight");
+					w->indexer_kn = dptr(d, bb, "indexer.k_norm.weight");
+					if (attn_die_of(bb) < 0 || attn_die_of(bb) >= nd) {
+						fprintf(stderr, "block %d attention owner %d outside %d test dies\n", bb, attn_die_of(bb), nd); return 2;
+					}
+					if (d == attn_die_of(bb)) model_qsa_dev_alloc(d, bb);
+				} else {
+					dst_kc[d][bb] = dalloc(d == attn_die() ? kcf * 4 : 256); dst_vc[d][bb] = dalloc(d == attn_die() ? vcf * 4 : 256);
+				}
 			}
 			w->ffn_gate_inp_x = dptr(d, bb, "ffn_gate_inp_x.weight"); w->emap = dptr(d, bb, "emap");
 			w->ffn_gate_exps = dptr(d, bb, "ffn_gate_exps.weight"); w->ffn_up_exps = dptr(d, bb, "ffn_up_exps.weight"); w->ffn_down_exps = dptr(d, bb, "ffn_down_exps.weight");
@@ -260,13 +328,18 @@ int main(int argc, char **argv) {
 			uint32_t ob[6]; for (int e = 0; e < 6; e++) ob[e] = split_bound(248320u, e, nd);
 			w->obases = dalloc(24); CK(cuMemcpyHtoD(w->obases, ob, 24));
 		}
-		if (do_embed) dw[d][0].token_embd = dptr_raw(d, "token_embd.weight");
+		if (do_embed) dw[d][0].token_embd = model_qsa ? hold_ptr(&ar[d], "token_embd.weight") : dptr_raw(d, "token_embd.weight");
 		xchg_t *x = &xc[d];
 		x->inbox = dalloc(2 * XSLOT); x->flags = dalloc(512); x->xtab = dalloc(128);   /* flags: u32[6 dies][16 CTAs] */
 		uint32_t fl[96]; for (int e = 0; e < 96; e++) fl[e] = e / 16 < nd ? 0u : 0xffffffffu;
 		CK(cuMemcpyHtoD(x->flags, fl, sizeof fl));
 		dPROG[d] = dalloc(128 * 4096); dCTL[d] = dalloc(0x100 + 4 * 4096);
 		x->xgen = dCTL[d] + 0x20;   /* the exchange count lives in ctl[8] between launches */
+	}
+	if (model_qsa && do_embed) {
+		for (int d = 0; d < nd; d++) if (dw[d][0].token_embd) { model_embed_die = d; break; }
+		if (model_embed_die < 0) { fprintf(stderr, "no die holds token_embd.weight\n"); return 1; }
+		printf("production embedding owner: die %d\n", model_embed_die);
 	}
 	uint64_t tab[12] = { 0 };
 	for (int d = 0; d < 6; d++) { tab[d] = (uint64_t)xc[d < nd ? d : 0].inbox; tab[6 + d] = (uint64_t)xc[d < nd ? d : 0].flags; }   /* absent dies alias die 0: duplicate writes of the same bytes */
@@ -291,10 +364,12 @@ int main(int argc, char **argv) {
 			if (do_embed) embed_gpu(&hwb[0], hb, idt);
 			for (int b = b0; b < b1; b++) {
 				hb->dn_state = hs[b].dn_state; hb->kc = hs[b].kc; hb->vc = hs[b].vc;
+				hb->qsa = model_qsa && BLK_IS_ATTN(b) ? model_qhost[b] : NULL;
 				if (hs[b].conv_state) memcpy(hb->conv_state, hs[b].conv_state, sizeof hb->conv_state);
 				if (hs[b].ple_state) memcpy(hb->ple_state, hs[b].ple_state, sizeof hb->ple_state);
 				if (b == 1) ple_prefix_gpu(&hwb[b], hb, (unsigned)t, eps);
 				if (BLK_IS_ATTN(b)) attn_block_gpu(&hwb[b], hb, (unsigned)t, eps, nd, b, 0); else deltanet_block_gpu(&hwb[b], hb, (unsigned)t, eps, nd, b, 0);
+				if (model_qsa) memcpy(model_href[b], hb->S, 4 * 10240);
 				if (hs[b].conv_state) memcpy(hs[b].conv_state, hb->conv_state, sizeof hb->conv_state);
 				if (hs[b].ple_state) memcpy(hs[b].ple_state, hb->ple_state, sizeof hb->ple_state);
 			}
@@ -305,15 +380,21 @@ int main(int argc, char **argv) {
 		prog_t P[MAXD]; unsigned nph[MAXD];
 		for (int d = 0; d < nd; d++) {
 			prog_init(&P[d]); P[d].loop = 1;
-			if (do_embed) prog_embed(&P[d], &dw[d][0], &db[d], 0);
+			if (do_embed) {
+				if (model_qsa) prog_embed_bcast(&P[d], &xc[d], d, nd, model_embed_die, &dw[d][0], &db[d], 0);
+				else prog_embed(&P[d], &dw[d][0], &db[d], 0);
+			}
 			for (int b = b0; b < b1; b++) {
 				dn_bufs_t bb = db[d]; bb.dn_state = dst_dn[d][b]; bb.conv_state = dst_conv[d][b]; bb.kc = dst_kc[d][b]; bb.vc = dst_vc[d][b]; bb.ple_state = dst_ple[d];
+				if (model_qsa && BLK_IS_ATTN(b)) model_qsa_bind(&bb, d, b);
 				if (b == 1) prog_ple_prefix(&P[d], &sp[d][b], &xc[d], &dw[d][b], &bb, 0, eps);
 				if (BLK_IS_ATTN(b)) prog_attn_block(&P[d], &sp[d][b], &xc[d], &dw[d][b], &bb, 0, eps);
 				else prog_deltanet_block(&P[d], &sp[d][b], &xc[d], &dw[d][b], &bb, 0, eps);
+				if (model_qsa) model_layer_trace(&P[d], d, b, db[d].S);
 			}
 			if (do_head) prog_head(&P[d], &sp[d][b0], &xc[d], &dw[d][0], &db[d], eps, 0, (unsigned)nprompt);
 			prog_token_end(&P[d], &xc[d], d, nd, db[d].S);
+			if (model_qsa) model_assert_program(&P[d], d, b0, b1);
 			nph[d] = (unsigned)P[d].n;
 			CK(cuCtxSetCurrent(ctx[d]));
 			CK(cuMemcpyHtoD(dPROG[d], P[d].p, sizeof(phase_t) * P[d].n));
@@ -340,6 +421,7 @@ int main(int argc, char **argv) {
 			free(ts);
 		}
 		unsigned *tg = calloc((size_t)T + 1, 4); int bad = 0;
+		if (model_qsa && !notwin) bad += model_compare_layers(b0, b1, (unsigned)T - 1, do_head, hb, db, sp);
 		for (int d = 0; d < nd; d++) {
 			CK(cuCtxSetCurrent(ctx[d]));
 			if (do_head) {
@@ -361,6 +443,7 @@ int main(int argc, char **argv) {
 		}
 		printf("%s\n", notwin ? "ran" : bad ? "FAIL" : "OK: one launch, every token exact");
 		for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); hold_close(&ar[d]); }
+		for (int d = 0; d < nd; d++) prog_free(&P[d]);
 		return bad && !notwin ? 3 : 0;
 	}
 	for (int t = 0; t < T; t++) {
@@ -373,10 +456,12 @@ int main(int argc, char **argv) {
 			if (do_embed) embed_gpu(&hwb[0], hb, idt);
 			for (int b = b0; b < b1; b++) {
 				hb->dn_state = hs[b].dn_state; hb->kc = hs[b].kc; hb->vc = hs[b].vc;
+				hb->qsa = model_qsa && BLK_IS_ATTN(b) ? model_qhost[b] : NULL;
 				if (hs[b].conv_state) memcpy(hb->conv_state, hs[b].conv_state, sizeof hb->conv_state);
 				if (hs[b].ple_state) memcpy(hb->ple_state, hs[b].ple_state, sizeof hb->ple_state);
 				if (b == 1) ple_prefix_gpu(&hwb[b], hb, (unsigned)t, eps);
 				if (BLK_IS_ATTN(b)) attn_block_gpu(&hwb[b], hb, (unsigned)t, eps, nd, b, 0); else deltanet_block_gpu(&hwb[b], hb, (unsigned)t, eps, nd, b, 0);
+				if (model_qsa) memcpy(model_href[b], hb->S, 4 * 10240);
 				if (hs[b].conv_state) memcpy(hs[b].conv_state, hb->conv_state, sizeof hb->conv_state);
 				if (hs[b].ple_state) memcpy(hs[b].ple_state, hb->ple_state, sizeof hb->ple_state);
 			}
@@ -395,14 +480,21 @@ int main(int argc, char **argv) {
 		prog_t P[MAXD]; unsigned nph[MAXD];
 		for (int d = 0; d < nd; d++) {
 			prog_init(&P[d]);
-			if (do_embed) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(db[d].ids + 4u * (unsigned)t, &id, 4)); prog_embed(&P[d], &dw[d][0], &db[d], (unsigned)t); }
+			if (do_embed) {
+				CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(db[d].ids + 4u * (unsigned)t, &id, 4));
+				if (model_qsa) prog_embed_bcast(&P[d], &xc[d], d, nd, model_embed_die, &dw[d][0], &db[d], (unsigned)t);
+				else prog_embed(&P[d], &dw[d][0], &db[d], (unsigned)t);
+			}
 			for (int b = b0; b < b1; b++) {
 				dn_bufs_t bb = db[d]; bb.dn_state = dst_dn[d][b]; bb.conv_state = dst_conv[d][b]; bb.kc = dst_kc[d][b]; bb.vc = dst_vc[d][b]; bb.ple_state = dst_ple[d];
+				if (model_qsa && BLK_IS_ATTN(b)) model_qsa_bind(&bb, d, b);
 				if (b == 1) prog_ple_prefix(&P[d], &sp[d][b], &xc[d], &dw[d][b], &bb, (unsigned)t, eps);
 				if (BLK_IS_ATTN(b)) prog_attn_block(&P[d], &sp[d][b], &xc[d], &dw[d][b], &bb, (unsigned)t, eps);
 				else prog_deltanet_block(&P[d], &sp[d][b], &xc[d], &dw[d][b], &bb, (unsigned)t, eps);
+				if (model_qsa) model_layer_trace(&P[d], d, b, db[d].S);
 			}
 			if (do_head) prog_head(&P[d], &sp[d][b0], &xc[d], &dw[d][0], &db[d], eps, (unsigned)t, (unsigned)nprompt);
+			if (model_qsa) model_assert_program(&P[d], d, b0, b1);
 			nph[d] = (unsigned)P[d].n;
 			if (getenv("MODEL_NPH") && (unsigned)atoi(getenv("MODEL_NPH")) < nph[d]) nph[d] = (unsigned)atoi(getenv("MODEL_NPH"));
 			if (nph[d] > 4096) { fprintf(stderr, "program too long (%u phases)\n", nph[d]); return 1; }
@@ -431,6 +523,7 @@ int main(int argc, char **argv) {
 			printf("\n");
 		}
 		int bad = 0;
+		if (model_qsa && !notwin) bad += model_compare_layers(b0, b1, (unsigned)t, do_head, hb, db, sp);
 		if (!notwin) {
 			for (int d = 0; d < nd; d++) {
 				CK(cuCtxSetCurrent(ctx[d]));
@@ -451,6 +544,7 @@ int main(int argc, char **argv) {
 			printf("\n  total %.1f us in %u phases\n", (ts[64 + nph[0] - 1] - ts[15]) / 1e3, nph[0]);
 			free(ts);
 		}
+		for (int d = 0; d < nd; d++) prog_free(&P[d]);
 		for (int d = 0; d < nd; d++) prog_free(&P[d]);
 	}
 	if (getenv("MODEL_DUMP_DIR")) {   /* die 0's whole-vector buffers after the last launch (with MODEL_NPH: a snapshot mid-block) */
