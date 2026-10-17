@@ -5,7 +5,7 @@
 
 /* temp <= 0 or top_k <= 1: greedy. Otherwise top-k (<= 32) -> top-p -> temperature, the draw for position t from seed (kern/sample.sass) */
 typedef struct { uint64_t seed; float temp, topp; int top_k; } sampling;
-typedef struct { int slot; int ntok; int ended; unsigned nph; int resumed, snapshot; double build_ms, run_ms, first_ms; int paired_positions; } run_stats;
+typedef struct { int slot; int ntok; int ended; unsigned nph; int resumed, snapshot; double build_ms, run_ms, first_ms; int paired_positions, prefill_chunks; } run_stats;
 /* all_tokens: optional engine_positions()-sized caller buffer, copied on completion.
  * token: every generated token as soon as die 0 has it (t = its position, from nprompt - 1; nonzero return: the
  * client is gone); alive: polled every ~20 ms, also while the prompt runs (nonzero: the client is gone) */

@@ -14,8 +14,10 @@
 #include <math.h>
 #include "gguf.h"
 #include "engine.h"
+#include "prefill.h"
 #include "core.h"
 #include "seqsched.h"
+#include "seqtrace.h"
 #include <setjmp.h>
 #include <cuda.h>
 #include <stdio.h>
@@ -76,7 +78,7 @@ static CUmodule mod[MAXD]; static CUfunction fn[MAXD];
 static dn_weights_t (*dw)[NB]; static xchg_t xc[MAXD]; static split_t (*sp)[NB];
 static CUdeviceptr dCTL[MAXD];
 static dn_bufs_t db_pair[MAXD]; static xchg_t xc_pair[MAXD];
-static int two_position, last_positions, last_paired_positions;
+static int two_position, prefill_chunk, last_positions, last_paired_positions, last_prefill_chunks;
 typedef struct {
     dn_bufs_t b[MAXD];
     CUdeviceptr program[MAXD], ple[MAXD], saved_ple[MAXD];
@@ -173,7 +175,7 @@ static uint64_t device_fnv(CUdeviceptr p, size_t bytes, uint64_t h) {
 }
 static void state_hashes(FILE *out) {
 	const uint64_t seed = 0xcbf29ce484222325ull;
-	fprintf(out, "statehash positions=%d paired_positions=%d\n", last_positions, last_paired_positions);
+	fprintf(out, "statehash positions=%d paired_positions=%d prefill_chunks=%d\n", last_positions, last_paired_positions, last_prefill_chunks);
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
 		for (int bb = 0; bb < nlayers_run; bb++) {
@@ -285,7 +287,7 @@ static void upload_programs(const prog_t *P, unsigned *nph, unsigned positions) 
 
 /* ---- persistent launches bounded by snapshots and known-prefix tails ---- */
 typedef struct {
-	int T, nprompt, ntok, sent, count, ended, aborted, defer_tokens, paired_positions;
+	int T, nprompt, ntok, sent, count, ended, aborted, defer_tokens, paired_positions, prefill_chunks;
 	double tfirst;
 	const engine_cb *cb;
 } runctx;
@@ -385,6 +387,32 @@ static void run_known_prefix(runctx *r, const prog_t *single, const prog_t *pair
 	}
 }
 
+/* Bound headless prompt work by both the requested chunk and snapshot end.
+ * Poll at every host boundary, even if a fast GPU launch finished before its
+ * in-flight poll ran. No generated ID is admitted to this program. */
+static void run_prefill_prefix(runctx *r, const prog_t *full,
+                               const prog_t *prefix, const prog_t *pair, int end) {
+    if (!prefix) { run_known_prefix(r, full, pair, end); return; }
+    while (!r->aborted && r->count < end) {
+        if (r->cb && r->cb->alive && r->cb->alive(r->cb->arg)) {
+            r->aborted = 1;
+            break;
+        }
+        prefill_chunk_t chunk;
+        if (prefill_plan_chunk(r->count, r->nprompt, end, prefill_chunk,
+                               pair != NULL, &chunk) != 1) {
+            fprintf(stderr, "engine: invalid prefill boundary at %d of %d\n", r->count, end);
+            longjmp(run_jb, 1);
+        }
+        run_known_prefix(r, prefix, pair, chunk.end);
+        if (r->count == chunk.end) r->prefill_chunks++;
+        else if (!r->aborted) {
+            fprintf(stderr, "engine: prefill stopped at %d before %d\n", r->count, chunk.end);
+            longjmp(run_jb, 1);
+        }
+    }
+}
+
 /* ---- images: the embeddings that replace placeholder tokens, and the M-RoPE positions of every token ----
    Image tokens take fp16 rows of the img table through imap; the attention layers rotate q / k by the position triple (t, y, x) of
    a token, one axis per rope pair (pair p takes axis p % 3, the interleaved sections of the model), so the RoPE tables of the
@@ -448,22 +476,37 @@ int engine_run_slot(int wanted, const uint32_t *ids, int nprompt, int n_new, con
 	int T;
     if (wanted < -1 || wanted >= nsequences || nprompt < 1 || n_new < 0 || nprompt > MAXT || n_new > MAXT - nprompt) return -1;
     T = nprompt + n_new;
+    volatile seqtrace_request observation = { .wanted = wanted, .slot = -1, .nprompt = nprompt, .total = T };
+    seqtrace_emit(&observation, "queued");
     int slot = seqsched_claim(&schedule, wanted, cb ? cb->alive : NULL, cb ? cb->arg : NULL);
-    if (slot < 0) return __atomic_load_n(&schedule.broken, __ATOMIC_ACQUIRE) ? -2 : -4;
-    if (seqsched_enter(&schedule)) { seqsched_leave(&schedule); seqsched_release(&schedule, slot); return -2; }
+    if (slot < 0) {
+        observation.rc = __atomic_load_n(&schedule.broken, __ATOMIC_ACQUIRE) ? -2 : -4;
+        observation.aborted = 1; seqtrace_emit(&observation, "cancel_wait");
+        return observation.rc;
+    }
+    observation.slot = slot; seqtrace_emit(&observation, "admitted");
+    if (seqsched_enter(&schedule)) {
+        observation.rc = -2; observation.aborted = 1; seqtrace_emit(&observation, "done");
+        seqsched_leave(&schedule); seqsched_release(&schedule, slot); return -2;
+    }
     active = &slots[slot];
 	/* a CUDA error from here on unwinds to this point: the contexts are no longer usable, the core rebuilds them (return -2) */
 	in_run = 1;
-	prog_t *volatile P = NULL, *volatile pair = NULL;
+	prog_t *volatile P = NULL, *volatile pair = NULL, *volatile prefix = NULL;
     if (setjmp(run_jb)) {
         in_run = 0; snap_s = 0; __atomic_store_n(&schedule.broken, 1, __ATOMIC_RELEASE);
+        observation.rc = -2; observation.aborted = 1; seqtrace_emit(&observation, "done");
         if (P) { for (int d = 0; d < nd; d++) prog_free(&P[d]); free(P); }
         if (pair) { for (int d = 0; d < nd; d++) prog_free(&pair[d]); free(pair); }
+        if (prefix) { for (int d = 0; d < nd; d++) prog_free(&prefix[d]); free(prefix); }
         seqsched_leave(&schedule); seqsched_release(&schedule, slot); return -2;
     }
 	memcpy(h_ids, ids, 4 * (size_t)nprompt); memset(h_ids + nprompt, 0, 4 * (size_t)(T + 2 - nprompt));
 	int irc = prepare_images(imgs, nimg, nprompt, T);
-	if (irc) { in_run = 0; seqsched_leave(&schedule); seqsched_release(&schedule, slot); return irc; }
+	if (irc) {
+        observation.rc = irc; seqtrace_emit(&observation, "done");
+        in_run = 0; seqsched_leave(&schedule); seqsched_release(&schedule, slot); return irc;
+    }
 	double t0 = now();
 	int samp_k = (sm && sm->temp > 0.f && sm->top_k >= 2) ? (sm->top_k > 32 ? 32 : sm->top_k) : 0;
 	float samp_topp = sm && sm->topp > 0.f ? sm->topp : 1.0f, samp_invT = samp_k ? 1.0f / sm->temp : 1.0f;
@@ -475,7 +518,12 @@ int engine_run_slot(int wanted, const uint32_t *ids, int nprompt, int n_new, con
 	   still run, to produce the logits of the last one) */
 	int resume = (snap_s > 0 && snap_s <= nprompt - 1 && !memcmp(ids, snap_ids, 4 * (size_t)snap_s)) ? snap_s : 0;
 	if (snap_at > nprompt - 1) snap_at = nprompt - 1;
-	for (int i = 0; i < nimg; i++) if (snap_at > imgs[i].s) snap_at = imgs[i].s;   /* the snapshot would not know the image */
+	for (int i = 0; i < nimg; i++) {
+        /* Token IDs alone do not identify a prefix containing an incoming image. */
+        if (imgs[i].s < resume) resume = 0;
+        if (snap_at > imgs[i].s) snap_at = imgs[i].s;
+    }
+
 	if (snap_at <= resume) snap_at = 0;
 	if (!resume) snap_s = 0;   /* this response rewrites the attention caches from position 0 */
 	if (ple_disk) {   /* a new id for this response (never 0); the rows of the positions it runs are staged from `resume` on */
@@ -485,6 +533,14 @@ int engine_run_slot(int wanted, const uint32_t *ids, int nprompt, int n_new, con
 	}
 	P = calloc(MAXD, sizeof *P); unsigned nph[MAXD];
     pair = two_position ? calloc(MAXD, sizeof *pair) : NULL;
+    /* gen 0 retains the teacher-forced full-head diagnostic interface. */
+    prefix = prefill_chunk && n_new > 0 ? calloc(MAXD, sizeof *prefix) : NULL;
+    if (!P || (two_position && !pair) || (prefill_chunk && n_new > 0 && !prefix)) {
+        observation.rc = -1; seqtrace_emit(&observation, "done");
+        free(P); free(pair); free(prefix); in_run = 0;
+        seqsched_leave(&schedule); seqsched_release(&schedule, slot); return -1;
+    }
+
 	if (resume) state_copy(0);
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
@@ -503,11 +559,12 @@ int engine_run_slot(int wanted, const uint32_t *ids, int nprompt, int n_new, con
 		CK(cuMemsetD8(db[d].toks, 0, 4 * ((size_t)T + 2)));
 		if (samp_k) CK(cuMemcpyHtoD(db[d].rnd, h_rnd, 4 * ((size_t)T + 2)));
 		model_program(&P[d], d, 0, (unsigned)nprompt, stop, samp_k, samp_topp, samp_invT, 1);
+		if (prefix) model_program(&prefix[d], d, 0, (unsigned)nprompt, stop, samp_k, samp_topp, samp_invT, 0);
 		if (pair) {
 			prog_t second;
-			model_program(&second, d, 1, (unsigned)nprompt, stop, samp_k, samp_topp, samp_invT, 1);
+			model_program(&second, d, 1, (unsigned)nprompt, stop, samp_k, samp_topp, samp_invT, prefix == NULL);
 			prog_init(&pair[d]);
-			if (prog_pair(&pair[d], &P[d], &second)) { fprintf(stderr, "engine: incompatible position programs on die %d\n", d); prog_free(&second); longjmp(run_jb, 1); }
+			if (prog_pair(&pair[d], prefix ? &prefix[d] : &P[d], &second)) { fprintf(stderr, "engine: incompatible position programs on die %d\n", d); prog_free(&second); longjmp(run_jb, 1); }
 			/* alloc_second_position gives every position disjoint scratch/inboxes. */
 			prog_pair_fuse_bf16(&pair[d], 1);
 			prog_free(&second);
@@ -518,15 +575,15 @@ int engine_run_slot(int wanted, const uint32_t *ids, int nprompt, int n_new, con
     runctx r = { .T = T, .nprompt = nprompt, .sent = nprompt - 1, .count = resume, .cb = cb, .defer_tokens = nsequences > 1 };
     int emitted = nprompt - 1, snapshot_done = 0, copied = 0;
     uint32_t *output_tokens = h_toks;
+    observation.resumed = resume;
     do {
+        observation.from = r.count;
         /* Shared CTL/exchanges retain monotonic exchange generations. Only token,
            end and abort counts are restored. Reserved CTL words are untouched. */
         for (int d = 0; d < nd; d++) {
             CK(cuCtxSetCurrent(ctx[d]));
             CK(cuMemsetD32(dCTL[d] + 0x8, (unsigned)r.count, 1));
             CK(cuMemsetD32(dCTL[d] + 0x14, 0, 2));
-            prof_nph[d] = (int)nph[d];
-            for (int j = 0; j < prof_nph[d]; j++) prof_op[d][j] = P[d].p[j].w[0];
         }
         if (cb && cb->alive && cb->alive(cb->arg)) r.aborted = 1;
         int limit = T;
@@ -536,15 +593,17 @@ int engine_run_slot(int wanted, const uint32_t *ids, int nprompt, int n_new, con
             if (r.count < nprompt - 1 && limit > nprompt - 1) limit = nprompt - 1;
         }
         if (snap_at && !snapshot_done && limit > snap_at) limit = snap_at;
-        ple_pump(&r, PLE_AHEAD);
-        if (pair && !r.aborted) {
+        if (!r.aborted) ple_pump(&r, PLE_AHEAD);
+        if ((pair || prefix) && !r.aborted) {
             int prefix_end = limit < nprompt - 1 ? limit : nprompt - 1;
-            run_known_prefix(&r, P, pair, prefix_end);
+            run_prefill_prefix(&r, P, prefix, pair, prefix_end);
         }
         if (!r.aborted && !r.ended && r.count < limit) {
             upload_programs(P, nph, 1);
             run_segment(&r, nph, limit);
         }
+        /* A short completed launch can finish before run_segment's timed poll. */
+        if (!r.aborted && cb && cb->alive && cb->alive(cb->arg)) r.aborted = 1;
         if (snap_at && !snapshot_done && r.count == snap_at && !r.aborted) {
             state_copy(1); memcpy(snap_ids, ids, 4 * (size_t)snap_at);
             snap_s = snap_at; snapshot_done = 1;
@@ -554,31 +613,47 @@ int engine_run_slot(int wanted, const uint32_t *ids, int nprompt, int n_new, con
             CK(cuMemcpyDtoH(cb->all_tokens + copied, db[0].toks + 4u * (unsigned)copied, 4 * (size_t)(r.count - copied)));
             copied = r.count;
         }
+        observation.count = r.count; observation.limit = limit;
+        observation.aborted = r.aborted; observation.ended = r.ended;
+        observation.snapshot = snapshot_done ? snap_at : 0;
+        /* Keep completion order inside the GPU turn, before deferred socket I/O. */
+        seqtrace_emit(&observation, "turn");
         in_run = 0; seqsched_leave(&schedule);
         if (r.defer_tokens && cb && cb->token)
+
             for (; emitted < r.sent; emitted++)
                 if (cb->token(cb->arg, emitted, output_tokens[emitted])) { r.aborted = 1; break; }
+        if (!r.aborted && cb && cb->alive && cb->alive(cb->arg)) r.aborted = 1;
         if (r.aborted || r.ended || r.count >= T) break;
         if (seqsched_enter(&schedule)) {
+            observation.rc = -2; observation.aborted = 1; seqtrace_emit(&observation, "done");
             seqsched_leave(&schedule); seqsched_release(&schedule, slot);
             for (int d = 0; d < nd; d++) prog_free(&P[d]);
             if (pair) { for (int d = 0; d < nd; d++) prog_free(&pair[d]); free(pair); }
+            if (prefix) { for (int d = 0; d < nd; d++) prog_free(&prefix[d]); free(prefix); }
             free(P); return -2;
         }
         active = &slots[slot]; in_run = 1;
     } while (1);
     double t2 = now();
-    last_positions = r.count; last_paired_positions = r.paired_positions;
+    if (nsequences == 1) {
+        last_positions = r.count; last_paired_positions = r.paired_positions; last_prefill_chunks = r.prefill_chunks;
+    }
     if (st) {
-        st->paired_positions = r.paired_positions;
+        st->paired_positions = r.paired_positions; st->prefill_chunks = r.prefill_chunks;
         st->slot = slot; st->ntok = r.count; st->ended = r.ended; st->nph = nph[0];
-        st->resumed = resume; st->snapshot = snap_at;
+        st->resumed = resume; st->snapshot = snapshot_done ? snap_at : 0;
         st->build_ms = (t1 - t0) * 1e3; st->run_ms = (t2 - t1) * 1e3;
         st->first_ms = r.tfirst ? (r.tfirst - t1) * 1e3 : 0;
     }
     for (int d = 0; d < nd; d++) prog_free(&P[d]);
     if (pair) { for (int d = 0; d < nd; d++) prog_free(&pair[d]); free(pair); }
+    if (prefix) { for (int d = 0; d < nd; d++) prog_free(&prefix[d]); free(prefix); }
+    observation.count = r.count; observation.aborted = r.aborted; observation.ended = r.ended;
+    observation.snapshot = snapshot_done ? snap_at : 0;
+    seqtrace_emit(&observation, "done");
     free(P); in_run = 0; seqsched_release(&schedule, slot); return 0;
+
 }
 int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], const sampling *sm, int snap_at, const engine_img *imgs, int nimg, const engine_cb *cb, run_stats *st) {
     return engine_run_slot(-1, ids, nprompt, n_new, stop, sm, snap_at, imgs, nimg, cb, st);
@@ -660,14 +735,19 @@ int engine_init(core_t *c) {
     }
     seqsched_init(&schedule, nsequences); scheduler_ready = 1;
 	if (setjmp(init_jb)) { in_init = 0; engine_fini(); return -1; }
+    if (seqtrace_open(getenv("FLASH_SEQUENCE_TRACE"))) { in_init = 0; engine_fini(); return -1; }
 	MAXT = c->maxt;
-	last_positions = last_paired_positions = 0;
-	const char *pair_env = getenv("FLASH_TWO_POSITION");
+	last_positions = last_paired_positions = last_prefill_chunks = 0;
+	if (prefill_parse_chunk(getenv("FLASH_PREFILL_CHUNK"), &prefill_chunk)) {
+        fprintf(stderr, "engine: FLASH_PREFILL_CHUNK must be 0..%d\n", FLASH_PREFILL_CHUNK_MAX);
+        in_init = 0; return -1;
+    }
+    const char *pair_env = getenv("FLASH_TWO_POSITION");
 	if (pair_env && strcmp(pair_env, "0") && strcmp(pair_env, "1")) {
 		fprintf(stderr, "engine: FLASH_TWO_POSITION must be 0 or 1\n");
 		in_init = 0; engine_fini(); return -1;
 	}
-	two_position = pair_env && !strcmp(pair_env, "1");
+	two_position = pair_env ? !strcmp(pair_env, "1") : (nsequences == 1 && prefill_chunk > 1);
     if (two_position && nsequences > 1) {
         fprintf(stderr, "engine: FLASH_TWO_POSITION requires FLASH_SEQUENCES=1\n");
         in_init = 0; engine_fini(); return -1;
@@ -831,6 +911,7 @@ int engine_init(core_t *c) {
 }
 
 void engine_fini(void) {
+    seqtrace_close();
 	if (!core) return;
 	for (int d = 0; d < nd; d++) { if (pollst[d]) { cuCtxSetCurrent(ctx[d]); cuStreamDestroy(pollst[d]); pollst[d] = 0; } }
 	cuCtxSetCurrent(ctx[0]);
@@ -860,7 +941,7 @@ void engine_fini(void) {
 	memset(db, 0, sizeof db); memset(xc, 0, sizeof xc); memset(dPROG, 0, sizeof dPROG); memset(dCTL, 0, sizeof dCTL); memset(dst_ple, 0, sizeof dst_ple);
 	if (scheduler_ready) { seqsched_destroy(&schedule); scheduler_ready = 0; }
     memset(db_pair, 0, sizeof db_pair); memset(xc_pair, 0, sizeof xc_pair);
-    two_position = last_positions = last_paired_positions = 0;
+    two_position = prefill_chunk = last_positions = last_paired_positions = last_prefill_chunks = 0;
 	core = NULL;
 }
 
@@ -920,7 +1001,8 @@ int engine_session(FILE *in, FILE *out) {
 				for (int k = 0; k < 8; k++) if (big[k] < 0 || us > (uint32_t)(ts[big[k]] - ts[big[k] - 1]) / 1e3) { for (int j = 7; j > k; j--) big[j] = big[j - 1]; big[k] = i; break; }
 			}
 			fprintf(out, "prof: %d phases, %.2f ms between the first and last timestamp\n", nph_, all / 1e3);
-			for (int rep = 0; rep < 12; rep++) { int bi = -1; for (int o = 0; o < OP_COUNT; o++) if (cnt[o] && (bi < 0 || tot[o] > tot[bi])) bi = o; if (bi < 0 || tot[bi] <= 0) break; fprintf(out, "  %-10s %4d phases %9.1f us (%6.1f us each)\n", die_opname[bi], cnt[bi], tot[bi], tot[bi] / cnt[bi]); tot[bi] = 0; }
+			const int all_kinds = strstr(p, "all") != NULL;   /* prof [die] all: every phase kind of the token, not the twelve longest */
+			for (int rep = 0; rep < (all_kinds ? OP_COUNT : 12); rep++) { int bi = -1; for (int o = 0; o < OP_COUNT; o++) if (cnt[o] && (bi < 0 || tot[o] > tot[bi])) bi = o; if (bi < 0 || tot[bi] <= 0) break; fprintf(out, "  %-10s %4d phases %9.1f us (%6.1f us each)\n", die_opname[bi], cnt[bi], tot[bi], tot[bi] / cnt[bi]); tot[bi] = 0; }
 			fprintf(out, "  longest:"); for (int k = 0; k < 8 && big[k] > 0; k++) fprintf(out, " #%d %s %.0f us;", big[k], die_opname[pop[big[k]]], (uint32_t)(ts[big[k]] - ts[big[k] - 1]) / 1e3);
 			fprintf(out, "\n"); fflush(out); free(ts); seqsched_leave(&schedule); continue;
 		}
@@ -940,8 +1022,8 @@ int engine_session(FILE *in, FILE *out) {
             int gate_broken = seqsched_enter(&schedule); (void)gate_broken;   /* what this engine is: the identity to attach to a measurement (the commit it was built from, where the KV lives, the layers it runs, the kernel image) */
 			char ad[64] = ""; for (int d = 0; d < nd; d++) if (has_attn[d]) { char one[8]; snprintf(one, sizeof one, "%s%d", ad[0] ? "," : "", d); strncat(ad, one, sizeof ad - strlen(ad) - 1); }
 			const char *sh = getenv("SPLIT_SHARES"), *am = getenv("ATTN_MAP");
-			fprintf(out, "config rev=%s kv_host=%d ple_disk=%d maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u cubin=%s cubin_fnv=%016llx sequences=%d quantum=%d two_position=%d\n",
-			        FLASH_REV, kv_host, ple_disk, MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, cubin_path, (unsigned long long)cubin_fnv, nsequences, quantum, two_position);
+			fprintf(out, "config rev=%s kv_host=%d ple_disk=%d maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u cubin=%s cubin_fnv=%016llx sequences=%d quantum=%d two_position=%d prefill_chunk=%d\n",
+			        FLASH_REV, kv_host, ple_disk, MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, cubin_path, (unsigned long long)cubin_fnv, nsequences, quantum, two_position, prefill_chunk);
 			fflush(out); seqsched_leave(&schedule); continue;
 		}
 		if (!strncmp(p, "cubin", 5)) {
@@ -1001,8 +1083,8 @@ int engine_session(FILE *in, FILE *out) {
 		} else {
 			fprintf(out, "tokens:"); for (int t = n_new ? nprompt - 1 : 0; t < st.ntok; t++) fprintf(out, " %u", toks[t]); fprintf(out, "\n");
 			/* st.ntok is the final position count; the first st.resumed positions came from the snapshot and were not run, so they are not in the average */
-			fprintf(out, "time: %.1f ms for %d positions run (%d from the snapshot; %.2f ms per position run; first token %.1f ms; %u phases; programs %.0f ms; %d paired positions)%s\n",
-			        st.run_ms, st.ntok - st.resumed, st.resumed, st.run_ms / (st.ntok - st.resumed > 0 ? st.ntok - st.resumed : 1), st.first_ms, st.nph, st.build_ms, st.paired_positions, st.ended ? "; end of turn" : "");
+			fprintf(out, "time: %.1f ms for %d positions run (%d from the snapshot; %.2f ms per position run; first token %.1f ms; %u phases; programs %.0f ms; %d paired positions; %d prefill chunks)%s\n",
+			        st.run_ms, st.ntok - st.resumed, st.resumed, st.run_ms / (st.ntok - st.resumed > 0 ? st.ntok - st.resumed : 1), st.first_ms, st.nph, st.build_ms, st.paired_positions, st.prefill_chunks, st.ended ? "; end of turn" : "");
 		}
 		fflush(out);
 	}
