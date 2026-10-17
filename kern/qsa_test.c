@@ -32,6 +32,26 @@ static void d_f32(desc_t *d, int addr, float v) { uint32_t u; memcpy(&u, &v, 4);
 static void d_tok(desc_t *d, int addr, uint32_t base) { d_u32(d, addr, base); d->w[31] |= 1u << (2 + (addr - 0x140) / 4); }
 
 static CUmodule mod; static CUfunction fn; static CUdeviceptr dPROG, dCTL;
+
+static int qsa_hostkv_mode_(void) {
+    const char *s=getenv("QSA_HOSTKV");
+    if(!s||!strcmp(s,"0"))return 0;
+    if(!strcmp(s,"1"))return 1;
+    fprintf(stderr,"QSA_HOSTKV must be exactly 0 or 1\n");exit(2);
+}
+static int qsa_legacy_uint_(const char *s,unsigned lo,unsigned hi,unsigned *out) {
+    if(!s||!*s)return 1;unsigned v=0;
+    for(;*s;s++){if(*s<'0'||*s>'9')return 1;unsigned d=(unsigned)(*s-'0');if(v>hi/10||(v==hi/10&&d>hi%10))return 1;v=10*v+d;}
+    if(v<lo)return 1;*out=v;return 0;
+}
+static void qsa_legacy_gather_args_(int argc,char **argv) {
+    if(argc<2||strcmp(argv[1],"gathertime"))return;
+    unsigned ignored;
+    if(argc>4||(argc>2&&qsa_legacy_uint_(argv[2],0,1,&ignored))||(argc>3&&qsa_legacy_uint_(argv[3],512,65523,&ignored))) {
+        fprintf(stderr,"legacy gathertime needs host0|1 and nv512..65523; use qsa_gather_bench for small-nv/changing selections\n");exit(2);
+    }
+}
+
 static void dev_init(void) {
 	CK(cuInit(0));
 	CUdevice dev; CUcontext ctx;
@@ -71,7 +91,7 @@ static int test_kv(unsigned T, unsigned NBLK) {
 	unsigned cpos = 4 * (NBLK + 1) + 2048; cpos = (cpos + 31) / 32 * 32;
 	size_t kcf = ATTN_KC_FLOATS(cpos), vcf = (size_t)cpos * 512;
 	CUdeviceptr dQG = dalloc(4 * 12288), dK = dalloc(4 * 512), dV = dalloc(4 * 512), dQN = dalloc(4 * 256), dKN = dalloc(4 * 256), dCS = dalloc(4 * 32 * (size_t)npos), dSN = dalloc(4 * 32 * (size_t)npos);
-	int hk = getenv("QSA_HOSTKV") != NULL;
+	int hk = qsa_hostkv_mode_();
 	CUdeviceptr dQO = dalloc(4 * 6144), dKQ = hk ? halloc((size_t)npos * 512) : dalloc((size_t)npos * 512), dVQ = hk ? halloc((size_t)npos * 512) : dalloc((size_t)npos * 512), dKS = hk ? halloc((size_t)npos * 32) : dalloc((size_t)npos * 32), dVS = hk ? halloc((size_t)npos * 32) : dalloc((size_t)npos * 32);
 	CUdeviceptr dKC = dalloc(kcf * 4), dVC = dalloc(vcf * 4), dSEL = dalloc(4 * (NBLK + 8)), dPM = dalloc(4 * 24 * 8), dPD = dalloc(4 * 24 * 8), dPO = dalloc(4 * 24 * 8 * 256), dAOUT = dalloc(4 * 6144);
 	CK(cuMemcpyHtoD(dQN, qn, 4 * 256)); CK(cuMemcpyHtoD(dKN, kn, 4 * 256)); CK(cuMemcpyHtoD(dCS, rcs, 4 * 32 * (size_t)npos)); CK(cuMemcpyHtoD(dSN, rsn, 4 * 32 * (size_t)npos));
@@ -326,6 +346,11 @@ static int test_embimg(void) {
 
 /* the time of kvgather over 2051 attended keys with the int8 cache in VRAM or in pinned host memory */
 static int test_gathertime(int host, unsigned nv) {
+    if(nv<512||nv>65523){fprintf(stderr,"legacy gathertime requires nv512..65523; use qsa_gather_bench\n");return 2;}
+    unsigned legacy_lo=0xffffffffu,legacy_hi=0,legacy_sum=0;
+    for(unsigned j=0;j<51;j++){unsigned n=qsa_nkeys(4u*nv+j-1u,512);if(n<legacy_lo)legacy_lo=n;if(n>legacy_hi)legacy_hi=n;legacy_sum+=n;}
+    printf("legacy gathertime: fixed reused selection; visible_start=%u visible_end=%u positions=51 keys_first=%u keys_last=%u keys_min=%u keys_max=%u keys_mean=%.9f; counter gate not run; use qsa_gather_bench for changing IDs\n",4u*nv,4u*nv+50u,qsa_nkeys(4u*nv-1u,512),qsa_nkeys(4u*nv+49u,512),legacy_lo,legacy_hi,legacy_sum/51.0);
+
 	unsigned NBLK = 512, t = 4 * nv - 1, npos = 4 * nv + 400;
 	size_t cpos = (4 * (NBLK + 1) + 2048 + 31) / 32 * 32;
 	CUdeviceptr dKQ = host ? halloc((size_t)npos * 512) : dalloc((size_t)npos * 512), dVQ = host ? halloc((size_t)npos * 512) : dalloc((size_t)npos * 512), dKS = host ? halloc((size_t)npos * 32) : dalloc((size_t)npos * 32), dVS = host ? halloc((size_t)npos * 32) : dalloc((size_t)npos * 32);
@@ -339,12 +364,13 @@ static int test_gathertime(int host, unsigned nv) {
 	CUevent e0, e1; CK(cuEventCreate(&e0, 0)); CK(cuEventCreate(&e1, 0));
 	CK(cuEventRecord(e0, 0)); CK(cuLaunchKernel(fn, 16, 1, 1, 256, 1, 1, 0, 0, params, NULL)); CK(cuEventRecord(e1, 0)); CK(cuCtxSynchronize());
 	float ms; CK(cuEventElapsedTime(&ms, e0, e1));
-	printf("kvgather, cache in %s memory: %.1f us per token (2051 keys)\n", host ? "host" : "device", 1e3 * ms / 51);
+	printf("kvgather, cache in %s memory: %.1f us per token (variable key counts; exact range printed above)\n", host ? "host" : "device", 1e3 * ms / 51);
 	return 0;
 }
 
 int main(int argc, char **argv) {
 	if (argc < 2) { fprintf(stderr, "usage: qsa_test kv <T> <NBLK>\n"); return 2; }
+	(void)qsa_hostkv_mode_(); qsa_legacy_gather_args_(argc,argv);
 	dev_init();
 	if (!strcmp(argv[1], "idxscore")) return test_idxscore(argc > 2 ? (unsigned)atoi(argv[2]) : 700, argc > 3 ? (unsigned)atoi(argv[3]) : 512) ? 3 : 0;
 	if (!strcmp(argv[1], "idxsel")) return test_idxsel(argc > 2 ? (unsigned)atoi(argv[2]) : 700, argc > 3 ? (unsigned)atoi(argv[3]) : 512, argc > 4 ? atoi(argv[4]) : 0, argc > 5 ? atoi(argv[5]) : 5) ? 3 : 0;
