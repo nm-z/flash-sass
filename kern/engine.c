@@ -107,6 +107,9 @@ static uint32_t *snap_ids; static int snap_s;
 static int embed_die;   /* the die that holds token_embd (the lowest one when several do) */
 static CUdeviceptr dTRACE[MAXD]; static unsigned trace_n, trace_first, trace_valid;
 static uint64_t trace_request;
+static const char *trace_status = "none";
+static uint64_t trace_requested;
+static unsigned trace_completed, trace_aborted, trace_ended;
 static int prof_layer[MAXD][4096];
 typedef struct {
     uint64_t observed, callback_start, callback_end, staging_start, staging_end, ready;
@@ -144,7 +147,7 @@ typedef struct {
 static void abort_run(runctx *r) {
 	/* the client is gone: every die ends the turn when its token count reaches a value a few tokens ahead of all of
 	   them (the dies are within one token of each other), so they stop together */
-	r->aborted = 1; *h_abort = (uint32_t)r->count + 8;
+	r->aborted = 1; trace_aborted = 1; *h_abort = (uint32_t)r->count + 8;
 	if (*h_abort < (uint32_t)r->ntok) for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoDAsync(dCTL[d] + 0x18, h_abort, 4, pollst[d])); CK(cuStreamSynchronize(pollst[d])); }
 	CK(cuCtxSetCurrent(ctx[0]));
 }
@@ -199,6 +202,7 @@ static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 		CK(cuMemcpyDtoHAsync(h_tok, dCTL[0] + 0x8, 4, pollst[0])); CK(cuStreamSynchronize(pollst[0]));
 		r->count = (int)(*h_tok & 0x7fffffffu); r->ended = (int)(*h_tok >> 31);
 		if (r->count > r->T) r->count = r->T;
+		trace_completed = (unsigned)r->count; trace_ended = r->ended != 0;
 		if (r->count > r->sent) {
 			CK(cuMemcpyDtoHAsync(h_toks + r->sent, db[0].toks + 4u * (unsigned)r->sent, 4 * (size_t)(r->count - r->sent), pollst[0])); CK(cuStreamSynchronize(pollst[0]));
 			if (!r->tfirst) r->tfirst = now();
@@ -287,16 +291,22 @@ static int prepare_images(const engine_img *imgs, int nimg, int nprompt, int T) 
 }
 
 int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], const sampling *sm, int snap_at, const engine_img *imgs, int nimg, const engine_cb *cb, run_stats *st) {
+	/* Every attempted request replaces trace identity, including validation errors. */
+	trace_request++;
+	trace_first = nprompt > 0 ? (unsigned)(nprompt - 1) : 0;
+	trace_valid = trace_completed = trace_aborted = trace_ended = 0;
+	trace_requested = nprompt > 0 && n_new >= 0 ? (uint64_t)(unsigned)nprompt + (unsigned)n_new : 0;
+	trace_status = "argument_error";
+	memset(trace_host, 0, sizeof trace_host);
+	if (nprompt < 1 || n_new < 0 || nprompt > MAXT || n_new > MAXT - nprompt) return -1;
 	int T = nprompt + n_new;
-	trace_first = (unsigned)(nprompt - 1); trace_valid = 0;
-	if (nprompt < 1 || n_new < 0 || T > MAXT) return -1;
-	trace_request++; memset(trace_host, 0, sizeof trace_host);
+	trace_status = "running";
 	/* a CUDA error from here on unwinds to this point: the contexts are no longer usable, the core rebuilds them (return -2) */
 	in_run = 1;
-	if (setjmp(run_jb)) { in_run = 0; snap_s = 0; return -2; }
+	if (setjmp(run_jb)) { trace_status = "device_error"; in_run = 0; snap_s = 0; return -2; }
 	memcpy(h_ids, ids, 4 * (size_t)nprompt); memset(h_ids + nprompt, 0, 4 * (size_t)(T + 2 - nprompt));
 	int irc = prepare_images(imgs, nimg, nprompt, T);
-	if (irc) { in_run = 0; return irc; }
+	if (irc) { trace_status = "image_error"; in_run = 0; return irc; }
 	double t0 = now();
 	int samp_k = (sm && sm->temp > 0.f && sm->top_k >= 2) ? (sm->top_k > 32 ? 32 : sm->top_k) : 0;
 	float samp_topp = sm && sm->topp > 0.f ? sm->topp : 1.0f, samp_invT = samp_k ? 1.0f / sm->temp : 1.0f;
@@ -373,6 +383,8 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	}
 	if (!r.aborted) run_segment(&r, nph, T);
 	double t2 = now();
+	trace_completed = (unsigned)r.count; trace_aborted = r.aborted != 0; trace_ended = r.ended != 0;
+	trace_status = r.aborted ? "aborted" : "completed";
 	if (trace_n && r.count > (int)trace_first) { trace_valid = (unsigned)r.count - trace_first; if (trace_valid > trace_n) trace_valid = trace_n; }
 	if (st) { st->ntok = r.count; st->ended = r.ended; st->nph = nph[0]; st->resumed = resume; st->snapshot = snap_at; st->build_ms = (t1 - t0) * 1e3; st->run_ms = (t2 - t1) * 1e3; st->first_ms = r.tfirst ? (r.tfirst - t1) * 1e3 : 0; }
 	for (int d = 0; d < nd; d++) prog_free(&P[d]);
@@ -663,7 +675,10 @@ int engine_session(FILE *in, FILE *out) {
 		int rc = engine_run(ids, nprompt, (int)n_new, stop, &smp, snap_req, pend, npend, &cb, &st);
 		snap_req = 0; npend = 0;
 		if (rc == -3) { fprintf(out, "error: bad image data (a file, a position or too many image tokens)\n"); fflush(out); continue; }
-		if (rc == -2) { fprintf(out, "error: device fault; the core rebuilds the contexts and the engine\n"); fflush(out); free(line); return 3; }
+		if (rc == -2) {
+		fprintf(out, "error: device fault; the core rebuilds the contexts and the engine; request=%llu", (unsigned long long)trace_request);
+		trace_status_fields(out); fputc('\n', out); fflush(out); free(line); return 3;
+		}
 		if (rc) { fprintf(out, "error: %d prompt ids + %ld new > %d positions\n", nprompt, n_new, MAXT); fflush(out); continue; }
 		if (chat) {
 			fprintf(out, "done %d %d %d %.1f %.1f %d %d\n", st.ntok - (nprompt - 1), st.ended, nprompt, st.run_ms, st.first_ms, st.resumed, st.snapshot);

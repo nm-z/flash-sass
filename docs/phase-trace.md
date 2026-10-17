@@ -18,7 +18,15 @@ Host records use CLOCK_MONOTONIC for token readback observation, callback entry/
 
 Subtract timestamps only within one clock domain. GPU epochs are independent, and the host clock is another domain. Compare durations and corresponding request/token/phase IDs; do not sum overlapping die times. Gather already includes mapped-memory access, so PCIe cost must not be added again.
 
-The trace starts at the last prompt position and covers a bounded generation window. Prefix snapshot segments retain position-indexed records. A failed or aborted response remains distinguishable through its completion/error record; a trace of its completed prefix does not mean the request succeeded.
+The trace starts at the last prompt position and covers a bounded generation window. Prefix snapshot segments retain position-indexed records. Both trace_begin and hosttrace_begin include status, aborted, ended, completed, and requested. The latter two count full request positions, including prompt positions; they are not the bounded trace-row count. Completed is the last observed die-0 publication count, finalized after all streams synchronize on a completed or aborted request.
+
+Status completed with aborted=0 identifies a completed request. Ended=1 can represent an ordinary stop token, so it does not establish cancellation by itself. A client disconnect is exported as status=aborted and aborted=1, even when the dispatcher's shared end bit also makes ended=1. Its completed-prefix trace is diagnostic evidence, not a successful throughput sample. Legacy done fields remain unchanged.
+
+Every call to engine_run, including validation failures, advances the request ID and invalidates the previous trace. Argument, image and device failures use argument_error, image_error, and device_error. Unavailable trace commands return an error carrying the current request ID and lifecycle fields; they do not expose prior records or salvage partially written GPU records. Requested=0 means invalid dimensions prevented a meaningful requested-position count. A transport-level command rejected before engine_run is not a model request.
+
+Request IDs are local to one loaded library. The immediate device-error protocol line retains the failed request's identity before core recovery; subsequent trace queries refer to the replacement library. No faulted GPU trace is salvaged.
+
+Historical traces predating lifecycle fields can still be analyzed as historical evidence, with request status explicitly unknown. New traced benchmarks require complete lifecycle metadata and must reject aborted/error records and any request that stopped before the requested continuation.
 
 Measure overhead using identical prompts, continuations and runtime settings with ordinary and tracing images. Instrumented throughput is a separate result. Keep all raw CSVs and completion records. Assembly and scalar parity alone do not establish target-GPU trace correctness.
 

@@ -1,7 +1,13 @@
 /* Bounded snapshots after launches complete. GPU epochs are local to each die. */
+static void trace_status_fields(FILE *out) {
+    fprintf(out, " status=%s aborted=%u ended=%u completed=%u requested=%llu",
+            trace_status, trace_aborted, trace_ended, trace_completed,
+            (unsigned long long)trace_requested);
+}
 static int trace_dump(FILE *out, int d) {
     if (d < 0 || d >= nd || !trace_n || !trace_valid || !prof_nph[d]) {
-        fprintf(out, "error: trace <die> requires FLASH_TRACE=1..256 and a completed run\n"); return -1;
+        fprintf(out, "error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=%llu", (unsigned long long)trace_request);
+        trace_status_fields(out); fputc('\n', out); return -1;
     }
     unsigned nph = (unsigned)prof_nph[d], nt = trace_valid;
     size_t words = (size_t)nt * nph * 8;
@@ -16,7 +22,8 @@ static int trace_dump(FILE *out, int d) {
             fprintf(out, "error: incomplete/nonmonotonic trace at record %zu; use DIE_TRACE=1\n", i); free(ts); return -1;
         }
     }
-    fprintf(out, "trace_begin request=%llu die=%d first=%u count=%u nph=%u ctas=1 nblk=%u\n", (unsigned long long)trace_request, d, trace_first, nt, nph, nblk_qsa);
+    fprintf(out, "trace_begin request=%llu die=%d first=%u count=%u nph=%u ctas=1 nblk=%u", (unsigned long long)trace_request, d, trace_first, nt, nph, nblk_qsa);
+    trace_status_fields(out); fputc('\n', out);
     fprintf(out, "position,phase,layer,opcode,units,flags,selected_keys,start_ns,wait_start_ns,wait_end_ns,body_end_ns,end_ns,ple_wait_start_ns,ple_wait_end_ns,publication_ns\n");
     for (unsigned t = 0; t < nt; t++) for (unsigned p = 0; p < nph; p++) {
         const uint64_t *z = ts + ((size_t)t * nph + p) * 8;
@@ -29,8 +36,12 @@ static int trace_dump(FILE *out, int d) {
     fprintf(out, "trace_end\n"); free(ts); return 0;
 }
 static int host_trace_dump(FILE *out) {
-    if (!trace_n || !trace_valid) { fprintf(out, "error: no completed host trace\n"); return -1; }
-    fprintf(out, "hosttrace_begin request=%llu first=%u count=%u clock=CLOCK_MONOTONIC\n", (unsigned long long)trace_request, trace_first, trace_valid);
+    if (!trace_n || !trace_valid) {
+        fprintf(out, "error: no completed host trace; request=%llu", (unsigned long long)trace_request);
+        trace_status_fields(out); fputc('\n', out); return -1;
+    }
+    fprintf(out, "hosttrace_begin request=%llu first=%u count=%u clock=CLOCK_MONOTONIC", (unsigned long long)trace_request, trace_first, trace_valid);
+    trace_status_fields(out); fputc('\n', out);
     fprintf(out, "position,observed_ns,callback_start_ns,callback_end_ns,ple_staging_start_ns,ple_staging_end_ns,ple_ready_ns,ple_bytes,ple_short_reads\n");
     for (unsigned i = 0; i < trace_valid; i++) {
         const host_trace *t = trace_host+i;
