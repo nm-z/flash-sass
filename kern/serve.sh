@@ -1,5 +1,5 @@
 #!/bin/bash
-# serve.sh <all|holders|core|vis|flashd|reload [lib]|status|stop>: run the Flash-Next engine on archy.
+# serve.sh <all|holders|core|vis|flashd|reload [lib]|status|stop|unload>: run the Flash-Next engine on archy.
 #   holders   the six weight holders (dies 0-5; ~40 min from NFS; restart only when the split changes)
 #   vis       flashvis: the vision encoder (libmtmd on the CPU; the projector is loaded once, seconds per image)
 #   core      flashcore: contexts, arenas and the 28.8 GB PLE table (~7 min), then the engine library
@@ -21,12 +21,23 @@ all)   # everything at once: the holders (35 min of repacking) and the core (14 
 	for i in $(seq 7200); do [ -S "$SOCK" ] && break; read -t 1 < /dev/zero 2>/dev/null; done
 	$0 flashd ;;
 holders)   # DIES="3 4 5" ./serve.sh holders starts just those
-	# every holder keeps an exclusive flock on its die's reservation file (the convention of the embedding services in ~/codex/asm-port: they take the same
-	# lock with `flock -x -n` and refuse to start while it is held), so nothing else lands on a die the engine is loaded on
+	# every holder (and fence) keeps a shared flock on its die's reservation file (the convention of the embedding services in ~/codex/asm-port: they
+	# take the same lock with `flock -x -n` and refuse to start while anyone holds it), so nothing else lands on a die the engine is loaded on.
+	# A die with a fence file (fences/die<N>.txt: "<block MiB> <bad block ranges>", found with memtest/blockmap) first gets a `fence` process that keeps its
+	# bad blocks allocated, then a memtest of the free memory (FENCE_VERIFY=0 skips it) proves the list still matches the die, then the holder starts.
 	LOCKDIR=${GPU_LOCKDIR:-/home/nate/codex/asm-port}
 	for i in ${DIES:-0 1 2 3 4 5}; do
-		uuid=$(nvidia-smi -i $i --query-gpu=uuid --format=csv,noheader)
-		HOLD_VISIBLE=1 CUDA_VISIBLE_DEVICES=$i setsid -f flock -x -n "$LOCKDIR/$uuid.lock" ./hold "$GGUF1" $i 0 48 /tmp/hold-h$i.manifest token_embd output split=$i/6 > /tmp/hold-h$i.out 2> /tmp/hold-h$i.err < /dev/null
+		uuid=$(nvidia-smi -i $i --query-gpu=uuid --format=csv,noheader); lock="$LOCKDIR/$uuid.lock"
+		if [ -s fences/die$i.txt ]; then
+			read -r fmib franges < fences/die$i.txt; rm -f /tmp/fence-d$i.ready
+			setsid -f flock -s -n "$lock" ./fence $i $fmib $franges > /tmp/fence-d$i.err 2>&1 < /dev/null
+			for w in $(seq 120); do [ -e /tmp/fence-d$i.ready ] && break; read -t 1 < /dev/zero 2>/dev/null; done
+			[ -e /tmp/fence-d$i.ready ] || { echo "serve.sh: the fence of die $i did not come up: $(cat /tmp/fence-d$i.err)" >&2; exit 1; }
+			if [ "${FENCE_VERIFY:-1}" = 1 ]; then
+				./memtest $i 1 > /tmp/fence-d$i.memtest 2>&1 || { echo "serve.sh: memtest of the free memory of die $i failed (/tmp/fence-d$i.memtest): the fence list does not match the die" >&2; exit 1; }
+			fi
+		fi
+		HOLD_VISIBLE=1 CUDA_VISIBLE_DEVICES=$i setsid -f flock -s -n "$lock" ./hold "$GGUF1" $i 0 48 /tmp/hold-h$i.manifest token_embd output split=$i/6 > /tmp/hold-h$i.out 2> /tmp/hold-h$i.err < /dev/null
 	done ;;
 core)
 	CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 FLASH_MAXT=${FLASH_MAXT:-262144} FLASH_ENGINE_MAXT=${FLASH_ENGINE_MAXT:-150000} FLASH_KV_HOST=${FLASH_KV_HOST:-0} FLASH_MAXIMG=${FLASH_MAXIMG:-4096} FLASH_PLE_OFF=${FLASH_PLE_OFF:-192} FLASH_SOCK=$SOCK \
@@ -40,8 +51,10 @@ reload)   # reload [<lib>] [FLASH_ENGINE_MAXT=n FLASH_KV_HOST=0|1 ...]
 status)
 	pgrep -xa hold | cut -c1-60; pgrep -xa flashcore | cut -c1-60; pgrep -xa flashd | cut -c1-60
 	tail -n 3 /tmp/flashcore.err /tmp/flashd.err ;;
-stop)
+stop)   # the engine; the holders (weights) and fences stay
 	pkill -x flashd; pkill -x flashcore; pkill -x flashvis ;;
+unload)   # everything, the fences included: the dies are free again (a fence must start on an empty die)
+	$0 stop; pkill -x hold; pkill -x fence ;;
 *)
-	echo "usage: serve.sh all|holders|core|vis|flashd|reload [lib]|status|stop" >&2; exit 2 ;;
+	echo "usage: serve.sh all|holders|core|vis|flashd|reload [lib]|status|stop|unload" >&2; exit 2 ;;
 esac

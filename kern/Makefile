@@ -503,3 +503,9 @@ qsa_test: qsa_test.c dieops.h ../ref/qsa.c ../ref/qsa.h ../ref/attn.c ../ref/att
 LLAMA_CPP ?= $(HOME)/claude/llama.cpp-up
 flashvis: flashvis.c
 	$(CC) -std=gnu99 -O2 -Wall -o $@ flashvis.c -I$(LLAMA_CPP)/include -I$(LLAMA_CPP)/ggml/include -I$(LLAMA_CPP)/tools/mtmd -L$(LLAMA_CPP)/build/bin -lmtmd -lllama -lggml -lggml-base -Wl,-rpath,$(LLAMA_CPP)/build/bin
+
+memtest: memtest.c
+	$(CC) -std=gnu99 -O2 -Wall -o $@ memtest.c -I$(CUDA)/include -lcuda
+
+fence: fence.c
+	$(CC) -std=gnu99 -O2 -Wall -o $@ fence.c -I$(CUDA)/include -lcuda
