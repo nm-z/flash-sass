@@ -76,6 +76,28 @@ See [BATCH.md](BATCH.md) and [PAIR_TESTING.md](PAIR_TESTING.md).
 | `plerows`, `plegate`, `pleconv`, `rms2560` ×3 | the PLE (n-gram) step: the 16 host rows, gates, conv, norms | 1, 1, 1, 3 | 57 / 6 / 9 / 8 | 0.10 |
 | `amax`, `argmax` | pick the token (greedy; the sampler has its own `topk` and `sample` phases) | 1 / 1 | 7 / 11 | 0.02 |
 
+**Exchanges per token: 342, the same on every die.** Each die sends its slice to the other five and waits for theirs.
+
+| Exchange | Type | Per token | Done by |
+|---|---|---|---|
+| hyper-connection down + inject (2 per block, 1 in the output head) | projection (gather) | 97 | fused into `bf16hcrwx`, `bf16hcrx` |
+| hyper-connection up (2 per block, 1 in the output head) | projection (gather) | 97 | fused into `bf16hcup` |
+| DeltaNet output norm and gate | projection (gather) | 36 | fused into `dnnormx` |
+| `ssm_out` / `attn_output` result (1 per block) | projection (gather) | 48 | `xsend` |
+| PLE key and value | projection (gather) | 2 | `xsend` |
+| **projections** | | **280** | |
+| MoE expert partial sums (1 per block), added in a fixed order | contraction (sum) | 48 | `xsend`, then `hcwsum` |
+| argmax (max, index) pairs of the output head | contraction (reduce) | 1 | `xsend`, then `amax` |
+| **contractions** | | **49** | |
+| attention output, from the die that ran the layer to all | broadcast | 12 | `xsend` |
+| token embedding, from the die holding `token_embd` | broadcast | 1 | `xsend`, then `xcopy` |
+| **broadcasts** | | **13** | |
+
+A DeltaNet block makes 6 projection exchanges and 1 contraction, an attention block 5 projections, 1
+broadcast and 1 contraction. 230 of the 342 are fused into the GEMV that produces the data, which
+writes straight into the peers' memory; the other 112 are `xsend` phases (the profile lists 111,
+because it does not time a token's first phase).
+
 The counts follow the model: 48 means once per block, 36 once per DeltaNet block, 4 once per
 attention layer on a die that holds four. Each block pays one `router`, `moesel`, `ffnact` and
 `q2moedn`, two `q2moegn` (gate, up) and two `bf16hcup` (plus one for the output collapse), about
