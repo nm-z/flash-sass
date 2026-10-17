@@ -9,18 +9,23 @@
 #include <stdint.h>
 
 typedef struct { uint32_t w[32]; } phase_t;
-typedef struct { phase_t *p; int n, cap; int xj; int loop; int pending_wait; uint32_t stop[2]; CUdeviceptr end; int samp_k; float samp_topp, samp_invT; } prog_t;   /* stop[2], end: a generated token equal to stop[0] or stop[1] sets *end (ctl[5]) = 0x80000000 and the kernel exits after that token (0xffffffff: none) */
+typedef struct { phase_t *p; int n, cap; int xj; int loop; unsigned token_offset; int pending_wait; uint32_t stop[2]; CUdeviceptr end; int samp_k; float samp_topp, samp_invT; } prog_t;   /* stop[2], end: a generated token equal to stop[0] or stop[1] sets *end (ctl[5]) = 0x80000000 and the kernel exits after that token (0xffffffff: none) */
    /* pending_wait: the next phase consumes an exchange */   /* xj: exchanges issued (slot parity); loop: token-relative
  * parameters are marked for the kernel's token loop instead of taking the position literally */
 
 void prog_init(prog_t *P);
+/* Pair consecutive known positions. out is initialized; unchanged on failure. */
+int prog_pair(prog_t *out, const prog_t *a, const prog_t *b);
+/* Fuse validated BF16 pairs. disjoint_xout asserts that both peer-inbox tables
+ * point to separate output storage, also disjoint from inputs and weights. */
+int prog_pair_fuse_bf16(prog_t *P, int disjoint_xout);
 void prog_free(prog_t *P);
 void prog_nobar(prog_t *P);   /* no grid barrier after the last phase (independent next phase) */
 phase_t *prog_add(prog_t *P, int op, unsigned units);
 void ph_ptr(phase_t *p, int addr, CUdeviceptr v);
 void ph_u32(phase_t *p, int addr, uint32_t v);
 void ph_f32(phase_t *p, int addr, float v);
-/* a token-relative u32 parameter: base + tok (the die's token counter) when the program loops in the kernel, else value */
+/* a token-relative u32 parameter: base + token_offset + tok (the die's token counter) when the program loops in the kernel, else value */
 void ph_tokv(prog_t *P, phase_t *p, int addr, uint32_t base, uint32_t value);
 
 /* ---- one phase per op (pointers are device addresses) ---- */
