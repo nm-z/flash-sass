@@ -119,14 +119,19 @@ int engine_positions(void) { return MAXT; }
 static CUdeviceptr (*snap_dn)[NB], (*snap_conv)[NB], snap_ple[MAXD];
 static uint32_t *snap_ids; static int snap_s;
 static int embed_die;   /* the die that holds token_embd (the lowest one when several do) */
-static CUdeviceptr dTRACE[MAXD]; static unsigned trace_n, trace_first, trace_valid;
+enum { TRACE_WORDS = 16, TRACE_BYTES = TRACE_WORDS * 8 };
+static CUdeviceptr dTRACE[MAXD]; static unsigned trace_n, trace_first, trace_valid, trace_ctas = 1;
 static uint64_t trace_request;
 static const char *trace_status = "none";
 static uint64_t trace_requested;
 static unsigned trace_completed, trace_aborted, trace_ended;
+static uint64_t trace_abort_start, trace_abort_end;
+static int trace_abort_position = -1;
+static uint64_t trace_poll_calls, trace_poll_ns, trace_readback_calls, trace_readback_ns;
 static int prof_layer[MAXD][4096];
 typedef struct {
     uint64_t observed, callback_start, callback_end, staging_start, staging_end, ready;
+    uint64_t read_start, read_end, ready_start, poll_start, poll_end, readback_start, readback_end;
     unsigned bytes, short_reads;
 } host_trace;
 static host_trace trace_host[256];
@@ -275,9 +280,11 @@ typedef struct {
 static void abort_run(runctx *r) {
 	/* the client is gone: every die ends the turn when its token count reaches a value a few tokens ahead of all of
 	   them (the dies are within one token of each other), so they stop together */
+	if (trace_n) { trace_abort_start = host_ns(); trace_abort_position = r->sent; }
 	r->aborted = 1; trace_aborted = 1; *h_abort = (uint32_t)r->count + 8;
 	if (*h_abort < (uint32_t)r->ntok) for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoDAsync(dCTL[d] + 0x18, h_abort, 4, pollst[d])); CK(cuStreamSynchronize(pollst[d])); }
 	CK(cuCtxSetCurrent(ctx[0]));
+	if (trace_n) trace_abort_end = host_ns();
 }
 
 /* stage the PLE rows of the positions that are known and close ([ple_next, min(known, finished + PLE_AHEAD)), at most `budget` of them): position q is known when
@@ -297,14 +304,19 @@ static void ple_pump(runctx *r, int budget) {
 		ple_rows_c(ple_seq, (size_t)q, ple_absent_id, &endid, 1, ple_multipliers, ple_head_offsets, ple_head_vocab, rows);
 		uint8_t *dst = ple_host + (size_t)q * 16 * 90;
 		for (int h = 0; h < 16; h++) posix_fadvise(ple_fd, ple_off + (off_t)(rows[h] * 90), 90, POSIX_FADV_WILLNEED);
+		if (ti >= 0) trace_host[ti].read_start = host_ns();
 		for (int h = 0; h < 16; h++) {
 			size_t got = 0; off_t at = ple_off + (off_t)(rows[h] * 90);
 			while (got < 90) { ssize_t n = pread(ple_fd, dst + h * 90 + got, 90 - got, at + (off_t)got); if (n <= 0) break; got += (size_t)n; }
 			if (ti >= 0) { trace_host[ti].bytes += (unsigned)got; trace_host[ti].short_reads += got < 90; }
 			if (got < 90) { memset(dst + h * 90 + got, 0, 90 - got); if (!ple_short_reads++) fprintf(stderr, "engine: PLE row read failed at position %d (head %d)\n", q, h); }
 		}
+		if (ti >= 0) {
+			trace_host[ti].read_end = host_ns();
+			trace_host[ti].ready_start = trace_host[ti].staging_end = host_ns();
+		}
 		__atomic_store_n(&h_rdy[q], ple_rid, __ATOMIC_RELEASE);
-		if (ti >= 0) trace_host[ti].ready = trace_host[ti].staging_end = host_ns();
+		if (ti >= 0) trace_host[ti].ready = host_ns();
 	}
 }
 
@@ -324,22 +336,33 @@ static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 	int warned = 0;
 	double last_chk = now(), last_move = now(), watchdog_s = getenv("FLASH_WATCHDOG_S") ? atof(getenv("FLASH_WATCHDOG_S")) : 600.0; int last_count = -1;
 	for (int fin = 0; !fin; ) {
+		uint64_t poll_start = trace_n ? host_ns() : 0;
 		CUresult q = cuStreamQuery(0);
 		if (q != CUDA_SUCCESS && q != CUDA_ERROR_NOT_READY) CK(q);
 		fin = q == CUDA_SUCCESS;
 		CK(cuMemcpyDtoHAsync(h_tok, dCTL[0] + 0x8, 4, pollst[0])); CK(cuStreamSynchronize(pollst[0]));
+		uint64_t poll_end = trace_n ? host_ns() : 0;
+		if (trace_n) { trace_poll_calls++; trace_poll_ns += poll_end - poll_start; }
 		r->count = (int)(*h_tok & 0x7fffffffu); r->ended = (int)(*h_tok >> 31);
 		if (r->count > r->T) r->count = r->T;
 		trace_completed = (unsigned)r->count; trace_ended = r->ended != 0;
 		if (r->count > r->sent) {
+			uint64_t readback_start = trace_n ? host_ns() : 0;
 			CK(cuMemcpyDtoHAsync(h_toks + r->sent, db[0].toks + 4u * (unsigned)r->sent, 4 * (size_t)(r->count - r->sent), pollst[0])); CK(cuStreamSynchronize(pollst[0]));
 			if (!r->tfirst) r->tfirst = now();
 			uint64_t observed = trace_n ? host_ns() : 0;
+			if (trace_n) { trace_readback_calls++; trace_readback_ns += observed - readback_start; }
 			for (; r->sent < r->count; r->sent++) {
 				int ti = trace_slot(r->sent);
-				if (ti >= 0) { trace_host[ti].observed = observed; trace_host[ti].callback_start = host_ns(); }
-				if (r->cb && r->cb->token && r->cb->token(r->cb->arg, r->sent, h_toks[r->sent]) && !r->aborted && !r->ended) abort_run(r);
+				if (ti >= 0) {
+					trace_host[ti].observed = trace_host[ti].readback_end = observed;
+					trace_host[ti].poll_start = poll_start; trace_host[ti].poll_end = poll_end;
+					trace_host[ti].readback_start = readback_start; trace_host[ti].callback_start = host_ns();
+				}
+				int cancel = r->cb && r->cb->token && r->cb->token(r->cb->arg, r->sent, h_toks[r->sent]);
 				if (ti >= 0) trace_host[ti].callback_end = host_ns();
+				/* Callback time ends on return, before cancellation publishes to the dies. */
+				if (cancel && !r->aborted && !r->ended) abort_run(r);
 			}
 		}
 		if (!fin) ple_pump(r, 8);
@@ -441,6 +464,8 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	trace_request++;
 	trace_first = nprompt > 0 ? (unsigned)(nprompt - 1) : 0;
 	trace_valid = trace_completed = trace_aborted = trace_ended = 0;
+	trace_abort_start = trace_abort_end = 0; trace_abort_position = -1;
+	trace_poll_calls = trace_poll_ns = trace_readback_calls = trace_readback_ns = 0;
 	trace_requested = nprompt > 0 && n_new >= 0 ? (uint64_t)(unsigned)nprompt + (unsigned)n_new : 0;
 	trace_status = "argument_error";
 	memset(trace_host, 0, sizeof trace_host);
@@ -508,8 +533,8 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
     if (trace_n) for (int d = 0; d < nd; d++) {
         CK(cuCtxSetCurrent(ctx[d]));
         unsigned count = (unsigned)(T - nprompt + 1); if (count > trace_n) count = trace_n;
-        uint32_t tr[5] = {(uint32_t)dTRACE[d], (uint32_t)(dTRACE[d] >> 32), trace_first, count, 1};
-        CK(cuMemsetD8(dTRACE[d], 0, (size_t)count * nph[d] * 64));
+        uint32_t tr[6] = {(uint32_t)dTRACE[d], (uint32_t)(dTRACE[d] >> 32), trace_first, count, trace_ctas, TRACE_WORDS};
+        CK(cuMemsetD8(dTRACE[d], 0, (size_t)count * nph[d] * trace_ctas * TRACE_BYTES));
         CK(cuMemcpyHtoD(dCTL[d] + 0xd0, tr, sizeof tr));
     }
 	double t1 = now();
@@ -538,9 +563,22 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 }
 
 /* ---- build and tear down all device state (the core keeps the contexts, the arenas and the PLE table) ---- */
+static int trace_setting(const char *name, unsigned fallback, unsigned *value) {
+	const char *s = getenv(name); unsigned n = 0;
+	if (!s) { *value = fallback; return 0; }
+	if (!*s) return -1;
+	for (; *s; s++) {
+		if (*s < '0' || *s > '9' || n > 256) return -1;
+		n = n * 10 + (unsigned)(*s - '0');
+	}
+	if (n > 256) return -1;
+	*value = n; return 0;
+}
 int engine_init(core_t *c) {
-	trace_n = getenv("FLASH_TRACE") ? (unsigned)strtoul(getenv("FLASH_TRACE"), NULL, 10) : 0;
-	if (trace_n > 256) { fprintf(stderr, "FLASH_TRACE must be 0..256\n"); return -1; }
+	if (trace_setting("FLASH_TRACE", 0, &trace_n) || trace_setting("FLASH_TRACE_CTAS", 1, &trace_ctas) ||
+	    (trace_ctas != 1 && trace_ctas != 16) || trace_n > 256 / trace_ctas) {
+		fprintf(stderr, "FLASH_TRACE_CTAS must be 1 or 16; FLASH_TRACE * FLASH_TRACE_CTAS must be <= 256\n"); return -1;
+	}
 	if (c->abi != CORE_ABI) { fprintf(stderr, "engine: the core speaks ABI %d, this library was built for %d\n", c->abi, CORE_ABI); return -1; }
 	core = c; in_init = 1;
 	if (setjmp(init_jb)) { in_init = 0; engine_fini(); return -1; }
@@ -674,7 +712,7 @@ int engine_init(core_t *c) {
 		x->inbox = dalloc(2 * XSLOT); x->flags = dalloc(512); x->xtab = dalloc(128);
 		uint32_t fl[96]; for (int e = 0; e < 96; e++) fl[e] = e / 16 < nd ? 0u : 0xffffffffu;
 		CK(cuMemcpyHtoD(x->flags, fl, sizeof fl));
-		if (trace_n) dTRACE[d] = dalloc((size_t)trace_n * 4096 * 64);
+		if (trace_n) dTRACE[d] = dalloc((size_t)trace_n * 4096 * trace_ctas * TRACE_BYTES);
 		dPROG[d] = dalloc(128 * 4096); dCTL[d] = dalloc(0x100 + 4 * 4096);
 		x->xgen = dCTL[d] + 0x20;
 		if (two_position) alloc_second_position(d);
@@ -799,8 +837,8 @@ int engine_session(FILE *in, FILE *out) {
 		if (!strncmp(p, "config", 6)) {   /* what this engine is: the identity to attach to a measurement (the commit it was built from, where the KV lives, the layers it runs, the kernel image) */
 			char ad[64] = ""; for (int d = 0; d < nd; d++) if (has_attn[d]) { char one[8]; snprintf(one, sizeof one, "%s%d", ad[0] ? "," : "", d); strncat(ad, one, sizeof ad - strlen(ad) - 1); }
 			const char *sh = getenv("SPLIT_SHARES"), *am = getenv("ATTN_MAP");
-			fprintf(out, "config rev=%s kv_host=%d ple_disk=%d maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u trace_tokens=%u two_position=%d cubin=%s cubin_fnv=%016llx\n",
-			        FLASH_REV, kv_host, ple_disk, MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, trace_n, two_position, cubin_path, (unsigned long long)cubin_fnv);
+			fprintf(out, "config rev=%s kv_host=%d ple_disk=%d maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u trace_tokens=%u trace_ctas=%u trace_schema=2 two_position=%d cubin=%s cubin_fnv=%016llx\n",
+			        FLASH_REV, kv_host, ple_disk, MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, trace_n, trace_ctas, two_position, cubin_path, (unsigned long long)cubin_fnv);
 			fflush(out); continue;
 		}
 		if (!strncmp(p, "cubin", 5)) {

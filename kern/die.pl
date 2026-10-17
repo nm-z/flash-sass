@@ -233,6 +233,7 @@ for my $k (0 .. $#OPS) {
     $dispatch .= "--:-:-:-:6  \@P6 BRA ${tag}_SETUP;\n";
     my $step = $kind eq 'cta' ? $NCTA : 8 * $NCTA;
     $body .= "\n${tag}_SETUP:\n";
+    $body .= trace_code(8, $TOK_OFF, "8_${tag}");
     if ($kind eq 'cta') {
         $body .= "--:-:-:-:6      MOV vid, cta;\n";
         $body .= "--:-:-:-:6      MOV vtid, tid;\n";
@@ -258,7 +259,9 @@ for my $k (0 .. $#OPS) {
     $body .= "--:-:-:-:6      BRA POSITION_END;\n";
 }
 
-my @trace = map { trace_code($_, $TOK_OFF) } 0..7;
+my @trace = map { trace_code($_, $TOK_OFF, undef, $FLAGS_OFF) } 0..10;
+my $unknown_body = trace_code(8, $TOK_OFF, '8_unknown');
+my $trace_send_fence = $ENV{DIE_TRACE} ? "02:-:-:-:6  \@P4 MEMBAR.SYS;\n" : '';
 print <<"EOF";
 # Kernel: die
 #
@@ -305,6 +308,12 @@ print <<"EOF";
     28,29 : xg<0-1>
     30,31 : xh<0-1>
     32,33 : xi<0-1>
+    34,35 : tr_fw<0-1>
+    36,37 : tr_cp<0-1>
+    38,39 : tr_clock<0-1>
+    40    : tr_old
+    41    : tr_t
+    42    : tr_one
 $maps</REGISTER_MAPPING>
 
 --:-:6:-:1      S2R tid, SR_TID.X;
@@ -445,9 +454,10 @@ XWBAR:
 --:-:-:-:6      BAR.SYNC 0x1;
 XWDONE:
 $trace[2]OP_DISPATCH:
-$dispatch--:-:-:-:6      BRA POSITION_END;
+$dispatch$unknown_body--:-:-:-:6      BRA POSITION_END;
 $body
 POSITION_END:
+$trace[3]# Body completion precedes the framework's position and grid barriers.
 # Units of a stateful op belong to the same CTA for both positions. Finish every
 # unit and make its writes visible before replaying this op with position 1.
 # Independent ops also take this path; the grid barrier and peer flags happen
@@ -478,7 +488,7 @@ POSITION_END:
 01:-:-:-:6      BRA OP_DISPATCH;
 
 PHASE_END:
-$trace[3]# ---- grid barrier (warp 0 counts in; everyone waits at BAR 1) ----
+# ---- grid barrier (warp 0 counts in; everyone waits at BAR 1) ----
 --:-:-:-:6      BAR.SYNC 0x1;
 --:-:-:-:6      ISETP.GE.U32.AND P6, PT, tid, 0x20, PT;
 --:-:-:-:6      ISETP.NE.U32.AND P5, PT, tid, RZ, PT;
@@ -561,6 +571,7 @@ $trace[3]# ---- grid barrier (warp 0 counts in; everyone waits at BAR 1) ----
 --:-:-:-:6      IADD xi0.CC, xi0, units;
 --:-:-:-:6      IADD.X xi1, xi1, RZ;
 --:-:-:-:6      ISETP.EQ.U32.AND P2, PT, cta, RZ, P4;
+$trace[9]# Profiling brackets the six flag stores without clobbering live peer pointers.
 --:2:-:-:1  \@P4 STG.E.WT [xc], op;
 --:2:-:-:1  \@P4 STG.E.WT [xd], op;
 --:2:-:-:1  \@P4 STG.E.WT [xf], op;
@@ -569,6 +580,7 @@ $trace[3]# ---- grid barrier (warp 0 counts in; everyone waits at BAR 1) ----
 --:2:-:-:1  \@P4 STG.E.WT [xi], op;
 --:2:-:-:1  \@P4 STS [RZ+0x@{[sprintf '%x', $XG_OFF]}], op;
 --:2:-:-:6  \@P2 STG.E [bar_cp+0x20], op;
+$trace_send_fence$trace[10]# The profiling-only system fence completes publication before the upper bracket.
 BSPIN:
 --:-:1:-:2  \@P3 LDG.E.CV bar_g2, [xa+0x80];
 01:-:-:-:6      ISETP.GE.U32.AND P4, PT, bar_g2, bar_g, PT;

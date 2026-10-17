@@ -112,7 +112,7 @@ test-gemv: all
 	./gemv_test $(SHARD1) blk.4.ffn_down_exps.weight 0 20
 
 clean:
-	rm -f *.cubin *.dis *.so *.so.new die.sass die_trace.sass die_trace16.sass dieops.h flashcore flashd flashvis hold memtest fence *_test
+	rm -f *.cubin *.cubin.new *.dis *.so *.so.new die.sass die_trace.sass die_trace16.sass dieops.h flashcore flashd flashvis hold memtest fence *_test
 
 .PHONY: all test test-gemv clean
 
@@ -537,11 +537,14 @@ die_trace.sass: die.pl trace.pl $(DIE_OPS)
 die_trace16.sass: die.pl trace.pl $(DIE_OPS)
 	DIE_TRACE=16 perl die.pl > $@
 die_trace.cubin: die_trace.sass skel_die.cubin
-	cp skel_die.cubin $@
-	$(MAXAS) -i die_trace.sass $@
+	cp skel_die.cubin $@.new
+	$(MAXAS) -i die_trace.sass $@.new && mv -f $@.new $@
 die_trace16.cubin: die_trace16.sass skel_die.cubin
-	cp skel_die.cubin $@
-	$(MAXAS) -i die_trace16.sass $@
+	cp skel_die.cubin $@.new
+	$(MAXAS) -i die_trace16.sass $@.new && mv -f $@.new $@
+
+trace_layout_test: trace_layout_test.c dieops.h
+	$(CC) -std=gnu99 -O2 -Wall -Wextra -o $@ $< -I$(CUDA)/include -lcuda
 
 output_tokens_test: output_tokens_test.c flashd.c tok.c tok.h jinja.c json.c ../ref/gguf.c
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ output_tokens_test.c tok.c jinja.c json.c ../ref/gguf.c -I../ref -lm -lpthread
