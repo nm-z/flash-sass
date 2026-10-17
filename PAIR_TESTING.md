@@ -1,7 +1,8 @@
 # Two-position validation
 
-The paired pass is opt-in with `FLASH_TWO_POSITION=1`; unset or `0` retains
-scalar execution. The setting is read during engine initialization. The pass
+The paired pass is opt-in with `FLASH_TWO_POSITION=1`, or automatically enabled
+by `FLASH_PREFILL_CHUNK` sizes above one. Explicit `FLASH_TWO_POSITION=0` retains
+scalar execution. The settings are read during engine initialization. The pass
 consumes two known prompt IDs, stopping before the final prompt position.
 It is not a speculative accept/reject implementation.
 
@@ -80,3 +81,41 @@ the existing streaming `chat` response format is preserved.
 No throughput improvement is claimed from these correctness comparisons. Disk PLE
 rows warm between runs, and neighboring GPU activity can change timings. Controlled
 warm repetitions and equivalent cache settings are needed for performance claims.
+
+## Chunk boundaries and headless prefix equivalence
+
+```sh
+make -C kern prefill_plan_test
+./kern/prefill_plan_test
+python3 kern/pair_model_test.py . /tmp/flash-chunk-check \
+  --chunk 1 --chunk 2 --chunk 3 --chunk 64 --scalar-chunk 64 \
+  --sha "$(git rev-parse HEAD)"
+python3 kern/pair_model_test.py . /tmp/flash-chunk-host-kv-check \
+  --kv-host 1 --chunk 64 --sha "$(git rev-parse HEAD)"
+python3 kern/prefill_cancel_test.py . /tmp/flash-chunk-cancel-check \
+  --reference /tmp/flash-chunk-check/results.json --sha "$(git rev-parse HEAD)"
+```
+
+The host planner test needs only a C compiler. It exhaustively checks small prompt,
+resume, snapshot and chunk combinations for exact ordered coverage, odd tails and
+exclusion of the final prompt position. It also checks cancellation/resume planning,
+strict environment parsing and arithmetic near `INT_MAX`.
+
+The model runner compares each mode with the full-head scalar reference. Chunk
+sizes one, two and three exercise B1-only chunks, pairs and odd scalar tails;
+64 exercises a chunk larger than the prompt. Automatic pairing and its explicit
+scalar override are tested separately. In addition to tokens and state readbacks,
+each case checks the actual paired-position and completed-chunk counters against
+the expected execution plan. `gen 0` confirms that the teacher-forced full-head
+diagnostic is preserved. These are correctness checks, not performance benchmarks.
+
+The cancellation check starts its own core on a unique temporary Unix socket,
+requests a snapshot after five positions, sends a 61-position prompt with chunks
+of four, and closes that client immediately. The next connection is a completion
+barrier. At most one chunk may complete, the core must remain usable, and a normal
+17-position prompt must match the scalar reference's tokens and state. The next
+request must not reuse the incomplete snapshot. Zero completed positions is valid
+when the disconnect is observed before the first launch; this case establishes
+boundary cancellation and recovery, not a guaranteed in-flight abort observation.
+The runner checks the source revision, binary hashes and configuration against
+the reference before comparing. It sends no commands to the resident server.

@@ -25,6 +25,12 @@ engine. Five BF16 variants share weight loads; remaining operations replay their
 arithmetic with separate position buffers. The final prompt token and generation stay B1.
 See [BATCH.md](BATCH.md) and [PAIR_TESTING.md](PAIR_TESTING.md).
 
+Set `FLASH_PREFILL_CHUNK=64` to run known prompt positions in chunks of at most
+64, omitting their vocabulary heads. Chunks use two-position microbatches unless
+`FLASH_TWO_POSITION=0` is set; `FLASH_PREFILL_CHUNK=1` uses scalar microbatches.
+The final prompt position still computes the first generated token through the
+full B1 head. Unset or `0` disables chunking; valid sizes are `1..4096`.
+
 
 #### Planned: 
 - MTP head
