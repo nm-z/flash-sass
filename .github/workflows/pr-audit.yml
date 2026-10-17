@@ -25,6 +25,7 @@ jobs:
         with:
           sparse-checkout: .github/scripts
       - name: Audit pull request
+        shell: bash
         run: .github/scripts/pr-audit.sh | tee -a "$GITHUB_STEP_SUMMARY"
         env:
           PR: ${{ github.event.pull_request.number }}
