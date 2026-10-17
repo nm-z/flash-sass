@@ -104,14 +104,17 @@ gemv_bf16_test: gemv_bf16_test.c ../ref/gguf.c ../ref/quant.c ../ref/gguf.h ../r
 gemv_test: gemv_test.c ../ref/gguf.c ../ref/quant.c ../ref/gguf.h ../ref/quant.h
 	$(CC) -std=gnu99 -O2 -Wall -o $@ gemv_test.c ../ref/gguf.c ../ref/quant.c -I../ref -I$(CUDA)/include -lcuda -lm
 
-test: all
+# `make test` is only these two Q2 GEMV checks (they need a free GPU and the model on the NFS share). The rest are the *_test programs, each built and run by name;
+# the whole-model check is model_test, the sparse-attention checks qsa_test.
+test: test-gemv
+test-gemv: all
 	./gemv_test $(SHARD1) blk.4.ffn_gate_exps.weight 0 20
 	./gemv_test $(SHARD1) blk.4.ffn_down_exps.weight 0 20
 
 clean:
-	rm -f gemv_q2_0_k2560.cubin gemv_q2_0_k640.cubin skel_q2_0.cubin gemv_bf16_k2560.cubin gemv_bf16_k320.cubin skel_bf16.cubin *.dis gemv_test gemv_bf16_test
+	rm -f *.cubin *.dis *.so *.so.new die.sass dieops.h flashcore flashd flashvis hold memtest fence *_test
 
-.PHONY: all test clean
+.PHONY: all test test-gemv clean
 
 # block-32 formats at K=640: one generator, GEMV_FMT selects the format
 B32 = q4_0 q5_0 q8_0 iq4_nl
@@ -474,8 +477,10 @@ model_test: model_test.c prog.c prog.h holdc.c hold.h dieops.h ../ref/block.c ..
 # the persistent core and the reloadable engine library (see core.h); the library is built to a new name and moved
 # over the old one, so a running core that has the old file mapped keeps a consistent image
 ENGINE_SRC = engine.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c
-libengine.so: $(ENGINE_SRC) prog.h hold.h core.h engine.h dieops.h ../ref/split.h
-	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -o $@.new $(ENGINE_SRC) -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
+# the commit (and -dirty when the tree differs from it) the library is built from: the engine reports it with its `config` command
+FLASH_REV ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)$(shell git diff --quiet HEAD -- .. 2>/dev/null || echo -dirty)
+libengine.so: $(ENGINE_SRC) prog.h hold.h core.h engine.h dieops.h ../ref/split.h ../ref/qsa.h ../ref/block.h ../ref/attn.h ../ref/ple.h ../ref/gguf.h ../ref/quant.h ../ref/fmath.h ../ref/hc.h ../ref/deltanet.h ../ref/router.h
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -DFLASH_REV='"$(FLASH_REV)"' -o $@.new $(ENGINE_SRC) -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
 
 flashcore: flashcore.c core.h hold.h holdc.c ../ref/gguf.c ../ref/gguf.h
 	$(CC) -std=gnu99 -O2 -Wall -o $@ flashcore.c holdc.c ../ref/gguf.c -I../ref -I$(CUDA)/include -lcuda -ldl -lm

@@ -69,6 +69,16 @@ static void *h_kv;                      /* the host-resident KV caches of all at
 static int nlayers_run = NB;   /* FLASH_LAYERS: run only the first blocks (bisecting a failure; the answers are meaningless) */
 static unsigned nblk_qsa = QSA_NBLK;   /* blocks of 4 keys attended per layer and token (FLASH_NBLK: a small value exercises the selection on short prompts) */
 static int has_attn[MAXD];             /* the die runs at least one attention layer */
+#ifndef FLASH_REV
+#define FLASH_REV "unknown"             /* the Makefile passes the commit (and -dirty) this library was built from */
+#endif
+static char cubin_path[512]; static uint64_t cubin_fnv;   /* identity of the loaded kernel image: FNV-1a 64 of the cubin file */
+static uint64_t file_fnv(const char *path) {
+	FILE *f = fopen(path, "rb"); if (!f) return 0;
+	uint64_t h = 0xcbf29ce484222325ull; unsigned char buf[65536]; size_t k;
+	while ((k = fread(buf, 1, sizeof buf, f)) > 0) for (size_t i = 0; i < k; i++) { h ^= buf[i]; h *= 0x100000001b3ull; }
+	fclose(f); return h;
+}
 static uint32_t *h_ids, *h_toks;    /* pinned: the prompt, and the tokens as die 0 writes them */
 static float *h_rnd;                /* pinned: u[position] for the sampler */
 static uint32_t *h_tok;             /* pinned: ctl[2] (count, bit 31 = the turn ended) */
@@ -323,6 +333,7 @@ int engine_init(core_t *c) {
 	for (int bb = 3; bb < NB; bb += 4) if (attn_die_of(bb) < nd) has_attn[attn_die_of(bb)] = 1;
 	double ts0 = now();
 	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuModuleLoad(&mod[d], cubin)); CK(cuModuleGetFunction(&fn[d], mod[d], "die")); }
+	snprintf(cubin_path, sizeof cubin_path, "%s", cubin); cubin_fnv = file_fnv(cubin);
 	/* ---- the PLE constants block (plerows layout); the table itself is the core's ---- */
 	uint8_t ppc[160]; uint64_t pmult[3]; uint32_t pabsent = 248044, pend = 248046;
 	memcpy(pmult, ple_multipliers, sizeof pmult);
@@ -526,9 +537,17 @@ int engine_session(FILE *in, FILE *out) {
 			fprintf(out, "\n"); fflush(out); free(ts); continue;
 		}
 		if (!strncmp(p, "info", 4)) { fprintf(out, "info %d %u\n", MAXT, img_rows_max); fflush(out); continue; }
+		if (!strncmp(p, "config", 6)) {   /* what this engine is: the identity to attach to a measurement (the commit it was built from, where the KV lives, the layers it runs, the kernel image) */
+			char ad[64] = ""; for (int d = 0; d < nd; d++) if (has_attn[d]) { char one[8]; snprintf(one, sizeof one, "%s%d", ad[0] ? "," : "", d); strncat(ad, one, sizeof ad - strlen(ad) - 1); }
+			const char *sh = getenv("SPLIT_SHARES"), *am = getenv("ATTN_MAP");
+			fprintf(out, "config rev=%s kv_host=%d maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u cubin=%s cubin_fnv=%016llx\n",
+			        FLASH_REV, kv_host, MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, cubin_path, (unsigned long long)cubin_fnv);
+			fflush(out); continue;
+		}
 		if (!strncmp(p, "cubin", 5)) {
 			char path[512]; if (sscanf(p + 5, "%511s", path) != 1) { fprintf(out, "error: cubin <path>\n"); fflush(out); continue; }
 			for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuModuleUnload(mod[d])); CK(cuModuleLoad(&mod[d], path)); CK(cuModuleGetFunction(&fn[d], mod[d], "die")); }
+			snprintf(cubin_path, sizeof cubin_path, "%s", path); cubin_fnv = file_fnv(path);
 			fprintf(out, "ok: %s\n", path); fflush(out); continue;
 		}
 		if (!strncmp(p, "sample", 6)) {
