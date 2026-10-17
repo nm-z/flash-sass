@@ -18,10 +18,14 @@ int hold_open(hold_arena *a, const char *manifest) {
 	int cap = 64;
 	a->t = malloc(sizeof(hold_tensor) * cap);
 	hold_tensor t;
-	while (fscanf(f, "%95s %zu %zu %u %d %d %d %d", t.name, &t.off, &t.bytes, &t.type, &t.rows, &t.K, &t.stride, &t.experts) == 8) {
+	int rc;
+	while ((rc = fscanf(f, "%95s %zu %zu %u %d %d %d %d", t.name, &t.off, &t.bytes, &t.type, &t.rows, &t.K, &t.stride, &t.experts)) == 8) {
+		/* every tensor must lie inside the arena the handle opens: a manifest of another split or a stale one names ranges that do not */
+		if (t.off > a->bytes || t.bytes > a->bytes - t.off) { fprintf(stderr, "%s: tensor %s [%zu, +%zu) is outside the %zu-byte arena\n", manifest, t.name, t.off, t.bytes, a->bytes); fclose(f); cuIpcCloseMemHandle(a->base); free(a->t); memset(a, 0, sizeof *a); return 1; }
 		if (a->n == cap) { cap *= 2; a->t = realloc(a->t, sizeof(hold_tensor) * cap); }
 		a->t[a->n++] = t;
 	}
+	if (rc != EOF || ferror(f)) { fprintf(stderr, "%s: unreadable tensor line after %d tensors (a truncated or damaged manifest)\n", manifest, a->n); fclose(f); cuIpcCloseMemHandle(a->base); free(a->t); memset(a, 0, sizeof *a); return 1; }
 	fclose(f);
 	return 0;
 }
