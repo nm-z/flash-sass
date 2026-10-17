@@ -86,6 +86,7 @@ static int cmpbuf(const char *what, const void *ref, CUdeviceptr dev, size_t byt
 }
 
 #include "model_qsa_test.h"
+#include "model_capture.h"
 
 /* the twin's per-block state (dn_hbufs_t carries one block's) */
 typedef struct { float *dn_state, *conv_state, *ple_state, *kc, *vc; } hstate_t;
@@ -123,6 +124,7 @@ int main(int argc, char **argv) {
 			fprintf(stderr, "MODEL_INJECT requires QSA validation and a reachable requested comparison\n"); return 2;
 		}
 	}
+	model_capture_check(b0,b1,do_embed,do_head,do_loop);
 	model_maxp = qsa_cache_positions((unsigned)T);
 	unsigned compact_positions = qsa_compact_positions(model_budget);
 	model_kcf = ATTN_KC_FLOATS(compact_positions);
@@ -157,6 +159,7 @@ int main(int argc, char **argv) {
 	for (int i = 0; i < nprompt; i++) if (ids[i] >= 248320u) {
 		fprintf(stderr, "MODEL_IDS token %d outside vocabulary: %u\n", i, ids[i]); return 2;
 	}
+	if (model_capture_enabled() && nprompt != T) { fprintf(stderr,"MODEL_CAPTURE needs exactly T teacher-forced IDs\n"); return 2; }
 	const size_t PLE_R = 1u << 20; uint8_t *ptab = NULL, *ctab = NULL; unsigned pcompact = 0; uint8_t ppc[160]; uint64_t pmult[3], poff[16], pvoc[16]; uint32_t pabsent = 248044, pend = 248046;
 /* the 16 real rows of position t -> the compact table slot the GPU reads (plerows compact mode) */
 #define PLE_STAGE(t) do { uint64_t rows_[16]; ple_rows_c(ids, (size_t)(t), pabsent, &pend, 1, pmult, poff, pvoc, rows_); for (int h_ = 0; h_ < 16; h_++) memcpy(ctab + ((size_t)(t) * 16 + h_) * 90, ptab + rows_[h_] * 90, 90); } while (0)
@@ -511,6 +514,7 @@ int main(int argc, char **argv) {
 		double t3 = now();
 		tsum += t3 - t2;
 		if (do_head) { CK(cuCtxSetCurrent(ctx[0])); CK(cuMemcpyDtoH(&tok_gpu, db[0].tokout, 4)); }
+		model_capture_record((unsigned)t,(unsigned)T,ids,db,sp);
 		if (getenv("MODEL_DUMP_S")) {   /* this position's stream: <path>.t<pos> */
 			float *St = malloc(4 * 10240); CK(cuCtxSetCurrent(ctx[0])); CK(cuMemcpyDtoH(St, db[0].S, 4 * 10240));
 			char fnt[600]; snprintf(fnt, sizeof fnt, "%s.t%d", getenv("MODEL_DUMP_S"), t); FILE *ft = fopen(fnt, "wb"); if (ft) { fwrite(St, 4, 10240, ft); fclose(ft); } free(St);

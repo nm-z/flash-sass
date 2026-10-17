@@ -471,8 +471,8 @@ dies_test: dies_test.c prog.c prog.h holdc.c hold.h dieops.h ../ref/block.c ../r
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ dies_test.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I$(CUDA)/include -lcuda -lm
 
 # ---- whole tokens (embed, blocks [b0,b1), head) on n dies vs the twins ----
-model_test: model_test.c prog.c prog.h holdc.c hold.h dieops.h ../ref/block.c ../ref/block.h ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c ../ref/split.h ../ref/qsa.c ../ref/qsa.h model_qsa_test.h qsa_state.h
-	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ model_test.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I$(CUDA)/include -lcuda -lm
+model_test: model_test.c prog.c prog.h holdc.c hold.h dieops.h ../ref/block.c ../ref/block.h ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c ../ref/split.h ../ref/qsa.c ../ref/qsa.h model_qsa_test.h qsa_state.h model_capture.h
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -DFLASH_REV='"$(FLASH_REV)"' -o $@ model_test.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I$(CUDA)/include -lcuda -lm
 
 # the persistent core and the reloadable engine library (see core.h); the library is built to a new name and moved
 # over the old one, so a running core that has the old file mapped keeps a consistent image
