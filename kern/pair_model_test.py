@@ -22,6 +22,7 @@ ap = argparse.ArgumentParser(description=__doc__)
 ap.add_argument("rootdir", type=Path)
 ap.add_argument("outdir", type=Path)
 ap.add_argument("--chunk", type=int, action="append")
+ap.add_argument("--scalar-chunk", type=int, action="append")
 ap.add_argument("--timeout", type=float, default=90)
 ap.add_argument("--sha", default="unknown")
 ap.add_argument("--kv-host", choices=["0", "1"], default="0")
@@ -65,7 +66,9 @@ class Core:
         self.stdout = open(a.outdir / f"{label}.stdout.log", "w", buffering=1)
         self.stderr = open(a.outdir / f"{label}.stderr.log", "w", buffering=1)
         self.commands = open(a.outdir / f"{label}.commands.log", "w", buffering=1)
-        settings = dict(env, FLASH_TWO_POSITION=str(pair), FLASH_PREFILL_CHUNK=str(chunk))
+        settings = dict(env, FLASH_PREFILL_CHUNK=str(chunk))
+        if pair is not None:
+            settings["FLASH_TWO_POSITION"] = str(pair)
         self.p = subprocess.Popen(argv, cwd=binpath, env=settings, stdin=subprocess.PIPE,
                                   stdout=subprocess.PIPE, stderr=self.stderr, text=True, bufsize=1)
         def pump():
@@ -126,7 +129,9 @@ class Core:
         if not body:
             raise RuntimeError(f"{self.label}: empty statehash body")
         print(f"{self.label} {label}: tokens={tokens} {lines[-1]}", flush=True)
-        return {"command": cmd, "tokens": tokens, "positions": int(m.group(1)),
+        return {"command": cmd, "nprompt": len(ids), "nnew": nnew,
+                "resumed": int(re.search(r"(\d+) from the snapshot", lines[-1]).group(1)),
+                "tokens": tokens, "positions": int(m.group(1)),
                 "state_summary": summary, "state": body, "time": lines[-1], "wall_s": wall}
 
     def close(self):
@@ -179,6 +184,7 @@ def run(label, pair, chunk, text_ids, stop_token=None):
         for n in [1, 2, 3, 5, 17, 33]:
             result["cases"][f"p{n}"] = c.case(f"p{n}", prompt(n))
         result["cases"]["real_prompt"] = c.case("real_prompt", text_ids, 3)
+        result["cases"]["teacher_forced"] = c.case("teacher_forced", prompt(5), 0)
         c.ack("sample 1234567 0.7 8 0.9")
         result["cases"]["sampled"] = c.case("sampled", prompt(17), 4)
         c.ack("sample 0 0 1 1")
@@ -217,7 +223,10 @@ try:
         raise RuntimeError("Need all six holder GPU locks")
     text_ids = real_prompt()
     base = run("scalar", 0, 0, text_ids)
-    modes = [("paired", 1, 0)] if not a.chunk else [(f"chunk{n}", 1, n) for n in a.chunk]
+    modes = [(f"chunk{n}", None, n) for n in (a.chunk or [])]
+    modes += [(f"scalar_chunk{n}", 0, n) for n in (a.scalar_chunk or [])]
+    if not modes:
+        modes = [("paired", 1, 0)]
     for label, pair, chunk in modes:
         test = run(label, pair, chunk, text_ids, base["stop_token"])
         for name, ref in base["cases"].items():
@@ -228,9 +237,32 @@ try:
             if not fields["state"]:
                 print("STATE MISMATCH", label, name,
                       [(x, y) for x, y in zip(ref["state"], got["state"]) if x != y][:6], flush=True)
-        if chunk != 1 and not any(re.search(r"paired_positions=[1-9]", r["state_summary"])
-                                  for r in test["cases"].values()):
-            raise RuntimeError(f"{label}: no reported paired execution")
+        enabled = bool(int(re.search(r"two_position=(\d+)", test["config"]).group(1)))
+        if chunk and f"prefill_chunk={chunk} " not in test["config"]:
+            raise RuntimeError(f"{label}: chunk configuration was ignored")
+        for name, case in test["cases"].items():
+            begin, end = case["resumed"], case["nprompt"] - 1
+            bounds = [begin] + ([5] if name == "snapshot" else []) + [end]
+            expected_pairs = expected_chunks = 0
+            for lo, hi in zip(bounds, bounds[1:]):
+                count = hi - lo
+                size = chunk if chunk and case["nnew"] else max(count, 1)
+                while count:
+                    part = min(count, size)
+                    if enabled:
+                        expected_pairs += (part // 2) * 2
+                    if chunk and case["nnew"]:
+                        expected_chunks += 1
+                    count -= part
+            summary = case["state_summary"]
+            actual_pairs = int(re.search(r"paired_positions=(\d+)", summary).group(1))
+            chunk_match = re.search(r"prefill_chunks=(\d+)", summary)
+            actual_chunks = int(chunk_match.group(1)) if chunk_match else 0
+            check = {"mode": label, "case": name, "execution_counts": True,
+                     "paired_positions": actual_pairs, "expected_pairs": expected_pairs,
+                     "prefill_chunks": actual_chunks, "expected_chunks": expected_chunks,
+                     "pass": actual_pairs == expected_pairs and actual_chunks == expected_chunks}
+            report["comparisons"].append(check)
     report["pass"] = all(x["pass"] for x in report["comparisons"])
 except Exception as e:
     report["pass"] = False
