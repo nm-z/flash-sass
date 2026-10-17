@@ -42,19 +42,18 @@ establish new agreement with an external model oracle.
 
 ## Full 48-layer comparison on archy
 
-The checked-in runner is intentionally configured for archy's existing six IPC
-weight holders and GGUF files. It launches separate short-lived cores, obtains
+The full-model comparison harness uses archy's existing six IPC weight holders
+and GGUF files. It launches separate short-lived cores, obtains
 compatible shared GPU locks, uses a small 128-position cache, and sends commands
 only to its own stdin/stdout cores. The resident serving process is not reloaded.
 Review the paths and six-die split in the runner before using another machine.
 
-```sh
-make -C kern die.cubin libengine.so flashcore tok_test
-python3 kern/pair_model_test.py . /tmp/flash-pair-check --sha "$(git rev-parse HEAD)"
-python3 kern/pair_model_test.py . /tmp/flash-pair-host-kv-check --kv-host 1 --sha "$(git rev-parse HEAD)"
-```
+The machine-specific comparison harness is maintained outside this branch. The
+PR validation record identifies the tested source revision, commands, effective
+configuration, binary hashes and result directories. Build its engine artifacts
+with `make -C kern die.cubin libengine.so flashcore tok_test`.
 
-The runner compares generated token arrays, completed-position counts, and
+The comparison checks generated token arrays, completed-position counts, and
 `statehash` readbacks after identical request sequences. Readbacks cover all live
 DeltaNet and convolution states, the PLE ring, valid positional KV codes/scales,
 indexer key rings/pools and final vocabulary logits on each die. They exclude
