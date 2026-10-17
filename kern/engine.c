@@ -562,7 +562,7 @@ int engine_init(core_t *c) {
 	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuModuleLoad(&mod[d], cubin)); CK(cuModuleGetFunction(&fn[d], mod[d], "die")); }
 	snprintf(cubin_path, sizeof cubin_path, "%s", cubin); cubin_fnv = file_fnv(cubin);
 	/* ---- the PLE constants block (plerows layout); the table itself is the core's ---- */
-	uint8_t ppc[160]; uint64_t pmult[3]; uint32_t pabsent = 248044, pend = 248046;
+	uint8_t ppc[160]; uint64_t pmult[3]; uint32_t pabsent = PLE_EOS_TOKEN, pend = PLE_EOS_TOKEN;   /* qwen4exp.ple.eos_token_id for both the fill and the reset */
 	memcpy(pmult, ple_multipliers, sizeof pmult);
 	memset(ppc, 0, sizeof ppc); memcpy(ppc, pmult, 24);
 	for (int h = 0; h < 16; h++) { uint32_t o32 = (uint32_t)ple_head_offsets[h], v32 = (uint32_t)ple_head_vocab[h]; memcpy(ppc + 24 + 4 * h, &o32, 4); memcpy(ppc + 88 + 4 * h, &v32, 4); }

@@ -94,7 +94,9 @@ static int test_kv(unsigned T, unsigned NBLK) {
 	int8_t *kqg = malloc((size_t)npos * 512), *vqg = malloc((size_t)npos * 512); uint16_t *ksg = malloc((size_t)npos * 32), *vsg = malloc((size_t)npos * 32);
 	uint32_t *sel = malloc(4 * (NBLK + 8));
 	int bad = 0, shown = 0;
+	const int last_only = getenv("QSA_KV_LAST_ONLY") != NULL;
 	for (unsigned t = 0; t < T; t++) {
+		int b = 0, check_attn = !last_only || t + 1 == T;
 		for (int i = 0; i < 12288; i++) qg[i] = 2.f * frand();
 		for (int i = 0; i < 512; i++) { k[i] = 2.f * frand(); v[i] = frand(); }
 		if (t % 7 == 3) for (int i = 0; i < 512; i++) v[i] *= 1e-4f;          /* tiny scales (fp16 subnormals) */
@@ -122,13 +124,19 @@ static int test_kv(unsigned T, unsigned NBLK) {
 			}
 		}
 		unsigned n = qsa_gather_gpu(kq, ks, vq, vs, sel, t, NBLK, kc, vc);
-		attn_decode_gpu(qo, kc, vc, n, qg, out);
+		if (check_attn) attn_decode_gpu(qo, kc, vc, n, qg, out);
 		CK(cuMemcpyDtoH(kqg, dKQ, (size_t)npos * 512)); CK(cuMemcpyDtoH(vqg, dVQ, (size_t)npos * 512)); CK(cuMemcpyDtoH(ksg, dKS, (size_t)npos * 32)); CK(cuMemcpyDtoH(vsg, dVS, (size_t)npos * 32));
-		{ float *qog = malloc(4 * 6144); CK(cuMemcpyDtoH(qog, dQO, 4 * 6144)); int bq = cmpb("qo", qo, qog, 4 * 6144, &shown); if (bq && !bad) printf("  (qo differs at t = %u)\n", t); free(qog); }
+		{ float *qog = malloc(4 * 6144); CK(cuMemcpyDtoH(qog, dQO, 4 * 6144));
+			/* Corrupt only the readback: prove that an isolated query failure reaches main. */
+			if (getenv("QSA_INJECT_QO_MISMATCH") && t + 1 == T) ((unsigned char *)qog)[0] ^= 1;
+			int bq = cmpb("qo", qo, qog, 4 * 6144, &shown); b |= bq;
+			if (bq && !bad) printf("  (qo differs at t = %u)\n", t); free(qog); }
 		if (getenv("QSA_DUMP") && t == 0) { printf("kq gpu:"); for (int i = 0; i < 40; i++) printf(" %d", kqg[i]); printf("\n    ref:"); for (int i = 0; i < 40; i++) printf(" %d", kq[i]); printf("\nks gpu:"); for (int i = 0; i < 16; i++) printf(" %04x", ksg[i]); printf("\n    ref:"); for (int i = 0; i < 16; i++) printf(" %04x", ks[i]); printf("\nvq gpu:"); for (int i = 0; i < 40; i++) printf(" %d", vqg[i]); printf("\n    ref:"); for (int i = 0; i < 40; i++) printf(" %d", vq[i]); printf("\n"); }
-		int b = 0;
 		b |= cmpb("kq", kq + (size_t)t * 512, kqg + (size_t)t * 512, 512, &shown); b |= cmpb("vq", vq + (size_t)t * 512, vqg + (size_t)t * 512, 512, &shown);
 		b |= cmpb("ks", ks + (size_t)t * 16, ksg + (size_t)t * 16, 32, &shown); b |= cmpb("vs", vs + (size_t)t * 16, vsg + (size_t)t * 16, 32, &shown);
+		/* All GPU stages and append/query checks run at every position. The opt-in
+		 * long regression computes expensive scalar attention only at the last one. */
+		if (check_attn) {
 		CK(cuMemcpyDtoH(kcg, dKC, kcf * 4)); CK(cuMemcpyDtoH(vcg, dVC, vcf * 4));
 		unsigned nb = ns + ((t + 1) & 3 ? 1 : 0);
 		for (unsigned j = 0; j < nb; j++) for (unsigned i = 0; i < 4; i++) {
@@ -140,10 +148,11 @@ static int test_kv(unsigned T, unsigned NBLK) {
 		}
 		CK(cuMemcpyDtoH(outg, dAOUT, 4 * 6144));
 		b |= cmpb("out", out, outg, 4 * 6144, &shown);
+		}
 		if (b && !bad) printf("first mismatch at t = %u (n = %u keys, %u blocks selected)\n", t, n, ns);
 		bad += b;
 	}
-	printf("kv: %u tokens, NBLK %u: %s (%d tokens differ)\n", T, NBLK, bad ? "MISMATCH" : "BIT-EXACT", bad);
+	printf("kv: %u tokens, NBLK %u: %s (%d tokens differ; query/append checks %u, gather/attention checks %u)\n", T, NBLK, bad ? "MISMATCH" : "BIT-EXACT", bad, T, last_only && T ? 1 : T);
 	return bad;
 }
 
@@ -352,6 +361,6 @@ int main(int argc, char **argv) {
 	if (!strcmp(argv[1], "embimg")) return test_embimg() ? 3 : 0;
 	if (!strcmp(argv[1], "gathertime")) return test_gathertime(argc > 2 ? atoi(argv[2]) : 0, argc > 3 ? (unsigned)atoi(argv[3]) : 5000);
 	if (!strcmp(argv[1], "idxqk")) return test_idxqk(argc > 2 ? (unsigned)atoi(argv[2]) : 100) ? 3 : 0;
-	if (!strcmp(argv[1], "kv")) return test_kv(argc > 2 ? (unsigned)atoi(argv[2]) : 200, argc > 3 ? (unsigned)atoi(argv[3]) : 8) ? 3 : 0;
+	if (!strcmp(argv[1], "kv")) return test_kv(argc > 2 ? (unsigned)atoi(argv[2]) : 200, argc > 3 ? (unsigned)atoi(argv[3]) : 8) ? 1 : 0;
 	fprintf(stderr, "unknown test %s\n", argv[1]); return 2;
 }

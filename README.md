@@ -1,16 +1,12 @@
 # flash-sass
+An inference engine for **Qwen3.8-Flash-Next**, specifically the Q2 variant of: 
+https://huggingface.co/ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF
+Using **Maxwell SASS** (via [MaxAs](https://github.com/NervanaSystems/maxas)) for multiple **Tesla M60** GPUs. By default each die runs **one persistent kernel per response** Weights stay in the GGUF's own block formats and are dotted as integers with packed `XMAD`.
 
-An inference engine for one model, **Qwen3.8-Flash-Next** (the GSQ-RCO Q2_0 GGUF), written as
-hand-assembled **Maxwell SASS** (via [MaxAs](https://github.com/NervanaSystems/maxas)) for **Tesla M60**
-GPUs (sm_52, 8 GB dies). By default each GPU die runs **one persistent kernel per response**: the token loop,
-every layer, the sampler and the exchange with the other dies are inside it, so there are no
-per-token launches, copies or host round trips. Weights stay in the GGUF's own block formats and
-are dotted as integers with packed `XMAD`; the host side is plain C.
+- row split
+- expert split
 
-It is a research project for one model on one machine, not a general engine.
-
-## What works (measured on 4 M60 cards, 6 dies used)
-
+## Measurments on 4 M60 cards, 6 dies used
 - The full 48-block model (DeltaNet, attention + indexer, 512-expert MoE, hyper-connections, the
   n-gram "PLE" table read from pinned host RAM) as one program of ~1150 phases per token.
 - Greedy output identical to upstream llama.cpp on the reference prompts used (every block type is
@@ -29,11 +25,15 @@ engine. Five BF16 variants share weight loads; remaining operations replay their
 arithmetic with separate position buffers. The final prompt token and generation stay B1.
 See [BATCH.md](BATCH.md) and [PAIR_TESTING.md](PAIR_TESTING.md).
 
-Not done: speculative decoding with the MTP head, general matrix-batched prefill,
-more than one request at a time, any GPU but the M60.
+
+#### Planned: 
+- MTP head
+- unified KV cache
+- general matrix-batched prefill
+- concurrent requests
+- V340L version
 
 ## Layout
-
 | Path | Contents |
 |---|---|
 | `kern/*.sass` | the kernels: GEMVs per weight format, DeltaNet, attention, MoE router, hyper-connection ops, exchange, top-k and sampler |
@@ -48,7 +48,6 @@ more than one request at a time, any GPU but the M60.
 | `SPEC.md` | the design and the log of every measurement; `BATCH.md` is the plan for two positions per phase |
 
 ## Building
-
 You need an sm_52 toolchain (CUDA 11.4's `ptxas` builds the kernel containers that MaxAs fills), a
 MaxAs checkout with `maxas-patch/` applied, Perl, a C compiler, and the model files. Paths and
 the six-die split (`SPLIT_SHARES`) are set for the author's machine; read `kern/Makefile`,
@@ -59,5 +58,4 @@ make -C kern die.cubin libengine.so flashcore flashd hold
 ```
 
 ## Licence
-
 MIT, see `LICENSE`. Derived parts and their notices are in `THIRD_PARTY.md`. No model weights are included.
