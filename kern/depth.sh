@@ -33,7 +33,7 @@ if (( STATUS != 0 )); then
 fi
 case "$HTTP" in 2[0-9][0-9]) ;; *) echo "depth: HTTP $HTTP; response saved in $OUT" >&2; exit 2 ;; esac
 set +e
-python3 "$(dirname "$0")/depth_check.py" "$OUT/response.json" "$CODE" "$N"
+perl "$(dirname "$0")/depth_check.pl" "$OUT/response.json" "$CODE" "$N"
 STATUS=$?
 set -e
 printf '%s\n' "$STATUS" > "$OUT/exit-status.txt"
