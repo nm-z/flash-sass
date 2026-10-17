@@ -149,7 +149,7 @@ int main(int argc, char **argv) {
 		hw.ple_tab = ptab;
 		memcpy(hw.ple_mult, ple_multipliers, sizeof hw.ple_mult);
 		for (int h = 0; h < 16; h++) { hw.ple_off[h] = (uint64_t)h * 65000; hw.ple_voc[h] = 60000 + 13 * h; }
-		hw.ple_absent = 248044; hw.ple_end = 248046;
+		hw.ple_absent = PLE_EOS_TOKEN; hw.ple_end = PLE_EOS_TOKEN;
 		memset(ppc, 0, sizeof ppc); memcpy(ppc, hw.ple_mult, 24);
 		for (int h = 0; h < 16; h++) { uint32_t o32 = (uint32_t)hw.ple_off[h], v32 = (uint32_t)hw.ple_voc[h]; memcpy(ppc + 24 + 4 * h, &o32, 4); memcpy(ppc + 88 + 4 * h, &v32, 4); }
 		memcpy(ppc + 152, &hw.ple_absent, 4); memcpy(ppc + 156, &hw.ple_end, 4);

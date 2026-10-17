@@ -111,7 +111,8 @@ int main(int argc, char **argv) {
 	CK(cuMemAlloc(&dD, dbg_bytes));
 	CK(cuMemsetD8(dD, 0, dbg_bytes));
 	unsigned urows = (unsigned)rows;
-	void *params[] = { &dW, &dX, &dS, &dY, &urows, &xs, &dD, &dAS };
+	CUdeviceptr dWE = 0;   /* the 9th parameter (pwe) is read only by the accumulate-with-scale builds; the launch still has to supply it */
+	void *params[] = { &dW, &dX, &dS, &dY, &urows, &xs, &dD, &dAS, &dWE };
 	unsigned grid = (urows + RPC - 1) / RPC;
 	if (getenv("GEMV_GRID") && (unsigned)atoi(getenv("GEMV_GRID")) < grid) grid = (unsigned)atoi(getenv("GEMV_GRID"));
 	printf("grid %u CTAs x 256 threads, %u rows per CTA iteration\n", grid, RPC);
