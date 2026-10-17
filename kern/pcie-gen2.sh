@@ -1,7 +1,7 @@
 #!/bin/bash
-# pcie-gen2.sh: target link speed gen2 (5 GT/s) and retrain for the given root ports (default 00:01.0 00:02.0 00:03.0). Lasts until the next reboot.
+# pcie-gen2.sh: target link speed gen2 (5 GT/s) and retrain for the given root ports (default 00:03.0, the slot-4 root port: the only link that makes errors at gen3). Lasts until the next reboot.
 # Revert one port: setpci -s <port> CAP_EXP+0x30.w=0003, then set bit 5 of CAP_EXP+0x10.w.
-for P in ${@:-00:01.0 00:02.0 00:03.0}; do
+for P in ${@:-00:03.0}; do
 	before=$(sudo -n setpci -s $P CAP_EXP+0x30.w)
 	sudo -n setpci -s $P CAP_EXP+0x30.w=0002 || { echo "$P: cannot write the target speed"; continue; }
 	v=$(sudo -n setpci -s $P CAP_EXP+0x10.w)

@@ -53,7 +53,7 @@ reload)   # reload [<lib>] [FLASH_ENGINE_MAXT=n FLASH_KV_HOST=0|1 ...]
 status)
 	pgrep -xa hold | cut -c1-60; pgrep -xa flashcore | cut -c1-60; pgrep -xa flashd | cut -c1-60
 	tail -n 3 /tmp/flashcore.err /tmp/flashd.err ;;
-gen2)   # the three root ports of the cards (slots 1, 2, 4) at gen2: the slot-4 link makes errors at gen3 (replays of 2 ms: 73 ms per token instead of 28). Lasts until the next reboot.
+gen2)   # slot 4 (card 3, dies 4 5) at gen2, as pcie-slot4-gen2.service does at boot: its link makes thousands of errors per token at gen3. Lasts until the next reboot.
 	bash "$(dirname "$0")/pcie-gen2.sh" ${*:2} ;;
 stop)   # the engine; the holders (weights) and fences stay
 	pkill -x flashd; pkill -x flashcore; pkill -x flashvis ;;

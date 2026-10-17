@@ -1651,3 +1651,48 @@ the engine reads the 16 rows of a position from the file just ahead of it (`ple_
 response's id in the flag, which `plerows` waits for (compact mode, param 0x170/0x178). Checked: the same 24 tokens at temperature 0 as with the table in RAM; warm 35 tok/s decode, 28-30 tok/s
 prefill; no 26 GB load. Cold rows are the cost: the file is on sentry's NFS (a disk with ~6 ms random reads, 16 rows per token): an all-new 52-token prompt took 5.4 s to the first token
 (about 100 ms per position) against 1.6 s with the rows cached, and decode 8.5 tok/s while the rows are cold. posix_fadvise(RANDOM) did not change it. The rows need a fast random-read home (the local SSD: ~0.1 ms).
+
+**PCIe link speed matrix, all 27 combinations (2026-10-17, `kern/linkmatrix_test.sh`).** Decode tok/s through flashd (3 requests of 40 tokens at temperature 0 per row, fixed shuffled order) for the link speed of the
+root ports of card 1 (slot 1, dies 0 1; trains x8), card 2 (slot 2, dies 2 3) and card 3 (slot 4, dies 4 5). This supersedes the paragraph above that put all three slots at gen2.
+
+| card 1 | card 2 | card 3 | decode tok/s |
+|---|---|---|---|
+| gen1 | gen1 | gen1 | 31.3 |
+| gen1 | gen1 | gen2 | 31.6 |
+| gen1 | gen1 | gen3 | 23.8 |
+| gen1 | gen2 | gen1 | 31.5 |
+| gen1 | gen2 | gen2 | 31.4 |
+| gen1 | gen2 | gen3 | 11.0 |
+| gen1 | gen3 | gen1 | 31.4 |
+| gen1 | gen3 | gen2 | 31.5 |
+| gen1 | gen3 | gen3 | 19.6 |
+| gen2 | gen1 | gen1 | 33.9 |
+| gen2 | gen1 | gen2 | 34.2 |
+| gen2 | gen1 | gen3 | 20.7 |
+| gen2 | gen2 | gen1 | 33.9 |
+| gen2 | gen2 | gen2 | 34.4 |
+| gen2 | gen2 | gen3 | 24.3 |
+| gen2 | gen3 | gen1 | 34.2 |
+| gen2 | gen3 | gen2 | 34.3 |
+| gen2 | gen3 | gen3 | 11.5 |
+| gen3 | gen1 | gen1 | 34.2 |
+| gen3 | gen1 | gen2 | 34.6 |
+| gen3 | gen1 | gen3 | 32.1 |
+| gen3 | gen2 | gen1 | 34.2 |
+| gen3 | gen2 | gen2 | 35.5 |
+| gen3 | gen2 | gen3 | 23.1 |
+| gen3 | gen3 | gen1 | 34.2 |
+| gen3 | gen3 | gen2 | 35.0 |
+| gen3 | gen3 | gen3 | 21.0 |
+
+Card 3 at gen3 is the only thing that makes it slow, and erratically: 11 to 32 tok/s, and the same configuration (gen3 gen3 gen3) gave 32.4, 21.0, 21.0 and 20.4 tok/s on four runs; at gen1 or gen2 every row is 31 to 35.5.
+Card 2's speed makes no difference; card 1 matters a little (it trains x8): gen1 about 31.5, gen2 about 34, gen3 about 34 to 35.9. Retest of the three best configs (5 requests, 2 rounds):
+gen3 gen3 gen2 35.9, gen3 gen1 gen2 35.1, gen2 gen2 gen2 34.9 tok/s.
+
+Correctable-error events (`kern/aerpoll.c`: poll the AER status register and clear it, so each new event is counted; lower bounds) per 1000 tokens, summed over both ends of each card's link to the CPU, by that link's speed
+(RxErr / BadTLP / BadDLLP / Rollover / Timeout): card 3 gen1 0/0/0/0/0, gen2 61/0/0/0/0, **gen3 2,783,215 / 433,058 / 12,703 / 152 / 62,115** (about 2,800 receiver errors, 430 bad packets and 62 replay timeouts per token);
+card 2 gen1 0, gen2 10,503 / 624 / 1 / 0 / 8 (no visible slowdown), gen3 0 / 60 / 0 / 0 / 12; card 1 gen1 0, gen2 0, gen3 6 / 1 / 0 / 0 / 0. With all 18 devices of the six dies' paths polled
+(3 root ports, 3 switch upstream ports, 6 switch downstream ports, 6 dies) the only errors are on the card-to-CPU links; the dies' own links log nothing and the GPUs' NVML replay counters stay 0. The error count does not predict
+the speed (rows with about 300,000 receiver errors ran between 11 and 32 tok/s): each retrain at gen3 gives a differently bad link and the stalls hurt depending on when they land. These are CRC failures and resends, not ECC.
+Persistent setting: `pcie-slot4-gen2.service` (`kern/pcie-slot4-gen2.{sh,service}`, installed in /etc/systemd/system, enabled, runs before `gpu-application-clocks.service`) sets the slot-4 root port (00:03.0) to gen2 at every boot;
+cards 1 and 2 stay at their default gen3. `serve.sh gen2` does the same by hand.
