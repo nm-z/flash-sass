@@ -1,0 +1,49 @@
+/home/nate/claude/flash-sass-prs/issue-11/kern/qsa_oracle_bridge.c: In function ‘finite_’:
+/home/nate/claude/flash-sass-prs/issue-11/kern/qsa_oracle_bridge.c:18:2: warning: this ‘for’ clause does not guard... [-Wmisleading-indentation]
+   18 |  for(size_t i=0;i<n;i++)if(!isfinite(x[i])||fabsf(x[i])>bound)return 0;return 1;
+      |  ^~~
+/home/nate/claude/flash-sass-prs/issue-11/kern/qsa_oracle_bridge.c:18:72: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the ‘for’
+   18 |  for(size_t i=0;i<n;i++)if(!isfinite(x[i])||fabsf(x[i])>bound)return 0;return 1;
+      |                                                                        ^~~~~~
+indexer/sparse fixture visible=1
+indexer/sparse fixture visible=2047
+indexer/sparse fixture visible=2048
+indexer/sparse fixture visible=2049
+indexer/sparse fixture visible=2050
+indexer/sparse fixture visible=2051
+indexer/sparse fixture visible=2052
+indexer/sparse fixture visible=3100
+indexer/sparse fixture visible=3101
+indexer/sparse fixture visible=3102
+indexer/sparse fixture visible=3103
+indexer/sparse fixture visible=8000
+indexer/sparse fixture visible=8001
+indexer/sparse fixture visible=8002
+indexer/sparse fixture visible=8003
+indexer/sparse fixture visible=65000
+indexer/sparse fixture visible=65001
+indexer/sparse fixture visible=65002
+indexer/sparse fixture visible=65003
+indexer/sparse fixture visible=262000
+indexer/sparse fixture visible=262001
+indexer/sparse fixture visible=262002
+indexer/sparse fixture visible=262003
+same-ID attention fixture keys=1
+same-ID attention fixture keys=2
+same-ID attention fixture keys=3
+same-ID attention fixture keys=4
+same-ID attention fixture keys=1023
+same-ID attention fixture keys=1024
+same-ID attention fixture keys=1025
+same-ID attention fixture keys=1026
+same-ID attention fixture keys=1027
+same-ID attention fixture keys=2047
+same-ID attention fixture keys=2048
+same-ID attention fixture keys=2049
+same-ID attention fixture keys=2050
+same-ID attention fixture keys=2051
+same-ID attention fixture keys=2052
+same-ID attention fixture keys=8191
+same-ID attention fixture keys=8192
+same-ID attention fixture keys=8193
+PASS_SYNTHETIC: /home/nate/claude/flash-sass-prs/issue-11/oracle-run2/report.json
