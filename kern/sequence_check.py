@@ -1,7 +1,17 @@
 #!/usr/bin/env python3
 import concurrent.futures as cf
+import atexit, json
 import os, socket, struct, sys, tempfile, threading, time
 sockpath=sys.argv[1]
+records=[]
+records_lock=threading.Lock()
+passed=False
+def save_report():
+ if len(sys.argv)>2:
+  with open(sys.argv[2],'w') as f:
+   json.dump(dict(passed=passed,requests=records),f,indent=2)
+   f.write('\n')
+atexit.register(save_report)
 def info():
  with socket.socket(socket.AF_UNIX) as s:
   s.connect(sockpath); s.sendall(b'info\n')
@@ -17,16 +27,19 @@ def ask(slot,ids,new=6,snap=0,sample=None,stop=None,image=None,barrier=None):
   commands.append('chat_slot %d %d %s'%(slot,new,' '.join(map(str,ids))))
   if barrier: barrier.wait()
   s.sendall(('\n'.join(commands)+'\n').encode())
-  tokens=[]; first=None
+  tokens=[]; first=None; raw=[]; started=time.monotonic()
   with s.makefile('r') as f:
    for line in f:
-    a=line.split()
+    raw.append(line.rstrip('\n')); a=line.split()
     if a and a[0]=='error:': raise AssertionError(line)
     if a and a[0]=='tok':
      tokens.append(int(a[1])); first=first or time.monotonic()
     if a and a[0]=='done':
      assert int(a[1])==len(tokens),line
-     return dict(tokens=tokens,ended=int(a[2]),resumed=int(a[6]),slot=int(a[8]),first=first,done=time.monotonic())
+     result=dict(tokens=tokens,ended=int(a[2]),resumed=int(a[6]),slot=int(a[8]),first=first,done=time.monotonic())
+     with records_lock:
+      records.append(dict(request=dict(slot=slot,ids=ids,new=new,snap=snap,sample=sample,stop=stop,image=bool(image)),started=started,result=result,raw=raw))
+     return result
   raise AssertionError('engine closed without done')
 def pair(a,b):
  gate=threading.Barrier(2)
@@ -74,4 +87,5 @@ if images:
   for n in range(2): assert baseline[n]['tokens']==inter[n]['tokens'],(baseline,inter)
   print('image/M-RoPE and plain-text slots isolated',flush=True)
  finally: os.unlink(path)
+passed=True
 print('sequence_check: passed',flush=True)

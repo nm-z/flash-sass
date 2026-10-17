@@ -26,7 +26,7 @@ make -C kern seqsched_test
 The GPU integration check needs a dedicated core socket running this exact build, at least two slots and 128 positions per slot, and matching resident weight-holder manifests. It compares serial and interleaved token IDs under greedy and fixed-seed sampling, independent prefix snapshots, stop tokens, cancellation and slot reuse. A short request must finish while another slot is still prefilling. When image storage is enabled, it also compares an image/M-RoPE slot with a simultaneous text-only slot.
 
 ```sh
-python3 kern/sequence_check.py /path/to/test-core.sock
+python3 kern/sequence_check.py /path/to/test-core.sock sequence-results.json
 ```
 
 Use both `FLASH_QUANTUM=1` and a larger quantum, and test both KV placements when memory permits. Set `FLASH_NBLK=1` in a small-context integration run to exercise selection and gather while two slots are interleaved; also preserve a run with the production budget of 512. A CUDA build or CPU scheduler pass alone does not establish model output equivalence. Exact tested commits, commands and results belong in `validation/issue-7/`.
