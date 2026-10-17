@@ -112,5 +112,22 @@ the six-die split (`SPLIT_SHARES`) are set for the author's machine; read `kern/
 make -C kern die.cubin libengine.so flashcore flashd hold
 ```
 
+## Optional PLE file-cache warm-up
+
+Set `FLASH_PLE_DISK=1 FLASH_PLE_PREWARM=1` when starting `kern/serve.sh core` or
+`kern/serve.sh all` to read the complete `GGUF2` file before launching the core.
+Pre-warming is off by default. Startup waits for the read to finish, and a read
+error prevents core startup. The log reports bytes read and elapsed time.
+
+To warm the file without starting or restarting any service:
+
+```sh
+GGUF2="/path/to/model shard.gguf" ./kern/serve.sh prewarm
+```
+
+The read uses the operating system's reclaimable filesystem page cache and an
+8 MiB userspace buffer. It does not pin the file in RAM. Memory pressure can evict
+cached pages; reading the whole file adds startup I/O and elapsed time.
+
 ## Licence
 MIT, see `LICENSE`. Derived parts and their notices are in `THIRD_PARTY.md`. No model weights are included.
