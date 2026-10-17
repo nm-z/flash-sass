@@ -514,3 +514,7 @@ memtest: memtest.c
 
 fence: fence.c
 	$(CC) -std=gnu99 -O2 -Wall -o $@ fence.c -I$(CUDA)/include -lcuda
+
+
+ple_eos_test: ple_eos_test.c ../ref/ple.c ../ref/fmath.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ ple_eos_test.c ../ref/ple.c ../ref/fmath.c -I../ref -lm
