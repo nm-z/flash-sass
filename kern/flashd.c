@@ -304,7 +304,7 @@ static void chat(int fd, const char *body, size_t bn) {
 		if (!g.gone && chunk(fd, b.s, b.n)) g.gone = 1;
 		sb_free(&b);
 	}
-	char line[256]; int ngen = 0, ended = 0, resumed = 0, snapped = 0; double run_ms = 0, first_ms = 0;
+	char line[256]; int ngen = 0, ended = 0, resumed = 0, snapped = 0, done = 0, failed = 0; double run_ms = 0, first_ms = 0;
 	/* a long prompt takes minutes before the first token: an idle stream is cut by proxies (Cloudflare closes after 100 s), so an SSE comment goes out
 	   every 10 s while the engine is silent */
 	{ struct timeval tv = { 10, 0 }; setsockopt(fileno(in), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv); }
@@ -315,12 +315,26 @@ static void chat(int fd, const char *body, size_t bn) {
 		}
 		unsigned id; int e, npm; double r, f;
 		if (sscanf(line, "tok %u", &id) == 1) { on_token(&g, id); if (g.gone || g.cap_hit) break; }
-		else if (sscanf(line, "done %d %d %d %lf %lf %d %d", &ngen, &e, &npm, &r, &f, &resumed, &snapped) >= 5) { ended = e; run_ms = r; first_ms = f; break; }
-		else if (!strncmp(line, "error", 5)) { fprintf(stderr, "flashd: engine: %s", line); break; }
+		else if (sscanf(line, "done %d %d %d %lf %lf %d %d", &ngen, &e, &npm, &r, &f, &resumed, &snapped) >= 5) { ended = e; run_ms = r; first_ms = f; done = 1; break; }
+		else if (!strncmp(line, "error", 5)) { fprintf(stderr, "flashd: engine: %s", line); failed = 1; break; }
 	}
+	if (!done && !g.gone && !g.cap_hit) failed = 1;   /* the engine's stream ended without its "done" line: the response is not complete */
 	fclose(in); fclose(out);
 	pthread_mutex_unlock(&ENGINE);
 	free(prompt);
+	if (failed) {   /* an engine error or an engine that went away is an error to the client, not a normal completion with finish_reason "length" */
+		fprintf(stderr, "flashd: the engine failed during the response (%ld reasoning + %ld answer tokens had been generated)\n", g.n_reason, g.n_answer);
+		if (stream) {
+			if (!g.gone) {
+				sbuf b = {0};
+				sb_puts(&b, "data: {\"error\":{\"message\":\"the engine failed during the response\",\"type\":\"engine_error\"}}\n\n");
+				chunk(fd, b.s, b.n); sb_free(&b);
+				chunk(fd, "data: [DONE]\n\n", 14); wrs(fd, "0\r\n\r\n");
+			}
+		} else error(fd, 502, "the engine failed during the response");
+		sb_free(&g.content); sb_free(&g.reasoning); arena_free(a);
+		return;
+	}
 
 	if (g.gone) fprintf(stderr, "flashd: client left after %d bytes of text; the engine is told to stop\n", (int)(g.content.n + g.reasoning.n));
 	double pp = first_ms > 0 ? (np - resumed) / (first_ms / 1e3) : 0, dec_ms = run_ms - first_ms, dec = (ngen > 1 && dec_ms > 0) ? (ngen - 1) / (dec_ms / 1e3) : 0;
@@ -350,6 +364,7 @@ static void chat(int fd, const char *body, size_t bn) {
 static void *serve(void *arg) {
 	int fd = (int)(long)arg; struct timeval tv = { 30, 0 };
 	setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
+	setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof tv);   /* a client that stops reading must not hold the engine lock: a send that blocks 30 s fails and the response is dropped */
 	char *req = malloc(1 << 16); size_t n = 0; char *hend = NULL;
 	while (!hend && n < (1 << 16) - 1) {
 		ssize_t k = recv(fd, req + n, (1 << 16) - 1 - n, 0); if (k <= 0) { free(req); close(fd); return NULL; }
