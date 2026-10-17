@@ -1,8 +1,8 @@
 # Kernel: attnpartn
 #
 # Decode-attention partials (flash-decoding style). Grid = 32 CTAs x 256 threads,
-# 2 CTAs per SM: CTA b owns key chunk c = b & 7, head half hh = (b >> 3) & 1 and KV
-# head kv = b >> 4, i.e. query heads 12 kv + 6 hh + 0..5, over keys [c CK, (c+1) CK)
+# 2 CTAs per SM: CTA b owns key chunk c = b >> 2, head half hh = (b >> 1) & 1 and KV
+# head kv = b & 1 (the chunk is the high part of the unit id: the units with keys are the low ids, so they sit on different physical CTAs; the physical CTA runs units b and b + 16, and with the chunk in the low bits the two units of a CTA were both busy), i.e. query heads 12 kv + 6 hh + 0..5, over keys [c CK, (c+1) CK)
 # with CK = ceil(n / 8192) * 1024, in tiles of 1024 keys:
 #   QK phase: thread t = 32 w + l holds keys tb + 256 s + t (s = 0..3): one K chunk
 #     (4 dims, LDG.128, coalesced across the warp thanks to the blocked K layout) per
@@ -115,8 +115,8 @@
     $o .= sprintf "--:-:-:-:1      MOV32I mx%d, 0xf149f2ca;\n", $_ for 0..5;              # -1e30
     $o .= "20:-:-:-:6      SHR.U32 w, tid, 0x5;\n";
     $o .= "--:-:-:-:6      LOP32I.AND l, tid, 0x1f;\n";
-    $o .= "--:-:-:-:6      LOP32I.AND tmp, cta, 0x7;\n";                                 # c
-    $o .= "--:-:-:-:6      SHR.U32 u3, cta, 0x4;\n";                                     # kv
+    $o .= "--:-:-:-:6      SHR.U32 tmp, cta, 0x2;\n";                                 # c
+    $o .= "--:-:-:-:6      LOP32I.AND u3, cta, 0x1;\n";                                     # kv
     $o .= "--:-:-:-:6      ISETP.EQ.AND P5, PT, l, RZ, PT;\n";                           # P5: lane 0
     $o .= "--:-:-:-:6      ISETP.LT.U32.AND P6, PT, tid, 0x80, PT;\n";                   # P6: loads q's second half
     # nn = the key count: tp1 while nv = tp1 >> 2 <= NBLK, else 4 NBLK + (tp1 & 3)
@@ -160,7 +160,7 @@
     $o .= "--:-:-:-:6      IADD vcb0.CC, vcb0, param_VC0;\n";
     $o .= "--:-:-:-:6      IADD.X vcb1, RZ, param_VC1;\n";
     # q -> smem: QO + 12288 kv + 6144 hh + 16 tid (+ 4096 for tid < 128)
-    $o .= "--:-:-:-:6      SHR.U32 u2, cta, 0x3;\n";
+    $o .= "--:-:-:-:6      SHR.U32 u2, cta, 0x1;\n";
     $o .= "--:-:-:-:6      LOP32I.AND u2, u2, 0x1;\n";                                   # hh
     $o .= "--:-:-:-:6      SHL u1, u2, 0xc;\n";
     $o .= "--:-:-:-:6      SHL u2, u2, 0xb;\n";
@@ -372,10 +372,10 @@
     $o .= "--:-:-:-:6      LOP32I.AND u1, tid, 0x3;\n";
     $o .= "--:-:-:-:6      ISETP.EQ.AND P0, PT, u1, RZ, PT;\n";                          # stream-0 lanes hold the sums
     $o .= "--:-:-:-:6      ISETP.EQ.AND P1, PT, tid, RZ, PT;\n";                         # thread 0 writes m, den
-    $o .= "20:-:-:-:6      SHR.U32 u1, cta, 0x4;\n";                                     # kv
-    $o .= "--:-:-:-:6      SHR.U32 u2, cta, 0x3;\n";
+    $o .= "20:-:-:-:6      LOP32I.AND u1, cta, 0x1;\n";                                    # kv
+    $o .= "--:-:-:-:6      SHR.U32 u2, cta, 0x1;\n";
     $o .= "--:-:-:-:6      LOP32I.AND u2, u2, 0x1;\n";                                   # hh
-    $o .= "--:-:-:-:6      LOP32I.AND u3, cta, 0x7;\n";                                  # c
+    $o .= "--:-:-:-:6      SHR.U32 u3, cta, 0x2;\n";                                  # c
     # po + 98304 kv + 49152 hh + 1024 c + 16 (tid >> 2)
     $o .= "--:-:-:-:6      SHL pop0, u1, 0x10;\n";
     $o .= "--:-:-:-:6      SHL tmp, u1, 0xf;\n";
