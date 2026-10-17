@@ -8,6 +8,38 @@ handles, so the lever is **more positions per phase**: MTP needs two (the accept
 token and the draft), prefill wants a chunk. This note fixes the design for B = 2
 first (prefill chunks generalise the same way later).
 
+## Implemented known-position pass
+
+`FLASH_TWO_POSITION=1` enables a causal forward over pairs of known prompt IDs.
+The default remains B1. Pairs stop before the final prompt position; an odd tail,
+the final prompt position and generated-token decoding run through the B1 program.
+Snapshots split the known prefix at their exact position. This is the execution
+foundation for prefill; draft proposals, speculative acceptance and rollback are
+still future work in the design below.
+
+Each logical paired phase contains two adjacent 128-byte scalar descriptors.
+Word 30 bit 3 marks the primary descriptor. The dispatcher fixes up each token mask
+independently, executes both positions and then performs one grid barrier and one
+peer publication. `ctl[9]` selects one or two positions per iteration; zero retains
+the scalar ABI. Secondary activations, router lists, reduction counters and both
+exchange slots have separate allocations. Layer states and positional KV storage
+are shared. Stateful units retain their CTA ownership and run position 0 before 1.
+Every warp reads the replay decision before any warp clears it.
+
+The five appended BF16 variants (`bf16biasp`, `bf16k2560p`, `bf16k320p`, `bf16hcp`,
+`bf16hcxp`) reuse each weight load across two accumulation chains. Bit 4 marks these
+fused bodies. Fusion requires equal weights, dimensions and unit counts, no token
+mask, and independent output storage. XOUT additionally requires the caller's
+allocation guarantee for the peer destinations. The engine supplies that guarantee
+through its separate inbox allocations. Other BF16 variants, quantized GEMVs and
+stateful kernels replay their existing arithmetic for both positions. They do not
+yet amortize every weight or recurrent-state load. Distinct MoE expert lists remain
+independent; no expert-union optimization is claimed.
+
+See [PAIR_TESTING.md](PAIR_TESTING.md) for the component and model comparisons.
+The remaining sections describe the broader optimization and speculative-decoding
+plan, including work beyond this implemented pass.
+
 ## What changes per op class
 
 - **GEMVs (every weight format):** two activation vectors, one pass over the weights,
