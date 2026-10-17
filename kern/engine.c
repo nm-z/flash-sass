@@ -14,6 +14,9 @@
 #include <math.h>
 #include "gguf.h"
 #include "engine.h"
+#include "timings.h"
+static __thread flash_timing last_timing;
+static __thread int last_timing_valid;
 #include "core.h"
 #include <setjmp.h>
 #include <cuda.h>
@@ -287,6 +290,7 @@ static int prepare_images(const engine_img *imgs, int nimg, int nprompt, int T) 
 }
 
 int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], const sampling *sm, int snap_at, const engine_img *imgs, int nimg, const engine_cb *cb, run_stats *st) {
+	last_timing_valid=0;
 	int T = nprompt + n_new;
 	trace_first = (unsigned)(nprompt - 1); trace_valid = 0;
 	if (nprompt < 1 || n_new < 0 || T > MAXT) return -1;
@@ -375,6 +379,12 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	double t2 = now();
 	if (trace_n && r.count > (int)trace_first) { trace_valid = (unsigned)r.count - trace_first; if (trace_valid > trace_n) trace_valid = trace_n; }
 	if (st) { st->ntok = r.count; st->ended = r.ended; st->nph = nph[0]; st->resumed = resume; st->snapshot = snap_at; st->build_ms = (t1 - t0) * 1e3; st->run_ms = (t2 - t1) * 1e3; st->first_ms = r.tfirst ? (r.tfirst - t1) * 1e3 : 0; }
+    last_timing=(flash_timing){.prompt=nprompt,.resumed=resume,.completed=r.count,
+        .ended=r.ended,.aborted=r.aborted,.first_valid=(r.tfirst!=0),
+        .build_ms=(t1-t0)*1e3,.run_ms=(t2-t1)*1e3,
+        .first_ms=r.tfirst?(r.tfirst-t1)*1e3:0};
+    last_timing_valid=1;
+
 	for (int d = 0; d < nd; d++) prog_free(&P[d]);
 	free(P);
 	in_run = 0;
@@ -590,6 +600,7 @@ const char *engine_reload_path(void) { return reload_path[0] ? reload_path : NUL
 #include "trace_host.inc"
 
 int engine_session(FILE *in, FILE *out) {
+	last_timing_valid=0;
 	if (!s_ids) { s_ids = calloc((size_t)MAXT + 2, 4); s_toks = calloc((size_t)MAXT + 2, 4); }
 	uint32_t *ids = s_ids, *toks = s_toks;
 	uint32_t stop[2] = { 0xffffffffu, 0xffffffffu };
@@ -598,6 +609,15 @@ int engine_session(FILE *in, FILE *out) {
 	char *line = NULL; size_t cap = 0; int quit = 0;
 	while (getline(&line, &cap, in) > 0) {
 		char *p = line; while (*p == ' ') p++;
+        if(!strncmp(p,"chat",4)||!strncmp(p,"gen",3))last_timing_valid=0;
+        if(!strncmp(p,"timings",7)&&strspn(p+7," \t\r\n")==strlen(p+7)){
+            char json[2048];
+            if(!last_timing_valid)fprintf(out,"timings null\n");
+            else if(!flash_timing_json(json,sizeof json,&last_timing))fprintf(out,"timings %s\n",json);
+            else fprintf(out,"error: timing JSON overflow\n");
+            fflush(out);continue;
+        }
+
 		if (!strncmp(p, "quit", 4)) { quit = 1; break; }
 		if (!strncmp(p, "reload", 6)) {   /* the core swaps the library after this returns */
 			char path[1000]; reload_path[0] = 0;
@@ -673,6 +693,10 @@ int engine_session(FILE *in, FILE *out) {
 			/* st.ntok is the final position count; the first st.resumed positions came from the snapshot and were not run, so they are not in the average */
 			fprintf(out, "time: %.1f ms for %d positions run (%d from the snapshot; %.2f ms per position run; first token %.1f ms; %u phases; programs %.0f ms)%s\n",
 			        st.run_ms, st.ntok - st.resumed, st.resumed, st.run_ms / (st.ntok - st.resumed > 0 ? st.ntok - st.resumed : 1), st.first_ms, st.nph, st.build_ms, st.ended ? "; end of turn" : "");
+            char timing_json[2048];
+            if (last_timing_valid && !flash_timing_json(timing_json, sizeof timing_json, &last_timing))
+                fprintf(out, "timings %s\n", timing_json);
+            else fprintf(out, "timings null\n");
 		}
 		fflush(out);
 	}

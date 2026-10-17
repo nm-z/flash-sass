@@ -43,6 +43,14 @@ static long REASONING_MAX = 262144, ANSWER_MAX = 131072;
 static double DEF_TEMP = 0.0, DEF_TOPP = 1.0; static int DEF_TOPK = 0;   /* general.sampling.* from the GGUF; temperature 0 = greedy */
 static uint32_t ID_END, ID_THINK_END;
 static pthread_mutex_t ENGINE = PTHREAD_MUTEX_INITIALIZER;
+static double http_clock_ms(void) {
+    struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1e6;
+}
+static void http_optional_ms(sbuf *b, const char *key, double stamp, double origin) {
+    sb_printf(b, ",\"%s\":", key);
+    if (stamp > 0) sb_printf(b, "%.9g", stamp - origin); else sb_puts(b, "null");
+}
 
 /* ---- output ---- */
 static int wr(int fd, const char *s, size_t n) {
@@ -75,6 +83,7 @@ typedef struct {
 	unsigned char pend[8]; int npend;
 	sbuf content, reasoning;
 	long created;
+	double request_start_ms, first_text_send_ms;
 	long n_reason, n_answer; int cap_hit;   /* tokens so far in each part; set when one reaches its budget */
 } gen;
 
@@ -85,6 +94,7 @@ static void emit_delta(gen *g, const char *field, const char *s, size_t n) {
 		sb_printf(&b, "data: {\"choices\":[{\"index\":0,\"delta\":{\"%s\":", field); sb_json_str(&b, s, n);
 		sb_printf(&b, "},\"finish_reason\":null}],\"created\":%ld,\"id\":\"chatcmpl-flash\",\"model\":\"%s\",\"object\":\"chat.completion.chunk\"}\n\n", g->created, NAME);
 		if (chunk(g->fd, b.s, b.n)) g->gone = 1;
+        else if (!g->first_text_send_ms) g->first_text_send_ms = http_clock_ms();
 		sb_free(&b);
 	}
 	sbuf *acc = field[0] == 'r' ? &g->reasoning : &g->content;
@@ -177,7 +187,8 @@ static const char *vis_image(const unsigned char *bytes, size_t n, imgrec *r) {
 }
 
 /* ---- POST /v1/chat/completions ---- */
-static void chat(int fd, const char *body, size_t bn) {
+static void chat(int fd, const char *body, size_t bn, double request_start_ms) {
+    double chat_start_ms = http_clock_ms(), tokenization_ms = 0;
 	arena *a = arena_new(); const char *je = NULL;
 	jv *req = json_parse(a, body, bn, &je);
 	if (!req || req->k != J_DICT) { error(fd, 400, "the body is not a JSON object"); arena_free(a); return; }
@@ -242,9 +253,12 @@ static void chat(int fd, const char *body, size_t bn) {
 	char *prompt = jinja_render(TPL, a, vars, &pn, err, sizeof err);
 	if (!prompt) { error(fd, 400, err); arena_free(a); return; }
 
+    double queue_start_ms = http_clock_ms();
 	pthread_mutex_lock(&ENGINE);
+    double lock_acquired_ms = http_clock_ms(), encode_start_ms = lock_acquired_ms;
 	uint32_t *ids = malloc(4 * (pn + 16));
 	int np = tok_encode(V, prompt, pn, 1, ids, (int)pn + 16);
+    tokenization_ms += http_clock_ms() - encode_start_ms;
 	if (np < 1 || np + 1 >= POSITIONS) {
 		pthread_mutex_unlock(&ENGINE); free(ids); free(prompt); arena_free(a);
 		error(fd, 400, np < 1 ? "empty prompt" : "the prompt is longer than the engine's context"); return;
@@ -262,7 +276,9 @@ static void chat(int fd, const char *body, size_t bn) {
 		size_t pn2; char *p2 = jinja_render(TPL, a, vars, &pn2, err, sizeof err);
 		jv_set(a, vars, "messages", 8, msgs);
 		if (p2) {
+            encode_start_ms = http_clock_ms();
 			uint32_t *ids2 = malloc(4 * (pn2 + 16)); int n2 = tok_encode(V, p2, pn2, 1, ids2, (int)pn2 + 16);
+            tokenization_ms += http_clock_ms() - encode_start_ms;
 			int l = 0; while (l < n2 && l < np && ids2[l] == ids[l]) l++;
 			snap = l < np - 1 ? l : np - 1;
 			if (snap < 16) snap = 0;
@@ -294,7 +310,8 @@ static void chat(int fd, const char *body, size_t bn) {
 	fprintf(out, "chat %ld", n_new); for (int i = 0; i < np; i++) fprintf(out, " %u", ids[i]); fputc('\n', out); fflush(out);
 	free(ids);
 
-	gen g = { .fd = fd, .stream = stream, .created = (long)time(NULL) };
+    double engine_submitted_ms = http_clock_ms();
+	gen g = { .fd = fd, .stream = stream, .created = (long)time(NULL), .request_start_ms = request_start_ms };
 	g.in_think = pn >= 8 && !memcmp(prompt + pn - 8, "<think>\n", 8);
 	if (stream) {
 		const char *h = "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n";
@@ -304,7 +321,10 @@ static void chat(int fd, const char *body, size_t bn) {
 		if (!g.gone && chunk(fd, b.s, b.n)) g.gone = 1;
 		sb_free(&b);
 	}
-	char line[256]; int ngen = 0, ended = 0, resumed = 0, snapped = 0, done = 0, failed = 0; double run_ms = 0, first_ms = 0;
+	char line[8192]; int ngen = 0, ended = 0, resumed = 0, snapped = 0, done = 0, failed = 0; double run_ms = 0, first_ms = 0;
+    int raw_token_events = 0;
+    double first_socket_observed_ms = 0, last_socket_observed_ms = 0;
+    sbuf engine_timing = {0};
 	/* a long prompt takes minutes before the first token: an idle stream is cut by proxies (Cloudflare closes after 100 s), so an SSE comment goes out
 	   every 10 s while the engine is silent */
 	{ struct timeval tv = { 10, 0 }; setsockopt(fileno(in), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv); }
@@ -314,11 +334,26 @@ static void chat(int fd, const char *body, size_t bn) {
 			break;
 		}
 		unsigned id; int e, npm; double r, f;
-		if (sscanf(line, "tok %u", &id) == 1) { on_token(&g, id); if (g.gone || g.cap_hit) break; }
+		if (sscanf(line, "tok %u", &id) == 1) {
+            last_socket_observed_ms = http_clock_ms();
+            if (!raw_token_events++) first_socket_observed_ms = last_socket_observed_ms;
+            on_token(&g, id); if (g.gone || g.cap_hit) break;
+        }
 		else if (sscanf(line, "done %d %d %d %lf %lf %d %d", &ngen, &e, &npm, &r, &f, &resumed, &snapped) >= 5) { ended = e; run_ms = r; first_ms = f; done = 1; break; }
 		else if (!strncmp(line, "error", 5)) { fprintf(stderr, "flashd: engine: %s", line); failed = 1; break; }
 	}
 	if (!done && !g.gone && !g.cap_hit) failed = 1;   /* the engine's stream ended without its "done" line: the response is not complete */
+    /* Fetch only this session's completed run. Older engines answer an error;
+       missing/invalid/incomplete timing is represented by null, never cached. */
+    if (done && !failed && fprintf(out, "timings\n") >= 0 && !fflush(out) && fgets(line, sizeof line, in)) {
+        size_t ln = strlen(line);
+        if (ln && line[ln - 1] == '\n' && !strncmp(line, "timings ", 8)) {
+            const char *timing_error = NULL;
+            jv *value = json_parse(a, line + 8, ln - 8, &timing_error);
+            if (value && value->k == J_DICT) sb_put(&engine_timing, line + 8, ln - 8);
+        }
+    }
+    if (!done) ngen = raw_token_events;
 	fclose(in); fclose(out);
 	pthread_mutex_unlock(&ENGINE);
 	free(prompt);
@@ -332,7 +367,7 @@ static void chat(int fd, const char *body, size_t bn) {
 				chunk(fd, "data: [DONE]\n\n", 14); wrs(fd, "0\r\n\r\n");
 			}
 		} else error(fd, 502, "the engine failed during the response");
-		sb_free(&g.content); sb_free(&g.reasoning); arena_free(a);
+		sb_free(&engine_timing); sb_free(&g.content); sb_free(&g.reasoning); arena_free(a);
 		return;
 	}
 
@@ -340,6 +375,21 @@ static void chat(int fd, const char *body, size_t bn) {
 	double pp = first_ms > 0 ? (np - resumed) / (first_ms / 1e3) : 0, dec_ms = run_ms - first_ms, dec = (ngen > 1 && dec_ms > 0) ? (ngen - 1) / (dec_ms / 1e3) : 0;
 	sbuf t = {0};
 	sb_printf(&t, "{\"prompt_n\":%d,\"cache_n\":%d,\"prompt_ms\":%.1f,\"prompt_per_second\":%.2f,\"predicted_n\":%d,\"predicted_ms\":%.1f,\"predicted_per_second\":%.2f,\"decode_intervals\":%d,\"decode_ms\":%.1f}", np, resumed, first_ms, pp, ngen, dec_ms > 0 ? dec_ms : 0, dec, ngen > 1 ? ngen - 1 : 0, dec_ms > 0 ? dec_ms : 0);   /* predicted_per_second = decode_intervals / decode_ms: the time after the first generated token, over the G - 1 tokens after it; predicted_n is all G */
+    /* Retain the flat legacy aliases and append the canonical engine object. */
+    if (t.n && t.s[t.n - 1] == '}') t.s[--t.n] = 0;
+    sb_printf(&t, ",\"schema_version\":1,\"engine\":%s,\"http\":{\"clock\":\"CLOCK_MONOTONIC\",\"start_event\":\"request_worker_entry\",\"complete\":%s,\"raw_token_events\":%d,\"request_read_ms\":%.9g,\"prequeue_ms\":%.9g,\"engine_lock_wait_ms\":%.9g,\"tokenization_ms\":%.9g,\"engine_submitted_ms\":%.9g,\"completion_serialization_ms\":%.9g",
+        engine_timing.s ? engine_timing.s : "null", done ? "true" : "false", raw_token_events,
+        chat_start_ms - request_start_ms, queue_start_ms - request_start_ms,
+        lock_acquired_ms - queue_start_ms, tokenization_ms,
+        engine_submitted_ms - request_start_ms, http_clock_ms() - request_start_ms);
+    http_optional_ms(&t, "first_token_observed_ms", first_socket_observed_ms, request_start_ms);
+    http_optional_ms(&t, "last_token_observed_ms", last_socket_observed_ms, request_start_ms);
+    http_optional_ms(&t, "first_text_send_ms", g.first_text_send_ms, request_start_ms);
+    sb_puts(&t, ",\"socket_decode_tokens_per_second\":");
+    if (raw_token_events > 1 && last_socket_observed_ms > first_socket_observed_ms)
+        sb_printf(&t, "%.9g", 1000.0 * (raw_token_events - 1) / (last_socket_observed_ms - first_socket_observed_ms));
+    else sb_puts(&t, "null");
+    sb_puts(&t, ",\"response_write_complete_ms\":null}}");
 	const char *fin = ended ? "stop" : "length";
 	fprintf(stderr, "flashd: %d prompt (%d from the cache, snapshot at %d) + %d generated tokens, %.1f ms (first %.1f), %s, pp %.1f decode %.1f tok/s\n", np, resumed, snapped, ngen, run_ms, first_ms, fin, pp, dec);
 	if (stream) {
@@ -357,11 +407,13 @@ static void chat(int fd, const char *body, size_t bn) {
 		sb_printf(&b, "}}],\"created\":%ld,\"id\":\"chatcmpl-flash\",\"model\":\"%s\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":%d,\"prompt_tokens\":%d,\"total_tokens\":%d},\"timings\":%s}", g.created, NAME, ngen, np, ngen + np, t.s);
 		reply(fd, 200, "application/json", b.s, b.n); sb_free(&b);
 	}
-	sb_free(&t); sb_free(&g.content); sb_free(&g.reasoning); arena_free(a);
+    fprintf(stderr, "flashd_request_timing: response_write_returned_ms=%.9g start_event=request_worker_entry clock=CLOCK_MONOTONIC stream=%d client_closed=%d\n", http_clock_ms() - request_start_ms, stream, g.gone);
+	sb_free(&engine_timing); sb_free(&t); sb_free(&g.content); sb_free(&g.reasoning); arena_free(a);
 }
 
 /* ---- HTTP ---- */
 static void *serve(void *arg) {
+	double request_start_ms = http_clock_ms();
 	int fd = (int)(long)arg; struct timeval tv = { 30, 0 };
 	setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
 	setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof tv);   /* a client that stops reading must not hold the engine lock: a send that blocks 30 s fails and the response is dropped */
@@ -389,7 +441,7 @@ static void *serve(void *arg) {
 		sb_printf(&b, "{\"default_generation_settings\":{\"n_ctx\":%d,\"temperature\":%g,\"top_k\":%d,\"top_p\":%g,\"presence_penalty\":0.0,\"repeat_penalty\":1.0,\"max_reasoning_tokens\":%ld,\"max_answer_tokens\":%ld},\"modalities\":{\"vision\":%s},\"model_alias\":", POSITIONS, DEF_TEMP, DEF_TOPK, DEF_TOPP, REASONING_MAX, ANSWER_MAX, VIS_SOCK ? "true" : "false"); sb_json_str(&b, NAME, strlen(NAME));
 		sb_puts(&b, ",\"chat_template\":"); sb_json_str(&b, t ? t : "", t ? strlen(t) : 0); sb_putc(&b, '}');
 		reply(fd, 200, "application/json", b.s, b.n); sb_free(&b);
-	} else if (!strcmp(method, "POST") && !strcmp(path, "/v1/chat/completions")) chat(fd, body, have);
+	} else if (!strcmp(method, "POST") && !strcmp(path, "/v1/chat/completions")) chat(fd, body, have, request_start_ms);
 	else error(fd, 404, "not found");
 	free(body); free(req); close(fd);
 	return NULL;
