@@ -27,6 +27,7 @@ holders)   # DIES="3 4 5" ./serve.sh holders starts just those
 	# A die with a fence file (fences/<gpu uuid>.txt, so the fence follows the physical card when cards change slots: "<block MiB> <bad block ranges>", found with memtest/blockmap) first gets a `fence` process that keeps its
 	# bad blocks allocated, then a memtest of the free memory (FENCE_VERIFY=0 skips it) proves the list still matches the die, then the holder starts.
 	LOCKDIR=${GPU_LOCKDIR:-/home/nate/codex/asm-port}
+	# token_embd (273 MB) lives on one die only (EMBED_DIE, default 0): that die embeds the token and sends the stream to the others (prog_embed_bcast)
 	for i in ${DIES:-0 1 2 3 4 5}; do
 		uuid=$(nvidia-smi -i $i --query-gpu=uuid --format=csv,noheader); lock="$LOCKDIR/$uuid.lock"
 		if [ -s "fences/$uuid.txt" ]; then
@@ -38,7 +39,7 @@ holders)   # DIES="3 4 5" ./serve.sh holders starts just those
 				./memtest $i 1 reserve=128 > /tmp/fence-d$i.memtest 2>&1 || { echo "serve.sh: memtest of the free memory of die $i failed (/tmp/fence-d$i.memtest): the fence list does not match the die" >&2; exit 1; }
 			fi
 		fi
-		HOLD_VISIBLE=1 CUDA_VISIBLE_DEVICES=$i setsid -f flock -s -n "$lock" ./hold "$GGUF1" $i 0 48 /tmp/hold-h$i.manifest token_embd output split=$i/6 > /tmp/hold-h$i.out 2> /tmp/hold-h$i.err < /dev/null
+		HOLD_VISIBLE=1 CUDA_VISIBLE_DEVICES=$i setsid -f flock -s -n "$lock" ./hold "$GGUF1" $i 0 48 /tmp/hold-h$i.manifest $([ $i = ${EMBED_DIE:-0} ] && echo token_embd) output split=$i/6 > /tmp/hold-h$i.out 2> /tmp/hold-h$i.err < /dev/null
 	done ;;
 core)
 	CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 FLASH_MAXT=${FLASH_MAXT:-262144} FLASH_ENGINE_MAXT=${FLASH_ENGINE_MAXT:-150000} FLASH_KV_HOST=${FLASH_KV_HOST:-0} FLASH_MAXIMG=${FLASH_MAXIMG:-4096} FLASH_PLE_OFF=${FLASH_PLE_OFF:-192} FLASH_SOCK=$SOCK \

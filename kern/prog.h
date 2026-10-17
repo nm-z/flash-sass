@@ -151,6 +151,7 @@ void prog_attn_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weig
 void prog_ple_prefix(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps);
 /* S = 4 lanes of token_embd[id] (every die) */
 void prog_embed(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, unsigned t);   /* S = token_embd[ids[t]] */
+void prog_embed_bcast(prog_t *P, const xchg_t *x, int me, int ndies, int owner, const dn_weights_t *w, const dn_bufs_t *b, unsigned t);   /* token_embd on die `owner` only: it embeds and sends S, the others copy it */
 /* the head: output_hc read gate -> z -> output.weight rows of this die -> argmax, the dies' (idx, max) pairs
  * gathered and combined identically everywhere into tokout = {idx, max bits} */
 void prog_head(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, float eps, unsigned t, unsigned nprompt);   /* toks[t] = token; ids[t+1] = token once t + 1 >= nprompt */

@@ -332,6 +332,14 @@ void prog_embed(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, unsigned t
 	ph_ptr(p, 0x160, b->imap); ph_ptr(p, 0x168, b->img);
 }
 
+/* The token embedding with token_embd on one die only: the owner decodes the row into S (the four lanes, 40,960 bytes) and sends it, the other dies
+   send nothing and copy what arrived (inbox slot 0, the program starts at an even exchange count) into their own S. */
+void prog_embed_bcast(prog_t *P, const xchg_t *x, int me, int ndies, int owner, const dn_weights_t *w, const dn_bufs_t *b, unsigned t) {
+	if (me == owner) prog_embed(P, w, b, t);
+	CUdeviceptr in = ph_xchg(P, x, me, ndies, b->S, me == owner ? 4u * 10240u : 0u, 0, 4u * 10240u);
+	if (me != owner) { phase_t *p = prog_add(P, OP_XCOPY, 10); ph_ptr(p, 0x140, in); ph_ptr(p, 0x148, b->S); }
+}
+
 void prog_head(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, float eps, unsigned t, unsigned nprompt) {
 	unsigned cols = 32u * (unsigned)s->cbn;
 	/* the read gate without an inject: 320 down rows, nothing copied behind t */

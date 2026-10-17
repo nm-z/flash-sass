@@ -84,6 +84,7 @@ int engine_positions(void) { return MAXT; }
    A request whose first snap_s tokens are the same restores it and starts at position snap_s. ---- */
 static CUdeviceptr (*snap_dn)[NB], (*snap_conv)[NB], snap_ple[MAXD];
 static uint32_t *snap_ids; static int snap_s;
+static int embed_die;   /* the die that holds token_embd (the lowest one when several do) */
 static uint32_t prof_op[MAXD][4096]; static int prof_nph[MAXD];   /* every die's program of the last response, for the "prof" command */
 
 static void state_copy(int to_snapshot) {
@@ -264,7 +265,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 		P[d].stop[0] = stop[0]; P[d].stop[1] = stop[1]; P[d].end = dCTL[d] + 0x14;
 		P[d].samp_k = samp_k; P[d].samp_topp = samp_topp; P[d].samp_invT = samp_invT;
 		if (samp_k) CK(cuMemcpyHtoD(db[d].rnd, h_rnd, 4 * ((size_t)T + 2)));
-		prog_embed(&P[d], &dw[d][0], &db[d], 0);
+		prog_embed_bcast(&P[d], &xc[d], d, nd, embed_die, &dw[d][0], &db[d], 0);
 		for (int bb = 0; bb < nlayers_run; bb++) {
 			dn_bufs_t bb_ = db[d]; bb_.dn_state = dst_dn[d][bb]; bb_.conv_state = dst_conv[d][bb]; bb_.ple_state = dst_ple[d];
 			bb_.qsa = 1; bb_.nblk = nblk_qsa; bb_.kq = dst_kq[d][bb]; bb_.ks = dst_ks[d][bb]; bb_.vq = dst_vq[d][bb]; bb_.vs = dst_vs[d][bb]; bb_.pkt = dst_pkt[d][bb]; bb_.ring = dst_ring[d][bb];
@@ -414,7 +415,7 @@ int engine_init(core_t *c) {
 		w->output_hc_norm = dptr_raw(d, "output_hc_norm.weight"); w->output_hc_down = dptr_raw(d, "output_hc_down.weight"); w->output_hc_up = dptr_raw(d, "output_hc_up.weight"); w->output = dptr_raw(d, "output.weight");
 		uint32_t ob[6]; for (int e = 0; e < 6; e++) ob[e] = split_bound(248320u, e, nd);
 		w->obases = dalloc(24); CK(cuMemcpyHtoD(w->obases, ob, 24));
-		w->token_embd = dptr_raw(d, "token_embd.weight");
+		w->token_embd = hold_ptr(&ar[d], "token_embd.weight");   /* only the die that holds it embeds (see embed_die); the others get S through an exchange */
 		xchg_t *x = &xc[d];
 		x->inbox = dalloc(2 * XSLOT); x->flags = dalloc(512); x->xtab = dalloc(128);
 		uint32_t fl[96]; for (int e = 0; e < 96; e++) fl[e] = e / 16 < nd ? 0u : 0xffffffffu;
@@ -422,6 +423,8 @@ int engine_init(core_t *c) {
 		dPROG[d] = dalloc(128 * 4096); dCTL[d] = dalloc(0x100 + 4 * 4096);
 		x->xgen = dCTL[d] + 0x20;
 	}
+	embed_die = -1; for (int d = 0; d < nd; d++) if (dw[d][0].token_embd) { embed_die = d; break; }
+	if (embed_die < 0) { fprintf(stderr, "engine: no die holds token_embd\n"); if (in_init) longjmp(init_jb, 1); exit(1); }
 	free(rcs); free(rsn);
 	uint64_t tab[12] = { 0 };
 	for (int d = 0; d < 6; d++) { tab[d] = (uint64_t)xc[d < nd ? d : 0].inbox; tab[6 + d] = (uint64_t)xc[d < nd ? d : 0].flags; }
