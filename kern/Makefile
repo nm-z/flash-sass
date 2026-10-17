@@ -516,5 +516,8 @@ fence: fence.c
 	$(CC) -std=gnu99 -O2 -Wall -o $@ fence.c -I$(CUDA)/include -lcuda
 
 
+dn_l2norm_test: dn_l2norm_test.c ../ref/deltanet.c ../ref/fmath.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ dn_l2norm_test.c ../ref/deltanet.c ../ref/fmath.c -I../ref -lm
+
 ple_eos_test: ple_eos_test.c ../ref/ple.c ../ref/fmath.c
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ ple_eos_test.c ../ref/ple.c ../ref/fmath.c -I../ref -lm
