@@ -112,7 +112,7 @@ test-gemv: all
 	./gemv_test $(SHARD1) blk.4.ffn_down_exps.weight 0 20
 
 clean:
-	rm -f *.cubin *.dis *.so *.so.new die.sass dieops.h flashcore flashd flashvis hold memtest fence *_test
+	rm -f *.cubin *.dis *.so *.so.new die.sass die_trace.sass die_trace16.sass dieops.h flashcore flashd flashvis hold memtest fence *_test
 
 .PHONY: all test test-gemv clean
 
@@ -379,8 +379,8 @@ plegate: plegate.cubin plegate_test
 ple: plerows.cubin plerows_ng.cubin plerows_test plegate pleconv
 
 # ---- the persistent per-die kernel (die.pl stitches the ops together) ----
-DIE_OPS = $(filter-out die.sass semtest%.sass bartest.sass fmath.sass gridbar.sass mailbox.sass xmadbench.sass, $(wildcard *.sass)) actq.pl fmath.pl
-die.sass: die.pl $(DIE_OPS)
+DIE_OPS = $(filter-out die.sass die_trace%.sass semtest%.sass bartest.sass fmath.sass gridbar.sass mailbox.sass xmadbench.sass, $(wildcard *.sass)) actq.pl fmath.pl
+die.sass: die.pl trace.pl $(DIE_OPS)
 	perl die.pl > $@
 
 dieops.h: die.pl
@@ -479,7 +479,7 @@ model_test: model_test.c prog.c prog.h holdc.c hold.h dieops.h ../ref/block.c ..
 ENGINE_SRC = engine.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c
 # the commit (and -dirty when the tree differs from it) the library is built from: the engine reports it with its `config` command
 FLASH_REV ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)$(shell git diff --quiet HEAD -- .. 2>/dev/null || echo -dirty)
-libengine.so: $(ENGINE_SRC) prog.h hold.h core.h engine.h dieops.h ../ref/split.h ../ref/qsa.h ../ref/block.h ../ref/attn.h ../ref/ple.h ../ref/gguf.h ../ref/quant.h ../ref/fmath.h ../ref/hc.h ../ref/deltanet.h ../ref/router.h
+libengine.so: trace_host.inc $(ENGINE_SRC) prog.h hold.h core.h engine.h dieops.h ../ref/split.h ../ref/qsa.h ../ref/block.h ../ref/attn.h ../ref/ple.h ../ref/gguf.h ../ref/quant.h ../ref/fmath.h ../ref/hc.h ../ref/deltanet.h ../ref/router.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -DFLASH_REV='"$(FLASH_REV)"' -o $@.new $(ENGINE_SRC) -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
 
 flashcore: flashcore.c core.h hold.h holdc.c ../ref/gguf.c ../ref/gguf.h
@@ -514,3 +514,16 @@ memtest: memtest.c
 
 fence: fence.c
 	$(CC) -std=gnu99 -O2 -Wall -o $@ fence.c -I$(CUDA)/include -lcuda
+
+
+# Profiling images use separate generated files; changing a shell variable cannot leave a stale production image.
+die_trace.sass: die.pl trace.pl $(DIE_OPS)
+	DIE_TRACE=1 perl die.pl > $@
+die_trace16.sass: die.pl trace.pl $(DIE_OPS)
+	DIE_TRACE=16 perl die.pl > $@
+die_trace.cubin: die_trace.sass skel_die.cubin
+	cp skel_die.cubin $@
+	$(MAXAS) -i die_trace.sass $@
+die_trace16.cubin: die_trace16.sass skel_die.cubin
+	cp skel_die.cubin $@
+	$(MAXAS) -i die_trace16.sass $@

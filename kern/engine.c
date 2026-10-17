@@ -105,6 +105,17 @@ int engine_positions(void) { return MAXT; }
 static CUdeviceptr (*snap_dn)[NB], (*snap_conv)[NB], snap_ple[MAXD];
 static uint32_t *snap_ids; static int snap_s;
 static int embed_die;   /* the die that holds token_embd (the lowest one when several do) */
+static CUdeviceptr dTRACE[MAXD]; static unsigned trace_n, trace_first, trace_valid;
+static uint64_t trace_request;
+static int prof_layer[MAXD][4096];
+typedef struct {
+    uint64_t observed, callback_start, callback_end, staging_start, staging_end, ready;
+    unsigned bytes, short_reads;
+} host_trace;
+static host_trace trace_host[256];
+static int trace_slot(int p) { return p >= 0 && (unsigned)p >= trace_first && (unsigned)p - trace_first < trace_n ? (int)((unsigned)p - trace_first) : -1; }
+static uint64_t host_ns(void) { struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts); return (uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec; }
+static uint32_t prof_units[MAXD][4096], prof_flags[MAXD][4096];
 static uint32_t prof_op[MAXD][4096]; static int prof_nph[MAXD];   /* every die's program of the last response, for the "prof" command */
 
 static void state_copy(int to_snapshot) {
@@ -149,6 +160,7 @@ static void ple_pump(runctx *r, int budget) {
 	int lim = c + PLE_AHEAD < known ? c + PLE_AHEAD : known;
 	for (; ple_next < lim && budget > 0; ple_next++, budget--) {
 		int q = ple_next;
+		int ti = trace_slot(q); if (ti >= 0) trace_host[ti].staging_start = host_ns();
 		if (q >= r->nprompt) ple_seq[q] = h_toks[q - 1];
 		uint64_t rows[16]; uint32_t endid = ple_end_id;
 		ple_rows_c(ple_seq, (size_t)q, ple_absent_id, &endid, 1, ple_multipliers, ple_head_offsets, ple_head_vocab, rows);
@@ -157,9 +169,11 @@ static void ple_pump(runctx *r, int budget) {
 		for (int h = 0; h < 16; h++) {
 			size_t got = 0; off_t at = ple_off + (off_t)(rows[h] * 90);
 			while (got < 90) { ssize_t n = pread(ple_fd, dst + h * 90 + got, 90 - got, at + (off_t)got); if (n <= 0) break; got += (size_t)n; }
+			if (ti >= 0) { trace_host[ti].bytes += (unsigned)got; trace_host[ti].short_reads += got < 90; }
 			if (got < 90) { memset(dst + h * 90 + got, 0, 90 - got); if (!ple_short_reads++) fprintf(stderr, "engine: PLE row read failed at position %d (head %d)\n", q, h); }
 		}
 		__atomic_store_n(&h_rdy[q], ple_rid, __ATOMIC_RELEASE);
+		if (ti >= 0) trace_host[ti].ready = trace_host[ti].staging_end = host_ns();
 	}
 }
 
@@ -188,8 +202,13 @@ static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 		if (r->count > r->sent) {
 			CK(cuMemcpyDtoHAsync(h_toks + r->sent, db[0].toks + 4u * (unsigned)r->sent, 4 * (size_t)(r->count - r->sent), pollst[0])); CK(cuStreamSynchronize(pollst[0]));
 			if (!r->tfirst) r->tfirst = now();
-			for (; r->sent < r->count; r->sent++)
+			uint64_t observed = trace_n ? host_ns() : 0;
+			for (; r->sent < r->count; r->sent++) {
+				int ti = trace_slot(r->sent);
+				if (ti >= 0) { trace_host[ti].observed = observed; trace_host[ti].callback_start = host_ns(); }
 				if (r->cb && r->cb->token && r->cb->token(r->cb->arg, r->sent, h_toks[r->sent]) && !r->aborted && !r->ended) abort_run(r);
+				if (ti >= 0) trace_host[ti].callback_end = host_ns();
+			}
 		}
 		if (!fin) ple_pump(r, 8);
 		if (!r->aborted && !fin && r->cb && r->cb->alive && now() - last_alive > 0.02) { last_alive = now(); if (r->cb->alive(r->cb->arg) && !r->ended) abort_run(r); }
@@ -269,7 +288,9 @@ static int prepare_images(const engine_img *imgs, int nimg, int nprompt, int T) 
 
 int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], const sampling *sm, int snap_at, const engine_img *imgs, int nimg, const engine_cb *cb, run_stats *st) {
 	int T = nprompt + n_new;
+	trace_first = (unsigned)(nprompt - 1); trace_valid = 0;
 	if (nprompt < 1 || n_new < 0 || T > MAXT) return -1;
+	trace_request++; memset(trace_host, 0, sizeof trace_host);
 	/* a CUDA error from here on unwinds to this point: the contexts are no longer usable, the core rebuilds them (return -2) */
 	in_run = 1;
 	if (setjmp(run_jb)) { in_run = 0; snap_s = 0; return -2; }
@@ -313,23 +334,32 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 		CK(cuMemcpyHtoD(db[d].ids, h_ids, 4 * ((size_t)T + 2)));
 		CK(cuMemsetD8(db[d].toks, 0, 4 * ((size_t)T + 2)));
 		prog_init(&P[d]); P[d].loop = 1;
+		for (int p = 0; p < 4096; p++) prof_layer[d][p] = -1;
 		P[d].stop[0] = stop[0]; P[d].stop[1] = stop[1]; P[d].end = dCTL[d] + 0x14;
 		P[d].samp_k = samp_k; P[d].samp_topp = samp_topp; P[d].samp_invT = samp_invT;
 		if (samp_k) CK(cuMemcpyHtoD(db[d].rnd, h_rnd, 4 * ((size_t)T + 2)));
 		prog_embed_bcast(&P[d], &xc[d], d, nd, embed_die, &dw[d][0], &db[d], 0);
 		for (int bb = 0; bb < nlayers_run; bb++) {
+			int phase_first = P[d].n;
 			dn_bufs_t bb_ = db[d]; bb_.dn_state = dst_dn[d][bb]; bb_.conv_state = dst_conv[d][bb]; bb_.ple_state = dst_ple[d];
 			bb_.qsa = 1; bb_.nblk = nblk_qsa; bb_.kq = dst_kq[d][bb]; bb_.ks = dst_ks[d][bb]; bb_.vq = dst_vq[d][bb]; bb_.vs = dst_vs[d][bb]; bb_.pkt = dst_pkt[d][bb]; bb_.ring = dst_ring[d][bb];
 			if (bb == 1) prog_ple_prefix(&P[d], &sp[d][bb], &xc[d], &dw[d][bb], &bb_, 0, eps);
 			if (BLK_IS_ATTN(bb)) prog_attn_block(&P[d], &sp[d][bb], &xc[d], &dw[d][bb], &bb_, 0, eps);
 			else prog_deltanet_block(&P[d], &sp[d][bb], &xc[d], &dw[d][bb], &bb_, 0, eps);
+			for (int p = phase_first; p < P[d].n && p < 4096; p++) prof_layer[d][p] = bb;
 		}
 		prog_head(&P[d], &sp[d][0], &xc[d], &dw[d][0], &db[d], eps, 0, (unsigned)nprompt);
 		prog_token_end(&P[d], &xc[d], d, nd, db[d].S);
 		nph[d] = (unsigned)P[d].n;
-		prof_nph[d] = (int)nph[d] < 4096 ? (int)nph[d] : 4096; for (int i = 0; i < prof_nph[d]; i++) prof_op[d][i] = P[d].p[i].w[0];
+		prof_nph[d] = (int)nph[d] < 4096 ? (int)nph[d] : 4096; for (int i = 0; i < prof_nph[d]; i++) { prof_op[d][i] = P[d].p[i].w[0]; prof_units[d][i] = P[d].p[i].w[1]; prof_flags[d][i] = P[d].p[i].w[30]; }
 		if (nph[d] > 4096) { fprintf(stderr, "program too long (%u phases)\n", nph[d]); exit(1); }
 		CK(cuMemcpyHtoD(dPROG[d], P[d].p, sizeof(phase_t) * P[d].n));
+        if (trace_n) {
+            unsigned count = (unsigned)(T - nprompt + 1); if (count > trace_n) count = trace_n;
+            uint32_t tr[5] = {(uint32_t)dTRACE[d], (uint32_t)(dTRACE[d] >> 32), trace_first, count, 1};
+            CK(cuMemsetD8(dTRACE[d], 0, (size_t)count * nph[d] * 64));
+            CK(cuMemcpyHtoD(dCTL[d] + 0xd0, tr, sizeof tr));
+        }
 	}
 	double t1 = now();
 	runctx r = { .T = T, .nprompt = nprompt, .sent = nprompt - 1, .cb = cb };
@@ -343,6 +373,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	}
 	if (!r.aborted) run_segment(&r, nph, T);
 	double t2 = now();
+	if (trace_n && r.count > (int)trace_first) { trace_valid = (unsigned)r.count - trace_first; if (trace_valid > trace_n) trace_valid = trace_n; }
 	if (st) { st->ntok = r.count; st->ended = r.ended; st->nph = nph[0]; st->resumed = resume; st->snapshot = snap_at; st->build_ms = (t1 - t0) * 1e3; st->run_ms = (t2 - t1) * 1e3; st->first_ms = r.tfirst ? (r.tfirst - t1) * 1e3 : 0; }
 	for (int d = 0; d < nd; d++) prog_free(&P[d]);
 	free(P);
@@ -352,6 +383,8 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 
 /* ---- build and tear down all device state (the core keeps the contexts, the arenas and the PLE table) ---- */
 int engine_init(core_t *c) {
+	trace_n = getenv("FLASH_TRACE") ? (unsigned)strtoul(getenv("FLASH_TRACE"), NULL, 10) : 0;
+	if (trace_n > 256) { fprintf(stderr, "FLASH_TRACE must be 0..256\n"); return -1; }
 	if (c->abi != CORE_ABI) { fprintf(stderr, "engine: the core speaks ABI %d, this library was built for %d\n", c->abi, CORE_ABI); return -1; }
 	core = c; in_init = 1;
 	if (setjmp(init_jb)) { in_init = 0; engine_fini(); return -1; }
@@ -478,6 +511,7 @@ int engine_init(core_t *c) {
 		x->inbox = dalloc(2 * XSLOT); x->flags = dalloc(512); x->xtab = dalloc(128);
 		uint32_t fl[96]; for (int e = 0; e < 96; e++) fl[e] = e / 16 < nd ? 0u : 0xffffffffu;
 		CK(cuMemcpyHtoD(x->flags, fl, sizeof fl));
+		if (trace_n) dTRACE[d] = dalloc((size_t)trace_n * 4096 * 64);
 		dPROG[d] = dalloc(128 * 4096); dCTL[d] = dalloc(0x100 + 4 * 4096);
 		x->xgen = dCTL[d] + 0x20;
 	}
@@ -523,6 +557,7 @@ void engine_fini(void) {
 	free(s_ids); free(s_toks); s_ids = s_toks = NULL;
 	free(h_imap); h_imap = NULL; imap_dirty = rope_dirty_T = 0;
 	memset(db, 0, sizeof db); memset(xc, 0, sizeof xc); memset(dPROG, 0, sizeof dPROG); memset(dCTL, 0, sizeof dCTL); memset(dst_ple, 0, sizeof dst_ple);
+	memset(dTRACE, 0, sizeof dTRACE); trace_n = trace_valid = 0;
 	core = NULL;
 }
 
@@ -552,6 +587,8 @@ static engine_img pend[8]; static int npend;   /* "img" commands waiting for the
 static char reload_path[1024];
 const char *engine_reload_path(void) { return reload_path[0] ? reload_path : NULL; }
 
+#include "trace_host.inc"
+
 int engine_session(FILE *in, FILE *out) {
 	if (!s_ids) { s_ids = calloc((size_t)MAXT + 2, 4); s_toks = calloc((size_t)MAXT + 2, 4); }
 	uint32_t *ids = s_ids, *toks = s_toks;
@@ -569,6 +606,8 @@ int engine_session(FILE *in, FILE *out) {
 			for (char *tok = strtok(p + 6, " \t\n"); tok; tok = strtok(NULL, " \t\n")) { char *eq = strchr(tok, '='); if (eq && !strncmp(tok, "FLASH_", 6)) { *eq = 0; setenv(tok, eq + 1, 1); } }
 			free(line); return 2;
 		}
+		if (!strncmp(p, "trace", 5)) { trace_dump(out, atoi(p + 5)); fflush(out); continue; }
+		if (!strncmp(p, "hosttrace", 9)) { host_trace_dump(out); fflush(out); continue; }
 		if (!strncmp(p, "prof", 4)) {   /* where the last token of the last response spent its time, from the phase timestamps CTA 0 writes at each phase end */
 			int pd = atoi(p + 4); if (pd < 0 || pd >= nd) pd = 0; const int nph_ = prof_nph[pd]; const uint32_t *pop = prof_op[pd];   /* prof [die] */
 			uint32_t *ts = malloc(4 * 4096); CK(cuCtxSetCurrent(ctx[pd])); CK(cuMemcpyDtoH(ts, dCTL[pd] + 0x100, 4 * (size_t)nph_));
@@ -588,8 +627,8 @@ int engine_session(FILE *in, FILE *out) {
 		if (!strncmp(p, "config", 6)) {   /* what this engine is: the identity to attach to a measurement (the commit it was built from, where the KV lives, the layers it runs, the kernel image) */
 			char ad[64] = ""; for (int d = 0; d < nd; d++) if (has_attn[d]) { char one[8]; snprintf(one, sizeof one, "%s%d", ad[0] ? "," : "", d); strncat(ad, one, sizeof ad - strlen(ad) - 1); }
 			const char *sh = getenv("SPLIT_SHARES"), *am = getenv("ATTN_MAP");
-			fprintf(out, "config rev=%s kv_host=%d ple_disk=%d maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u cubin=%s cubin_fnv=%016llx\n",
-			        FLASH_REV, kv_host, ple_disk, MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, cubin_path, (unsigned long long)cubin_fnv);
+			fprintf(out, "config rev=%s kv_host=%d ple_disk=%d maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u trace_tokens=%u cubin=%s cubin_fnv=%016llx\n",
+			        FLASH_REV, kv_host, ple_disk, MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, trace_n, cubin_path, (unsigned long long)cubin_fnv);
 			fflush(out); continue;
 		}
 		if (!strncmp(p, "cubin", 5)) {

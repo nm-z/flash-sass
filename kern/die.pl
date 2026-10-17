@@ -201,12 +201,21 @@ if (@ARGV && $ARGV[0] eq 'header') {
     print "static const char *const die_opname[] __attribute__((unused)) = { ", join(', ', map { "\"$_->[0]\"" } @OPS), " };\n#endif\n";
     exit 0;
 }
+require './trace.pl';
 my $maps = '';
 my $body = '';
 my $dispatch = '';
 for my $k (0 .. $#OPS) {
     my ($tag, $file, $kind, $env) = @{$OPS[$k]};
     my $op = load_op($tag, $file, $env);
+    if ($tag eq 'plerows' && $ENV{DIE_TRACE}) {
+        # Hash inputs in R18..R25 are dead here; the wait's live pointers and
+        # predicates use other registers. Keep the standalone op unchanged.
+        my $begin = trace_code(5, $TOK_OFF);
+        my $end = trace_code(6, $TOK_OFF);
+        $op->{code} =~ s/(plerows_WAITRDY:)/$begin$1/ or die 'PLE wait label missing';
+        $op->{code} =~ s/([^\n]*BRA plerows_WAITRDY;\n)/$1$end/ or die 'PLE wait branch missing';
+    }
     $maps .= $op->{map};
     $dispatch .= sprintf "--:-:-:-:6      ISETP.EQ.U32.AND P6, PT, op, 0x%x, PT;\n", $k;
     $dispatch .= "--:-:-:-:6      NOP;\n" x 3;
@@ -238,6 +247,7 @@ for my $k (0 .. $#OPS) {
     $body .= "--:-:-:-:6      BRA PHASE_END;\n";
 }
 
+my @trace = map { trace_code($_, $TOK_OFF) } 0..7;
 print <<"EOF";
 # Kernel: die
 #
@@ -268,6 +278,7 @@ print <<"EOF";
     13    : op
     14,15 : fw<0-1>
     16,17 : dsp<0-1>
+    18,19 : traceclock<0-1>
     18    : bar_g
     19    : bar_g2
     20    : bar_old
@@ -326,7 +337,7 @@ $maps</REGISTER_MAPPING>
 --:-:4:-:2 \@!P6 LDG.E vid, [dsp+0x7c];
 
 PHASE:
-# descriptor -> smem (warp 0, lane = word; the words were prefetched); word 31 is a
+$trace[0]# descriptor -> smem (warp 0, lane = word; the words were prefetched); word 31 is a
 # mask of the parameter words that get the token counter added
 01:-:-:-:6      ISETP.LT.U32.AND P6, PT, tid, 0x20, PT;
 --:-:-:-:6      SHL op, lane, 0x2;
@@ -344,7 +355,7 @@ PHASE:
 --:-:1:-:1      LDS op, [RZ+0x@{[sprintf '%x', $DESC_OFF]}];
 --:-:1:-:2      LDS units, [RZ+0x@{[sprintf '%x', $DESC_OFF + 4]}];
 01:-:-:-:6      NOP;
-# ---- exchange wait (descriptor word 30 bit 1): warp 0 of every CTA polls this die's
+$trace[1]# ---- exchange wait (descriptor word 30 bit 1): warp 0 of every CTA polls this die's
 # flags (ctl[28..29] -> u32[6][16], one per sending die and CTA; absent dies hold ~0;
 # lane l reads words l, l + 32, l + 64) until all 96 read >= the exchange count (XG
 # in shared memory), invalidates L1, and the CTA syncs ----
@@ -380,10 +391,10 @@ XWSPIN:
 XWBAR:
 --:-:-:-:6      BAR.SYNC 0x1;
 XWDONE:
-$dispatch--:-:-:-:6      BRA PHASE_END;
+$trace[2]$dispatch--:-:-:-:6      BRA PHASE_END;
 $body
 PHASE_END:
-# ---- grid barrier (warp 0 counts in; everyone waits at BAR 1) ----
+$trace[3]# ---- grid barrier (warp 0 counts in; everyone waits at BAR 1) ----
 --:-:-:-:6      BAR.SYNC 0x1;
 --:-:-:-:6      ISETP.GE.U32.AND P6, PT, tid, 0x20, PT;
 --:-:-:-:6      ISETP.NE.U32.AND P5, PT, tid, RZ, PT;
@@ -501,7 +512,7 @@ BDONE:
 --:-:-:-:6      IADD.X bar_cp1, bar_cp1, RZ;
 --:-:6:-:2  \@P4 S2R bar_g2, SR_GLOBALTIMERLO;
 20:-:-:-:6  \@P4 STG.E [bar_cp+0x100], bar_g2;
-# ---- next phase ----
+$trace[4]# ---- next phase ----
 --:-:-:-:6      IADD pidx, pidx, 0x1;
 --:-:-:-:6      ISETP.LT.U32.AND P6, PT, pidx, nph, PT;
 --:-:-:-:6      NOP;
@@ -537,6 +548,7 @@ BDONE:
 --:2:-:-:6 \@!P5 STS [RZ+0x@{[sprintf '%x', $TOK_OFF]}], bar_t;
 --:2:-:-:6  \@P4 STG.E [bar_cp+0x8], bar_t;
 02:-:-:-:6      BAR.SYNC 0x1;
+$trace[7]# publication sample uses the completed position and last phase slot
 --:-:1:-:2      LDS bar_t, [RZ+0x@{[sprintf '%x', $TOK_OFF]}];
 --:-:-:-:6      MOV pidx, RZ;
 01:-:-:-:6      ISETP.LT.U32.AND P6, PT, bar_t, param_ntok, PT;
