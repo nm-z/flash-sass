@@ -110,7 +110,8 @@ def top_indices(values,k):
     tied=np.flatnonzero(values==cutoff)[:k-len(above)]
     return np.concatenate((above,tied))
 def finite_exp(x):
-    return math.exp(x) if x<700 else None
+    try:return math.exp(x)
+    except OverflowError:return None
 
 def compare(args):
     cm,ci,cv,cl=read_capture(args.candidate,'candidate')
@@ -118,6 +119,7 @@ def compare(args):
     if not np.array_equal(ci,ri):raise ValueError('captures do not have identical teacher-forced token IDs')
     co=np.argsort(cv);ro=np.argsort(rv);vocab=cv[co]
     if not np.array_equal(vocab,rv[ro]):raise ValueError('vocabulary ID sets differ; explicit compatible vocabulary captures are required')
+    if not np.isin(ci,vocab).all():raise ValueError('input token IDs absent from vocabulary')
     T,V=cl.shape
     if rl.shape!=(T,V):raise ValueError('reference/candidate dimensions differ')
     cmeta=cm.get('metadata',{});rmeta=rm.get('metadata',{})
@@ -156,7 +158,8 @@ def compare(args):
     metrics={'positions':T,'vocabulary':V,'logit_rmse':math.sqrt(sq/(T*V)),'mean_absolute_logit_error':abs_sum/(T*V),'maximum_absolute_logit_error':max_abs,'relative_l2_logit_error':math.sqrt(sq/ref_sq) if ref_sq else None,'centered_logit_rmse':math.sqrt(center_sq/(T*V)),'mean_cosine_similarity':cos_sum/cos_count if cos_count else None,'mean_reference_to_candidate_kl':kl_sum/T,'maximum_absolute_probability_error':max_prob,'top1_agreement':top1/T,'topk':K,'mean_topk_overlap':overlap/T,'teacher_forced_labels':len(ref_nll)}
     if ref_nll:
         rn=sum(ref_nll)/len(ref_nll);cn=sum(can_nll)/len(can_nll)
-        metrics.update({'reference_mean_nll':rn,'candidate_mean_nll':cn,'mean_nll_increase':cn-rn,'reference_perplexity':finite_exp(rn),'candidate_perplexity':finite_exp(cn),'perplexity_overflow':rn>=700 or cn>=700,'reference_mean_target_rank':sum(ref_rank)/len(ref_rank),'candidate_mean_target_rank':sum(can_rank)/len(can_rank)})
+        rp=finite_exp(rn);cp=finite_exp(cn)
+        metrics.update({'reference_mean_nll':rn,'candidate_mean_nll':cn,'mean_nll_increase':cn-rn,'reference_perplexity':rp,'candidate_perplexity':cp,'perplexity_overflow':rp is None or cp is None,'reference_mean_target_rank':sum(ref_rank)/len(ref_rank),'candidate_mean_target_rank':sum(can_rank)/len(can_rank)})
     criteria=[]
     for flag,metric,sense in [('max_mean_kl','mean_reference_to_candidate_kl','max'),('max_rmse','logit_rmse','max'),('max_abs_logit','maximum_absolute_logit_error','max'),('min_top1_agreement','top1_agreement','min'),('max_mean_nll_increase','mean_nll_increase','max')]:
         limit=getattr(args,flag)
@@ -166,8 +169,8 @@ def compare(args):
             criteria.append({'metric':metric,'sense':sense,'limit':limit,'actual':value,'passes':bool(ok)})
     incomplete=bool(missing['candidate'] or missing['reference'])
     failed=any(not c['passes'] for c in criteria)
-    status='diagnostic_missing_provenance' if incomplete else 'failed_declared_limits' if failed else 'passed_declared_limits' if criteria else 'metrics_only'
-    report={'schema':'flash-sass.logit-comparison.v1','status':status,'quality_pass':None if incomplete or not criteria else not failed,'scope':'Numerical comparison of these supplied teacher-forced rows only; no claim about other prompts/tasks.','provenance_note':'Capture-producer declarations and hashed files are not execution attestation.','missing_provenance':missing,'candidate_manifest_sha256':digest(Path(args.candidate)/'manifest.json'),'reference_manifest_sha256':digest(Path(args.reference)/'manifest.json'),'metrics':metrics,'declared_criteria':criteria,'positions':detail}
+    status='diagnostic_missing_provenance' if incomplete else 'failed_declared_limits' if failed else 'passed_declared_limits_unattested' if criteria else 'metrics_only'
+    report={'schema':'flash-sass.logit-comparison.v1','status':status,'quality_pass':False if failed else None,'declared_limits_pass':None if not criteria else not failed,'independent_checkpoint_evidence':False,'provenance_status':'producer_declared_unattested','scope':'Numerical comparison of these supplied teacher-forced rows only; no claim about other prompts/tasks.','provenance_note':'Capture-producer declarations and hashed files are not execution attestation.','missing_provenance':missing,'candidate_manifest_sha256':digest(Path(args.candidate)/'manifest.json'),'reference_manifest_sha256':digest(Path(args.reference)/'manifest.json'),'metrics':metrics,'declared_criteria':criteria,'positions':detail}
     if args.out:dump_json(args.out,report)
     print(json.dumps(report,indent=2,allow_nan=False))
     if incomplete and not args.diagnostic:return 2
@@ -181,7 +184,7 @@ def nonnegative(text):
 def main():
     p=argparse.ArgumentParser(description=__doc__);sub=p.add_subparsers(dest='command',required=True)
     f=sub.add_parser('freeze');f.add_argument('--kind',required=True,choices=['candidate','reference']);f.add_argument('--ids',required=True,help='raw little-endian u32 token IDs');f.add_argument('--logits',required=True,help='raw little-endian FP32 rows');f.add_argument('--vocab-size',required=True,type=int);f.add_argument('--vocab-ids',help='optional raw u32 token ID per logit column');f.add_argument('--metadata',help='producer JSON provenance; missing fields remain explicitly missing');f.add_argument('--raw-info',help='optional model_capture capture_info.json');f.add_argument('--out',required=True);f.set_defaults(fn=freeze)
-    c=sub.add_parser('compare');c.add_argument('--candidate',required=True);c.add_argument('--reference',required=True);c.add_argument('--out');c.add_argument('--top-k',type=int,default=10);c.add_argument('--diagnostic',action='store_true',help='allow metrics with missing provenance; never labels quality_pass')
+    c=sub.add_parser('compare');c.add_argument('--candidate',required=True);c.add_argument('--reference',required=True);c.add_argument('--out');c.add_argument('--top-k',type=int,default=10);c.add_argument('--diagnostic',action='store_true',help='allow metrics with missing producer declarations; never establishes checkpoint quality')
     for flag in ['max-mean-kl','max-rmse','max-abs-logit','min-top1-agreement','max-mean-nll-increase']:c.add_argument('--'+flag,type=nonnegative)
     c.set_defaults(fn=compare)
     args=p.parse_args()

@@ -1,5 +1,19 @@
-........
+test_analytic_probabilities (model_quality_test.QualityTests.test_analytic_probabilities) ... ok
+test_changed_frozen_bytes_rejected (model_quality_test.QualityTests.test_changed_frozen_bytes_rejected) ... ok
+test_complete_declarations_do_not_attest_execution (model_quality_test.QualityTests.test_complete_declarations_do_not_attest_execution) ... ok
+test_declared_limit_failure_is_nonzero (model_quality_test.QualityTests.test_declared_limit_failure_is_nonzero) ... ok
+test_different_teacherforced_ids_rejected (model_quality_test.QualityTests.test_different_teacherforced_ids_rejected) ... ok
+test_equal_invalid_first_input_is_rejected (model_quality_test.QualityTests.test_equal_invalid_first_input_is_rejected) ... ok
+test_large_representable_perplexity_is_preserved (model_quality_test.QualityTests.test_large_representable_perplexity_is_preserved) ... ok
+test_large_shared_offset_preserves_probability_normalization (model_quality_test.QualityTests.test_large_shared_offset_preserves_probability_normalization) ... ok
+test_missing_provenance_is_not_a_pass (model_quality_test.QualityTests.test_missing_provenance_is_not_a_pass) ... ok
+test_nonfinite_candidate_fails (model_quality_test.QualityTests.test_nonfinite_candidate_fails) ... ok
+test_offset_invariance_is_reported_separately (model_quality_test.QualityTests.test_offset_invariance_is_reported_separately) ... ok
+test_perplexity_overflow_is_explicit (model_quality_test.QualityTests.test_perplexity_overflow_is_explicit) ... ok
+test_topk_cutoff_ties_choose_low_token_ids (model_quality_test.QualityTests.test_topk_cutoff_ties_choose_low_token_ids) ... ok
+test_vocab_column_alignment (model_quality_test.QualityTests.test_vocab_column_alignment) ... ok
+
 ----------------------------------------------------------------------
-Ran 8 tests in 1.525s
+Ran 14 tests in 3.100s
 
 OK

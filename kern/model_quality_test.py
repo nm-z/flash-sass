@@ -51,10 +51,41 @@ class QualityTests(unittest.TestCase):
         c,r=self.pair();p,j=self.compare(c,r);self.assertEqual(p.returncode,2,p.stderr);self.assertIsNone(j['quality_pass']);self.assertTrue(j['missing_provenance']['reference'])
     def test_declared_limit_failure_is_nonzero(self):
         c,r=self.pair();p,j=self.compare(c,r,'--diagnostic','--max-mean-kl','0');self.assertEqual(p.returncode,3,p.stderr);self.assertFalse(j['declared_criteria'][0]['passes'])
+    def test_large_representable_perplexity_is_preserved(self):
+        logits=[[0.,-700.],[0.,0.]]
+        c,r=self.pair(c=logits,r=logits)
+        p,j=self.compare(c,r,'--diagnostic');self.assertEqual(p.returncode,0,p.stderr)
+        m=j['metrics'];self.assertEqual(m['candidate_mean_nll'],700.)
+        self.assertAlmostEqual(m['candidate_perplexity']/math.exp(700.),1.,places=12)
+        self.assertAlmostEqual(m['reference_perplexity']/math.exp(700.),1.,places=12)
+        self.assertFalse(m['perplexity_overflow'])
+    def test_perplexity_overflow_is_explicit(self):
+        logits=[[0.,-710.],[0.,0.]]
+        c,r=self.pair(c=logits,r=logits)
+        p,j=self.compare(c,r,'--diagnostic');self.assertEqual(p.returncode,0,p.stderr)
+        m=j['metrics'];self.assertEqual(m['candidate_mean_nll'],710.)
+        self.assertIsNone(m['candidate_perplexity']);self.assertIsNone(m['reference_perplexity'])
+        self.assertTrue(m['perplexity_overflow'])
     def test_changed_frozen_bytes_rejected(self):
         c,r=self.pair();f=c/'logits.f32';b=bytearray(f.read_bytes());b[0]^=1;f.write_bytes(b);p,_=self.compare(c,r,'--diagnostic');self.assertEqual(p.returncode,2);self.assertIn('frozen artifact changed',p.stderr)
     def test_different_teacherforced_ids_rejected(self):
         c,r=self.pair(ids=(1,1));p,_=self.compare(c,r,'--diagnostic');self.assertEqual(p.returncode,2);self.assertIn('identical teacher-forced',p.stderr)
+    def test_equal_invalid_first_input_is_rejected(self):
+        c=self.capture('candidate','candidate',[[0.,1.],[1.,0.]],ids=(99,1))
+        r=self.capture('reference','reference',[[0.,1.],[1.,0.]],ids=(99,1))
+        p,_=self.compare(c,r,'--diagnostic');self.assertEqual(p.returncode,2)
+        self.assertIn('input token IDs absent',p.stderr)
+    def test_complete_declarations_do_not_attest_execution(self):
+        c,r=self.pair(c=[[0.,1.],[1.,0.]],r=[[0.,1.],[1.,0.]])
+        for directory in (c,r):
+            path=directory/'manifest.json';m=json.loads(path.read_text())
+            m['metadata']={'teacher_forced':True,'base_model':{'id':'declared','revision':'a'*40},'tokenizer':{'sha256':'b'*64},'checkpoint':{'files':[{'source_uri':'declared:model','sha256':'c'*64}]},'implementation':{'name':'declared','revision':'d'*40,'independent_reference':True},'command':['declared-command']}
+            path.write_text(json.dumps(m))
+        for args in ((),('--diagnostic',)):
+            p,j=self.compare(c,r,*args,'--max-rmse','0');self.assertEqual(p.returncode,0,p.stderr)
+            self.assertTrue(j['declared_limits_pass']);self.assertIsNone(j['quality_pass'])
+            self.assertFalse(j['independent_checkpoint_evidence'])
+            self.assertEqual(j['provenance_status'],'producer_declared_unattested')
     def test_nonfinite_candidate_fails(self):
         c,r=self.pair(c=[[float('nan'),0.],[0.,1.]]);p,j=self.compare(c,r,'--diagnostic');self.assertEqual(p.returncode,3,p.stderr);self.assertFalse(j['quality_pass']);self.assertEqual(j['candidate_nonfinite'],1)
 if __name__=='__main__':unittest.main()
