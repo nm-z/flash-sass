@@ -145,11 +145,23 @@ int main(int argc, char **argv) {
 	CK(cuCtxSetCurrent(anchor));
 	const size_t PLE_ROWS = 320001536, PLE_BYTES = PLE_ROWS * 90;
 	int have = strcmp(plefile, "-") != 0;
-	size_t sz = have ? PLE_BYTES : (size_t)core.maxt * 16 * 90;   /* no table: a zero compact table (16 rows per position) keeps plerows in bounds */
-	CK(cuMemHostAlloc((void **)&core.ple_host, sz + 4096, CU_MEMHOSTALLOC_PORTABLE | CU_MEMHOSTALLOC_DEVICEMAP));
-	memset(core.ple_host, 0, have ? 4096 : sz + 4096);
-	core.ple_compact = !have;
-	if (have) {
+	/* FLASH_PLE_DISK: the table stays in its file. ple_host is only the compact table of the 16 rows of each position plus a ready flag per position; the engine reads the
+	   rows of a position from the file when that position is about to run (a token touches 16 x 90 B of the 28.8 GB) and sets its flag, plerows waits for the flag */
+	int disk = have && getenv("FLASH_PLE_DISK") != NULL;
+	size_t sz = (have && !disk) ? PLE_BYTES : (size_t)core.maxt * 16 * 90;   /* no table: a zero compact table (16 rows per position) keeps plerows in bounds */
+	size_t rdy_off = disk ? (sz + 4095) & ~(size_t)4095 : 0, alloc = disk ? rdy_off + 4 * ((size_t)core.maxt + 2) + 4096 : sz + 4096;
+	CK(cuMemHostAlloc((void **)&core.ple_host, alloc, CU_MEMHOSTALLOC_PORTABLE | CU_MEMHOSTALLOC_DEVICEMAP));
+	memset(core.ple_host, 0, (have && !disk) ? 4096 : alloc);
+	core.ple_compact = !have || disk;
+	core.ple_disk = disk; core.ple_rdy_off = rdy_off; core.ple_fd = -1; core.ple_off = 0;
+	if (disk) {
+		core.ple_fd = open(plefile, O_RDONLY); if (core.ple_fd < 0) { perror(plefile); return 1; }
+		core.ple_off = getenv("FLASH_PLE_OFF") ? (off_t)atoll(getenv("FLASH_PLE_OFF")) : 0;
+		/* 16 random 90 B reads per token: no readahead. On the NFS mount (rsize 1 MB) a 90 B read otherwise pulls in a readahead window, about 100 ms per position when cold. */
+		posix_fadvise(core.ple_fd, 0, 0, POSIX_FADV_RANDOM);
+		fprintf(stderr, "flashcore: PLE rows are read from %s on demand (FLASH_PLE_DISK): %.0f MB pinned instead of %.1f GB, no table load\n", plefile, alloc / 1e6, PLE_BYTES / 1e9);
+	}
+	if (have && !disk) {
 		int fd = open(plefile, O_RDONLY); if (fd < 0) { perror(plefile); return 1; }
 		off_t off = getenv("FLASH_PLE_OFF") ? (off_t)atoll(getenv("FLASH_PLE_OFF")) : 0;
 		/* FLASH_PLE_CONSUME=1: the file is a tmpfs copy that does not fit in RAM next to the pinned
