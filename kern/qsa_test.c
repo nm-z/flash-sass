@@ -13,10 +13,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 CUresult cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev);
 #define CK(x) do { CUresult r_ = (x); if (r_ != CUDA_SUCCESS) { const char *s_ = "?"; cuGetErrorString(r_, &s_); \
 	fprintf(stderr, "%s:%d: %s -> %s\n", __FILE__, __LINE__, #x, s_); exit(1); } } while (0)
+
+#include "test_guards.h"
 
 #include "dieops.h"
 static uint32_t rs = 4242;
@@ -39,11 +42,12 @@ static void dev_init(void) {
 	CK(cuCtxCreate_v2(&ctx, CU_CTX_SCHED_SPIN, dev));
 	CK(cuModuleLoad(&mod, getenv("DIE_CUBIN") ? getenv("DIE_CUBIN") : "die.cubin"));
 	CK(cuModuleGetFunction(&fn, mod, "die"));
-	CK(cuMemAlloc(&dPROG, 128 * 256)); CK(cuMemAlloc(&dCTL, 8192)); CK(cuMemsetD8(dCTL, 0, 8192));
+	dPROG = test_guard_alloc("program", 128 * 256, 0);
+	dCTL = test_guard_alloc("control", 8192, 0);
 }
-static CUdeviceptr dalloc(size_t n) { CUdeviceptr p; CK(cuMemAlloc(&p, n ? n : 4)); CK(cuMemsetD8(p, 0, n ? n : 4)); return p; }
+static CUdeviceptr dalloc(size_t n) { return test_guard_alloc("qsa", n, 0); }
 /* the same, in pinned host memory the die reads and writes over PCIe (QSA_HOSTKV=1 runs the KV cache of the kv test there) */
-static CUdeviceptr halloc(size_t n) { void *h; CUdeviceptr d; CK(cuMemHostAlloc(&h, n, CU_MEMHOSTALLOC_DEVICEMAP | CU_MEMHOSTALLOC_PORTABLE)); memset(h, 0, n); CK(cuMemHostGetDevicePointer(&d, h, 0)); return d; }
+static CUdeviceptr halloc(size_t n) { return test_guard_alloc("qsa", n, 1); }
 /* run the program once at token t (the kernel's token counter starts at t) */
 static void run_token(const desc_t *prog, unsigned nph, unsigned t) {
 	CK(cuMemcpyHtoD(dPROG, prog, sizeof(desc_t) * nph));
@@ -68,6 +72,7 @@ static int padding_poison_value_(const char *mode, float *value) {
     else if (!strcmp(mode, "inf")) bits = 0x7f800000u;
     else if (!strcmp(mode, "-inf")) bits = 0xff800000u;
     else if (!strcmp(mode, "max")) bits = 0x7f7fffffu;
+    else if (!strcmp(mode, "finite")) bits = 0x40500000u;
     else { fprintf(stderr, "invalid padding poison: %s\n", mode); exit(2); }
     memcpy(value, &bits, sizeof bits);
     return 1;
@@ -143,8 +148,9 @@ static int test_kv(unsigned T, unsigned NBLK) {
             for (unsigned j = poison_n; j < cpos; j++)
                 for (int kv = 0; kv < 2; kv++)
                     for (int d = 0; d < 256; d++) {
-                        if (poison_k) kcg[attn_kidx(j, kv, d)] = poison_k_value;
-                        if (poison_v) vcg[(size_t)j * 512 + kv * 256 + d] = poison_v_value;
+                        float sign = (j + (unsigned)d + (unsigned)kv) & 1 ? -1.f : 1.f;
+                        if (poison_k) kcg[attn_kidx(j, kv, d)] = !strcmp(poison_k_mode, "finite") ? sign * poison_k_value : poison_k_value;
+                        if (poison_v) vcg[(size_t)j * 512 + kv * 256 + d] = !strcmp(poison_v_mode, "finite") ? sign * poison_v_value : poison_v_value;
                     }
             CK(cuMemcpyHtoD(dKC, kcg, kcf * sizeof(float)));
             CK(cuMemcpyHtoD(dVC, vcg, vcf * sizeof(float)));
@@ -169,7 +175,8 @@ static int test_kv(unsigned T, unsigned NBLK) {
 			/* Corrupt only the readback: prove that an isolated query failure reaches main. */
 			if (getenv("QSA_INJECT_QO_MISMATCH") && t + 1 == T) ((unsigned char *)qog)[0] ^= 1;
 			int bq = cmpb("qo", qo, qog, 4 * 6144, &shown); b |= bq;
-			if (bq && !bad) printf("  (qo differs at t = %u)\n", t); free(qog); }
+			if (bq && !bad) printf("  (qo differs at t = %u)\n", t);
+			free(qog); }
 		if (getenv("QSA_DUMP") && t == 0) { printf("kq gpu:"); for (int i = 0; i < 40; i++) printf(" %d", kqg[i]); printf("\n    ref:"); for (int i = 0; i < 40; i++) printf(" %d", kq[i]); printf("\nks gpu:"); for (int i = 0; i < 16; i++) printf(" %04x", ksg[i]); printf("\n    ref:"); for (int i = 0; i < 16; i++) printf(" %04x", ks[i]); printf("\nvq gpu:"); for (int i = 0; i < 40; i++) printf(" %d", vqg[i]); printf("\n    ref:"); for (int i = 0; i < 40; i++) printf(" %d", vq[i]); printf("\n"); }
 		b |= cmpb("kq", kq + (size_t)t * 512, kqg + (size_t)t * 512, 512, &shown); b |= cmpb("vq", vq + (size_t)t * 512, vqg + (size_t)t * 512, 512, &shown);
 		b |= cmpb("ks", ks + (size_t)t * 16, ksg + (size_t)t * 16, 32, &shown); b |= cmpb("vs", vs + (size_t)t * 16, vsg + (size_t)t * 16, 32, &shown);
@@ -193,6 +200,9 @@ static int test_kv(unsigned T, unsigned NBLK) {
 		bad += b;
 	}
 	printf("kv: %u tokens, NBLK %u: %s (%d tokens differ; query/append checks %u, gather/attention checks %u)\n", T, NBLK, bad ? "MISMATCH" : "BIT-EXACT", bad, T, last_only && T ? 1 : T);
+	printf("padding: K=%s V=%s historical_cache=%s valid-data-seed=4242\n", poison_k_mode ? poison_k_mode : "off", poison_v_mode ? poison_v_mode : "off", hk ? "host" : "device");
+	bad += test_guard_check();
+	test_guard_free();
 	return bad;
 }
 
@@ -392,8 +402,22 @@ static int test_gathertime(int host, unsigned nv) {
 	return 0;
 }
 
+#include "qsa_padding_test.h"
+
 int main(int argc, char **argv) {
 	if (argc < 2) { fprintf(stderr, "usage: qsa_test kv <T> <NBLK>\n"); return 2; }
+	if (!strcmp(argv[1], "padding")) {
+		if (argc < 4 || argc > 5) { fprintf(stderr, "usage: qsa_test padding <visible 1..262144> <NBLK 1..4096> [iterations]\n"); return 2; }
+		unsigned long v[3] = {0, 0, 0};
+		for (int i = 2; i < argc; i++) {
+			char *end; errno = 0; v[i - 2] = strtoul(argv[i], &end, 0);
+			if (errno || !*argv[i] || *end) { fprintf(stderr, "invalid padding argument\n"); return 2; }
+		}
+		if (!v[0] || v[0] > 262144 || !v[1] || v[1] > 4096 || v[2] > 1000000) {
+			fprintf(stderr, "padding argument out of range\n"); return 2;
+		}
+		dev_init(); return test_padding((unsigned)v[0], (unsigned)v[1], (unsigned)v[2]) ? 1 : 0;
+	}
 	dev_init();
 	if (!strcmp(argv[1], "idxscore")) return test_idxscore(argc > 2 ? (unsigned)atoi(argv[2]) : 700, argc > 3 ? (unsigned)atoi(argv[3]) : 512) ? 3 : 0;
 	if (!strcmp(argv[1], "idxsel")) return test_idxsel(argc > 2 ? (unsigned)atoi(argv[2]) : 700, argc > 3 ? (unsigned)atoi(argv[3]) : 512, argc > 4 ? atoi(argv[4]) : 0, argc > 5 ? atoi(argv[5]) : 5) ? 3 : 0;
