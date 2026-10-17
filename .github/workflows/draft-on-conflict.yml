@@ -3,6 +3,10 @@ name: Draft on conflict
 # A ready pull request that no longer merges is converted to a draft, with a comment (see .github/scripts/draft-conflicting.sh).
 # push to master: other pull requests can become conflicting right then. schedule: GitHub does not run pull_request workflows
 # on a PR that has merge conflicts, so a periodic sweep is the catch-all. workflow_dispatch: run it by hand.
+#
+# The default GITHUB_TOKEN is refused for converting a pull request to draft ("Resource not accessible by integration"),
+# so this needs a repository secret DRAFT_TOKEN: a fine-grained personal access token for this repository with
+# "Pull requests: read and write". Without it the job fails (push, manual run) or only warns (schedule).
 on:
   push:
     branches: [master]
@@ -12,7 +16,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
 
 concurrency:
   group: draft-on-conflict
@@ -27,7 +30,14 @@ jobs:
         with:
           sparse-checkout: .github/scripts
       - name: Convert conflicting pull requests to draft
-        run: .github/scripts/draft-conflicting.sh | tee -a "$GITHUB_STEP_SUMMARY"
+        shell: bash
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::repository secret DRAFT_TOKEN is not set; GITHUB_TOKEN cannot convert a pull request to draft"
+            [ "$GITHUB_EVENT_NAME" = schedule ] && exit 0
+            exit 1
+          fi
+          .github/scripts/draft-conflicting.sh | tee -a "$GITHUB_STEP_SUMMARY"
         env:
           GH_REPO: ${{ github.repository }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.DRAFT_TOKEN }}
