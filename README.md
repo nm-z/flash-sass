@@ -35,35 +35,35 @@ See [BATCH.md](BATCH.md) and [PAIR_TESTING.md](PAIR_TESTING.md).
 
 ## What one token runs
 
-| Kind | What it does | phases per token (plain die / attention die) | µs per phase | ms per token (all phases of this kind) | exchanges it carries |
+| Kind | Operation | phases per token | µs per phase | ms per token | exchanges |
 |---|---|---|---|---|---|
 | **exchange and quantize** | | | | **6.26** | |
-| `xsend` | send this die's slice to its peers (P2P stores, fence, flag) | 111 / 111 | 12.8 | 1.42 | 50 projection, 49 contraction, 13 broadcast (112 sent; the profile times 111) |
-| `actq256` | quantize an activation to int8 + scale; where a die waits for its peers | 146 / 146 | 33.1 | 4.84 | |
+| `xsend` | P2P stores, fence, flag | 111 / 111 | 12.8 | 1.42 | 50 projection, 49 contraction, 13 broadcast |
+| `actq256` | quantize an activation to int8 + scale | 146 / 146 | 33.1 | 4.84 | |
 | **hyper-connection** | | | | **8.26** | |
-| `bf16hcrwx` | RMSNorm of the stream + hc down and inject (BF16), plus the pending stream write | 48 / 48 | 40.3 | 1.93 | 48 projection |
-| `bf16hcrx` | the same without the pending write | 49 / 49 | 32.0 | 1.57 | 49 projection |
+| `bf16hcrwx` | RMSNorm, hc down, inject (BF16), write | 48 / 48 | 40.3 | 1.93 | 48 projection |
+| `bf16hcrx` | RMSNorm, hc down, inject (BF16) | 49 / 49 | 32.0 | 1.57 | 49 projection |
 | `bf16hcup` | SiLU + hc up + lane mix + inbox write | 97 / 97 | 25.3 | 2.46 | 97 projection |
-| `hcwsum` | stream write with the MoE partials' fixed-order sum fused in | 48 / 48 | 47.9 | 2.30 | |
+| `hcwsum` | stream write | 48 / 48 | 47.9 | 2.30 | |
 | **MoE** | | | | **5.14** | |
 | `router` | router GEMV and softmax | 48 / 48 | 23.3 | 1.12 | |
 | `moesel` | top-10 expert selection | 48 / 48 | 5.6 | 0.27 | |
-| `q2moegn` | expert gate and up GEMVs (Q2_0), this die's share of the experts | 96 / 96 | 18.4 | 1.77 | |
-| `ffnact` | SiLU(gate) · up, quantized for the down projection | 48 / 48 | 13.0 | 0.62 | |
+| `q2moegn` | expert gate and up GEMVs (Q2_0) | 96 / 96 | 18.4 | 1.77 | |
+| `ffnact` | SiLU(gate) · up, quantize, down projection | 48 / 48 | 13.0 | 0.62 | |
 | `q2moedn` | expert down GEMV (Q2_0) | 48 / 48 | 21.2 | 1.02 | |
-| `q2k2560`, `q2acc640`, `b32q40acc`, `b32q50acc`, `b32iq4nlacc` | shared-expert and other small matrices in their own formats | 20 / 24 | 15–26 | 0.34 | |
+| `q2k2560`, `q2acc640`, `b32q40acc`, `b32q50acc`, `b32iq4nlacc` | shared-expert, small matrices | 20 / 24 | 15–26 | 0.34 | |
 | **projections (GEMV by weight format and input length K)** | | | | **6.61** | |
 | `q3kk2560` | Q3_K, K = 2560 | 50 / 49 | 34.2 | 1.71 | |
 | `bf16k2560` | BF16, K = 2560 | 49 / 53 | 27.8 | 1.36 | |
 | `iq4k2560`, `iq4k6144` | IQ4_XS, K = 2560 / 6144 | 19 + 17 / 22 + 17 | 42.8 / 33.1 | 0.81 + 0.56 | |
 | `q4kk2560`, `q4kk6144` | Q4_K, K = 2560 / 6144 | 8 + 15 / 11 + 15 | 35.3 / 29.4 | 0.28 + 0.44 | |
-| `q5kk2560`, `q5kk6144` | Q5_K, K = 2560 / 6144; one `q5kk2560` is the share of the 248,320-row output head (0.69 ms, the longest phase) | 1 + 7 / 4 + 7 | 688 / 41.0 | 0.69 + 0.29 | |
+| `q5kk2560`, `q5kk6144` | Q5_K, K = 2560 / 6144; one `q5kk2560` is the share of the 248,320-row output head | 1 + 7 / 4 + 7 | 688 / 41.0 | 0.69 + 0.29 | |
 | `q6kk1536`, `q6kk1536acc` | Q6_K, K = 6144 as four K = 1536 slices summed in a fixed order | 6 + 18 / 6 + 18 | 18.3 / 13.6 | 0.11 + 0.24 | |
 | `q3kk6144` | Q3_K, K = 6144 | 3 / 3 | 35.2 | 0.11 | |
 | **DeltaNet (36 blocks)** | | | | **1.53** | |
 | `bf16bias` | BF16 GEMV with bias | 36 / 36 | 7.0 | 0.25 | |
 | `conv1d` | causal conv (k = 4) + SiLU | 36 / 36 | 5.7 | 0.20 | |
-| `dnstep` | the recurrence step (state update, read-out) | 36 / 36 | 18.1 | 0.65 | |
+| `dnstep` | recurrence, state update, read-out | 36 / 36 | 18.1 | 0.65 | |
 | `dnnormx` | output norm and gate, quantized | 36 / 36 | 11.8 | 0.42 | 36 projection |
 | **attention (12 layers, 4 on each attention die)** | | | | **0.48 on an attention die** | |
 | `attnqkq` | q/k norm, RoPE, KV append | 0 / 4 | 6.1 | 0.02 | |
@@ -80,13 +80,11 @@ See [BATCH.md](BATCH.md) and [PAIR_TESTING.md](PAIR_TESTING.md).
 | `argmax` | this die's largest logit and its index, over its share of the output head (greedy; the sampler has its own `topk` and `sample`) | 1 / 1 | 11.3 | 0.01 | |
 | `amax` | the largest of the six dies' pairs: the token | 1 / 1 | 7.2 | 0.01 | |
 
-Each token makes 342 exchanges, the same on every die: 280 projections (every die gathers the slices of a row-split result), 49 contractions (the MoE partial sums and the argmax pairs, summed across dies in a fixed order) and 13 broadcasts (the 12 attention outputs and the token embedding). The last column counts them; 230 are carried by the GEMV phases that produce the data and 112 by `xsend`.
-
-The counts follow the model: 48 means once per block, 36 once per DeltaNet block, 4 once per
-attention layer on a die that holds four. Each block pays one `router`, `moesel`, `ffnact` and
-`q2moedn`, two `q2moegn` (gate, up) and two `bf16hcup` (plus one for the output collapse), about
-three `actq256` and about two `xsend`. Sizes are in `SPEC.md` ("Phase sequence per block"; fusions
-since then have merged some of those steps).
+Each token makes:
+       - 342 exchanges on each die
+       - 280 projections
+       - 49 contractions
+       - 13 broadcasts
 
 ## Layout
 | Path | Contents |
