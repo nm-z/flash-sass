@@ -2,7 +2,8 @@
 # powercycle.sh: cold-cycle archy (power it off, wake it with a magic packet). Run it on engi, not on archy.
 # A cold boot resets all eight GPUs and applies pending ECC mode changes; use it when `nvidia-smi -r` hangs in the driver.
 # WoL on archy: Wake-on: g + BIOS token enabled (skill wake-device); the broadcast goes out engi's wired NIC.
-# Stopping first: holders, flashcore, flashd (serve.sh stop), other users of the box (codex workers, the llama-server services on dies 6/7).
+# Stop first: holders, flashcore, flashd (serve.sh stop), and tell whoever else uses the box (codex workers, the llama-server
+# services on dies 6/7): everything on archy ends.
 MAC=98:90:96:bb:be:75; HOST=archy; IP=192.168.1.218; BCAST=192.168.1.255
 
 wol() {
@@ -11,17 +12,21 @@ wol() {
 }
 
 echo "powercycle: powering $HOST off"
-ssh $HOST 'sync; sudo -n systemctl poweroff'
-# systemd waits on processes stuck in the driver (D state) for up to 90 s per unit; if the box is still answering after 150 s, cut it
-for i in $(seq 150); do ping -c1 -W1 $IP > /dev/null || break; done
-if ping -c1 -W1 $IP > /dev/null; then
-	echo "powercycle: still up after 150 s, SysRq power off"
-	ssh $HOST 'echo s | sudo -n tee /proc/sysrq-trigger > /dev/null; echo u | sudo -n tee /proc/sysrq-trigger > /dev/null; echo o | sudo -n tee /proc/sysrq-trigger > /dev/null'
-	for i in $(seq 60); do ping -c1 -W1 $IP > /dev/null || break; done
-fi
-ping -c1 -W1 $IP > /dev/null && { echo "powercycle: $HOST did not go down"; exit 1; }
+# Nothing may make the shutdown wait. Processes stuck in the NVIDIA driver (D state) cannot be killed, so systemd would sit on their
+# stop jobs for 90 s each, and the driver's own shutdown hook can block on the lock that is hung. Two guards run as transient units with
+# DefaultDependencies=no (the shutdown does not stop them): at 45 s, when the clean path has had its time, sync + remount read-only +
+# SysRq power off; at 75 s SysRq reboot, which skips the device shutdown hooks (the box then comes back on its own). They are separate
+# units because a write to /proc/sysrq-trigger that blocks never returns to the next command of its shell.
+GUARD1='timeout 45 tail -f /dev/null; timeout 15 sync; echo u > /proc/sysrq-trigger; echo o > /proc/sysrq-trigger'
+GUARD2='timeout 75 tail -f /dev/null; echo b > /proc/sysrq-trigger'
+ssh $HOST "sudo -n systemd-run --quiet --unit=pc-guard1 --property=DefaultDependencies=no /bin/sh -c '$GUARD1'
+sudo -n systemd-run --quiet --unit=pc-guard2 --property=DefaultDependencies=no /bin/sh -c '$GUARD2'
+timeout 20 sync; sudo -n systemctl poweroff --no-block"
+for i in $(seq 200); do ping -c1 -W1 $IP > /dev/null || break; done
+ping -c1 -W1 $IP > /dev/null && { echo "powercycle: $HOST is still up after 200 s (the guards did not fire)"; exit 1; }
 echo "powercycle: $HOST is down, waking it"
-# the packet is resent every 10 s until the host answers (the first one can arrive while the NIC is still powering down)
+# the packet is resent every 10 s until the host answers (the first one can arrive while the NIC is still powering down; if the
+# guard rebooted the box it is already on its way up and the packet does no harm)
 up=0
 for i in $(seq 18); do
 	wol
