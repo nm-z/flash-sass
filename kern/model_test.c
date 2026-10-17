@@ -334,7 +334,9 @@ int main(int argc, char **argv) {
 			for (unsigned i = 0; i < nph[0]; i++) { unsigned dd = ts[64 + i] - prev; prev = ts[64 + i]; byop[P[0].p[i].w[0]] += dd / 1e3; cnt[P[0].p[i].w[0]]++; }
 			printf("  die 0 by op (us/count):");
 			for (int o = 0; o < DIE_NOPS; o++) if (cnt[o]) printf(" %s %.0f/%u", die_opname[o], byop[o], cnt[o]);
-			printf("\n  last token %.1f us in %u phases\n", (ts[64 + nph[0] - 1] - ts[15]) / 1e3, nph[0]);
+			/* ts[15] is written once, at kernel entry, and the phase slots are overwritten every token: with many tokens in the launch this is the time since the
+			   launch (mod 2^32 ns), NOT the last token, and the first op's bucket above absorbs every earlier token. Use the per-token launch path for a per-token profile. */
+			printf("\n  since kernel entry %.1f us in %u phases (the last token only when the launch holds one token)\n", (ts[64 + nph[0] - 1] - ts[15]) / 1e3, nph[0]);
 			free(ts);
 		}
 		unsigned *tg = calloc((size_t)T + 1, 4); int bad = 0;

@@ -564,8 +564,9 @@ int engine_session(FILE *in, FILE *out) {
 		} else {
 			CK(cuCtxSetCurrent(ctx[0])); CK(cuMemcpyDtoH(toks, db[0].toks, 4 * (size_t)st.ntok));
 			fprintf(out, "tokens:"); for (int t = n_new ? nprompt - 1 : 0; t < st.ntok; t++) fprintf(out, " %u", toks[t]); fprintf(out, "\n");
-			fprintf(out, "time: %.1f ms for %d positions (%.2f ms per position; first token %.1f ms; %u phases; programs %.0f ms)%s\n",
-			        st.run_ms, st.ntok, st.run_ms / st.ntok, st.first_ms, st.nph, st.build_ms, st.ended ? "; end of turn" : "");
+			/* st.ntok is the final position count; the first st.resumed positions came from the snapshot and were not run, so they are not in the average */
+			fprintf(out, "time: %.1f ms for %d positions run (%d from the snapshot; %.2f ms per position run; first token %.1f ms; %u phases; programs %.0f ms)%s\n",
+			        st.run_ms, st.ntok - st.resumed, st.resumed, st.run_ms / (st.ntok - st.resumed > 0 ? st.ntok - st.resumed : 1), st.first_ms, st.nph, st.build_ms, st.ended ? "; end of turn" : "");
 		}
 		fflush(out);
 	}

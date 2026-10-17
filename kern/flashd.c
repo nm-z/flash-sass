@@ -325,7 +325,7 @@ static void chat(int fd, const char *body, size_t bn) {
 	if (g.gone) fprintf(stderr, "flashd: client left after %d bytes of text; the engine is told to stop\n", (int)(g.content.n + g.reasoning.n));
 	double pp = first_ms > 0 ? (np - resumed) / (first_ms / 1e3) : 0, dec_ms = run_ms - first_ms, dec = (ngen > 1 && dec_ms > 0) ? (ngen - 1) / (dec_ms / 1e3) : 0;
 	sbuf t = {0};
-	sb_printf(&t, "{\"prompt_n\":%d,\"cache_n\":%d,\"prompt_ms\":%.1f,\"prompt_per_second\":%.2f,\"predicted_n\":%d,\"predicted_ms\":%.1f,\"predicted_per_second\":%.2f}", np, resumed, first_ms, pp, ngen, dec_ms > 0 ? dec_ms : 0, dec);
+	sb_printf(&t, "{\"prompt_n\":%d,\"cache_n\":%d,\"prompt_ms\":%.1f,\"prompt_per_second\":%.2f,\"predicted_n\":%d,\"predicted_ms\":%.1f,\"predicted_per_second\":%.2f,\"decode_intervals\":%d,\"decode_ms\":%.1f}", np, resumed, first_ms, pp, ngen, dec_ms > 0 ? dec_ms : 0, dec, ngen > 1 ? ngen - 1 : 0, dec_ms > 0 ? dec_ms : 0);   /* predicted_per_second = decode_intervals / decode_ms: the time after the first generated token, over the G - 1 tokens after it; predicted_n is all G */
 	const char *fin = ended ? "stop" : "length";
 	fprintf(stderr, "flashd: %d prompt (%d from the cache, snapshot at %d) + %d generated tokens, %.1f ms (first %.1f), %s, pp %.1f decode %.1f tok/s\n", np, resumed, snapped, ngen, run_ms, first_ms, fin, pp, dec);
 	if (stream) {

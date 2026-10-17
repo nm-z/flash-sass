@@ -164,7 +164,8 @@ head and runs slower (811 MHz measured), so it gets fewer blocks.
   with h' = h for order 2 and 8+h for order 3. 16 rows × 90 B are read directly
   from host RAM (1.1 µs for all 16, measured) and prefetched as soon as the token
   is known.
-- **MTP speculation**: die 7 runs the MTP block on the final state to draft
+- **MTP speculation**: die 7 runs the MTP block on the final 4-lane expanded residual (10,240 wide, 40 KB; `nextn.hnorm` is 10,240 wide and
+  the model card's figure feeds the MTP modules from the residual stream before the output GR Read, not from the collapsed hidden state) to draft
   *t+2*; the pipeline then carries 2 tokens per step (verify *t+1*, speculate
   *t+2*). On rejection the speculative DeltaNet update, KV write and indexer key are
   rolled back from a one-step snapshot.
@@ -1621,3 +1622,21 @@ them allocated while the engine runs). Proven end to end: fence process + memtes
 last ordinal; skipping it, or leaving 64 MiB unallocated, makes the run clean), so memtest has `reserve=MiB` and `serve.sh` verifies a fenced die with `reserve=128`.
 Usable on die 2: **~5.25 GiB**. The 1.9 GiB above is not worth more time; the capacity is recovered in software instead (token_embd on one die, see "Open work").
 Tools: `memtest` (`chunk=`, `skip=`, `only=`, `reserve=`), `fence`, `bisect.sh`, `bisect-fence.sh`, `blockmap.sh`, `proveset.sh`, `reset-die.sh`, `powercycle.sh`.
+
+**Model card notes (2026-10-16, figures and reference list of the Qwen3.8-Flash-Next card checked against this engine).**
+- The n-gram embedding layer ("layer 2 only", the card: "it can add a large number of parameters with almost no additional computation per token") is 28.8 GB
+  (320,001,536 rows × 90 B) of which a token touches 16 rows = 1,440 B. Capacity is its only cost, no compute and no bandwidth; the table is read-only and shared by
+  every request. Contrast the KV gather from host RAM: 2,051 keys × 1,088 B × 12 layers = 27 MB per token, ~19,000 times more. Option, not done (Nate's rule is
+  PLE in RAM): read the 16 rows on demand (mmap) instead of loading all 26 GB at start (82 MB/s: ~5 min warm, 22 min cold) and keeping 28.8 GB of RAM resident;
+  prompt rows can be prefetched (the tokens are known), a decode row waits one page-cache miss (~0.1-1 ms) at worst.
+- Matches what is implemented: indexer key path (AvgPool of 4 raw keys, then RMSNorm, then RoPE), q path, complete blocks only in the indexer, the unfinished
+  block always attended, 3 GDN + 1 QSA per hybrid block, n-gram into layer index 1 only, 4-lane expanded residual (GR Read / GR Write), sigmoid output gate.
+- IndexCache (cross-layer index reuse, reference [3]): not in the checkpoint: all 12 attention layers carry their own indexer tensors, the GGUF has no key for
+  sharing or skipping (only `indexer.head_count/key_length/top_k` and `compress_ratios`), and llama.cpp's `qwen4exp` (`build_qsa_top_k`, the reference this GGUF
+  was made for) scores and selects per layer with that layer's own `index_q_proj/k_proj/norms`; only masks are shared between layers of one ratio, never indices.
+  Per-layer selection is therefore the model's semantics here, and reuse would be an approximation on top of it. As an optimisation it
+  would skip the indexer chain (250 us per layer at 65,000 blocks, ~3 ms per token at 262k) on some layers; it changes results, low priority.
+- Prefill: the card's throughput chart is at a 90% prefix-cache hit rate with batched prefill. This engine prefills one token per pipeline step (~25 tok/s), so a cold
+  200k prompt is over two hours and a long conversation is usable only through the prefix snapshot (one snapshot today; each further one costs the DeltaNet
+  states, 0.12 GB, and keeps the KV rows below it alive). A multi-token (chunked) prefill is the way to change that.
+- Training-only references (Muon, load-balancing loss) have no inference consequence.
