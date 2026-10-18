@@ -22,6 +22,9 @@ static void release(qrt_state *s) {
 int main(int argc, char **argv) {
     if (argc != 2) { fputs("usage: qsa_reference_trace_test NEW_DIR\n", stderr); return 2; }
     CHECK(!mkdir(argv[1], 0700));
+    qrt_state missing;
+    CHECK(qrt_begin(NULL, argv[1], 0) == -1);
+    CHECK(qrt_begin(&missing, NULL, 0) == -1);
     unsigned layer, category;
     CHECK(qrt_interest("indexer_score-3", &layer, &category) && layer == 3 && category == 8);
     CHECK(qrt_interest("indexer_top_k-47", &layer, &category) && category == 16);

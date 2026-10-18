@@ -77,6 +77,7 @@ static int qrt_interest(const char *name, unsigned *layer, unsigned *category) {
            !strncmp(name, "Vcur", 4) || !strncmp(name, "attn_", 5);
 }
 static int qrt_begin(qrt_state *s, const char *root, size_t row) {
+    if (!s || !root) return -1;
     memset(s, 0, sizeof(*s)); s->row = row;
     int n = snprintf(s->directory, sizeof(s->directory), "%s/trace-row%06zu", root, row);
     if (n < 0 || (size_t)n >= sizeof(s->directory) || mkdir(s->directory, 0700)) return -1;
