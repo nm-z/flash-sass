@@ -112,7 +112,7 @@ test-gemv: all
 	./gemv_test $(SHARD1) blk.4.ffn_down_exps.weight 0 20
 
 clean:
-	rm -f *.cubin *.dis *.so *.so.new die.sass dieops.h flashcore flashd flashvis hold memtest fence *_test qsa_oracle qsa_oracle_gpu qsa_logits_check qsa_model_reference
+	rm -f *.cubin *.dis *.so *.so.new die.sass dieops.h flashcore flashd flashvis hold memtest fence *_test qsa_oracle qsa_oracle_gpu qsa_logits_check qsa_model_reference qsa_model_selected_reference
 
 .PHONY: all test test-gemv clean
 
@@ -513,10 +513,25 @@ qsa_oracle: qsa_oracle.c qsa_oracle_bridge.c ../ref/qsa.c ../ref/qsa.h ../ref/at
 qsa_logits_check: qsa_logits_check.c
 	$(CC) $(ORACLE_CFLAGS) -o $@ $< -lm
 
-# Independent CPU runtime; use a separate pinned source/build directory.
-# The source and loaded shared-library hashes belong in the capture manifest.
-qsa_model_reference: qsa_model_reference.c
-	@test -n "$(QSA_LLAMA_DIR)" || { echo 'set QSA_LLAMA_DIR to the pinned llama.cpp source/build' >&2; exit 2; }
+# Independent CPU full-model capture. Rebuild the adapter when the supplied
+# build directory changes; its source pin is not a source-to-binary attestation.
+LLAMA_REF_BUILD ?= $(LLAMA_REF_SRC)/build
+QSA_REFERENCE_REV = fcac19079f3f2985fe74ed845f0880e7e9a8030a
+.PHONY: qsa_model_reference
+qsa_model_reference: qsa_model_reference.c qsa_reference_trace.h
+	@test -n "$(LLAMA_REF_SRC)" || { echo 'set LLAMA_REF_SRC to the pinned independent source' >&2; exit 2; }
+	@test "$$(git -C "$(LLAMA_REF_SRC)" rev-parse HEAD)" = "$(QSA_REFERENCE_REV)" || { echo 'independent reference revision mismatch' >&2; exit 2; }
+	$(CC) $(ORACLE_CFLAGS) -DQSA_REFERENCE_REV='"$(QSA_REFERENCE_REV)"' -I$(LLAMA_REF_SRC)/include -I$(LLAMA_REF_SRC)/ggml/include -o $@ qsa_model_reference.c -L$(LLAMA_REF_BUILD)/bin -Wl,-rpath,$(LLAMA_REF_BUILD)/bin -lllama -lggml -lggml-base -ldl -lm
+
+qsa_reference_trace_test: qsa_reference_trace_test.c qsa_reference_trace.h
+	$(CC) $(ORACLE_CFLAGS) -o $@ $<
+
+# Selected logit rows, explicit prefix-position bindings, and all 48 block
+# outputs. Keep the existing full-row capture CLI and its evidence unchanged.
+.PHONY: qsa_model_selected_reference
+qsa_model_selected_reference: qsa_model_selected_reference.c
+	@test -n "$(QSA_LLAMA_DIR)" || { echo 'set QSA_LLAMA_DIR to the pinned independent source/build' >&2; exit 2; }
+	@test "$$(git -C "$(QSA_LLAMA_DIR)" rev-parse HEAD)" = "$(QSA_REFERENCE_REV)" || { echo 'independent reference revision mismatch' >&2; exit 2; }
 	$(CC) $(ORACLE_CFLAGS) -I$(QSA_LLAMA_DIR)/include -I$(QSA_LLAMA_DIR)/ggml/include -o $@ $< -L$(QSA_LLAMA_DIR)/build/bin -lllama -lggml -lggml-base -Wl,-rpath,$(QSA_LLAMA_DIR)/build/bin -lm
 
 attnpartn_unitmap: attnpartn_unitmap.c

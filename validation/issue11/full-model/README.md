@@ -35,6 +35,35 @@ Its executed binary SHA-256 is
 The identity record's repository HEAD is the pre-edit base `7e52c66`; the
 measured source hash identifies the new code that was actually compiled.
 
+### Shared-branch integration
+
+The other worker pushed `622323ed4f2cbc6618a7c00e30673a1b4bc6782c` before
+this work was published. The merge preserves that worker's
+`qsa_model_reference` command, trace helper, tests and entire
+[independent evidence set](../independent/README.md). The selected-row adapter
+is now named **`qsa_model_selected_reference`**, with the same numerical code
+and an executable-name-aware usage message. Its merged source SHA-256 is
+`3f54d19cfa05b79d8e4bd9fe83781dcd1ef0ae4102ee6d6872c4e7656af72094`.
+The original captured source remains at
+[8623ab4](https://github.com/nm-z/flash-sass/blob/8623ab4afbfc3f6b8429b9cbcf618f63d5babddc/kern/qsa_model_reference.c).
+
+Both commands were rebuilt against the same private reference library. A new
+real-model run of the renamed adapter completed in 37.068078 seconds. All
+**440 comparable capture files are byte-identical** to the initial capture;
+only `capture_info.json`, which contains command paths and timing, is excluded.
+The merge run's completion metadata, source/binary/library identities and
+loader log are retained as `merge-reference-*`. Before/after identities match.
+The existing trace helper also passed all **156** checks after integration.
+
+The other worker's full four-row reference has exactly the same complete input
+prefix and logit bytes at our selected positions 0 and 3. This agreement is
+recorded in `peer-reference-agreement.txt`; the selected logit SHA-256 is
+`5feb16d5c7af5d80f1338341b8a2f77f7cff681cc69aa7a0dd01f15c3199a7b4`.
+Their four-row aggregate includes two additional rows, so its max absolute
+error 1.8079852462 and NRMS 0.09279494123 differ from our two-row aggregate below.
+The overlapping per-row metrics are identical. Neither aggregate passes the
+existing limits.
+
 `reference-runtime.log.gz` preserves the actual dynamic loader trace. It loads
 the four private llama/ggml libraries whose before/after hashes match in the
 identity files. The reference source worktree was clean. The build logs and

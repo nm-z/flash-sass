@@ -1,10 +1,16 @@
 # Independent full-model QSA capture
 
-`kern/qsa_model_reference.c` executes the complete model through an independent
+`kern/qsa_model_selected_reference.c` executes the complete model through an independent
 llama.cpp C API and observes that runtime's existing graph tensors. It supplies
 the native full-model capture arm for issue #11. It does not call the flash-sass
 instruction twins. The adapter derives its basic model-loading/logit export
 from [PR #46's C adapter](https://github.com/nm-z/flash-sass/blob/fcf435f728760b64de30214478524666093468ec/kern/model_reference.c).
+
+The shared branch also has `qsa_model_reference`, which retains a vocabulary
+row for every input token and uses `qsa_reference_trace.h`. That command and its
+CLI remain unchanged. The selected-row command described here additionally
+records explicit prefix-position bindings, all 48 block outputs and derived
+selection sets. It avoids retaining unrequested logit rows for long prefixes.
 
 The initial measured run and its exact limitations are in
 [validation/issue11/full-model](validation/issue11/full-model/README.md).
@@ -26,7 +32,7 @@ cmake -S /absolute/reference-source -B /absolute/reference-source/build \
   -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TOOLS=OFF \
   -DLLAMA_BUILD_MTMD=OFF
 cmake --build /absolute/reference-source/build --target llama --parallel 2
-make -C kern qsa_model_reference qsa_logits_check \
+make -C kern qsa_model_selected_reference qsa_logits_check \
   QSA_LLAMA_DIR=/absolute/reference-source
 ```
 
@@ -39,7 +45,7 @@ private `libllama`, `libggml`, `libggml-base`, and `libggml-cpu` builds.
 ## Capture an exact teacher-forced prefix
 
 ```sh
-kern/qsa_model_reference \
+kern/qsa_model_selected_reference \
   /absolute/model-00001-of-00002.gguf \
   /absolute/input-ids.txt 1,2047,2048,2049,2050,2051,2052 \
   /absolute/new-reference-capture 2 3600

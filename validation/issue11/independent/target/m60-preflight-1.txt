@@ -1,0 +1,45 @@
+archy
+2026-10-17T22:35:06-07:00
+
+LOCK
+911298 flock           FLOCK WRITE* /tmp/flash-sass-engine-validation.lock
+910093 bash            FLOCK WRITE  /tmp/flash-sass-engine-validation.lock
+
+GPUS
+0, Tesla M60, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, 7566 MiB, 52 MiB, 0 %
+1, Tesla M60, GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, 7602 MiB, 16 MiB, 0 %
+2, Tesla M60, GPU-c767d250-4454-d181-d648-8706b5f2fb64, 7541 MiB, 77 MiB, 0 %
+3, Tesla M60, GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, 7611 MiB, 7 MiB, 0 %
+4, Tesla M60, GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, 7615 MiB, 3 MiB, 0 %
+5, Tesla M60, GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, 7553 MiB, 65 MiB, 0 %
+6, Tesla M60, GPU-431371bd-b482-96b2-4b70-04f83c6d075b, 3 MiB, 7615 MiB, 0 %
+7, Tesla M60, GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4, 138 MiB, 7480 MiB, 0 %
+
+COMPUTE
+974018, ./hold, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, 7177 MiB
+3575268, ./flashcore, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, 200 MiB
+974061, ./hold, GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, 6160 MiB
+3575268, ./flashcore, GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, 1218 MiB
+974103, ./fence, GPU-c767d250-4454-d181-d648-8706b5f2fb64, 2110 MiB
+988060, ./hold, GPU-c767d250-4454-d181-d648-8706b5f2fb64, 5116 MiB
+3575268, ./flashcore, GPU-c767d250-4454-d181-d648-8706b5f2fb64, 129 MiB
+988067, ./hold, GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, 7224 MiB
+3575268, ./flashcore, GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, 166 MiB
+988072, ./hold, GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, 6172 MiB
+3575268, ./flashcore, GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, 1218 MiB
+988080, ./hold, GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, 6179 MiB
+3575268, ./flashcore, GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, 1218 MiB
+
+RESIDENT PROCESSES
+    628     576 llama-server       23:29:35
+    751       1 ollama             23:29:33
+ 974018  974015 hold               22:49:40
+ 974061  974058 hold               22:49:40
+ 974103  974100 fence              22:49:40
+ 988060  988058 hold               22:49:24
+ 988067  988065 hold               22:49:24
+ 988072  988070 hold               22:49:24
+ 988080  988079 hold               22:49:24
+2805936     576 llama-server       21:40:30
+2871085     576 llama-server       21:36:48
+3575268       1 flashcore          04:09:09
