@@ -1,0 +1,10 @@
+ok 1 - startup info connection closes before the next request
+ok 2 - pipelined commands retain exact IDs and capture all dies before done
+ok 3 - forbidden resident-control commands never reach the engine
+ok 4 - frontend cancellation closes upstream during silent prefill
+ok 5 - native timeout is bounded and retains the incomplete attempt
+ok 6 - partial profile failure preserves tokens, done, and raw error
+ok 7 - native done count disagreement cannot produce a capture
+ok 8 - unknown GPU process prevents idle approval even at zero utilization
+ok 9 - HTTP JSON errors retain the complete raw response
+1..9

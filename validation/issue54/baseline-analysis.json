@@ -1,0 +1,140 @@
+{
+  "schema": "flash-sass-placement-selection-v1",
+  "status": "partial_no_acceptance",
+  "measurement_gates_passed": false,
+  "selected_label": null,
+  "objective": "mean of the maximum per-die last-token phase span; includes waits",
+  "scope": "Ranks supplied measurements only. Model provenance, SPEC recording and PR readiness require review.",
+  "baseline": {
+    "label": "archy-resident-baseline",
+    "mean_max_die_span_us": 27981.0,
+    "max_actq256_spread_us": 2393.1000000000004,
+    "mean_actq256_us_by_die": [
+      5010.82,
+      3641.44,
+      5856.04,
+      4863.280000000001,
+      3557.5800000000004,
+      3534.03
+    ],
+    "mean_decode_tok_s": 35.915,
+    "decode_range_tok_s": [
+      35.89,
+      35.96
+    ],
+    "temperature_range_c_by_die": [
+      [
+        69.0,
+        71.0
+      ],
+      [
+        50.0,
+        53.0
+      ],
+      [
+        65.0,
+        68.0
+      ],
+      [
+        48.0,
+        51.0
+      ],
+      [
+        81.0,
+        83.0
+      ],
+      [
+        57.0,
+        61.0
+      ]
+    ],
+    "measured_output_variants": 1,
+    "measured_token_counts": [
+      38
+    ],
+    "measured_requests": [
+      {
+        "round": 1,
+        "request": 1,
+        "actq256_spread_us": 2393.1000000000004,
+        "max_die_span_us": 27990.0,
+        "decode_tok_s": 35.89
+      },
+      {
+        "round": 1,
+        "request": 2,
+        "actq256_spread_us": 2299.9000000000005,
+        "max_die_span_us": 27990.0,
+        "decode_tok_s": 35.9
+      },
+      {
+        "round": 1,
+        "request": 3,
+        "actq256_spread_us": 2295.7999999999997,
+        "max_die_span_us": 28000.0,
+        "decode_tok_s": 35.93
+      },
+      {
+        "round": 1,
+        "request": 4,
+        "actq256_spread_us": 2304.0,
+        "max_die_span_us": 28010.0,
+        "decode_tok_s": 35.89
+      },
+      {
+        "round": 1,
+        "request": 5,
+        "actq256_spread_us": 2337.8,
+        "max_die_span_us": 27950.0,
+        "decode_tok_s": 35.9
+      },
+      {
+        "round": 2,
+        "request": 1,
+        "actq256_spread_us": 2270.2,
+        "max_die_span_us": 27990.0,
+        "decode_tok_s": 35.9
+      },
+      {
+        "round": 2,
+        "request": 2,
+        "actq256_spread_us": 2339.7999999999997,
+        "max_die_span_us": 27980.0,
+        "decode_tok_s": 35.92
+      },
+      {
+        "round": 2,
+        "request": 3,
+        "actq256_spread_us": 2354.2000000000003,
+        "max_die_span_us": 27960.0,
+        "decode_tok_s": 35.96
+      },
+      {
+        "round": 2,
+        "request": 4,
+        "actq256_spread_us": 2314.2,
+        "max_die_span_us": 27960.0,
+        "decode_tok_s": 35.94
+      },
+      {
+        "round": 2,
+        "request": 5,
+        "actq256_spread_us": 2325.5,
+        "max_die_span_us": 27980.0,
+        "decode_tok_s": 35.92
+      }
+    ],
+    "placement": {
+      "attn_dies": "1,4,5",
+      "split": "112,97,81,116,97,97",
+      "attn_map": "1,1,1,1,4,4,4,4,5,5,5,5"
+    },
+    "output_parity": true,
+    "eligible": false,
+    "failures": [
+      "baseline or unchanged placement is not a new candidate",
+      "actq256 spread exceeds 500 us"
+    ]
+  },
+  "candidates_ranked": []
+}

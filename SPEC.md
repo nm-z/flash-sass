@@ -1,5 +1,48 @@
 # Spec: Flash-Next persistent SASS kernel on archy's 4× M60
 
+## Six-die placement baseline (2026-10-18 UTC; issue #54 remains open)
+
+The measured resident configuration is still
+`SPLIT_SHARES=112,97,81,116,97,97` and
+`ATTN_MAP=1,1,1,1,4,4,4,4,5,5,5,5`. No replacement has been selected.
+Routed experts follow the same weighted contiguous split; the shared expert
+stays on `block % 6`. Changing these allocations needs matching holders and an
+engine instance; it is not a per-request setting.
+
+[`placement_capture.rb`](kern/placement_capture.rb) records the linkmatrix
+request through a temporary frontend and an observed native connection, without
+restarting or reloading the resident engine or changing PCIe settings. The same connection records exact
+token IDs and all six last-token profiles before another request can overwrite
+them. [`placement_select.rb`](kern/placement_select.rb) ranks measured candidates
+by their mean maximum per-die last-token phase span and checks the issue's
+throughput, spread, token, and comparison requirements. It does not infer a new
+split from aggregate waiting or establish an optimum outside the tested set.
+
+The [raw baseline and reproduction notes](validation/issue54/README.md) cover
+00:54:53–00:55:09 UTC, resident engine `edc66d9`, kernel FNV
+`61f38fc0784534a2`, 48 layers, budget 512, VRAM KV, disk PLE, and capacity 230,000.
+Two rounds of five measured requests plus one warm-up each produced **35.915
+tok/s** (range 35.89–35.96). All ten measured replies have the same **38 token
+IDs**. The maximum observed six-die `actq256` spread is **2.3931 ms**, above the
+required 0.5 ms. The mean of the per-response maximum phase spans is 27.981 ms.
+
+| Die | 0 | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|---|
+| Mean last-token `actq256` (ms) | 5.01082 | 3.64144 | 5.85604 | 4.86328 | 3.55758 | 3.53403 |
+
+Observed SM clocks stayed at 1,177 MHz. Die 4 measured 81–83 °C. The three
+card-to-CPU root links stayed at Gen3 x8, Gen3 x16, and Gen2 x16; GPU-end link
+readings alone do not describe those root links. The profiler includes compute,
+dispatch, synchronization and waiting, omits the first phase, and charges some
+MoE waiting to `hcwsum`. Profiling and proxy forwarding have instrumentation
+costs; this baseline is not an uninstrumented overhead comparison.
+
+The collector acquired the shared validation lock, preserved the resident
+processes, and released it after the run. The six resident allocations leave no
+room for another equivalent engine. Candidate loading is outside this task's
+permission to preserve that engine. A chosen split and its measured <=0.5 ms
+spread, >=35.9 tok/s, and token parity remain outstanding; this is `Refs #54`.
+
 ## Current implementation and evidence (2026-10-17)
 
 This section describes [source 267141f](https://github.com/nm-z/flash-sass/tree/267141f98e47f38625c1bf60be03678d6089c913).

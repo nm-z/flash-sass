@@ -1,0 +1,43 @@
+TAP version 13
+ok 1 - baseline only reports measurements without acceptance
+ok 2 - changed placement passes exact boundary gates with new holders and random seeds
+ok 3 - ranking uses busiest die span and skips faster failing candidate
+ok 4 - one request above spread limit cannot be hidden by averaging
+ok 5 - warmup speed and spread are excluded from measured gates
+ok 6 - same text with different hidden token IDs fails parity
+ok 7 - changed reasoning with same IDs fails parity
+ok 8 - slow candidate fails despite level waits
+ok 9 - unchanged placement cannot resolve issue
+ok 10 - missing measured sample
+ok 11 - duplicate sample
+ok 12 - warmup flag cannot hide a measured request
+ok 13 - missing die
+ok 14 - duplicate die
+ok 15 - truncated profile rows
+ok 16 - missing profile terminator
+ok 17 - wrong actq count
+ok 18 - bad rounded profile total
+ok 19 - wrong HTTP G count
+ok 20 - G rather than G-1 rate
+ok 21 - nonfinite timing
+ok 22 - HTTP JSON error
+ok 23 - native done count differs
+ok 24 - native done timing differs
+ok 25 - native done is truncated
+ok 26 - HTTP finish reason differs from native
+ok 27 - native stop requires matching final stop token
+ok 28 - native transcript tokens cannot disagree
+ok 29 - profile summary must match native transcript
+ok 30 - sample marked incomplete
+ok 31 - failure list is not ignored
+ok 32 - foreign GPU work during telemetry
+ok 33 - missing resident identity checks
+ok 34 - resident identity changed
+ok 35 - missing postflight completion
+ok 36 - clock changed after sample
+ok 37 - link changed during capture
+ok 38 - non-greedy sampler cannot normalize its seed away
+ok 39 - revision, model, prompt, cache and frontend mismatches are incomparable
+ok 40 - temperature is reported by die without arbitrary threshold
+ok 41 - plain and gzip files produce the same report and malformed JSON fails
+1..41

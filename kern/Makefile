@@ -116,6 +116,12 @@ clean:
 
 .PHONY: all test test-gemv clean
 
+# CPU-only validation of placement evidence collection and candidate selection.
+.PHONY: test-placement
+test-placement:
+	ruby placement_capture_test.rb
+	ruby placement_select_test.rb
+
 # block-32 formats at K=640: one generator, GEMV_FMT selects the format
 B32 = q4_0 q5_0 q8_0 iq4_nl
 B32_CUBINS = $(foreach f,$(B32),gemv_$(f)_k640.cubin)
