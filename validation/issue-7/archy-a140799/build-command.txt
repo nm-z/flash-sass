@@ -1,0 +1,1 @@
+make -C kern CUDA=/opt/cuda PTXAS11=/opt/cuda-11.4/bin/ptxas FLASH_REV=a1407995f4d273e1d2527c0f5fb3998d09252dc2 libengine.so flashcore flashd die.cubin seqsched_test output_tokens_test
