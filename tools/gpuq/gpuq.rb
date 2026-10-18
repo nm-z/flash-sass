@@ -3,7 +3,6 @@ require 'rubygems'
 vendor=ENV.fetch('GPUQ_GEM_PATH','/usr/local/lib/gpuq/gems')
 Gem.use_paths(Gem.dir,[vendor,*Gem.path]) if File.directory?(vendor)
 require 'optparse'
-require 'base64'
 require_relative 'runner'
 
 module GPUQ
@@ -91,7 +90,7 @@ module GPUQ
         if @args[1]=='--raw'
           STDOUT.binmode;STDOUT.write(data)
         else
-          emit(id:id,text:data.dup.force_encoding('UTF-8').scrub,bytes:data.bytesize,base64:Base64.strict_encode64(data))
+          emit(id:id,text:data.dup.force_encoding('UTF-8').scrub,bytes:data.bytesize,base64:[data].pack('m0'))
         end
         0
       when 'metrics'
