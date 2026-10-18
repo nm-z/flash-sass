@@ -518,6 +518,9 @@ memtest: memtest.c
 fence: fence.c
 	$(CC) -std=gnu99 -O2 -Wall -o $@ fence.c -I$(CUDA)/include -lcuda
 
+sequence_http_test: sequence_http_test.c flashd.c tok.c tok.h jinja.c jinja.h json.c json.h ucd.h ../ref/gguf.c ../ref/gguf.h
+	$(CC) -std=gnu99 -O2 -Wall -Wextra -o $@ sequence_http_test.c tok.c jinja.c json.c ../ref/gguf.c -I../ref -lm -pthread
+
 seqsched_test: seqsched_test.c seqsched.h
 	$(CC) -std=gnu99 -O2 -Wall -Wextra -o $@ seqsched_test.c -pthread
 

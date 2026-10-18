@@ -82,6 +82,12 @@ static int client_gone(int fd) {   /* the peer closed or reset its end */
 	struct pollfd p = { .fd = fd, .events = POLLRDHUP };
 	return poll(&p, 1, 0) > 0 && (p.revents & (POLLRDHUP | POLLHUP | POLLERR));
 }
+/* Check before every engine line, including buffered nonstreaming tokens. */
+static char *generation_line(char *line, int capacity, FILE *in,
+                             int client_fd, int *gone) {
+    if (*gone || client_gone(client_fd)) { *gone = 1; return NULL; }
+    return fgets(line, capacity, in);
+}
 static void q_remove(waiter *w) {   /* QM held */
 	waiter *prev = NULL; for (waiter *x = QHEAD; x; prev = x, x = x->next) if (x == w) { if (prev) prev->next = x->next; else QHEAD = x->next; if (QTAIL == x) QTAIL = prev; QLEN--; break; }
 }
@@ -384,7 +390,7 @@ static void chat(int fd, const char *body, size_t bn) {
 	   every 10 s while the engine is silent */
 	{ struct timeval tv = { 2, 0 }; setsockopt(fileno(in), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv); }
 	for (;;) {
-		if (!fgets(line, sizeof line, in)) {
+		if (!generation_line(line, sizeof line, in, fd, &g.gone)) {
 			if ((errno == EAGAIN || errno == EWOULDBLOCK) && !g.gone) { clearerr(in); if (client_gone(fd)) { g.gone = 1; break; } if (stream && ++quiet >= 5) { quiet = 0; if (chunk(fd, ": keepalive\n\n", 13)) { g.gone = 1; break; } } continue; }
 			break;
 		}
