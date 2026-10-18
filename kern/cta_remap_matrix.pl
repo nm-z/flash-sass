@@ -9,7 +9,7 @@ use Getopt::Long 'GetOptions';
 use Fcntl qw(LOCK_EX LOCK_NB);
 use File::Path 'make_path';
 use File::Basename 'dirname';
-use Time::HiRes qw(sleep clock_gettime CLOCK_MONOTONIC);
+use Time::HiRes qw(sleep alarm clock_gettime CLOCK_MONOTONIC);
 use JSON::PP;
 $|=1;
 
@@ -27,32 +27,79 @@ sub gpu {
  return result(['nvidia-smi','-i',$uuid,'--query-gpu=uuid,name,driver_version,pci.bus_id,temperature.gpu,clocks.current.sm,clocks.current.memory,utilization.gpu,memory.used,ecc.mode.current,pcie.link.gen.current,pcie.link.width.current','--format=csv'],\%ENV,30);
 }
 sub snapshot {
- my($uuid)=@_;
- # ALL devices are checked. An idle selected die does not authorize overlap
- # with a different worker's experiment on this shared host.
- return {utc=>utc(),
+ my($uuid,$a)=@_;
+ # Default: any resident compute context blocks. The explicit idle-resident
+ # mode also checks all-device load and the local request queue; it permits
+ # known resident contexts only on OTHER devices, never the measured device.
+ my $s={utc=>utc(),
   compute_apps=>result(['nvidia-smi','--query-compute-apps=gpu_uuid,pid,process_name,used_gpu_memory','--format=csv,noheader,nounits'],\%ENV,30),
   ps=>result(['ps','-eo','pid=,ppid=,stat=,comm=,args='],\%ENV,30),gpu=>gpu($uuid)};
+ if($a && $a->{idle_resident_queue}) {
+  $s->{all_gpu_load}=result(['nvidia-smi','--query-gpu=uuid,utilization.gpu,utilization.memory','--format=csv,noheader,nounits'],\%ENV,30);
+  $s->{queue}=result(['curl','--fail','--silent','--show-error','--noproxy','*','--max-time','10',$a->{idle_resident_queue}],\%ENV,15);
+ }
+ return $s;
 }
 sub busy_reasons {
- my($s)=@_;
- for my $name(qw(compute_apps ps gpu)) {
+ my($s,$a)=@_;my $residents=$a && $a->{idle_resident_queue};
+ for my $name(qw(compute_apps ps gpu),$residents?qw(all_gpu_load queue):()) {
   ref($s->{$name}) eq 'HASH' && defined($s->{$name}{exit}) && $s->{$name}{exit}==0
    or die "$name query failed; GPU idle state is unknown\n";
   defined($s->{$name}{stdout}) or die "$name query has no stdout\n";
  }
  $s->{ps}{stdout}=~/\S/ or die "ps returned no process inventory\n";
  $s->{gpu}{stdout}=~/GPU-[0-9a-f-]+/i or die "GPU metadata query returned no UUID\n";
- my @busy;
+ my(@busy,%resident_pid,%load_seen);my $queue_port;
+ if($residents) {
+  ($queue_port)=$a->{idle_resident_queue}=~m{\Ahttp://127\.0\.0\.1:(\d+)/queue\z};
+  defined($queue_port) && $queue_port>0 && $queue_port<=65535
+   or die "idle-resident-queue must be http://127.0.0.1:PORT/queue\n";
+  $a->{gpu}=~/\AGPU-[0-9a-f-]+\z/i or die "idle resident mode requires a GPU UUID, not an index\n";
+  my $q=eval {JSON::PP->new->decode($s->{queue}{stdout})};
+  ref($q) eq 'HASH' or die "invalid queue JSON\n";
+  for my $key(qw(running waiting)) {
+   defined($q->{$key}) && !ref($q->{$key}) && $q->{$key}=~/\A\d+\z/
+    or die "invalid queue $key count\n";
+   push @busy,"request queue $key=$q->{$key}" if $q->{$key};
+  }
+  for my $line(split /\n/,$s->{all_gpu_load}{stdout}) {
+   next unless $line=~/\S/;
+   my($id,$compute,$memory)=$line=~/\A\s*(GPU-[0-9a-f-]+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\z/i;
+   defined($id) && $compute<=100 && $memory<=100 or die "invalid all-GPU utilization row\n";
+   !$load_seen{lc $id}++ or die "duplicate GPU utilization row\n";
+   push @busy,"GPU activity: $id compute=$compute memory=$memory" if $compute || $memory;
+  }
+  $load_seen{lc $a->{gpu}} or die "target GPU missing from utilization inventory\n";
+ }
  for my $line(split /\n/,$s->{compute_apps}{stdout}) {
   next unless $line=~/\S/;
-  $line=~/^\s*GPU-[0-9a-f-]+\s*,\s*\d+\s*,/i or die "unrecognized nvidia-smi compute-app output\n";
+  my($id,$pid,$program)=$line=~/^\s*(GPU-[0-9a-f-]+)\s*,\s*(\d+)\s*,\s*([^,]+),/i;
+  defined($id) or die "unrecognized nvidia-smi compute-app output\n";
+  !$residents || $load_seen{lc $id} or die "compute-app GPU missing from utilization inventory\n";
+  $program=~s/\s+$//;
+  if($residents && lc($id) ne lc($a->{gpu}) && $program=~m{(?:\A|/)(hold|fence|flashcore)\z}) {
+   my $name=$1;
+   !exists($resident_pid{$pid}) || $resident_pid{$pid} eq $name or die "conflicting resident process identity\n";
+   $resident_pid{$pid}=$name;
+   next;
+  }
   push @busy,"compute app: $line";
  }
+ my %verified_resident;
  for my $line(split /\n/,$s->{ps}{stdout}) {
   next unless $line=~/\S/;
   my($pid,$ppid,$stat,$comm,$args)=$line=~/^\s*(\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s*(.*)$/;
   defined($pid) or die "unrecognized ps process row\n";
+  if(exists($resident_pid{$pid})) {
+   my $name=$resident_pid{$pid};
+   $comm eq $name && $args=~m{\A(?:\S*/)?\Q$name\E(?:\s|$)} && $stat!~/Z/
+    or die "resident process identity mismatch: pid=$pid\n";
+   $verified_resident{$pid}=1;
+   next;
+  }
+  # Only the daemon serving the checked loopback queue may remain resident.
+  if($residents && $comm eq 'flashd' && $stat!~/Z/ &&
+     $args=~m{\A(?:\S*/)?flashd\s+\S+\s+\S+\s+127\.0\.0\.1:\Q$queue_port\E\s*\z}) {next;}
   # Conservatively catch known workers before their CUDA context is visible.
   # Inspect only the executable/script, not arguments of this runner or a shell
   # that merely mentions another program. Persist process identity, not argv.
@@ -61,18 +108,28 @@ sub busy_reasons {
    push @busy,"worker process: pid=$pid ppid=$ppid stat=$stat comm=$comm";
   }
  }
+ for my $pid(keys %resident_pid) {
+  $verified_resident{$pid} or die "resident process missing from ps inventory: pid=$pid\n";
+ }
+ $s->{allowed_idle_residents}=[map {{pid=>0+$_,comm=>$resident_pid{$_}}} sort {$main::a<=>$main::b} keys %resident_pid] if $residents;
  return \@busy;
+}
+sub redact_process_args {
+ my($s)=@_;
+ if(ref($s->{ps}) eq 'HASH' && defined($s->{ps}{stdout})) {
+  $s->{ps}{stdout}=~s/^(\s*\d+\s+\d+\s+\S+\s+\S+).*$/$1/mg;
+  $s->{ps}{retained_fields}='pid ppid stat comm; arguments inspected but not retained';
+ }
 }
 sub wait_idle {
  my($a,$out,$case,$collect)=@_;$collect//=\&snapshot;
  my $start=clock_gettime(CLOCK_MONOTONIC);my $attempt=0;
  while(1) {
-  my $s=$collect->($a->{gpu});$s->{case}=$case;$s->{attempt}=++$attempt;
-  my $busy=busy_reasons($s);
+  my $s=$collect->($a->{gpu},$a);$s->{case}=$case;$s->{attempt}=++$attempt;
+  my $busy=busy_reasons($s,$a);
   # Full argv is needed only to recognize interpreter-launched GPU workers.
   # Do not save unrelated workers' command arguments in public evidence.
-  $s->{ps}{stdout}=~s/^(\s*\d+\s+\d+\s+\S+\s+\S+).*$/$1/mg;
-  $s->{ps}{retained_fields}='pid ppid stat comm; arguments inspected but not retained';
+  redact_process_args($s);
   $s->{busy_reasons}=$busy;
   put("$out/gate-$case-$attempt.json",$s) if defined($out);
   return $s unless @$busy;
@@ -85,13 +142,21 @@ sub wait_idle {
 sub acquire_lock {
  my($path,$a)=@_;make_path(dirname($path));
  open my $lock,'>>',$path or die "open lock $path: $!\n";
- my $start=clock_gettime(CLOCK_MONOTONIC);
- while(!flock($lock,LOCK_EX|LOCK_NB)) {
+ if(!flock($lock,LOCK_EX|LOCK_NB)) {
   $!{EWOULDBLOCK}||$!{EAGAIN}||$!{EINTR} or die "flock $path: $!\n";
-  my $left=$a->{wait_seconds}-(clock_gettime(CLOCK_MONOTONIC)-$start);
-  die "BLOCKED_BUSY: shared lock held: $path\n" if $left<=0;
-  print STDERR "Waiting for shared GPU lock: $path\n";
-  sleep($left<$a->{poll_seconds}?$left:$a->{poll_seconds});
+  die "BLOCKED_BUSY: shared lock held: $path\n" if $a->{wait_seconds}<=0;
+  print STDERR "Queued for shared GPU lock: $path (timeout $a->{wait_seconds}s)\n";
+  # Block in flock rather than repeatedly racing other queued validators.
+  # SIGALRM bounds this one wait; no GPU work starts before lock ownership.
+  local $SIG{ALRM}=sub {die "BLOCKED_BUSY: shared lock held: $path\n";};
+  my $error;
+  eval {
+   alarm($a->{wait_seconds});
+   while(!flock($lock,LOCK_EX)) {next if $!{EINTR};die "flock $path: $!\n";}
+   alarm(0);1;
+  } or $error=$@||"lock wait failed\n";
+  alarm(0);
+  die $error if defined($error);
  }
  return $lock;
 }
@@ -150,6 +215,59 @@ sub self_test {
    my $s=$clean->();$s->{compute_apps}{stdout}="GPU-aaaa, 123, flashcore, 100\n";return $s;
   });
  },qr/BLOCKED_BUSY/);
+ my $target='GPU-00000000-0000-0000-0000-000000000007';
+ my $other='GPU-00000000-0000-0000-0000-000000000000';
+ my $policy={gpu=>$target,idle_resident_queue=>'http://127.0.0.1:18090/queue'};
+ my $idle=sub {
+  my $s=$clean->();
+  $s->{gpu}{stdout}="uuid, name\n$target, Tesla M60\n";
+  $s->{all_gpu_load}={exit=>0,stdout=>"$target, 0, 0\n$other, 0, 0\n"};
+  $s->{queue}={exit=>0,stdout=>'{"running":0,"waiting":0,"max":8}'};
+  $s->{compute_apps}{stdout}="$other, 44, ./hold, 7000\n$other, 45, ./flashcore, 200\n$other, 46, ./fence, 100\n";
+  $s->{ps}{stdout}.="44 1 S hold ./hold weights 0\n45 1 S flashcore ./flashcore ple library manifest\n46 1 S fence ./fence 0\n47 1 S flashd ./flashd weights /tmp/flash.sock 127.0.0.1:18090\n";
+  return $s;
+ };
+ $expect->('explicit idle off-device residents accepted',sub {my $s=$idle->();@{busy_reasons($s,$policy)}==0 && @{$s->{allowed_idle_residents}}==3 or die 'blocked idle residents';});
+ $expect->('default policy still blocks resident contexts',sub {@{busy_reasons($idle->())}>0 or die 'default policy relaxed';});
+ $expect->('target compute context still blocks',sub {my $s=$idle->();$s->{compute_apps}{stdout}.="$target, 45, ./flashcore, 200\n";@{busy_reasons($s,$policy)}>0 or die 'target context allowed';});
+ $expect->('unrecognized off-device compute worker blocks',sub {my $s=$idle->();$s->{compute_apps}{stdout}.="$other, 48, ./gemv_test, 100\n";@{busy_reasons($s,$policy)}>0 or die 'unknown worker allowed';});
+ $expect->('off-device compute activity blocks',sub {my $s=$idle->();$s->{all_gpu_load}{stdout}=~s/\Q$other\E, 0, 0/$other, 1, 0/;@{busy_reasons($s,$policy)}>0 or die 'compute activity allowed';});
+ $expect->('off-device memory activity blocks',sub {my $s=$idle->();$s->{all_gpu_load}{stdout}=~s/\Q$other\E, 0, 0/$other, 0, 1/;@{busy_reasons($s,$policy)}>0 or die 'memory activity allowed';});
+ for my $field(qw(running waiting)) {
+  $expect->("queue $field blocks",sub {my $s=$idle->();$s->{queue}{stdout}=~s/"$field":0/"$field":1/;@{busy_reasons($s,$policy)}>0 or die 'nonempty queue allowed';});
+ }
+ for my $field(qw(queue all_gpu_load)) {
+  $expect->("failed $field query rejects",sub {my $s=$idle->();$s->{$field}{exit}=1;busy_reasons($s,$policy);},qr/query failed/);
+ }
+ $expect->('malformed queue rejects',sub {my $s=$idle->();$s->{queue}{stdout}='not JSON';busy_reasons($s,$policy);},qr/invalid queue JSON/);
+ $expect->('fractional queue count rejects',sub {my $s=$idle->();$s->{queue}{stdout}='{"running":0.5,"waiting":0}';busy_reasons($s,$policy);},qr/invalid queue running/);
+ $expect->('unknown utilization rejects',sub {my $s=$idle->();$s->{all_gpu_load}{stdout}=~s/, 0, 0/, N\/A, 0/;busy_reasons($s,$policy);},qr/invalid all-GPU/);
+ $expect->('missing target utilization rejects',sub {my $s=$idle->();$s->{all_gpu_load}{stdout}="$other, 0, 0\n";busy_reasons($s,$policy);},qr/target GPU missing/);
+ $expect->('duplicate utilization rejects',sub {my $s=$idle->();$s->{all_gpu_load}{stdout}.="$target, 0, 0\n";busy_reasons($s,$policy);},qr/duplicate GPU/);
+ $expect->('unknown compute-app GPU rejects',sub {my $s=$idle->();$s->{compute_apps}{stdout}.="GPU-abcd, 44, ./hold, 100\n";busy_reasons($s,$policy);},qr/compute-app GPU missing/);
+ $expect->('resident identity mismatch rejects',sub {my $s=$idle->();$s->{ps}{stdout}=~s/44 1 S hold/44 1 S evil/;busy_reasons($s,$policy);},qr/identity mismatch/);
+ $expect->('resident disappearing from ps rejects',sub {my $s=$idle->();$s->{ps}{stdout}=~s/^44 .*\n//m;busy_reasons($s,$policy);},qr/missing from ps/);
+ $expect->('different daemon queue still blocks',sub {my $s=$idle->();$s->{ps}{stdout}=~s/:18090/:18091/;@{busy_reasons($s,$policy)}>0 or die 'other daemon allowed';});
+ $expect->('worker without context still blocks',sub {my $s=$idle->();$s->{ps}{stdout}.="48 1 S model_test ./model_test weights\n";@{busy_reasons($s,$policy)}>0 or die 'worker before CUDA allowed';});
+ require File::Temp;
+ my $locks=File::Temp::tempdir(CLEANUP=>1);
+ for my $release(0,1) {
+  $expect->($release?'queued lock acquires after release':'queued lock times out without stealing',sub {
+   my $path="$locks/test-$release.lock";
+   open my $held,'>>',$path or die "open fixture lock: $!";
+   flock($held,LOCK_EX) or die "fixture flock: $!";
+   my $pid=fork();defined($pid) or die "fork fixture: $!";
+   if(!$pid) {
+    close $held;
+    my $got=eval {acquire_lock($path,{wait_seconds=>$release?2:0.05})};
+    my $error=$@;
+    POSIX::_exit($release ? ($got?0:1) : (!$got && $error=~/BLOCKED_BUSY/?0:1));
+   }
+   if($release){sleep(0.05);close $held;}
+   waitpid($pid,0)==$pid && $?==0 or die 'queued lock fixture failed';
+   close $held unless $release;
+  });
+ }
  my $valid=sub {return {bit_exact=>JSON::PP::true,boundary_canaries=>JSON::PP::true,boundary_canary_words=>64,
   partial_values=>49536,final_values=>6144,steps_per_sample=>64,
   old=>{event=>{median_us=>1}},new=>{event=>{median_us=>2}},trace_verified=>JSON::PP::false,trace_launches=>0};};
@@ -179,6 +297,7 @@ sub main {
   'old-source=s'=>\$a{old_source},'new-source=s'=>\$a{new_source},'harness=s'=>\$a{harness},'harness-source=s'=>\$a{harness_source},
   'gpu=s'=>\$a{gpu},'out=s'=>\$a{out},'keys=s'=>\$a{keys},'seeds=s'=>\$a{seeds},'repeats=i'=>\$a{repeats},
   'instrumentation=s'=>\$a{instrumentation},'trace!'=>\$a{trace},'lock-dir=s'=>\$a{lock_dir},'host-lock=s'=>\$a{host_lock},
+  'idle-resident-queue=s'=>\$a{idle_resident_queue},
   'wait-seconds=f'=>\$a{wait_seconds},'poll-seconds=f'=>\$a{poll_seconds},'self-test'=>\$a{self_test},'check-only'=>\$a{check_only})
   or die "invalid arguments\n";
  !@ARGV or die "unexpected positional arguments\n";
@@ -189,6 +308,11 @@ sub main {
   for(qw(old_source new_source harness_source)) {$a{$_}=~/\A[0-9a-f]{40}\z/ or die "source identities must be full 40-character git commit IDs\n";}
  }
  $a{gpu}=~/\A(?:GPU-[0-9a-f-]+|\d+)\z/i or die "--gpu must be a GPU UUID or numeric index\n";
+ if(defined($a{idle_resident_queue})) {
+  $a{idle_resident_queue}=~m{\Ahttp://127\.0\.0\.1:([1-9]\d{0,4})/queue\z} && $1<=65535
+   or die "--idle-resident-queue must name a loopback HTTP queue\n";
+  $a{gpu}=~/\AGPU-/i or die "idle resident mode requires a GPU UUID, not an index\n";
+ }
  $a{wait_seconds}>=0 && $a{poll_seconds}>0 && $a{poll_seconds}<=60 or die "wait-seconds >=0 and poll-seconds in (0,60] required\n";
  ($a{trace}?$a{instrumentation} ne 'none':$a{instrumentation} eq 'none')
   or die "--trace requires --instrumentation; untraced timing requires instrumentation=none\n";
@@ -210,6 +334,9 @@ sub main {
    environment=>\%traceenv,trace_requested=>$a{trace}?JSON::PP::true:JSON::PP::false,
    measurement_mode=>$a{check_only}?'check-only':$a{trace}?'physical-cta-trace':'untraced-performance',
    locking=>{host=>$a{host_lock},gpu_dir=>$a{lock_dir}}};
+  $manifest->{resident_policy}=$a{idle_resident_queue}
+   ? 'Explicit off-device idle residents: target has no compute context; all GPU compute/memory utilization and loopback queue counts must be zero before and after each case. Resident identities and telemetry are retained. This does not authorize whole-model core reuse.'
+   : 'Strict: any compute context or recognized GPU worker on the host blocks.';
   if(!$a{check_only}) {
    $manifest->{old_cubin}=image($a{old});$manifest->{new_cubin}=image($a{new});
    $manifest->{old_library}=image($a{old_library});$manifest->{new_library}=image($a{new_library});
@@ -230,8 +357,22 @@ sub main {
     my $case="keys-$n-seed-$seed";my $before=wait_idle(\%a,$out,$case);
     my @args=(absolute($a{harness}),absolute($a{old}),absolute($a{new}),"$n","$seed","$a{repeats}");
     ++$launches;my $r=result(\@args,\%env,180);
-    $r->{gpu_before}=$before;$r->{gpu_after}=gpu($a{gpu});put("$out/$case.json",$r);
+    $r->{gpu_before}=$before;$r->{gpu_after}=gpu($a{gpu});
+    my $after_error;
+    if($a{idle_resident_queue}) {
+     eval {
+      $r->{host_after}=snapshot($a{gpu},\%a);
+      my $busy=busy_reasons($r->{host_after},\%a);
+      $r->{host_after}{busy_reasons}=$busy;
+      @$busy and die "post-run contention: ".join('; ',@$busy)."\n";
+      1;
+     } or $after_error=$@||"post-run idle check failed\n";
+     redact_process_args($r->{host_after}) if ref($r->{host_after}) eq 'HASH';
+     $r->{post_run_error}=$after_error if defined($after_error);
+    }
+    put("$out/$case.json",$r);
     $r->{exit}==0 or die "GPU comparison failed: n=$n, seed=$seed, exit=$r->{exit}\n";
+    die $after_error if defined($after_error);
     $r->{gpu_after}{exit}==0 or die "post-run GPU metadata query failed\n";
     my $v=validate(JSON::PP->new->decode($r->{stdout}),$a{trace});
     defined($v->{keys})&&$v->{keys}==$n or die "harness reported wrong key count\n";
