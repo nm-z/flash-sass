@@ -55,14 +55,22 @@ static uint32_t ttype(int blk, const char *suffix) { const hold_tensor *t = hold
 /* every device allocation is recorded so engine_fini can free it */
 typedef struct { CUdeviceptr p; CUcontext c; size_t bytes; } allocrec;
 static allocrec *allocs; static int nallocs, capallocs; static size_t alloc_bytes;
-static CUdeviceptr dalloc(size_t bytes) {
+static CUdeviceptr dalloc_at(size_t bytes, int line) {
 	CUdeviceptr p; CUcontext c;
-	CK(cuMemAlloc(&p, bytes)); CK(cuCtxGetCurrent(&c));
+	CUresult result = cuMemAlloc(&p, bytes);
+	if (result != CUDA_SUCCESS) {
+		CUdevice device = -1; size_t available = 0, total = 0;
+		cuCtxGetDevice(&device); cuMemGetInfo(&available, &total);
+		fprintf(stderr, "engine: cuMemAlloc failed at engine.c:%d: visible_device=%d bytes=%zu free_bytes=%zu total_bytes=%zu\n",
+		        line, device, bytes, available, total);
+	}
+	CK(result); CK(cuCtxGetCurrent(&c));
 	if (nallocs == capallocs) { capallocs = capallocs ? 2 * capallocs : 1024; allocs = realloc(allocs, sizeof *allocs * (size_t)capallocs); }
 	allocs[nallocs++] = (allocrec){ p, c, bytes }; alloc_bytes += bytes;
 	CK(cuMemsetD8(p, 0, bytes));
 	return p;
 }
+#define dalloc(bytes) dalloc_at((bytes), __LINE__)
 /* Clone an activation allocation's shape, leaving the new position zero-filled.
  * Cached weights, positional KV, recurrent state and token arrays are shared. */
 static CUdeviceptr scratch_like(CUdeviceptr p) {
