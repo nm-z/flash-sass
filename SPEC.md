@@ -1823,3 +1823,33 @@ So expect 1.3x to 1.5x, 44 to 52 tok/s: worth it, not a doubling. p is unknown; 
 - **M3, tune.** Overlap the draft with the next pass, drop phases, rebalance (the main split is unchanged: the MTP block lives on die 6 and costs the main dies no memory).
 
 **Risks.** The second position makes `attnpartn` and the indexer chain run for two positions (about 0.25 ms per layer each at depth, SPEC); acceptance is unknown until M0 and lower at temperature 1; the MoE union of two tokens' experts is up to 20 reads per layer instead of 10 (the weights streaming share, 4.5 ms of the 28.9 ms, grows toward 9 ms in the worst case, which is included in the 3.5 ms est. only on average).
+
+## Six-die balance experiment (#54)
+
+The production placement remains `SPLIT_SHARES=112,97,81,116,97,97` and
+`ATTN_MAP=1,1,1,1,4,4,4,4,5,5,5,5`. The historical profile attached to
+[#54](https://github.com/nm-z/flash-sass/issues/54), from revision `52d268d`,
+reported the following `actq256` totals for the last token of a short greedy reply.
+These are the issue's prior measurements, not a new validation run:
+
+| Die | 0 | 1 | 2 | 3 | 4 | 5 |
+|---|---:|---:|---:|---:|---:|---:|
+| `actq256` time, ms | 4.98 | 3.63 | 5.81 | 4.84 | 3.57 | 3.51 |
+
+Their spread is 2.30 ms. The required limit is 0.50 ms, together with at least
+35.9 decode tokens/s on the `linkmatrix_test.sh` request protocol and unchanged
+output token IDs. No replacement split has yet been selected or validated here.
+
+`kern/die_balance_capture.rb` captures one loaded placement under the shared
+`/tmp/flash-sass-engine-validation.lock`: one warm-up and at least three measured
+HTTP requests, exact prompt/output token IDs, runtime identity, and all six raw
+profiles for each response. `kern/die_balance.rb` compares compatible captures
+and ranks accepted candidates by the busiest die's profiled token time. It does
+not add parallel die durations or declare an unmeasured candidate successful.
+
+The [experiment procedure](docs/die-balance.md) records the fixed request, capture
+and comparison commands, expert boundaries, memory checks, and the evidence to
+retain before replacing this section with a measured decision. A split change
+requires compatible weight holders; the resident weights cannot be moved by an
+engine-library reload. The current PR supplies the measurement path, and #54
+remains unresolved until an actual candidate passes all three acceptance gates.

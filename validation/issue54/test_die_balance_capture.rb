@@ -1,0 +1,175 @@
+# frozen_string_literal: true
+# CPU-only UNIX socket tests; no NVIDIA commands or model are executed.
+require "minitest/autorun"
+require "tmpdir"
+require "fileutils"
+require "timeout"
+require_relative "../../kern/die_balance_capture"
+require_relative "fixtures"
+
+class TestDieBalanceCapture < Minitest::Test
+  include DieBalanceFixtures
+
+  def setup
+    @directory = Dir.mktmpdir("synthetic-balance-relay-")
+  end
+
+  def teardown
+    FileUtils.remove_entry(@directory)
+  end
+
+  def with_relay(handler, peer_pid: Process.pid)
+    upstream_path = File.join(@directory, "upstream.sock")
+    relay_path = File.join(@directory, "relay.sock")
+    server = UNIXServer.new(upstream_path)
+    worker = Thread.new do
+      core = server.accept
+      handler.call(core)
+    ensure
+      core&.close unless core&.closed?
+    end
+    worker.report_on_exception = false
+    relay = DieBalanceCapture::Relay.new(relay_path, upstream_path, peer_pid, File.join(@directory, "protocol.jsonl"))
+    client = UNIXSocket.new(relay_path)
+    Timeout.timeout(5) { yield relay, client }
+  ensure
+    client&.close unless client&.closed?
+    relay&.close
+    server&.close unless server&.closed?
+    if worker
+      worker.join(1)
+      worker.kill if worker.alive?
+      worker.value
+    end
+  end
+
+  def test_startup_info_finishes_without_chat
+    commands = []
+    handler = lambda do |core|
+      commands << core.gets
+      core.write("info 8192 0\n")
+      commands << core.gets
+    end
+    with_relay(handler) do |relay, client|
+      client.write("info\n")
+      assert_equal "info 8192 0\n", client.gets
+      client.close
+      relay.check!
+    end
+    assert_equal ["info\n", nil], commands
+  end
+
+  def test_pipelined_commands_and_tokens_use_one_connection_for_profiles
+    observed = []
+    handler = lambda do |core|
+      [["stop 1 2\n", "ok: stop 1 2\n"], ["sample 7 0 32 1\n", "ok: sample seed 7 temp 0 top_k 32 top_p 1 (greedy)\n"],
+       ["snap 3\n", "ok: snap 3\n"]].each do |_command, reply|
+        observed << core.gets
+        core.write(reply)
+      end
+      observed << core.gets
+      # Deliberately one write: catches select/gets buffering deadlocks.
+      core.write("tok 101\ntok 102\ntok 103\ndone 3 1 3 75.7 20.0 0 0\n")
+      observed << core.gets
+      core.write(fixture_config)
+      6.times do |die|
+        observed << core.gets
+        core.write(fixture_profile(die)["raw"])
+      end
+      observed << :all_profiles_sent
+      core.gets # frontend closes only after consuming done
+    end
+    with_relay(handler) do |relay, client|
+      client.write("stop 1 2\nsample 7 0 32 1\nsnap 3\nchat 39 1 2 3\n")
+      replies = []
+      replies << client.gets until replies.last&.start_with?("done ")
+      assert_equal 7, replies.length
+      assert_includes observed, :all_profiles_sent
+      evidence = relay.pop
+      assert_equal [1, 2, 3], evidence["input_tokens"]
+      assert_equal [101, 102, 103], evidence["output_tokens"]
+      assert_equal (0...6).to_a, evidence["profiles"].map { |profile| profile["die"] }
+      assert_equal fixture_config, evidence["config"]
+      client.close
+    end
+    assert_equal ["stop 1 2\n", "sample 7 0 32 1\n", "snap 3\n", "chat 39 1 2 3\n", "config\n"] +
+      (0...6).map { |die| "prof #{die} all\n" } + [:all_profiles_sent], observed
+  end
+
+  def test_dangerous_command_never_reaches_core
+    observed = []
+    with_relay(->(core) { observed << core.gets }) do |relay, client|
+      client.write("quit\n")
+      error = assert_raises(DieBalanceCapture::CaptureError) { relay.pop }
+      assert_match(/refusing frontend command/, error.message)
+    end
+    assert_equal [nil], observed
+  end
+
+  def test_wrong_peer_pid_is_rejected_before_command
+    observed = []
+    with_relay(->(core) { observed << core.gets }, peer_pid: Process.pid + 100_000) do |relay, _client|
+      error = assert_raises(DieBalanceCapture::CaptureError) { relay.pop }
+      assert_match(/core peer PID/, error.message)
+    end
+    assert_equal [nil], observed
+  end
+
+  def test_engine_error_and_disconnect_do_not_return_evidence
+    ["error: synthetic failure\n", "", "done malformed\n"].each do |reply|
+      FileUtils.rm_f(File.join(@directory, "upstream.sock"))
+      FileUtils.rm_f(File.join(@directory, "protocol.jsonl"))
+      handler = ->(core) { core.gets; core.write(reply) unless reply.empty? }
+      with_relay(handler) do |relay, client|
+        client.write("chat 39 1 2 3\n")
+        assert_raises(DieBalanceCapture::CaptureError) { relay.pop }
+      end
+    end
+  end
+
+  def test_missing_profile_footer_fails
+    handler = lambda do |core|
+      core.gets
+      core.write("tok 101\ntok 102\ntok 103\ndone 3 1 3 75.7 20.0 0 0\n")
+      core.gets
+      core.write(fixture_config)
+      core.gets
+      core.write(fixture_profile(0)["raw"].sub(/.*longest:.*\n/, ""))
+    end
+    with_relay(handler) do |relay, client|
+      client.write("chat 39 1 2 3\n")
+      assert_raises(DieBalanceCapture::CaptureError) { relay.pop }
+    end
+  end
+
+  def test_busy_lock_fails_before_output_or_external_commands
+    lock_path = File.join(@directory, "engine.lock")
+    out = File.join(@directory, "not-created")
+    File.open(lock_path, "w") do |lock|
+      assert lock.flock(File::LOCK_EX | File::LOCK_NB)
+      _stdout, stderr = capture_io do
+        assert_equal 1, DieBalanceCapture.run(["--out", out, "--label", "synthetic",
+          "--core-pid", "123", "--flashd-pid", "124", "--lock", lock_path])
+      end
+      assert_includes stderr, "validation lock is busy"
+      refute File.exist?(out)
+      assert lock.flock(File::LOCK_EX | File::LOCK_NB)
+    end
+  end
+
+  def test_existing_evidence_is_never_overwritten_on_error
+    sentinel = File.join(@directory, "sentinel")
+    File.write(sentinel, "retain this")
+    capture_io do
+      assert_equal 1, DieBalanceCapture.run(["--out", @directory, "--label", "synthetic",
+        "--core-pid", "123", "--flashd-pid", "124", "--lock", File.join(@directory, "engine.lock")])
+    end
+    assert_equal "retain this", File.read(sentinel)
+    refute File.exist?(File.join(@directory, "error.txt"))
+  end
+
+  def test_child_cleanup_does_not_signal_nonchildren
+    DieBalanceCapture.stop_owned_child(Process.pid)
+    assert Process.kill(0, Process.pid)
+  end
+end

@@ -549,3 +549,9 @@ ple_eos_test: ple_eos_test.c ../ref/ple.c ../ref/fmath.c
 
 checked_test: checked_test.c ../ref/checked.c ../ref/checked.h ../ref/attn.c ../ref/qsa.c ../ref/fmath.c
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ checked_test.c ../ref/checked.c ../ref/attn.c ../ref/qsa.c ../ref/fmath.c -I../ref -lm
+
+# Offline checks for the six-die balance experiment; no CUDA or model required.
+.PHONY: die_balance_test
+die_balance_test:
+	ruby ../validation/issue54/test_die_balance.rb
+	ruby ../validation/issue54/test_die_balance_capture.rb
