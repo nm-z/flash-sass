@@ -187,12 +187,37 @@ Every target run must go through the shared-host gate:
       perl kern/qsa_oracle.pl --full --gpu kern/die.cubin \
       --binary kern/qsa_oracle_gpu --device 0 --out /tmp/qsa-gpu-new-run
 
-The gate checks nvidia-smi and ps, acquires
-/tmp/flash-sass-engine-validation.lock, rechecks, and holds the lock throughout
-the run. Resident holders or another worker's model keep the host busy even
-when utilization is zero. It waits and returns 75 if the host remains busy;
-it never kills other workers' processes. Gate logs contain process data;
-publish only the relevant sanitized evidence.
+The gate joins the blocking queue for
+/tmp/flash-sass-engine-validation.lock, checks nvidia-smi and ps after acquiring
+it, and holds the lock throughout the run. Without a device argument, resident
+holders or another worker's model keep the whole-host scope busy even when
+utilization is zero. It returns 75 if the queued wait expires or the execution
+scope remains occupied. It never stops other workers' processes.
+
+For this adapter's single-device fixtures, an explicitly selected free M60 can
+be used without requiring unrelated resident GPUs to be emptied:
+
+```sh
+bash kern/qsa_oracle_gpu_gate.sh --device 6 --wait 2700 --run-timeout 900 \
+  --out /tmp/qsa-single-device-gate-new -- \
+  perl kern/qsa_oracle.pl --full --gpu kern/die.cubin \
+  --binary kern/qsa_oracle_gpu --device 0 --out /tmp/qsa-single-device-new
+```
+
+The gate resolves physical ordinal 6 to its UUID and rechecks that identity
+under the same global lock. It rejects compute users on that GPU and sets
+`CUDA_VISIBLE_DEVICES` to that UUID, so the child uses logical ordinal **0**.
+This is not permission to bypass the global lock or share an occupied device.
+Whole-model multi-GPU runs still need their own complete execution scope.
+`--run-timeout` bounds the gate's own child process group (default 900 seconds,
+TERM followed by a 15-second kill grace); its actual exit code is preserved.
+Gate logs contain process data; publish only relevant sanitized evidence.
+
+`bash kern/qsa_oracle_gpu_gate_test.sh /absolute/new-gate-tests` exercises the
+queue, device scoping, malformed arguments, failed inventory queries, child
+exit propagation and timeout without a GPU. It mocks inventory/process queries
+and uses real flock/timeout with only the fixed lock pathname redirected in a
+test copy. It cannot be mistaken for target kernel execution.
 
 The C adapter executes production IDXQK normalization/RoPE/pooling in bounded
 batches, IDXSCORE and five IDXSEL passes with the actual GPU-produced histogram,
