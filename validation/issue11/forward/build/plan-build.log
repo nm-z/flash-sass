@@ -1,0 +1,3 @@
+make: Entering directory '/home/nate/codex/flash-pr31-logits-20261018-0520/kern'
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -o qsa_capture_prog_test qsa_capture_prog_test.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I/opt/cuda/include -lm
+make: Leaving directory '/home/nate/codex/flash-pr31-logits-20261018-0520/kern'
