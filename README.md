@@ -165,6 +165,31 @@ with `FLASH_PLE_FILE=` returns to the core's original file descriptor. The engin
 owns only the override descriptor and closes it after stopping its reader pool.
 Serial and parallel reader settings remain available for either source.
 
+### RAM-backed PLE source
+
+`kern/ple_ram` copies the source into an anonymous RAM-backed file, locks each
+64 MiB chunk as it is filled, and seals the completed file against future
+writes and size changes. This avoids dirty disk writeback and does not depend
+on retaining an NFS mapping in the filesystem cache. It uses no CUDA context.
+
+```sh
+make -C kern ple_ram
+./kern/ple_ram "$GGUF2" /tmp/flash-ple-ram.ready
+```
+
+The helper remains in the foreground to keep the mapping locked. Its nonempty
+ready file appears after the copy and page-residency check finish. The first
+line is a readable `/proc/PID/fd/FD` path; use that path as `FLASH_PLE_FILE` in
+the reload command above. The following line records the byte and page counts
+and the source file identity.
+
+The loader requires the complete file size plus a 2 GiB available-memory reserve
+and checks the reserve while loading. The locked-memory limit must also permit
+the allocation. A failed read, memory lock, residency check, or file seal aborts
+before publishing readiness. To release the RAM, reload the original source
+with `FLASH_PLE_FILE=` and terminate the helper. SIGTERM and SIGINT remove its
+ready file; a stale ready file must be resolved before starting another loader.
+
 ## Optional PLE file-cache warm-up
 
 Set `FLASH_PLE_DISK=1 FLASH_PLE_PREWARM=1` when starting `kern/serve.sh core` or

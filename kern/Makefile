@@ -6,6 +6,9 @@ SHARD1 ?= /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of
 
 all: gemv_q2_0_k2560.cubin gemv_q2_0_k640.cubin gemv_test gemv_bf16_k2560.cubin gemv_bf16_k320.cubin gemv_bf16_test gemv_q4_k_k2560.cubin gemv_q4_k_k6144.cubin gemv_q5_k_k2560.cubin gemv_q5_k_k6144.cubin gemv_k_test
 
+ple_ram: ple_ram.c
+	$(CC) -std=c11 -O2 -Wall -Wextra -o $@ $<
+
 # ptxas (11.4, matches driver 470) builds the container; maxas replaces the code.
 # Build switches (GEMV_TRACE, GEMV_NOLOAD, ...) come from the environment.
 skel_q2_0.cubin: gemv_q2_0.ptx
