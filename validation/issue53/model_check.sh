@@ -50,10 +50,14 @@ done
 exec 9>/tmp/flash-sass-engine-validation.lock
 deadline=$((SECONDS + wait_seconds))
 while (( SECONDS < deadline )); do
-    if ! flock -w 5 9; then
-        echo "WAIT shared engine-validation lock"
-        continue
+    remaining=$((deadline - SECONDS))
+    # Stay queued for the remaining budget instead of rejoining every five seconds.
+    echo "WAIT shared engine-validation lock (up to ${remaining}s)"
+    if ! flock -w "$remaining" 9; then
+        echo "shared lock wait failed or exhausted after ${wait_seconds}s" >&2
+        exit 75
     fi
+    echo "PASS shared engine-validation lock acquired"
     timeout 10s nvidia-smi -i "$gpu" >"$out/gpu-readiness.txt"
     ps -eo pid,ppid,etime,args >"$out/process-readiness.txt"
     row=$(timeout 10s nvidia-smi -i "$gpu" --query-gpu=uuid,utilization.gpu,memory.free --format=csv,noheader,nounits)

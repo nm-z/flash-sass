@@ -1,0 +1,41 @@
+## baseline-token
+
+PLE table /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf mapped for the twin; 1 prompt positions x 16 rows staged for the GPU
+1 die(s), blocks [0, 4), embed, head, 4 tokens (1 prompt)
+token   0: id 248045 ->   8678 128 phases; twin 3.73 s, dies 8.734 ms  exact
+token   1: id   8678 ->      0 128 phases; twin 3.42 s, dies 8.705 ms  exact
+token   2: id      0 ->  44480 128 phases; twin 3.37 s, dies 8.717 ms  exact
+token   3: id  44480 ->   1132 128 phases; twin 3.44 s, dies 8.684 ms  exact
+OK: 4 of 4 tokens exact; mean 8.710 ms per token
+
+## baseline-loop
+
+PLE table /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf mapped for the twin; 4 prompt positions x 16 rows staged for the GPU
+1 die(s), blocks [0, 4), embed, head, one launch, 4 tokens (4 prompt)
+129 phases per token; twin 13.69 s for 4 tokens; dies 34.764 ms total = 8.691 ms per token
+  die 0 tokens: all 4 exact
+  S.0 exact
+  tokens: 8678 101308 77620 13051
+  teacher-forced: 0 of 3 next-token predictions match the given ids; first difference at 0 (gpu 8678 given 872)
+OK: one launch, every token exact
+
+## candidate-token
+
+PLE table /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf mapped for the twin; 1 prompt positions x 16 rows staged for the GPU
+1 die(s), blocks [0, 4), embed, head, 4 tokens (1 prompt)
+token   0: id 248045 ->   8678 128 phases; twin 3.42 s, dies 8.712 ms  exact
+token   1: id   8678 ->      0 128 phases; twin 3.37 s, dies 8.701 ms  exact
+token   2: id      0 ->  44480 128 phases; twin 3.39 s, dies 8.680 ms  exact
+token   3: id  44480 ->   1132 128 phases; twin 3.37 s, dies 8.691 ms  exact
+OK: 4 of 4 tokens exact; mean 8.696 ms per token
+
+## candidate-loop
+
+PLE table /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf mapped for the twin; 4 prompt positions x 16 rows staged for the GPU
+1 die(s), blocks [0, 4), embed, head, one launch, 4 tokens (4 prompt)
+129 phases per token; twin 13.72 s for 4 tokens; dies 34.737 ms total = 8.684 ms per token
+  die 0 tokens: all 4 exact
+  S.0 exact
+  tokens: 8678 101308 77620 13051
+  teacher-forced: 0 of 3 next-token predictions match the given ids; first difference at 0 (gpu 8678 given 872)
+OK: one launch, every token exact

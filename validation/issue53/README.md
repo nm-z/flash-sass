@@ -11,8 +11,9 @@ The candidate **fails both measured production performance gates**: total HC
 time reaches **8.496 ms/token** against the 4.0 ms limit, and short-context
 decode averages **36.3167 tok/s** against the 38 tok/s requirement. The four
 fixed-prompt output token streams match exactly. The documented `model_test`
-regression is being run separately; an all-48-block C-twin comparison is not
-established. PR #76 remains a draft.
+regression passes for both baseline and candidate in free-run and loop modes;
+its scope is blocks [0,4), not an all-48-block C-twin comparison. PR #76 remains
+a draft because the two performance requirements are unmet.
 
 ## Changes
 
@@ -52,7 +53,7 @@ or lock was busy. The resident engine and holders remained running.
 | Existing `gemv_bf16_test`, `blk.4.hc_attn_down.weight` | All 320 rows bit-exact, K=10,240 |
 | Existing `gemv_bf16_test`, `blk.4.hc_attn_up.weight` | All 10,240 rows bit-exact, K=320 |
 | New persistent `hc_phase_test` | 102 cases, zero failures, each run against baseline and candidate |
-| `model_test` | Built successfully; separate locked regression attempt pending; no all-48-block C-twin result |
+| `model_test` | Baseline and candidate pass free-run and loop modes, four tokens each, embedding through blocks [0,4) and head, with the C twins enabled |
 
 The new C test compares HCWSUM with an independent fixed-order peer sum and
 the existing C stream-write twin, including logical die counts 1 through 6,
@@ -132,6 +133,47 @@ Evidence and validator:
 - [engine_check.rb](engine_check.rb): locked baseline/candidate comparison and verified restoration.
 - [engine_check_test.rb](engine_check_test.rb) and [gates/engine-check-cpu.log](gates/engine-check-cpu.log): CPU-only malformed-protocol checks and failure-injection checks for restoration after either arm fails and rejection of a restoration mismatch.
 
+## Existing model-test regression — PASS
+
+The model attempt completed from 06:13:53 to 06:18:06 UTC, including its lock
+wait, holder loading, and cleanup. [model_check.sh](model_check.sh) acquired the
+same shared engine-validation lock, checked GPU 7 under that lock, acquired
+its existing UUID reservation, and loaded an owned holder for blocks [0,4).
+It ran the existing `model_test` executable for both baseline and candidate,
+with embedding, all four selected blocks, real PLE data, dense attention,
+and the output head. Every run carried state across four token positions.
+`MODEL_NOTWIN` and `MODEL_NPH` were unset, so the C comparisons ran and the
+program was not truncated.
+
+| Arm | Mode | Numerical result | Output IDs |
+| --- | --- | --- | --- |
+| Baseline | Free-running, `eh` | Four of four tokens exact; complete stream and token-result comparisons pass | 8678, 0, 44480, 1132 |
+| Candidate | Free-running, `eh` | Four of four tokens exact; complete stream and token-result comparisons pass | 8678, 0, 44480, 1132 |
+| Baseline | One-launch teacher-forcing, `ehl` | All four tokens and final `S.0` stream exact | 8678, 101308, 77620, 13051 |
+| Candidate | One-launch teacher-forcing, `ehl` | All four tokens and final `S.0` stream exact | 8678, 101308, 77620, 13051 |
+
+All four test processes, the wrapper, and its supervisor exited **0**. The
+teacher-forcing inputs are arbitrary fixed IDs; the log's count of predictions
+matching those inputs is not the numerical oracle. The GPU-to-C comparisons
+are the exact comparisons reported above.
+
+This reproduces the existing whole-token case documented in `SPEC.md`. It
+covers one physical GPU and blocks [0,4); it does not establish an all-48-block
+C-twin result or a six-die numerical comparison. The separate four-fixture
+token-ID comparison above ran on the complete six-die, 48-layer production
+engine. The documented `model_test` gate is satisfied for its executed scope;
+no additional all-48-block numerical acceptance threshold is assumed.
+
+The owned holder was stopped after the tests; its PID, the wrapper, supervisor,
+and timeout process were all absent in the cleanup check. Resident `flashcore`
+PID 3575268 remained running. No resident engine reload was needed for this
+isolated regression.
+
+- [model/results.txt](model/results.txt): complete stdout from all four successful model-test processes.
+- [model/attempt-3-status.json](model/attempt-3-status.json): source revisions, wrapper identity, modes, IDs, results, coverage, and cleanup.
+- [model/attempt-3-raw.json](model/attempt-3-raw.json): exact commands and text results with hashes; the ephemeral IPC manifest and unrelated host process inventory are represented by identity only.
+- [model/attempt-1-status.json](model/attempt-1-status.json) and [model/attempt-2-status.json](model/attempt-2-status.json): earlier attempts that ran no GPU tests. The first command session ended without an exit result before acquiring the lock. The second was stopped with exit 143 before starting a holder so its repeated five-second lock waits could be replaced by one continuous wait. Their raw logs are retained beside the status files.
+
 ## Reproduction
 
 Both baseline and candidate were built on engi with GCC 16.2.1, the same
@@ -180,7 +222,7 @@ also fail the run.
 | Requirement | Current evidence |
 | --- | --- |
 | HC phase total at most 4.0 ms/token | **FAIL:** candidate maximum 8.496 ms; all 18 observations exceed 4.0 ms |
-| Existing whole-model bit-exact checks | Pending separate `model_test` attempt; documented blocks [0,4) do not establish an all-48-block C-twin comparison |
+| Existing `model_test` with numerical twins | **PASS:** baseline/candidate, free-run/loop, four tokens each, documented blocks [0,4) with embedding, PLE, attention and head |
 | Identical output tokens on fixed prompts | **PASS:** all four baseline/candidate streams match, 90 generated IDs per arm |
 | Short-context decode at least 38 tok/s | **FAIL:** arithmetic mean 36.3167 tok/s using one warmup and three measured requests |
 
@@ -255,3 +297,32 @@ The CPU checks require no GPU or resident engine:
 ```bash
 FLASH_SOCK=/tmp/issue53-cpu-mock ruby validation/issue53/engine_check_test.rb
 ```
+
+## Reproduce the model-test regression
+
+Build `hold` alongside the candidate `model_test` and cubin, using the same
+compiler and CUDA driver stubs as the other host binaries. The existing
+unsplit C-twin cache used by this run contains blocks 0 through 7 and the
+embedding/head tensors; the wrapper reads it without changing it. It creates
+an independent GPU holder manifest for the selected four blocks.
+
+From a persistent session on the GPU host:
+
+```bash
+HC_GPU=7 HC_WAIT_SECONDS=2700 GPU_LOCKDIR=/home/nate/codex/asm-port \
+  bash validation/issue53/model_check.sh \
+  /tmp/flash-sass-issue53-resume.IwwJba/baseline \
+  /tmp/flash-sass-issue53-resume.IwwJba/candidate \
+  /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf \
+  /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf \
+  /home/nate/codex/flash-pr35-cache-20261017/tensors \
+  /tmp/issue53-model-new-attempt
+```
+
+The lock wait uses the entire remaining budget in one `flock` call. GPU or
+host-memory admission failures release the lock and retry within the same
+budget. The wrapper records start, finish, and exit status, and its exit trap
+cleans up only its owned holder. The recorded host-side supervisor allows the
+wait to survive a command-session disconnect and imposes a separate upper
+bound on the complete holder/test sequence. Its exact script is included in
+the raw attempt bundle.

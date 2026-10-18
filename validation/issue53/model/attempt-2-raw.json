@@ -1,0 +1,77 @@
+{
+  "artifacts.sha256": {
+    "sha256": "8dfba6cacfa0990f881f4764e0b6746813a0d24e5611f1835b66ef526a9357f6",
+    "bytes": 615,
+    "text": "7cafc9cf40a71e1ed60ab7188790fb6986f898a9891643130ed3a36cbc70e2bb  /tmp/flash-sass-issue53-resume.IwwJba/baseline/model_test\n116d828f20139d144d46d7d8115a28e35313dac1f6c24ba81c1b5c0984f50e14  /tmp/flash-sass-issue53-resume.IwwJba/baseline/die.cubin\nac35613b17f3812e3a8d151c7a8c5caca906ee2309c96f1c20fa8082b1c5c766  /tmp/flash-sass-issue53-resume.IwwJba/candidate/model_test\n265325fbb88032057deb17f9da40e8c42d1286540ee0cd89b136af030dae735b  /tmp/flash-sass-issue53-resume.IwwJba/candidate/die.cubin\n5f0fc50a39864286b4924b4553e2bd0c3c551fde87b9e891de478b24e969b523  /tmp/flash-sass-issue53-resume.IwwJba/candidate/hold\n"
+  },
+  "exit-code.txt": {
+    "sha256": "9d9b18720961e9b4689fd763b85e7b6f36160ccd3a8a1c9ddc5103bb0f66c396",
+    "bytes": 4,
+    "text": "143\n"
+  },
+  "finished-utc.txt": {
+    "sha256": "8cc27aa49d74bedac2a9e1bc0e5b213a0b5f55ea0e1d3418fdee594de77ed23e",
+    "bytes": 21,
+    "text": "2026-10-18T06:13:12Z\n"
+  },
+  "free-run.ids": {
+    "sha256": "85c2206fba847aa3594086a09a36999669b4eca3cd0056b2b1b373d08707ba33",
+    "bytes": 7,
+    "text": "248045\n"
+  },
+  "holder-size.stderr": {
+    "sha256": "db3a585051db179ee2158ca105cffb6493c5447a90f8184eb8d1a44b8668eb07",
+    "bytes": 44,
+    "text": "hold: 100 tensors, 3.89 GB on die 7 (split)\n"
+  },
+  "holder-size.stdout": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "text": ""
+  },
+  "started-utc.txt": {
+    "sha256": "2bdec2f7c2f057f010c92ff238a401f3e2b0bc8d8948ad8d621b8eaf51efc72b",
+    "bytes": 21,
+    "text": "2026-10-18T05:59:42Z\n"
+  },
+  "teacher-forced.ids": {
+    "sha256": "dab24880cad4d54523fe4ba70ca42ac3817a72eb71ce6fad6b8845d5fb39c573",
+    "bytes": 20,
+    "text": "248045\n872\n198\n3838\n"
+  },
+  "wrapper.pid": {
+    "sha256": "48123b9e471a2fb5e098f6524d8691186f8abe9fd9cd79f0c13fe24473729c59",
+    "bytes": 8,
+    "text": "1039325\n"
+  },
+  "wrapper.sha256": {
+    "sha256": "29f18665cdec766fddd95b82b73469746af8a79401b869914e6e1b21a6fb47ec",
+    "bytes": 118,
+    "text": "1ba02092ab17a42dd383c09c2282ddc96ddfe378942bda4703d55a849d0e8666  /tmp/flash-sass-issue53-gates.4F55qE/model_check.sh\n"
+  },
+  "model-attempt-2-driver.log": {
+    "sha256": "bfbe2c86565f9406c3bc17a11f05d9129f67136666a4560f54798e4071f1c3ee",
+    "bytes": 5635,
+    "text": "WAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\nWAIT shared engine-validation lock\n"
+  },
+  "model-attempt-2-supervisor.sh": {
+    "sha256": "808f5dd8246de8ff4af3cc4d8455c2d2959be12adabde7baef1ac3e93bcc1c88",
+    "bytes": 816,
+    "text": "#!/usr/bin/env bash\nset -uo pipefail\nout=/tmp/flash-sass-issue53-gates.4F55qE/model-attempt-2\nprintf '%s\\n' \"$$\" >\"$out.supervisor.pid\"\ndate -u +%FT%TZ >\"$out.supervisor-started.txt\"\nHC_GPU=7 HC_WAIT_SECONDS=2700 GPU_LOCKDIR=/home/nate/codex/asm-port \\\n timeout --signal=TERM --kill-after=10s 7800s \\\n bash /tmp/flash-sass-issue53-gates.4F55qE/model_check.sh \\\n /tmp/flash-sass-issue53-resume.IwwJba/baseline \\\n /tmp/flash-sass-issue53-resume.IwwJba/candidate \\\n /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf \\\n /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf \\\n /home/nate/codex/flash-pr35-cache-20261017/tensors \"$out\"\nresult=$?\nprintf '%s\\n' \"$result\" >\"$out.supervisor-exit.txt\"\ndate -u +%FT%TZ >\"$out.supervisor-finished.txt\"\nexit \"$result\"\n"
+  },
+  "model-attempt-2.supervisor-exit.txt": {
+    "sha256": "9d9b18720961e9b4689fd763b85e7b6f36160ccd3a8a1c9ddc5103bb0f66c396",
+    "bytes": 4,
+    "text": "143\n"
+  },
+  "model-attempt-2.supervisor-started.txt": {
+    "sha256": "2bdec2f7c2f057f010c92ff238a401f3e2b0bc8d8948ad8d621b8eaf51efc72b",
+    "bytes": 21,
+    "text": "2026-10-18T05:59:42Z\n"
+  },
+  "model-attempt-2.supervisor-finished.txt": {
+    "sha256": "8cc27aa49d74bedac2a9e1bc0e5b213a0b5f55ea0e1d3418fdee594de77ed23e",
+    "bytes": 21,
+    "text": "2026-10-18T06:13:12Z\n"
+  }
+}

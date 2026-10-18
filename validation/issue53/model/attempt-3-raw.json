@@ -1,0 +1,197 @@
+{
+  "artifacts.sha256": {
+    "sha256": "8dfba6cacfa0990f881f4764e0b6746813a0d24e5611f1835b66ef526a9357f6",
+    "bytes": 615,
+    "text": "7cafc9cf40a71e1ed60ab7188790fb6986f898a9891643130ed3a36cbc70e2bb  /tmp/flash-sass-issue53-resume.IwwJba/baseline/model_test\n116d828f20139d144d46d7d8115a28e35313dac1f6c24ba81c1b5c0984f50e14  /tmp/flash-sass-issue53-resume.IwwJba/baseline/die.cubin\nac35613b17f3812e3a8d151c7a8c5caca906ee2309c96f1c20fa8082b1c5c766  /tmp/flash-sass-issue53-resume.IwwJba/candidate/model_test\n265325fbb88032057deb17f9da40e8c42d1286540ee0cd89b136af030dae735b  /tmp/flash-sass-issue53-resume.IwwJba/candidate/die.cubin\n5f0fc50a39864286b4924b4553e2bd0c3c551fde87b9e891de478b24e969b523  /tmp/flash-sass-issue53-resume.IwwJba/candidate/hold\n"
+  },
+  "baseline-loop.command.txt": {
+    "sha256": "82302a75d7eb1865d1c06b3b72f91459be7c42ca064821b75c0056b6d941b38f",
+    "bytes": 385,
+    "text": "env MODEL_IDS=/tmp/flash-sass-issue53-gates.4F55qE/model-attempt-3/teacher-forced.ids MODEL_PLE=/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf MODEL_PLE_OFF=192 /tmp/flash-sass-issue53-resume.IwwJba/baseline/model_test /home/nate/codex/flash-pr35-cache-20261017/tensors 0 4 4 ehl /tmp/flash-sass-issue53-gates.4F55qE/model-attempt-3/holder.manifest \n"
+  },
+  "baseline-loop.exit": {
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "bytes": 2,
+    "text": "0\n"
+  },
+  "baseline-loop.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "text": ""
+  },
+  "baseline-loop.stdout": {
+    "sha256": "3eeb21f5d7f9bb35081db3d0dd18455a18610eb8b26175432eee8e193bafc71a",
+    "bytes": 542,
+    "text": "PLE table /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf mapped for the twin; 4 prompt positions x 16 rows staged for the GPU\n1 die(s), blocks [0, 4), embed, head, one launch, 4 tokens (4 prompt)\n129 phases per token; twin 13.69 s for 4 tokens; dies 34.764 ms total = 8.691 ms per token\n  die 0 tokens: all 4 exact\n  S.0 exact\n  tokens: 8678 101308 77620 13051\n  teacher-forced: 0 of 3 next-token predictions match the given ids; first difference at 0 (gpu 8678 given 872)\nOK: one launch, every token exact\n"
+  },
+  "baseline-token.command.txt": {
+    "sha256": "20c2fcd875271d4546d02882f189eb2b298326a4402d5430cc00d84d1c75a37d",
+    "bytes": 378,
+    "text": "env MODEL_IDS=/tmp/flash-sass-issue53-gates.4F55qE/model-attempt-3/free-run.ids MODEL_PLE=/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf MODEL_PLE_OFF=192 /tmp/flash-sass-issue53-resume.IwwJba/baseline/model_test /home/nate/codex/flash-pr35-cache-20261017/tensors 0 4 4 eh /tmp/flash-sass-issue53-gates.4F55qE/model-attempt-3/holder.manifest \n"
+  },
+  "baseline-token.exit": {
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "bytes": 2,
+    "text": "0\n"
+  },
+  "baseline-token.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "text": ""
+  },
+  "baseline-token.stdout": {
+    "sha256": "7cd653fb9fa41d0cebbdec22039abfc5c3897edfa797fa77186d2724b7fb019c",
+    "bytes": 576,
+    "text": "PLE table /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf mapped for the twin; 1 prompt positions x 16 rows staged for the GPU\n1 die(s), blocks [0, 4), embed, head, 4 tokens (1 prompt)\ntoken   0: id 248045 ->   8678 128 phases; twin 3.73 s, dies 8.734 ms  exact\ntoken   1: id   8678 ->      0 128 phases; twin 3.42 s, dies 8.705 ms  exact\ntoken   2: id      0 ->  44480 128 phases; twin 3.37 s, dies 8.717 ms  exact\ntoken   3: id  44480 ->   1132 128 phases; twin 3.44 s, dies 8.684 ms  exact\nOK: 4 of 4 tokens exact; mean 8.710 ms per token\n"
+  },
+  "candidate-loop.command.txt": {
+    "sha256": "0df76647f68367f7639ded548d44b414e187900d52f9dfefc164aadf4777c8df",
+    "bytes": 386,
+    "text": "env MODEL_IDS=/tmp/flash-sass-issue53-gates.4F55qE/model-attempt-3/teacher-forced.ids MODEL_PLE=/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf MODEL_PLE_OFF=192 /tmp/flash-sass-issue53-resume.IwwJba/candidate/model_test /home/nate/codex/flash-pr35-cache-20261017/tensors 0 4 4 ehl /tmp/flash-sass-issue53-gates.4F55qE/model-attempt-3/holder.manifest \n"
+  },
+  "candidate-loop.exit": {
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "bytes": 2,
+    "text": "0\n"
+  },
+  "candidate-loop.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "text": ""
+  },
+  "candidate-loop.stdout": {
+    "sha256": "2e992262d3d84ad512f4ed1495bce8184245c86f603739f122387c82838b3f20",
+    "bytes": 542,
+    "text": "PLE table /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf mapped for the twin; 4 prompt positions x 16 rows staged for the GPU\n1 die(s), blocks [0, 4), embed, head, one launch, 4 tokens (4 prompt)\n129 phases per token; twin 13.72 s for 4 tokens; dies 34.737 ms total = 8.684 ms per token\n  die 0 tokens: all 4 exact\n  S.0 exact\n  tokens: 8678 101308 77620 13051\n  teacher-forced: 0 of 3 next-token predictions match the given ids; first difference at 0 (gpu 8678 given 872)\nOK: one launch, every token exact\n"
+  },
+  "candidate-token.command.txt": {
+    "sha256": "878d3cfc5dc5764b3d204ee31fb486f874893af1b67586eaf928919c0924a417",
+    "bytes": 379,
+    "text": "env MODEL_IDS=/tmp/flash-sass-issue53-gates.4F55qE/model-attempt-3/free-run.ids MODEL_PLE=/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf MODEL_PLE_OFF=192 /tmp/flash-sass-issue53-resume.IwwJba/candidate/model_test /home/nate/codex/flash-pr35-cache-20261017/tensors 0 4 4 eh /tmp/flash-sass-issue53-gates.4F55qE/model-attempt-3/holder.manifest \n"
+  },
+  "candidate-token.exit": {
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "bytes": 2,
+    "text": "0\n"
+  },
+  "candidate-token.stderr": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "text": ""
+  },
+  "candidate-token.stdout": {
+    "sha256": "41576854ca74c55b6f37044002a4efe9d51581187cb67b279d24b1f8503c9d03",
+    "bytes": 576,
+    "text": "PLE table /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf mapped for the twin; 1 prompt positions x 16 rows staged for the GPU\n1 die(s), blocks [0, 4), embed, head, 4 tokens (1 prompt)\ntoken   0: id 248045 ->   8678 128 phases; twin 3.42 s, dies 8.712 ms  exact\ntoken   1: id   8678 ->      0 128 phases; twin 3.37 s, dies 8.701 ms  exact\ntoken   2: id      0 ->  44480 128 phases; twin 3.39 s, dies 8.680 ms  exact\ntoken   3: id  44480 ->   1132 128 phases; twin 3.37 s, dies 8.691 ms  exact\nOK: 4 of 4 tokens exact; mean 8.696 ms per token\n"
+  },
+  "exit-code.txt": {
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "bytes": 2,
+    "text": "0\n"
+  },
+  "finished-utc.txt": {
+    "sha256": "c0b39b39dbfb3fadec3e705b2b7ca16ad3e6f4fcc19794a200a99bac5bdfbcd0",
+    "bytes": 21,
+    "text": "2026-10-18T06:18:06Z\n"
+  },
+  "free-run.ids": {
+    "sha256": "85c2206fba847aa3594086a09a36999669b4eca3cd0056b2b1b373d08707ba33",
+    "bytes": 7,
+    "text": "248045\n"
+  },
+  "gpu-readiness.txt": {
+    "sha256": "0138e1215ac8f2c23aa09d9deaaf6844ee39321a61bd47e2305dcb6face55cb8",
+    "bytes": 1552,
+    "text": "Sat Oct 17 23:15:54 2026       \n+-----------------------------------------------------------------------------+\n| NVIDIA-SMI 470.256.02   Driver Version: 470.256.02   CUDA Version: 11.4     |\n|-------------------------------+----------------------+----------------------+\n| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |\n| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |\n|                               |                      |               MIG M. |\n|===============================+======================+======================|\n|   7  Tesla M60           On   | 00000000:13:00.0 Off |                    0 |\n| N/A   35C    P8    13W / 150W |    138MiB /  7618MiB |      0%      Default |\n|                               |                      |                  N/A |\n+-------------------------------+----------------------+----------------------+\n                                                                               \n+-----------------------------------------------------------------------------+\n| Processes:                                                                  |\n|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |\n|        ID   ID                                                   Usage      |\n|=============================================================================|\n|  No running processes found                                                 |\n+-----------------------------------------------------------------------------+\n"
+  },
+  "holder-size.stderr": {
+    "sha256": "db3a585051db179ee2158ca105cffb6493c5447a90f8184eb8d1a44b8668eb07",
+    "bytes": 44,
+    "text": "hold: 100 tensors, 3.89 GB on die 7 (split)\n"
+  },
+  "holder-size.stdout": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "text": ""
+  },
+  "holder.manifest": {
+    "sha256": "824164ae75160daf1fe6da51afdbcbe0afec6e608fbddf95ac2ba2ee9cb35fa4",
+    "bytes": 5946,
+    "omitted_reason": "Ephemeral CUDA IPC manifest; only its identity is needed after owned-holder cleanup."
+  },
+  "holder.manifest.ready": {
+    "sha256": "ed1a545bb85e55816bbf9566b028b2a0bc456b88f49f6f266c0401048824194b",
+    "bytes": 6,
+    "omitted_reason": "Ephemeral CUDA IPC manifest; only its identity is needed after owned-holder cleanup."
+  },
+  "holder.pid": {
+    "sha256": "4abcb99c6c26055e0b42b8de85982f75a98762430549d0bc4e779c3f15d6d714",
+    "bytes": 8,
+    "text": "1131752\n"
+  },
+  "holder.stderr": {
+    "sha256": "536e628d734ccb996ea14a6532a5fbadcd14af36429594ec903f7b0a836d5f4f",
+    "bytes": 6467,
+    "text": "hold: 100 tensors, 3.89 GB on die 7 (split)\n  output.weight                               437.0 MB  Q5_K tiles\n  output_hc_down.weight                         6.6 MB  BF16\n  output_hc_norm.weight                         0.0 MB  F32\n  output_hc_up.weight                           6.6 MB  BF16\n  token_embd.weight                           273.2 MB  Q3_K\n  blk.0.attn_gate.weight                        8.8 MB  Q4_K tiles\n  blk.0.attn_qkv.weight                        14.3 MB  IQ4_XS tiles\n  blk.0.ffn_down_exps.weight                  251.7 MB  Q2_0 tiles\n  blk.0.ffn_down_shexp.weight                   1.1 MB  Q5_0 tiles\n  blk.0.ffn_gate_exps.weight                  235.9 MB  Q2_0 tiles\n  blk.0.ffn_gate_shexp.weight                   0.9 MB  IQ4_XS tiles\n  blk.0.ffn_up_exps.weight                    235.9 MB  Q2_0 tiles\n  blk.0.ffn_up_shexp.weight                     0.7 MB  Q3_K tiles\n  blk.0.hc_attn_norm.weight                     0.0 MB  F32\n  blk.0.hc_attn_up.weight                       6.6 MB  BF16\n  blk.0.hc_ffn_norm.weight                      0.0 MB  F32\n  blk.0.hc_ffn_up.weight                        6.6 MB  BF16\n  blk.0.ssm_a                                   0.0 MB  F32\n  blk.0.ssm_conv1d.weight                       0.2 MB  F32\n  blk.0.ssm_norm.weight                         0.0 MB  F32\n  blk.0.ssm_out.weight                         10.8 MB  Q5_K tiles\n  blk.1.attn_gate.weight                        8.6 MB  IQ4_XS tiles\n  blk.1.attn_qkv.weight                        14.3 MB  IQ4_XS tiles\n  blk.1.ffn_down_exps.weight                  251.7 MB  Q2_0 tiles\n  blk.1.ffn_down_shexp.weight                   0.5 MB  Q2_0 tiles\n  blk.1.ffn_gate_exps.weight                  235.9 MB  Q2_0 tiles\n  blk.1.ffn_gate_shexp.weight                   0.5 MB  Q2_0 tiles\n  blk.1.ffn_up_exps.weight                    235.9 MB  Q2_0 tiles\n  blk.1.ffn_up_shexp.weight                     0.5 MB  Q2_0 tiles\n  blk.1.hc_attn_norm.weight                     0.0 MB  F32\n  blk.1.hc_attn_up.weight                       6.6 MB  BF16\n  blk.1.hc_ffn_norm.weight                      0.0 MB  F32\n  blk.1.hc_ffn_up.weight                        6.6 MB  BF16\n  blk.1.ple_conv1d.weight                       0.1 MB  F16\n  blk.1.ple_key.weight                          7.4 MB  Q2_0 tiles\n  blk.1.ple_norm_conv.weight                    0.0 MB  F32\n  blk.1.ple_norm_key.weight                     0.0 MB  F32\n  blk.1.ple_norm_query.weight                   0.0 MB  F32\n  blk.1.ple_value.weight                       13.1 MB  BF16\n  blk.1.ssm_a                                   0.0 MB  F32\n  blk.1.ssm_conv1d.weight                       0.2 MB  F32\n  blk.1.ssm_norm.weight                         0.0 MB  F32\n  blk.1.ssm_out.weight                          8.8 MB  Q4_K tiles\n  blk.2.attn_gate.weight                        8.6 MB  IQ4_XS tiles\n  blk.2.attn_qkv.weight                        14.3 MB  IQ4_XS tiles\n  blk.2.ffn_down_exps.weight                  251.7 MB  Q2_0 tiles\n  blk.2.ffn_down_shexp.weight                   0.9 MB  Q4_0 tiles\n  blk.2.ffn_gate_exps.weight                  235.9 MB  Q2_0 tiles\n  blk.2.ffn_gate_shexp.weight                   0.9 MB  IQ4_XS tiles\n  blk.2.ffn_up_exps.weight                    235.9 MB  Q2_0 tiles\n  blk.2.ffn_up_shexp.weight                     0.5 MB  Q2_0 tiles\n  blk.2.hc_attn_norm.weight                     0.0 MB  F32\n  blk.2.hc_attn_up.weight                       6.6 MB  BF16\n  blk.2.hc_ffn_norm.weight                      0.0 MB  F32\n  blk.2.hc_ffn_up.weight                        6.6 MB  BF16\n  blk.2.ssm_a                                   0.0 MB  F32\n  blk.2.ssm_conv1d.weight                       0.2 MB  F32\n  blk.2.ssm_norm.weight                         0.0 MB  F32\n  blk.2.ssm_out.weight                          8.5 MB  IQ4_XS tiles\n  blk.3.attn_k.weight                           0.6 MB  Q3_K tiles\n  blk.3.attn_k_norm.weight                      0.0 MB  F32\n  blk.3.attn_output.weight                      8.8 MB  Q4_K tiles\n  blk.3.attn_q.weight                           8.8 MB  Q2_0 tiles\n  blk.3.attn_q_norm.weight                      0.0 MB  F32\n  blk.3.attn_v.weight                           0.9 MB  Q5_K tiles\n  blk.3.ffn_down_exps.weight                  251.7 MB  Q2_0 tiles\n  blk.3.ffn_down_shexp.weight                   0.9 MB  Q4_0 tiles\n  blk.3.ffn_gate_exps.weight                  235.9 MB  Q2_0 tiles\n  blk.3.ffn_gate_shexp.weight                   0.5 MB  Q2_0 tiles\n  blk.3.ffn_up_exps.weight                    235.9 MB  Q2_0 tiles\n  blk.3.ffn_up_shexp.weight                     0.5 MB  Q2_0 tiles\n  blk.3.hc_attn_norm.weight                     0.0 MB  F32\n  blk.3.hc_attn_up.weight                       6.6 MB  BF16\n  blk.3.hc_ffn_norm.weight                      0.0 MB  F32\n  blk.3.hc_ffn_up.weight                        6.6 MB  BF16\n  blk.3.indexer.k_norm.weight                   0.0 MB  F32\n  blk.3.indexer.q_norm.weight                   0.0 MB  F32\n  blk.0.hc_attn_dj.weight                       6.6 MB  BF16\n  blk.0.hc_ffn_dj.weight                        6.6 MB  BF16\n  blk.0.ffn_gate_inp_x.weight                   2.6 MB  BF16\n  blk.0.ssm_ab.weight                           0.5 MB  BF16\n  blk.0.ssm_ab.bias                             0.0 MB  F32\n  blk.0.emap                                    0.0 MB  F32\n  blk.1.hc_attn_dj.weight                       6.6 MB  BF16\n  blk.1.hc_ffn_dj.weight                        6.6 MB  BF16\n  blk.1.ffn_gate_inp_x.weight                   2.6 MB  BF16\n  blk.1.ssm_ab.weight                           0.5 MB  BF16\n  blk.1.ssm_ab.bias                             0.0 MB  F32\n  blk.1.emap                                    0.0 MB  F32\n  blk.2.hc_attn_dj.weight                       6.6 MB  BF16\n  blk.2.hc_ffn_dj.weight                        6.6 MB  BF16\n  blk.2.ffn_gate_inp_x.weight                   2.6 MB  BF16\n  blk.2.ssm_ab.weight                           0.5 MB  BF16\n  blk.2.ssm_ab.bias                             0.0 MB  F32\n  blk.2.emap                                    0.0 MB  F32\n  blk.3.hc_attn_dj.weight                       6.6 MB  BF16\n  blk.3.hc_ffn_dj.weight                        6.6 MB  BF16\n  blk.3.ffn_gate_inp_x.weight                   2.6 MB  BF16\n  blk.3.indexer_x.weight                        3.3 MB  BF16\n  blk.3.emap                                    0.0 MB  F32\nhold: ready (/tmp/flash-sass-issue53-gates.4F55qE/model-attempt-3/holder.manifest); holding until SIGTERM\n"
+  },
+  "holder.stdout": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "text": ""
+  },
+  "process-readiness.txt": {
+    "sha256": "b2e8b0d28a4041beef80ed08af4e90006b12cc1f0778bae5feb10f7165c673ff",
+    "bytes": 25934,
+    "omitted_reason": "Unrelated host process inventory; original retained with the run artifacts."
+  },
+  "started-utc.txt": {
+    "sha256": "9f8f8b8b9e7ff6d3fb77561d7d5e02e03be44c201dfac325211275111e02de73",
+    "bytes": 21,
+    "text": "2026-10-18T06:13:53Z\n"
+  },
+  "teacher-forced.ids": {
+    "sha256": "dab24880cad4d54523fe4ba70ca42ac3817a72eb71ce6fad6b8845d5fb39c573",
+    "bytes": 20,
+    "text": "248045\n872\n198\n3838\n"
+  },
+  "wrapper.pid": {
+    "sha256": "49df730a3029e4305082788c2e4386f65f14a015a0f614e89be1b614c8065214",
+    "bytes": 8,
+    "text": "1120492\n"
+  },
+  "wrapper.sha256": {
+    "sha256": "774bcfe6496ef3bc4d3b354189284f7d6595543b399cf8cdf640b56cd185bc87",
+    "bytes": 118,
+    "text": "88f377c1faea976d29bc9287be4fea41cd87917787f7df0fc5994dc867dd957a  /tmp/flash-sass-issue53-gates.4F55qE/model_check.sh\n"
+  },
+  "model-attempt-3-driver.log": {
+    "sha256": "2ea170f761407cfcee8141dee8c9e162cbfd9f25e57ef8a5e2842270ac6f71e9",
+    "bytes": 484,
+    "text": "WAIT shared engine-validation lock (up to 2700s)\nPASS shared engine-validation lock acquired\nPASS owned holder ready; GPU 7; blocks [0,4)\nSTART baseline model_test token\nRESULT baseline token exit=0\nSTART baseline model_test loop\nRESULT baseline loop exit=0\nSTART candidate model_test token\nRESULT candidate token exit=0\nSTART candidate model_test loop\nRESULT candidate loop exit=0\nPASS documented whole-token model_test: baseline/candidate, token/loop, C twins enabled, blocks [0,4)\n"
+  },
+  "model-attempt-3-supervisor.sh": {
+    "sha256": "84337366e78d282aef1a03db2cc0c7aa0e217db2c2ff3d996ae3fdb5feabb903",
+    "bytes": 816,
+    "text": "#!/usr/bin/env bash\nset -uo pipefail\nout=/tmp/flash-sass-issue53-gates.4F55qE/model-attempt-3\nprintf '%s\\n' \"$$\" >\"$out.supervisor.pid\"\ndate -u +%FT%TZ >\"$out.supervisor-started.txt\"\nHC_GPU=7 HC_WAIT_SECONDS=2700 GPU_LOCKDIR=/home/nate/codex/asm-port \\\n timeout --signal=TERM --kill-after=10s 7800s \\\n bash /tmp/flash-sass-issue53-gates.4F55qE/model_check.sh \\\n /tmp/flash-sass-issue53-resume.IwwJba/baseline \\\n /tmp/flash-sass-issue53-resume.IwwJba/candidate \\\n /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf \\\n /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf \\\n /home/nate/codex/flash-pr35-cache-20261017/tensors \"$out\"\nresult=$?\nprintf '%s\\n' \"$result\" >\"$out.supervisor-exit.txt\"\ndate -u +%FT%TZ >\"$out.supervisor-finished.txt\"\nexit \"$result\"\n"
+  },
+  "model-attempt-3.supervisor-exit.txt": {
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "bytes": 2,
+    "text": "0\n"
+  },
+  "model-attempt-3.supervisor-started.txt": {
+    "sha256": "9f8f8b8b9e7ff6d3fb77561d7d5e02e03be44c201dfac325211275111e02de73",
+    "bytes": 21,
+    "text": "2026-10-18T06:13:53Z\n"
+  },
+  "model-attempt-3.supervisor-finished.txt": {
+    "sha256": "c0b39b39dbfb3fadec3e705b2b7ca16ad3e6f4fcc19794a200a99bac5bdfbcd0",
+    "bytes": 21,
+    "text": "2026-10-18T06:18:06Z\n"
+  },
+  "model-attempt-3-cleanup.txt": {
+    "sha256": "bc48868947f34237c72f7710c78aa1bcb4f3a326ae1420620945ca0d15cf8d64",
+    "bytes": 176,
+    "text": "Sun Oct 18 06:19:49 UTC 2026\n    PID    PPID STAT COMMAND\n3575268       1 Rsl  flashcore\n1139960 WRITE /tmp/flash-sass-engine-validation.lock                                  \n"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "status": "REPLACED_BEFORE_LOCK",
+  "wait_budget_seconds": 2700,
+  "started_utc": "2026-10-18T05:59:42Z",
+  "finished_utc": "2026-10-18T06:13:12Z",
+  "model_tests_executed": 0,
+  "exit_code": 143,
+  "wrapper_pid": 1039325,
+  "reason": "Stopped only this verified owned waiting wrapper, before any holder or model test started. Replaced repeated five-second flock waits with one continuous wait for the remaining resource budget to avoid repeatedly rejoining behind new arrivals.",
+  "retry": "A fresh host-supervised attempt uses the same shared lock and GPU checks, with a continuous 2700-second lock wait."
+}
