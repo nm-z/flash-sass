@@ -6,6 +6,14 @@ This adds capture and comparison tools for issue #22. It does **not** establish 
 
 `MODEL_CAPTURE` records actual GPU head-row slices after each position of the existing per-token model harness. It requires all 48 blocks, embedding and head, production QSA, a complete teacher-forced ID sequence, a real PLE table, and no phase truncation or fault injection. It rejects missing or overlapping vocabulary slices before creating capture files. It writes little-endian FP32 logits in `[position,248320]` order, little-endian uint32 input IDs, and raw configuration metadata. It cannot attest the checkpoint identity from the holder's arena alone.
 
+New captures use `flash-sass.raw-model-capture.v2`. The final
+`capture_info.json` includes `dtype:"<f4"` and `complete:true` and is published
+only after every row has been written and the logit stream has closed. A failed
+readback, skipped/repeated position or interrupted run leaves no final marker.
+Freezing a v2 capture requires that marker. Archived v1 captures remain
+replayable under their original schema; explicit contradictory dtypes, byte
+orders and completion flags are rejected in every schema.
+
 A command template, after building this PR and configuring the existing six holders, is:
 
 ```bash
@@ -45,7 +53,7 @@ The metadata object contains `teacher_forced:true`, `base_model:{id,revision}`, 
 
 Frozen artifacts are hashed again when compared. Inputs must match exactly, every input ID must be in the aligned vocabulary, and vocabulary columns are reordered by token ID. Nonfinite logits fail. The comparator reports raw and centered logit errors, relative L2, cosine similarity, reference-to-candidate KL, probability differences, top-1 agreement, top-k overlap, teacher-forced NLL/perplexity and target rank. The last row has no next-token label. Log-softmax subtracts the maximum before normalization to preserve probabilities under large shared logit offsets; cutoff ties choose lower token IDs.
 
-The native comparator reads one FP32 vocabulary row at a time and computes metrics in FP64. It uses a stable shifted log-softmax and accumulates per-row NLL differences directly. Centered RMSE centers the candidate-minus-reference difference vector; it must not subtract a large anchor logit separately from each input vector. Hash verification identifies supplied artifacts; files must remain unchanged between hashing and comparison. Neither hashes nor producer declarations attest how logits were generated.
+The native comparator reads one FP32 vocabulary row at a time and computes metrics in FP64. It uses a stable shifted log-softmax and accumulates per-row NLL differences directly. Centered RMSE centers the candidate-minus-reference difference vector; it must not subtract a large anchor logit separately from each input vector. The comparator hashes the actual consumed rows and checks those digests, consumed IDs and vocabulary mapping against the frozen manifest. It also rechecks the manifest and artifacts after comparison. Neither hashes nor producer declarations attest how logits were generated.
 
 Predeclare acceptance limits before running the held-out evaluation using the applicable `--max-mean-kl`, `--max-rmse`, `--max-abs-logit`, `--min-top1-agreement` and `--max-mean-nll-increase` options. There is no universal threshold that proves quality across quantizers or attention approximations.
 
@@ -131,6 +139,27 @@ isolation and full-checkpoint quality open. The exported attention tensors make
 those later comparisons possible; exporting them alone supplies no numerical
 agreement result. Synthetic CPU fixtures retain their synthetic origin in each
 report.
+
+An optional `--limits LIMITS_JSON` argument applies explicit numerical gates.
+Its JSON object uses schema `flash-sass.qsa-numerical-limits.v1` and requires
+the following fields. The evaluator must choose and preserve the limits before
+the intended evaluation; a file hash records the chosen bytes without attesting
+when that choice occurred.
+
+| Field | Meaning |
+| --- | --- |
+| `raw_last_key_max_abs` | Maximum difference between the last raw key in the prefix and the snapshot. |
+| `candidate_raw_score_max_abs` | Maximum difference between supplied production scores and FP64 scoring over exported query/pool inputs. |
+| `candidate_scaled_score_max_abs` | Maximum scaled-score difference against the full FP64 indexer control. |
+| `query_max_abs` | Maximum query difference against FP64 norm/RoPE. |
+| `candidate_selection_exact_ties` | Must be `true`; supplied IDs must agree with supplied scores, allowing exact cutoff ties. |
+| `full_fp64_selection_min_overlap` | Minimum fraction of selected IDs shared with the FP64 control, from zero through one. |
+
+All numeric values must be finite nonnegative JSON numbers. Unknown keys and
+missing limits are errors. Score and score-selection gates are inapplicable
+when every complete block is retained. Failed evaluated limits preserve the
+diagnostic report and return exit 3. Diagnostic replay without a limit profile
+does not claim numerical acceptance. Neither mode establishes model quality.
 
 ## Independent backend capture
 

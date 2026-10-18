@@ -34,4 +34,29 @@ my $mixed_nll_r=capture('reference',[[1e30,0],[0,0]],[0,1]);
 ($rc,$j)=compare($mixed_nll_c,$mixed_nll_r,'--diagnostic');
 is($rc,0,'large NLL difference regression exits successfully');
 is($j->{metrics}{mean_nll_increase},-1,'difference form preserves small NLL change');
+ok($j->{consumed_artifact_hashes_verified},'hashes bind bytes consumed by the comparator');
+ok($j->{input_hashes_match_before_after_comparison},'frozen files remain unchanged through comparison');
+my $rawinfo={schema=>'flash-sass.raw-model-capture.v1',teacher_forced=>JSON::PP::true,
+    positions=>2,vocab_size=>2,byte_order=>'little'};
+sub freeze_info {
+    my ($info)=@_;
+    my $d="$tmp/info".++$seq;
+    put("$tmp/raw-info.json",encode_json($info));
+    return run('freeze','--kind','reference','--ids',"$fr/ids.u32",'--logits',"$fr/logits.f32",
+        '--vocab-size',2,'--raw-info',"$tmp/raw-info.json",'--out',$d);
+}
+is(freeze_info($rawinfo),0,'legacy GPU metadata without dtype/completion remains replayable');
+for my $bad ({%$rawinfo,dtype=>'>f4'},{%$rawinfo,dtype=>'<f2'},
+             {%$rawinfo,byte_order=>'big'},{%$rawinfo,complete=>JSON::PP::false},
+             {%$rawinfo,complete=>'true'}) {
+    is(freeze_info($bad),2,'contradictory raw interpretation/completion is rejected');
+}
+my $reference_info={%$rawinfo,schema=>'flash-sass.independent-gguf-capture.v1'};
+is(freeze_info($reference_info),2,'reference adapter schema requires dtype and completion');
+$reference_info->{dtype}='<f4';$reference_info->{complete}=JSON::PP::true;
+is(freeze_info($reference_info),0,'complete little-endian FP32 adapter capture accepted');
+my $candidate_v2={%$rawinfo,schema=>'flash-sass.raw-model-capture.v2'};
+is(freeze_info($candidate_v2),2,'current GPU capture requires its final completion marker');
+$candidate_v2->{dtype}='<f4';$candidate_v2->{complete}=JSON::PP::true;
+is(freeze_info($candidate_v2),0,'complete current GPU capture is accepted');
 done_testing();

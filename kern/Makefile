@@ -492,6 +492,9 @@ model_test: model_test.c prog.c prog.h holdc.c hold.h dieops.h ../ref/block.c ..
 model_layer_capture_test: model_layer_capture_test.c model_layer_capture.h
 	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -o $@ model_layer_capture_test.c
 
+model_capture_test: model_capture_test.c model_capture.h
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -o $@ model_capture_test.c
+
 # the persistent core and the reloadable engine library (see core.h); the library is built to a new name and moved
 # over the old one, so a running core that has the old file mapped keeps a consistent image
 ENGINE_SRC = engine.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c

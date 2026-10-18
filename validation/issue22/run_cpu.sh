@@ -21,6 +21,7 @@ issue22_sources=(
     kern/qsa_quality.c kern/qsa_quality_replay.pl kern/qsa_quality_test.pl
     kern/model_layer_capture.h kern/model_layer_capture_test.c
     kern/model_layer_capture_test.pl kern/model_capture.h kern/model_test.c
+    kern/model_capture_test.c kern/model_capture_test.pl
     kern/model_reference.c kern/Makefile validation/issue22/replay_placement.sh
     validation/issue22/run_cpu.sh
 )
@@ -55,8 +56,9 @@ issue22_run() {
     fi
     printf 'PASS: %s\n' "$issue22_label"
 }
-issue22_run build make -B -C kern model_quality qsa_quality model_layer_capture_test
+issue22_run build make -B -C kern model_quality qsa_quality model_layer_capture_test model_capture_test
 issue22_run comparator perl kern/model_quality_test.pl
+issue22_run logit-export perl kern/model_capture_test.pl
 issue22_run layer-export perl kern/model_layer_capture_test.pl
 issue22_run analytic-indexer kern/qsa_quality --selftest
 issue22_run frozen-indexer perl kern/qsa_quality_test.pl
