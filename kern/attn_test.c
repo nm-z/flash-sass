@@ -28,9 +28,14 @@ static int cmp(const char *what, const float *ref, const float *got, size_t cnt,
 	return bad;
 }
 
+#include "checked.h"
 int main(int argc, char **argv) {
-	unsigned n = argc > 1 ? (unsigned)strtoul(argv[1], 0, 0) : 3000;
-	int iters = argc > 2 ? atoi(argv[2]) : 0;
+ unsigned n=3000,it=0;
+ if(argc>3||(argc>1&&checked_parse_unsigned(argv[1],1,262144,&n))||(argc>2&&checked_parse_unsigned(argv[2],0,262144,&it))){
+  fprintf(stderr,"usage: attn_test [keys1..262144] [iters0..262144], unsigned decimal digits only\n");return 2;
+ }
+ int iters=(int)it;
+
 	unsigned npos = (n + 8192 + 64 + 31) / 32 * 32;      /* chunk round-up plus the loops' stray prefetches */
 	size_t kcf = ATTN_KC_FLOATS(npos), vcf = (size_t)npos * 512;
 	float *qo = malloc(6144 * 4), *gate = malloc(12288 * 4), *kc = calloc(kcf, 4), *vc = calloc(vcf, 4);

@@ -25,6 +25,12 @@ engine. Five BF16 variants share weight loads; remaining operations replay their
 arithmetic with separate position buffers. The final prompt token and generation stay B1.
 See [BATCH.md](BATCH.md) and [PAIR_TESTING.md](PAIR_TESTING.md).
 
+Set `FLASH_PREFILL_CHUNK=64` to run known prompt positions in chunks of at most
+64, omitting their vocabulary heads. Chunks use two-position microbatches unless
+`FLASH_TWO_POSITION=0` is set; `FLASH_PREFILL_CHUNK=1` uses scalar microbatches.
+The final prompt position still computes the first generated token through the
+full B1 head. Unset or `0` disables chunking; valid sizes are `1..4096`.
+
 ## Timing measurements
 
 [TIMINGS.md](TIMINGS.md) defines the shared CLI/HTTP timing schema, counts and
@@ -103,6 +109,7 @@ Each token makes:
 | `kern/die.pl` | generator of the persistent kernel: phase dispatcher, grid barrier, token loop, exchange flags |
 | `kern/prog.c`, `engine.c` | the per-token program builder and the reloadable engine library |
 | `kern/flashcore.c`, `flashd.c`, `serve.sh` | the persistent core, the HTTP front-end, start/reload script |
+| `.github/` | CI: `scripts/pr-audit.sh` (language and issue-link rules, also `PR=N .github/scripts/pr-audit.sh` locally) on every PR push, and `scripts/draft-conflicting.sh`, which converts ready PRs with merge conflicts to drafts |
 | `kern/prof.sh` | per-phase profile of the last token (`PROF_ALL=1` lists every phase kind) |
 | `kern/hold.c` | the weight holder (keeps the weights in GPU memory, shared by CUDA IPC) |
 | `kern/tok.c`, `jinja.c`, `json.c` | tokenizer, chat-template interpreter, JSON |
@@ -120,6 +127,23 @@ the six-die split (`SPLIT_SHARES`) are set for the author's machine; read `kern/
 ```
 make -C kern die.cubin libengine.so flashcore flashd hold
 ```
+
+## Optional PLE file-cache warm-up
+
+Set `FLASH_PLE_DISK=1 FLASH_PLE_PREWARM=1` when starting `kern/serve.sh core` or
+`kern/serve.sh all` to read the complete `GGUF2` file before launching the core.
+Pre-warming is off by default. Startup waits for the read to finish, and a read
+error prevents core startup. The log reports bytes read and elapsed time.
+
+To warm the file without starting or restarting any service:
+
+```sh
+GGUF2="/path/to/model shard.gguf" ./kern/serve.sh prewarm
+```
+
+The read uses the operating system's reclaimable filesystem page cache and an
+8 MiB userspace buffer. It does not pin the file in RAM. Memory pressure can evict
+cached pages; reading the whole file adds startup I/O and elapsed time.
 
 ## Licence
 MIT, see `LICENSE`. Derived parts and their notices are in `THIRD_PARTY.md`. No model weights are included.
