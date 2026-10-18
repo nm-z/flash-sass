@@ -476,10 +476,10 @@ model_test: model_test.c prog.c prog.h holdc.c hold.h dieops.h ../ref/block.c ..
 
 # the persistent core and the reloadable engine library (see core.h); the library is built to a new name and moved
 # over the old one, so a running core that has the old file mapped keeps a consistent image
-ENGINE_SRC = engine.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c
+ENGINE_SRC = engine.c qsa_capture.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c
 # the commit (and -dirty when the tree differs from it) the library is built from: the engine reports it with its `config` command
 FLASH_REV ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)$(shell git diff --quiet HEAD -- .. 2>/dev/null || echo -dirty)
-libengine.so: $(ENGINE_SRC) prefill.h prog.h hold.h core.h engine.h dieops.h ../ref/split.h ../ref/qsa.h ../ref/block.h ../ref/attn.h ../ref/ple.h ../ref/gguf.h ../ref/quant.h ../ref/fmath.h ../ref/hc.h ../ref/deltanet.h ../ref/router.h
+libengine.so: $(ENGINE_SRC) qsa_capture.h prefill.h prog.h hold.h core.h engine.h dieops.h ../ref/split.h ../ref/qsa.h ../ref/block.h ../ref/attn.h ../ref/ple.h ../ref/gguf.h ../ref/quant.h ../ref/fmath.h ../ref/hc.h ../ref/deltanet.h ../ref/router.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -DFLASH_REV='"$(FLASH_REV)"' -o $@.new $(ENGINE_SRC) -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
 
 flashcore: flashcore.c core.h hold.h holdc.c ../ref/gguf.c ../ref/gguf.h
@@ -512,6 +512,19 @@ qsa_oracle: qsa_oracle.c qsa_oracle_bridge.c ../ref/qsa.c ../ref/qsa.h ../ref/at
 
 qsa_logits_check: qsa_logits_check.c
 	$(CC) $(ORACLE_CFLAGS) -o $@ $< -lm
+
+# Optional independent-model capture. Requires llama.cpp b10705-era public C
+# headers/libraries; not part of the portable oracle's default dependency set.
+LLAMA_CFLAGS ?=
+LLAMA_LIBS ?= -lllama -lggml -lggml-base
+qsa_reference_capture: qsa_reference_capture.c
+	$(CC) $(ORACLE_CFLAGS) $(LLAMA_CFLAGS) -DFLASH_REV='"$(FLASH_REV)"' -o $@ $< $(LLAMA_LIBS) -lm
+
+qsa_capture_test: qsa_capture_test.c qsa_capture.c qsa_capture.h ../ref/attn.h
+	$(CC) $(ORACLE_CFLAGS) -I../ref -o $@ qsa_capture_test.c qsa_capture.c -lm
+
+qsa_capture_prog_test: qsa_capture_prog_test.c qsa_capture.h prog.c prog.h dieops.h ../ref/quant.c ../ref/gguf.c ../ref/split.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ qsa_capture_prog_test.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I$(CUDA)/include -lm
 
 attnpartn_unitmap: attnpartn_unitmap.c
 	$(CC) -std=gnu99 -O2 -Wall -Wextra -o $@ $<
