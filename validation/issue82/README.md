@@ -92,3 +92,32 @@ future opens fail, and the original source stays intact.
 A local direct-I/O row probe measured approximately 1–4 ms for uncached batches.
 The durable local-copy experiment is being repeated with direct I/O and bounded
 dirty data; its result must be measured independently of the withdrawn RAM run.
+
+## Durable local source and overlapped prompt startup
+
+The replacement copy used direct I/O for the large transfer, synced its final
+bounded tail, and renamed only after all 28,800,138,432 bytes were complete.
+The engine reads this ordinary local file through the per-batch descriptor path.
+There is no full-table locked-RAM process. A post-run sample showed roughly
+32.6 GiB available memory, 6.2 MiB dirty data and zero writeback; later I/O and
+memory pressure samples were zero.
+
+Prompt startup now primes one PLE position. Subsequent known rows are staged
+while the GPU executes, using the existing readiness flags. The configured
+cache path is reported separately from the effective source, allowing a pending
+cache to remain configured across reloads.
+
+Fresh requests through the existing HTTP frontend measured:
+
+| Request | Prompt tokens/s | Decode tokens/s |
+| --- | ---: | ---: |
+| User's 65-token water prompt, capped at 256 outputs | 50.13 | 33.25 |
+| Fresh question, 66 prompt / 74 outputs | 49.88 | 34.31 |
+| Fresh question, 65 prompt / 180 outputs | 50.07 | 34.33 |
+
+The configuration retains 230,000-position capacity, 4,096 image rows, the
+merged #86 kernel, paired prefill and 64-position chunks. A direct protocol run
+also matched the earlier serving reference's exact output token IDs.
+`direct-serving.json` contains the actual frontend timing objects. These are
+combined serving results, not an isolated speedup claim for the startup change.
+The 120–144 decode target remains unmet.
