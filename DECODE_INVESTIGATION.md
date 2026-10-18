@@ -1,6 +1,6 @@
 # Decode-depth investigation
 
-This report preserves a paired investigation of the historical 36/28/19 tok/s note. **Issue #10 remains incomplete.** The captures support the observations below, but missing launch provenance, a clock-confounded tracing comparison, and missing hardware traffic measurements prevent acceptance of the full protocol. The original result remains **unreproduced as a matched experiment**: SPEC records the numbers, but the record does not identify the executable, complete configuration, input IDs, clocks or timing window.
+This report preserves a paired investigation of the historical 36/28/19 tok/s note. **Issue #10 remains incomplete.** The captures support the observations below, but missing launch provenance, a clock-confounded tracing comparison, and missing full-model hardware-traffic attribution prevent acceptance of the full protocol. The original result remains **unreproduced as a matched experiment**: SPEC records the numbers, but the record does not identify the executable, complete configuration, input IDs, clocks or timing window.
 
 The historical 3,100-to-8,000 comparison would be 35.714 to 52.632 ms/token, a 16.917 ms/token increment. It does not establish a linear context cost or a 200k-token throughput prediction.
 
@@ -98,13 +98,23 @@ The machine-readable inventory is [acceptance.json](validation/issue10/acceptanc
 | Request and steady decode timing | 129 outputs and 128 recorded intervals per measured request; all repetitions retained | Complete startup/prefill record and an equivalent-clock tracing-overhead comparison |
 | All-die phase boundaries | Legacy 129-token traces, phase zero, all-die opcode aggregates | Repeat with the precise schema-2 compute/dispatch boundaries |
 | Sender work and receiver waits | Per-die arithmetic reconciliation and illustrative wait deltas | Cross-die causal reconciliation for this depth matrix |
-| Hardware traffic and execution counters | Successful CUDA 11.4 metric/event enumeration | Accepted workload counter samples, including system/DRAM traffic, occupancy, eligible warps and stalls |
-| Changing selected-block layouts | Related gather work in PR #43 | Matched counter arms with verified checkpoint-derived layout provenance |
+| Hardware traffic and execution counters | CUDA 11.4 enumeration and eight real host/VRAM component profiler arms at 8,000 positions | Full-model counter attribution and a completed matched depth/layout matrix |
+| Changing selected-block layouts | Related PR #43 gather work and a verified four-row changing-layout component counter capture | Changing clustered/spread/random variants and matched counter arms with verified checkpoint-derived layout provenance |
 | Historical slowdown attribution | Historical rates explicitly marked unreproduced; measured replacement deltas retained | A replacement campaign satisfying the complete protocol |
 
 [PR #30](https://github.com/nm-z/flash-sass/pull/30) now contains schema-2 traces and a separate matched, short-generation overhead experiment. [PR #78](https://github.com/nm-z/flash-sass/pull/78) adds stricter live provenance and campaign acceptance checks to the runner from merged [PR #32](https://github.com/nm-z/flash-sass/pull/32). [PR #43](https://github.com/nm-z/flash-sass/pull/43) supplies representative gather workloads. Their source identities and measurement scopes differ from the legacy captures here. They are dependencies and additional evidence, not interchangeable samples for this experiment.
 
 The [profiler discovery record](validation/issue10/counters/README.md) preserves the failed CUDA 12.9 probes and successful CUDA 11.4 inventory. It is explicitly classified as enumeration, not measured hardware traffic.
+
+## New component counter capture
+
+On October 17, 2026, the shared lock became available and a separate native C gather workload completed on archy's spare M60. Its full GPU snapshots bracket the capture at 22:34:27–22:34:46 host-local time. Four independently profiled metric groups in each KV placement produced eight successful command exits and 26 accepted metric rows. At 8,000 visible positions, budget 512 and zero tail, four changing selected-block rows gather 2,048 keys. Host/VRAM cache, selection and verified output identities match.
+
+The raw profiler's per-invocation average `sysmem_read_bytes` is **2,359,296 bytes with host-pinned KV versus 0 with VRAM KV**. Actual DRAM traffic, occupancy, eligible-warps and memory/synchronization stall measurements are retained alongside those system-memory counters. This is measured mapped-memory traffic, not an allocation-size estimate or a substituted logical address footprint.
+
+The [component report, exact commands and raw data](validation/issue10/counters/workloads/README.md) state the narrower scope. The profiled `die` kernel includes gather/dequantization and its persistent-kernel framework; the reported 18 logical invocations include correctness preflight and ten repeated-row warmups. Profiling may replay kernels internally. Profiled CUDA-event rates are retained only as raw diagnostics and are **not authoritative throughput or tracing-overhead measurements**. The native binary's older embedded source identity is kept distinct from the collector and PR revisions.
+
+This sample does not explain the historical 16.917 ms/token increment or validate the full-model depth matrix. A follow-up 3,100/8,000 layout matrix waited 120 seconds for the shared lock and exited 73 before its first GPU query or workload. Full-model schema-2 attribution, complete launch/conversion provenance, matched 129-output runs, supported longer contexts, and actual checkpoint-derived selected rows remain required. PR #38 remains a draft.
 
 ## Reproduction and evidence
 

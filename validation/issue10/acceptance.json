@@ -90,24 +90,30 @@
          "available" : [
             "counters/profiler/discovery.json",
             "counters/profiler/nvprof114-metrics.txt",
-            "counters/profiler/nvprof114-events.txt"
+            "counters/profiler/nvprof114-events.txt",
+            "counters/workloads/smoke-8000-changing/status.json",
+            "counters/workloads/README.md"
          ],
          "criterion" : 6,
          "remaining" : [
-            "Metric enumeration succeeded but no accepted workload-counter values are present",
-            "Actual profiler runs must be collected separately from throughput timings"
+            "Accepted single-die gather counters do not provide full-model phase attribution",
+            "The matched 3100/8000 layout matrix was blocked before its first GPU operation",
+            "Kernel-level counters include gather and persistent-kernel framework; profiled elapsed rates are not authoritative throughput"
          ],
          "requirement" : "Maxwell-compatible memory traffic, occupancy, eligible-warp and stall counters",
-         "status" : "MISSING_MEASUREMENTS"
+         "status" : "PARTIAL"
       },
       {
          "available" : [
-            "https://github.com/nm-z/flash-sass/pull/43"
+            "https://github.com/nm-z/flash-sass/pull/43",
+            "counters/workloads/smoke-8000-changing/status.json",
+            "counters/workloads/README.md"
          ],
          "criterion" : 7,
          "remaining" : [
-            "Representative gather evidence is in a separate PR/runtime",
-            "Checkpoint-derived ID provenance and matched hardware-counter arms are not included in this investigation"
+            "Only one 8000-position changing-layout host/VRAM component case has accepted counters",
+            "The native clustered/even/random patterns hold their selected row fixed; changing variants and real checkpoint-derived rows remain required",
+            "No accepted selected-ID extraction lineage from a checkpoint trace is present"
          ],
          "requirement" : "Changing clustered, spread, random and checkpoint-derived selected-block layouts",
          "status" : "PARTIAL"
@@ -126,16 +132,36 @@
          "status" : "PARTIAL"
       }
    ],
+   "component_counter_validation" : {
+      "binary_source_revision" : "7c6f34d4372567fd97f1cef9b609d3dc0c81b0d3",
+      "budget" : 512,
+      "collector_cpu_record" : "counters/workloads/native-validation/result.json",
+      "counter_collector_tests" : 57,
+      "full_issue_acceptance" : false,
+      "host" : "archy",
+      "iterations" : 4,
+      "metric_rows" : 26,
+      "profiled_commands" : 8,
+      "raw_profiler_reported_invocations_per_command" : 18,
+      "record" : "counters/workloads/smoke-8000-changing/status.json",
+      "scope" : "Single-die native gather, not full-model timing",
+      "status" : "PASS",
+      "visible_positions" : 8000
+   },
    "gpu_work_blocker" : {
-      "attempt_started_utc" : "2026-10-18T03:45:22Z",
+      "attempt_started_utc" : "2026-10-18T05:43:39Z",
       "exit_code" : 73,
-      "holder_pid" : 4010221,
-      "holder_task" : "validation/issue19/run.rb --mode model",
+      "holder_pid" : 970242,
+      "holder_task" : "bash kern/sequence_validate.sh (issue #7 validation)",
+      "latest_lock_record" : "counters/workloads/latest-lock.log",
+      "latest_observed_utc" : "2026-10-18T05:52:34Z",
       "lock" : "/tmp/flash-sass-engine-validation.lock",
-      "new_gpu_measurements" : false,
-      "record" : "native-validation/gpu-lock-preflight.log",
+      "new_gpu_measurements" : true,
+      "note" : "The component smoke completed before the lock was reacquired by other validators. No full-model campaign was accepted.",
+      "record" : "counters/workloads/matrix-attempt/nv775-clustered/status.json",
+      "retry_record" : "counters/workloads/retry-3100-changing/status.json",
       "status" : "BLOCKED",
-      "wait_seconds" : 45
+      "wait_seconds" : 120
    },
    "historical_claim" : {
       "above_cap_increment_ms_per_token" : 16.917,
@@ -154,6 +180,17 @@
       "source_commit" : "7d19d09c6ab734847bf737cfa75448161fb092e9",
       "status" : "PASS",
       "test_count" : 77
+   },
+   "previous_gpu_work_blocker" : {
+      "attempt_started_utc" : "2026-10-18T03:45:22Z",
+      "exit_code" : 73,
+      "holder_pid" : 4010221,
+      "holder_task" : "validation/issue19/run.rb --mode model",
+      "lock" : "/tmp/flash-sass-engine-validation.lock",
+      "new_gpu_measurements" : false,
+      "record" : "native-validation/gpu-lock-preflight.log",
+      "status" : "BLOCKED",
+      "wait_seconds" : 45
    },
    "pull_request" : "https://github.com/nm-z/flash-sass/pull/38",
    "ready_for_review" : false,
@@ -180,7 +217,7 @@
          "scope" : "Representative gather layouts; hardware traffic measurements remain pending"
       }
    ],
-   "reviewed_remote_head" : "0a24e35861e01339a43215b1e40f308c8b6583d6",
+   "reviewed_remote_head" : "e80c2173e3eb4653413aa5dade1400ed2b477ffc",
    "schema" : "flash.issue10.acceptance.v1",
    "scope" : "Acceptance inventory for the preserved depth investigation. Capture/replay PASS flags do not imply issue closure.",
    "status" : "INCOMPLETE"

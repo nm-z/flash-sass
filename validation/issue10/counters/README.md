@@ -1,6 +1,6 @@
-# Maxwell profiler discovery
+# Maxwell profiler discovery and workload counters
 
-These files preserve the earlier profiler discovery on `archy`; they contain **metric enumeration, not measured workload counters**. They do not satisfy issue #10's memory-traffic acceptance requirement.
+The `profiler/` files preserve earlier profiler discovery on `archy`: **metric enumeration, not measured workload counters**. The separate [workload capture](workloads/README.md) now contains eight successful real profiler arms for one changing-layout host/VRAM gather case. This advances, but does not complete, issue #10's memory-traffic and attribution requirements.
 
 `profiler/discovery.json` records the GPU UUID, driver, profiler paths, timestamps, command arguments, exit codes, and package hashes. The selected device was Tesla M60 `GPU-431371bd-b482-96b2-4b70-04f83c6d075b` (then ordinal 6), compute capability 5.2, driver 470.256.02.
 
@@ -25,4 +25,4 @@ A workload run must hold `/tmp/flash-sass-engine-validation.lock`, record `nvidi
 
 Retain raw profiler output and check that required values were actually returned. A zero query exit, elapsed CUDA-event time, allocation size, or logical byte count must not be recorded as a hardware traffic sample. The finite operation's profiling scope must also distinguish kernel dispatch/barriers from the operation itself. Workload replay with external peer or host progress dependencies requires separate validation before its metrics can be accepted.
 
-The counter samples and current depth-matrix tracing-overhead experiment remain absent. The legacy decode captures and newer trace work use different runtime identities; their results cannot be combined into a purported matched overhead comparison.
+The accepted component capture records actual system-memory/DRAM bytes and transactions, occupancy, eligible warps and stalls. Its raw profiler output is not a full-model counter campaign. The larger layout/context matrix was blocked before its first GPU operation, and current depth-matrix tracing-overhead measurements remain absent. The legacy decode captures, component counter capture and newer trace work use different runtime identities; their results cannot be combined into a purported matched full-model comparison.
