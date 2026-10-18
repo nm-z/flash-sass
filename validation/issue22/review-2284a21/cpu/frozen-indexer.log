@@ -1,0 +1,37 @@
+ok 1 - analytic frozen replay runs
+ok 2 - final report completes after hashing
+ok 3 - CPU replay makes no checkpoint claim
+ok 4 - CPU input is not automatically labeled GPU
+ok 5 - fixed query and pool produce exact unscaled scores 4 and 8
+ok 6 - explicit sqrt128 score conversion agrees
+ok 7 - IDs agree with actual supplied scores
+ok 8 - readback cutoff margin is independent of score recomputation
+ok 9 - input endpoint hashes match
+ok 10 - diagnostic replay does not claim numerical acceptance
+ok 11 - declared analytic limits pass at the exact zero-error boundary
+ok 12 - numerical pass remains separate from quality
+ok 13 - limits bytes are bound without attesting when tolerances were chosen
+ok 14 - finite score inconsistency is reported numerically
+ok 15 - selector discrepancy is exposed using the supplied scores
+ok 16 - wrong selected ID lies below cutoff
+ok 17 - separate arithmetic discrepancy is measured
+ok 18 - wrong scores and selection fail explicit numerical gates
+ok 19 - failed gates retain complete diagnostics
+ok 20 - score arithmetic and selector failures remain distinct
+ok 21 - noncanonical tied ID is allowed
+ok 22 - exact tie ambiguity is explicit
+ok 23 - valid alternative cutoff-tied selection passes with declared score boundary
+ok 24 - invalid numerical profile leaves no final report
+ok 25 - invalid numerical profile leaves no final report
+ok 26 - invalid numerical profile leaves no final report
+ok 27 - invalid numerical profile leaves no final report
+ok 28 - invalid numerical profile leaves no final report
+ok 29 - invalid numerical profile leaves no final report
+ok 30 - incomplete numerical profile is rejected
+ok 31 - out-of-range selected ID leaves no final report
+ok 32 - nonfinite score leaves no final report
+ok 33 - truthy string cannot replace sparse boolean
+ok 34 - dense capture evaluates the applicable gates
+ok 35 - dense score and selector readbacks are explicitly not applicable
+ok 36 - dense gate result remains explicit
+1..36

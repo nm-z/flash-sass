@@ -1,0 +1,5730 @@
+[
+  {
+    "length": 1,
+    "positions": 262000,
+    "budget": 512,
+    "complete_blocks": 0,
+    "selected_blocks": 0,
+    "attended_keys": 1,
+    "sparse_exclusion": false,
+    "tail_token_ids": [
+      0
+    ],
+    "input_origin": "synthetic_cpu_fixture",
+    "scope": "postprojection_indexer_only",
+    "query_exported_vs_fp64": {
+      "count": 512,
+      "max_abs": 3.04711615939368E-7,
+      "relative_l2": 8.10095527520761E-8,
+      "rms": 8.10787094564717E-8
+    },
+    "query_exported_vs_scalar_fp32": {
+      "count": 512,
+      "max_abs": 0,
+      "relative_l2": 0,
+      "rms": 0
+    },
+    "candidate_raw_scores_vs_exported_inputs_fp64": {
+      "count": 0,
+      "max_abs": null,
+      "relative_l2": null,
+      "rms": null
+    },
+    "candidate_scaled_scores_vs_full_fp64": {
+      "count": 0,
+      "max_abs": null,
+      "relative_l2": null,
+      "rms": null
+    },
+    "provided_selection_vs_candidate_score_readback": null,
+    "provided_selection_vs_full_fp64": {
+      "canonical_overlap": 0,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 0
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "modes": [
+      {
+        "exported_pool_vs_mode": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "name": "reference_fp64",
+        "pool_mode_vs_fp64": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": null,
+          "cutoff_margin": null,
+          "cutoff_ties": 0,
+          "selected_at_cutoff": 0,
+          "selected_blocks": 0,
+          "strict_above": 0
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "scores_vs_full_fp64": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 0,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 0
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 0,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 0
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "name": "fixed_iq_fp64_pool",
+        "pool_mode_vs_fp64": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": null,
+          "cutoff_margin": null,
+          "cutoff_ties": 0,
+          "selected_at_cutoff": 0,
+          "selected_blocks": 0,
+          "strict_above": 0
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "scores_vs_full_fp64": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 0,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 0
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 0,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 0
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "name": "fixed_iq_scalar_fp32_pool",
+        "pool_mode_vs_fp64": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": null,
+          "cutoff_margin": null,
+          "cutoff_ties": 0,
+          "selected_at_cutoff": 0,
+          "selected_blocks": 0,
+          "strict_above": 0
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "scores_vs_full_fp64": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 0,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 0
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 0,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 0
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "name": "fixed_iq_scalar_fp32_pool_fp16_store",
+        "pool_mode_vs_fp64": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": null,
+          "cutoff_margin": null,
+          "cutoff_ties": 0,
+          "selected_at_cutoff": 0,
+          "selected_blocks": 0,
+          "strict_above": 0
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "scores_vs_full_fp64": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 0,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 0
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 0,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 0
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "name": "fixed_iq_fp16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": null,
+          "cutoff_margin": null,
+          "cutoff_ties": 0,
+          "selected_at_cutoff": 0,
+          "selected_blocks": 0,
+          "strict_above": 0
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "scores_vs_full_fp64": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 0,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 0
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 0,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 0
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "name": "fixed_iq_bf16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": null,
+          "cutoff_margin": null,
+          "cutoff_ties": 0,
+          "selected_at_cutoff": 0,
+          "selected_blocks": 0,
+          "strict_above": 0
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "scores_vs_full_fp64": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 0,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 0
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 0,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 0
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "name": "fixed_iq_exported_pool",
+        "pool_mode_vs_fp64": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": null,
+          "cutoff_margin": null,
+          "cutoff_ties": 0,
+          "selected_at_cutoff": 0,
+          "selected_blocks": 0,
+          "strict_above": 0
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "scores_vs_full_fp64": {
+          "count": 0,
+          "max_abs": null,
+          "relative_l2": null,
+          "rms": null
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 0,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 0
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 0,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 0
+        }
+      }
+    ],
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 2047,
+    "positions": 262000,
+    "budget": 512,
+    "complete_blocks": 511,
+    "selected_blocks": 511,
+    "attended_keys": 2047,
+    "sparse_exclusion": false,
+    "tail_token_ids": [
+      2044,
+      2045,
+      2046
+    ],
+    "input_origin": "synthetic_cpu_fixture",
+    "scope": "postprojection_indexer_only",
+    "query_exported_vs_fp64": {
+      "count": 512,
+      "max_abs": 2.40314796950969E-7,
+      "relative_l2": 7.14344055766032E-8,
+      "rms": 7.16087659205173E-8
+    },
+    "query_exported_vs_scalar_fp32": {
+      "count": 512,
+      "max_abs": 0,
+      "relative_l2": 0,
+      "rms": 0
+    },
+    "candidate_raw_scores_vs_exported_inputs_fp64": {
+      "count": 0,
+      "max_abs": null,
+      "relative_l2": null,
+      "rms": null
+    },
+    "candidate_scaled_scores_vs_full_fp64": {
+      "count": 0,
+      "max_abs": null,
+      "relative_l2": null,
+      "rms": null
+    },
+    "provided_selection_vs_candidate_score_readback": null,
+    "provided_selection_vs_full_fp64": {
+      "canonical_overlap": 511,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 511
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "modes": [
+      {
+        "exported_pool_vs_mode": {
+          "count": 65408,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207499221138714,
+          "rms": 0.000207387372000869
+        },
+        "name": "reference_fp64",
+        "pool_mode_vs_fp64": {
+          "count": 65408,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 33,
+          "selected_at_cutoff": 33,
+          "selected_blocks": 511,
+          "strict_above": 478
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 511,
+          "max_abs": 3.32980207407019E-7,
+          "relative_l2": 5.06602176059412E-8,
+          "rms": 1.02634135239086E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 511,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 511,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 511
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 511,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 511
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65408,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207499221138714,
+          "rms": 0.000207387372000869
+        },
+        "name": "fixed_iq_fp64_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65408,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 33,
+          "selected_at_cutoff": 33,
+          "selected_blocks": 511,
+          "strict_above": 478
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 511,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "scores_vs_full_fp64": {
+          "count": 511,
+          "max_abs": 3.32980207407019E-7,
+          "relative_l2": 5.06602160502092E-8,
+          "rms": 1.02634135239086E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 511,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 511
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 511,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 511
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65408,
+          "max_abs": 0.0009765625,
+          "relative_l2": 0.000207499792175143,
+          "rms": 0.000207387945764233
+        },
+        "name": "fixed_iq_scalar_fp32_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65408,
+          "max_abs": 9.36683012930928E-7,
+          "relative_l2": 9.77159000193004E-8,
+          "rms": 9.76632278255884E-8
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 33,
+          "selected_at_cutoff": 33,
+          "selected_blocks": 511,
+          "strict_above": 478
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 511,
+          "max_abs": 7.86398916652331E-7,
+          "relative_l2": 8.9263471460802E-8,
+          "rms": 1.80841686727059E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 511,
+          "max_abs": 9.04969457149463E-7,
+          "relative_l2": 1.00903683152003E-7,
+          "rms": 2.04423965592262E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 511,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 511
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 511,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 511
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65408,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_scalar_fp32_pool_fp16_store",
+        "pool_mode_vs_fp64": {
+          "count": 65408,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207499221138714,
+          "rms": 0.000207387372000869
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 33,
+          "selected_at_cutoff": 33,
+          "selected_blocks": 511,
+          "strict_above": 478
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 511,
+          "max_abs": 0.0011313073174426,
+          "relative_l2": 0.000153746544745187,
+          "rms": 0.000311479981958647
+        },
+        "scores_vs_full_fp64": {
+          "count": 511,
+          "max_abs": 0.00113121488444112,
+          "relative_l2": 0.000153746351694694,
+          "rms": 0.000311479600416827
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 511,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 511
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 511,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 511
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65408,
+          "max_abs": 0.001953125,
+          "relative_l2": 0.000379486652073908,
+          "rms": 0.000379281001045485
+        },
+        "name": "fixed_iq_fp16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 65408,
+          "max_abs": 0.00243502313248856,
+          "relative_l2": 0.000325939786545935,
+          "rms": 0.000325764093914828
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 33,
+          "selected_at_cutoff": 33,
+          "selected_blocks": 511,
+          "strict_above": 478
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 511,
+          "max_abs": 0.00192073578380325,
+          "relative_l2": 0.000241706881719526,
+          "rms": 0.000489681607362664
+        },
+        "scores_vs_full_fp64": {
+          "count": 511,
+          "max_abs": 0.00192056820888165,
+          "relative_l2": 0.000241707101971134,
+          "rms": 0.000489682068615073
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 511,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 511
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 511,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 511
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65408,
+          "max_abs": 0.021484375,
+          "relative_l2": 0.00258716097047412,
+          "rms": 0.00258580116546514
+        },
+        "name": "fixed_iq_bf16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 65408,
+          "max_abs": 0.0213491686789871,
+          "relative_l2": 0.0025785182593154,
+          "rms": 0.00257712835027073
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 33,
+          "selected_at_cutoff": 33,
+          "selected_blocks": 511,
+          "strict_above": 478
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 511,
+          "max_abs": 0.0160123794241063,
+          "relative_l2": 0.00192599181536692,
+          "rms": 0.00390192766216147
+        },
+        "scores_vs_full_fp64": {
+          "count": 511,
+          "max_abs": 0.0160123932369549,
+          "relative_l2": 0.00192599631320672,
+          "rms": 0.00390193689430235
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 511,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 511
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 511,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 511
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65408,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_exported_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65408,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207499221138714,
+          "rms": 0.000207387372000869
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 33,
+          "selected_at_cutoff": 33,
+          "selected_blocks": 511,
+          "strict_above": 478
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 511,
+          "max_abs": 0.0011313073174426,
+          "relative_l2": 0.000153746544745187,
+          "rms": 0.000311479981958647
+        },
+        "scores_vs_full_fp64": {
+          "count": 511,
+          "max_abs": 0.00113121488444112,
+          "relative_l2": 0.000153746351694694,
+          "rms": 0.000311479600416827
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 511,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 511
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 511,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 511
+        }
+      }
+    ],
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 2048,
+    "positions": 262000,
+    "budget": 512,
+    "complete_blocks": 512,
+    "selected_blocks": 512,
+    "attended_keys": 2048,
+    "sparse_exclusion": false,
+    "tail_token_ids": [],
+    "input_origin": "synthetic_cpu_fixture",
+    "scope": "postprojection_indexer_only",
+    "query_exported_vs_fp64": {
+      "count": 512,
+      "max_abs": 4.55251468967077E-7,
+      "relative_l2": 1.62461211806583E-7,
+      "rms": 1.61730678204312E-7
+    },
+    "query_exported_vs_scalar_fp32": {
+      "count": 512,
+      "max_abs": 0,
+      "relative_l2": 0,
+      "rms": 0
+    },
+    "candidate_raw_scores_vs_exported_inputs_fp64": {
+      "count": 0,
+      "max_abs": null,
+      "relative_l2": null,
+      "rms": null
+    },
+    "candidate_scaled_scores_vs_full_fp64": {
+      "count": 0,
+      "max_abs": null,
+      "relative_l2": null,
+      "rms": null
+    },
+    "provided_selection_vs_candidate_score_readback": null,
+    "provided_selection_vs_full_fp64": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "modes": [
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207493515012697,
+          "rms": 0.000207382373035884
+        },
+        "name": "reference_fp64",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 37,
+          "selected_at_cutoff": 37,
+          "selected_blocks": 512,
+          "strict_above": 475
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 9.14081250691368E-7,
+          "relative_l2": 9.75014393810253E-8,
+          "rms": 1.92533092833254E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207493515012697,
+          "rms": 0.000207382373035884
+        },
+        "name": "fixed_iq_fp64_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 37,
+          "selected_at_cutoff": 37,
+          "selected_blocks": 512,
+          "strict_above": 475
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 9.14081250691368E-7,
+          "relative_l2": 9.75014435774592E-8,
+          "rms": 1.92533092833254E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0.0009765625,
+          "relative_l2": 0.00020749409556287,
+          "rms": 0.000207382956325051
+        },
+        "name": "fixed_iq_scalar_fp32_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 9.36683012930928E-7,
+          "relative_l2": 9.76694756313893E-8,
+          "rms": 9.76171598826527E-8
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 37,
+          "selected_at_cutoff": 37,
+          "selected_blocks": 512,
+          "strict_above": 475
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 7.65199717811527E-7,
+          "relative_l2": 9.20865343928145E-8,
+          "rms": 1.81840446535959E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 0.00000119573810231088,
+          "relative_l2": 1.35417868940467E-7,
+          "rms": 2.67405488322676E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_scalar_fp32_pool_fp16_store",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207493515012697,
+          "rms": 0.000207382373035884
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 37,
+          "selected_at_cutoff": 37,
+          "selected_blocks": 512,
+          "strict_above": 475
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 0.00109068311723082,
+          "relative_l2": 0.000150663848006812,
+          "rms": 0.000297511265670157
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 0.00109047384563077,
+          "relative_l2": 0.000150656694583521,
+          "rms": 0.000297497127221059
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0.001953125,
+          "relative_l2": 0.000379625629042864,
+          "rms": 0.000379421200471564
+        },
+        "name": "fixed_iq_fp16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 0.00243502313248856,
+          "relative_l2": 0.000326053362414242,
+          "rms": 0.000325878714954813
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 37,
+          "selected_at_cutoff": 37,
+          "selected_blocks": 512,
+          "strict_above": 475
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 0.00167535500482519,
+          "relative_l2": 0.000233512775270869,
+          "rms": 0.000461110493592635
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 0.00167557264236029,
+          "relative_l2": 0.000233516473887003,
+          "rms": 0.000461117777289756
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0.021484375,
+          "relative_l2": 0.00258854649014863,
+          "rms": 0.00258719457484505
+        },
+        "name": "fixed_iq_bf16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 0.0213491686789871,
+          "relative_l2": 0.00257991327329088,
+          "rms": 0.00257853136667476
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 37,
+          "selected_at_cutoff": 37,
+          "selected_blocks": 512,
+          "strict_above": 475
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 0.0155372404406995,
+          "relative_l2": 0.00178714464379609,
+          "rms": 0.00352901954878636
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 0.0155372515585785,
+          "relative_l2": 0.00178714345145145,
+          "rms": 0.00352901704241219
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_exported_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207493515012697,
+          "rms": 0.000207382373035884
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 37,
+          "selected_at_cutoff": 37,
+          "selected_blocks": 512,
+          "strict_above": 475
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 0.00109068311723082,
+          "relative_l2": 0.000150663848006812,
+          "rms": 0.000297511265670157
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 0.00109047384563077,
+          "relative_l2": 0.000150656694583521,
+          "rms": 0.000297497127221059
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      }
+    ],
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 2049,
+    "positions": 262000,
+    "budget": 512,
+    "complete_blocks": 512,
+    "selected_blocks": 512,
+    "attended_keys": 2049,
+    "sparse_exclusion": false,
+    "tail_token_ids": [
+      2048
+    ],
+    "input_origin": "synthetic_cpu_fixture",
+    "scope": "postprojection_indexer_only",
+    "query_exported_vs_fp64": {
+      "count": 512,
+      "max_abs": 2.83290389591073E-7,
+      "relative_l2": 8.34662391106334E-8,
+      "rms": 8.38227258331362E-8
+    },
+    "query_exported_vs_scalar_fp32": {
+      "count": 512,
+      "max_abs": 0,
+      "relative_l2": 0,
+      "rms": 0
+    },
+    "candidate_raw_scores_vs_exported_inputs_fp64": {
+      "count": 0,
+      "max_abs": null,
+      "relative_l2": null,
+      "rms": null
+    },
+    "candidate_scaled_scores_vs_full_fp64": {
+      "count": 0,
+      "max_abs": null,
+      "relative_l2": null,
+      "rms": null
+    },
+    "provided_selection_vs_candidate_score_readback": null,
+    "provided_selection_vs_full_fp64": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "modes": [
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207493515012697,
+          "rms": 0.000207382373035884
+        },
+        "name": "reference_fp64",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 26,
+          "selected_at_cutoff": 26,
+          "selected_blocks": 512,
+          "strict_above": 486
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 4.64954996282074E-7,
+          "relative_l2": 6.17797904153718E-8,
+          "rms": 1.2340572906214E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207493515012697,
+          "rms": 0.000207382373035884
+        },
+        "name": "fixed_iq_fp64_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 26,
+          "selected_at_cutoff": 26,
+          "selected_blocks": 512,
+          "strict_above": 486
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 4.64954996282074E-7,
+          "relative_l2": 6.17797875564433E-8,
+          "rms": 1.2340572906214E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0.0009765625,
+          "relative_l2": 0.00020749409556287,
+          "rms": 0.000207382956325051
+        },
+        "name": "fixed_iq_scalar_fp32_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 9.36683012930928E-7,
+          "relative_l2": 9.76694756313893E-8,
+          "rms": 9.76171598826527E-8
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 26,
+          "selected_at_cutoff": 26,
+          "selected_blocks": 512,
+          "strict_above": 486
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 8.93901388909768E-7,
+          "relative_l2": 9.34267265751114E-8,
+          "rms": 1.86620790219162E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 9.70788972765035E-7,
+          "relative_l2": 1.07877144025349E-7,
+          "rms": 2.15485648852822E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_scalar_fp32_pool_fp16_store",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207493515012697,
+          "rms": 0.000207382373035884
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 26,
+          "selected_at_cutoff": 26,
+          "selected_blocks": 512,
+          "strict_above": 486
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 0.000958803208076731,
+          "relative_l2": 0.000140497780772598,
+          "rms": 0.00028064567638192
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 0.000958803879721248,
+          "relative_l2": 0.000140498439602041,
+          "rms": 0.000280647005387357
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0.001953125,
+          "relative_l2": 0.000379625629042864,
+          "rms": 0.000379421200471564
+        },
+        "name": "fixed_iq_fp16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 0.00243502313248856,
+          "relative_l2": 0.000326053362414242,
+          "rms": 0.000325878714954813
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 26,
+          "selected_at_cutoff": 26,
+          "selected_blocks": 512,
+          "strict_above": 486
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 0.00161698926260212,
+          "relative_l2": 0.000215546387864198,
+          "rms": 0.000430555995128042
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 0.00161701073614884,
+          "relative_l2": 0.000215545873068483,
+          "rms": 0.00043055498674303
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0.021484375,
+          "relative_l2": 0.00258854649014863,
+          "rms": 0.00258719457484505
+        },
+        "name": "fixed_iq_bf16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 0.0213491686789871,
+          "relative_l2": 0.00257991327329088,
+          "rms": 0.00257853136667476
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 26,
+          "selected_at_cutoff": 26,
+          "selected_blocks": 512,
+          "strict_above": 486
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 0.0163111730869354,
+          "relative_l2": 0.00176105389867655,
+          "rms": 0.00351772220045976
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 0.016311306648912,
+          "relative_l2": 0.00176105372791262,
+          "rms": 0.00351772202214365
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_exported_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207493515012697,
+          "rms": 0.000207382373035884
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 26,
+          "selected_at_cutoff": 26,
+          "selected_blocks": 512,
+          "strict_above": 486
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 0.000958803208076731,
+          "relative_l2": 0.000140497780772598,
+          "rms": 0.00028064567638192
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 0.000958803879721248,
+          "relative_l2": 0.000140498439602041,
+          "rms": 0.000280647005387357
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      }
+    ],
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 2050,
+    "positions": 262000,
+    "budget": 512,
+    "complete_blocks": 512,
+    "selected_blocks": 512,
+    "attended_keys": 2050,
+    "sparse_exclusion": false,
+    "tail_token_ids": [
+      2048,
+      2049
+    ],
+    "input_origin": "synthetic_cpu_fixture",
+    "scope": "postprojection_indexer_only",
+    "query_exported_vs_fp64": {
+      "count": 512,
+      "max_abs": 3.60639780261351E-7,
+      "relative_l2": 9.27093559470011E-8,
+      "rms": 9.28877352443548E-8
+    },
+    "query_exported_vs_scalar_fp32": {
+      "count": 512,
+      "max_abs": 0,
+      "relative_l2": 0,
+      "rms": 0
+    },
+    "candidate_raw_scores_vs_exported_inputs_fp64": {
+      "count": 0,
+      "max_abs": null,
+      "relative_l2": null,
+      "rms": null
+    },
+    "candidate_scaled_scores_vs_full_fp64": {
+      "count": 0,
+      "max_abs": null,
+      "relative_l2": null,
+      "rms": null
+    },
+    "provided_selection_vs_candidate_score_readback": null,
+    "provided_selection_vs_full_fp64": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "modes": [
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207493515012697,
+          "rms": 0.000207382373035884
+        },
+        "name": "reference_fp64",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 39,
+          "selected_at_cutoff": 39,
+          "selected_blocks": 512,
+          "strict_above": 473
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 5.28999477111824E-7,
+          "relative_l2": 5.9756494613456E-8,
+          "rms": 1.21001048662092E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207493515012697,
+          "rms": 0.000207382373035884
+        },
+        "name": "fixed_iq_fp64_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 39,
+          "selected_at_cutoff": 39,
+          "selected_blocks": 512,
+          "strict_above": 473
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 5.28999477111824E-7,
+          "relative_l2": 5.97564931788589E-8,
+          "rms": 1.21001048662092E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0.0009765625,
+          "relative_l2": 0.00020749409556287,
+          "rms": 0.000207382956325051
+        },
+        "name": "fixed_iq_scalar_fp32_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 9.36683012930928E-7,
+          "relative_l2": 9.76694756313893E-8,
+          "rms": 9.76171598826527E-8
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 39,
+          "selected_at_cutoff": 39,
+          "selected_blocks": 512,
+          "strict_above": 473
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 7.80326962157574E-7,
+          "relative_l2": 9.32422786560375E-8,
+          "rms": 1.88806481538209E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 9.47382425842136E-7,
+          "relative_l2": 1.05435409987008E-7,
+          "rms": 2.13496383336282E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_scalar_fp32_pool_fp16_store",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207493515012697,
+          "rms": 0.000207382373035884
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 39,
+          "selected_at_cutoff": 39,
+          "selected_blocks": 512,
+          "strict_above": 473
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 0.00135267650888204,
+          "relative_l2": 0.000149271116638239,
+          "rms": 0.000302259390632348
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 0.00135262767572586,
+          "relative_l2": 0.000149267373272931,
+          "rms": 0.000302251817940523
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0.001953125,
+          "relative_l2": 0.000379625629042864,
+          "rms": 0.000379421200471564
+        },
+        "name": "fixed_iq_fp16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 0.00243502313248856,
+          "relative_l2": 0.000326053362414242,
+          "rms": 0.000325878714954813
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 39,
+          "selected_at_cutoff": 39,
+          "selected_blocks": 512,
+          "strict_above": 473
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 0.00175530299313653,
+          "relative_l2": 0.000224812600174317,
+          "rms": 0.0004552234957808
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 0.00175518934143781,
+          "relative_l2": 0.000224817767800546,
+          "rms": 0.000455233970646741
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0.021484375,
+          "relative_l2": 0.00258854649014863,
+          "rms": 0.00258719457484505
+        },
+        "name": "fixed_iq_bf16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 0.0213491686789871,
+          "relative_l2": 0.00257991327329088,
+          "rms": 0.00257853136667476
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 40,
+          "selected_at_cutoff": 40,
+          "selected_blocks": 512,
+          "strict_above": 472
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 0.0124641565700463,
+          "relative_l2": 0.00179649020404868,
+          "rms": 0.0036377167035517
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 0.0124639804309643,
+          "relative_l2": 0.00179648682185644,
+          "rms": 0.00363770994227559
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_exported_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207493515012697,
+          "rms": 0.000207382373035884
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 39,
+          "selected_at_cutoff": 39,
+          "selected_blocks": 512,
+          "strict_above": 473
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 0.00135267650888204,
+          "relative_l2": 0.000149271116638239,
+          "rms": 0.000302259390632348
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 0.00135262767572586,
+          "relative_l2": 0.000149267373272931,
+          "rms": 0.000302251817940523
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      }
+    ],
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 2051,
+    "positions": 262000,
+    "budget": 512,
+    "complete_blocks": 512,
+    "selected_blocks": 512,
+    "attended_keys": 2051,
+    "sparse_exclusion": false,
+    "tail_token_ids": [
+      2048,
+      2049,
+      2050
+    ],
+    "input_origin": "synthetic_cpu_fixture",
+    "scope": "postprojection_indexer_only",
+    "query_exported_vs_fp64": {
+      "count": 512,
+      "max_abs": 4.51394700951013E-7,
+      "relative_l2": 1.47332485494827E-7,
+      "rms": 1.47361290978206E-7
+    },
+    "query_exported_vs_scalar_fp32": {
+      "count": 512,
+      "max_abs": 0,
+      "relative_l2": 0,
+      "rms": 0
+    },
+    "candidate_raw_scores_vs_exported_inputs_fp64": {
+      "count": 0,
+      "max_abs": null,
+      "relative_l2": null,
+      "rms": null
+    },
+    "candidate_scaled_scores_vs_full_fp64": {
+      "count": 0,
+      "max_abs": null,
+      "relative_l2": null,
+      "rms": null
+    },
+    "provided_selection_vs_candidate_score_readback": null,
+    "provided_selection_vs_full_fp64": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "modes": [
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207493515012697,
+          "rms": 0.000207382373035884
+        },
+        "name": "reference_fp64",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 36,
+          "selected_at_cutoff": 36,
+          "selected_blocks": 512,
+          "strict_above": 476
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 8.51880904484403E-7,
+          "relative_l2": 9.96545069230895E-8,
+          "rms": 1.9847956949655E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207493515012697,
+          "rms": 0.000207382373035884
+        },
+        "name": "fixed_iq_fp64_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 36,
+          "selected_at_cutoff": 36,
+          "selected_blocks": 512,
+          "strict_above": 476
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 8.51880904484403E-7,
+          "relative_l2": 9.9654501288888E-8,
+          "rms": 1.9847956949655E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0.0009765625,
+          "relative_l2": 0.00020749409556287,
+          "rms": 0.000207382956325051
+        },
+        "name": "fixed_iq_scalar_fp32_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 9.36683012930928E-7,
+          "relative_l2": 9.76694756313893E-8,
+          "rms": 9.76171598826527E-8
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 36,
+          "selected_at_cutoff": 36,
+          "selected_blocks": 512,
+          "strict_above": 476
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 9.2513691596352E-7,
+          "relative_l2": 9.0814871168109E-8,
+          "rms": 1.80873872039144E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 0.00000116290205820491,
+          "relative_l2": 1.29496825146305E-7,
+          "rms": 2.57915836954518E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_scalar_fp32_pool_fp16_store",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207493515012697,
+          "rms": 0.000207382373035884
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 36,
+          "selected_at_cutoff": 36,
+          "selected_blocks": 512,
+          "strict_above": 476
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 0.00110947425197039,
+          "relative_l2": 0.000148930103433882,
+          "rms": 0.000296620631894219
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 0.00110926913437992,
+          "relative_l2": 0.000148926717804771,
+          "rms": 0.000296613905585027
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0.001953125,
+          "relative_l2": 0.000379625629042864,
+          "rms": 0.000379421200471564
+        },
+        "name": "fixed_iq_fp16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 0.00243502313248856,
+          "relative_l2": 0.000326053362414242,
+          "rms": 0.000325878714954813
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 36,
+          "selected_at_cutoff": 36,
+          "selected_blocks": 512,
+          "strict_above": 476
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 0.00161862979327632,
+          "relative_l2": 0.000224446262655021,
+          "rms": 0.000447024414272192
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 0.00161832546919882,
+          "relative_l2": 0.000224447950665386,
+          "rms": 0.000447027801517041
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0.021484375,
+          "relative_l2": 0.00258854649014863,
+          "rms": 0.00258719457484505
+        },
+        "name": "fixed_iq_bf16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 0.0213491686789871,
+          "relative_l2": 0.00257991327329088,
+          "rms": 0.00257853136667476
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 36,
+          "selected_at_cutoff": 36,
+          "selected_blocks": 512,
+          "strict_above": 476
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 0.0130548415135046,
+          "relative_l2": 0.00182072492063271,
+          "rms": 0.00362629558438055
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 0.0130550000107861,
+          "relative_l2": 0.00182073010836607,
+          "rms": 0.00362630612169046
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65536,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_exported_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65536,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207493515012697,
+          "rms": 0.000207382373035884
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 0,
+          "cutoff_margin": null,
+          "cutoff_ties": 36,
+          "selected_at_cutoff": 36,
+          "selected_blocks": 512,
+          "strict_above": 476
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 512,
+          "max_abs": 0.00110947425197039,
+          "relative_l2": 0.000148930103433882,
+          "rms": 0.000296620631894219
+        },
+        "scores_vs_full_fp64": {
+          "count": 512,
+          "max_abs": 0.00110926913437992,
+          "relative_l2": 0.000148926717804771,
+          "rms": 0.000296613905585027
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      }
+    ],
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 2052,
+    "positions": 262000,
+    "budget": 512,
+    "complete_blocks": 513,
+    "selected_blocks": 512,
+    "attended_keys": 2048,
+    "sparse_exclusion": true,
+    "tail_token_ids": [],
+    "input_origin": "synthetic_cpu_fixture",
+    "scope": "postprojection_indexer_only",
+    "query_exported_vs_fp64": {
+      "count": 512,
+      "max_abs": 4.20275684032134E-7,
+      "relative_l2": 1.21896363221994E-7,
+      "rms": 1.21516673903479E-7
+    },
+    "query_exported_vs_scalar_fp32": {
+      "count": 512,
+      "max_abs": 0,
+      "relative_l2": 0,
+      "rms": 0
+    },
+    "candidate_raw_scores_vs_exported_inputs_fp64": {
+      "count": 513,
+      "max_abs": 0.0000142948485404304,
+      "relative_l2": 1.55937905972299E-7,
+      "rms": 0.00000355295198345542
+    },
+    "candidate_scaled_scores_vs_full_fp64": {
+      "count": 513,
+      "max_abs": 0.00123666192735161,
+      "relative_l2": 0.000143721502908406,
+      "rms": 0.0002894385061187
+    },
+    "provided_selection_vs_candidate_score_readback": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "provided_selection_vs_full_fp64": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "modes": [
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207485126044806,
+          "rms": 0.000207372796104471
+        },
+        "name": "reference_fp64",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 28,
+          "selected_at_cutoff": 27,
+          "selected_blocks": 512,
+          "strict_above": 485
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 6.52471585205205E-7,
+          "relative_l2": 1.07420798969237E-7,
+          "rms": 2.16333060682328E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207485126044806,
+          "rms": 0.000207372796104471
+        },
+        "name": "fixed_iq_fp64_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 28,
+          "selected_at_cutoff": 27,
+          "selected_blocks": 512,
+          "strict_above": 485
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 6.52471585205205E-7,
+          "relative_l2": 1.07420788709049E-7,
+          "rms": 2.16333060682328E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0.0009765625,
+          "relative_l2": 0.000207485702572325,
+          "rms": 0.000207373375374184
+        },
+        "name": "fixed_iq_scalar_fp32_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 9.36683012930928E-7,
+          "relative_l2": 9.75953036387333E-8,
+          "rms": 9.75424667205226E-8
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 28,
+          "selected_at_cutoff": 27,
+          "selected_blocks": 512,
+          "strict_above": 485
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 7.73345838478434E-7,
+          "relative_l2": 9.42465156492372E-8,
+          "rms": 1.8980157832268E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 0.00000121232583527586,
+          "relative_l2": 1.34230711050392E-7,
+          "rms": 2.70325147562897E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_scalar_fp32_pool_fp16_store",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207485126044806,
+          "rms": 0.000207372796104471
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 28,
+          "selected_at_cutoff": 27,
+          "selected_blocks": 512,
+          "strict_above": 485
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 0.00123656751894696,
+          "relative_l2": 0.000143707782122429,
+          "rms": 0.000289410846397796
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 0.00123639307125067,
+          "relative_l2": 0.000143710137593264,
+          "rms": 0.000289415617686768
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0.001953125,
+          "relative_l2": 0.000379467333741928,
+          "rms": 0.000379260768816598
+        },
+        "name": "fixed_iq_fp16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 0.00243502313248856,
+          "relative_l2": 0.000325983158870736,
+          "rms": 0.000325806675527162
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 28,
+          "selected_at_cutoff": 27,
+          "selected_blocks": 512,
+          "strict_above": 485
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 0.00163783727788713,
+          "relative_l2": 0.000224194134722395,
+          "rms": 0.000451501048371568
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 0.00163761909514237,
+          "relative_l2": 0.000224196017950474,
+          "rms": 0.00045150488410006
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0.021484375,
+          "relative_l2": 0.00258793412266494,
+          "rms": 0.00258656809495049
+        },
+        "name": "fixed_iq_bf16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 0.0213491686789871,
+          "relative_l2": 0.00257929660983146,
+          "rms": 0.00257790020981083
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 28,
+          "selected_at_cutoff": 27,
+          "selected_blocks": 512,
+          "strict_above": 485
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 0.0120205398394964,
+          "relative_l2": 0.00170460358080127,
+          "rms": 0.00343287439139603
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 0.0120202454685514,
+          "relative_l2": 0.00170459643833333,
+          "rms": 0.00343286033517813
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_exported_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207485126044806,
+          "rms": 0.000207372796104471
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 28,
+          "selected_at_cutoff": 27,
+          "selected_blocks": 512,
+          "strict_above": 485
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 0.00123656751894696,
+          "relative_l2": 0.000143707782122429,
+          "rms": 0.000289410846397796
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 0.00123639307125067,
+          "relative_l2": 0.000143710137593264,
+          "rms": 0.000289415617686768
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      }
+    ],
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 2053,
+    "positions": 262000,
+    "budget": 512,
+    "complete_blocks": 513,
+    "selected_blocks": 512,
+    "attended_keys": 2049,
+    "sparse_exclusion": true,
+    "tail_token_ids": [
+      2052
+    ],
+    "input_origin": "synthetic_cpu_fixture",
+    "scope": "postprojection_indexer_only",
+    "query_exported_vs_fp64": {
+      "count": 512,
+      "max_abs": 4.09058880990187E-7,
+      "relative_l2": 8.98353295332431E-8,
+      "rms": 8.97311270289186E-8
+    },
+    "query_exported_vs_scalar_fp32": {
+      "count": 512,
+      "max_abs": 0,
+      "relative_l2": 0,
+      "rms": 0
+    },
+    "candidate_raw_scores_vs_exported_inputs_fp64": {
+      "count": 513,
+      "max_abs": 0.0000135467107611476,
+      "relative_l2": 1.6248398948539E-7,
+      "rms": 0.00000361962504191186
+    },
+    "candidate_scaled_scores_vs_full_fp64": {
+      "count": 513,
+      "max_abs": 0.00098257941510127,
+      "relative_l2": 0.000140128738653491,
+      "rms": 0.000275915806428494
+    },
+    "provided_selection_vs_candidate_score_readback": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "provided_selection_vs_full_fp64": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "modes": [
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207485126044806,
+          "rms": 0.000207372796104471
+        },
+        "name": "reference_fp64",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 23,
+          "selected_at_cutoff": 22,
+          "selected_blocks": 512,
+          "strict_above": 490
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 5.60061363508169E-7,
+          "relative_l2": 8.08070372785187E-8,
+          "rms": 1.59110382560832E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207485126044806,
+          "rms": 0.000207372796104471
+        },
+        "name": "fixed_iq_fp64_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 23,
+          "selected_at_cutoff": 22,
+          "selected_blocks": 512,
+          "strict_above": 490
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 5.60061363508169E-7,
+          "relative_l2": 8.08070313315016E-8,
+          "rms": 1.59110382560832E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0.0009765625,
+          "relative_l2": 0.000207485702572325,
+          "rms": 0.000207373375374184
+        },
+        "name": "fixed_iq_scalar_fp32_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 9.36683012930928E-7,
+          "relative_l2": 9.75953036387333E-8,
+          "rms": 9.75424667205226E-8
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 23,
+          "selected_at_cutoff": 22,
+          "selected_blocks": 512,
+          "strict_above": 490
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 0.00000128507954499923,
+          "relative_l2": 9.74234278377229E-8,
+          "rms": 1.91828328270717E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 0.00000172599992431799,
+          "relative_l2": 1.19251508376517E-7,
+          "rms": 2.348081943625E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_scalar_fp32_pool_fp16_store",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207485126044806,
+          "rms": 0.000207372796104471
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 23,
+          "selected_at_cutoff": 22,
+          "selected_blocks": 512,
+          "strict_above": 490
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 0.000982244385155706,
+          "relative_l2": 0.000140122408723544,
+          "rms": 0.000275903322386442
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 0.000982433360317891,
+          "relative_l2": 0.0001401250549486,
+          "rms": 0.000275908553152576
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0.001953125,
+          "relative_l2": 0.000379467333741928,
+          "rms": 0.000379260768816598
+        },
+        "name": "fixed_iq_fp16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 0.00243502313248856,
+          "relative_l2": 0.000325983158870736,
+          "rms": 0.000325806675527162
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 23,
+          "selected_at_cutoff": 22,
+          "selected_blocks": 512,
+          "strict_above": 490
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 0.00136462823516981,
+          "relative_l2": 0.000223139034306994,
+          "rms": 0.0004393644205822
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 0.00136443057666558,
+          "relative_l2": 0.00022313250538647,
+          "rms": 0.000439351597364745
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0.021484375,
+          "relative_l2": 0.00258793412266494,
+          "rms": 0.00258656809495049
+        },
+        "name": "fixed_iq_bf16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 0.0213491686789871,
+          "relative_l2": 0.00257929660983146,
+          "rms": 0.00257790020981083
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 23,
+          "selected_at_cutoff": 22,
+          "selected_blocks": 512,
+          "strict_above": 490
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 0.0136455530322266,
+          "relative_l2": 0.00186489243548038,
+          "rms": 0.0036720038110216
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 0.0136458844754284,
+          "relative_l2": 0.00186489485351248,
+          "rms": 0.00367200884240905
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_exported_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207485126044806,
+          "rms": 0.000207372796104471
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 23,
+          "selected_at_cutoff": 22,
+          "selected_blocks": 512,
+          "strict_above": 490
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 0.000982244385155706,
+          "relative_l2": 0.000140122408723544,
+          "rms": 0.000275903322386442
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 0.000982433360317891,
+          "relative_l2": 0.0001401250549486,
+          "rms": 0.000275908553152576
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      }
+    ],
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 2054,
+    "positions": 262000,
+    "budget": 512,
+    "complete_blocks": 513,
+    "selected_blocks": 512,
+    "attended_keys": 2050,
+    "sparse_exclusion": true,
+    "tail_token_ids": [
+      2052,
+      2053
+    ],
+    "input_origin": "synthetic_cpu_fixture",
+    "scope": "postprojection_indexer_only",
+    "query_exported_vs_fp64": {
+      "count": 512,
+      "max_abs": 2.29951109487203E-7,
+      "relative_l2": 7.24357510255333E-8,
+      "rms": 7.24855691350228E-8
+    },
+    "query_exported_vs_scalar_fp32": {
+      "count": 512,
+      "max_abs": 0,
+      "relative_l2": 0,
+      "rms": 0
+    },
+    "candidate_raw_scores_vs_exported_inputs_fp64": {
+      "count": 513,
+      "max_abs": 0.0000141947948577581,
+      "relative_l2": 1.47937674196014E-7,
+      "rms": 0.00000322925930077732
+    },
+    "candidate_scaled_scores_vs_full_fp64": {
+      "count": 513,
+      "max_abs": 0.000991054263134394,
+      "relative_l2": 0.0001558177880046,
+      "rms": 0.000300631548925679
+    },
+    "provided_selection_vs_candidate_score_readback": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "provided_selection_vs_full_fp64": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "modes": [
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207485126044806,
+          "rms": 0.000207372796104471
+        },
+        "name": "reference_fp64",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 36,
+          "selected_at_cutoff": 35,
+          "selected_blocks": 512,
+          "strict_above": 477
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 4.03195413056778E-7,
+          "relative_l2": 5.00847705502575E-8,
+          "rms": 9.66324973901235E-8
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207485126044806,
+          "rms": 0.000207372796104471
+        },
+        "name": "fixed_iq_fp64_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 36,
+          "selected_at_cutoff": 35,
+          "selected_blocks": 512,
+          "strict_above": 477
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 4.03195413056778E-7,
+          "relative_l2": 5.0084770033273E-8,
+          "rms": 9.66324973901235E-8
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0.0009765625,
+          "relative_l2": 0.000207485702572325,
+          "rms": 0.000207373375374184
+        },
+        "name": "fixed_iq_scalar_fp32_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 9.36683012930928E-7,
+          "relative_l2": 9.75953036387333E-8,
+          "rms": 9.75424667205226E-8
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 36,
+          "selected_at_cutoff": 35,
+          "selected_blocks": 512,
+          "strict_above": 477
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 0.00000108793963260467,
+          "relative_l2": 9.29000927710932E-8,
+          "rms": 1.79239474866652E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 0.00000114213060786739,
+          "relative_l2": 1.034332110801E-7,
+          "rms": 1.99561852697135E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_scalar_fp32_pool_fp16_store",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207485126044806,
+          "rms": 0.000207372796104471
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 36,
+          "selected_at_cutoff": 35,
+          "selected_blocks": 512,
+          "strict_above": 477
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 0.000991176059923937,
+          "relative_l2": 0.000155816622620358,
+          "rms": 0.000300629297354786
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 0.000991194007575746,
+          "relative_l2": 0.000155818151172926,
+          "rms": 0.000300632249614977
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0.001953125,
+          "relative_l2": 0.000379467333741928,
+          "rms": 0.000379260768816598
+        },
+        "name": "fixed_iq_fp16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 0.00243502313248856,
+          "relative_l2": 0.000325983158870736,
+          "rms": 0.000325806675527162
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 36,
+          "selected_at_cutoff": 35,
+          "selected_blocks": 512,
+          "strict_above": 477
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 0.00161588612827979,
+          "relative_l2": 0.000248848404195021,
+          "rms": 0.000480122849814836
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 0.00161583726487247,
+          "relative_l2": 0.000248850854649872,
+          "rms": 0.000480127582626585
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0.021484375,
+          "relative_l2": 0.00258793412266494,
+          "rms": 0.00258656809495049
+        },
+        "name": "fixed_iq_bf16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 0.0213491686789871,
+          "relative_l2": 0.00257929660983146,
+          "rms": 0.00257790020981083
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 36,
+          "selected_at_cutoff": 35,
+          "selected_blocks": 512,
+          "strict_above": 477
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 0.0132302069152208,
+          "relative_l2": 0.00196986370435246,
+          "rms": 0.00380061338363782
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 0.0132300879052871,
+          "relative_l2": 0.0019698629449876,
+          "rms": 0.00380061195776596
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_exported_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207485126044806,
+          "rms": 0.000207372796104471
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 36,
+          "selected_at_cutoff": 35,
+          "selected_blocks": 512,
+          "strict_above": 477
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 0.000991176059923937,
+          "relative_l2": 0.000155816622620358,
+          "rms": 0.000300629297354786
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 0.000991194007575746,
+          "relative_l2": 0.000155818151172926,
+          "rms": 0.000300632249614977
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      }
+    ],
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 2055,
+    "positions": 262000,
+    "budget": 512,
+    "complete_blocks": 513,
+    "selected_blocks": 512,
+    "attended_keys": 2051,
+    "sparse_exclusion": true,
+    "tail_token_ids": [
+      2052,
+      2053,
+      2054
+    ],
+    "input_origin": "synthetic_cpu_fixture",
+    "scope": "postprojection_indexer_only",
+    "query_exported_vs_fp64": {
+      "count": 512,
+      "max_abs": 4.53163435887305E-7,
+      "relative_l2": 1.18693524292768E-7,
+      "rms": 1.18916976530005E-7
+    },
+    "query_exported_vs_scalar_fp32": {
+      "count": 512,
+      "max_abs": 0,
+      "relative_l2": 0,
+      "rms": 0
+    },
+    "candidate_raw_scores_vs_exported_inputs_fp64": {
+      "count": 513,
+      "max_abs": 0.0000187474564654622,
+      "relative_l2": 1.49898346137481E-7,
+      "rms": 0.0000032986357181171
+    },
+    "candidate_scaled_scores_vs_full_fp64": {
+      "count": 513,
+      "max_abs": 0.000934165070126447,
+      "relative_l2": 0.000147446833132832,
+      "rms": 0.000286787794240903
+    },
+    "provided_selection_vs_candidate_score_readback": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "provided_selection_vs_full_fp64": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "modes": [
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207485126044806,
+          "rms": 0.000207372796104471
+        },
+        "name": "reference_fp64",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 37,
+          "selected_at_cutoff": 36,
+          "selected_blocks": 512,
+          "strict_above": 476
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 5.53843782835628E-7,
+          "relative_l2": 7.29333432387234E-8,
+          "rms": 1.418571870312E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207485126044806,
+          "rms": 0.000207372796104471
+        },
+        "name": "fixed_iq_fp64_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 37,
+          "selected_at_cutoff": 36,
+          "selected_blocks": 512,
+          "strict_above": 476
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 5.53843782835628E-7,
+          "relative_l2": 7.29333444620469E-8,
+          "rms": 1.418571870312E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0.0009765625,
+          "relative_l2": 0.000207485702572325,
+          "rms": 0.000207373375374184
+        },
+        "name": "fixed_iq_scalar_fp32_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 9.36683012930928E-7,
+          "relative_l2": 9.75953036387333E-8,
+          "rms": 9.75424667205226E-8
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 37,
+          "selected_at_cutoff": 36,
+          "selected_blocks": 512,
+          "strict_above": 476
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 8.92250601403077E-7,
+          "relative_l2": 9.7122789854189E-8,
+          "rms": 1.88906269115366E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 9.29144033712248E-7,
+          "relative_l2": 1.24052203325842E-7,
+          "rms": 2.41284651603822E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_scalar_fp32_pool_fp16_store",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207485126044806,
+          "rms": 0.000207372796104471
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 37,
+          "selected_at_cutoff": 36,
+          "selected_blocks": 512,
+          "strict_above": 476
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 0.0009341670104277,
+          "relative_l2": 0.00014744877870634,
+          "rms": 0.000286791583240651
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 0.000934112584200175,
+          "relative_l2": 0.000147450597717735,
+          "rms": 0.000286795116453102
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0.001953125,
+          "relative_l2": 0.000379467333741928,
+          "rms": 0.000379260768816598
+        },
+        "name": "fixed_iq_fp16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 0.00243502313248856,
+          "relative_l2": 0.000325983158870736,
+          "rms": 0.000325806675527162
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 37,
+          "selected_at_cutoff": 36,
+          "selected_blocks": 512,
+          "strict_above": 476
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 0.00161965870405911,
+          "relative_l2": 0.000236750541885652,
+          "rms": 0.000460485758757586
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 0.0016198326489052,
+          "relative_l2": 0.000236751227167929,
+          "rms": 0.000460487083925022
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0.021484375,
+          "relative_l2": 0.00258793412266494,
+          "rms": 0.00258656809495049
+        },
+        "name": "fixed_iq_bf16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 0.0213491686789871,
+          "relative_l2": 0.00257929660983146,
+          "rms": 0.00257790020981083
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 37,
+          "selected_at_cutoff": 36,
+          "selected_blocks": 512,
+          "strict_above": 476
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 0.0160100577934217,
+          "relative_l2": 0.00209431108683634,
+          "rms": 0.0040734877403662
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 0.0160101508480741,
+          "relative_l2": 0.0020943104262228,
+          "rms": 0.00407348638713096
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 65664,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_exported_pool",
+        "pool_mode_vs_fp64": {
+          "count": 65664,
+          "max_abs": 0.000976429560750613,
+          "relative_l2": 0.000207485126044806,
+          "rms": 0.000207372796104471
+        },
+        "ranking": {
+          "ambiguous_cutoff": true,
+          "cutoff": 0,
+          "cutoff_margin": 0,
+          "cutoff_ties": 37,
+          "selected_at_cutoff": 36,
+          "selected_blocks": 512,
+          "strict_above": 476
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 513,
+          "max_abs": 0.0009341670104277,
+          "relative_l2": 0.00014744877870634,
+          "rms": 0.000286791583240651
+        },
+        "scores_vs_full_fp64": {
+          "count": 513,
+          "max_abs": 0.000934112584200175,
+          "relative_l2": 0.000147450597717735,
+          "rms": 0.000286795116453102
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      }
+    ],
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 3100,
+    "positions": 262000,
+    "budget": 512,
+    "complete_blocks": 775,
+    "selected_blocks": 512,
+    "attended_keys": 2048,
+    "sparse_exclusion": true,
+    "tail_token_ids": [],
+    "input_origin": "synthetic_cpu_fixture",
+    "scope": "postprojection_indexer_only",
+    "query_exported_vs_fp64": {
+      "count": 512,
+      "max_abs": 3.78874562390052E-7,
+      "relative_l2": 1.03613707525569E-7,
+      "rms": 1.03955912249195E-7
+    },
+    "query_exported_vs_scalar_fp32": {
+      "count": 512,
+      "max_abs": 0,
+      "relative_l2": 0,
+      "rms": 0
+    },
+    "candidate_raw_scores_vs_exported_inputs_fp64": {
+      "count": 775,
+      "max_abs": 0.0000171138573250573,
+      "relative_l2": 1.52407060558139E-7,
+      "rms": 0.00000331706733938603
+    },
+    "candidate_scaled_scores_vs_full_fp64": {
+      "count": 775,
+      "max_abs": 0.00105710605731524,
+      "relative_l2": 0.000148568342643469,
+      "rms": 0.00028580665836077
+    },
+    "provided_selection_vs_candidate_score_readback": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "provided_selection_vs_full_fp64": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "modes": [
+      {
+        "exported_pool_vs_mode": {
+          "count": 99200,
+          "max_abs": 0.0016104609106069,
+          "relative_l2": 0.000207948336713485,
+          "rms": 0.000207830683232667
+        },
+        "name": "reference_fp64",
+        "pool_mode_vs_fp64": {
+          "count": 99200,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 1.05838849989884,
+          "cutoff_margin": 0.0044899449969007,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 775,
+          "max_abs": 6.1580068067002E-7,
+          "relative_l2": 9.10729995167692E-8,
+          "rms": 1.75200660298263E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 775,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 99200,
+          "max_abs": 0.0016104609106069,
+          "relative_l2": 0.000207948336713485,
+          "rms": 0.000207830683232667
+        },
+        "name": "fixed_iq_fp64_pool",
+        "pool_mode_vs_fp64": {
+          "count": 99200,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 1.05838859990705,
+          "cutoff_margin": 0.0044899050426952,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 775,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "scores_vs_full_fp64": {
+          "count": 775,
+          "max_abs": 6.1580068067002E-7,
+          "relative_l2": 9.10730067656368E-8,
+          "rms": 1.75200660298263E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 99200,
+          "max_abs": 0.00161075592041016,
+          "relative_l2": 0.000207949119733329,
+          "rms": 0.000207831468493544
+        },
+        "name": "fixed_iq_scalar_fp32_pool",
+        "pool_mode_vs_fp64": {
+          "count": 99200,
+          "max_abs": 0.0000012166918654799,
+          "relative_l2": 1.01747204211009E-7,
+          "rms": 1.01689637447417E-7
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 1.05838850802208,
+          "cutoff_margin": 0.00448991645365893,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 775,
+          "max_abs": 7.80432955149735E-7,
+          "relative_l2": 9.75894592035599E-8,
+          "rms": 1.87736626457175E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 775,
+          "max_abs": 0.00000133930922174841,
+          "relative_l2": 1.38924983887505E-7,
+          "rms": 2.67255356701369E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 99200,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_scalar_fp32_pool_fp16_store",
+        "pool_mode_vs_fp64": {
+          "count": 99200,
+          "max_abs": 0.0016104609106069,
+          "relative_l2": 0.000207948336713485,
+          "rms": 0.000207830683232667
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 1.05837977822003,
+          "cutoff_margin": 0.00449531165262629,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 775,
+          "max_abs": 0.00105693623584591,
+          "relative_l2": 0.00014857761892615,
+          "rms": 0.000285824526253933
+        },
+        "scores_vs_full_fp64": {
+          "count": 775,
+          "max_abs": 0.00105687772200946,
+          "relative_l2": 0.000148573461211564,
+          "rms": 0.00028581650514789
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 99200,
+          "max_abs": 0.00390625,
+          "relative_l2": 0.000381208843028573,
+          "rms": 0.000380992354084168
+        },
+        "name": "fixed_iq_fp16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 99200,
+          "max_abs": 0.00253364456529681,
+          "relative_l2": 0.000326865573925015,
+          "rms": 0.000326680639180455
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 1.05786579698765,
+          "cutoff_margin": 0.00418067535327182,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 775,
+          "max_abs": 0.00146661853146157,
+          "relative_l2": 0.000226744233021473,
+          "rms": 0.000436196672504135
+        },
+        "scores_vs_full_fp64": {
+          "count": 775,
+          "max_abs": 0.00146681963398532,
+          "relative_l2": 0.000226741119149413,
+          "rms": 0.000436190647509547
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 99200,
+          "max_abs": 0.021484375,
+          "relative_l2": 0.00260009405135026,
+          "rms": 0.00259864760436323
+        },
+        "name": "fixed_iq_bf16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 99200,
+          "max_abs": 0.0213491686789871,
+          "relative_l2": 0.00259203197901009,
+          "rms": 0.00259056545328768
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 1.05631717431336,
+          "cutoff_margin": 0.00313111632442364,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 775,
+          "max_abs": 0.0113278476996492,
+          "relative_l2": 0.00187985003460706,
+          "rms": 0.00361634039805867
+        },
+        "scores_vs_full_fp64": {
+          "count": 775,
+          "max_abs": 0.0113276531808286,
+          "relative_l2": 0.00187985417801751,
+          "rms": 0.00361634808105827
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 99200,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_exported_pool",
+        "pool_mode_vs_fp64": {
+          "count": 99200,
+          "max_abs": 0.0016104609106069,
+          "relative_l2": 0.000207948336713485,
+          "rms": 0.000207830683232667
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 1.05837977822003,
+          "cutoff_margin": 0.00449531165262629,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 775,
+          "max_abs": 0.00105693623584591,
+          "relative_l2": 0.00014857761892615,
+          "rms": 0.000285824526253933
+        },
+        "scores_vs_full_fp64": {
+          "count": 775,
+          "max_abs": 0.00105687772200946,
+          "relative_l2": 0.000148573461211564,
+          "rms": 0.00028581650514789
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      }
+    ],
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 8000,
+    "positions": 262000,
+    "budget": 512,
+    "complete_blocks": 2000,
+    "selected_blocks": 512,
+    "attended_keys": 2048,
+    "sparse_exclusion": true,
+    "tail_token_ids": [],
+    "input_origin": "synthetic_cpu_fixture",
+    "scope": "postprojection_indexer_only",
+    "query_exported_vs_fp64": {
+      "count": 512,
+      "max_abs": 5.4663661508414E-7,
+      "relative_l2": 1.24692622658158E-7,
+      "rms": 1.24883602043517E-7
+    },
+    "query_exported_vs_scalar_fp32": {
+      "count": 512,
+      "max_abs": 0,
+      "relative_l2": 0,
+      "rms": 0
+    },
+    "candidate_raw_scores_vs_exported_inputs_fp64": {
+      "count": 2000,
+      "max_abs": 0.0000215933953313652,
+      "relative_l2": 1.6181254924379E-7,
+      "rms": 0.00000356385429272049
+    },
+    "candidate_scaled_scores_vs_full_fp64": {
+      "count": 2000,
+      "max_abs": 0.00115608691944935,
+      "relative_l2": 0.000148508011219514,
+      "rms": 0.000289102567030242
+    },
+    "provided_selection_vs_candidate_score_readback": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "provided_selection_vs_full_fp64": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "modes": [
+      {
+        "exported_pool_vs_mode": {
+          "count": 256000,
+          "max_abs": 0.0016104609106069,
+          "relative_l2": 0.000207925035499697,
+          "rms": 0.000207815950904724
+        },
+        "name": "reference_fp64",
+        "pool_mode_vs_fp64": {
+          "count": 256000,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 2.31358565234958,
+          "cutoff_margin": 0.00130424279063046,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 2000,
+          "max_abs": 6.71850169720045E-7,
+          "relative_l2": 8.69816722646527E-8,
+          "rms": 1.69328396675433E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 2000,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 256000,
+          "max_abs": 0.0016104609106069,
+          "relative_l2": 0.000207925035499697,
+          "rms": 0.000207815950904724
+        },
+        "name": "fixed_iq_fp64_pool",
+        "pool_mode_vs_fp64": {
+          "count": 256000,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 2.31358564315633,
+          "cutoff_margin": 0.00130427285835832,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 2000,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "scores_vs_full_fp64": {
+          "count": 2000,
+          "max_abs": 6.71850169720045E-7,
+          "relative_l2": 8.69816677574745E-8,
+          "rms": 1.69328396675433E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 256000,
+          "max_abs": 0.00161075592041016,
+          "relative_l2": 0.000207924936387452,
+          "rms": 0.000207815854484427
+        },
+        "name": "fixed_iq_scalar_fp32_pool",
+        "pool_mode_vs_fp64": {
+          "count": 256000,
+          "max_abs": 0.0000012166918654799,
+          "relative_l2": 1.03584176310395E-7,
+          "rms": 1.03529832503786E-7
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 2.31358565404239,
+          "cutoff_margin": 0.00130407037932034,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 2000,
+          "max_abs": 0.00000110712672984903,
+          "relative_l2": 9.78104776177045E-8,
+          "rms": 1.90408978372731E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 2000,
+          "max_abs": 0.00000115515919807407,
+          "relative_l2": 1.22279347394143E-7,
+          "rms": 2.38042870119484E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 256000,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_scalar_fp32_pool_fp16_store",
+        "pool_mode_vs_fp64": {
+          "count": 256000,
+          "max_abs": 0.0016104609106069,
+          "relative_l2": 0.000207925035499697,
+          "rms": 0.000207815950904724
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 2.31349385862666,
+          "cutoff_margin": 0.0014137233492777,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 2000,
+          "max_abs": 0.001156177678447,
+          "relative_l2": 0.000148511394214214,
+          "rms": 0.000289109137771145
+        },
+        "scores_vs_full_fp64": {
+          "count": 2000,
+          "max_abs": 0.00115562869828079,
+          "relative_l2": 0.000148508357025808,
+          "rms": 0.000289103240216063
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 256000,
+          "max_abs": 0.00390625,
+          "relative_l2": 0.000383275311865316,
+          "rms": 0.000383073723482269
+        },
+        "name": "fixed_iq_fp16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 256000,
+          "max_abs": 0.00258487503225524,
+          "relative_l2": 0.000328169597537976,
+          "rms": 0.000327997428527429
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 2.31310968629728,
+          "cutoff_margin": 0.0000539856408270367,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 2000,
+          "max_abs": 0.00161789030791937,
+          "relative_l2": 0.000226355575889445,
+          "rms": 0.000440649458052325
+        },
+        "scores_vs_full_fp64": {
+          "count": 2000,
+          "max_abs": 0.00161808016766196,
+          "relative_l2": 0.000226357216328213,
+          "rms": 0.000440652674350187
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 511,
+          "exact_tie_compatible": false,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 1,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 511,
+          "exact_tie_compatible": false,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 1,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 256000,
+          "max_abs": 0.021484375,
+          "relative_l2": 0.00261141286271809,
+          "rms": 0.0026100332840651
+        },
+        "name": "fixed_iq_bf16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 256000,
+          "max_abs": 0.0216468378107701,
+          "relative_l2": 0.00260358433131874,
+          "rms": 0.0026022184018068
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 2.31406298482823,
+          "cutoff_margin": 0.00134862715531447,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 2000,
+          "max_abs": 0.0168486026314605,
+          "relative_l2": 0.00186251069935211,
+          "rms": 0.00362577474427672
+        },
+        "scores_vs_full_fp64": {
+          "count": 2000,
+          "max_abs": 0.0168485497612298,
+          "relative_l2": 0.00186251130225007,
+          "rms": 0.00362577610582521
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 511,
+          "exact_tie_compatible": false,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 1,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 511,
+          "exact_tie_compatible": false,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 1,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 256000,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_exported_pool",
+        "pool_mode_vs_fp64": {
+          "count": 256000,
+          "max_abs": 0.0016104609106069,
+          "relative_l2": 0.000207925035499697,
+          "rms": 0.000207815950904724
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 2.31349385862666,
+          "cutoff_margin": 0.0014137233492777,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 2000,
+          "max_abs": 0.001156177678447,
+          "relative_l2": 0.000148511394214214,
+          "rms": 0.000289109137771145
+        },
+        "scores_vs_full_fp64": {
+          "count": 2000,
+          "max_abs": 0.00115562869828079,
+          "relative_l2": 0.000148508357025808,
+          "rms": 0.000289103240216063
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      }
+    ],
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 65000,
+    "positions": 262000,
+    "budget": 512,
+    "complete_blocks": 16250,
+    "selected_blocks": 512,
+    "attended_keys": 2048,
+    "sparse_exclusion": true,
+    "tail_token_ids": [],
+    "input_origin": "synthetic_cpu_fixture",
+    "scope": "postprojection_indexer_only",
+    "query_exported_vs_fp64": {
+      "count": 512,
+      "max_abs": 3.11261826979603E-7,
+      "relative_l2": 7.55797667111063E-8,
+      "rms": 7.56434788134839E-8
+    },
+    "query_exported_vs_scalar_fp32": {
+      "count": 512,
+      "max_abs": 0,
+      "relative_l2": 0,
+      "rms": 0
+    },
+    "candidate_raw_scores_vs_exported_inputs_fp64": {
+      "count": 16250,
+      "max_abs": 0.0000241934790210507,
+      "relative_l2": 1.48740257668835E-7,
+      "rms": 0.00000338475695587602
+    },
+    "candidate_scaled_scores_vs_full_fp64": {
+      "count": 16250,
+      "max_abs": 0.00148058199272327,
+      "relative_l2": 0.000150652277666794,
+      "rms": 0.000303017939397983
+    },
+    "provided_selection_vs_candidate_score_readback": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "provided_selection_vs_full_fp64": {
+      "canonical_overlap": 511,
+      "exact_tie_compatible": false,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 1,
+      "selected_blocks": 512
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "modes": [
+      {
+        "exported_pool_vs_mode": {
+          "count": 2080000,
+          "max_abs": 0.00170171054424095,
+          "relative_l2": 0.000208132539283333,
+          "rms": 0.00020802187149473
+        },
+        "name": "reference_fp64",
+        "pool_mode_vs_fp64": {
+          "count": 2080000,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 4.29822579015835,
+          "cutoff_margin": 0.00062660670896264,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 16250,
+          "max_abs": 5.4069736332707E-7,
+          "relative_l2": 5.35834031604845E-8,
+          "rms": 1.0777621968509E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 16250,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 2080000,
+          "max_abs": 0.00170171054424095,
+          "relative_l2": 0.000208132539283333,
+          "rms": 0.00020802187149473
+        },
+        "name": "fixed_iq_fp64_pool",
+        "pool_mode_vs_fp64": {
+          "count": 2080000,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 4.29822588953482,
+          "cutoff_margin": 0.00062658632918744,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 16250,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "scores_vs_full_fp64": {
+          "count": 16250,
+          "max_abs": 5.4069736332707E-7,
+          "relative_l2": 5.3583405015999E-8,
+          "rms": 1.0777621968509E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 2080000,
+          "max_abs": 0.00170183181762695,
+          "relative_l2": 0.000208132478684493,
+          "rms": 0.000208021812901544
+        },
+        "name": "fixed_iq_scalar_fp32_pool",
+        "pool_mode_vs_fp64": {
+          "count": 2080000,
+          "max_abs": 0.0000012166918654799,
+          "relative_l2": 1.03396957371544E-7,
+          "rms": 1.03341979362531E-7
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 4.29822578201931,
+          "cutoff_margin": 0.000626114429213231,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 16250,
+          "max_abs": 0.00000170648852826361,
+          "relative_l2": 9.99022839919229E-8,
+          "rms": 2.00940774036091E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 16250,
+          "max_abs": 0.0000018146197522384,
+          "relative_l2": 1.1632301022466E-7,
+          "rms": 2.33968974175131E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 2080000,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_scalar_fp32_pool_fp16_store",
+        "pool_mode_vs_fp64": {
+          "count": 2080000,
+          "max_abs": 0.00170171054424095,
+          "relative_l2": 0.000208132539283333,
+          "rms": 0.00020802187149473
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 4.29781726059015,
+          "cutoff_margin": 0.000484552044746955,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 16250,
+          "max_abs": 0.00148050835740943,
+          "relative_l2": 0.000150651667977725,
+          "rms": 0.00030301672357881
+        },
+        "scores_vs_full_fp64": {
+          "count": 16250,
+          "max_abs": 0.00148029512290559,
+          "relative_l2": 0.000150651926543665,
+          "rms": 0.000303017233158364
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 511,
+          "exact_tie_compatible": false,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 1,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 511,
+          "exact_tie_compatible": false,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 1,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 2080000,
+          "max_abs": 0.00390625,
+          "relative_l2": 0.000383104433315825,
+          "rms": 0.000382900485288586
+        },
+        "name": "fixed_iq_fp16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 2080000,
+          "max_abs": 0.00288741543267568,
+          "relative_l2": 0.000328107749040435,
+          "rms": 0.00032793328828992
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 4.29841091039038,
+          "cutoff_margin": 0.00127547535725547,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 16250,
+          "max_abs": 0.00268260332706394,
+          "relative_l2": 0.000234207453624188,
+          "rms": 0.000471078589355087
+        },
+        "scores_vs_full_fp64": {
+          "count": 16250,
+          "max_abs": 0.00268249997175296,
+          "relative_l2": 0.000234207459897225,
+          "rms": 0.000471078585659746
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 2080000,
+          "max_abs": 0.0234375,
+          "relative_l2": 0.0026277667468808,
+          "rms": 0.00262636822084144
+        },
+        "name": "fixed_iq_bf16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 2080000,
+          "max_abs": 0.0231872389885153,
+          "relative_l2": 0.00261997603556766,
+          "rms": 0.00261858294751401
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 4.29909108846867,
+          "cutoff_margin": 0.001564294926653,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 16250,
+          "max_abs": 0.0185703260877805,
+          "relative_l2": 0.00186645377101425,
+          "rms": 0.00375413504540604
+        },
+        "scores_vs_full_fp64": {
+          "count": 16250,
+          "max_abs": 0.0185703761299991,
+          "relative_l2": 0.0018664533526416,
+          "rms": 0.00375413407390237
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 510,
+          "exact_tie_compatible": false,
+          "missing_strictly_above_cutoff": 2,
+          "selected_below_cutoff": 2,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 510,
+          "exact_tie_compatible": false,
+          "missing_strictly_above_cutoff": 2,
+          "selected_below_cutoff": 2,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 2080000,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_exported_pool",
+        "pool_mode_vs_fp64": {
+          "count": 2080000,
+          "max_abs": 0.00170171054424095,
+          "relative_l2": 0.000208132539283333,
+          "rms": 0.00020802187149473
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 4.29781726059015,
+          "cutoff_margin": 0.000484552044746955,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 16250,
+          "max_abs": 0.00148050835740943,
+          "relative_l2": 0.000150651667977725,
+          "rms": 0.00030301672357881
+        },
+        "scores_vs_full_fp64": {
+          "count": 16250,
+          "max_abs": 0.00148029512290559,
+          "relative_l2": 0.000150651926543665,
+          "rms": 0.000303017233158364
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 511,
+          "exact_tie_compatible": false,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 1,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 511,
+          "exact_tie_compatible": false,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 1,
+          "selected_blocks": 512
+        }
+      }
+    ],
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 262000,
+    "positions": 262000,
+    "budget": 512,
+    "complete_blocks": 65500,
+    "selected_blocks": 512,
+    "attended_keys": 2048,
+    "sparse_exclusion": true,
+    "tail_token_ids": [],
+    "input_origin": "synthetic_cpu_fixture",
+    "scope": "postprojection_indexer_only",
+    "query_exported_vs_fp64": {
+      "count": 512,
+      "max_abs": 3.40409622712201E-7,
+      "relative_l2": 9.49043941696618E-8,
+      "rms": 9.48827581825272E-8
+    },
+    "query_exported_vs_scalar_fp32": {
+      "count": 512,
+      "max_abs": 0,
+      "relative_l2": 0,
+      "rms": 0
+    },
+    "candidate_raw_scores_vs_exported_inputs_fp64": {
+      "count": 65500,
+      "max_abs": 0.000025263241951734,
+      "relative_l2": 1.47483123820845E-7,
+      "rms": 0.00000335707305814414
+    },
+    "candidate_scaled_scores_vs_full_fp64": {
+      "count": 65500,
+      "max_abs": 0.00180961157005322,
+      "relative_l2": 0.000151868712723996,
+      "rms": 0.000305549514538814
+    },
+    "provided_selection_vs_candidate_score_readback": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "provided_selection_vs_full_fp64": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "modes": [
+      {
+        "exported_pool_vs_mode": {
+          "count": 8384000,
+          "max_abs": 0.00170171054424095,
+          "relative_l2": 0.000208120202125199,
+          "rms": 0.000208020952993324
+        },
+        "name": "reference_fp64",
+        "pool_mode_vs_fp64": {
+          "count": 8384000,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 5.24970597161545,
+          "cutoff_margin": 0.0020180708770825,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 65500,
+          "max_abs": 7.63606097464731E-7,
+          "relative_l2": 7.13631536985157E-8,
+          "rms": 1.43577800821395E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 65500,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 8384000,
+          "max_abs": 0.00170171054424095,
+          "relative_l2": 0.000208120202125199,
+          "rms": 0.000208020952993324
+        },
+        "name": "fixed_iq_fp64_pool",
+        "pool_mode_vs_fp64": {
+          "count": 8384000,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 5.24970597558292,
+          "cutoff_margin": 0.00201862480185877,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 65500,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "scores_vs_full_fp64": {
+          "count": 65500,
+          "max_abs": 7.63606097464731E-7,
+          "relative_l2": 7.1363149829903E-8,
+          "rms": 1.43577800821395E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 8384000,
+          "max_abs": 0.00170183181762695,
+          "relative_l2": 0.00020812014287089,
+          "rms": 0.000208020895813097
+        },
+        "name": "fixed_iq_scalar_fp32_pool",
+        "pool_mode_vs_fp64": {
+          "count": 8384000,
+          "max_abs": 0.0000012450130784103,
+          "relative_l2": 1.03540994173932E-7,
+          "rms": 1.03491617161608E-7
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 5.24970626260666,
+          "cutoff_margin": 0.00201867741149364,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 65500,
+          "max_abs": 0.00000185493407300896,
+          "relative_l2": 9.9084111573089E-8,
+          "rms": 1.99350478485114E-7
+        },
+        "scores_vs_full_fp64": {
+          "count": 65500,
+          "max_abs": 0.00000201511395836462,
+          "relative_l2": 1.17830215097407E-7,
+          "rms": 2.3706637381228E-7
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 8384000,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_scalar_fp32_pool_fp16_store",
+        "pool_mode_vs_fp64": {
+          "count": 8384000,
+          "max_abs": 0.00170171054424095,
+          "relative_l2": 0.000208120202125199,
+          "rms": 0.000208020952993324
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 5.2498865249573,
+          "cutoff_margin": 0.00255784957491212,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 65500,
+          "max_abs": 0.00180950617585407,
+          "relative_l2": 0.000151869207314047,
+          "rms": 0.000305550493056375
+        },
+        "scores_vs_full_fp64": {
+          "count": 65500,
+          "max_abs": 0.00180962371930571,
+          "relative_l2": 0.000151869270191107,
+          "rms": 0.000305550636124702
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 8384000,
+          "max_abs": 0.00390625,
+          "relative_l2": 0.000383085882860859,
+          "rms": 0.00038290317845674
+        },
+        "name": "fixed_iq_fp16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 8384000,
+          "max_abs": 0.00288741543267568,
+          "relative_l2": 0.000328190691348578,
+          "rms": 0.000328034182557633
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 5.2487351273302,
+          "cutoff_margin": 0.000314084408239879,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 65500,
+          "max_abs": 0.00250227351112153,
+          "relative_l2": 0.000237052778023398,
+          "rms": 0.000476934030844403
+        },
+        "scores_vs_full_fp64": {
+          "count": 65500,
+          "max_abs": 0.00250234168130481,
+          "relative_l2": 0.000237052825558373,
+          "rms": 0.000476934152336239
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 8384000,
+          "max_abs": 0.0234375,
+          "relative_l2": 0.00263092011031423,
+          "rms": 0.00262965866979217
+        },
+        "name": "fixed_iq_bf16_mean_norm_rope_return_casts",
+        "pool_mode_vs_fp64": {
+          "count": 8384000,
+          "max_abs": 0.0231872389885153,
+          "relative_l2": 0.00262279978736746,
+          "rms": 0.00262154901690251
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 5.24899743241358,
+          "cutoff_margin": 0.00224571403592311,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 65500,
+          "max_abs": 0.0235857294610882,
+          "relative_l2": 0.0018868817558247,
+          "rms": 0.00379627747472932
+        },
+        "scores_vs_full_fp64": {
+          "count": 65500,
+          "max_abs": 0.023585829273036,
+          "relative_l2": 0.00188688199209256,
+          "rms": 0.00379627815588126
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 511,
+          "exact_tie_compatible": false,
+          "missing_strictly_above_cutoff": 1,
+          "selected_below_cutoff": 1,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 511,
+          "exact_tie_compatible": false,
+          "missing_strictly_above_cutoff": 1,
+          "selected_below_cutoff": 1,
+          "selected_blocks": 512
+        }
+      },
+      {
+        "exported_pool_vs_mode": {
+          "count": 8384000,
+          "max_abs": 0,
+          "relative_l2": 0,
+          "rms": 0
+        },
+        "name": "fixed_iq_exported_pool",
+        "pool_mode_vs_fp64": {
+          "count": 8384000,
+          "max_abs": 0.00170171054424095,
+          "relative_l2": 0.000208120202125199,
+          "rms": 0.000208020952993324
+        },
+        "ranking": {
+          "ambiguous_cutoff": false,
+          "cutoff": 5.2498865249573,
+          "cutoff_margin": 0.00255784957491212,
+          "cutoff_ties": 1,
+          "selected_at_cutoff": 1,
+          "selected_blocks": 512,
+          "strict_above": 511
+        },
+        "scores_vs_fixed_iq_fp64_pool": {
+          "count": 65500,
+          "max_abs": 0.00180950617585407,
+          "relative_l2": 0.000151869207314047,
+          "rms": 0.000305550493056375
+        },
+        "scores_vs_full_fp64": {
+          "count": 65500,
+          "max_abs": 0.00180962371930571,
+          "relative_l2": 0.000151869270191107,
+          "rms": 0.000305550636124702
+        },
+        "selection_vs_fixed_iq_fp64_pool": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        },
+        "selection_vs_full_fp64": {
+          "canonical_overlap": 512,
+          "exact_tie_compatible": true,
+          "missing_strictly_above_cutoff": 0,
+          "selected_below_cutoff": 0,
+          "selected_blocks": 512
+        }
+      }
+    ],
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  }
+]

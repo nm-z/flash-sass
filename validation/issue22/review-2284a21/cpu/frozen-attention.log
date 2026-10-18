@@ -1,0 +1,47 @@
+ok 1 - analytic same-selection attention replay completes
+ok 2 - no limits means diagnostic only
+ok 3 - analytic replay does not certify checkpoint quality
+ok 4 - metadata, arrays and tools are bound
+ok 5 - selected block and three tail tokens, in order
+ok 6 - analytic output 4 and 9 is exact
+ok 7 - zero query normalization is exact
+ok 8 - missing FP32 K control leaves five modes
+ok 9 - pure K-storage isolation is not inferred
+ok 10 - recorded FP32 epsilon is preserved
+ok 11 - exact analytic numerical limits pass
+ok 12 - gated status is explicit
+ok 13 - a profile hash does not attest historical predeclaration
+ok 14 - N=1, no complete blocks, single tail token passes
+ok 15 - N=1 block selection is empty
+ok 16 - N=1 still attends its one token
+ok 17 - altered finite output fails declared numerical gates
+ok 18 - failed gates preserve the complete comparison
+ok 19 - known one-element error is measured
+ok 20 - same finite discrepancy remains diagnostic without limits
+ok 21 - nonzero error against a zero reference fails any finite relative-L2 gate
+ok 22 - undefined relative-L2 failure remains distinct from absolute and RMS gates
+ok 23 - optional normalized K control runs
+ok 24 - optional K control adds two labeled arms
+ok 25 - separate FP32 K append comparison is reported
+ok 26 - separate append does not prove pure K-storage isolation
+ok 27 - undeclared optional normalized K is rejected
+ok 28 - FP32 append declaration without its artifact is rejected
+ok 29 - contradictory snapshot teacher-forcing declaration is rejected
+ok 30 - malformed or incomplete numerical limits are rejected
+ok 31 - malformed or incomplete numerical limits are rejected
+ok 32 - malformed or incomplete numerical limits are rejected
+ok 33 - malformed or incomplete numerical limits are rejected
+ok 34 - malformed or incomplete numerical limits are rejected
+ok 35 - duplicate JSON keys cannot change a declared gate
+ok 36 - truncated raw prefix is rejected
+ok 37 - nonfinite raw input is rejected even in an excluded token
+ok 38 - nonfinite FP16 scale in excluded token is rejected
+ok 39 - negative cache scale is rejected
+ok 40 - selected ID outside complete blocks is rejected
+ok 41 - a string cannot replace a sparse-dispatch boolean
+ok 42 - conflicting byte order is rejected
+ok 43 - dense selection rejects duplicate or reordered implicit IDs
+ok 44 - dense selection rejects duplicate or reordered implicit IDs
+ok 45 - existing output is rejected before replay
+ok 46 - existing output remains unchanged
+1..46

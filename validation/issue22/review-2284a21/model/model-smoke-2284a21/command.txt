@@ -1,0 +1,20 @@
+2026-10-18T06:26:25Z
+archy
+source_revision=2284a214d3babea6df19510654203c65abfd6cce
+ATTN_DIE=1
+ATTN_MAP=1,1,1,1,4,4,4,4,5,5,5,5
+CUDA_DEVICE_ORDER=PCI_BUS_ID
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5
+FLASH_KV_HOST=1
+FLASH_NBLK=1
+MODEL_ATTN=qsa
+MODEL_CAPTURE=/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-2284a21/logits
+MODEL_IDS=/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-2284a21/ids.txt
+MODEL_LAYER_CAPTURE=/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-2284a21/layer
+MODEL_LAYER_INDEX=3
+MODEL_LAYER_LENGTHS=1,4,8,9
+MODEL_NOTWIN=1
+MODEL_PLE=/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf
+MODEL_PLE_OFF=192
+SPLIT_SHARES=112,97,81,116,97,97
+command: timeout --signal=TERM --kill-after=15s 1200s /home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/source/kern/model_test /unused-with-MODEL_NOTWIN 0 48 9 eh /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest 

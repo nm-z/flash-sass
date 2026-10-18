@@ -167,11 +167,125 @@ profile before the accepted experiment. These gates exclude projection,
 attention-output and checkpoint quality, and never set `quality_validation` true.
 
 This export boundary leaves projection weights and activation quantization
-upstream of the control. The indexer replay also leaves attention-output/INT8-KV
-isolation and full-checkpoint quality open. The exported attention tensors make
-those later comparisons possible; exporting them alone supplies no numerical
-agreement result. Synthetic CPU fixtures retain their synthetic origin in each
-report.
+upstream of the indexer control. The attention control below uses the exported
+attention tensors for a separate comparison. Neither control establishes
+full-checkpoint quality. Synthetic fixtures retain their origin in each report.
+
+## Frozen attention outputs and storage controls
+
+`kern/qsa_attention_quality.c` independently reconstructs attention from frozen
+postprojection inputs and an identical ordered set of selected block IDs. It
+does not link the local SASS instruction twins. It uses FP64 RMS normalization,
+the supplied multiplicative gamma and FP32 RoPE tables, GQA with 24 query heads
+and two KV heads, dot-product scaling by 1/16, stable softmax and the sigmoid
+output gate. Selected complete blocks are expanded in the supplied order and
+the contiguous tail is included exactly once. Its scalar FP64 calculation is a
+numerical control; it does not claim framework FP32, FP16 or BF16 equivalence.
+
+The input boundary is after projection, before query/key normalization, RoPE
+and KV quantization. Projection and upstream activation-quantization effects
+remain outside this comparison. The baseline uses the exported normalized
+query and exactly dequantized INT8 K/V with their exported FP16 group scales.
+The following arms change one input source relative to that baseline unless
+their interpretation explicitly combines effects:
+
+| Arm | What the measured difference contains |
+| --- | --- |
+| Exported Q, dequantized K/V versus GPU output | Attention arithmetic and elementary-function differences on identical effective inputs |
+| Reconstructed Q, dequantized K/V | Query normalization and RoPE sensitivity |
+| Exported Q, dequantized K, raw V | V-storage quantization sensitivity |
+| Exported Q, reconstructed raw K, dequantized V | Combined K normalization, RoPE and storage sensitivity |
+| Exported Q, reconstructed raw K, raw V | Combined K normalization/RoPE and K/V storage sensitivity |
+| Exported Q, separate GPU FP32 K append, dequantized V | Differences between K append paths, including any normalization/RoPE differences |
+| Exported Q, separate GPU FP32 K append, raw V | Combined K append-path and V-storage sensitivity |
+
+The last two arms require `normalized_k.f32`. That optional artifact comes
+from a separate `OP_ATTNQK` execution. It is not an export of the exact
+prequantization K inside `OP_ATTNQKQ`. Even byte-identical queries from those
+operations cannot establish identical prequantization K. Accordingly
+`pure_k_storage_isolated` and `k_storage_only_measured` stay false. The measured
+effects are not assumed to add linearly.
+
+```bash
+make -C kern qsa_attention_quality
+perl kern/qsa_attention_replay.pl \
+  --limits validation/issue22/model-attention-limits.json \
+  /absolute/path/new-layer-capture 2052 /absolute/path/new-attention-report.json
+```
+
+The Perl wrapper validates completion and snapshot metadata, byte order,
+dimensions, epsilon, selected-token order and every reported mode. It hashes
+the inputs, reference executable, wrapper and limits profile before and after
+the replay. It rejects nonfinite data, malformed IDs or scales, contradictory
+metadata, malformed limits, missing artifacts and attempts to overwrite an
+existing report. These checks bind the observed files; they do not attest how
+the producer generated them or prove immutability between observations.
+
+The committed `flash-sass.qsa-attention-limits.v1` profile supplies four gates:
+
+| Field | Declared limit |
+| --- | --- |
+| `arithmetic_max_abs` | 0.005 |
+| `arithmetic_rmse` | 0.001 |
+| `arithmetic_relative_l2` | 0.00005 |
+| `query_max_abs` | 0.00001 |
+
+These limits were committed in `affe73f3b62c94639875a1d5b2c5d6958752f7be`
+before the first new GPU fixture capture. They are numerical regression limits
+for the deterministic fixture, not original-checkpoint quality thresholds or
+limits on the quantization-effect arms. A failed evaluated gate preserves the
+complete report and returns 3. Invalid inputs return 2 without publishing a
+final report. Without a profile the result is diagnostic. A passing report
+never sets checkpoint or QSA quality acceptance to true. The profile hash alone
+does not prove historical predeclaration; the recorded Git revision and run
+identity supply that separate timing evidence.
+
+### Deterministic GPU attention fixtures
+
+`kern/qsa_attention_gpu.c` runs the production `OP_ATTNQKQ`, `OP_ATTNQK`,
+`OP_KVGATHER`, `OP_ATTNPARTN` and `OP_ATTNMERGE` SASS operations on deterministic
+postprojection inputs with seed 4242. It exports their actual readbacks and
+records the device PCI address, CUDA driver version, build revision, opcodes,
+fixed selected IDs and completion metadata. Tiny values, zero KV heads and
+large V outliers exercise storage behavior. It does not execute the production
+indexer, a full model or a teacher-forced checkpoint sequence.
+
+```bash
+make -C kern qsa_attention_quality qsa_attention_gpu die.cubin \
+  FLASH_REV="$(git rev-parse HEAD)"
+bash validation/issue22/run_attention_gpu.sh 6 262000 512 \
+  1,2047,2048,2049,2050,2051,2052,2053,2054,2055,3100,8000,65000,262000 \
+  /absolute/path/new-gpu-attention-run
+perl kern/qsa_attention_replay.pl \
+  --limits validation/issue22/attention-limits.json \
+  /absolute/path/new-gpu-attention-run/capture 2052 \
+  /absolute/path/new-gpu-attention-run/n2052-comparison.json
+```
+
+Choose the GPU from the actual machine inventory. The runner queues on
+`/tmp/flash-sass-engine-validation.lock`, records an observation every three
+minutes while retaining its place, and permits up to 30 minutes to acquire it.
+Under the lock it records device/process state, verifies available memory,
+limits the fixture runtime, checks source and binary hashes before and after,
+and hashes every completed capture artifact. It leaves other workers running.
+A successful capture still requires the independent replay command for each
+snapshot. Fixed supplied IDs can demonstrate attention exclusion and tail
+handling; they cannot demonstrate production score generation, top-k selection
+or the full-model sparse dispatcher required by issue #22.
+
+For the separate actual-model length experiment, commit
+`model-indexer-limits.json` and `model-attention-limits.json` before capture and
+pass the applicable file to each replay. The published profiles were committed
+in `04e77e181fa6195f199ab384ad19e36fb18484d5` before the queued production-budget
+model experiment could launch. The indexer profile requires an exact last-key
+binding, raw-score error at most 0.001, scaled-score error at most 0.02, query
+error at most 0.00001, candidate selection consistent with its scores allowing
+exact ties, and at least 0.99 overlap with the independent FP64 selected set.
+The model attention profile uses the four attention limits listed above.
+These are numerical limits on the frozen-layer experiment. Held-out loss,
+retrieval accuracy and original-checkpoint agreement need separate thresholds
+and measurements. The earlier nine-token model smoke remains diagnostic; its
+results were not retroactively accepted under these profiles.
 
 ## Independent backend capture
 
@@ -212,6 +326,18 @@ source; preserve the hashes and compact reports with an actual experiment.
 
 ## Review measurements and current status
 
+[Attention and model-layer follow-up at 2284a21](validation/issue22/review-2284a21/README.md)
+records 250 passing analytic/regression checks, six attention analytic groups,
+and all 14 synthetic indexer lengths. The new GPU attention experiment passed
+the unchanged predeclared limits at all 14 synthetic lengths through 262000
+with budget 512, plus four budget-one smoke snapshots. It uses fixed supplied IDs.
+An additional full-48-layer nine-token capture with budget one completed with
+actual model weights; its independent indexer and attention replays are
+diagnostic. All nine vocabulary rows match the historical same-input capture
+byte for byte. None of these observations establishes original-checkpoint or
+held-out long-context quality. The linked evidence records subsequent model
+preflight outcomes and the acceptance state separately.
+
 [Capture-completion follow-up at c20f156](validation/issue22/review-c20f156/README.md)
 records 204 passing analytic/regression checks, all 14 synthetic lengths,
 recomputed archived comparisons, and a successful harness build. The new v2
@@ -233,7 +359,8 @@ overlap 0.85. These are exploratory microfixture metrics with no acceptance
 thresholds and incomplete historical/original-checkpoint provenance. They
 cannot establish representative quality or isolate QSA and precision effects.
 
-The shared GPU lock remained held during the final 45-second acquisition wait
-on 2026-10-18. The review launched no new GPU capture. PR #46 remains draft
-pending the real GPU, independent checkpoint and held-out measurements listed
-above.
+The earlier CPU-only reviews' blocked GPU attempts remain historical records.
+PR #46 remains draft while the complete independent-comparison and held-out
+quality acceptance in issue #22 is unmet. A completed capture, successful
+replay or passing numerical profile must not set the overall issue or
+checkpoint-quality status to accepted.
