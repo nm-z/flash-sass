@@ -3,6 +3,7 @@
 # consumed/produced files by SHA-256. Hashes do not attest checkpoint origin.
 use strict;
 use warnings;
+use B ();
 use Cwd qw(abs_path);
 use Digest::SHA ();
 use File::Basename qw(dirname);
@@ -13,7 +14,13 @@ use POSIX qw(isfinite);
 use Scalar::Util qw(looks_like_number);
 use Fcntl qw(O_WRONLY O_CREAT O_EXCL);
 
-@ARGV == 3 or die "usage: qsa_quality_replay.pl CAPTURE_DIR N NEW_OUTPUT_JSON\n";
+my $limits_path;
+if (@ARGV && $ARGV[0] eq '--limits') {
+    shift @ARGV;
+    $limits_path=shift @ARGV;
+    defined($limits_path) or die "--limits needs a JSON path\n";
+}
+@ARGV == 3 or die "usage: qsa_quality_replay.pl [--limits LIMITS_JSON] CAPTURE_DIR N NEW_OUTPUT_JSON\n";
 my ($capture,$n,$output)=@ARGV;
 $n =~ /\A[1-9][0-9]*\z/ && $n <= 4294967295 or die "N must be a positive u32\n";
 $capture=abs_path($capture);
@@ -46,6 +53,33 @@ sub sha256 {
     $sha->addfile($f);
     close $f or die "$path: $!\n";
     return $sha->hexdigest;
+}
+my @numeric_rules=(
+    ['raw_last_key_max_abs','raw_last_key_snapshot_vs_prefix','max_abs',0],
+    ['candidate_raw_score_max_abs','candidate_raw_scores_vs_exported_inputs_fp64','max_abs',1],
+    ['candidate_scaled_score_max_abs','candidate_scaled_scores_vs_full_fp64','max_abs',1],
+    ['query_max_abs','query_exported_vs_fp64','max_abs',0],
+);
+my $limits;
+if (defined $limits_path) {
+    $limits_path=abs_path($limits_path);
+    defined($limits_path) or die "limits file does not exist\n";
+    $limits=read_json($limits_path);
+    my %allowed=map { $_=>1 } ('schema','candidate_selection_exact_ties',
+        'full_fp64_selection_min_overlap',map { $_->[0] } @numeric_rules);
+    for my $key (keys %$limits) { $allowed{$key} or die "unknown limit: $key\n"; }
+    ($limits->{schema}//'') eq 'flash-sass.qsa-numerical-limits.v1'
+        or die "unsupported numerical limits schema\n";
+    for my $key ('full_fp64_selection_min_overlap',map { $_->[0] } @numeric_rules) {
+        my $v=$limits->{$key};
+        defined($v) && !ref($v)
+            && (B::svref_2object(\$v)->FLAGS & (B::SVp_IOK() | B::SVp_NOK()))
+            && isfinite($v) && $v>=0 or die "$key must be a finite nonnegative JSON number\n";
+    }
+    $limits->{full_fp64_selection_min_overlap}<=1 or die "overlap limit exceeds one\n";
+    JSON::PP::is_bool($limits->{candidate_selection_exact_ties})
+        && $limits->{candidate_selection_exact_ties}
+        or die "candidate_selection_exact_ties must be true\n";
 }
 my $complete_path="$capture/complete.json";
 my $snapshot_path="$capture/n$n/snapshot.json";
@@ -104,8 +138,9 @@ my @inputs=($complete_path,$snapshot_path,
     map { "$capture/$_" } qw(raw_ik.f32 rope_cs.f32 rope_sn.f32 iqn.f32 ikn.f32));
 push @inputs,map { "$capture/n$n/$_" } qw(iqk.f32 iq.f32 pool.f16 selected_ids.u32);
 push @inputs,"$capture/n$n/scores.f32" if $blocks>$budget;
+push @inputs,$limits_path if defined $limits_path;
 my %before=map { $_=>sha256($_) } @inputs;
-for my $path ($complete_path,$snapshot_path) {
+for my $path (keys %parsed_sha) {
     $parsed_sha{$path} eq $before{$path} or die "metadata changed after parsing: $path\n";
 }
 my $executable_sha=sha256($binary);
@@ -138,6 +173,53 @@ $report->{input_origin}=$origin;
 $report->{gpu_execution_performed_by_replay}=JSON::PP::false;
 $report->{quality_validation}=JSON::PP::false;
 $report->{independent_checkpoint_evidence}=JSON::PP::false;
+my $gates={enabled=>JSON::PP::false,passed=>undef,checks=>[],
+    scope=>'postprojection indexer only; excludes attention, projection and checkpoint quality'};
+my $gate_failed=0;
+if (defined $limits) {
+    my @checks;
+    for my $rule (@numeric_rules) {
+        my ($key,$group,$metric,$sparse_only)=@$rule;
+        my $applicable=!$sparse_only || $blocks>$budget;
+        my $actual=$report->{$group}{$metric};
+        if ($applicable) {
+            defined($actual) && !ref($actual) && looks_like_number($actual) && isfinite($actual)
+                or die "missing or nonfinite gate metric: $group.$metric\n";
+        }
+        my $passes=$applicable ? $actual<=$limits->{$key} : undef;
+        $gate_failed=1 if $applicable && !$passes;
+        push @checks,{metric=>"$group.$metric",sense=>'max',limit=>$limits->{$key},
+            actual=>$actual,applicable=>$applicable?JSON::PP::true:JSON::PP::false,
+            passes=>$applicable?($passes?JSON::PP::true:JSON::PP::false):undef};
+    }
+    my $selector=$report->{provided_selection_vs_candidate_score_readback};
+    my $sparse=$blocks>$budget;
+    if ($sparse) {
+        ref($selector) eq 'HASH' && JSON::PP::is_bool($selector->{exact_tie_compatible})
+            or die "sparse capture has no selector consistency metric\n";
+        $gate_failed=1 unless $selector->{exact_tie_compatible};
+    }
+    push @checks,{metric=>'provided_selection_vs_candidate_score_readback.exact_tie_compatible',
+        sense=>'equals',limit=>JSON::PP::true,actual=>$sparse?$selector->{exact_tie_compatible}:undef,
+        applicable=>$sparse?JSON::PP::true:JSON::PP::false,
+        passes=>$sparse?$selector->{exact_tie_compatible}:undef};
+    my $selection=$report->{provided_selection_vs_full_fp64};
+    ref($selection) eq 'HASH' or die "missing full-FP64 selection metric\n";
+    integer($selection->{selected_blocks},'selected_blocks')==$selected
+        or die "selection size contradicts capture\n";
+    my $common=integer($selection->{canonical_overlap},'canonical_overlap');
+    $common<=$selected or die "invalid canonical overlap\n";
+    my $overlap=$selected ? $common/$selected : 1;
+    my $overlap_pass=$overlap >= $limits->{full_fp64_selection_min_overlap};
+    $gate_failed=1 unless $overlap_pass;
+    push @checks,{metric=>'provided_selection_vs_full_fp64.canonical_overlap_fraction',
+        sense=>'min',limit=>$limits->{full_fp64_selection_min_overlap},actual=>$overlap,
+        applicable=>JSON::PP::true,passes=>$overlap_pass?JSON::PP::true:JSON::PP::false};
+    $gates={%$gates,enabled=>JSON::PP::true,passed=>$gate_failed?JSON::PP::false:JSON::PP::true,
+        limits=>$limits,limits_sha256=>$parsed_sha{$limits_path},checks=>\@checks,
+        predeclaration_attested=>JSON::PP::false};
+}
+$report->{numerical_gates}=$gates;
 $report->{complete}=JSON::PP::true;
 my $temporary="$output.metadata.$$";
 sysopen my $out,$temporary,O_WRONLY|O_CREAT|O_EXCL,0600 or die "$temporary: $!\n";
@@ -149,3 +231,4 @@ link $temporary,$output or die "cannot publish report: $!\n";
 unlink $temporary or die "cannot remove metadata temporary: $!\n";
 unlink $pending or die "cannot remove numerical temporary: $!\n";
 print "Hashed replay report: $output\n";
+exit($gate_failed ? 3 : 0);

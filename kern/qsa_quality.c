@@ -483,7 +483,7 @@ static float synthetic_value(uint32_t x) {
     return ((int)(mix32(x)&65535u)-32768)*(1.0f/8192.0f);
 }
 static int synthetic(const char *directory) {
-    static const size_t lengths[]={1,2047,2048,2049,2050,2051,2052,3100,8000,65000,262000};
+    static const size_t lengths[]={1,2047,2048,2049,2050,2051,2052,2053,2054,2055,3100,8000,65000,262000};
     const size_t positions=262000,budget=512;
     const double epsilon=(double)1e-6f;
     float *raw=allocate(product(product(positions,D),sizeof(float)));

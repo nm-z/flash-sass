@@ -45,7 +45,7 @@ The metadata object contains `teacher_forced:true`, `base_model:{id,revision}`, 
 
 Frozen artifacts are hashed again when compared. Inputs must match exactly, every input ID must be in the aligned vocabulary, and vocabulary columns are reordered by token ID. Nonfinite logits fail. The comparator reports raw and centered logit errors, relative L2, cosine similarity, reference-to-candidate KL, probability differences, top-1 agreement, top-k overlap, teacher-forced NLL/perplexity and target rank. The last row has no next-token label. Log-softmax subtracts the maximum before normalization to preserve probabilities under large shared logit offsets; cutoff ties choose lower token IDs.
 
-The native comparator reads one FP32 vocabulary row at a time and computes metrics in FP64. It uses a stable shifted log-softmax and accumulates per-row NLL differences directly. Centered RMSE centers the candidate-minus-reference difference vector; it must not subtract a large anchor logit separately from each input vector. Hash verification identifies supplied artifacts; files must remain unchanged between hashing and comparison. Neither hashes nor producer declarations attest how logits were generated.
+The native comparator reads one FP32 vocabulary row at a time and computes metrics in FP64. It uses a stable shifted log-softmax and accumulates per-row NLL differences directly. Centered RMSE centers the candidate-minus-reference difference vector; it must not subtract a large anchor logit separately from each input vector. The consumed logits, IDs and vocabulary are checked against their declared hashes, and files and manifests are checked again before publishing metrics. Contradictory raw dtype, byte order or completion metadata is rejected. Historical GPU metadata without dtype/completion fields remains replayable; the independent GGUF adapter schema requires both. Neither hashes nor producer declarations attest how logits were generated.
 
 Predeclare acceptance limits before running the held-out evaluation using the applicable `--max-mean-kl`, `--max-rmse`, `--max-abs-logit`, `--min-top1-agreement` and `--max-mean-nll-increase` options. There is no universal threshold that proves quality across quantizers or attention approximations.
 
@@ -119,11 +119,44 @@ variants, supplied multiplicative gamma, the supplied RoPE table and the
 explicit score-scale conversion. `qsa_quality_replay.pl` validates snapshot
 metadata and hashes the consumed inputs, executable and produced arrays.
 
+The upstream file was fetched at revision
+`8498ed425fa01bbee7d086efdf1a6634c2962aed` and its Git blob verified as
+`946f5fd6e9ba21347654b1b2ca196e86b0f751b3`. The relevant indexer definition is
+lines 664..770; RMSNorm at lines 143..163 multiplies by `1 + weight` before its
+return cast. This replay consumes already converted multiplicative gamma and
+does not add one. Its contiguous-prefix visibility model excludes packed or
+otherwise masked documents. FP64 and scalar cast experiments remain numerical
+controls, without a claim of framework/device bitwise equivalence.
+
 ```bash
 make -C kern qsa_quality
 perl kern/qsa_quality_replay.pl /absolute/path/new-layer-capture 2052 \
   /absolute/path/new-replay.json
 ```
+
+Without a limits profile the replay is diagnostic: finite discrepancies are
+reported with exit 0 and `numerical_gates.passed:null`. Add
+`--limits /absolute/path/predeclared-limits.json` before the capture path to
+evaluate explicit numerical gates. The profile must have schema
+`flash-sass.qsa-numerical-limits.v1` and every following field:
+
+| Field | Meaning |
+| --- | --- |
+| `raw_last_key_max_abs` | Maximum error between the snapshot key and prefix key |
+| `candidate_raw_score_max_abs` | Maximum unscaled score error using the exported query and pool |
+| `candidate_scaled_score_max_abs` | Maximum scaled candidate score error against the full FP64 control |
+| `query_max_abs` | Maximum exported-query error against the FP64 control |
+| `candidate_selection_exact_ties` | Must be `true`; require consistency with candidate score readback, allowing exact cutoff ties |
+| `full_fp64_selection_min_overlap` | Minimum fraction shared with the canonical FP64 selected set, in [0,1] |
+
+Numeric limits must be finite and nonnegative. An empty selected set has overlap
+one. Candidate score and score-readback selector gates are not applicable only
+when the validated N/budget pair has no sparse score dispatch. Other gates still
+run. Missing/invalid profile fields fail; evaluated limit failures preserve the
+full report and return 3. The profile bytes are hashed before and after replay.
+This binds the chosen profile but does not prove it was predeclared: commit the
+profile before the accepted experiment. These gates exclude projection,
+attention-output and checkpoint quality, and never set `quality_validation` true.
 
 This export boundary leaves projection weights and activation quantization
 upstream of the control. The indexer replay also leaves attention-output/INT8-KV
@@ -161,8 +194,9 @@ bash validation/issue22/run_cpu.sh /absolute/path/new-cpu-evidence
 ```
 
 The runner rebuilds the tools, executes the Perl regressions and C analytic
-checks, replays the committed placement captures, and generates/replays the
-synthetic length matrix. It records exact commands, exit codes, runtime details
+checks, replays the committed placement and recovered CPU-reference captures,
+and generates/replays 14 synthetic lengths, including sparse tails 2053..2055.
+It records exact commands, exit codes, runtime details
 and source/binary hashes, rejecting source changes during the checks. The final
 report identifies CPU success independently of GPU execution and checkpoint
 quality. Its large synthetic inputs can be regenerated from the committed C

@@ -269,6 +269,19 @@ sub freeze_capture {
         fail("raw-info vocab_size does not match")
             unless json_uint($raw->{vocab_size}, 4294967295)
             && $raw->{vocab_size} == $v;
+        fail("raw-info byte_order must be little")
+            unless nonempty_string($raw->{byte_order}) && $raw->{byte_order} eq 'little';
+        # Historical raw-model-capture.v1 files predate dtype/completion fields.
+        # Keep those replayable, but never reinterpret an explicit contradiction.
+        fail("raw-info dtype must be <f4")
+            if exists($raw->{dtype})
+            && !(nonempty_string($raw->{dtype}) && $raw->{dtype} eq '<f4');
+        fail("raw-info complete must be true when supplied")
+            if exists($raw->{complete}) && !is_true($raw->{complete});
+        if (($raw->{schema} // '') eq 'flash-sass.independent-gguf-capture.v1') {
+            fail("independent GGUF raw-info requires dtype and completion marker")
+                unless exists($raw->{dtype}) && is_true($raw->{complete});
+        }
     }
     my $out = $o->{out};
     mkdir($out) or fail("cannot create new capture directory $out: $!");
@@ -362,7 +375,7 @@ sub ksum {
     return $sum;
 }
 sub read_row {
-    my ($fh, $v, $label) = @_;
+    my ($fh, $v, $label, $sha) = @_;
     my $want = 4 * $v;
     my $buf = '';
     while (length($buf) < $want) {
@@ -371,7 +384,34 @@ sub read_row {
         fail("unexpected EOF in $label logits") unless $n;
         $buf .= $part;
     }
+    $sha->add($buf);
     return [unpack('f<*', $buf)];
+}
+sub verify_consumed_capture {
+    my ($capture, $logit_sha) = @_;
+    my $artifacts = $capture->{manifest}{artifacts};
+    fail("consumed logits sha256 mismatch")
+        unless $logit_sha->hexdigest eq lc($artifacts->{'logits.f32'}{sha256});
+    fail("consumed input IDs sha256 mismatch")
+        unless sha256_hex(pack('V*', @{$capture->{ids}}))
+            eq lc($artifacts->{'ids.u32'}{sha256});
+    # order maps each sorted vocabulary column back to its original position.
+    my @original_vocab;
+    for my $i (0 .. $#{$capture->{order}}) {
+        $original_vocab[$capture->{order}[$i]] = $capture->{vocab}[$i];
+    }
+    fail("consumed vocabulary IDs sha256 mismatch")
+        unless sha256_hex(pack('V*', @original_vocab))
+            eq lc($artifacts->{'vocab_ids.u32'}{sha256});
+    fail("manifest changed during comparison")
+        unless file_sha256(path_in($capture->{dir}, 'manifest.json'))
+            eq $capture->{manifest_sha256};
+    for my $name (keys %$artifacts) {
+        my $path = path_in($capture->{dir}, $name);
+        fail("artifact changed during comparison: $name")
+            unless file_size($path) == $artifacts->{$name}{bytes}
+            && file_sha256($path) eq lc($artifacts->{$name}{sha256});
+    }
 }
 sub log_softmax {
     my ($row) = @_;
@@ -448,14 +488,16 @@ sub compare_capture {
     my $incomplete = @{$c->{missing}} || @{$r->{missing}};
     open(my $cf, '<:raw', path_in($c->{dir}, 'logits.f32')) or fail("cannot open candidate logits: $!");
     open(my $rf, '<:raw', path_in($r->{dir}, 'logits.f32')) or fail("cannot open reference logits: $!");
+    my $csha = Digest::SHA->new(256);
+    my $rsha = Digest::SHA->new(256);
     my %a = map { $_ => 0.0 } qw(
         sq absolute maximum ref_sq centered_sq cosine cosine_count kl
         max_probability top1 topk cnll rnll dnll crank rrank
     );
     my @positions;
     for my $position (0 .. $t - 1) {
-        my $cr = read_row($cf, $v, 'candidate');
-        my $rr = read_row($rf, $v, 'reference');
+        my $cr = read_row($cf, $v, 'candidate', $csha);
+        my $rr = read_row($rf, $v, 'reference', $rsha);
         my $cnon = grep { !isfinite($_) } @$cr;
         my $rnon = grep { !isfinite($_) } @$rr;
         if ($cnon || $rnon) {
@@ -549,6 +591,10 @@ sub compare_capture {
     }
     close($cf) or fail("cannot close candidate logits: $!");
     close($rf) or fail("cannot close reference logits: $!");
+    verify_consumed_capture($c, $csha);
+    verify_consumed_capture($r, $rsha);
+    $common{consumed_artifact_hashes_verified} = $TRUE;
+    $common{input_hashes_match_before_after_comparison} = $TRUE;
     my $elements = $t * $v;
     my %metrics = (
         positions => $t, vocabulary => $v,
