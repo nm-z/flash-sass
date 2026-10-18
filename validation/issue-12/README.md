@@ -5,9 +5,12 @@ establish that the remaining target-GPU and whole-model acceptance checks passed
 The original component results below are retained
 as historical evidence; they do not validate the later trace or canary changes.
 
-The [2026-10-18 review checkpoint](review-20261018/README.md) records six successful
-isolated builds, the current CPU checks, and the latest shared-GPU lock blocker.
-It contains no new target-GPU measurement.
+The [completed 2026-10-18 component validation](gpu-component-20261018/README.md)
+records 144 passing target-GPU cases, verified physical-CTA work and wait traces,
+and the actual uninstrumented-image rejection. The matched whole-model timing
+experiment remains outstanding. The earlier
+[review checkpoint](review-20261018/README.md) remains as a historical record of
+the build/CPU checks and the shared-GPU blocker at that time.
 
 ## Historical component measurement
 
@@ -189,6 +192,13 @@ other-device activity, queue activity, or failed queries during that wait.
 Failure to settle or detected contention invalidates the case. These are sampled boundary checks,
 not a guarantee against an unrelated client arriving between samples.
 
+In this opt-in mode, a `llama-server` explicitly configured with zero GPU layers
+(`--n-gpu-layers 0`, `--gpu-layers 0`, or `-ngl 0`) is not classified as GPU work
+solely by its executable name, provided its PID has no reported compute app.
+Conflicting/unknown offload settings and every reported GPU context still block.
+Permitted CPU-configured process identities are recorded separately. CPU load
+is not reserved by this component gate.
+
 This option does **not** authorize reloading the resident core, sharing a device
 with it, or treating component timing as a matched whole-model measurement.
 
@@ -258,12 +268,13 @@ JSON and trace files. Keep those files with the summary.
 
 ## Remaining acceptance
 
-1. Rerun the component matrix with the boundary canaries on M60.
-2. Run the physical-CTA traces and the rejection test using an uninstrumented
-   image; verify the observed work distribution for both mappings.
-3. Run and retain the matched six-die whole-model experiment, with the telemetry
+The updated component matrix, physical-CTA traces, observed work distribution,
+and target-GPU uninstrumented-image rejection have passed; see the
+[complete component evidence](gpu-component-20261018/README.md).
+
+1. Run and retain the matched six-die whole-model experiment, with the telemetry
    and raw files described above.
-4. Replace the estimated whole-model benefit with that measured result, including
+2. Replace the estimated whole-model benefit with that measured result, including
    a regression or no material gain if that is what the measurements show.
 
 CPU compilation, assembler success, and synthetic rejection tests do not close

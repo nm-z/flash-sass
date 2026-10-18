@@ -40,6 +40,16 @@ sub snapshot {
  }
  return $s;
 }
+sub cpu_configured_llama {
+ my($comm,$args)=@_;
+ return 0 unless $comm eq 'llama-server' && $args=~m{\A(?:\S*/)?llama-server(?:\s|$)};
+ # Require an explicit zero-offload configuration, rejecting conflicting
+ # repeated flags. This only classifies a process with NO reported GPU app;
+ # it does not override compute-app inventory or all-device load checks.
+ my @layers=($args=~/(?:\A|\s)(?:--n-gpu-layers|--gpu-layers|-ngl)(?:=|\s+)(\S+)/g);
+ return 0 unless @layers && !grep {$_ ne '0'} @layers;
+ return 1;
+}
 sub busy_reasons {
  my($s,$a,$ignore_target_utilization)=@_;my $residents=$a && $a->{idle_resident_queue};
  for my $name(qw(compute_apps ps gpu),$residents?qw(all_gpu_load queue):()) {
@@ -49,7 +59,7 @@ sub busy_reasons {
  }
  $s->{ps}{stdout}=~/\S/ or die "ps returned no process inventory\n";
  $s->{gpu}{stdout}=~/GPU-[0-9a-f-]+/i or die "GPU metadata query returned no UUID\n";
- my(@busy,%resident_pid,%load_seen);my $queue_port;
+ my(@busy,%resident_pid,%load_seen,%compute_pid,@cpu_workers);my $queue_port;
  if($residents) {
   ($queue_port)=$a->{idle_resident_queue}=~m{\Ahttp://127\.0\.0\.1:(\d+)/queue\z};
   defined($queue_port) && $queue_port>0 && $queue_port<=65535
@@ -76,6 +86,7 @@ sub busy_reasons {
   next unless $line=~/\S/;
   my($id,$pid,$program)=$line=~/^\s*(GPU-[0-9a-f-]+)\s*,\s*(\d+)\s*,\s*([^,]+),/i;
   defined($id) or die "unrecognized nvidia-smi compute-app output\n";
+  $compute_pid{$pid}=1;
   !$residents || $load_seen{lc $id} or die "compute-app GPU missing from utilization inventory\n";
   $program=~s/\s+$//;
   if($residents && lc($id) ne lc($a->{gpu}) && $program=~m{(?:\A|/)(hold|fence|flashcore)\z}) {
@@ -101,6 +112,10 @@ sub busy_reasons {
   # Only the daemon serving the checked loopback queue may remain resident.
   if($residents && $comm eq 'flashd' && $stat!~/Z/ &&
      $args=~m{\A(?:\S*/)?flashd\s+\S+\s+\S+\s+127\.0\.0\.1:\Q$queue_port\E\s*\z}) {next;}
+  if($residents && !$compute_pid{$pid} && $stat!~/Z/ && cpu_configured_llama($comm,$args)) {
+   push @cpu_workers,{pid=>0+$pid,comm=>$comm,reason=>'explicit zero GPU layers; no reported compute app'};
+   next;
+  }
   # Conservatively catch known workers before their CUDA context is visible.
   # Inspect only the executable/script, not arguments of this runner or a shell
   # that merely mentions another program. Persist process identity, not argv.
@@ -113,6 +128,7 @@ sub busy_reasons {
   $verified_resident{$pid} or die "resident process missing from ps inventory: pid=$pid\n";
  }
  $s->{allowed_idle_residents}=[map {{pid=>0+$_,comm=>$resident_pid{$_}}} sort {$main::a<=>$main::b} keys %resident_pid] if $residents;
+ $s->{cpu_configured_workers}=\@cpu_workers if $residents;
  return \@busy;
 }
 sub redact_process_args {
@@ -305,6 +321,27 @@ sub self_test {
  $expect->('resident disappearing from ps rejects',sub {my $s=$idle->();$s->{ps}{stdout}=~s/^44 .*\n//m;busy_reasons($s,$policy);},qr/missing from ps/);
  $expect->('different daemon queue still blocks',sub {my $s=$idle->();$s->{ps}{stdout}=~s/:18090/:18091/;@{busy_reasons($s,$policy)}>0 or die 'other daemon allowed';});
  $expect->('worker without context still blocks',sub {my $s=$idle->();$s->{ps}{stdout}.="48 1 S model_test ./model_test weights\n";@{busy_reasons($s,$policy)}>0 or die 'worker before CUDA allowed';});
+ for my $flag('--n-gpu-layers 0','-ngl 0','--gpu-layers=0') {
+  $expect->("CPU-configured llama accepted: $flag",sub {
+   my $s=$idle->();$s->{ps}{stdout}.="48 1 S llama-server /tmp/llama-server --model weights $flag\n";
+   @{busy_reasons($s,$policy)}==0 && @{$s->{cpu_configured_workers}}==1 or die 'zero-offload process blocked';
+  });
+ }
+ for my $flags('--n-gpu-layers 1','--n-gpu-layers 0 -ngl 5','--n-gpu-layers auto','--model weights') {
+  $expect->("ambiguous/GPU llama still blocks: $flags",sub {
+   my $s=$idle->();$s->{ps}{stdout}.="48 1 S llama-server /tmp/llama-server $flags\n";
+   @{busy_reasons($s,$policy)}>0 or die 'nonzero or unspecified offload accepted';
+  });
+ }
+ $expect->('CPU flag cannot hide a reported GPU context',sub {
+  my $s=$idle->();$s->{ps}{stdout}.="48 1 S llama-server /tmp/llama-server -ngl 0\n";
+  $s->{compute_apps}{stdout}.="$other, 48, /tmp/llama-server, 100\n";
+  @{busy_reasons($s,$policy)}>0 && @{$s->{cpu_configured_workers}}==0 or die 'CPU flag hid compute app';
+ });
+ $expect->('strict policy still blocks CPU-configured llama',sub {
+  my $s=$clean->();$s->{ps}{stdout}.="48 1 S llama-server /tmp/llama-server -ngl 0\n";
+  @{busy_reasons($s)}>0 or die 'strict policy unexpectedly relaxed';
+ });
  my $recent_target=sub {my $s=$idle->();$s->{all_gpu_load}{stdout}=~s/\Q$target\E, 0, 0/$target, 70, 30/;return $s;};
  $expect->('initial target utilization still blocks',sub {@{busy_reasons($recent_target->(),$policy)}>0 or die 'initial target load ignored';});
  $expect->('owned target utilization settles without false rejection',sub {
