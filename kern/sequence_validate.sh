@@ -96,7 +96,8 @@ while :; do
         case ${process_name##*/} in hold|fence) ;; *) busy=1 ;; esac
     done < "$out/compute-before.csv"
     if ! awk -F, -v minimum="$min_free" 'NR>1 {gsub(/[^0-9]/,"",$4);gsub(/[^0-9]/,"",$5);if($5+0>0 || ($1+0<6 && $4+0<minimum))bad=1} END{exit bad}' "$out/gpu-before.csv"; then busy=1; fi
-    if awk 'NR>1 && ($4=="flashcore" || $4=="flashd" || $4=="nvprof" || $4=="ncu" || $4 ~ /_test$/){found=1} END{exit !found}' "$out/ps-before.txt"; then busy=1; fi
+    # A CPU-only frontend does not own GPU allocations or this private socket.
+    if awk 'NR>1 && ($4=="flashcore" || $4=="nvprof" || $4=="ncu" || $4 ~ /_test$/){found=1} END{exit !found}' "$out/ps-before.txt"; then busy=1; fi
     printf '%s attempt=%d busy=%d\n' "$(date -u +%FT%TZ)" "$attempt" "$busy" >> "$out/wait.log"
     if (( !busy )); then break; fi
     if (( SECONDS-started_wait >= wait_seconds )); then

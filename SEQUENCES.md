@@ -47,6 +47,8 @@ Use `sequence_validate.sh` on the same host as the six resident weight holders. 
 
 A queue controller that must retain the lease across several runs and a resident-core restoration can open and lock fd 9 on that same path, then pass `SEQUENCE_LOCK_FD=9` to the launcher. The launcher verifies the inherited descriptor's file identity and calls `flock` on it; there is no unlocked execution mode. The parent retains its descriptor until every test core has exited and restoration is complete. A restored long-lived process must close fd 9 when launched so it cannot retain the validation lease. Each run records when it waits for and acquires the lease in `lease.log`.
 
+On archy, submit the controller with `gpuq run -- env SEQUENCE_LOCK_FD=9 ...`; `gpuq` supplies its locked descriptor and waits in first-come order without giving up. Use `gpuq ls` to inspect the queue. The controller must preserve the inherited descriptor instead of reopening the lock file. CPU-only frontends do not themselves block private-core validation; an idle frontend can be paused during a resident-core handoff and resumed after restoration, with existing connections checked before that handoff.
+
 Example placement for the current archy holders:
 
 ```sh
