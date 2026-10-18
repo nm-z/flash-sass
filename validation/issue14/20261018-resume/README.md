@@ -61,10 +61,11 @@ cubin assembly was validated by these CPU checks.
 
 ## Exact current blocker
 
-Both target-host retries, at **2026-10-18T05:40:16Z** and
-**2026-10-18T05:45:22Z**, failed to acquire
+All three target-host retries, at **2026-10-18T05:40:16Z**,
+**2026-10-18T05:45:22Z**, and **2026-10-18T05:53:58Z**, failed to acquire
 `/tmp/flash-sass-engine-validation.lock` on **archy** and exited **73**.
-See `archy-preflight.log`, `archy-preflight-latest.log` and the exact
+See `archy-preflight.log`, `archy-preflight-latest.log`,
+`archy-preflight-final.log` and the exact
 `archy-preflight.sh` used through SSH from engi. Each attempt stopped at
 failed acquisition, before GPU queries, process inspection or socket commands.
 No inference, benchmark, runtime reload or process termination was issued.
