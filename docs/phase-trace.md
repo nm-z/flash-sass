@@ -148,9 +148,11 @@ concurrent branches rather than adding their durations.
 Relative clock offsets are constrained by the same send/wait relationships.
 The analyzer reports feasible offset ranges, timer tolerance and the resulting
 span/chain uncertainty. Bounds assume constant relative timer offsets over the
-bounded capture and a 1024 ns timestamp allowance; they do not include an
-independently measured clock-drift bound. A trace does not identify a unique
-last sender whenever publication brackets and poll granularity leave
+bounded capture and a 1024 ns allowance on pairwise timestamp ordering. Each
+crossing uses that pairwise allowance. If each timestamp instead has an
+independent error of ±e, use `--quantum-ns` of at least 2e. These bounds do not
+include an independently measured clock-drift bound. A trace does not identify
+a unique last sender whenever publication brackets and poll granularity leave
 alternatives. Report the bounded cross-die GPU critical path, its span bounds
 and their interval width separately from the exact local arithmetic residual.
 The interval width is uncertainty, not unaccounted execution time. Host timings
