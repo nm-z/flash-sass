@@ -112,7 +112,7 @@ test-gemv: all
 	./gemv_test $(SHARD1) blk.4.ffn_down_exps.weight 0 20
 
 clean:
-	rm -f *.cubin *.dis *.so *.so.new die.sass dieops.h flashcore flashd flashvis hold memtest fence *_test qsa_oracle qsa_oracle_gpu qsa_logits_check
+	rm -f *.cubin *.dis *.so *.so.new die.sass dieops.h flashcore flashd flashvis hold memtest fence *_test qsa_oracle qsa_oracle_gpu qsa_logits_check qsa_model_reference
 
 .PHONY: all test test-gemv clean
 
@@ -512,6 +512,12 @@ qsa_oracle: qsa_oracle.c qsa_oracle_bridge.c ../ref/qsa.c ../ref/qsa.h ../ref/at
 
 qsa_logits_check: qsa_logits_check.c
 	$(CC) $(ORACLE_CFLAGS) -o $@ $< -lm
+
+# Independent CPU runtime; use a separate pinned source/build directory.
+# The source and loaded shared-library hashes belong in the capture manifest.
+qsa_model_reference: qsa_model_reference.c
+	@test -n "$(QSA_LLAMA_DIR)" || { echo 'set QSA_LLAMA_DIR to the pinned llama.cpp source/build' >&2; exit 2; }
+	$(CC) $(ORACLE_CFLAGS) -I$(QSA_LLAMA_DIR)/include -I$(QSA_LLAMA_DIR)/ggml/include -o $@ $< -L$(QSA_LLAMA_DIR)/build/bin -lllama -lggml -lggml-base -Wl,-rpath,$(QSA_LLAMA_DIR)/build/bin -lm
 
 attnpartn_unitmap: attnpartn_unitmap.c
 	$(CC) -std=gnu99 -O2 -Wall -Wextra -o $@ $<

@@ -209,6 +209,13 @@ directory in the runtime library search path.
 
 ## Checkpoint logits remain a separate acceptance gate
 
+[QSA_MODEL_REFERENCE.md](QSA_MODEL_REFERENCE.md) describes the new native
+full-model capture and complete-prefix comparison. It records all twelve QSA
+layers and all 48 block outputs at explicitly selected prefix lengths, using
+the independent runtime's existing graph callbacks. Its fresh short-prefix
+capture and failing historical-target comparison are preserved in
+[validation/issue11/full-model](validation/issue11/full-model/README.md).
+
     make -C kern qsa_logits_check
     kern/qsa_logits_check reference_ids.u32 candidate_ids.u32 \
       reference_logits.f32 candidate_logits.f32 ROWS VOCAB result.json
@@ -243,7 +250,16 @@ Same-implementation placement comparisons and isolated block-3 captures from
 
 ## Recorded evidence
 
-The latest follow-up is recorded in
+The latest full-model follow-up is recorded in
+[validation/issue11/full-model](validation/issue11/full-model/README.md): a
+clean, pinned CPU llama.cpp build decoded four tokens and captured two complete
+vocabulary rows plus 408 native tensor snapshots. The comparison with archived
+GPU rows at the same full-prefix positions fails the unchanged limits
+(maximum absolute error 0.9910707474; aggregate NRMS 0.06226231368). All seven
+new rejection controls pass. This historical-target diagnostic cannot establish
+current-head, original-checkpoint, or production sparse-length conformance.
+
+The preceding adapter follow-up is recorded in
 [validation/issue11/resume](validation/issue11/resume/README.md): tested commit
 705f166 passed all 58 expected CPU outcomes; the new SM52 image and adapter
 compiled, but the shared GPU gate returned busy and checkpoint conformance
