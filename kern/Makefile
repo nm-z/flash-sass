@@ -479,7 +479,7 @@ model_test: model_test.c prog.c prog.h holdc.c hold.h dieops.h ../ref/block.c ..
 ENGINE_SRC = engine.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c
 # the commit (and -dirty when the tree differs from it) the library is built from: the engine reports it with its `config` command
 FLASH_REV ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)$(shell git diff --quiet HEAD -- .. 2>/dev/null || echo -dirty)
-libengine.so: $(ENGINE_SRC) prefill.h prog.h hold.h core.h engine.h dieops.h ple_read_pool.h ../ref/split.h ../ref/qsa.h ../ref/block.h ../ref/attn.h ../ref/ple.h ../ref/gguf.h ../ref/quant.h ../ref/fmath.h ../ref/hc.h ../ref/deltanet.h ../ref/router.h
+libengine.so: $(ENGINE_SRC) prefill.h prog.h hold.h core.h engine.h dieops.h ple_read_pool.h ple_read_reload.h ../ref/split.h ../ref/qsa.h ../ref/block.h ../ref/attn.h ../ref/ple.h ../ref/gguf.h ../ref/quant.h ../ref/fmath.h ../ref/hc.h ../ref/deltanet.h ../ref/router.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -pthread -DFLASH_REV='"$(FLASH_REV)"' -o $@.new $(ENGINE_SRC) -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
 
 flashcore: flashcore.c core.h hold.h holdc.c ../ref/gguf.c ../ref/gguf.h
@@ -519,7 +519,7 @@ fence: fence.c
 	$(CC) -std=gnu99 -O2 -Wall -o $@ fence.c -I$(CUDA)/include -lcuda
 
 # Disk PLE readers and read-only file I/O measurements.
-ple_read_test: ple_read_test.c ple_read_pool.h
+ple_read_test: ple_read_test.c ple_read_pool.h ple_read_reload.h
 	$(CC) -std=gnu99 -O2 -Wall -Wextra -pthread -o $@ $<
 
 ple_read_bench: ple_read_bench.c ple_read_pool.h
@@ -559,3 +559,19 @@ ple_eos_test: ple_eos_test.c ../ref/ple.c ../ref/fmath.c
 
 checked_test: checked_test.c ../ref/checked.c ../ref/checked.h ../ref/attn.c ../ref/qsa.c ../ref/fmath.c
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ checked_test.c ../ref/checked.c ../ref/attn.c ../ref/qsa.c ../ref/fmath.c -I../ref -lm
+
+# CPU-only validation of the PLE reader, benchmark records and launch guards.
+ple_read_bench_test: ple_read_bench_test.c ple_read_bench.c ple_read_pool.h
+	$(CC) -std=gnu99 -O2 -Wall -Wextra -pthread -o $@ $<
+
+ple_read_audit_test: ple_read_bench_test.c ple_read_bench.c ple_read_pool.h
+	$(CC) -std=gnu99 -O2 -Wall -Wextra -pthread -DPLE_READ_AUDIT -o $@ $<
+
+.PHONY: test-ple
+test-ple: ple_read_test ple_read_bench_test ple_read_audit_test
+	./ple_read_test
+	./ple_read_bench_test
+	./ple_read_audit_test
+	bash ./ple_prewarm_test.sh
+	bash ./ple_io_run_test.sh
+	bash ./ple_io_validate_test.sh

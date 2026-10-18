@@ -17,6 +17,7 @@
 #include "prefill.h"
 #include "core.h"
 #include "ple_read_pool.h"
+#include "ple_read_reload.h"
 #include <setjmp.h>
 #include <cuda.h>
 #include <stdio.h>
@@ -770,6 +771,16 @@ int engine_session(FILE *in, FILE *out) {
 		char *p = line; while (*p == ' ') p++;
 		if (!strncmp(p, "quit", 4)) { quit = 1; break; }
 		if (!strncmp(p, "reload", 6)) {   /* the core swaps the library after this returns */
+			/* Reject every invalid reader override before applying settings
+			 * or unloading, including duplicate keys. */
+			int preflight = ple_read_reload_preflight(p + 6);
+			if (preflight) {
+				fprintf(out, "error: reload rejected: %s\n", preflight == EINVAL
+				        ? "FLASH_PLE_READERS must be a decimal integer from 1 to 16"
+				        : "could not validate reload settings");
+				fflush(out);
+				continue;
+			}
 			char path[1000]; reload_path[0] = 0;
 			if (sscanf(p + 6, "%999s", path) == 1 && !strchr(path, '=')) snprintf(reload_path, sizeof reload_path, "%s", path);
 			/* reload [<lib>] [NAME=VALUE ...]: the settings go into the core's environment before the new engine reads them (FLASH_ENGINE_MAXT, FLASH_KV_HOST, FLASH_NBLK, ...) */

@@ -74,3 +74,84 @@ The audit records thread IDs and timestamps around actual `pread` calls, plus
 the maximum overlapping call regions. Those regions can include scheduling time;
 they do not prove that storage serviced every request simultaneously. Audit
 instrumentation affects timing, so use the normal benchmark for latency comparisons.
+
+## Shared-host collection
+
+Build both tools before taking the shared validation lock, then run:
+
+~~~sh
+./kern/ple_io_run.sh NEW_RUN_DIRECTORY LOCAL_SHARD NFS_SHARD 192 128 20261017 16
+~~~
+
+The wrapper holds /tmp/flash-sass-engine-validation.lock and checks nvidia-smi
+and ps before each benchmark. A held lock, another GPU process, active GPU
+utilization, or a recognized disk benchmark causes exit 75 before submission.
+It sends no signals and never restarts a service. The lock is released on success
+and failure. Run it again when the shared host is available.
+
+The directory contains the exact command arguments, individual command exits,
+CSV and stderr, source revision and dirty diff, binary SHA-256 identities,
+file stat identities, GPU metadata, and process observations. The local and NFS
+files must have the same length so the seed constructs the same row sets.
+The audit follows the timing experiments and has separate files. A completed
+collection is raw evidence; validate its records before drawing conclusions.
+
+## Interpreting the comparisons
+
+An unprimed row set has not been read earlier by this benchmark. Its serial
+and parallel arms use disjoint shuffled regions, so this is a randomized
+comparison of different inputs with the same workload shape. It is not a
+same-offset cold-cache pair. Client-cache absence says nothing about the NFS
+server cache or physical media.
+
+Warm serial/parallel arms use identical offsets and require identical output
+fingerprints. Repeated uses of each row set alternate which arm runs first.
+Both members of a fully resident paired summary must actually have all requested
+client-cache pages resident. Classify all other samples by the recorded
+pre-hint residency instead of treating the phase name as a cache guarantee.
+
+The current CSV explicitly records validity, reference/parity failures, observed
+cache class, comparison type, sample-set/repetition/order, instrumentation,
+and audit event retention. Failed measurements remain visible and return a
+nonzero process exit; they cannot be included in a successful summary.
+Reference byte checks remain outside the measured hint/read durations.
+Instrumented audit rows and audits with dropped events cannot establish
+uninstrumented latency or complete read-event coverage.
+
+## CPU regression scope
+
+The reader tests cover byte/guard parity and lifetime, plus deterministic
+concurrent entry and delayed-row completion checks. An invalid reader-count
+reload is rejected before modifying the environment or unloading the engine.
+Small startup tests use controlled launch/read stubs to verify that cache
+warming completes before core launch and that a read failure suppresses launch.
+The shared-host wrapper tests use inert GPU and benchmark commands.
+
+These CPU checks do not replace real-model parity, reader reload tests on archy,
+or measurements of the local shard, NFS, and full-file cache warming at a
+declared source revision. Historical records keep their original tested
+commits; new implementation changes require appropriately scoped new evidence.
+
+Run the committed CPU suite with:
+
+~~~sh
+make -C kern test-ple
+~~~
+
+The collection wrapper also runs `ple_io_validate.pl` before its separate
+audit runs. The validator requires schema 2, successful untimed validation,
+complete trial counts and order, stable row sets, and identical sampled
+offsets/fingerprints across local and NFS. Only warm pairs resident in both
+arms enter its descriptive latency medians. It rejects an instrumented CSV,
+a truncated/failed record, or a mismatched shard; it does not infer cold
+same-input speedups from disjoint unprimed samples.
+
+To replay a newly collected pair without disk or GPU work:
+
+~~~sh
+perl kern/ple_io_validate.pl OUT/local.csv OUT/nfs.csv 128 16
+~~~
+
+Original measurements and their exact source revisions are preserved under
+[validation/issue49](validation/issue49/README.md). Their earlier CSV schema
+and arm ordering are retained and checked by a separate historical replay.
