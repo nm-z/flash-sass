@@ -1,0 +1,28 @@
+{
+   "checkpoint_conformance" : false,
+   "conversion_source_revision" : null,
+   "gguf_repository_declared" : "ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF",
+   "gguf_revision_declared" : "ed59f92082b1e93c0e96d60a8b11aab089b52f09",
+   "local_reference_availability" : {
+      "git_head" : "7182ef71e6d5dd0c8ea76486fac134fcd25025d4",
+      "host" : "archy",
+      "library" : "/home/nate/claude/llama.cpp-up/build/bin/libllama.so.0.7.0",
+      "library_sha256" : "8ddb6a5bc791057d5316da25a32922716610cc948594567e3bd44c5e54166c48",
+      "note" : "Read-only availability verified in this session; no independent QSA checkpoint capture executed.",
+      "repository" : "/home/nate/claude/llama.cpp-up"
+   },
+   "measured_error" : null,
+   "original_checkpoint_identity" : "NOT_ESTABLISHED",
+   "paired_independent_logit_rows" : 0,
+   "remaining" : [
+      "Actual target M60 run with the tested source/image identity",
+      "Independent original-checkpoint teacher-forced capture with matching candidate token IDs",
+      "Verified original checkpoint, tokenizer and GGUF conversion lineage",
+      "Full-model per-layer QSA inputs, pools, scores, selected IDs and outputs",
+      "Device KV quantization coverage beyond the scalar fixture quantizer"
+   ],
+   "reviewed_capture_head" : "2b525c16e2f7b752fa4f3690962a0e341d1e57e7",
+   "reviewed_capture_scope" : "same-implementation host/VRAM placement; not independent checkpoint reference",
+   "reviewed_capture_source" : "https://github.com/nm-z/flash-sass/pull/46",
+   "status" : "NOT_MEASURED"
+}

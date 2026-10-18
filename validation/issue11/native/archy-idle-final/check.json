@@ -1,0 +1,20 @@
+{
+   "checks" : 4,
+   "command" : [
+      "bash",
+      "/tmp/qsa-oracle-pr31-gpu-gate-final-20261018.sh",
+      "--out",
+      "/tmp/qsa-oracle-pr31-idle-check-final-20261018",
+      "--wait",
+      "30",
+      "--check"
+   ],
+   "earlier_wait_seconds" : 180,
+   "exit_code" : 75,
+   "gpu_executed" : false,
+   "guard_sha256" : "3e7a2f6f9e65d9596af96ca0bbaed2188154aee0e29f1d80c155a4f4fc69a949",
+   "no_processes_killed" : true,
+   "source_commit" : "8ea6b4aebcc1b069037e8dd49807982650dba67e",
+   "status" : "BLOCKED_BUSY",
+   "wait_seconds_requested" : 30
+}

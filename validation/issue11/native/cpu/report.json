@@ -1,0 +1,4037 @@
+{
+   "artifacts_count" : 1310,
+   "artifacts_manifest_sha256" : "44ae012c8798517f77d26319c8c4b1f3aa17ab2ea4f9d7d68e9eafa506e6fcea",
+   "build_command" : [
+      "make",
+      "-B",
+      "-C",
+      "/home/nate/codex/flash-pr31-20261017/kern",
+      "qsa_oracle"
+   ],
+   "build_log_sha256" : "4125b6dfbd67e1b795e0459eacde56be4466f3976ae90b7d1f12d74db599b6c0",
+   "build_mode" : "rebuilt_default",
+   "changed_sources" : [],
+   "checkpoint_conformance" : false,
+   "coverage" : {
+      "frozen_fixtures" : 13,
+      "index_and_sparse_lengths" : [
+         1,
+         2047,
+         2048,
+         2049,
+         2050,
+         2051,
+         2052,
+         3100,
+         3101,
+         3102,
+         3103,
+         8000,
+         8001,
+         8002,
+         8003,
+         65000,
+         65001,
+         65002,
+         65003,
+         262000,
+         262001,
+         262002,
+         262003
+      ],
+      "negative_control_exit_expected" : 3,
+      "same_ID_attention_lengths" : [
+         1,
+         2,
+         3,
+         4,
+         1023,
+         1024,
+         1025,
+         1026,
+         1027,
+         2047,
+         2048,
+         2049,
+         2050,
+         2051,
+         2052,
+         8191,
+         8192,
+         8193
+      ]
+   },
+   "elapsed_seconds" : 24.6823711395264,
+   "end" : {
+      "boot_id" : "d42b112a-aedc-4dc4-9985-4a514d300317",
+      "compiler" : {
+         "command" : [
+            "cc",
+            "--version"
+         ],
+         "exit_code" : 0,
+         "ok" : true,
+         "output" : "cc (GCC) 16.2.1 20260810\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
+      },
+      "git_head" : {
+         "command" : [
+            "git",
+            "-C",
+            "/home/nate/codex/flash-pr31-20261017",
+            "rev-parse",
+            "HEAD"
+         ],
+         "exit_code" : 0,
+         "ok" : true,
+         "output" : "8ea6b4aebcc1b069037e8dd49807982650dba67e\n"
+      },
+      "git_status" : {
+         "command" : [
+            "git",
+            "-C",
+            "/home/nate/codex/flash-pr31-20261017",
+            "status",
+            "--porcelain=v1",
+            "--untracked-files=no"
+         ],
+         "exit_code" : 0,
+         "ok" : true,
+         "output" : ""
+      },
+      "hostname" : "engi",
+      "kernel" : {
+         "command" : [
+            "uname",
+            "-srmo"
+         ],
+         "exit_code" : 0,
+         "ok" : true,
+         "output" : "Linux 7.2.9-arch1-1 x86_64 GNU/Linux\n"
+      },
+      "native_binary_sha256" : "28a9ec7a6d364f7c72c77f003fd7393a52e827b323d547d209ec4c874fb49188",
+      "pid" : 603226,
+      "unix_time" : 1792285038.39776,
+      "utc" : "2026-10-18T00:57:18Z"
+   },
+   "external_oracle_capture" : {
+      "blob" : "946f5fd6e9ba21347654b1b2ca196e86b0f751b3",
+      "commit" : "8498ed425fa01bbee7d086efdf1a6634c2962aed",
+      "execution" : "literal AST definitions; observation before topk",
+      "path" : "src/transformers/models/qwen4_exp/modeling_qwen4_exp.py",
+      "repository" : "huggingface/transformers",
+      "tie_policy" : "backend dependent; admissible cutoff sets tested"
+   },
+   "full_matrix" : true,
+   "generator" : {
+      "algorithm" : "xorshift64star: shifts12,25,27; multiplier2685821657736338717; upper24bits mapped to uniform[-scale,scale)",
+      "attention_seed" : "300000+key_count",
+      "index_seed" : "100000+visible_length",
+      "sparse_seed" : "200000+visible_length"
+   },
+   "goldens_manifest_sha256" : "7bacd2fca9f05fcb208ad8ba5d7fef370c99cbbe24608817807d00684b475094",
+   "gpu_executed" : false,
+   "limits" : {
+      "attention_abs" : 3e-05,
+      "attention_normalized_rms" : 3e-05,
+      "external_score_math_abs" : 3e-05,
+      "external_score_math_normalized_rms" : 3e-05,
+      "kv_attention_abs" : 0.025,
+      "kv_attention_normalized_rms" : 0.025,
+      "score_normalized_rms" : 0.005,
+      "teacher_forced_logit_abs" : 0.1,
+      "teacher_forced_logit_normalized_rms" : 0.01
+   },
+   "native_binary_sha256" : "28a9ec7a6d364f7c72c77f003fd7393a52e827b323d547d209ec4c874fb49188",
+   "original_report_sha256" : "d213b972c0e20552c45e6b2fd880036618090430d4893dbdb4e686d7a46e3b41",
+   "provenance_consistent" : true,
+   "results" : [
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--self-test"
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "host arithmetic/domain gates",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 4,
+            "metrics" : [
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.004,
+                  "max_relative" : 400000,
+                  "name" : "old_gate_blind_spot",
+                  "normalized_rms" : 0.00692820323027551,
+                  "pass" : true,
+                  "rms" : 0.00346410161513775
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "quantizer_amplitude_0",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 1.00000001335143e-10,
+                  "max_relative" : 0.0100000001335143,
+                  "name" : "quantizer_amplitude_1",
+                  "normalized_rms" : 0.0059568340855452,
+                  "pass" : true,
+                  "rms" : 5.9568340855452e-11
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 9.99999997475243e-07,
+                  "max_relative" : 1,
+                  "name" : "quantizer_amplitude_2",
+                  "normalized_rms" : 1,
+                  "pass" : true,
+                  "rms" : 5.9568339675951e-07
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.00381961464881897,
+                  "max_relative" : 0.0236816115284446,
+                  "name" : "quantizer_amplitude_3",
+                  "normalized_rms" : 0.00375550591288255,
+                  "pass" : true,
+                  "rms" : 0.00223709252638119
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 11.3709411621094,
+                  "max_relative" : 0.0234999925498962,
+                  "name" : "quantizer_amplitude_4",
+                  "normalized_rms" : 0.00375334191353375,
+                  "pass" : true,
+                  "rms" : 6.70741039316654
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 31370.25,
+                  "max_relative" : 0.0235652565229057,
+                  "name" : "quantizer_amplitude_5",
+                  "normalized_rms" : 0.00375305814542387,
+                  "pass" : true,
+                  "rms" : 18451.817759145
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "domain_and_arithmetic"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "21175e5560bd95a9531073b29b31a09262691bf0bea4171834ac8965f6a86fb5"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--negative-score"
+         ],
+         "exit_code" : 3,
+         "expected_exit_code" : 3,
+         "label" : "negative control rejected by actual score NRMS gate",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 1,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 4,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.004,
+                  "max_relative" : 400000,
+                  "name" : "score_gate_must_reject",
+                  "normalized_rms" : 0.00692820323027551,
+                  "pass" : false,
+                  "rms" : 0.00346410161513775
+               }
+            ],
+            "status" : "FAIL_NATIVE",
+            "type" : "negative_score_control"
+         },
+         "stderr_sha256" : "e4ab7114f7bbd20311d4b8291923aa5caed929f64b1158cd6cb5df1867653c20",
+         "stdout_sha256" : "a728f198d8d3a6a914ea6f1b9a0e70b4087ba79c6de4f9172f9d8cd99af5443c"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--cutoff",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/frozen/cutoff-adjacent-low-id-a.npz",
+            517
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "fixture_sha256" : "b77724668c60ba8ea50ae12a791d2a9ae7b0b3002e24557a31efe3dd40a3ace9",
+         "label" : "frozen/cutoff-adjacent-low-id-a.npz",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 517,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "frozen_cutoff"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "6a914fe3ad70a4f1cdbbc76f0a3ea2bfec07c1cb30684ae9b546efb22b7b9968"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--cutoff",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/frozen/cutoff-adjacent-low-id-b.npz",
+            517
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "fixture_sha256" : "4ec0219485b1085472816f4d7cf0cc10895ea29300135de24e1ca62d9d4a279f",
+         "label" : "frozen/cutoff-adjacent-low-id-b.npz",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 517,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "frozen_cutoff"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "6a914fe3ad70a4f1cdbbc76f0a3ea2bfec07c1cb30684ae9b546efb22b7b9968"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--cutoff",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/frozen/cutoff-equal.npz",
+            517
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "fixture_sha256" : "ab28de6fc4ba912bc28b6fa37e42ba941a0e1349c35ae386c358ff779d467ea1",
+         "label" : "frozen/cutoff-equal.npz",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 517,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "frozen_cutoff"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "6a914fe3ad70a4f1cdbbc76f0a3ea2bfec07c1cb30684ae9b546efb22b7b9968"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--cutoff",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/frozen/cutoff-zero.npz",
+            517
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "fixture_sha256" : "f612412998065bac58c86cc374e32361d9187dc6757a114e2c7797635881eb8e",
+         "label" : "frozen/cutoff-zero.npz",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 517,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "frozen_cutoff"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "6a914fe3ad70a4f1cdbbc76f0a3ea2bfec07c1cb30684ae9b546efb22b7b9968"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--full-chain",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/frozen/full-chain-cutoff-0.npz",
+            513
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "fixture_sha256" : "3ffb7e256a9b451de097c96f0b489bcff00104dae6d9c1a0386185cfd6e11f80",
+         "label" : "frozen/full-chain-cutoff-0.npz",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 513,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 1.06096267700195e-05,
+                  "max_relative" : 4.28079926851241e-05,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 4.27894362562436e-05,
+                  "pass" : true,
+                  "rms" : 1.05946870427072e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "full_chain_independent_query_vs_HF",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 9.5367431640625e-07,
+                  "max_relative" : 8.42990989353614e-08,
+                  "name" : "full_chain_independent_pool_vs_HF",
+                  "normalized_rms" : 8.4216885440595e-08,
+                  "pass" : true,
+                  "rms" : 8.42114993454643e-08
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "frozen_full_chain_cutoff"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "cc9c0263e99058e96c0e9c07db78309fc64bee7b450f22f2f675d88634744bc2"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--full-chain",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/frozen/full-chain-cutoff-1.npz",
+            513
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "fixture_sha256" : "8e8edda197f1793287bfaa317867f451c4f372bac7c9241c0d69af17a79bd2e9",
+         "label" : "frozen/full-chain-cutoff-1.npz",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 513,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 1.06096267700195e-05,
+                  "max_relative" : 4.28079926851241e-05,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 4.27894362562436e-05,
+                  "pass" : true,
+                  "rms" : 1.05946870427072e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "full_chain_independent_query_vs_HF",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 9.5367431640625e-07,
+                  "max_relative" : 8.42990989353614e-08,
+                  "name" : "full_chain_independent_pool_vs_HF",
+                  "normalized_rms" : 8.4216885440595e-08,
+                  "pass" : true,
+                  "rms" : 8.42114993454643e-08
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "frozen_full_chain_cutoff"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "cc9c0263e99058e96c0e9c07db78309fc64bee7b450f22f2f675d88634744bc2"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--bf16",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/frozen/hf-bf16-boundary.npz"
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "fixture_sha256" : "f871cd22134619ab62a5293a9722bcdb08565a10ec210e583ff2befa69738fb0",
+         "label" : "frozen/hf-bf16-boundary.npz",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 20,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "BF16_norm_independent_vs_HF",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "frozen_BF16_boundary"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "e1149a8ae337e6dd1488fddab52cbadd0fdddc10cad4cc1cc93324c4d2a99aac"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--index",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/frozen/index-2052.npz",
+            2052
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "fixture_sha256" : "b6b166be3452d3ecc975916340ae3ddc3e4705a2a9d54b580f79a230b5e48efe",
+         "label" : "frozen/index-2052.npz",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 2052,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 1.43051147460938e-06,
+                  "max_relative" : 2.54808184338299e-05,
+                  "name" : "independent_math_vs_frozen_HF_scores",
+                  "normalized_rms" : 1.51863212018333e-07,
+                  "pass" : true,
+                  "rms" : 2.93638275139854e-07
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00106143951416016,
+                  "max_relative" : 0.0921436685656302,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0.000153024319131576,
+                  "pass" : true,
+                  "rms" : 0.000295883357971002
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.38418579101562e-07,
+                  "max_relative" : 4.07452800667571e-07,
+                  "name" : "query_normalization",
+                  "normalized_rms" : 1.74817064012334e-08,
+                  "pass" : true,
+                  "rms" : 1.72921823677555e-08
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.00106143951416016,
+                  "max_relative" : 0.0921528047801345,
+                  "name" : "pooled_key_quantization_only",
+                  "normalized_rms" : 0.000153050408294392,
+                  "pass" : true,
+                  "rms" : 0.000295933803214899
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 9.8884105682373e-05,
+                  "max_relative" : 0.000107335074546765,
+                  "name" : "after_same_pool_quantization",
+                  "normalized_rms" : 2.53863430280026e-06,
+                  "pass" : true,
+                  "rms" : 4.90856687394406e-06
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "frozen_index_scores"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "174c61a0846a326ceb504f505eae866fb598c5e7f57441a6bfb381ab7c411678"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--attention",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/frozen/attention-1.npz",
+            1
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "fixture_sha256" : "c2f0966cb9b213e83226a92b3376495e9c0df27c32d63319bcbfc96e552a67ab",
+         "label" : "frozen/attention-1.npz",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 1,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.22044604925031e-16,
+                  "max_relative" : 3.79017056650625e-16,
+                  "name" : "independent_attention_vs_frozen_external",
+                  "normalized_rms" : 7.4353680895776e-17,
+                  "pass" : true,
+                  "rms" : 2.13581500977726e-17
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 1.08135727705516e-07,
+                  "max_relative" : 1.98612137979185e-07,
+                  "name" : "same_ID_attention_reduction",
+                  "normalized_rms" : 4.73178570312687e-08,
+                  "pass" : true,
+                  "rms" : 1.35920895993758e-08
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.22044604925031e-16,
+                  "max_relative" : 4.08822060855701e-16,
+                  "name" : "independent_quant_attention_vs_frozen_external",
+                  "normalized_rms" : 7.52689486461112e-17,
+                  "pass" : true,
+                  "rms" : 2.16199663792059e-17
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00642122509874843,
+                  "max_relative" : 1,
+                  "name" : "same_ID_KV_quantization",
+                  "normalized_rms" : 0.00547534265400291,
+                  "pass" : true,
+                  "rms" : 0.0015727962466963
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 1.14649935101241e-07,
+                  "max_relative" : 1.91446686801327e-07,
+                  "name" : "quantized_attention_reduction",
+                  "normalized_rms" : 4.65556062206868e-08,
+                  "pass" : true,
+                  "rms" : 1.33724551672319e-08
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "frozen_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "9e89168a82203c4e6ac6e4b5e6c5a9ef40a521543331eb14c60887cb379a0c91"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--attention",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/frozen/attention-2.npz",
+            2
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "fixture_sha256" : "b7bf23f4f3ba726804a6e58fb45717307fd5569696082c8b8f7eed58d19cfd86",
+         "label" : "frozen/attention-2.npz",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 2,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 3.33066907387547e-16,
+                  "max_relative" : 1.57139416949117e-13,
+                  "name" : "independent_attention_vs_frozen_external",
+                  "normalized_rms" : 1.57418197081924e-16,
+                  "pass" : true,
+                  "rms" : 3.42590518025573e-17
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 1.03394244610477e-07,
+                  "max_relative" : 5.10726730783475e-05,
+                  "name" : "same_ID_attention_reduction",
+                  "normalized_rms" : 7.24226336070692e-08,
+                  "pass" : true,
+                  "rms" : 1.57613973632983e-08
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 3.33066907387547e-16,
+                  "max_relative" : 3.51232562450414e-13,
+                  "name" : "independent_quant_attention_vs_frozen_external",
+                  "normalized_rms" : 1.41040980687257e-16,
+                  "pass" : true,
+                  "rms" : 3.0697534203707e-17
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00514386453640592,
+                  "max_relative" : 12.7918902367677,
+                  "name" : "same_ID_KV_quantization",
+                  "normalized_rms" : 0.00544238722127344,
+                  "pass" : true,
+                  "rms" : 0.00118443121061887
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.104798730862e-07,
+                  "max_relative" : 0.000425279500322874,
+                  "name" : "quantized_attention_reduction",
+                  "normalized_rms" : 7.32208403668234e-08,
+                  "pass" : true,
+                  "rms" : 1.59364976096469e-08
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "frozen_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "1c838141650fdf60575ee9b2d36f17b72e69f03de6cf96fde3addccd672e0812"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--attention",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/frozen/attention-3.npz",
+            3
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "fixture_sha256" : "046003b9a2f5c54a128f486051ace636580fe40bd5c5afbefd6d507d3116282d",
+         "label" : "frozen/attention-3.npz",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 3,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 3.33066907387547e-16,
+                  "max_relative" : 1.8893035286045e-14,
+                  "name" : "independent_attention_vs_frozen_external",
+                  "normalized_rms" : 1.74638082342201e-16,
+                  "pass" : true,
+                  "rms" : 2.92225456911275e-17
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 1.51806097914431e-07,
+                  "max_relative" : 4.88921469569699e-05,
+                  "name" : "same_ID_attention_reduction",
+                  "normalized_rms" : 8.23773644997856e-08,
+                  "pass" : true,
+                  "rms" : 1.37843720322846e-08
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.22044604925031e-16,
+                  "max_relative" : 1.78602061841456e-13,
+                  "name" : "independent_quant_attention_vs_frozen_external",
+                  "normalized_rms" : 1.58728706490416e-16,
+                  "pass" : true,
+                  "rms" : 2.65549828711378e-17
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00392079765377884,
+                  "max_relative" : 2.76285549837264,
+                  "name" : "same_ID_KV_quantization",
+                  "normalized_rms" : 0.00559090803683416,
+                  "pass" : true,
+                  "rms" : 0.000935538018798995
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 1.21643115136294e-07,
+                  "max_relative" : 8.24660569971991e-05,
+                  "name" : "quantized_attention_reduction",
+                  "normalized_rms" : 7.74881515698567e-08,
+                  "pass" : true,
+                  "rms" : 1.29636067926876e-08
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "frozen_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "98a7de6a8d7302f720725c2a5e4a580c49ac8da006f94b0da3024f9b69e30c69"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--attention",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/frozen/attention-4.npz",
+            4
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "fixture_sha256" : "83b9635c07ce2ce6660812fb77b7f3d39300050c8acd6c429a8311741c7e434f",
+         "label" : "frozen/attention-4.npz",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 4,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.22044604925031e-16,
+                  "max_relative" : 5.99462369377555e-14,
+                  "name" : "independent_attention_vs_frozen_external",
+                  "normalized_rms" : 1.79607060754922e-16,
+                  "pass" : true,
+                  "rms" : 2.70805909369531e-17
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 9.58983105148192e-08,
+                  "max_relative" : 4.20793934492813e-05,
+                  "name" : "same_ID_attention_reduction",
+                  "normalized_rms" : 8.11195505255273e-08,
+                  "pass" : true,
+                  "rms" : 1.22309521437403e-08
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.22044604925031e-16,
+                  "max_relative" : 1.20214023463963e-12,
+                  "name" : "independent_quant_attention_vs_frozen_external",
+                  "normalized_rms" : 1.65823936552672e-16,
+                  "pass" : true,
+                  "rms" : 2.50039825723428e-17
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00372119498938672,
+                  "max_relative" : 4.18048644599579,
+                  "name" : "same_ID_KV_quantization",
+                  "normalized_rms" : 0.00500882268273391,
+                  "pass" : true,
+                  "rms" : 0.000755214620052914
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 8.69325244567953e-08,
+                  "max_relative" : 0.000431713825214809,
+                  "name" : "quantized_attention_reduction",
+                  "normalized_rms" : 8.4333889175722e-08,
+                  "pass" : true,
+                  "rms" : 1.27163975180256e-08
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "frozen_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "f36c889045b2c608ed65fc462ac350eec24f25be205c3bef7748dac85364c0b9"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--attention",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/frozen/attention-1025.npz",
+            1025
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "fixture_sha256" : "144b3b4948bd68ee5cf990b19161cb98789828b161dd1dc948ac24ff1e29f6d0",
+         "label" : "frozen/attention-1025.npz",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 1025,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 1.56125112837913e-16,
+                  "max_relative" : 4.41129852724386e-11,
+                  "name" : "independent_attention_vs_frozen_external",
+                  "normalized_rms" : 1.7384473717041e-15,
+                  "pass" : true,
+                  "rms" : 1.69630023591757e-17
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.23837154852968e-08,
+                  "max_relative" : 0.003784467867607,
+                  "name" : "same_ID_attention_reduction",
+                  "normalized_rms" : 2.99547652360466e-07,
+                  "pass" : true,
+                  "rms" : 2.92285381564086e-09
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.15105711021124e-16,
+                  "max_relative" : 2.3024858008464e-12,
+                  "name" : "independent_quant_attention_vs_frozen_external",
+                  "normalized_rms" : 1.82360630076055e-15,
+                  "pass" : true,
+                  "rms" : 1.77946924309702e-17
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00030941234050455,
+                  "max_relative" : 112.921538015034,
+                  "name" : "same_ID_KV_quantization",
+                  "normalized_rms" : 0.00514325649341688,
+                  "pass" : true,
+                  "rms" : 5.01856273889703e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.32459475557611e-08,
+                  "max_relative" : 0.000436162112735796,
+                  "name" : "quantized_attention_reduction",
+                  "normalized_rms" : 2.98774594773279e-07,
+                  "pass" : true,
+                  "rms" : 2.91543301751092e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "frozen_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "64a6b421940a1d7737aabba670af5fb5912f59604307a1555c1521d160488446"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-index",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/index-1",
+            1
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/index-and-sparse-1",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 1,
+            "metrics" : [
+               {
+                  "enforced" : false,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "selection_only",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00141752260318473,
+                  "max_relative" : 1,
+                  "name" : "same_selection_KV",
+                  "normalized_rms" : 0.00300351849238288,
+                  "pass" : true,
+                  "rms" : 0.000544525852153081
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 4.46203062276496e-08,
+                  "max_relative" : 1.96767429012571e-07,
+                  "name" : "sparse_reduction",
+                  "normalized_rms" : 4.90777082676469e-08,
+                  "pass" : true,
+                  "rms" : 8.89808490572314e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_index_and_sparse_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "89458d6e75321ad3fb31c94695150a2a64cbf99cf4073928972aa3e37a553e4d"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-index",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/index-2047",
+            2047
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/index-and-sparse-2047",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 2047,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00122976303100586,
+                  "max_relative" : 0.107086254473686,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0.000150644914511016,
+                  "pass" : true,
+                  "rms" : 0.000295912511806479
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.38418579101562e-07,
+                  "max_relative" : 6.90400669096877e-07,
+                  "name" : "query_normalization",
+                  "normalized_rms" : 8.21706809152012e-08,
+                  "pass" : true,
+                  "rms" : 8.27862083162614e-08
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.00122928619384766,
+                  "max_relative" : 0.106931896660033,
+                  "name" : "pooled_key_quantization_only",
+                  "normalized_rms" : 0.000150332872633244,
+                  "pass" : true,
+                  "rms" : 0.0002952995664831
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.000135838985443115,
+                  "max_relative" : 0.000212623808585953,
+                  "name" : "after_same_pool_quantization",
+                  "normalized_rms" : 4.24267917122558e-06,
+                  "pass" : true,
+                  "rms" : 8.33388200138782e-06
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "selection_only",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.78181433445515e-05,
+                  "max_relative" : 3.95882873786706,
+                  "name" : "same_selection_KV",
+                  "normalized_rms" : 0.00173577739791113,
+                  "pass" : true,
+                  "rms" : 7.35978700788693e-06
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 9.07221824660714e-09,
+                  "max_relative" : 0.00156389245361783,
+                  "name" : "sparse_reduction",
+                  "normalized_rms" : 4.46911583983386e-07,
+                  "pass" : true,
+                  "rms" : 1.89500222485427e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_index_and_sparse_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "fa06f66051b500322ef59a780eb71e28b6b9db8e4aef0c54be36c41d24dec88b"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-index",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/index-2048",
+            2048
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/index-and-sparse-2048",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 2048,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00138020515441895,
+                  "max_relative" : 0.0107776548929121,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0.000157283398165829,
+                  "pass" : true,
+                  "rms" : 0.000317482914650657
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.38418579101562e-07,
+                  "max_relative" : 4.92132073625208e-07,
+                  "name" : "query_normalization",
+                  "normalized_rms" : 4.50363477749717e-08,
+                  "pass" : true,
+                  "rms" : 4.4960152759078e-08
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.00138068199157715,
+                  "max_relative" : 0.0107765666805844,
+                  "name" : "pooled_key_quantization_only",
+                  "normalized_rms" : 0.000157294843426342,
+                  "pass" : true,
+                  "rms" : 0.000317506017372935
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.000136375427246094,
+                  "max_relative" : 8.50941018778721e-05,
+                  "name" : "after_same_pool_quantization",
+                  "normalized_rms" : 4.88994407482546e-06,
+                  "pass" : true,
+                  "rms" : 9.87051435716968e-06
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "selection_only",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.90740963194216e-05,
+                  "max_relative" : 15.3857118118219,
+                  "name" : "same_selection_KV",
+                  "normalized_rms" : 0.00176671614494754,
+                  "pass" : true,
+                  "rms" : 7.36956458831595e-06
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 8.26371597713316e-09,
+                  "max_relative" : 0.00168508369746498,
+                  "name" : "sparse_reduction",
+                  "normalized_rms" : 4.48493944780639e-07,
+                  "pass" : true,
+                  "rms" : 1.8708584205035e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_index_and_sparse_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "b5af4c45db6c48a900dfd725da1f059020d9bf387a8f3d7ab04544069fdd1153"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-index",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/index-2049",
+            2049
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/index-and-sparse-2049",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 2049,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00143003463745117,
+                  "max_relative" : 0.0260271903001828,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0.000151776767886419,
+                  "pass" : true,
+                  "rms" : 0.000314031745355471
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 1.19209289550781e-07,
+                  "max_relative" : 9.99968001023967e-07,
+                  "name" : "query_normalization",
+                  "normalized_rms" : 1.66179894062501e-08,
+                  "pass" : true,
+                  "rms" : 1.65584682552561e-08
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.00142908096313477,
+                  "max_relative" : 0.0260340603758053,
+                  "name" : "pooled_key_quantization_only",
+                  "normalized_rms" : 0.000151909780858842,
+                  "pass" : true,
+                  "rms" : 0.00031430695411414
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.000169634819030762,
+                  "max_relative" : 0.000162459743263372,
+                  "name" : "after_same_pool_quantization",
+                  "normalized_rms" : 4.56350238664241e-06,
+                  "pass" : true,
+                  "rms" : 9.44201459637374e-06
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "selection_only",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.78604265923875e-05,
+                  "max_relative" : 24.2791779121475,
+                  "name" : "same_selection_KV",
+                  "normalized_rms" : 0.00180950709287207,
+                  "pass" : true,
+                  "rms" : 7.39626767365398e-06
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 9.20670446651062e-09,
+                  "max_relative" : 0.00112065749898235,
+                  "name" : "sparse_reduction",
+                  "normalized_rms" : 4.51325625312559e-07,
+                  "pass" : true,
+                  "rms" : 1.84494645861472e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_index_and_sparse_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "bdd8348c7e4dc602d8846ac1250d8c9bca7b6564fc94efde4a2979fb09b41303"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-index",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/index-2050",
+            2050
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/index-and-sparse-2050",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 2050,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00115084648132324,
+                  "max_relative" : 0.0113539489554701,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0.000149626732145406,
+                  "pass" : true,
+                  "rms" : 0.000289032029426216
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.38418579101562e-07,
+                  "max_relative" : 8.85262852246089e-07,
+                  "name" : "query_normalization",
+                  "normalized_rms" : 5.81675908390916e-08,
+                  "pass" : true,
+                  "rms" : 5.83200823094364e-08
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.00115084648132324,
+                  "max_relative" : 0.0113661679085522,
+                  "name" : "pooled_key_quantization_only",
+                  "normalized_rms" : 0.000149433425275842,
+                  "pass" : true,
+                  "rms" : 0.000288658621038484
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 8.34465026855469e-05,
+                  "max_relative" : 6.32190318185903e-05,
+                  "name" : "after_same_pool_quantization",
+                  "normalized_rms" : 2.36643278558481e-06,
+                  "pass" : true,
+                  "rms" : 4.57125577761228e-06
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "selection_only",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.73837320351996e-05,
+                  "max_relative" : 7.51224410075795,
+                  "name" : "same_selection_KV",
+                  "normalized_rms" : 0.00193665307290806,
+                  "pass" : true,
+                  "rms" : 7.32172880789656e-06
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 9.82837870247208e-09,
+                  "max_relative" : 0.00741434831771483,
+                  "name" : "sparse_reduction",
+                  "normalized_rms" : 4.82554742338548e-07,
+                  "pass" : true,
+                  "rms" : 1.82438594690495e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_index_and_sparse_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "249ce8161b595f329631aca942cd7aaa470d377ce93c514f9b21a87efa00ed94"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-index",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/index-2051",
+            2051
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/index-and-sparse-2051",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 2051,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00087583065032959,
+                  "max_relative" : 0.0151008769267978,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0.000135910816278315,
+                  "pass" : true,
+                  "rms" : 0.000280642851304965
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.38418579101562e-07,
+                  "max_relative" : 1.92638437686859e-06,
+                  "name" : "query_normalization",
+                  "normalized_rms" : 5.52761252056365e-08,
+                  "pass" : true,
+                  "rms" : 5.49025846180898e-08
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.000875741243362427,
+                  "max_relative" : 0.0150825793115568,
+                  "name" : "pooled_key_quantization_only",
+                  "normalized_rms" : 0.000135806871391722,
+                  "pass" : true,
+                  "rms" : 0.00028042821504458
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.000254467129707336,
+                  "max_relative" : 0.00130220685056732,
+                  "name" : "after_same_pool_quantization",
+                  "normalized_rms" : 5.84244658176599e-06,
+                  "pass" : true,
+                  "rms" : 1.20640186161743e-05
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "selection_only",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 3.16423053592771e-05,
+                  "max_relative" : 5.02556245393068,
+                  "name" : "same_selection_KV",
+                  "normalized_rms" : 0.00196477305257262,
+                  "pass" : true,
+                  "rms" : 7.33505345432238e-06
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 1.06090129322559e-08,
+                  "max_relative" : 0.00050332775705192,
+                  "name" : "sparse_reduction",
+                  "normalized_rms" : 5.07053357426885e-07,
+                  "pass" : true,
+                  "rms" : 1.89303210596644e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_index_and_sparse_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "3fd0752f8d93ba9dc004920473ecf921c4520616e86034e51c455b84c5b436a1"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-index",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/index-2052",
+            2052
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/index-and-sparse-2052",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 2052,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.0011894702911377,
+                  "max_relative" : 0.00568345327082043,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0.000151598855825501,
+                  "pass" : true,
+                  "rms" : 0.000290857262720965
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.38418579101562e-07,
+                  "max_relative" : 0.000110511550444639,
+                  "name" : "query_normalization",
+                  "normalized_rms" : 4.56573372638781e-08,
+                  "pass" : true,
+                  "rms" : 4.54119763152201e-08
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.00118923187255859,
+                  "max_relative" : 0.00568956792318387,
+                  "name" : "pooled_key_quantization_only",
+                  "normalized_rms" : 0.000151676148177839,
+                  "pass" : true,
+                  "rms" : 0.000291005555674152
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 7.86781311035156e-05,
+                  "max_relative" : 0.000144895284944929,
+                  "name" : "after_same_pool_quantization",
+                  "normalized_rms" : 2.54059063136418e-06,
+                  "pass" : true,
+                  "rms" : 4.87434957963953e-06
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "selection_only",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.84947925793914e-05,
+                  "max_relative" : 2.94508474012766,
+                  "name" : "same_selection_KV",
+                  "normalized_rms" : 0.0018670063853705,
+                  "pass" : true,
+                  "rms" : 7.35149168712576e-06
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 9.18254634135751e-09,
+                  "max_relative" : 0.00164006033149107,
+                  "name" : "sparse_reduction",
+                  "normalized_rms" : 4.66916879056593e-07,
+                  "pass" : true,
+                  "rms" : 1.83864676595782e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_index_and_sparse_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "2884c29c31a758e06d9f0c24976bb11f2681514548c93f66afa5b5d25c147950"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-index",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/index-3100",
+            3100
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/index-and-sparse-3100",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 3100,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00121438503265381,
+                  "max_relative" : 0.467737500059302,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0.00015064042394339,
+                  "pass" : true,
+                  "rms" : 0.000303166662139662
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.38418579101562e-07,
+                  "max_relative" : 4.73899510556586e-07,
+                  "name" : "query_normalization",
+                  "normalized_rms" : 6.90195168253341e-08,
+                  "pass" : true,
+                  "rms" : 6.92360065016344e-08
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.00121426582336426,
+                  "max_relative" : 0.467748378854959,
+                  "name" : "pooled_key_quantization_only",
+                  "normalized_rms" : 0.000150839205156757,
+                  "pass" : true,
+                  "rms" : 0.000303566713038187
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.000249743461608887,
+                  "max_relative" : 0.000159536111402476,
+                  "name" : "after_same_pool_quantization",
+                  "normalized_rms" : 5.44179256394953e-06,
+                  "pass" : true,
+                  "rms" : 1.09516974870806e-05
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "selection_only",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 3.18641721626742e-05,
+                  "max_relative" : 0.908103732076284,
+                  "name" : "same_selection_KV",
+                  "normalized_rms" : 0.000917837598542053,
+                  "pass" : true,
+                  "rms" : 7.25391708917221e-06
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 6.47108806643704e-09,
+                  "max_relative" : 0.000299941444727492,
+                  "name" : "sparse_reduction",
+                  "normalized_rms" : 1.61359800482507e-07,
+                  "pass" : true,
+                  "rms" : 1.27543932312177e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_index_and_sparse_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "1b921e0093027f74960f74fde39d178c26ac0f03ffdac0353bc547615ef7549f"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-index",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/index-3101",
+            3101
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/index-and-sparse-3101",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 3101,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00158309936523438,
+                  "max_relative" : 0.11886392507068,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0.000149594944864398,
+                  "pass" : true,
+                  "rms" : 0.000292126308300102
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.38418579101562e-07,
+                  "max_relative" : 9.17852455342852e-05,
+                  "name" : "query_normalization",
+                  "normalized_rms" : 5.77264003418911e-08,
+                  "pass" : true,
+                  "rms" : 5.76106170386754e-08
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.00158357620239258,
+                  "max_relative" : 0.118883668613504,
+                  "name" : "pooled_key_quantization_only",
+                  "normalized_rms" : 0.000149591810404112,
+                  "pass" : true,
+                  "rms" : 0.000292120187382629
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 2.63452529907227e-05,
+                  "max_relative" : 0.000200444149276431,
+                  "name" : "after_same_pool_quantization",
+                  "normalized_rms" : 5.74366831049797e-07,
+                  "pass" : true,
+                  "rms" : 1.12161212588282e-06
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "selection_only",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.81965821919954e-05,
+                  "max_relative" : 9.18802860169968,
+                  "name" : "same_selection_KV",
+                  "normalized_rms" : 0.00193016584806187,
+                  "pass" : true,
+                  "rms" : 7.21060037020097e-06
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 5.10955981334032e-09,
+                  "max_relative" : 0.000685724328810276,
+                  "name" : "sparse_reduction",
+                  "normalized_rms" : 2.84281234076207e-07,
+                  "pass" : true,
+                  "rms" : 1.06216223589024e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_index_and_sparse_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "f488c7d0e4dc48d55dce02d7ed45626c83ff4c525560e93bb720707aecd7c572"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-index",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/index-3102",
+            3102
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/index-and-sparse-3102",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 3102,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00142741203308105,
+                  "max_relative" : 0.0208037554919321,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0.000145169370518975,
+                  "pass" : true,
+                  "rms" : 0.000293879631661699
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.38418579101562e-07,
+                  "max_relative" : 2.72824715690935e-05,
+                  "name" : "query_normalization",
+                  "normalized_rms" : 4.68255618420317e-08,
+                  "pass" : true,
+                  "rms" : 4.75411895235482e-08
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.00142741203308105,
+                  "max_relative" : 0.0208038194008399,
+                  "name" : "pooled_key_quantization_only",
+                  "normalized_rms" : 0.000145191393052578,
+                  "pass" : true,
+                  "rms" : 0.000293924213890308
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.000113725662231445,
+                  "max_relative" : 6.92028880800828e-05,
+                  "name" : "after_same_pool_quantization",
+                  "normalized_rms" : 3.03531735114833e-06,
+                  "pass" : true,
+                  "rms" : 6.1446383096112e-06
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.00149805679504249,
+                  "max_relative" : 671.618228752891,
+                  "name" : "selection_only",
+                  "normalized_rms" : 0.168162522247699,
+                  "pass" : true,
+                  "rms" : 0.000714393186115766
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 3.19780419579586e-05,
+                  "max_relative" : 5.56719274190637,
+                  "name" : "same_selection_KV",
+                  "normalized_rms" : 0.00146302876263379,
+                  "pass" : true,
+                  "rms" : 7.102916815849e-06
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 6.68773731532513e-09,
+                  "max_relative" : 0.000705481062430922,
+                  "name" : "sparse_reduction",
+                  "normalized_rms" : 2.52767092948092e-07,
+                  "pass" : true,
+                  "rms" : 1.22724645874193e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_index_and_sparse_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "f5b7d8f909a23973076e7818a8473ea4611448a86b3924f286a713cbcec1ceb5"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-index",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/index-3103",
+            3103
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/index-and-sparse-3103",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 3103,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.000939309597015381,
+                  "max_relative" : 0.732449350196574,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0.000141405210778425,
+                  "pass" : true,
+                  "rms" : 0.000278943966374788
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.38418579101562e-07,
+                  "max_relative" : 3.44773056583235e-06,
+                  "name" : "query_normalization",
+                  "normalized_rms" : 5.89058347591463e-08,
+                  "pass" : true,
+                  "rms" : 5.8984472126506e-08
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.000939249992370605,
+                  "max_relative" : 0.732205912965774,
+                  "name" : "pooled_key_quantization_only",
+                  "normalized_rms" : 0.00014145815723259,
+                  "pass" : true,
+                  "rms" : 0.000279048411563539
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.000100851058959961,
+                  "max_relative" : 0.000140535965717353,
+                  "name" : "after_same_pool_quantization",
+                  "normalized_rms" : 2.75445058218294e-06,
+                  "pass" : true,
+                  "rms" : 5.43361008397342e-06
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "selection_only",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 4.67849527488583e-05,
+                  "max_relative" : 1.36877062150811,
+                  "name" : "same_selection_KV",
+                  "normalized_rms" : 0.00066769489065244,
+                  "pass" : true,
+                  "rms" : 7.40447970179998e-06
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 1.09522691263408e-08,
+                  "max_relative" : 0.000980533301304451,
+                  "name" : "sparse_reduction",
+                  "normalized_rms" : 1.81819290767783e-07,
+                  "pass" : true,
+                  "rms" : 2.01646166601009e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_index_and_sparse_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "7bef43746c84cba89118a467389fab8d78eda057bba1167942bd9c0d4022217c"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-index",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/index-8000",
+            8000
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/index-and-sparse-8000",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 8000,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00106573104858398,
+                  "max_relative" : 0.114539210536559,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0.00014742002196465,
+                  "pass" : true,
+                  "rms" : 0.000295192503889274
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.38418579101562e-07,
+                  "max_relative" : 9.0066234709005e-07,
+                  "name" : "query_normalization",
+                  "normalized_rms" : 5.92311047731122e-08,
+                  "pass" : true,
+                  "rms" : 5.92135732012445e-08
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.00106596946716309,
+                  "max_relative" : 0.114311822044585,
+                  "name" : "pooled_key_quantization_only",
+                  "normalized_rms" : 0.000147474152848174,
+                  "pass" : true,
+                  "rms" : 0.00029530089507544
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.000130057334899902,
+                  "max_relative" : 0.000204061814184145,
+                  "name" : "after_same_pool_quantization",
+                  "normalized_rms" : 1.68731299100631e-06,
+                  "pass" : true,
+                  "rms" : 3.37866301492998e-06
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "selection_only",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 4.72151158308898e-05,
+                  "max_relative" : 12.5104138228304,
+                  "name" : "same_selection_KV",
+                  "normalized_rms" : 0.00186180980085086,
+                  "pass" : true,
+                  "rms" : 9.62496798251457e-06
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 4.16793772758939e-09,
+                  "max_relative" : 0.00702300048909864,
+                  "name" : "sparse_reduction",
+                  "normalized_rms" : 1.65942963338046e-07,
+                  "pass" : true,
+                  "rms" : 8.57916478496148e-10
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_index_and_sparse_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "eb3a3a8450dfe5ee783f06ddd96abfcb2e6f2ff359e149a013d2f79d2f16dbc3"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-index",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/index-8001",
+            8001
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/index-and-sparse-8001",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 8001,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00144505500793457,
+                  "max_relative" : 0.0169198462080506,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0.000152767470896833,
+                  "pass" : true,
+                  "rms" : 0.000299084093746033
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.38418579101562e-07,
+                  "max_relative" : 2.28161311872785e-06,
+                  "name" : "query_normalization",
+                  "normalized_rms" : 5.00691462416127e-08,
+                  "pass" : true,
+                  "rms" : 4.98231057033996e-08
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.00144505500793457,
+                  "max_relative" : 0.0169120244580286,
+                  "name" : "pooled_key_quantization_only",
+                  "normalized_rms" : 0.00015284740116409,
+                  "pass" : true,
+                  "rms" : 0.00029924057909861
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.000232696533203125,
+                  "max_relative" : 0.000183652932086802,
+                  "name" : "after_same_pool_quantization",
+                  "normalized_rms" : 3.42930542135509e-06,
+                  "pass" : true,
+                  "rms" : 6.71380547534602e-06
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "selection_only",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 4.33833531648689e-05,
+                  "max_relative" : 547.782473764751,
+                  "name" : "same_selection_KV",
+                  "normalized_rms" : 0.0047499587643156,
+                  "pass" : true,
+                  "rms" : 1.08074040099709e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 4.16286377060131e-09,
+                  "max_relative" : 0.00391114316370271,
+                  "name" : "sparse_reduction",
+                  "normalized_rms" : 3.48945526708447e-07,
+                  "pass" : true,
+                  "rms" : 7.94104719214213e-10
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_index_and_sparse_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "69a0e9794b9637940c47e70ad75a2cb3060bc7a99dd410309b7a2e1f382c3c8e"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-index",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/index-8002",
+            8002
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/index-and-sparse-8002",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 8002,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00116348266601562,
+                  "max_relative" : 0.170215048221996,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0.000141572963477656,
+                  "pass" : true,
+                  "rms" : 0.000286018058885746
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.38418579101562e-07,
+                  "max_relative" : 9.46326129025307e-07,
+                  "name" : "query_normalization",
+                  "normalized_rms" : 4.61659898845716e-08,
+                  "pass" : true,
+                  "rms" : 4.62747978425521e-08
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.00116372108459473,
+                  "max_relative" : 0.170095754521815,
+                  "name" : "pooled_key_quantization_only",
+                  "normalized_rms" : 0.000141847784943804,
+                  "pass" : true,
+                  "rms" : 0.000286573277201143
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.000343918800354004,
+                  "max_relative" : 0.000263852918414483,
+                  "name" : "after_same_pool_quantization",
+                  "normalized_rms" : 4.58513797411385e-06,
+                  "pass" : true,
+                  "rms" : 9.26330136190344e-06
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "selection_only",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 4.07118316428898e-05,
+                  "max_relative" : 6.47250434612725,
+                  "name" : "same_selection_KV",
+                  "normalized_rms" : 0.00334824229372391,
+                  "pass" : true,
+                  "rms" : 1.01746937760967e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 4.24250618837052e-09,
+                  "max_relative" : 0.00124255705108253,
+                  "name" : "sparse_reduction",
+                  "normalized_rms" : 2.99975334554334e-07,
+                  "pass" : true,
+                  "rms" : 9.11688750567694e-10
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_index_and_sparse_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "05c9267757125122a75a74198da60d23ce5db4f8df80fd79dc9d1a6d2c1f356b"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-index",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/index-8003",
+            8003
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/index-and-sparse-8003",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 8003,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00111222267150879,
+                  "max_relative" : 0.0542436935441905,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0.000148503108119539,
+                  "pass" : true,
+                  "rms" : 0.000293955634606537
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.38418579101562e-07,
+                  "max_relative" : 2.04942894711817e-06,
+                  "name" : "query_normalization",
+                  "normalized_rms" : 5.78581667334094e-08,
+                  "pass" : true,
+                  "rms" : 5.78866993586138e-08
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.00111198425292969,
+                  "max_relative" : 0.0488452366883237,
+                  "name" : "pooled_key_quantization_only",
+                  "normalized_rms" : 0.000148345866285897,
+                  "pass" : true,
+                  "rms" : 0.000293644381033597
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.000387251377105713,
+                  "max_relative" : 0.00514704807442534,
+                  "name" : "after_same_pool_quantization",
+                  "normalized_rms" : 4.81317707253785e-06,
+                  "pass" : true,
+                  "rms" : 9.52744446012983e-06
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "selection_only",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 4.84478633870356e-05,
+                  "max_relative" : 2.06900999750442,
+                  "name" : "same_selection_KV",
+                  "normalized_rms" : 0.0015423929654509,
+                  "pass" : true,
+                  "rms" : 1.02188108507437e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 6.38644510008151e-09,
+                  "max_relative" : 0.000253691615514644,
+                  "name" : "sparse_reduction",
+                  "normalized_rms" : 1.89116904971591e-07,
+                  "pass" : true,
+                  "rms" : 1.25307096811881e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_index_and_sparse_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "192ed58a996303c37e22f0ab729703b280de04dd249ab13efeedb3118fce4d4a"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-index",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/index-65000",
+            65000
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/index-and-sparse-65000",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 65000,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00122714042663574,
+                  "max_relative" : 0.34128476431335,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0.000145632685839799,
+                  "pass" : true,
+                  "rms" : 0.000281976869846742
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.38418579101562e-07,
+                  "max_relative" : 8.57544678077728e-07,
+                  "name" : "query_normalization",
+                  "normalized_rms" : 6.28020746211454e-08,
+                  "pass" : true,
+                  "rms" : 6.2694528275527e-08
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.00122714042663574,
+                  "max_relative" : 0.341286839092829,
+                  "name" : "pooled_key_quantization_only",
+                  "normalized_rms" : 0.000145644654274141,
+                  "pass" : true,
+                  "rms" : 0.000282000043364645
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.000310659408569336,
+                  "max_relative" : 0.00294354641346292,
+                  "name" : "after_same_pool_quantization",
+                  "normalized_rms" : 3.22310164961756e-06,
+                  "pass" : true,
+                  "rms" : 6.24062430343946e-06
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "selection_only",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 5.67799229665589e-05,
+                  "max_relative" : 2.5953961957362,
+                  "name" : "same_selection_KV",
+                  "normalized_rms" : 0.00129758725809298,
+                  "pass" : true,
+                  "rms" : 1.12158862787632e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 7.80959595429731e-09,
+                  "max_relative" : 0.000223791156916362,
+                  "name" : "sparse_reduction",
+                  "normalized_rms" : 1.70761679480703e-07,
+                  "pass" : true,
+                  "rms" : 1.47612701184801e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_index_and_sparse_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "106d8cb2eff7061c72ac166a31a11ceeb83524d910d779154c3817e212d6a8bd"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-index",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/index-65001",
+            65001
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/index-and-sparse-65001",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 65001,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00165557861328125,
+                  "max_relative" : 2.04621735579077,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0.000152554251957061,
+                  "pass" : true,
+                  "rms" : 0.000296067202917549
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 3.57627868652344e-07,
+                  "max_relative" : 1.15847305679395e-05,
+                  "name" : "query_normalization",
+                  "normalized_rms" : 8.29441385305966e-08,
+                  "pass" : true,
+                  "rms" : 8.29319536062462e-08
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.00165581703186035,
+                  "max_relative" : 2.04782205774443,
+                  "name" : "pooled_key_quantization_only",
+                  "normalized_rms" : 0.00015259017774294,
+                  "pass" : true,
+                  "rms" : 0.000296136925306805
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.000422775745391846,
+                  "max_relative" : 0.000831637839061622,
+                  "name" : "after_same_pool_quantization",
+                  "normalized_rms" : 3.94689880261793e-06,
+                  "pass" : true,
+                  "rms" : 7.65989254694749e-06
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "selection_only",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 4.36637440496307e-05,
+                  "max_relative" : 7.3665018149995,
+                  "name" : "same_selection_KV",
+                  "normalized_rms" : 0.00402332898765635,
+                  "pass" : true,
+                  "rms" : 1.14212562682534e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 4.17291274321455e-09,
+                  "max_relative" : 0.00028449382162688,
+                  "name" : "sparse_reduction",
+                  "normalized_rms" : 2.8788313752172e-07,
+                  "pass" : true,
+                  "rms" : 8.17222116949814e-10
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_index_and_sparse_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "36b192c8b4d00dc4b2e68bed2f018eeb05a9dd8861d0163b48662e68bcb2443c"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-index",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/index-65002",
+            65002
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/index-and-sparse-65002",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 65002,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00125765800476074,
+                  "max_relative" : 1,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0.000144881015294975,
+                  "pass" : true,
+                  "rms" : 0.000277882257531184
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.38418579101562e-07,
+                  "max_relative" : 2.39670578496299e-05,
+                  "name" : "query_normalization",
+                  "normalized_rms" : 4.72264403972366e-08,
+                  "pass" : true,
+                  "rms" : 4.7497412295184e-08
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.00125813484191895,
+                  "max_relative" : 1,
+                  "name" : "pooled_key_quantization_only",
+                  "normalized_rms" : 0.00014493394471685,
+                  "pass" : true,
+                  "rms" : 0.000277983776334118
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.000572323799133301,
+                  "max_relative" : 0.00097051988976515,
+                  "name" : "after_same_pool_quantization",
+                  "normalized_rms" : 4.13575852111951e-06,
+                  "pass" : true,
+                  "rms" : 7.93238877343161e-06
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "selection_only",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 4.50977604071912e-05,
+                  "max_relative" : 2.29249189612614,
+                  "name" : "same_selection_KV",
+                  "normalized_rms" : 0.00174905910746752,
+                  "pass" : true,
+                  "rms" : 1.04399407758973e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 5.08911796211209e-09,
+                  "max_relative" : 0.000371859616854492,
+                  "name" : "sparse_reduction",
+                  "normalized_rms" : 1.64602506378647e-07,
+                  "pass" : true,
+                  "rms" : 9.82609537180553e-10
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_index_and_sparse_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "1025702583d6fdeb0e12fbb87a3629bed8af3dd46e4a44d8723b60d221efa642"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-index",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/index-65003",
+            65003
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/index-and-sparse-65003",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 65003,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00182723999023438,
+                  "max_relative" : 0.930118747664782,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0.000151388229942186,
+                  "pass" : true,
+                  "rms" : 0.000303821388060911
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.38418579101562e-07,
+                  "max_relative" : 9.88881804100141e-07,
+                  "name" : "query_normalization",
+                  "normalized_rms" : 4.40396117682262e-08,
+                  "pass" : true,
+                  "rms" : 4.43763655212303e-08
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.00182819366455078,
+                  "max_relative" : 0.930264397829221,
+                  "name" : "pooled_key_quantization_only",
+                  "normalized_rms" : 0.000151413728252981,
+                  "pass" : true,
+                  "rms" : 0.000303872560679693
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.000745773315429688,
+                  "max_relative" : 0.045022559223743,
+                  "name" : "after_same_pool_quantization",
+                  "normalized_rms" : 4.87911863450505e-06,
+                  "pass" : true,
+                  "rms" : 9.79193368032143e-06
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "selection_only",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 4.03012877581762e-05,
+                  "max_relative" : 17.750666748083,
+                  "name" : "same_selection_KV",
+                  "normalized_rms" : 0.00215786836991456,
+                  "pass" : true,
+                  "rms" : 1.07285987325247e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 6.40173978584679e-09,
+                  "max_relative" : 0.000365376555462362,
+                  "name" : "sparse_reduction",
+                  "normalized_rms" : 2.49100115736319e-07,
+                  "pass" : true,
+                  "rms" : 1.23861095228732e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_index_and_sparse_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "4326227c7db693d6ef8ef57cb5013ab5337a9feafb756c2a03227f6b26ccdc15"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-index",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/index-262000",
+            262000
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/index-and-sparse-262000",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 262000,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00184261798858643,
+                  "max_relative" : 8.26247756416045,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0.000149285875695568,
+                  "pass" : true,
+                  "rms" : 0.000298652071791028
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.38418579101562e-07,
+                  "max_relative" : 7.01287308484811e-06,
+                  "name" : "query_normalization",
+                  "normalized_rms" : 6.16837001300919e-08,
+                  "pass" : true,
+                  "rms" : 6.16485941966239e-08
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.00184237957000732,
+                  "max_relative" : 8.25488859254619,
+                  "name" : "pooled_key_quantization_only",
+                  "normalized_rms" : 0.000149263731206909,
+                  "pass" : true,
+                  "rms" : 0.000298607770899294
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.000432968139648438,
+                  "max_relative" : 0.0312619500139833,
+                  "name" : "after_same_pool_quantization",
+                  "normalized_rms" : 3.90544578729242e-06,
+                  "pass" : true,
+                  "rms" : 7.81299821667821e-06
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "selection_only",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 4.14449166986804e-05,
+                  "max_relative" : 0.731810278380454,
+                  "name" : "same_selection_KV",
+                  "normalized_rms" : 0.00102344986730257,
+                  "pass" : true,
+                  "rms" : 1.05487907890911e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 7.92372845115352e-09,
+                  "max_relative" : 0.00014552354959007,
+                  "name" : "sparse_reduction",
+                  "normalized_rms" : 1.8303006511632e-07,
+                  "pass" : true,
+                  "rms" : 1.88663043280624e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_index_and_sparse_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "76b400d3190c446bcda2cc056255a45fbbe3dbfbf72d6cbc09c993ccc1eaacea"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-index",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/index-262001",
+            262001
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/index-and-sparse-262001",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 262001,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00140190124511719,
+                  "max_relative" : 0.727177808705022,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0.000147018947499121,
+                  "pass" : true,
+                  "rms" : 0.000289591686541979
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.38418579101562e-07,
+                  "max_relative" : 1.27135451805493e-06,
+                  "name" : "query_normalization",
+                  "normalized_rms" : 2.44934002564971e-08,
+                  "pass" : true,
+                  "rms" : 2.47661456043377e-08
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.00140166282653809,
+                  "max_relative" : 0.72721214608822,
+                  "name" : "pooled_key_quantization_only",
+                  "normalized_rms" : 0.000147024702315548,
+                  "pass" : true,
+                  "rms" : 0.000289603022135269
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.000816822052001953,
+                  "max_relative" : 0.00225096854423417,
+                  "name" : "after_same_pool_quantization",
+                  "normalized_rms" : 3.6477060042281e-06,
+                  "pass" : true,
+                  "rms" : 7.18510166215714e-06
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "selection_only",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 6.22001239544642e-05,
+                  "max_relative" : 63.8150127513859,
+                  "name" : "same_selection_KV",
+                  "normalized_rms" : 0.00292302739449507,
+                  "pass" : true,
+                  "rms" : 1.16490961322304e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 6.02116951523707e-09,
+                  "max_relative" : 0.00142652112290371,
+                  "name" : "sparse_reduction",
+                  "normalized_rms" : 2.90457736352831e-07,
+                  "pass" : true,
+                  "rms" : 1.15756861305888e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_index_and_sparse_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "1b5fde991c586a470b6189bfe4ea686535f33805cedd3e17bd9e34d09e78fa2c"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-index",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/index-262002",
+            262002
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/index-and-sparse-262002",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 262002,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00165283679962158,
+                  "max_relative" : 1,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0.000149279849103994,
+                  "pass" : true,
+                  "rms" : 0.000293835995453219
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.38418579101562e-07,
+                  "max_relative" : 1.17723451502895e-06,
+                  "name" : "query_normalization",
+                  "normalized_rms" : 6.13496783673679e-08,
+                  "pass" : true,
+                  "rms" : 6.18788074813697e-08
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.00165283679962158,
+                  "max_relative" : 1,
+                  "name" : "pooled_key_quantization_only",
+                  "normalized_rms" : 0.000149297647861067,
+                  "pass" : true,
+                  "rms" : 0.000293871029756467
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.000504016876220703,
+                  "max_relative" : 0.0020749375852432,
+                  "name" : "after_same_pool_quantization",
+                  "normalized_rms" : 3.45356433438555e-06,
+                  "pass" : true,
+                  "rms" : 6.79784409925134e-06
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "selection_only",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 5.78157367810122e-05,
+                  "max_relative" : 4.12021268837062,
+                  "name" : "same_selection_KV",
+                  "normalized_rms" : 0.00120509655511125,
+                  "pass" : true,
+                  "rms" : 1.2248113533789e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 8.2557976427422e-09,
+                  "max_relative" : 0.00011404734563229,
+                  "name" : "sparse_reduction",
+                  "normalized_rms" : 1.55936640625877e-07,
+                  "pass" : true,
+                  "rms" : 1.58501293400508e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_index_and_sparse_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "f075bb84f4f17f7aeb11a11d054e48cefe0a39e6c4a525e568d198d613097e27"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-index",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/index-262003",
+            262003
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/index-and-sparse-262003",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 262003,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00155186653137207,
+                  "max_relative" : 9169.37351576053,
+                  "name" : "scaled_score_error",
+                  "normalized_rms" : 0.000147750894821648,
+                  "pass" : true,
+                  "rms" : 0.000289028768518731
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 3.57627868652344e-07,
+                  "max_relative" : 1.30335489908854e-05,
+                  "name" : "query_normalization",
+                  "normalized_rms" : 8.54774668553239e-08,
+                  "pass" : true,
+                  "rms" : 8.5743001942557e-08
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.00155234336853027,
+                  "max_relative" : 9180.24525162764,
+                  "name" : "pooled_key_quantization_only",
+                  "normalized_rms" : 0.000147754405197192,
+                  "pass" : true,
+                  "rms" : 0.000289035635478973
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0.000413060188293457,
+                  "max_relative" : 0.0494128301256883,
+                  "name" : "after_same_pool_quantization",
+                  "normalized_rms" : 3.46926596921913e-06,
+                  "pass" : true,
+                  "rms" : 6.78654493985369e-06
+               },
+               {
+                  "enforced" : false,
+                  "max_abs" : 0,
+                  "max_relative" : 0,
+                  "name" : "selection_only",
+                  "normalized_rms" : 0,
+                  "pass" : true,
+                  "rms" : 0
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 4.88146429619809e-05,
+                  "max_relative" : 2.74740334638519,
+                  "name" : "same_selection_KV",
+                  "normalized_rms" : 0.00106213147742291,
+                  "pass" : true,
+                  "rms" : 1.2356126259206e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 1.00250634599286e-08,
+                  "max_relative" : 0.000478163537380835,
+                  "name" : "sparse_reduction",
+                  "normalized_rms" : 1.5682709624237e-07,
+                  "pass" : true,
+                  "rms" : 1.82452185730618e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_index_and_sparse_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "c16433619e1b00659c1be52391b01ac0f8486a2351c6527893f2d9e98b364d8a"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-attention",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/attention-1",
+            1
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/attention-1",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 1,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 4.51451756255938e-08,
+                  "max_relative" : 2.14446164249612e-07,
+                  "name" : "same_ID_attention_reduction",
+                  "normalized_rms" : 4.71216726503531e-08,
+                  "pass" : true,
+                  "rms" : 7.56825410406763e-09
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00168736505062644,
+                  "max_relative" : 1,
+                  "name" : "same_ID_KV_quantization",
+                  "normalized_rms" : 0.00387564636005579,
+                  "pass" : true,
+                  "rms" : 0.000622471037648686
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 5.11509466449844e-08,
+                  "max_relative" : 2.0407643960019e-07,
+                  "name" : "quantized_attention_reduction",
+                  "normalized_rms" : 4.66046464064547e-08,
+                  "pass" : true,
+                  "rms" : 7.48623848745364e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "f63d3e801b2fa071c64b8dd5834a5d1aafbbc031cdd6814d457747ef0b66d06c"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-attention",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/attention-2",
+            2
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/attention-2",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 2,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 6.08894646925151e-08,
+                  "max_relative" : 0.000158138228319655,
+                  "name" : "same_ID_attention_reduction",
+                  "normalized_rms" : 7.15120564316883e-08,
+                  "pass" : true,
+                  "rms" : 8.25257742434909e-09
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00160191933697118,
+                  "max_relative" : 5.05660845531399,
+                  "name" : "same_ID_KV_quantization",
+                  "normalized_rms" : 0.00364254237802473,
+                  "pass" : true,
+                  "rms" : 0.000420353776636766
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 5.59940019906335e-08,
+                  "max_relative" : 6.00169084339528e-05,
+                  "name" : "quantized_attention_reduction",
+                  "normalized_rms" : 7.28283136278629e-08,
+                  "pass" : true,
+                  "rms" : 8.40627056058933e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "3ada0386cc00e9d86a40afb284339ba7c98b4edc53e6de912fa5c7df476f4393"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-attention",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/attention-3",
+            3
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/attention-3",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 3,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 5.44739049423981e-08,
+                  "max_relative" : 0.000148314061568773,
+                  "name" : "same_ID_attention_reduction",
+                  "normalized_rms" : 7.94440668673402e-08,
+                  "pass" : true,
+                  "rms" : 7.20977734628494e-09
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00150712956933045,
+                  "max_relative" : 14.2139382553028,
+                  "name" : "same_ID_KV_quantization",
+                  "normalized_rms" : 0.0039050867774349,
+                  "pass" : true,
+                  "rms" : 0.000354397846100217
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 5.47261730932114e-08,
+                  "max_relative" : 8.95394627204887e-05,
+                  "name" : "quantized_attention_reduction",
+                  "normalized_rms" : 7.87848397399183e-08,
+                  "pass" : true,
+                  "rms" : 7.15114313778837e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "21d771664e524d17dc968866c710a1fce022a6e586562a820a67c7576f8dba06"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-attention",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/attention-4",
+            4
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/attention-4",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 4,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 5.75593289697807e-08,
+                  "max_relative" : 6.29899770690473e-05,
+                  "name" : "same_ID_attention_reduction",
+                  "normalized_rms" : 8.3693362047738e-08,
+                  "pass" : true,
+                  "rms" : 6.77959676378729e-09
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.00129723913227349,
+                  "max_relative" : 9.09935981429637,
+                  "name" : "same_ID_KV_quantization",
+                  "normalized_rms" : 0.00385559317535063,
+                  "pass" : true,
+                  "rms" : 0.000312323060927793
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 5.61592433667712e-08,
+                  "max_relative" : 0.00017600061589604,
+                  "name" : "quantized_attention_reduction",
+                  "normalized_rms" : 8.20968375986038e-08,
+                  "pass" : true,
+                  "rms" : 6.64911106446716e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "8095cff155215154b443f79c41d491241206cadaa428e53723066304e4b67c3b"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-attention",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/attention-1023",
+            1023
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/attention-1023",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 1023,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 9.621933473071e-09,
+                  "max_relative" : 0.0274562818086906,
+                  "name" : "same_ID_attention_reduction",
+                  "normalized_rms" : 2.97787190385015e-07,
+                  "pass" : true,
+                  "rms" : 1.50889202605951e-09
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 8.64289079574813e-05,
+                  "max_relative" : 287.375013250088,
+                  "name" : "same_ID_KV_quantization",
+                  "normalized_rms" : 0.00345948419786174,
+                  "pass" : true,
+                  "rms" : 1.75292567611233e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 1.07425255774229e-08,
+                  "max_relative" : 0.00137113794167099,
+                  "name" : "quantized_attention_reduction",
+                  "normalized_rms" : 2.95018002457819e-07,
+                  "pass" : true,
+                  "rms" : 1.49495361461583e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "b9050cb828c512a763f2e08617022ec42e4468edbac5e642761f52f018f06f62"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-attention",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/attention-1024",
+            1024
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/attention-1024",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 1024,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 9.16195367142714e-09,
+                  "max_relative" : 0.00107211728695852,
+                  "name" : "same_ID_attention_reduction",
+                  "normalized_rms" : 3.01473375722834e-07,
+                  "pass" : true,
+                  "rms" : 1.51429588648788e-09
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 8.95144491108724e-05,
+                  "max_relative" : 8.28128636656963,
+                  "name" : "same_ID_KV_quantization",
+                  "normalized_rms" : 0.00381886734355106,
+                  "pass" : true,
+                  "rms" : 1.9182108852952e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 7.72778942052799e-09,
+                  "max_relative" : 0.000655073259541506,
+                  "name" : "quantized_attention_reduction",
+                  "normalized_rms" : 2.93322442330437e-07,
+                  "pass" : true,
+                  "rms" : 1.4740612396253e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "649edcfe6470b81ec414088cdd2a99ca01fda28dd121053fb2dee84e675b83de"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-attention",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/attention-1025",
+            1025
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/attention-1025",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 1025,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 1.27175314376671e-08,
+                  "max_relative" : 0.000466955358453504,
+                  "name" : "same_ID_attention_reduction",
+                  "normalized_rms" : 3.14343430782494e-07,
+                  "pass" : true,
+                  "rms" : 1.53362716173219e-09
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 9.36919603613815e-05,
+                  "max_relative" : 3.90523305538933,
+                  "name" : "same_ID_KV_quantization",
+                  "normalized_rms" : 0.00368949887048763,
+                  "pass" : true,
+                  "rms" : 1.80004260527247e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 1.15980039079588e-08,
+                  "max_relative" : 0.025980870681212,
+                  "name" : "quantized_attention_reduction",
+                  "normalized_rms" : 3.08861443578907e-07,
+                  "pass" : true,
+                  "rms" : 1.50705234769654e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "35aa9bcb7a1f01e5e0b9ab1c16ab9bfe88946c3602cd9545bf4fcad6df8e6fbd"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-attention",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/attention-1026",
+            1026
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/attention-1026",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 1026,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 9.23089695133161e-09,
+                  "max_relative" : 0.00210105104851948,
+                  "name" : "same_ID_attention_reduction",
+                  "normalized_rms" : 3.02107069792171e-07,
+                  "pass" : true,
+                  "rms" : 1.4918168680014e-09
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 0.000109937171933347,
+                  "max_relative" : 38.1969086438994,
+                  "name" : "same_ID_KV_quantization",
+                  "normalized_rms" : 0.00391688199282792,
+                  "pass" : true,
+                  "rms" : 1.93417209034248e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 9.83500651925706e-09,
+                  "max_relative" : 0.00116904495456899,
+                  "name" : "quantized_attention_reduction",
+                  "normalized_rms" : 2.96756874298327e-07,
+                  "pass" : true,
+                  "rms" : 1.46561770285274e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "748dd398b9fb6244eea1a97d5e81edaa14e56c0f2a279bb846525ae163fe16cd"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-attention",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/attention-1027",
+            1027
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/attention-1027",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 1027,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 1.06428981339751e-08,
+                  "max_relative" : 0.00509986727563049,
+                  "name" : "same_ID_attention_reduction",
+                  "normalized_rms" : 3.07937447597398e-07,
+                  "pass" : true,
+                  "rms" : 1.54096225670104e-09
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 9.18219236187788e-05,
+                  "max_relative" : 71.4085827258284,
+                  "name" : "same_ID_KV_quantization",
+                  "normalized_rms" : 0.0038534828846277,
+                  "pass" : true,
+                  "rms" : 1.92833698154772e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 9.52869393631983e-09,
+                  "max_relative" : 0.00108173462477303,
+                  "name" : "quantized_attention_reduction",
+                  "normalized_rms" : 3.01531645755082e-07,
+                  "pass" : true,
+                  "rms" : 1.5088196894224e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "17ef675f707e3e7aab8ed65086fa968ae85cbf7f690735a4ddb495d010326f6f"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-attention",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/attention-2047",
+            2047
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/attention-2047",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 2047,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 6.84565411670536e-09,
+                  "max_relative" : 0.00133222064618274,
+                  "name" : "same_ID_attention_reduction",
+                  "normalized_rms" : 2.97459168821262e-07,
+                  "pass" : true,
+                  "rms" : 1.04630064080231e-09
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 6.4103282313736e-05,
+                  "max_relative" : 61.2845239407221,
+                  "name" : "same_ID_KV_quantization",
+                  "normalized_rms" : 0.00374137016726063,
+                  "pass" : true,
+                  "rms" : 1.31601188122585e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 6.35026601442101e-09,
+                  "max_relative" : 0.000652305018352776,
+                  "name" : "quantized_attention_reduction",
+                  "normalized_rms" : 3.02443630758055e-07,
+                  "pass" : true,
+                  "rms" : 1.06382075052655e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "bf16a2c905e80d0b6ed8e48533ab3b8682b842b4e7b567bbccdafa2e084ee663"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-attention",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/attention-2048",
+            2048
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/attention-2048",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 2048,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 9.68908929824264e-09,
+                  "max_relative" : 0.000799439755968162,
+                  "name" : "same_ID_attention_reduction",
+                  "normalized_rms" : 2.81319982772098e-07,
+                  "pass" : true,
+                  "rms" : 1.10120570027414e-09
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 7.12503611619269e-05,
+                  "max_relative" : 14.1167326281825,
+                  "name" : "same_ID_KV_quantization",
+                  "normalized_rms" : 0.00348560264230122,
+                  "pass" : true,
+                  "rms" : 1.36441267369984e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 6.44004423747124e-09,
+                  "max_relative" : 0.000293056792866027,
+                  "name" : "quantized_attention_reduction",
+                  "normalized_rms" : 2.74455649087734e-07,
+                  "pass" : true,
+                  "rms" : 1.0741270033049e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "21580d68c163fd265ab58b9e22cf9bac1a35b210453d626d5479fd9cd89d3a97"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-attention",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/attention-2049",
+            2049
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/attention-2049",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 2049,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 5.77422416825346e-09,
+                  "max_relative" : 0.000314064770249975,
+                  "name" : "same_ID_attention_reduction",
+                  "normalized_rms" : 3.09759423119403e-07,
+                  "pass" : true,
+                  "rms" : 1.07812039162956e-09
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 7.3065777612462e-05,
+                  "max_relative" : 6.85455977224193,
+                  "name" : "same_ID_KV_quantization",
+                  "normalized_rms" : 0.00389427712277116,
+                  "pass" : true,
+                  "rms" : 1.35540657147262e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 6.48924961335617e-09,
+                  "max_relative" : 0.00517875031963508,
+                  "name" : "quantized_attention_reduction",
+                  "normalized_rms" : 3.0992218477e-07,
+                  "pass" : true,
+                  "rms" : 1.07850986098648e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "f767ff515f38f0964f68ef0e38b71fec30539ae7e9cc8583e357512e0265eb3f"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-attention",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/attention-2050",
+            2050
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/attention-2050",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 2050,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 6.62100554590928e-09,
+                  "max_relative" : 0.000499852957149757,
+                  "name" : "same_ID_attention_reduction",
+                  "normalized_rms" : 3.05921864843819e-07,
+                  "pass" : true,
+                  "rms" : 1.1096499510996e-09
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 7.93222420146248e-05,
+                  "max_relative" : 21.3574635237061,
+                  "name" : "same_ID_KV_quantization",
+                  "normalized_rms" : 0.00368900999371091,
+                  "pass" : true,
+                  "rms" : 1.33808996006777e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 6.92038311291693e-09,
+                  "max_relative" : 0.000967832816244614,
+                  "name" : "quantized_attention_reduction",
+                  "normalized_rms" : 3.00540980975915e-07,
+                  "pass" : true,
+                  "rms" : 1.09020569170645e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "f21b1a39f10ccc3140634c132c54ae5cc5c999a36c4dd64466d4488164c3c0dc"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-attention",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/attention-2051",
+            2051
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/attention-2051",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 2051,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 7.33103621038123e-09,
+                  "max_relative" : 0.000570126072689669,
+                  "name" : "same_ID_attention_reduction",
+                  "normalized_rms" : 2.94718951105004e-07,
+                  "pass" : true,
+                  "rms" : 1.08177005335858e-09
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 5.95955779889138e-05,
+                  "max_relative" : 14.8046704007036,
+                  "name" : "same_ID_KV_quantization",
+                  "normalized_rms" : 0.00377558140956053,
+                  "pass" : true,
+                  "rms" : 1.3858324643076e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 6.15281914480292e-09,
+                  "max_relative" : 0.000446818217335618,
+                  "name" : "quantized_attention_reduction",
+                  "normalized_rms" : 2.97565449008138e-07,
+                  "pass" : true,
+                  "rms" : 1.0925056116159e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "c667850f952ef617b09030e446f8841f9517e67313f27eb4e50b4643b08311f0"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-attention",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/attention-2052",
+            2052
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/attention-2052",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 2052,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 6.11758538705126e-09,
+                  "max_relative" : 0.000818150221905703,
+                  "name" : "same_ID_attention_reduction",
+                  "normalized_rms" : 2.98982299249101e-07,
+                  "pass" : true,
+                  "rms" : 1.03721091466046e-09
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 6.76506117241132e-05,
+                  "max_relative" : 6.08511089785009,
+                  "name" : "same_ID_KV_quantization",
+                  "normalized_rms" : 0.00378506087967467,
+                  "pass" : true,
+                  "rms" : 1.31308992770237e-05
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 7.77368706211812e-09,
+                  "max_relative" : 0.000448628594846749,
+                  "name" : "quantized_attention_reduction",
+                  "normalized_rms" : 2.99915827435822e-07,
+                  "pass" : true,
+                  "rms" : 1.04007739134139e-09
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "867a76394e468d53a0c5ce131dabe6d21cc33f1d0f965181f985eee50d7997dc"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-attention",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/attention-8191",
+            8191
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/attention-8191",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 8191,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.9117510428196e-09,
+                  "max_relative" : 0.00209640087538734,
+                  "name" : "same_ID_attention_reduction",
+                  "normalized_rms" : 2.9804054034823e-07,
+                  "pass" : true,
+                  "rms" : 5.38498843700144e-10
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 3.12494083034387e-05,
+                  "max_relative" : 21.5635945730353,
+                  "name" : "same_ID_KV_quantization",
+                  "normalized_rms" : 0.003750074917751,
+                  "pass" : true,
+                  "rms" : 6.77562523755442e-06
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 3.41581672606947e-09,
+                  "max_relative" : 0.0013271109258516,
+                  "name" : "quantized_attention_reduction",
+                  "normalized_rms" : 2.94265706608659e-07,
+                  "pass" : true,
+                  "rms" : 5.31620033684692e-10
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "23cbbf38eee725eccb9d1586b72ba9f61632a3d766421b35e84341c6a3382e1f"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-attention",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/attention-8192",
+            8192
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/attention-8192",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 8192,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.56712356623903e-09,
+                  "max_relative" : 0.000389675911934326,
+                  "name" : "same_ID_attention_reduction",
+                  "normalized_rms" : 3.10078239339083e-07,
+                  "pass" : true,
+                  "rms" : 5.23080266467382e-10
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 2.72481819181484e-05,
+                  "max_relative" : 2.92493106614241,
+                  "name" : "same_ID_KV_quantization",
+                  "normalized_rms" : 0.0036181616378315,
+                  "pass" : true,
+                  "rms" : 6.10358520376317e-06
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 3.26378443021857e-09,
+                  "max_relative" : 0.000369696469164176,
+                  "name" : "quantized_attention_reduction",
+                  "normalized_rms" : 3.23380583122034e-07,
+                  "pass" : true,
+                  "rms" : 5.45503298081798e-10
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "3b7924283395a8ac2193bae440d0a11c2602bff39d328bbd8c140acb559d44f7"
+      },
+      {
+         "command" : [
+            "/home/nate/codex/flash-pr31-20261017/kern/qsa_oracle",
+            "--generate-attention",
+            "/home/nate/codex/flash-pr31-evidence-20261017/portable-8ea6b4a/generated/attention-8193",
+            8193
+         ],
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "label" : "generated/attention-8193",
+         "passes" : true,
+         "result" : {
+            "candidate_backend" : "CPU_SCALAR",
+            "checkpoint_conformance" : false,
+            "failures" : 0,
+            "gpu_executed" : false,
+            "gpu_launches" : 0,
+            "length" : 8193,
+            "metrics" : [
+               {
+                  "enforced" : true,
+                  "max_abs" : 4.26026160399787e-09,
+                  "max_relative" : 0.00487914890403513,
+                  "name" : "same_ID_attention_reduction",
+                  "normalized_rms" : 4.31775540849623e-07,
+                  "pass" : true,
+                  "rms" : 7.62207831169346e-10
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 3.42691080099933e-05,
+                  "max_relative" : 19.5836513329651,
+                  "name" : "same_ID_KV_quantization",
+                  "normalized_rms" : 0.00366487146167284,
+                  "pass" : true,
+                  "rms" : 6.46955064388179e-06
+               },
+               {
+                  "enforced" : true,
+                  "max_abs" : 4.23966333091066e-09,
+                  "max_relative" : 0.0165342738548916,
+                  "name" : "quantized_attention_reduction",
+                  "normalized_rms" : 4.21554107830516e-07,
+                  "pass" : true,
+                  "rms" : 7.44103718278524e-10
+               }
+            ],
+            "status" : "PASS_NATIVE",
+            "type" : "generated_attention"
+         },
+         "stderr_sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+         "stdout_sha256" : "dd29e291c517642a481b6294a47ee1e1e7d37086a148b66766664e8b60159b21"
+      }
+   ],
+   "schema" : "flash-sass.native-qsa-oracle.v1",
+   "scope" : "Independent native mathematical transcription plus frozen pinned external probes; local candidate scalar routines are never the external oracle",
+   "sources_sha256" : {
+      "kern/Makefile" : "407654a7eacd6217b6acba7c72b02c004962008ce3d10e8f2cf0b8fdd7fec0ff",
+      "kern/qsa_oracle.c" : "d6463105f895c2334bed41935b48ce7a9d24770ed14957a0136639031df6ab9f",
+      "kern/qsa_oracle.pl" : "36ebbe29db43523f9bc6f0d6389b939d8bb359dd3bd8656cd9534e169ed5baab",
+      "kern/qsa_oracle_bridge.c" : "d2120cc53a7a670ce8c8338cdb23fcf5540aeea450df8587be39fcabfeb8d784",
+      "kern/qsa_oracle_gpu.c" : "40e4d24bbe6d659615679d27c39005f933c9bf91a1932dadd78a62f76aefc3ba",
+      "kern/qsa_oracle_gpu.h" : "98979ea410f35e7977abc4e0a5edb212de961b4eb20343900073aaf697f1f668",
+      "kern/qsa_oracle_gpu_gate.sh" : "3e7a2f6f9e65d9596af96ca0bbaed2188154aee0e29f1d80c155a4f4fc69a949",
+      "ref/attn.c" : "b2827140a4be2cc38280876b5f505db764ad15b6791144143bb26c309f3c42ef",
+      "ref/attn.h" : "291f54b8d1ed3406828571956240295591b6da9b26d3b457f97733b0daaf2833",
+      "ref/fmath.c" : "69bbf4dbb4201dd24056f29183d289910ac7067722c3214a79b3de3ffdf8f462",
+      "ref/fmath.h" : "f07f7d50aae33575834b447a96ce503745a3719059f4027998b81ef3155c7412",
+      "ref/qsa.c" : "68a83b9abe0855af32485414af825baa99deba72c7b9746c618125f5b68f3f78",
+      "ref/qsa.h" : "c3e31e5420f513faae716993b665628132c4f9181e582e94bcda921c0b5f8b5e"
+   },
+   "sources_sha256_after" : {
+      "kern/Makefile" : "407654a7eacd6217b6acba7c72b02c004962008ce3d10e8f2cf0b8fdd7fec0ff",
+      "kern/qsa_oracle.c" : "d6463105f895c2334bed41935b48ce7a9d24770ed14957a0136639031df6ab9f",
+      "kern/qsa_oracle.pl" : "36ebbe29db43523f9bc6f0d6389b939d8bb359dd3bd8656cd9534e169ed5baab",
+      "kern/qsa_oracle_bridge.c" : "d2120cc53a7a670ce8c8338cdb23fcf5540aeea450df8587be39fcabfeb8d784",
+      "kern/qsa_oracle_gpu.c" : "40e4d24bbe6d659615679d27c39005f933c9bf91a1932dadd78a62f76aefc3ba",
+      "kern/qsa_oracle_gpu.h" : "98979ea410f35e7977abc4e0a5edb212de961b4eb20343900073aaf697f1f668",
+      "kern/qsa_oracle_gpu_gate.sh" : "3e7a2f6f9e65d9596af96ca0bbaed2188154aee0e29f1d80c155a4f4fc69a949",
+      "ref/attn.c" : "b2827140a4be2cc38280876b5f505db764ad15b6791144143bb26c309f3c42ef",
+      "ref/attn.h" : "291f54b8d1ed3406828571956240295591b6da9b26d3b457f97733b0daaf2833",
+      "ref/fmath.c" : "69bbf4dbb4201dd24056f29183d289910ac7067722c3214a79b3de3ffdf8f462",
+      "ref/fmath.h" : "f07f7d50aae33575834b447a96ce503745a3719059f4027998b81ef3155c7412",
+      "ref/qsa.c" : "68a83b9abe0855af32485414af825baa99deba72c7b9746c618125f5b68f3f78",
+      "ref/qsa.h" : "c3e31e5420f513faae716993b665628132c4f9181e582e94bcda921c0b5f8b5e"
+   },
+   "start" : {
+      "boot_id" : "d42b112a-aedc-4dc4-9985-4a514d300317",
+      "compiler" : {
+         "command" : [
+            "cc",
+            "--version"
+         ],
+         "exit_code" : 0,
+         "ok" : true,
+         "output" : "cc (GCC) 16.2.1 20260810\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
+      },
+      "git_head" : {
+         "command" : [
+            "git",
+            "-C",
+            "/home/nate/codex/flash-pr31-20261017",
+            "rev-parse",
+            "HEAD"
+         ],
+         "exit_code" : 0,
+         "ok" : true,
+         "output" : "8ea6b4aebcc1b069037e8dd49807982650dba67e\n"
+      },
+      "git_status" : {
+         "command" : [
+            "git",
+            "-C",
+            "/home/nate/codex/flash-pr31-20261017",
+            "status",
+            "--porcelain=v1",
+            "--untracked-files=no"
+         ],
+         "exit_code" : 0,
+         "ok" : true,
+         "output" : ""
+      },
+      "hostname" : "engi",
+      "kernel" : {
+         "command" : [
+            "uname",
+            "-srmo"
+         ],
+         "exit_code" : 0,
+         "ok" : true,
+         "output" : "Linux 7.2.9-arch1-1 x86_64 GNU/Linux\n"
+      },
+      "native_binary_sha256" : "28a9ec7a6d364f7c72c77f003fd7393a52e827b323d547d209ec4c874fb49188",
+      "pid" : 603226,
+      "unix_time" : 1792285013.71539,
+      "utc" : "2026-10-18T00:56:53Z"
+   },
+   "status" : "PASS_NATIVE_SYNTHETIC"
+}
