@@ -50,7 +50,7 @@ my @OPS = (
     [ 'hcmix',      'hcops.sass',       'cta',  { HC_OP => 'mix' } ],
     [ 'hcmixx',     'hcops.sass',       'cta',  { HC_OP => 'mix', HC_XOUT => 1 } ],
     [ 'hcwrite',    'hcops.sass',       'cta',  { HC_OP => 'write' } ],
-    [ 'hcwsum',     'hcops.sass',       'cta',  { HC_OP => 'write', HC_SUMN => 1 } ],   # the MoE partials' fixed-order sum fused into the write
+    [ 'hcwsum',     'hcops.sass',       'cta',  { HC_OP => 'write', HC_SUMN => 1, HC_COLS => 160 } ],   # the MoE partials' fixed-order sum fused into the write; all 16 SMs participate
     [ 'conv1d',     'conv1d.sass',      'cta',  {} ],
     [ 'dnstep',     'dnstep.sass',      'cta',  { DN_TILED => 1 } ],   # local value head j reads local key head j % 16 (value head h pairs with key head h % 16)
     [ 'dnnorm',     'dnnorm.sass',      'warp', {} ],

@@ -1,0 +1,37 @@
+baseline_commit=b97b6b94bc0aba994830396fadebe5f8acd082f7
+build_host=engi
+gcc (GCC) 16.2.1 20260810
+ptxas: NVIDIA (R) Ptx optimizing assembler
+Copyright (c) 2005-2021 NVIDIA Corporation
+Built on Mon_Oct_11_21:26:15_PDT_2021
+Cuda compilation tools, release 11.4, V11.4.152
+Build cuda_11.4.r11.4/compiler.30521435_0
+#define CUDA_VERSION 13040
+maxas_revision=54eda7af086a46c9dae1688b691968235d560164
+6180efbc0877b5cf127bc99c5d51be6a779d98a03811cc1c24ef61621dc20976  /home/nate/claude/flash-sass-resolve/issue-53-evidence/toolchain/ptxas
+0fa8cb6989248b38ee44b27f0ef6a14809b06c1f7f332df12a587412998fe3ad  maxas-patch/Cubin.pm
+853d3151595462bb1a46ecd879bcb0a1a3fe3ae1dbcb772ef8d07ee8bf8cd34b  maxas-patch/MaxAs.pm
+b63669d7e128651c68e106976c4d9e23457156ee8338cd1b8776683bbaad1f01  maxas-patch/MaxAsGrammar.pm
+116d828f20139d144d46d7d8115a28e35313dac1f6c24ba81c1b5c0984f50e14  /home/nate/claude/flash-sass-resolve/issue-53-evidence/baseline/kern/die.cubin
+265325fbb88032057deb17f9da40e8c42d1286540ee0cd89b136af030dae735b  kern/die.cubin
+e4a3ec3f1d5a6efb5ce23a4a54284efce9ee77c915db7ef03348cc677bfbea1e  kern/hc_write.cubin
+aecf7a1ac1f1662e4dabe5ef622aba85b695ec792d73d0e765b98ac82480f9d1  kern/hc_phase_test
+a7d20c4f3604c0b58a3af1ef78082145682ab6fe0684a11ba655686ba437d2d6  kern/hcops_test
+63b4929dd5821f51a6c731f06fb4d852bf105a3e25a73c138b83eb5e4bb4da57  kern/pair_bf16_test
+ac948a4e17df6a0267dc53cabe6f7200781b026eed4e5dc3f39bf6c26184d541  kern/gemv_bf16_test
+394f46a3214b5f57ac17f35f015ceece52b4f37bb7f899437d0b07750a41e5aa  kern/gemv_bf16_k2560.cubin
+72c1cd145841a2f8b5772fc896d2788ff391e72e77e28bca10e0137e2e69d7d4  kern/gemv_bf16_k320.cubin
+cdfed40c37051e41a142f131e3a2e886b4015a56774469ac572545098e90e09a  kern/gemv_bf16_hc.cubin
+ac35613b17f3812e3a8d151c7a8c5caca906ee2309c96f1c20fa8082b1c5c766  kern/model_test
+7b835e372269e441f9deadf857e87c5bf186ef473130bbfbd863fb81a74757d9  kern/hcops.sass
+655eaaca4c15230287933cbe2d9577d2db00f1550be8624f209ffcb660a6bcfe  kern/gemv_bf16.sass
+b2beab589883ac2e37aede6ef26a4bb9addb538f9abd114b14493b5d723631df  kern/prog.c
+1de37c3fa999d7e6dfc61319686bdf1715cf720c6785b77ae9bc1e0fbea738a5  kern/die.pl
+2773c6767345608776cb8f3f3cedb943f54989e1fa5574d740ab8017fe375116  kern/hc_phase_test.c
+5bdd48101464efd2193177e10b429d4bdc5d658b7d911cac578518b7627e0ef0  kern/hc_phase_check.sh
+
+Resource usage:
+ Common:
+  GLOBAL:0
+ Function die:
+  REG:249 STACK:0 SHARED:49152 LOCAL:0 CONSTANT[0]:348 TEXTURE:0 SURFACE:0 SAMPLER:0

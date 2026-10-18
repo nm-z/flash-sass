@@ -1,0 +1,3 @@
+make: Entering directory '/home/nate/claude/flash-sass-resolve/issue-53/kern'
+gcc -L/opt/cuda/targets/x86_64-linux/lib/stubs -std=gnu99 -O2 -ffp-contract=off -Wall -Wextra -o hc_phase_test hc_phase_test.c ../ref/hc.c ../ref/fmath.c -I../ref -I/opt/cuda/include -lcuda -lm
+make: Leaving directory '/home/nate/claude/flash-sass-resolve/issue-53/kern'

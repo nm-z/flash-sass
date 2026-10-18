@@ -119,6 +119,7 @@
     my $acc = $ENV{GEMV_ACC} ? 1 : 0;     # y += partial instead of y = partial
     my $bias = $ENV{GEMV_BIAS} ? 1 : 0;   # y = partial + bias[row], bias at the dbg pointer (ssm_dt.bias on the alpha logits)
     my $xout = $ENV{GEMV_XOUT} ? 1 : 0;   # y rows go to every die's inbox: TAB (at the Y param) + XOFF + 4 row, and the phase is a send
+    my $xcoal = $xout && $K == 2560 && $NS == 4;   # HC down: transpose warp results into contiguous peer writes
     my $rms = $ENV{GEMV_RMS} ? 1 : 0;     # x = RMSNorm(S) (4 lanes of 2560) built in shared memory by every CTA (bf16hcrx)
     my $rmsw = $ENV{GEMV_RMSW} ? 1 : 0;   # ... after applying the pending stream write (hcwrite's update) to S, stored to SOUT
     die "GEMV_RMSW needs GEMV_RMS" if $rmsw && !$rms;
@@ -331,7 +332,9 @@
     }
     # P3: this row exists (rows beyond param_rows load nothing: the matrix may end the allocation)
     $o .= "--:-:-:-:6      ISETP.LT.U32.AND P3, PT, row, $RB, PT;\n";
-    $o .= sprintf "--:-:-:-:6      LOP32I.AND rowpair, row, 0x%08x;\n", (~($wrows - 1)) & 0xffffffff;
+    # The coalesced XOUT body contains CTA barriers, so its loop bound must be
+    # uniform across all eight warps, including a partially populated last group.
+    $o .= sprintf "--:-:-:-:6      LOP32I.AND rowpair, row, 0x%08x;\n", (~(($xcoal ? $R : $wrows) - 1)) & 0xffffffff;
     if ($hcup) {   # row 4 c + l <- weight row wr = l cols + c (cols = rows / 4); the lane mix needs xh[l][c]
         $o .= "--:-:-:-:6      SHR.U32 col, row, 0x2;\n";
         $o .= "--:-:-:-:6      LOP32I.AND lq, row, 0x3;\n";
@@ -363,7 +366,13 @@
     # yp = Y + 4 row (xout: t1 = XOFF + 4 row, added to the six bases below)
     $o .= $hcup ? "--:-:-:-:6      SHL t1, wr, 0x2;\n" : "--:-:-:-:6      SHL t1, row, 0x2;\n";   # hcup: Y = the lane rows (u, for checks)
     if ($xout) {   # xo = XOFF + 4 row (its own register: t1 is reused for the activation pointer below)
-        $o .= "--:-:-:-:6      SHL xo, row, 0x2;\n";
+        if ($xcoal) {
+            # Threads 0..7 copy this CTA's eight row results contiguously.
+            # Each thread retains its destination through all row iterations.
+            $o .= sprintf "--:-:-:-:6      LOP32I.AND xo, row, 0x%08x;\n", (~($R - 1)) & 0xffffffff;
+            $o .= "--:-:-:-:6      IADD xo, xo, tid;\n";
+            $o .= "--:-:-:-:6      SHL xo, xo, 0x2;\n";
+        } else { $o .= "--:-:-:-:6      SHL xo, row, 0x2;\n"; }
         $o .= "--:-:-:-:6      IADD xo, xo, param_XOFF;\n";
     } else {
         $o .= "--:-:-:-:6      IADD yp0.CC, t1, param_Y0;\n";
@@ -467,6 +476,28 @@
         $o .= sprintf "--:-:-:-:6      FFMA macc, g%d, x%d, macc;\n", $_, $_ for 1..3;
         $o .= "--:-:-:-:6      FMUL macc, macc, 0.25;\n";
         $o .= "--:2:-:-:1  \@P5 STS [zo], macc;\n";
+    }
+    elsif ($xcoal) {
+        # One lane per warp leaves the unchanged row reduction in CTA-local
+        # scratch above the RMS factors. The first eight threads then issue
+        # one contiguous store per peer, bounded by the actual row count.
+        $o .= sprintf "--:-:-:-:6      LOP32I.AND xo, row, 0x%x;\n", $R - 1;
+        $o .= "--:-:-:-:6      SHL xo, xo, 0x2;\n";
+        $o .= "--:2:-:-:2  \@P2 STS [xo+0xa020], $res;\n";
+        $o .= "02:-:-:-:6      BAR.SYNC 0x0;\n";
+        # tid/lane alias weight registers, so recover the physical thread ID.
+        # die.pl replaces this S2R with the unit's virtual thread ID as usual.
+        $o .= "--:-:6:-:2      S2R xo, SR_TID.X;\n";
+        $o .= sprintf "20:-:-:-:6      ISETP.LT.U32.AND P4, PT, xo, 0x%x, PT;\n", $R;
+        $o .= "--:-:-:-:6      IADD t, row, xo;\n";
+        $o .= "--:-:-:-:6      SHL xo, xo, 0x2;\n";
+        $o .= "--:-:-:-:6      NOP;\n";
+        $o .= "--:-:-:-:6      ISETP.LT.U32.AND P5, PT, t, param_rows, P4;\n";
+        $o .= "--:-:3:-:2  \@P4 LDS $res, [xo+0xa020];\n";
+        $o .= "--:-:-:-:6      NOP;\n" x 3;
+        $o .= sprintf "%s:2:-:-:%d  \@P5 STG.E.WT [dq%02d], $res;\n", $_ ? '--' : '04', $_ == 5 ? 2 : 1, 2 * $_ for 0..5;
+        # All readers finish before the next row iteration reuses scratch.
+        $o .= "02:-:-:-:6      BAR.SYNC 0x0;\n";
     }
     elsif ($xout) { $o .= sprintf "--:2:-:-:1  \@P2 STG.E.WT [dq%02d], $res;\n", 2 * $_ for 0..5; }
     else { $o .= "--:2:-:-:1  \@P2 STG.E [yp], $res;\n"; }

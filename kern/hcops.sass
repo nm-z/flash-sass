@@ -6,6 +6,8 @@
 #   write: P0 = inj (4), P1 = y (2560), P2 = S (4 x 2560):
 #          S_lc = fma(2 sigmoid(0.25 inj_l), y_c, S_lc)                       grid 10 x 256
 # One element (column c) per thread. Bit-exact twins in ref/hc.c.
+# HC_COLS (default 256) columns per CTA; persistent hcwsum uses 160 so all
+# sixteen SMs participate in a 2560-column write. Extra warps exit together.
 #
 # Params: 0:0x140:8 P0  1:0x148:8 P1  2:0x150:8 P2  3:0x158:4 n
 
@@ -70,12 +72,15 @@
     require './fmath.pl';
     my %C = map { $_ => $_ } qw(log2e ln2hi ln2lo c720 c120 c24 c6 c11 c9 c7 c5 c3 mneg1 chalf cone);
     my $op = $ENV{HC_OP} || 'mix';
+    my $cols = $ENV{HC_COLS} || 256;
+    die "HC_COLS must be a multiple of 32 in [32, 256]" if $cols < 32 || $cols > 256 || $cols % 32;
     my $o = '';
     my $xout = $ENV{HC_XOUT} ? 1 : 0;   # mix: z goes to every die's inbox (TAB at P2 + xoff + 4 i); the phase is a send
     $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
     $o .= "--:-:6:-:1      S2R bid, SR_CTAID.X;\n";
     $o .= fm_consts(\%C);
-    $o .= "20:-:-:-:6      ISCADD tg, bid, tid, 0x8;\n";
+    $o .= $cols == 256 ? "20:-:-:-:6      ISCADD tg, bid, tid, 0x8;\n" :
+        sprintf "20:-:-:-:6      XMAD tg, bid, 0x%x, tid;\n", $cols;
     # P0: nothing to store (per thread); the early exit below is per warp (a warp whose
     # first element is beyond n): a branch that splits a warp never reconverges here
     $o .= "--:-:-:-:6      ISETP.GE.U32.AND P0, PT, tg, param_n, PT;\n";
@@ -84,6 +89,10 @@
     $o .= "--:-:-:-:6      SHL t, tg, 0x2;\n";
     $o .= "--:-:-:-:6      IADD ap0.CC, t, param_P00;\n";
     $o .= "--:-:-:-:6      IADD.X ap1, RZ, param_P01;\n";
+    # The address work separates predicate production from its boolean use;
+    # the remaining pointer setup also spaces P2 from the warp exit.
+    $o .= sprintf "--:-:-:-:6      ISETP.GE.U32.OR P0, PT, tid, 0x%x, P0;\n", $cols if $cols != 256;
+    $o .= sprintf "--:-:-:-:6      ISETP.GE.U32.OR P2, PT, tid, 0x%x, P2;\n", $cols if $cols != 256;
     $o .= "--:-:-:-:6      IADD bp0.CC, t, param_P10;\n";
     $o .= "--:-:-:-:6      IADD.X bp1, RZ, param_P11;\n";
     if ($xout) {
@@ -130,9 +139,15 @@
             $o .= sprintf "--:2:-:-:1 \@!P0 STG.E.WT [dq%02d], acc;\n", 2 * $_ for 0..5;
         } else { $o .= "--:2:-:-:1 \@!P0 STG.E [cp], acc;\n"; }
     } else {   # write
-        $o .= "--:-:-:-:6      MOV ap0, param_P00;\n";                   # inj: the same 4 words for every thread
-        $o .= "--:-:-:-:6      MOV ap1, param_P01;\n";
-        $o .= "--:-:1:-:1      LDG.E.128 u0, [ap];\n";
+        # The four gate functions are independent. Each lane computes gate
+        # (lane mod 4), then the warp broadcasts lanes 0..3. This preserves
+        # each gate's arithmetic while replacing four serial sigmoid chains
+        # with one. The early exit above is warp-uniform, including tails.
+        $o .= "--:-:-:-:6      LOP32I.AND t, tid, 0x3;\n";
+        $o .= "--:-:-:-:6      SHL t, t, 0x2;\n";
+        $o .= "--:-:-:-:6      IADD ap0.CC, t, param_P00;\n";
+        $o .= "--:-:-:-:6      IADD.X ap1, RZ, param_P01;\n";
+        $o .= "--:-:1:-:1      LDG.E u0, [ap];\n";
         if ($ENV{HC_SUMN}) {
             # y = the fixed-order sum of the dies' MoE partials (sumn's order: ((p0 + p1) + p2) ...),
             # parts at P1 + e us (us = stride bytes), e < nd; out[i] = y is stored for checks
@@ -159,16 +174,16 @@
             $o .= "--:-:1:-:1      LDG.E y, [bp];\n";
         }
         $o .= sprintf "--:-:1:-:%s      LDG.E x%d, [%s+0x%x];\n", $_ == 3 ? '2' : '1', $_, $ENV{HC_SUMN} ? 'si' : 'cp', 10240*$_ for 0..3;
-        $o .= sprintf "%s:-:-:-:%s      FMUL u%d, u%d, 0.25;\n", $_ == 0 ? '01' : '--', $_ == 3 ? '6' : '1', $_, $_ for 0..3;
+        $o .= "01:-:-:-:6      FMUL u0, u0, 0.25;\n";
         if ($ENV{HC_SUMN}) {
             $o .= "--:-:-:-:6      MOV y, pe0;\n";
             $o .= sprintf "--:-:-:-:6  \@P%d FADD y, y, pe%d;\n", (1, 3, 4, 5, 6)[$_ - 1], $_ for 1..5;
             $o .= "--:2:-:-:1 \@!P0 STG.E [oq], y;\n";
         }
-        for my $l (0..3) {
-            $o .= fm_sigmoid("g$l", "u$l", 'ft1', 'ft2', 'ft3', 'ft4', \%C);
-            $o .= "--:-:-:-:6      FMUL g$l, g$l, 2;\n";
-        }
+        $o .= fm_sigmoid('acc', 'u0', 'ft1', 'ft2', 'ft3', 'ft4', \%C);
+        $o .= "--:-:-:-:6      FMUL acc, acc, 2;\n";
+        $o .= sprintf "--:-:5:-:%d      SHFL.IDX PT, g%d, acc, 0x%x, 0x1f;\n", $_ == 3 ? 2 : 1, $_, $_ for 0..3;
+        $o .= "10:-:-:-:6      NOP;\n";
         $o .= sprintf "--:-:-:-:%s      FFMA x%d, g%d, y, x%d;\n", $_ == 3 ? '6' : '1', $_, $_, $_ for 0..3;
         $o .= sprintf "--:2:-:-:1 \@!P0 STG.E [cp+0x%x], x%d;\n", 10240*$_, $_ for 0..3;
     }
