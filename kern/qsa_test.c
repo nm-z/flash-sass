@@ -201,7 +201,7 @@ static int test_idxqk(unsigned T) {
 
 static int test_idxscore(unsigned nv, unsigned NBLK) {
 	unsigned ngrp = (nv + 31) / 32 + 1, t = 4 * nv + (urand() & 3) - ((nv > 0) ? 1 : 0);
-	if (nv == 0) t = 0;
+	if (nv == 0) t = 0; else if (t > 262143) t = 262143;   /* last supported zero-based position; the RNG draw above is kept */
 	float iq[512]; for (int i = 0; i < 512; i++) iq[i] = 1.5f * frand();
 	uint16_t *pool = calloc((size_t)(nv + 1) * 128, 2), *pkt = calloc((size_t)ngrp * 4096, 2);
 	for (unsigned b = 0; b < nv; b++) for (int d = 0; d < 128; d++) { uint16_t h = qsa_f2h(2.f * frand() + (b % 5 == 0 ? 0.7f : 0.f)); pool[(size_t)b * 128 + d] = h; pkt[pkt_idx(b, d)] = h; }
@@ -352,15 +352,36 @@ static int test_gathertime(int host, unsigned nv) {
 	return 0;
 }
 
-int main(int argc, char **argv) {
-	if (argc < 2) { fprintf(stderr, "usage: qsa_test kv <T> <NBLK>\n"); return 2; }
-	dev_init();
-	if (!strcmp(argv[1], "idxscore")) return test_idxscore(argc > 2 ? (unsigned)atoi(argv[2]) : 700, argc > 3 ? (unsigned)atoi(argv[3]) : 512) ? 3 : 0;
-	if (!strcmp(argv[1], "idxsel")) return test_idxsel(argc > 2 ? (unsigned)atoi(argv[2]) : 700, argc > 3 ? (unsigned)atoi(argv[3]) : 512, argc > 4 ? atoi(argv[4]) : 0, argc > 5 ? atoi(argv[5]) : 5) ? 3 : 0;
-	if (!strcmp(argv[1], "idxfull")) return test_idxfull(argc > 2 ? (unsigned)atoi(argv[2]) : 2000, argc > 3 ? (unsigned)atoi(argv[3]) : 512, argc > 4 ? atoi(argv[4]) : 0) ? 3 : 0;
-	if (!strcmp(argv[1], "embimg")) return test_embimg() ? 3 : 0;
-	if (!strcmp(argv[1], "gathertime")) return test_gathertime(argc > 2 ? atoi(argv[2]) : 0, argc > 3 ? (unsigned)atoi(argv[3]) : 5000);
-	if (!strcmp(argv[1], "idxqk")) return test_idxqk(argc > 2 ? (unsigned)atoi(argv[2]) : 100) ? 3 : 0;
-	if (!strcmp(argv[1], "kv")) return test_kv(argc > 2 ? (unsigned)atoi(argv[2]) : 200, argc > 3 ? (unsigned)atoi(argv[3]) : 8) ? 1 : 0;
-	fprintf(stderr, "unknown test %s\n", argv[1]); return 2;
+
+#include "checked.h"
+int main(int argc,char**argv){
+ typedef struct{const char*name;unsigned n,value[4],lo[4],hi[4];}mode;
+ const mode modes[]={
+  {"kv",2,{200,8},{1,1},{262144,4096}},
+  {"idxqk",1,{100},{1},{262144}},
+  {"idxscore",2,{700,512},{0,1},{65536,4096}},
+  {"idxsel",4,{700,512,0,5},{1,1,0,1},{65536,4096,3,5}},
+  {"idxfull",3,{2000,512,0},{1,1,0},{65536,4096,262144}},
+  {"embimg",0,{0},{0},{0}},
+  {"gathertime",2,{0,5000},{0,512},{1,65523}}
+ };
+ if(argc<2){fprintf(stderr,"usage: qsa_test kv|idxqk|idxscore|idxsel|idxfull|embimg|gathertime [arguments]\n");return 2;}
+ unsigned which;for(which=0;which<sizeof modes/sizeof*modes;which++)if(!strcmp(argv[1],modes[which].name))break;
+ if(which==sizeof modes/sizeof*modes){fprintf(stderr,"unknown test: %s\n",argv[1]);return 2;}
+ const mode*m=modes+which;unsigned arg[4];memcpy(arg,m->value,sizeof arg);
+ if(argc>2+(int)m->n){fprintf(stderr,"too many arguments for %s\n",m->name);return 2;}
+ for(int i=2;i<argc;i++)if(checked_parse_unsigned(argv[i],m->lo[i-2],m->hi[i-2],arg+i-2)){fprintf(stderr,"invalid argument for %s: %s\n",m->name,argv[i]);return 2;}
+ if(which==4 && arg[2]>0 && arg[2]>262145u-4u*arg[0]){fprintf(stderr,"idxfull run exceeds supported token positions\n");return 2;}
+ /* No allocation or CUDA entry point before validation. */
+ dev_init();
+ switch(which){
+ case 0:return test_kv(arg[0],arg[1])?1:0;
+ case 1:return test_idxqk(arg[0])?3:0;
+ case 2:return test_idxscore(arg[0],arg[1])?3:0;
+ case 3:return test_idxsel(arg[0],arg[1],arg[2],arg[3])?3:0;
+ case 4:return test_idxfull(arg[0],arg[1],arg[2])?3:0;
+ case 5:return test_embimg()?3:0;
+ case 6:return test_gathertime(arg[0],arg[1]);
+ }
+ return 2;
 }

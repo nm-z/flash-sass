@@ -86,9 +86,9 @@ static int model_qsa_compare(int die, int layer, unsigned t) {
         if (memcmp(got, h->pool + (size_t)b * 128, sizeof got)) { fprintf(stderr, "b%d pool MISMATCH\n", layer); bad++; }
     }
     if (nv > model_budget) {
-        if (getenv("MODEL_INJECT") && !strcmp(getenv("MODEL_INJECT"), "selection")) h->sel[0] ^= 1;
         MC("scores", h->score, q->sc, 4 * (size_t)nv, 4);
-        MC("selected_ids", h->sel, q->sel, 4 * model_budget, 4);
+        char label[80]; snprintf(label, sizeof label, "b%d.selected_ids", layer);
+        bad += cmpbuf_control(label, h->sel, q->sel, 4 * model_budget, 4, "selection");
     }
     float *kg = malloc(4 * model_kcf), *vg = malloc(4 * (size_t)n * 512);
     if (!kg || !vg) { fprintf(stderr, "gather comparison allocation failed\n"); exit(1); }
@@ -104,20 +104,57 @@ static int model_qsa_compare(int die, int layer, unsigned t) {
 #undef MC
     return bad;
 }
-static int model_compare_layers(int b0, int b1, unsigned t, int head, const dn_hbufs_t *hb, const dn_bufs_t *db, split_t sp[MAXD][MAXB]) {
+static int model_compare_recurrent(int die, int layer, const split_t *s,
+                                   const hstate_t *h, CUdeviceptr dn,
+                                   CUdeviceptr conv, CUdeviceptr ple) {
+    int bad = 0;
+    char label[64];
+    if (!BLK_IS_ATTN(layer)) {
+        snprintf(label, sizeof label, "b%d.dn_state.d%d", layer, die);
+        bad += cmpbuf_control(label, h->dn_state + (size_t)s->h0 * 16384,
+                              dn, (size_t)s->hn * 16384 * sizeof(float), 4, "dn");
+        unsigned nloc = SPLIT_NLOC(s);
+        float *expected = malloc((size_t)4 * nloc * sizeof(float));
+        if (!expected) { fprintf(stderr, "convolution comparison allocation failed\n"); exit(1); }
+        /* Local slots contain wrapped key-head Q, then K, then contiguous V.
+         * The scalar convolution ring contains all 10240 channels. */
+        for (unsigned slot = 0; slot < 4; slot++) {
+            for (int j = 0; j < 2 * s->nk + s->hn; j++) {
+                unsigned src;
+                if (j < s->nk) src = 128u * (unsigned)((s->klo + j) % 16);
+                else if (j < 2 * s->nk) src = 2048u + 128u * (unsigned)((s->klo + j - s->nk) % 16);
+                else src = 4096u + 128u * (unsigned)(s->h0 + j - 2 * s->nk);
+                memcpy(expected + (size_t)slot * nloc + 128u * (unsigned)j,
+                       h->conv_state + (size_t)slot * 10240 + src, 128 * sizeof(float));
+            }
+        }
+        snprintf(label, sizeof label, "b%d.conv_state.d%d", layer, die);
+        bad += cmpbuf_control(label, expected, conv, (size_t)4 * nloc * sizeof(float), 4, "conv");
+        free(expected);
+    }
+    if (layer == 1) {
+        snprintf(label, sizeof label, "b1.ple_state.d%d", die);
+        bad += cmpbuf_control(label, h->ple_state, ple, 10 * 10240 * sizeof(float), 4, "ple");
+    }
+    return bad;
+}
+static int model_compare_layers(int b0, int b1, unsigned t, int head,
+                                const dn_hbufs_t *hb, const dn_bufs_t *db,
+                                split_t sp[MAXD][MAXB], const hstate_t hs[MAXB],
+                                CUdeviceptr dn[MAXD][MAXB], CUdeviceptr conv[MAXD][MAXB],
+                                const CUdeviceptr ple[MAXD]) {
     int bad = 0;
     for (int d = 0; d < nd; d++) {
         CK(cuCtxSetCurrent(ctx[d]));
         for (int b = b0; b < b1; b++) {
             char label[64]; snprintf(label, sizeof label, "b%d.S.d%d", b, d);
-            if (getenv("MODEL_INJECT") && !strcmp(getenv("MODEL_INJECT"), "layer") && b == b0 && !d) ((uint32_t *)model_href[b])[0] ^= 1;
-            bad += cmpbuf(label, model_href[b], model_trace[d][b], 4 * 10240, 4);
+            bad += cmpbuf_control(label, model_href[b], model_trace[d][b], 4 * 10240, 4, "layer");
             if (BLK_IS_ATTN(b) && d == attn_die_of(b)) bad += model_qsa_compare(d, b, t);
+            bad += model_compare_recurrent(d, b, &sp[d][b], &hs[b], dn[d][b], conv[d][b], ple[d]);
         }
         if (head) {
             char label[32]; snprintf(label, sizeof label, "logits.d%d", d);
-            if (getenv("MODEL_INJECT") && !strcmp(getenv("MODEL_INJECT"), "logits") && !d) ((uint32_t *)hb->logits)[sp[d][b0].o0] ^= 1;
-            bad += cmpbuf(label, hb->logits + sp[d][b0].o0, db[d].hlo, 4u * (unsigned)sp[d][b0].on, 4);
+            bad += cmpbuf_control(label, hb->logits + sp[d][b0].o0, db[d].hlo, 4u * (unsigned)sp[d][b0].on, 4, "logits");
         }
     }
     return bad;

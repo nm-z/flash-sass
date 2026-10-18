@@ -1,0 +1,8 @@
+projection_mode=synthetic_fixed_BF16_weights types=30,30,30 indexer=BF16 original_input=deterministic_FP32_Z checkpoint_provenance=not_supplied_cache_fingerprints_only
+direct QSA: SYNTHETIC HISTORY source=e7921ae compiler=16.2.1 20260810 driver=11040 gpu=Tesla M60 CUDA_VISIBLE_DEVICES=GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4 cubin=/tmp/flash-pr35-e7921ae/source/kern/die.cubin fnv1a64=669dbb2e43186b1a
+visible=65000 steps=4 budget=512 hostKV=1 seed=4242 prefix_seeded_once=yes future_sentinels=yes current_mode=ORIGINAL_INPUT_PROJECTIONS projected_fnv=0000000000000000
+visible=65000 complete=16250 tail=0 selected=512 keys=2048 guarded_allocations=36 exclusion=yes EXACT
+visible=65001 complete=16250 tail=1 selected=512 keys=2049 guarded_allocations=36 exclusion=yes EXACT
+visible=65002 complete=16250 tail=2 selected=512 keys=2050 guarded_allocations=36 exclusion=yes EXACT
+visible=65003 complete=16250 tail=3 selected=512 keys=2051 guarded_allocations=36 exclusion=yes EXACT
+direct QSA PASS: 4 steps, 0 mismatching steps; synthetic cache fixture

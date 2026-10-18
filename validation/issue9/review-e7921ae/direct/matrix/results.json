@@ -1,0 +1,878 @@
+{
+   "CUDA_VISIBLE_DEVICES" : "GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4",
+   "binary" : "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+   "binary_sha256" : "c87cc068eec5b010f2a5075c7d05dfeefd96f0183457b6a36095ad36e458ca32",
+   "cases" : [
+      {
+         "case" : "000-n1-b512-s4242-h0-hash",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "1",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "4d3d3d91ad29a006c3a12223e34beb83e2b9fca84ee2494e9a6ef00025236081",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.00257205963135
+      },
+      {
+         "case" : "001-n2047-b512-s4242-h0-hash",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "2047",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "6092e79511b0c8da73012c39d76a9ee33aaad997635f1efb85bb9d9e80f83b54",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.31727004051208
+      },
+      {
+         "case" : "002-n2051-b512-s4242-h0-hash",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "2051",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "68be4c0471c4309f283aa9b4b39369030fe77c4f294835ffcf30a3db6c5da57b",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.33023905754089
+      },
+      {
+         "case" : "003-n2055-b512-s4242-h0-hash",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "2055",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "ed4a14389058ee08b821de2bc3a2c8f9f7b56a488fb268d490c236bb9607a013",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.38111519813538
+      },
+      {
+         "case" : "004-n3100-b512-s4242-h0-hash",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "3100",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "ed0feee13c32d5d8b1aee547c79766b0aab2a0244d0203a64cfa42fb2857194e",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.35909199714661
+      },
+      {
+         "case" : "005-n8000-b512-s4242-h0-hash",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "8000",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "50dab1d25413ac81f959324e3cd9a003ec212b67d206c86fdd0566b11567c99c",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.51970291137695
+      },
+      {
+         "case" : "006-n65000-b512-s4242-h0-hash",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "65000",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "fd9012d5d633c7c401f5be0aba7073281d99c819ef2304f1bb0a73ffc43d8eb6",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 2.37434506416321
+      },
+      {
+         "case" : "007-n262000-b512-s4242-h0-hash",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "262000",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "0ea5f5d6c6312c442ca21f456fe0c9d6a8f2b5db5d253e1ac46add9f2df57924",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 5.3903021812439
+      },
+      {
+         "case" : "008-n262144-b512-s4242-h0-hash",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "262144",
+            "512",
+            "1"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "2f9bdd0f08be5e4f6b0ff811006788c428ccdbde48db1892af5bd49811887ff4",
+         "parsed_positions" : 1,
+         "passed" : true,
+         "seconds" : 4.26133894920349
+      },
+      {
+         "case" : "009-n65-b8-s4242-h0-hash-replay",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "65",
+            "8",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "1"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "1155e2795f74390a06b5a3da057ea42bc6f69765b418b1c9da271c28efc848c7",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.03332591056824
+      },
+      {
+         "case" : "010-n3100-b512-s4242-h0-oldest",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "3100",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "oldest",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "e4ace21c50c23151ebb2660946a888cb08146593fbed5f8bfa0975b5eb58a55d",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.35388612747192
+      },
+      {
+         "case" : "011-n3100-b512-s4242-h0-newest",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "3100",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "newest",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "d52cbc7b7111ca5843d8dce293038dc45912610c675c6dcfefbdb2bf5a2fa3c1",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.31955313682556
+      },
+      {
+         "case" : "012-n3100-b512-s4242-h0-clustered",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "3100",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "clustered",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "63a77a83f3c7d86591bba535283f617580dcc6c86b4ce004cfbb29330d78a9b4",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.36750292778015
+      },
+      {
+         "case" : "013-n3100-b512-s4242-h0-scattered",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "3100",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "scattered",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "55831cfc372ebfa58261f584460e1e7dcc7a68ebc82a44d999eb5c300c91b325",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.36177110671997
+      },
+      {
+         "case" : "014-n3100-b512-s4242-h0-equal",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "3100",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "equal",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "035118e4144b5f11392439f53bc0bcf60ca7f8a802e8c2bf33e30f52ed177bc9",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.34472894668579
+      },
+      {
+         "case" : "015-n3100-b512-s4242-h0-adjacent",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "3100",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "adjacent",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "c53711dc029eee6a922cb91090faf85f3ab758b64687927faf9c10c2f98b1fc6",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.38888001441956
+      },
+      {
+         "case" : "016-n1-b512-s4242-h1-hash",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "1",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "1",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "bd1fbfee0615291f05df6c520149b4f43103345a78330aba96a3960869d96d09",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.04122185707092
+      },
+      {
+         "case" : "017-n2047-b512-s4242-h1-hash",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "2047",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "1",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "087e8652de8daba7d5137dd3405a182d1792daece08303dbb3ab3907a669f607",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.37314391136169
+      },
+      {
+         "case" : "018-n2051-b512-s4242-h1-hash",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "2051",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "1",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "e23bbb248c8f46c4702260865aa9b863e4765b4e8823f655c2a27adcb963412d",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.50671410560608
+      },
+      {
+         "case" : "019-n2055-b512-s4242-h1-hash",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "2055",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "1",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "9a80cf52db31b52fcf855abdda78659f2db9e0bbfdd56c39d99b978d4cb28c42",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.37590789794922
+      },
+      {
+         "case" : "020-n3100-b512-s4242-h1-hash",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "3100",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "1",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "f727ada9f924286ad02aef76a63b016f13d02538da31d6231ce9ce3a0cfadd27",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.3853611946106
+      },
+      {
+         "case" : "021-n8000-b512-s4242-h1-hash",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "8000",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "1",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "89dc716a99af9d536555196d8f3d242a0e95dbe6c0ccca1269cabd05f7fec6f0",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.48872900009155
+      },
+      {
+         "case" : "022-n65000-b512-s4242-h1-hash",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "65000",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "1",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "5287f37a75801ac66ed07fc06d1e68001776fcd95371d8602a7e7317f1a6fc2b",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 2.33673906326294
+      },
+      {
+         "case" : "023-n262000-b512-s4242-h1-hash",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "262000",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "1",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "76ac23d26077e49bb68a820adc062852ec2d7b923d32d29034d0728588dc9a3e",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 5.45478510856628
+      },
+      {
+         "case" : "024-n262144-b512-s4242-h1-hash",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "262144",
+            "512",
+            "1"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "1",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "ad114ef86e89aa4b3b0c78d701436b94a795efe1bc590267fa3defb5873eeed8",
+         "parsed_positions" : 1,
+         "passed" : true,
+         "seconds" : 4.11947107315063
+      },
+      {
+         "case" : "025-n65-b8-s4242-h1-hash-replay",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "65",
+            "8",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "1",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "1"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "96af0b56b35e19f47ead37e3671577ae8e3700bda8c084ffc078153d89b735a1",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.03845715522766
+      },
+      {
+         "case" : "026-n3100-b512-s4242-h1-oldest",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "3100",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "1",
+            "QSA_PATTERN" : "oldest",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "897b712a9bcb777701a50234706ea922d2925334c329f59894f2aa250684f0da",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.34158301353455
+      },
+      {
+         "case" : "027-n3100-b512-s4242-h1-newest",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "3100",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "1",
+            "QSA_PATTERN" : "newest",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "89998c79ab0cc850f945447f3076c9f7cc29fdd1a2c9566603e87af377fbc049",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.43564915657043
+      },
+      {
+         "case" : "028-n3100-b512-s4242-h1-clustered",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "3100",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "1",
+            "QSA_PATTERN" : "clustered",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "531cb9108412256cdb1a73b222940f0e04e2f165b8f14e010aef486f71a14b5c",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.38514399528503
+      },
+      {
+         "case" : "029-n3100-b512-s4242-h1-scattered",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "3100",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "1",
+            "QSA_PATTERN" : "scattered",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "4d8338a796c9411f3735c5d6447b756369c4c6b63dbe3e85211d57e152cf2353",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.4354100227356
+      },
+      {
+         "case" : "030-n3100-b512-s4242-h1-equal",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "3100",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "1",
+            "QSA_PATTERN" : "equal",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "6779c479fcd3808bfb33189219aa7bf21c53c3b481a8fe321e86a570e88ff4fe",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.39757704734802
+      },
+      {
+         "case" : "031-n3100-b512-s4242-h1-adjacent",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "3100",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "1",
+            "QSA_PATTERN" : "adjacent",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "61474d6addf70bf992efcb367e705115519dbd35631af754a7ff895808c59b1d",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.36458897590637
+      },
+      {
+         "case" : "032-n2052-b512-s0-h0-hash",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "2052",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "0",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "3768ba2bef50ce849b75bdf978363cc7a897afa3e37c69c49870aa273a96518d",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.30541706085205
+      },
+      {
+         "case" : "033-n8000-b512-s0-h0-hash",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "8000",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "0",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "9f54c32bd827ee564d9e6f91bbae4bb0413f08649965590aed285445abc3e361",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.51290702819824
+      },
+      {
+         "case" : "034-n65000-b512-s0-h0-hash",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "65000",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "0",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "682d3028fa69081c2173645a1b40aed20f61e05b8bbbfe0e13083808346c777c",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 2.33162808418274
+      },
+      {
+         "case" : "035-n2052-b512-s77-h0-hash",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "2052",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "77",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "15f24d382aa9b7dc37edf403db8546ad4375e0c825ba5bffc4fd1444ff84cbca",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.34057688713074
+      },
+      {
+         "case" : "036-n8000-b512-s77-h0-hash",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "8000",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "77",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "5e2c304c6149bdbd51f60eb30dbaae6ed72a7e9adddb8a24bdd8d314fff5e7b5",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 1.51342511177063
+      },
+      {
+         "case" : "037-n65000-b512-s77-h0-hash",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "65000",
+            "512",
+            "4"
+         ],
+         "environment" : {
+            "QSA_DIRECT_SEED" : "77",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 0,
+         "expected_exit_code" : 0,
+         "log_sha256" : "5d075391b8a868c14a29959000515d41ba31e9c0191fbbc495751f1085708f75",
+         "parsed_positions" : 4,
+         "passed" : true,
+         "seconds" : 2.33026504516602
+      },
+      {
+         "case" : "038-n2052-b512-s4242-h0-hash-inject-selection",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "2052",
+            "512",
+            "1"
+         ],
+         "environment" : {
+            "QSA_DIRECT_INJECT" : "selection",
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 3,
+         "expected_exit_code" : 3,
+         "log_sha256" : "875b59ad44aa036de6e0b692d8dbdf7fda4a94a5ce89e16b7273bb144a3a6489",
+         "parsed_positions" : 1,
+         "passed" : true,
+         "seconds" : 0.643490076065063
+      },
+      {
+         "case" : "039-n2052-b512-s4242-h0-hash-inject-gather",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "2052",
+            "512",
+            "1"
+         ],
+         "environment" : {
+            "QSA_DIRECT_INJECT" : "gather",
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 3,
+         "expected_exit_code" : 3,
+         "log_sha256" : "e5417f7000fcbdc61fb22b8fcb4048b9cb1407dc2d6ec654aced484f74762236",
+         "parsed_positions" : 1,
+         "passed" : true,
+         "seconds" : 0.640753030776978
+      },
+      {
+         "case" : "040-n2052-b512-s4242-h0-hash-inject-output",
+         "command" : [
+            "/tmp/flash-pr35-e7921ae/source/kern/qsa_direct_test",
+            "2052",
+            "512",
+            "1"
+         ],
+         "environment" : {
+            "QSA_DIRECT_INJECT" : "output",
+            "QSA_DIRECT_SEED" : "4242",
+            "QSA_HOSTKV" : "0",
+            "QSA_PATTERN" : "hash",
+            "QSA_REPLAY_PREFIX" : "0"
+         },
+         "exit_code" : 3,
+         "expected_exit_code" : 3,
+         "log_sha256" : "1865dc1d42320c1e1f2ff762533125b9b08fdb03925c2fe3657aaef6e5414c0c",
+         "parsed_positions" : 1,
+         "passed" : true,
+         "seconds" : 0.626878976821899
+      }
+   ],
+   "cubin" : "/tmp/flash-pr35-e7921ae/source/kern/die.cubin",
+   "cubin_sha256" : "116d828f20139d144d46d7d8115a28e35313dac1f6c24ba81c1b5c0984f50e14",
+   "finished_utc" : "2026-10-17T23:55:14Z",
+   "passed" : true,
+   "schema" : "flash-sass.qsa-direct-matrix.v1",
+   "scope" : "synthetic-history component parity, not whole-model or checkpoint quality",
+   "started_utc" : "2026-10-17T23:54:03Z"
+}
