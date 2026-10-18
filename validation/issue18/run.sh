@@ -110,6 +110,8 @@ while IFS= read -r key; do
     case $key in ATTN_*|QSA_*|DIE_CUBIN|TEST_GUARD_INJECT) unset "$key" ;; esac
 done < <(compgen -e)
 export CUDA_VISIBLE_DEVICES=$gpu
+sha256sum "$0" > "$out/runner.sha256"
+cp "$0" "$out/runner.sh"
 plan > "$out/plan.tsv"
 expected=$(wc -l < "$out/plan.tsv")
 : > "$out/cases.jsonl"
@@ -146,7 +148,7 @@ preflight() {
         attempt=$((attempt+1)); prefix=$out/$tag-idle-$attempt
         nvidia-smi --query-gpu=index,uuid,utilization.gpu,memory.used --format=csv,noheader > "$prefix.gpus"
         nvidia-smi --query-compute-apps=gpu_uuid,pid,process_name --format=csv,noheader > "$prefix.apps"
-        ps -eo pid=,comm=,wchan:32=,args= > "$prefix.ps"
+        ps -eo pid=,comm=,wchan:32= > "$prefix.ps"
         busy=0
         if awk -F, '$3+0 != 0 {f=1} END{exit !f}' "$prefix.gpus"; then busy=1; fi
         if awk -F, -v uuid="$gpu" '$1==uuid || $3 !~ /\/(hold|fence|flashcore)[[:space:]]*$/ {f=1} END{exit !f}' "$prefix.apps"; then busy=1; fi
@@ -172,7 +174,16 @@ positive_output() {
     esac
 }
 direct_output() {
-    awk -v start="$n" -v steps="$iters" '
+    local host=0
+    [[ $placement == host ]] && host=1
+    awk -v start="$n" -v steps="$iters" -v budget="$budget" -v host="$host" '
+        /^visible=[0-9]+ steps=/ {
+            if (NF!=9 || $1!=("visible=" start) || $2!=("steps=" steps) ||
+                $3!=("budget=" budget) || $4!=("hostKV=" host) || $5!="seed=4242" ||
+                $6!="prefix_seeded_once=yes" || $7!="future_sentinels=yes" ||
+                $8!="current_mode=ORIGINAL_INPUT_PROJECTIONS" || $9!="projected_fnv=0000000000000000") bad=1;
+            headers++; next;
+        }
         /^visible=/ {
             if (NF!=8 || $1!=("visible=" (start+rows)) || $2!~/^complete=[0-9]+$/ ||
                 $3!~/^tail=[0-9]+$/ || $4!~/^selected=[0-9]+$/ ||
@@ -180,7 +191,11 @@ direct_output() {
                 $7!~/^exclusion=(yes|no)$/ || $8!="EXACT") bad=1;
             split($6,a,"="); if(a[2]+0<=0) bad=1; rows++;
         }
-        END {exit (bad || rows!=steps)}
+        /^direct QSA PASS:/ {
+            if ($0!=sprintf("direct QSA PASS: %u steps, 0 mismatching steps; synthetic cache fixture",steps)) bad=1;
+            summaries++;
+        }
+        END {exit (bad || headers!=1 || rows!=steps || summaries!=1)}
     ' "$1"
 }
 i=0
@@ -211,7 +226,7 @@ while IFS=$'\t' read -r image kind placement k v n budget iters expectation; do
     stop=$(date +%s%N); ok=true
     case $expectation in
         pass)
-            if ((rc != 0)) || rg -qi 'MISMATCH|FAIL|NONFINITE' "$out/$tag.stdout" "$out/$tag.stderr"; then
+            if ((rc != 0)) || rg -qi '\b(MISMATCH|FAIL|NONFINITE)\b' "$out/$tag.stdout" "$out/$tag.stderr"; then
                 ok=false
             elif [[ $kind == direct ]]; then
                 direct_output "$out/$tag.stdout" || ok=false
@@ -224,14 +239,17 @@ while IFS=$'\t' read -r image kind placement k v n budget iters expectation; do
                 ! rg -q '^guards: PASS ' "$out/$tag.stdout"; then ok=false; fi ;;
         guard-failure)
             if ((rc != 3)) || ! rg -q '^guards: FAIL ' "$out/$tag.stdout" ||
-                ! rg -q '^guard mismatch: .*side=prefix' "$out/$tag.stderr"; then ok=false; fi ;;
+                ! rg -q '^guard mismatch: .*side=prefix' "$out/$tag.stderr"; then ok=false; fi
+            for field in pm pd po out; do
+                rg -q "^$field: BIT-EXACT \\(0 of [0-9]+ differ\\)$" "$out/$tag.stdout" || ok=false
+            done ;;
     esac
     microseconds=null
     if ((iters > 0)) && [[ $kind != direct ]]; then
         microseconds=$(awk '/^timing:/{print $2} /^capped component timing:/{print $4}' "$out/$tag.stdout")
         if [[ ! $microseconds =~ ^[0-9]+([.][0-9]+)?$ ]]; then ok=false; microseconds=null; fi
     fi
-    jq -n --arg name "$tag" --arg image "$image" --arg kind "$kind" --arg placement "$placement" \
+    jq -nc --arg name "$tag" --arg image "$image" --arg kind "$kind" --arg placement "$placement" \
         --arg k "$k" --arg v "$v" --arg expectation "$expectation" \
         --argjson n "$n" --argjson budget "$budget" --argjson iterations "$iters" \
         --argjson exit_code "$rc" --argjson elapsed_ns "$((stop-start))" \

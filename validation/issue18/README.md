@@ -73,7 +73,7 @@ snapshot. Each comparison checks all three emitted token IDs and every final
 logit on all dies for bitwise equality and finiteness. It does not compare
 every generation step's full logit buffer.
 
-Run both `FLASH_KV_HOST=0` and `1`, with `FLASH_LAYERS=48`,
+`engine.sh` runs both `FLASH_KV_HOST=0` and `1`, with `FLASH_LAYERS=48`,
 `FLASH_NBLK=512`, `FLASH_TWO_POSITION=0`, `FLASH_PREFILL_CHUNK=0` and
 a sufficient `FLASH_ENGINE_MAXT` such as 256. Keep the core's original
 configuration and library path, reserve its shared engine-validation lock,
@@ -83,6 +83,19 @@ the fixture command on a fresh socket connection. A matching control run uses
 the same library/configuration with only the unmasked cubin changed.
 Always reload the original library/settings afterward and compare the full
 config response with the recorded original.
+
+```bash
+bash validation/issue18/engine.sh --repo "$CANDIDATE" \
+    --control-cubin "$CONTROL/kern/die.cubin" \
+    --restore-lib "$ORIGINAL_ENGINE_LIBRARY" --socket "$ENGINE_SOCKET" \
+    --engine-lock "$ENGINE_LOCK" --component-lock "$GPU_LOCK" \
+    --out "$NEW_OUTPUT/engine"
+```
+
+The engine runner captures the original configuration before its first reload. It
+uses the same validation library for both cubins, reverses image order for host KV,
+and restores the original library and every changed setting on exit. Acceptance
+requires the restored full configuration and original library hash to match.
 
 A successful socket return is not acceptance: require the terminal
 `reusecheck PASS`, eight expected comparison PASS lines, 20 completed run
