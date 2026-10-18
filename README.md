@@ -31,6 +31,16 @@ Set `FLASH_PREFILL_CHUNK=64` to run known prompt positions in chunks of at most
 The final prompt position still computes the first generated token through the
 full B1 head. Unset or `0` disables chunking; valid sizes are `1..4096`.
 
+`FLASH_ATTN_Q_SPLIT=1` distributes the 12,288-row attention query projection
+across dies with space for local weight slices. At engine initialization it
+copies those slices from the resident weight arenas. With at least three
+workers available, the attention owner handles K/V and the indexer while the
+other workers compute Q. Results use the existing broadcast and synchronization
+path. The planner runs after context, image, and paired activation allocations,
+reserves 8 MiB per participating die, and rejects the reload if fewer than two
+workers fit. The default is `0`; `config` reports `attn_q_split` and the
+hexadecimal `attn_q_mask`. See [the measured results](validation/issue82/attention-q-split/README.md).
+
 ## Timing measurements
 
 [TIMINGS.md](TIMINGS.md) defines the shared CLI/HTTP timing schema, counts and
