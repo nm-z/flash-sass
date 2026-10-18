@@ -4,9 +4,13 @@ Source revision: `a1407995f4d273e1d2527c0f5fb3998d09252dc2`.
 
 ## Status
 
-CPU regressions and the native build pass. Whole-model sequence acceptance is **blocked**, not passed. The model launcher waited 30 seconds for `/tmp/flash-sass-engine-validation.lock` and exited **75** before starting a private core.
+CPU regressions and the native build pass. Whole-model sequence acceptance remains **blocked** after a retry that successfully acquired `/tmp/flash-sass-engine-validation.lock`.
 
-At **2026-10-18 03:08:15 UTC**, the lock was held by **Ruby PID 4010221**. Dies 0–5 each reported **100% utilization**; die 3 had **28 MiB free**. The current holder/core inventory and raw measurements are in `archy-a140799/`.
+The retry acquired the lease at **2026-10-18 05:21:49 UTC** (October 17, 22:21:49 PDT). It completed **19 resource-readiness checks** through **05:24:53 UTC**, all reporting `busy=1`, and exited **75** without starting a private core. The launcher exited and released its lease.
+
+The exact remaining resource blocker is resident **flashcore PID 3575268**, running from `/home/nate/claude/flash-sass-live/kern` and using the same six holder manifests. Its recorded environment has `FLASH_ENGINE_MAXT=230000`, `FLASH_MAXT=262144`, `FLASH_MAXIMG=4096`, and `FLASH_KV_HOST=0`. With that core and the resident holders/fence present, dies 0–5 have **52, 16, 77, 7, 3, and 65 MiB free**, respectively. All six report zero utilization at the final check, but remain below the launcher's 200 MiB per-model-die memory guard; the resident core also independently blocks private-core startup. No existing core, holder, or fence was stopped or reloaded.
+
+The complete retry record is in `archy-a140799/retry-20261018T052149Z-vram-q1-b1/`, including the successful lease ownership, all readiness checks, final GPU/compute inventory, resident command/environment, exact binary hashes, exit code, and cleanup confirmation. The earlier **03:08:15 UTC** lock-blocked attempt remains preserved in `archy-a140799/`.
 
 ## Completed checks
 
@@ -20,7 +24,7 @@ At **2026-10-18 03:08:15 UTC**, the lock was held by **Ruby PID 4010221**. Dies 
 | archy | Fresh native build of libengine.so, flashcore, flashd and die.cubin | Exit 0 |
 | archy | Scheduler test | Passed |
 | archy | GGUF output-token checks, stream=0 and stream=1 | Passed |
-| archy | Six-die model matrix, VRAM KV / quantum 1 / QSA budget 1 | Blocked at shared lease, exit 75; no private core started |
+| archy | Six-die model matrix, VRAM KV / quantum 1 / QSA budget 1 | Retry acquired the lease; blocked by resident core / GPU memory after 19 readiness checks, exit 75; no private core started |
 
 The build used the exact committed source from a git archive, system CUDA headers at `/opt/cuda/include`, CUDA 11.4 `ptxas`, and a private copy of the existing patched MaxAs checkout. Its revision, local patch and source hashes are retained. The build log is gzip-compressed without changing its contents.
 
