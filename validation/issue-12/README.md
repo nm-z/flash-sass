@@ -31,13 +31,18 @@ neither writes staying within the allocation nor correctness of the new guards.
   are configurable. It records GPU/process checks, refuses an occupied host,
   retains raw command results, and validates the harness's required coverage.
 - `DIE_CTA_TRACE=1` builds physical-CTA instrumentation in `kern/die.pl`.
-  Untraced builds retain the original generated instruction stream.
+  Untraced builds retain the current production dispatcher's instruction stream.
+  The trace hooks follow the descriptor reload in the paired dispatcher; tracing
+  records scalar decode passes only and leaves paired-prefix records unwritten.
 - `kern/cta_remap_bench.c` builds the test-only
   `libengine_cta_remap.so`. It includes the production engine and compares
   mapping variants in a validator-owned six-die core.
 - `kern/cta_remap_summary.pl` summarizes a complete whole-model output
-  directory. Missing samples, output differences, invalid callback timing,
-  missing traces, missing dies, and inconsistent per-die sums fail validation.
+  directory, including both warmup pairs. It validates every raw trace record's
+  identity, opcode, work count, nonce, and timestamp order, then derives all
+  device timing terms from the CSV and checks the reported JSON against them.
+  Missing samples, output differences, invalid callback timing, incomplete or
+  replayed traces, missing dies, and inconsistent timing terms fail validation.
 
 All new code uses C, Perl, or Bash. The old Python runner is removed from the PR.
 
@@ -158,7 +163,8 @@ ctabench OUT_DIR MATCHED_OLD_CUBIN MATCHED_NEW_CUBIN TRACE_OLD_CUBIN TRACE_NEW_C
 The command requires six dies, all 48 layers, production `NBLK=512`, real PLE
 data, at least two decode intervals, and an even number of measured pairs.
 Use identical split, attention assignment, KV placement, image capacity, and
-context capacity throughout. Save the core/holder launch commands, checkpoint
+context capacity throughout. The configuration also records the paired-position
+and chunked-prefill settings. Save the core/holder launch commands, checkpoint
 identity, and clock/temperature/load telemetry with the output.
 
 The fixed prompt consists of token 32 repeated 2,048 times. The benchmark first
@@ -191,6 +197,11 @@ After a successful complete run:
 ```bash
 perl kern/cta_remap_summary.pl OUT_DIR
 ```
+
+Run the summary from the same source checkout used to build the benchmark. It
+obtains the descriptor opcode names from that checkout's `die.pl header` output
+and checks that every sample uses the same phase plan. Trace freshness is checked
+in launch-nonce order separately for each die.
 
 The summary reports distributions, paired old/new changes, instrumentation
 overhead, and per-die phase contributions. Its inputs are the saved raw sample

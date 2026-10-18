@@ -151,7 +151,7 @@ static int cta_measure(FILE *out, const char *dir, const char *image[4],
     if(!config){bad=1;goto done;}
     fprintf(config,"revision=%s\ndies=%d\nlayers=%d\nnblk=%u\nkv_host=%d\nple_disk=%d\nple_offset=%lld\ncore_capacity=%d\nengine_capacity=%d\nimage_capacity=%u\nprompt=%u\nprompt_repeated_token=32\ndecode_intervals=%u\npairs=%u\n",
             FLASH_REV,nd,nlayers_run,nblk_qsa,kv_host,ple_disk,(long long)ple_off,core->maxt,MAXT,img_rows_max,prompt,decode,pairs);
-    fprintf(config,"split=%s\nattn_map=%s\n",getenv("SPLIT_SHARES")?getenv("SPLIT_SHARES"):"default",getenv("ATTN_MAP")?getenv("ATTN_MAP"):"default");
+    fprintf(config,"split=%s\nattn_map=%s\ntwo_position=%d\nprefill_chunk=%d\n",getenv("SPLIT_SHARES")?getenv("SPLIT_SHARES"):"default",getenv("ATTN_MAP")?getenv("ATTN_MAP"):"default",two_position,prefill_chunk);
     for(int i=0;i<4;i++) fprintf(config,"image%d=%s\nimage%d_fnv=%016llx\n",i,image[i],i,(unsigned long long)file_fnv(image[i]));
     for(int d=0;d<nd;d++) fprintf(config,"die%d_phases=%d\n",d,prof_nph[d]);
     if(fclose(config)){bad=1;goto done;}
