@@ -159,6 +159,14 @@ queued for the reservation rather than repeatedly polling with `LOCK_NB`.
 It never deletes a lock file, takes another worker's reservation, or kills a
 holder. The default availability policy remains strict.
 
+On hosts using the `gpuq run` FIFO wrapper, pass `--host-lock-fd 9` to borrow
+its already-held reservation instead of opening and blocking on the same lock
+again. The runner checks the descriptor's device/inode against the configured
+host-lock path and requires an exclusive flock in `/proc/self/fdinfo` before
+duplicating the shared open-file description. A wrong or unlocked descriptor
+fails closed; this is not a skip-lock option. For example, prepend `gpuq run --`
+to the Perl matrix command and add `--host-lock-fd 9 --wait-seconds 10`.
+
 For a component experiment on an **unused, separate GPU**, an explicit option
 can distinguish idle weight residency from active GPU work:
 
@@ -168,13 +176,17 @@ can distinguish idle weight residency from active GPU work:
 ```
 
 This mode still acquires both shared locks. It requires zero compute and memory
-utilization on every GPU, zero running/waiting HTTP requests, no compute context
+utilization on every GPU, zero running/waiting HTTP requests, no reported compute app
 on the target GPU, and matching process identities for off-device `hold`,
 `fence`, and `flashcore` contexts. Only the `flashd` serving that exact loopback
 queue is exempted from the worker-process check. Unknown workers, incomplete or
 failed inventory, target residency, or active requests fail closed. Raw identity
-and utilization evidence is retained before and after each case; detected
-post-run contention invalidates that case. These are sampled boundary checks,
+and utilization evidence is retained before and after each case. Immediate
+post-run target utilization may still report the owned child's recent work;
+the runner retains that sample and allows up to five seconds of settling
+(`--settle-seconds`, bounded to 0..30). It never ignores target compute apps,
+other-device activity, queue activity, or failed queries during that wait.
+Failure to settle or detected contention invalidates the case. These are sampled boundary checks,
 not a guarantee against an unrelated client arriving between samples.
 
 This option does **not** authorize reloading the resident core, sharing a device

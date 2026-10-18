@@ -41,7 +41,7 @@ sub snapshot {
  return $s;
 }
 sub busy_reasons {
- my($s,$a)=@_;my $residents=$a && $a->{idle_resident_queue};
+ my($s,$a,$ignore_target_utilization)=@_;my $residents=$a && $a->{idle_resident_queue};
  for my $name(qw(compute_apps ps gpu),$residents?qw(all_gpu_load queue):()) {
   ref($s->{$name}) eq 'HASH' && defined($s->{$name}{exit}) && $s->{$name}{exit}==0
    or die "$name query failed; GPU idle state is unknown\n";
@@ -67,7 +67,8 @@ sub busy_reasons {
    my($id,$compute,$memory)=$line=~/\A\s*(GPU-[0-9a-f-]+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\z/i;
    defined($id) && $compute<=100 && $memory<=100 or die "invalid all-GPU utilization row\n";
    !$load_seen{lc $id}++ or die "duplicate GPU utilization row\n";
-   push @busy,"GPU activity: $id compute=$compute memory=$memory" if $compute || $memory;
+   push @busy,"GPU activity: $id compute=$compute memory=$memory"
+    if ($compute || $memory) && !($ignore_target_utilization && lc($id) eq lc($a->{gpu}));
   }
   $load_seen{lc $a->{gpu}} or die "target GPU missing from utilization inventory\n";
  }
@@ -139,6 +140,34 @@ sub wait_idle {
   sleep($left<$a->{poll_seconds}?$left:$a->{poll_seconds});
  }
 }
+sub post_case_idle {
+ my($a,$out,$case,$collect)=@_;$collect//=\&snapshot;
+ my $start=clock_gettime(CLOCK_MONOTONIC);my @samples;
+ my $limit=$a->{settle_seconds}//5;
+ while(1) {
+  my $s=$collect->($a->{gpu},$a);my($busy,$foreign,$error);
+  eval {
+   $busy=busy_reasons($s,$a);
+   # The owned child has exited. Only its target's utilization counters may
+   # lag behind that exit; target contexts, other-device activity, and queued
+   # requests are still failures, including during the bounded settling wait.
+   $foreign=busy_reasons($s,$a,1);
+   1;
+  } or $error=$@||"post-run idle inventory failed\n";
+  $s->{case}=$case;$s->{post_run_sample}=1+@samples;
+  $s->{busy_reasons}=$busy if defined($busy);
+  $s->{inventory_error}=$error if defined($error);
+  redact_process_args($s);
+  push @samples,$s;
+  put("$out/gate-$case-after-".scalar(@samples).".json",$s) if defined($out);
+  die $error if defined($error);
+  @$foreign and die "post-run contention: ".join('; ',@$foreign)."\n";
+  return {status=>'IDLE',settle_limit_seconds=>$limit,snapshots=>\@samples} unless @$busy;
+  my $left=$limit-(clock_gettime(CLOCK_MONOTONIC)-$start);
+  die "post-run target utilization did not settle within ${limit}s\n" if $left<=0;
+  sleep($left<0.25?$left:0.25);
+ }
+}
 sub acquire_lock {
  my($path,$a)=@_;make_path(dirname($path));
  open my $lock,'>>',$path or die "open lock $path: $!\n";
@@ -158,6 +187,22 @@ sub acquire_lock {
   alarm(0);
   die $error if defined($error);
  }
+ return $lock;
+}
+sub inherited_host_lock {
+ my($fd,$path)=@_;
+ $fd=~/\A\d+\z/ && $fd>=3 or die "invalid inherited host-lock descriptor\n";
+ open my $lock,'>>&',$fd or die "duplicate inherited host-lock descriptor: $!\n";
+ my @actual=stat($lock);my @expected=stat($path);
+ @actual && @expected && $actual[0]==$expected[0] && $actual[1]==$expected[1]
+  or die "inherited host-lock descriptor names a different file\n";
+ open my $info,'<',"/proc/self/fdinfo/$fd" or die "read inherited lock metadata: $!\n";
+ my $owned=grep {/^lock:\s+\d+:\s+FLOCK\s+ADVISORY\s+WRITE\s/} <$info>;
+ close $info;
+ $owned or die "inherited host-lock descriptor has no exclusive flock\n";
+ # Duplicate the same open file description, not a second open of the path.
+ # This confirms the caller's lease without recursively waiting on itself.
+ flock($lock,LOCK_EX|LOCK_NB) or die "BLOCKED_BUSY: inherited host-lock verification failed\n";
  return $lock;
 }
 sub median {
@@ -260,6 +305,28 @@ sub self_test {
  $expect->('resident disappearing from ps rejects',sub {my $s=$idle->();$s->{ps}{stdout}=~s/^44 .*\n//m;busy_reasons($s,$policy);},qr/missing from ps/);
  $expect->('different daemon queue still blocks',sub {my $s=$idle->();$s->{ps}{stdout}=~s/:18090/:18091/;@{busy_reasons($s,$policy)}>0 or die 'other daemon allowed';});
  $expect->('worker without context still blocks',sub {my $s=$idle->();$s->{ps}{stdout}.="48 1 S model_test ./model_test weights\n";@{busy_reasons($s,$policy)}>0 or die 'worker before CUDA allowed';});
+ my $recent_target=sub {my $s=$idle->();$s->{all_gpu_load}{stdout}=~s/\Q$target\E, 0, 0/$target, 70, 30/;return $s;};
+ $expect->('initial target utilization still blocks',sub {@{busy_reasons($recent_target->(),$policy)}>0 or die 'initial target load ignored';});
+ $expect->('owned target utilization settles without false rejection',sub {
+  my $n=0;my $r=post_case_idle({%$policy,settle_seconds=>1},undef,'mock',sub {$n++?$idle->():$recent_target->()});
+  @{$r->{snapshots}}==2 && @{$r->{snapshots}[0]{busy_reasons}}>0 && @{$r->{snapshots}[1]{busy_reasons}}==0
+   or die 'immediate/settled telemetry not retained';
+ });
+ $expect->('target utilization settling is bounded',sub {
+  post_case_idle({%$policy,settle_seconds=>0},undef,'mock',$recent_target);
+ },qr/target utilization did not settle/);
+ $expect->('target context still rejects during settling',sub {
+  post_case_idle($policy,undef,'mock',sub {my $s=$recent_target->();$s->{compute_apps}{stdout}.="$target, 45, ./flashcore, 200\n";return $s;});
+ },qr/post-run contention/);
+ $expect->('off-device activity still rejects during settling',sub {
+  post_case_idle($policy,undef,'mock',sub {my $s=$recent_target->();$s->{all_gpu_load}{stdout}=~s/\Q$other\E, 0, 0/$other, 1, 0/;return $s;});
+ },qr/post-run contention/);
+ $expect->('new request rejects while target settles',sub {
+  my $n=0;post_case_idle({%$policy,settle_seconds=>1},undef,'mock',sub {my $s=$recent_target->();$s->{queue}{stdout}='{"running":1,"waiting":0}' if $n++;return $s;});
+ },qr/post-run contention/);
+ $expect->('failed settling query fails closed',sub {
+  post_case_idle($policy,undef,'mock',sub {my $s=$recent_target->();$s->{all_gpu_load}{exit}=1;return $s;});
+ },qr/query failed/);
  require File::Temp;
  my $locks=File::Temp::tempdir(CLEANUP=>1);
  for my $release(0,1) {
@@ -279,6 +346,27 @@ sub self_test {
    close $held unless $release;
   });
  }
+ $expect->('inherited reservation is shared without nested locking',sub {
+  my $path="$locks/inherited.lock";open my $held,'>>',$path or die $!;
+  flock($held,LOCK_EX) or die $!;
+  my $borrowed=inherited_host_lock(fileno($held),$path);close $borrowed;
+  open my $other,'>>',$path or die $!;
+  !flock($other,LOCK_EX|LOCK_NB) or die 'closing borrowed descriptor released caller lock';
+  close $other;close $held;
+ });
+ $expect->('different inherited file rejects',sub {
+  my $path="$locks/wrong.lock";open my $held,'>>',$path or die $!;flock($held,LOCK_EX) or die $!;
+  inherited_host_lock(fileno($held),"$locks/inherited.lock");
+ },qr/different file/);
+ $expect->('unlocked inherited descriptor rejects',sub {
+  my $path="$locks/unlocked.lock";open my $held,'>>',$path or die $!;
+  inherited_host_lock(fileno($held),$path);
+ },qr/no exclusive flock/);
+ $expect->('independent descriptor cannot impersonate caller lock',sub {
+  my $path="$locks/independent.lock";open my $held,'>>',$path or die $!;flock($held,LOCK_EX) or die $!;
+  open my $other,'>>',$path or die $!;
+  inherited_host_lock(fileno($other),$path);
+ },qr/no exclusive flock/);
  my $preflight=sub {return {exit=>0,stdout=>'{"self_test":"pass","cpu_only":true,"negative_canary_cases":16,"negative_trace_cases":14,"mapping_cases":64}'};};
  $expect->('eager CPU-only preflight accepted',sub {validate_preflight($preflight->());});
  $expect->('driver ABI loader failure rejects before lock',sub {my $r=$preflight->();$r->{exit}=127;validate_preflight($r);},qr/driver-ABI self-test failed/);
@@ -308,12 +396,14 @@ sub main {
   harness=>'./attnpartn_regress',keys=>'1,1023,1024,1025,2047,2048,2049,2050,2051,2052,4095,4096,4097,8191,8192,8193',
   seeds=>'0,77,4242',repeats=>32,instrumentation=>'none',trace=>0,
   lock_dir=>$ENV{FLASH_GPU_LOCK_DIR}//'/tmp/flash-sass-gpu-locks',
-  host_lock=>$ENV{FLASH_GPU_HOST_LOCK}//'/tmp/flash-sass-engine-validation.lock',wait_seconds=>60,poll_seconds=>5);
+  host_lock=>$ENV{FLASH_GPU_HOST_LOCK}//'/tmp/flash-sass-engine-validation.lock',wait_seconds=>60,poll_seconds=>5,settle_seconds=>5);
  GetOptions('old=s'=>\$a{old},'new=s'=>\$a{new},'old-library=s'=>\$a{old_library},'new-library=s'=>\$a{new_library},
   'old-source=s'=>\$a{old_source},'new-source=s'=>\$a{new_source},'harness=s'=>\$a{harness},'harness-source=s'=>\$a{harness_source},
   'gpu=s'=>\$a{gpu},'out=s'=>\$a{out},'keys=s'=>\$a{keys},'seeds=s'=>\$a{seeds},'repeats=i'=>\$a{repeats},
   'instrumentation=s'=>\$a{instrumentation},'trace!'=>\$a{trace},'lock-dir=s'=>\$a{lock_dir},'host-lock=s'=>\$a{host_lock},
   'idle-resident-queue=s'=>\$a{idle_resident_queue},
+  'settle-seconds=f'=>\$a{settle_seconds},
+  'host-lock-fd=i'=>\$a{host_lock_fd},
   'wait-seconds=f'=>\$a{wait_seconds},'poll-seconds=f'=>\$a{poll_seconds},'self-test'=>\$a{self_test},'check-only'=>\$a{check_only})
   or die "invalid arguments\n";
  !@ARGV or die "unexpected positional arguments\n";
@@ -330,6 +420,8 @@ sub main {
   $a{gpu}=~/\AGPU-/i or die "idle resident mode requires a GPU UUID, not an index\n";
  }
  $a{wait_seconds}>=0 && $a{poll_seconds}>0 && $a{poll_seconds}<=60 or die "wait-seconds >=0 and poll-seconds in (0,60] required\n";
+ $a{settle_seconds}>=0 && $a{settle_seconds}<=30 or die "settle-seconds in [0,30] required\n";
+ !defined($a{host_lock_fd}) || $a{host_lock_fd}>=3 or die "host-lock-fd must be >=3\n";
  ($a{trace}?$a{instrumentation} ne 'none':$a{instrumentation} eq 'none')
   or die "--trace requires --instrumentation; untraced timing requires instrumentation=none\n";
  my @counts=split /,/,$a{keys},-1;my @seeds=split /,/,$a{seeds},-1;
@@ -349,9 +441,9 @@ sub main {
   my $manifest={arguments=>\%a,utc=>utc(),runner=>image($0),helper=>image("$FindBin::Bin/QsaEvidence.pm"),
    environment=>\%traceenv,trace_requested=>$a{trace}?JSON::PP::true:JSON::PP::false,
    measurement_mode=>$a{check_only}?'check-only':$a{trace}?'physical-cta-trace':'untraced-performance',
-   locking=>{host=>$a{host_lock},gpu_dir=>$a{lock_dir}}};
+   locking=>{host=>$a{host_lock},gpu_dir=>$a{lock_dir},inherited_host_fd=>$a{host_lock_fd}}};
   $manifest->{resident_policy}=$a{idle_resident_queue}
-   ? 'Explicit off-device idle residents: target has no compute context; all GPU compute/memory utilization and loopback queue counts must be zero before and after each case. Resident identities and telemetry are retained. This does not authorize whole-model core reuse.'
+   ? 'Explicit off-device idle residents: target has no reported compute app; all-device utilization and loopback queue counts must be zero before each case and after bounded settling of the owned target. Immediate post-run telemetry is retained; target contexts, other-device activity, and queued requests always reject. This does not authorize whole-model core reuse.'
    : 'Strict: any compute context or recognized GPU worker on the host blocks.';
   if(!$a{check_only}) {
    $manifest->{old_cubin}=image($a{old});$manifest->{new_cubin}=image($a{new});
@@ -372,7 +464,8 @@ sub main {
    validate_preflight($preflight);
   }
   put("$out/status.json",{status=>'WAITING',cases=>0,gpu_executed=>JSON::PP::false});
-  push @locks,acquire_lock($a{host_lock},\%a);
+  push @locks,defined($a{host_lock_fd})
+   ? inherited_host_lock($a{host_lock_fd},$a{host_lock}) : acquire_lock($a{host_lock},\%a);
   push @locks,acquire_lock("$a{lock_dir}/$a{gpu}.lock",\%a);
   if($a{check_only}) {
    wait_idle(\%a,$out,'check-only');
@@ -386,13 +479,9 @@ sub main {
     my $after_error;
     if($a{idle_resident_queue}) {
      eval {
-      $r->{host_after}=snapshot($a{gpu},\%a);
-      my $busy=busy_reasons($r->{host_after},\%a);
-      $r->{host_after}{busy_reasons}=$busy;
-      @$busy and die "post-run contention: ".join('; ',@$busy)."\n";
+      $r->{host_after}=post_case_idle(\%a,$out,$case);
       1;
      } or $after_error=$@||"post-run idle check failed\n";
-     redact_process_args($r->{host_after}) if ref($r->{host_after}) eq 'HASH';
      $r->{post_run_error}=$after_error if defined($after_error);
     }
     put("$out/$case.json",$r);
