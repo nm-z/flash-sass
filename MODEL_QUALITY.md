@@ -1,6 +1,6 @@
 # Teacher-forced checkpoint comparison
 
-This adds capture and comparison tools for issue #22. It does **not** establish that this checkpoint, the sparse approximation, or long-context generation has passed a quality evaluation. The committed CPU fixtures exercise the tools. An independently executed checkpoint reference and actual full-model capture are still required.
+This adds capture and comparison tools for issue #22. It does **not** establish that this checkpoint, the sparse approximation, or long-context generation has passed a quality evaluation. Four actual full-model GPU captures are supplied below; they measure agreement between VRAM and pinned-host KV in the same implementation. An independently executed original-checkpoint reference and a held-out quality evaluation are still required.
 
 ## Candidate capture
 
@@ -26,7 +26,7 @@ Capture writes one complete vocabulary row per input position. Its logits alone 
 
 Run the reference in an independently maintained implementation with the same base model, tokenizer, complete input IDs, vocabulary mapping and explicitly declared attention/quantization policy. Save FP32 logits after each input token. Record exact implementation revision, checkpoint file hashes, tokenizer hash, command, runtime, hardware and numerical settings. Distinguish comparisons against native sparse attention, dense attention, and the repository's selected subset.
 
-Build the CPU-only C++17 comparator with `make -C kern model_quality` (an OpenSSL development library is required). Run its fixture checks with `perl kern/model_quality_test.pl`. The following commands run from `kern`:
+Build the CPU-only Perl comparator with `make -C kern model_quality`. It uses core Perl modules, including `JSON::PP` and `Digest::SHA`, and streams one vocabulary row at a time. Run its fixture checks with `perl kern/model_quality_test.pl`. The following commands run from `kern`:
 
 ```bash
 ./model_quality freeze --kind candidate \
@@ -45,7 +45,7 @@ The metadata object contains `teacher_forced:true`, `base_model:{id,revision}`, 
 
 Frozen artifacts are hashed again when compared. Inputs must match exactly, every input ID must be in the aligned vocabulary, and vocabulary columns are reordered by token ID. Nonfinite logits fail. The comparator reports raw and centered logit errors, relative L2, cosine similarity, reference-to-candidate KL, probability differences, top-1 agreement, top-k overlap, teacher-forced NLL/perplexity and target rank. The last row has no next-token label. Log-softmax subtracts the maximum before normalization to preserve probabilities under large shared logit offsets; cutoff ties choose lower token IDs.
 
-The native comparator reads one FP32 vocabulary row at a time and computes metrics in FP64. It uses a stable shifted log-softmax and accumulates per-row NLL differences directly. Hash verification identifies supplied artifacts; files must remain unchanged between hashing and comparison. Neither hashes nor producer declarations attest how logits were generated.
+The native comparator reads one FP32 vocabulary row at a time and computes metrics in FP64. It uses a stable shifted log-softmax and accumulates per-row NLL differences directly. Centered RMSE centers the candidate-minus-reference difference vector; it must not subtract a large anchor logit separately from each input vector. Hash verification identifies supplied artifacts; files must remain unchanged between hashing and comparison. Neither hashes nor producer declarations attest how logits were generated.
 
 Predeclare acceptance limits before running the held-out evaluation using the applicable `--max-mean-kl`, `--max-rmse`, `--max-abs-logit`, `--min-top1-agreement` and `--max-mean-nll-increase` options. There is no universal threshold that proves quality across quantizers or attention approximations.
 
@@ -57,9 +57,9 @@ Missing required declarations return exit 2 unless `--diagnostic` is explicit; m
 
 ## Remaining acceptance evidence
 
-Freeze held-out token sequences at short lengths and at 2,048, 3,100, 8,000, 65,000 and 262,000 positions, subject to supported capacity and recorded resource limits. At a budget of 512, include positions with more than 512 complete blocks so that selection actually excludes keys. Report native sparse versus repository sparse differences separately from INT8-versus-higher-precision KV differences. Preserve per-position results, sequence-level aggregates, failed examples, layer-level diagnostics where needed, and the exact metadata and commands.
+Freeze held-out token sequences at N=1, 2047..2052, 3100, 8000, 65000 and 262000, subject to supported capacity and recorded resource limits. At a budget of 512, N=2051 has 512 complete blocks and a three-token tail; N=2052 has 513 complete blocks and must exclude one. Add N=2053..2055 for sparse tail residues. Record actual emitted production instructions and selected IDs in addition to the requested attention mode. Report native sparse versus repository sparse differences separately from INT8-versus-higher-precision KV differences. Preserve per-position results, sequence-level aggregates, failed examples, layer-level diagnostics and the exact metadata and commands.
 
-The independent execution records, candidate GPU captures, chosen acceptance thresholds, measured quality results, and long-context coverage have not been supplied by this PR. Store large captures outside Git and commit their hashes, reproducible acquisition commands, compact metrics and provenance records.
+The four candidate GPU captures below are supplied. Independent original-checkpoint execution records, held-out acceptance thresholds and quality results, and full-model production-budget sparse-length coverage remain unmeasured. Store large captures outside Git and commit their hashes, reproducible acquisition commands, compact metrics and provenance records.
 
 ### Recorded actual-weight captures
 
@@ -81,3 +81,89 @@ logit error and leave quality_pass null and independent_checkpoint_evidence fals
 These are same-implementation placement comparisons without a scalar twin or
 independent original checkpoint. The remaining quality measurements above are
 still required.
+
+## Frozen layer exports and numerical controls
+
+`MODEL_LAYER_CAPTURE` adds a separate postprojection export to `model_test`.
+Choose an attention block with `MODEL_LAYER_INDEX` and predeclare snapshot prefix
+lengths with `MODEL_LAYER_LENGTHS`. The run must supply full blocks 0..48,
+embedding, the output head, real PLE data, per-token QSA and exactly T input IDs.
+The selected block's raw K, V and indexer-key prefix, supplied normalization
+gammas and RoPE tables are saved. Each requested snapshot includes Q/gate and
+indexer projections, normalized query, packed INT8 KV and FP16 scales, block
+pools, selected block IDs, attention output and layer output. Scores are saved
+only when their production operation ran; below the selection boundary, the
+all-block selection is labeled implicit. Completion metadata is written after
+the requested prefix has been captured.
+
+For example, add these variables to the candidate command above and set T=2055:
+
+```bash
+MODEL_LAYER_CAPTURE=/absolute/path/new-layer-capture
+MODEL_LAYER_INDEX=3
+MODEL_LAYER_LENGTHS=1,2047,2048,2049,2050,2051,2052,2053,2054,2055
+```
+
+Hold `/tmp/flash-sass-engine-validation.lock` for the complete GPU command and
+its children. Inspect `nvidia-smi` and `ps` while holding the lock, wait if another
+worker is using the devices, and leave that worker's processes running. Holder
+identities, device placement and the tested library/cubin must accompany a real
+capture. The CPU readback mock checks export layout and error handling only.
+
+`qsa_quality` is a C numerical control derived from the pinned Transformers
+definition named in issue #22. It replays the indexer from the saved
+postprojection inputs, without linking the local instruction twins. Its report
+separates the supplied GPU score/selection consistency from recomputed score
+arithmetic, cutoff margins and exact ties. It records pool dtype and return-cast
+variants, supplied multiplicative gamma, the supplied RoPE table and the
+explicit score-scale conversion. `qsa_quality_replay.pl` validates snapshot
+metadata and hashes the consumed inputs, executable and produced arrays.
+
+```bash
+make -C kern qsa_quality
+perl kern/qsa_quality_replay.pl /absolute/path/new-layer-capture 2052 \
+  /absolute/path/new-replay.json
+```
+
+This export boundary leaves projection weights and activation quantization
+upstream of the control. The indexer replay also leaves attention-output/INT8-KV
+isolation and full-checkpoint quality open. The exported attention tensors make
+those later comparisons possible; exporting them alone supplies no numerical
+agreement result. Synthetic CPU fixtures retain their synthetic origin in each
+report.
+
+## Independent backend capture
+
+`kern/model_reference.c` calls the C API of an explicitly supplied llama.cpp
+source/build. It disables GPU offload, records all vocabulary logits after each
+supplied ID, uses FP32 K/V, and writes the final completion marker only after
+every row is saved. It also records the ordered vocabulary text, model metadata,
+runtime settings and command. The same quantized GGUF is a useful backend
+comparison arm; original-checkpoint conversion effects require their own arm.
+
+```bash
+make -C kern model_reference LLAMA_DIR=/absolute/path/pinned-llama-cpp
+kern/model_reference /absolute/path/model.gguf /absolute/path/ids.txt \
+  /absolute/path/new-reference-capture 2 1800
+```
+
+Pin and hash the chosen source revision, headers, built shared libraries and
+GGUF shards alongside the output. The adapter's comments identify its tested
+API revision. Build success does not establish which source produced an old
+binary, and the model's own metadata does not prove original-checkpoint or
+conversion provenance. Native QSA selection and dtype policy must be inspected
+and recorded before a backend run is used for sparse-quality acceptance.
+
+## Repeatable CPU validation
+
+```bash
+bash validation/issue22/run_cpu.sh /absolute/path/new-cpu-evidence
+```
+
+The runner rebuilds the tools, executes the Perl regressions and C analytic
+checks, replays the committed placement captures, and generates/replays the
+synthetic length matrix. It records exact commands, exit codes, runtime details
+and source/binary hashes, rejecting source changes during the checks. The final
+report identifies CPU success independently of GPU execution and checkpoint
+quality. Its large synthetic inputs can be regenerated from the committed C
+source; preserve the hashes and compact reports with an actual experiment.

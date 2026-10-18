@@ -112,14 +112,22 @@ test-gemv: all
 	./gemv_test $(SHARD1) blk.4.ffn_down_exps.weight 0 20
 
 clean:
-	rm -f *.cubin *.dis *.so *.so.new die.sass dieops.h flashcore flashd flashvis hold memtest fence *_test model_quality model_quality_json.o
+	rm -f *.cubin *.dis *.so *.so.new die.sass dieops.h flashcore flashd flashvis hold memtest fence *_test model_quality model_quality_json.o qsa_quality model_reference
 
-# CPU-only FP32 logit comparison. OpenSSL supplies file SHA-256 identities.
-model_quality_json.o: json.c json.h
-	$(CC) -O2 -c json.c -o $@
+# CPU-only FP32 logit comparison using core Perl modules.
+model_quality: model_quality.pl
+	cp $< $@
+	chmod +x $@
 
-model_quality: model_quality.cc model_quality_json.o json.h
-	$(CXX) -std=c++17 -O2 -fno-fast-math -ffp-contract=off -Wall -Wextra -o $@ model_quality.cc model_quality_json.o -lcrypto
+qsa_quality: qsa_quality.c
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -fno-fast-math -ffp-contract=off -o $@ $< -lm
+
+# Independent backend source/build supplied explicitly; no GPU backend loading.
+# Rebuild when LLAMA_DIR changes even if model_reference.c has not changed.
+.PHONY: model_reference
+model_reference: model_reference.c
+	@test -n "$(LLAMA_DIR)" || { echo 'set LLAMA_DIR to the independent llama.cpp source/build' >&2; exit 2; }
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -I"$(LLAMA_DIR)/include" -I"$(LLAMA_DIR)/ggml/include" -o $@ $< -L"$(LLAMA_DIR)/build/bin" -Wl,-rpath,"$(LLAMA_DIR)/build/bin" -lllama -lm
 
 .PHONY: all test test-gemv clean
 
@@ -478,8 +486,11 @@ dies_test: dies_test.c prog.c prog.h holdc.c hold.h dieops.h ../ref/block.c ../r
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ dies_test.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I$(CUDA)/include -lcuda -lm
 
 # ---- whole tokens (embed, blocks [b0,b1), head) on n dies vs the twins ----
-model_test: model_test.c prog.c prog.h holdc.c hold.h dieops.h ../ref/block.c ../ref/block.h ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c ../ref/split.h ../ref/qsa.c ../ref/qsa.h model_qsa_test.h qsa_state.h model_capture.h
+model_test: model_test.c prog.c prog.h holdc.c hold.h dieops.h ../ref/block.c ../ref/block.h ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c ../ref/split.h ../ref/qsa.c ../ref/qsa.h model_qsa_test.h qsa_state.h model_capture.h model_layer_capture.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -DFLASH_REV='"$(FLASH_REV)"' -o $@ model_test.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+model_layer_capture_test: model_layer_capture_test.c model_layer_capture.h
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -o $@ model_layer_capture_test.c
 
 # the persistent core and the reloadable engine library (see core.h); the library is built to a new name and moved
 # over the old one, so a running core that has the old file mapped keeps a consistent image

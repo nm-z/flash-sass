@@ -55,6 +55,6 @@ for quality_tag in t4-budget512 t9-budget1; do
       --max-rmse 0 --max-mean-kl 0 --min-top1-agreement 1 \
       --out "$quality_out/$quality_tag-comparison.json"
 done
-sha256sum "$quality_repo/kern/model_quality" "$quality_repo/kern/model_quality.cc" \
+sha256sum "$quality_repo/kern/model_quality" "$quality_repo/kern/model_quality.pl" \
   "$quality_repo/kern/json.c" > "$quality_out/native-identities.txt"
 printf 'PASS: both recorded placement pairs compared across the full vocabulary\n'

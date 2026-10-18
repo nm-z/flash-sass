@@ -22,4 +22,16 @@ for my $d($fc,$fr){my $p="$d/manifest.json";my $v=decode_json(get($p));$v->{meta
 for my $extra([],['--diagnostic']){($rc,$j)=compare($fc,$fr,@$extra,'--max-rmse','0');is($rc,0,'complete declarations numerical exit');ok($j->{declared_limits_pass}&&!defined($j->{quality_pass})&&!$j->{independent_checkpoint_evidence},'fake producer declarations cannot attest');}
 for my $args(['--top-k','0'],['--max-rmse','nan'],['--min-top1-agreement','1.01'],['--max-mean-kl','-1']){($rc,$j)=compare($fc,$fr,@$args);is($rc,2,'invalid CLI rejected');}
 my $bytes=get("$fc/logits.f32");substr($bytes,0,1)=chr(ord(substr($bytes,0,1))^1);put("$fc/logits.f32",$bytes);($rc,$j)=compare($fc,$fr,'--diagnostic');is($rc,2,'changed frozen bytes rejected');
+my $mixed_c=capture('candidate',[[1e30,1]],[0]);
+my $mixed_r=capture('reference',[[1e30,0]],[0]);
+($rc,$j)=compare($mixed_c,$mixed_r,'--diagnostic');
+is($rc,0,'shared huge-logit regression exits successfully');
+is($j->{metrics}{centered_logit_rmse},0.5,'centered RMSE preserves small difference beside a shared huge logit');
+near($j->{metrics}{logit_rmse},sqrt(0.5),'shared huge logit ordinary RMSE');
+is($j->{metrics}{maximum_absolute_logit_error},1,'shared huge logit maximum error');
+my $mixed_nll_c=capture('candidate',[[1e30,1],[0,0]],[0,1]);
+my $mixed_nll_r=capture('reference',[[1e30,0],[0,0]],[0,1]);
+($rc,$j)=compare($mixed_nll_c,$mixed_nll_r,'--diagnostic');
+is($rc,0,'large NLL difference regression exits successfully');
+is($j->{metrics}{mean_nll_increase},-1,'difference form preserves small NLL change');
 done_testing();
