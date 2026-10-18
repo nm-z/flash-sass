@@ -243,7 +243,7 @@ Same-implementation placement comparisons and isolated block-3 captures from
 
 ## Recorded evidence
 
-The latest follow-up is recorded in
+The earlier follow-up is recorded in
 [validation/issue11/resume](validation/issue11/resume/README.md): tested commit
 705f166 passed all 58 expected CPU outcomes; the new SM52 image and adapter
 compiled, but the shared GPU gate returned busy and checkpoint conformance

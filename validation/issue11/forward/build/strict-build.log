@@ -1,0 +1,5 @@
+make: Entering directory '/home/nate/codex/flash-pr31-logits-20261018-0520/kern'
+cc -std=gnu11 -O2 -fno-fast-math -ffp-contract=off -frounding-math -Wall -Wextra -Werror  -DFLASH_REV='"438d2b6"' -o qsa_reference_capture qsa_reference_capture.c -lllama -lggml -lggml-base -lm
+cc -std=gnu11 -O2 -fno-fast-math -ffp-contract=off -frounding-math -Wall -Wextra -Werror -I../ref -o qsa_capture_test qsa_capture_test.c qsa_capture.c -lm
+cc -std=gnu11 -O2 -fno-fast-math -ffp-contract=off -frounding-math -Wall -Wextra -Werror -o qsa_logits_check qsa_logits_check.c -lm
+make: Leaving directory '/home/nate/codex/flash-pr31-logits-20261018-0520/kern'
