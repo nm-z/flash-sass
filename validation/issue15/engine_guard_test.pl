@@ -100,4 +100,23 @@ like(idle_reason($status, '', "permission denied\n"),
     qr/Unrecognized ps/, 'invalid process snapshot blocks a launch');
 like(idle_reason($status, '', ''),
     qr/Empty ps/, 'missing process snapshot blocks a launch');
+my %ipc=(222=>'hold',224=>'fence',225=>'flashd');
+my $ipc_ps="$ps 222 1 hold ./hold model 0 /tmp/hold-h0.manifest\n 224 1 fence ./fence 2\n 225 1 flashd ./flashd model /tmp/flash.sock\n";
+my $ipc_apps="222, ./hold, GPU-abcd-1234\n224, ./fence, GPU-abcd-5678\n";
+ok(!defined(idle_reason($status,$ipc_apps,$ipc_ps,\%ipc)),
+    'explicit identified IPC holders, memory fence and separate frontend permit an owned core');
+like(idle_reason($status,$ipc_apps,$ipc_ps),qr/Existing GPU compute process/,
+    'default policy still rejects the same resident allocations');
+like(idle_reason($status,$ipc_apps,"$ipc_ps 226 1 flashcore ./flashcore\n",\%ipc),
+    qr/Existing worker.*226/, 'another core blocks explicit IPC mode');
+like(idle_reason($status,"$ipc_apps 226, ./flashcore, GPU-abcd-1234\n",$ipc_ps,\%ipc),
+    qr/Existing GPU compute process.*226/, 'another GPU worker blocks explicit IPC mode');
+like(idle_reason($status,"222, ./flashcore, GPU-abcd-1234\n",$ipc_ps,\%ipc),
+    qr/Existing GPU compute process/, 'approved PID cannot change GPU process type');
+like(idle_reason($status,$ipc_apps,"$ps 222 1 flashcore ./flashcore\n",\%ipc),
+    qr/identity changed/, 'approved PID cannot change ps process type');
+like(idle_reason($status,$ipc_apps,$ps,\%ipc),qr/IPC process missing/,
+    'missing approved resident state blocks a launch');
+like(idle_reason($status,'',$ps,{226=>'flashcore'}),qr/Invalid resident IPC process policy/,
+    'policy cannot permit a competing core');
 done_testing();

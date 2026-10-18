@@ -127,6 +127,15 @@ peer PID or UID differs. Ordinary serving leaves this optional variable unset.
 The shared lock coordinates participating validators; request IDs and source
 checks detect intervening work from a client that does not use the lock.
 
+When the shared core is absent, `run_target.pl --lease-fd 9 --ipc-layout FILE`
+can start its own private cores using the existing weight arenas. The captured
+JSON layout identifies exactly six `hold` processes, the memory `fence`, at
+most one frontend using its separate socket, and all six manifest hashes.
+Each preflight rechecks process birth/UID, hashes, NVML process names and `ps`.
+An unlisted GPU worker or another engine still blocks launch. The default
+owned-core policy remains unchanged when `--ipc-layout` is absent. The memory
+fence must remain running: it excludes known-bad GPU memory from allocations.
+
 The host overhead report separates callback duration from readback-observation-to-callback-return and readback-observation-to-local-socket-parse times. The socket figure includes scheduling and the checker's parsing. The real HTTP checker captures the matching request's device/host traces and correlated post-write log. Its transport measurements use the frontend's own observation and successful-write events and separately report final-record-construction-to-write-return time, which includes serialization and logging. None of these subtracts host and device epochs. A difference between host and GPU interval lengths is a change in observation lag over the interval, not an absolute GPU-to-host latency. Tracing perturbs the measured kernel; these samples are not a claim about uninstrumented throughput.
 
 Exact source, cubin, commands, raw protocol, fixtures and results are recorded under `validation/issue15/`. A fixture pass establishes schema and transport behavior; target-GPU runs and their recorded identities establish the measured device-event coverage. Neither establishes client-side network latency or a general model-performance improvement.

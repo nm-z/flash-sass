@@ -115,26 +115,42 @@ sub verify_peer {
 # Inputs are complete outputs from successful commands. Failed commands are
 # rejected by the runner before reaching this parser; unfamiliar output blocks.
 sub idle_reason {
-    my ($status, $apps, $processes) = @_;
+    my ($status, $apps, $processes, $permitted) = @_;
+    $permitted //= {};
+    return 'Invalid resident IPC process policy' unless ref($permitted) eq 'HASH';
+    for my $pid (keys %$permitted) {
+        return 'Invalid resident IPC process policy'
+            unless $pid =~ /\A[1-9][0-9]*\z/ && $permitted->{$pid} =~ /\A(?:hold|fence|flashd)\z/;
+    }
     return "Unrecognized nvidia-smi status"
         unless $status =~ /NVIDIA-SMI/ && $status =~ /Processes:/;
     for my $line (split /\n/, $apps) {
         next if $line =~ /\A\s*\z/;
-        return "Existing GPU compute process: $line"
-            if $line =~ /\A\s*[1-9][0-9]*\s*,/;
+        if ($line =~ /\A\s*([1-9][0-9]*)\s*,\s*([^,]+)\s*,\s*GPU-[0-9a-f-]+\s*\z/) {
+            my ($pid, $name) = ($1, $2); $name =~ s/\s+\z//; $name =~ s{.*/}{};
+            next if exists($permitted->{$pid}) && $permitted->{$pid} =~ /\A(?:hold|fence)\z/
+                && $name eq $permitted->{$pid};
+            return "Existing GPU compute process: $line";
+        }
+        return "Existing GPU compute process: $line" if $line =~ /\A\s*[1-9][0-9]*\s*,/;
         return "Unrecognized compute-process query output: $line";
     }
-    my $rows = 0;
+    my $rows = 0; my %seen;
     for my $line (split /\n/, $processes) {
         next if $line =~ /\A\s*\z/;
         return "Unrecognized ps output"
             unless $line =~ /\A\s*([0-9]+)\s+([0-9]+)\s+(\S+)\s+(.*)\z/;
         my ($pid, $name) = ($1, $3);
         $rows++;
+        if (exists $permitted->{$pid}) {
+            return "Resident IPC process identity changed: PID $pid" unless $name eq $permitted->{$pid};
+            $seen{$pid} = 1; next;
+        }
         return "Existing worker in ps: PID $pid ($name)"
             if $name =~ /\A(?:flashcore|flashd|hold|fence|memtest|.+_(?:test|bench))\z/;
     }
     return "Empty ps snapshot" unless $rows;
+    return "Resident IPC process missing: PID $_" for grep {!$seen{$_}} keys %$permitted;
     return undef;
 }
 1;
