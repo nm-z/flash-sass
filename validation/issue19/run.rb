@@ -8,7 +8,17 @@ require 'open3'
 require 'socket'
 require 'tmpdir'
 require 'time'
-require 'csv'
+
+# nvidia-smi emits fixed-column query rows, not quoted general-purpose CSV.
+# A split limit preserves commas in the final process-name column. Reject
+# malformed rows instead of silently treating an unreadable inventory as idle.
+def nvidia_rows(text, columns)
+  text.lines.reject { |line| line.strip.empty? }.map do |line|
+    row = line.strip.split(/\s*,\s*/, columns)
+    raise "Malformed nvidia-smi row (expected #{columns} columns)" unless row.size == columns && row.none?(&:empty?)
+    row
+  end
+end
 
 ROOT = File.expand_path('../..', __dir__)
 opt = {mode: 'cpu', cuda: ENV.fetch('CUDA', '/opt/cuda'),
@@ -156,7 +166,9 @@ begin
         processes = record.call(prefix + '-nvidia-processes', ['nvidia-smi', '--query-compute-apps=gpu_uuid,pid,process_name', '--format=csv,noheader,nounits'])
         gpu = record.call(prefix + '-nvidia-gpus', ['nvidia-smi', '--query-gpu=index,uuid,name,driver_version,memory.used,utilization.gpu,clocks.sm', '--format=csv,noheader,nounits'])
         ps = record.call(prefix + '-ps', ['ps', '-eo', 'pid,ppid,stat,wchan:25,etimes,time,comm'])
-        rows = CSV.parse(processes, skip_blanks: true).map { |r| r.map(&:strip) }
+        rows = nvidia_rows(processes, 3)
+        gpu_rows = nvidia_rows(gpu, 7)
+        raise 'The GPU inventory is empty' if gpu_rows.empty?
         busy = []
         rows.each do |r|
           pid = r[1].to_i
@@ -176,12 +188,12 @@ begin
           busy << 'resident core has a connected client' if sockets.lines.any? { |l| l.include?(opt[:socket]) || l.include?("pid=#{opt[:core_pid]},") }
         end
         # Also wait for active computation on other dies: no interference with workers.
-        CSV.parse(gpu, skip_blanks: true).each do |r|
+        gpu_rows.each do |r|
           util = r[5].to_s.strip
           raise 'Cannot establish GPU utilization' unless util.match?(/\A\d+\z/)
           busy << "active GPU #{r[0]} utilization #{util}" if util.to_i > 0
         end
-        raise 'Requested GPU UUID was not found' if opt[:mode] == 'gpu' && !CSV.parse(gpu, skip_blanks: true).any? { |r| r[1].to_s.strip == opt[:gpu] }
+        raise 'Requested GPU UUID was not found' if opt[:mode] == 'gpu' && !gpu_rows.any? { |r| r[1] == opt[:gpu] }
         if busy.empty?
           break
         end
@@ -368,6 +380,7 @@ rescue StandardError => e
   manifest[:error] = "#{e.class}: #{e.message}"
   warn manifest[:error]
 ensure
+  locks&.reverse_each { |lock| lock.flock(File::LOCK_UN); lock.close }
   manifest[:finished_utc] = Time.now.utc.iso8601
   persist.call
 end
