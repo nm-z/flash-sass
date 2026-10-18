@@ -1,5 +1,15 @@
 # Issue 18 validation
 
+## Recorded acceptance
+
+[Current evidence for implementation 645660c](current-645660c/README.md) records
+1536 passing independent padding cases, 10 complete direct-QSA cases covering
+34 positions, 26 successful controls, 40 paired timing runs, and four actual
+model fixtures with 80 requests, 32 bitwise comparisons and 84 guard checks.
+Original engine configuration/library restoration was verified. The report
+includes every timing pair, the host-memory timing outlier, precise test scopes,
+raw evidence, source/binary hashes and reproduction commands.
+
 ## Reproduce the current tests
 
 The implementation is C and SASS; the orchestration is Bash, jq and the
@@ -7,11 +17,12 @@ repository's existing Perl build tools. The two historical Python runners were
 removed. Historical JSON and transcripts keep their original source revisions
 and test scope.
 
-Build on the M60 host using its CUDA 11.4 toolchain and the repository's patched
-MaxAs checkout:
+Build a clean checkout on the M60 host using its CUDA 11.4 toolchain and the
+repository's patched MaxAs checkout. Set the full revision so the engine runner
+can compare the loaded library's revision with the recorded source HEAD:
 
 ```bash
-make -B -C kern attn_test qsa_test qsa_direct_test \
+make -B -C kern FLASH_REV="$(git rev-parse HEAD)" attn_test qsa_test qsa_direct_test \
     die.cubin attnpart.cubin attnmerge.cubin libengine_reuse_test.so
 make -C ref test-attn-contract
 make -C kern checked_test
