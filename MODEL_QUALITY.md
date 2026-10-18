@@ -201,3 +201,24 @@ and source/binary hashes, rejecting source changes during the checks. The final
 report identifies CPU success independently of GPU execution and checkpoint
 quality. Its large synthetic inputs can be regenerated from the committed C
 source; preserve the hashes and compact reports with an actual experiment.
+
+## Review measurements and current status
+
+[Review evidence for f6ddcd5](validation/issue22/review-f6ddcd5/README.md)
+records passing CPU checks: 74 comparator assertions, 48 export-mock assertions,
+36 replay assertions, 16 analytic assertions, 32 model CLI boundary checks,
+both historical placement comparisons and 14 synthetic lengths. Its machine
+readable acceptance report keeps `issue22_resolved:false`.
+
+The recovered four-position CPU llama.cpp capture is preserved in
+[the reference archive](validation/issue22/archy-llama-7182ef7/README.md).
+Comparing it with the historical GPU capture measures logit RMSE 0.1868455,
+mean reference-to-candidate KL 0.0210944, top-1 agreement 4/4 and mean top-10
+overlap 0.85. These are exploratory microfixture metrics with no acceptance
+thresholds and incomplete historical/original-checkpoint provenance. They
+cannot establish representative quality or isolate QSA and precision effects.
+
+The shared GPU lock remained held during the final 45-second acquisition wait
+on 2026-10-18. The review launched no new GPU capture. PR #46 remains draft
+pending the real GPU, independent checkpoint and held-out measurements listed
+above.

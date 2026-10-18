@@ -1,0 +1,6 @@
+make: Entering directory '/home/nate/claude/flash-sass-prs/issue-22/kern'
+cp model_quality.pl model_quality
+chmod +x model_quality
+cc -std=c11 -O2 -Wall -Wextra -Werror -fno-fast-math -ffp-contract=off -o qsa_quality qsa_quality.c -lm
+cc -std=c11 -O2 -Wall -Wextra -Werror -o model_layer_capture_test model_layer_capture_test.c
+make: Leaving directory '/home/nate/claude/flash-sass-prs/issue-22/kern'

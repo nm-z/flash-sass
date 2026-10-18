@@ -1,0 +1,12 @@
+make: Entering directory '/home/nate/claude/flash-sass-prs/issue-22/kern'
+perl die.pl header > dieops.h
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -DFLASH_REV='"f6ddcd5d95f0a9219809b9361d7137a97eb35b3b"' -o model_test model_test.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm
+In file included from model_test.c:105:
+model_capture.h: In function ‘model_capture_record’:
+model_capture.h:27:9: warning: this ‘for’ clause does not guard... [-Wmisleading-indentation]
+   27 |         for(int j=0;j<248320;j++)if(!covered[j]){fprintf(stderr,"capture head slices miss vocabulary ID %d\n",j);exit(2);}free(covered);
+      |         ^~~
+model_capture.h:27:123: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the ‘for’
+   27 |         for(int j=0;j<248320;j++)if(!covered[j]){fprintf(stderr,"capture head slices miss vocabulary ID %d\n",j);exit(2);}free(covered);
+      |                                                                                                                           ^~~~
+make: Leaving directory '/home/nate/claude/flash-sass-prs/issue-22/kern'
