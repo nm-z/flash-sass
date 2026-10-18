@@ -243,7 +243,78 @@ Same-implementation placement comparisons and isolated block-3 captures from
 
 ## Recorded evidence
 
-The latest follow-up is recorded in
+### Independent full-model CPU capture with QSA tensors
+
+`kern/qsa_model_reference.c` now captures teacher-forced full-vocabulary logits
+and observes the independent llama.cpp graph through its C API. It does not
+call candidate scalar twins. The independent runtime source is pinned to
+`fcac19079f3f2985fe74ed845f0880e7e9a8030a`; this is a separate implementation
+from the historical Transformers indexer captures above. The capture program
+is adapted from PR #46's C adapter, with a new per-layer observation path.
+
+Build a clean worktree of that revision with CPU backends only, then build the
+adapter. Here `REF_SRC` is the pinned independent checkout, `REF_BUILD` is a
+new build directory, and `GGUF` is the first of the two verified Q2_0 shards:
+
+```sh
+cmake -S "$REF_SRC" -B "$REF_BUILD" -DCMAKE_BUILD_TYPE=Release \
+  -DGGML_CUDA=OFF -DGGML_VULKAN=OFF -DGGML_HIP=OFF -DGGML_BLAS=OFF \
+  -DGGML_NATIVE=ON -DGGML_BACKEND_DL=OFF -DLLAMA_BUILD_TESTS=OFF \
+  -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_TOOLS=OFF \
+  -DLLAMA_BUILD_SERVER=OFF -DLLAMA_CURL=OFF
+cmake --build "$REF_BUILD" --target llama -j2
+make -C kern qsa_model_reference LLAMA_REF_SRC="$REF_SRC" LLAMA_REF_BUILD="$REF_BUILD"
+kern/qsa_model_reference "$GGUF" ids.txt /absolute/new-capture 2 840 all
+```
+
+The last three arguments are CPU threads, deadline in seconds, and snapshot
+lengths. `all` snapshots every input position; a comma-separated list such as
+`1,2047,2048,2049,2050,2051,2052,3100,8000,65000,262000` snapshots only those
+predeclared visible lengths. The complete modulo-four-tail matrix can also
+be supplied, up to 32 unique lengths and 262003 total input positions. Every
+input still produces a complete vocabulary row. This capacity is not a claim
+that those long full-model runs have been measured; long runs also require
+substantial time and output space.
+
+The adapter requires the declared 48-layer architecture and 248320-entry
+vocabulary, supplies the exact text-file token IDs without inserting tokens,
+disables GPU/op/KV offload and sampling, and uses FP32 K/V caches. At every
+requested snapshot it requires all twelve QSA layers to expose the raw
+indexer key, normalized/rotated query, pooled keys, scores, top-block IDs,
+causal selection mask, gated attention output and layer output. Other named
+Q/K/V and attention intermediates are retained as well. Scores and masks may
+contain their backend's intentional negative-infinity padding; the stored
+logits must be finite.
+
+Each tensor record includes its native dtype, shape and source byte strides.
+Files contain only logical elements with dimension zero fastest; uninitialized
+stride gaps and allocation padding are not copied. Selected nodes above
+64 MiB, malformed layouts, missing layer roles, read/write errors and existing
+output paths fail closed. Per-row and capture completion markers are
+published only after their required outputs have closed successfully.
+The process records its actually loaded library paths. Pair these with the
+recorded clean source, fresh build, binary/library hashes and model identities;
+the source string compiled into an adapter alone does not attest its library.
+
+The portable observation-helper tests do not load a model or a GPU:
+
+```sh
+make -C kern qsa_reference_trace_test
+kern/qsa_reference_trace_test /absolute/new-trace-unit-tests
+```
+
+The first measured independent full-model follow-up preserves four positions
+and all twelve QSA layers per position. These are the consecutive-ID
+microfixture `10,11,12,13`, not a held-out language sample. Its comparison with
+the pinned historical GPU capture fails the existing logit limits; it does
+not establish a failure or a pass of the current GPU branch, whose matching
+capture remains blocked. Neither same-GGUF backend agreement nor these new
+per-layer tensors verifies the original checkpoint/tokenizer or normalization
+conversion lineage. The required long sparse full-model matrix is still
+unmeasured. See [the independent capture record](validation/issue11/independent/README.md)
+for exact sources, retained arrays, limits, results and the failing replay.
+
+The earlier follow-up is recorded in
 [validation/issue11/resume](validation/issue11/resume/README.md): tested commit
 705f166 passed all 58 expected CPU outcomes; the new SM52 image and adapter
 compiled, but the shared GPU gate returned busy and checkpoint conformance
