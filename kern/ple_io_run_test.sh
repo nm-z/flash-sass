@@ -5,7 +5,15 @@ source_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 test_dir=$(mktemp -d)
 trap 'rm -rf -- "$test_dir"' EXIT
 mkdir "$test_dir/bin" "$test_dir/repo" "$test_dir/repo/kern"
-cp "$source_dir/ple_io_run.sh" "$test_dir/repo/kern/"
+# Exercise real flock semantics without acquiring the production GPU lock.
+# This also lets the CPU suite run while its caller holds that shared lock.
+test_lock="$test_dir/validation.lock"
+export PLE_IO_TEST_LOCK="$test_lock"
+perl -pe '
+    BEGIN { $changed = 0; }
+    $changed += s{exec 9>/tmp/flash-sass-engine-validation\.lock}{exec 9>"\$PLE_IO_TEST_LOCK"}g;
+    END { die "expected exactly one production lock declaration\n" unless $changed == 1; }
+' "$source_dir/ple_io_run.sh" > "$test_dir/repo/kern/ple_io_run.sh"
 export PLE_IO_TEST_LOG="$test_dir/calls"
 : > "$PLE_IO_TEST_LOG"
 cat > "$test_dir/bin/observations" <<'STUB'
@@ -89,8 +97,8 @@ run_case complete 0
 [[ $(rg -c '^benchmark ' "$PLE_IO_TEST_LOG") == 4 ]]
 [[ $(rg -c '^process_query$' "$PLE_IO_TEST_LOG") == 6 ]]
 [[ $(jq -r .status "$test_dir/complete/exit.json") == complete ]]
-# Every earlier exit released the real coordination lock.
-exec 8>/tmp/flash-sass-engine-validation.lock
+# Every earlier exit released the fixture's real advisory lock.
+exec 8>"$test_lock"
 flock -n 8
 run_case lock_busy 75
 [[ ! -s "$PLE_IO_TEST_LOG" ]]

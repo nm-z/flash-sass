@@ -125,7 +125,9 @@ concurrent entry and delayed-row completion checks. An invalid reader-count
 reload is rejected before modifying the environment or unloading the engine.
 Small startup tests use controlled launch/read stubs to verify that cache
 warming completes before core launch and that a read failure suppresses launch.
-The shared-host wrapper tests use inert GPU and benchmark commands.
+The shared-host wrapper tests use inert GPU and benchmark commands and a
+private advisory lock. They never acquire the production coordination lock,
+so the CPU suite can itself run under the shared validation lock.
 
 These CPU checks do not replace real-model parity, reader reload tests on archy,
 or measurements of the local shard, NFS, and full-file cache warming at a
