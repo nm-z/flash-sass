@@ -1,7 +1,8 @@
 # Issue #12: attention CTA remap validation
 
-PR #29 remains draft until the new target-GPU checks and matched whole-model
-measurements run successfully. The original component results below are retained
+PR #29 is open and non-draft at the user's request. This state change does not
+establish that the remaining target-GPU and whole-model acceptance checks passed.
+The original component results below are retained
 as historical evidence; they do not validate the later trace or canary changes.
 
 The [2026-10-18 review checkpoint](review-20261018/README.md) records six successful
@@ -151,6 +152,32 @@ GPU locks default to `/tmp/flash-sass-gpu-locks`. `--host-lock`/`--lock-dir` or
 reservation as the other workers. `--check-only --gpu UUID --out NEW_DIRECTORY`
 records availability without starting the harness. Busy waits end with exit 75
 and `BLOCKED_BUSY`; failed inventory queries fail closed.
+
+Lock contention now uses a bounded blocking `flock`, so the validator is actually
+queued for the reservation rather than repeatedly polling with `LOCK_NB`.
+It never deletes a lock file, takes another worker's reservation, or kills a
+holder. The default availability policy remains strict.
+
+For a component experiment on an **unused, separate GPU**, an explicit option
+can distinguish idle weight residency from active GPU work:
+
+```bash
+# Add to the component matrix command; --gpu must be a UUID in this mode.
+--idle-resident-queue http://127.0.0.1:18090/queue
+```
+
+This mode still acquires both shared locks. It requires zero compute and memory
+utilization on every GPU, zero running/waiting HTTP requests, no compute context
+on the target GPU, and matching process identities for off-device `hold`,
+`fence`, and `flashcore` contexts. Only the `flashd` serving that exact loopback
+queue is exempted from the worker-process check. Unknown workers, incomplete or
+failed inventory, target residency, or active requests fail closed. Raw identity
+and utilization evidence is retained before and after each case; detected
+post-run contention invalidates that case. These are sampled boundary checks,
+not a guarantee against an unrelated client arriving between samples.
+
+This option does **not** authorize reloading the resident core, sharing a device
+with it, or treating component timing as a matched whole-model measurement.
 
 ## Whole-model procedure and timing definitions
 
