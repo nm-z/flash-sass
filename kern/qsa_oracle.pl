@@ -129,14 +129,14 @@ writefile("$out/report.json",$json->encode($report));
 sub execute {
  my($expected,$label,@args)=@_;my$stem=sprintf('%03d',$seq++);
  my$stdout="$out/checks/$stem.json";my$stderr="$out/checks/$stem.stderr";my@cmd=($binary,@args);
- my$cpu_only=$args[0] eq'--self-test'||$args[0] eq'--negative-score'||$args[0] eq'--bf16';
+ my$cpu_only=$args[0] eq'--self-test'||$args[0] eq'--negative-score'||$args[0] eq'--negative-parity'||$args[0] eq'--bf16';
  my$target=defined($gpu)&&!$cpu_only;
  my$image_before=$target?hashfile($gpu):undef;
  my$pid=fork();defined$pid or die "fork\n";
  if(!$pid){
   open STDOUT,'>',$stdout or die$!;open STDERR,'>',$stderr or die$!;
   if($target){$ENV{GPU_CUBIN}=$gpu;$ENV{GPU_DEVICE}=$device;}else{delete$ENV{GPU_CUBIN};delete$ENV{GPU_DEVICE};}
-  if(!$cpu_only && $args[0]!~/\A--generate-/){$ENV{QSA_ORACLE_CAPTURE_DIR}="$args[1]/candidate";}
+  if(!$cpu_only && $args[0]!~/\A--generate-/ && $args[0] ne'--quantizer-test'){$ENV{QSA_ORACLE_CAPTURE_DIR}="$args[1]/candidate";}
   else{delete$ENV{QSA_ORACLE_CAPTURE_DIR};}
   exec{$binary}@cmd;die "exec: $!\n";
  }
@@ -146,9 +146,14 @@ sub execute {
  my$ok=$parsed&&ref($r) eq'HASH'&&$code==$expected;
  $ok&&=defined($r->{status})&&$r->{status} eq($expected?'FAIL_NATIVE':'PASS_NATIVE')&&defined($r->{failures});
  $ok&&=($expected?$r->{failures}>0:$r->{failures}==0);
- if($expected==3){
+ if($expected==3 && $args[0] eq'--negative-score'){
   my@bad=ref($r) eq'HASH'&&ref($r->{metrics}) eq'ARRAY'?(grep{ref($_) eq'HASH'&&defined($_->{name})&&$_->{name} eq'score_gate_must_reject'}@{$r->{metrics}}):();
   $ok&&=@bad==1&&$bad[0]{enforced}&&!$bad[0]{pass}&&$bad[0]{normalized_rms}>.005;
+ }
+ if($expected==3 && $args[0] eq'--negative-parity'){
+  my@good=ref($r) eq'HASH'&&ref($r->{metrics}) eq'ARRAY'?(grep{ref($_) eq'HASH'&&($_->{name}//'') eq'one_ulp_within_numerical_limit'}@{$r->{metrics}}):();
+  $ok&&=@good==1&&$good[0]{enforced}&&$good[0]{pass};
+  $ok&&=($r->{local_parity_checks}//0)==2&&($r->{local_parity_failures}//0)==2&&$r->{failures}==2;
  }
  if(!$parsed||ref($r) ne'HASH'){$r={status=>'INVALID_CHILD_REPORT',error=>$parse_error//'JSON result is not an object'};}
  my$image_after=$target?hashfile($gpu):undef;
@@ -156,6 +161,8 @@ sub execute {
   my$empty_index=$args[0] eq'--index'&&$args[2]==1;
   $ok&&=($r->{candidate_backend}//'') eq'SM52'&&defined($r->{gpu_launches});
   $ok&&=$empty_index?($r->{gpu_launches}==0):($r->{gpu_launches}>0);
+  $ok&&=($r->{local_parity_failures}//-1)==0;
+  $ok&&=($r->{local_parity_checks}//0)>0 unless$empty_index;
   $r->{gpu_applicable}=JSON::PP::false,$r->{gpu_skip_reason}='frozen index has zero complete blocks; generated index1 covers target normalization' if$empty_index;
   $ok&&=$image_before eq$image_after&&$image_before eq$report->{gpu_request}{cubin_sha256};
  }
@@ -167,13 +174,15 @@ sub execute {
  print "$label: ".($ok?'PASS':'FAIL')." (exit $code)\n";return$row;
 }
 execute(0,'host arithmetic/domain gates','--self-test');execute(3,'negative control rejected by actual score NRMS gate','--negative-score');
+execute(3,'one-ULP and signed-zero controls rejected by local byte parity','--negative-parity');
+execute(0,'quantizer boundary and batch fixtures','--quantizer-test',"$out/generated/quantizer");
 for my$f(@frozen){my$tmp="$out/frozen/$f->{name}";mkdir($tmp) or die$!;hashfile($f->{path}) eq$f->{sha256} or die"fixture changed before execution\n";my@args=fixture_mode($f->{path},$tmp);my$row=execute(0,"frozen/$f->{name}",@args);$row->{fixture_sha256}=$f->{sha256};}
 my@lengths=(1,2047..2052,3100..3103,8000..8003);push@lengths,(65000..65003,262000..262003) if$full;
 for my$n(@lengths){execute(0,"generated/index-and-sparse-$n",'--generate-index',"$out/generated/index-$n",$n);}
 my@attention=(1..4,1023..1027,2047..2052);push@attention,(8191..8193) if$full;
 for my$n(@attention){execute(0,"generated/attention-$n",'--generate-attention',"$out/generated/attention-$n",$n);}
 $report->{status}='VERIFYING_ARTIFACTS';
-$report->{coverage}={frozen_fixtures=>scalar@frozen,index_and_sparse_lengths=>\@lengths,same_ID_attention_lengths=>\@attention,negative_control_exit_expected=>3};
+$report->{coverage}={frozen_fixtures=>scalar@frozen,index_and_sparse_lengths=>\@lengths,same_ID_attention_lengths=>\@attention,negative_control_exit_expected=>3,negative_parity_exit_expected=>3,quantizer_boundary_and_batch_fixtures=>JSON::PP::true};
 writefile("$out/report.json",$json->encode($report));
 my@artifacts;
 find({no_chdir=>1,wanted=>sub{

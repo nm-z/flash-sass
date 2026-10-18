@@ -64,6 +64,15 @@ FLT_EVAL_METHOD=0. It builds with -fno-fast-math, -ffp-contract=off and
 -frounding-math. Explicit candidate fmaf operations remain explicit.
 The host guard is tested under FE_DOWNWARD and then restored to FE_TONEAREST.
 
+In target mode the candidate adapters also compare their observed tensors
+byte for byte with the instruction-order scalar twins on the identical inputs.
+These local parity checks are a separate requirement from the numerical limits
+against the independent reference. A one-bit mismatch must fail even when it
+would fit inside an external numerical tolerance.
+Reports count the comparisons and failures separately. The required
+--negative-parity control passes the numerical limit but exits 3 after the
+same byte-parity gate rejects a one-ULP difference and opposite zero signs.
+
 The pinned indexer first accumulates the four-key mean in FP32 and casts it
 back to the raw-key dtype before RMSNorm. The frozen BF16 probe verifies that
 rounding boundary. RMSNorm uses the stored offset convention gamma=1+weight;
@@ -122,6 +131,26 @@ that loss. It checks scale/code/dequantization behavior independently and
 rejects nonfinite or out-of-range inputs. Production range handling remains
 the subject of #19.
 
+The separate quantizer fixture command runs in both CPU and target modes and
+preserves its inputs, INT8 codes, FP16 scale bits and reconstructed values:
+
+    kern/qsa_oracle --quantizer-test /tmp/qsa-quantizer-new-run
+
+The fixtures find adjacent FP32 input amplitudes whose complete scale
+computation rounds to FP16 zero and the smallest positive subnormal. They
+also cover zero, signed zero, the maximum admitted amplitude, invalid inputs,
+and 1, 15, 16, 17, 8191, 8192 and 8193 groups. The last three counts straddle
+the adapter's batch boundary. fixture.json records the adjacent input bits;
+each case retains the actual input, code, scale and reconstructed arrays.
+
+In target mode these fixtures and the attention fixtures use the existing
+ATTNQKQ V quantizer. That instruction sequence is shared with normalized K;
+feeding already-normalized fixture values through V isolates quantization
+from K normalization and RoPE. The adapter uses bounded batches, includes
+incomplete rows, and rejects unwritten code/scale sentinels. Dequantization of
+the observed device codes and scales runs on the host. This mode does not
+claim a measurement of the complete K append or gather path.
+
 Attention buffers contain finite zero padding over the complete partition
 sweep. Invalid K and V padding are rejected at the harness boundary.
 This does not establish arbitrary poisoned-padding safety in production SASS
@@ -141,6 +170,8 @@ Same-ID attention lengths are 1..4, 1023..1027, 2047..2052 and 8191..8193:
 The portable suite also checks six pinned cutoff fixtures, the BF16 boundary,
 index length 2052, and attention lengths 1,2,3,4,1025. The host arithmetic
 checks and required failing score control are separate invocations.
+The quantizer fixture matrix and required failing byte-parity control bring
+the portable full suite to 58 invocations.
 
 ## Target M60 path and shared-host rule
 
@@ -165,14 +196,14 @@ publish only the relevant sanitized evidence.
 
 The C adapter executes production IDXQK normalization/RoPE/pooling in bounded
 batches, IDXSCORE and five IDXSEL passes with the actual GPU-produced histogram,
-and ATTNPARTN/ATTNMERGE. It saves the observed candidate tensors and partials,
+ATTNQKQ quantization, and ATTNPARTN/ATTNMERGE. It saves the observed candidate tensors and partials,
 requires SM52, propagates CUDA failures, and records launches. A requested
 target fixture cannot silently use the CPU backend. A frozen zero-block
 index fixture is explicitly a no-op; generated length 1 still exercises
 target normalization and attention.
 
-Dense all-block selection and fixture construction run on the host. Device KV
-quantization and whole-model logits are not covered by this adapter. Compiling
+Dense all-block selection, dequantization and fixture construction run on the
+host. Whole-model logits are not covered by this adapter. Compiling
 against the CUDA stub library is a build-only check; do not put the stub
 directory in the runtime library search path.
 
@@ -203,8 +234,12 @@ runtime/build identities, full vocabulary coverage, and per-layer QSA
 selection/output diagnostics. The pinned GGUF repository/revision in the
 historical work is ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF at
 ed59f92082b1e93c0e96d60a8b11aab089b52f09; that metadata alone does not establish
-the original checkpoint or conversion lineage. Same-implementation placement
-comparisons and isolated block-3 captures from #9/#22 do not supply this gate.
+the original checkpoint or conversion lineage. Both installed Q2_0 shards
+have now been hashed on engi and match that revision's published LFS SHA-256
+identities; the [GGUF identity record](validation/issue11/resume/gguf-identity.json)
+preserves the observed hashes and makes the remaining provenance limits explicit.
+Same-implementation placement comparisons and isolated block-3 captures from
+#9/#22 do not supply this gate.
 
 ## Recorded evidence
 

@@ -4,6 +4,8 @@
 int qsaoracle_gpu_init(const char *cubin, int ordinal);
 void qsaoracle_gpu_finish(void);
 unsigned long qsaoracle_gpu_launch_count(void);
+/* Production ATTNQKQ V quantizer; dequantization is a host-side observation. */
+int qsaoracle_gpu_quant(const float *, unsigned, int8_t *, uint16_t *, float *);
 int qsaoracle_gpu_scores(const float *iq, const uint16_t *pool, unsigned nv,
                          float *scores);
 /* Returns UINT_MAX on error; dense bypass returns every ID without a launch. */

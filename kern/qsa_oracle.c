@@ -32,6 +32,29 @@ int qsaoracle_attention(const float *, const float *, const float *, unsigned,
 /* The candidate backend never supplies the independent reference arithmetic. */
 static int gpu_mode;
 static const char *capture_dir;
+static unsigned failures, metric_count, parity_checks, parity_failures;
+static void die(const char *s);
+static void check(int ok, const char *s);
+static void *alloc_(size_t n, size_t s);
+/* This gate is intentionally independent of the numerical-error limits.
+ * Keep the observed candidate tensors intact after a mismatch so the report
+ * and capture still show both the parity failure and the external error. */
+static void parity_(const char *name, const void *reference,
+                    const void *candidate, size_t bytes) {
+  if (!bytes)
+    return;
+  parity_checks++;
+  if (memcmp(reference, candidate, bytes)) {
+    const unsigned char *r = reference, *c = candidate;
+    size_t i = 0;
+    while (i < bytes && r[i] == c[i])
+      i++;
+    fprintf(stderr, "FAIL: local byte parity %s at byte %zu: %02x != %02x\n",
+            name, i, r[i], c[i]);
+    parity_failures++;
+    failures++;
+  }
+}
 static unsigned long gpu_launches_(void) {
 #ifdef QSA_ORACLE_TARGET
   if (gpu_mode)
@@ -44,16 +67,41 @@ static int candidate_index(const float *raw, unsigned n, const float *query,
                            const float *sn, float *iq, uint16_t *pool,
                            float *score) {
 #ifdef QSA_ORACLE_TARGET
-  if (gpu_mode)
-    return qsaoracle_gpu_index(raw, n, query, qn, kn, cs, sn, iq, pool, score);
+  if (gpu_mode) {
+    int rc = qsaoracle_gpu_index(raw, n, query, qn, kn, cs, sn, iq, pool, score);
+    if (rc)
+      return rc;
+    unsigned nv = n / 4;
+    float riq[512], *rs = alloc_(nv, sizeof *rs);
+    uint16_t *rp = alloc_((size_t)nv * 128, sizeof *rp);
+    if (qsaoracle_index(raw, n, query, qn, kn, cs, sn, riq, rp, rs))
+      die("scalar index parity execution failed");
+    parity_("index query", riq, iq, sizeof riq);
+    parity_("index pool", rp, pool, (size_t)nv * 128 * sizeof *rp);
+    parity_("index scores", rs, score, (size_t)nv * sizeof *rs);
+    free(rp);
+    free(rs);
+    return 0;
+  }
 #endif
   return qsaoracle_index(raw, n, query, qn, kn, cs, sn, iq, pool, score);
 }
 static unsigned candidate_select(const float *scores, unsigned nv,
                                  unsigned nblk, uint32_t *ids) {
 #ifdef QSA_ORACLE_TARGET
-  if (gpu_mode)
-    return qsaoracle_gpu_select(scores, nv, nblk, ids);
+  if (gpu_mode) {
+    unsigned got = qsaoracle_gpu_select(scores, nv, nblk, ids);
+    if (got == UINT_MAX)
+      return got;
+    unsigned count = nv < nblk ? nv : nblk;
+    uint32_t *ref = alloc_(count, sizeof *ref);
+    unsigned want = idx_select_gpu(scores, nv, nblk, ref);
+    check(got == want, "local selection count parity");
+    if (got == want)
+      parity_("selected IDs", ref, ids, (size_t)got * sizeof *ref);
+    free(ref);
+    return got;
+  }
 #endif
   return idx_select_gpu(scores, nv, nblk, ids);
 }
@@ -61,8 +109,23 @@ static unsigned candidate_scores_select(const float *iq, const uint16_t *pool,
                                         unsigned nv, unsigned nblk,
                                         float *scores, uint32_t *ids) {
 #ifdef QSA_ORACLE_TARGET
-  if (gpu_mode)
-    return qsaoracle_gpu_scores_select(iq, pool, nv, nblk, scores, ids);
+  if (gpu_mode) {
+    unsigned got = qsaoracle_gpu_scores_select(iq, pool, nv, nblk, scores, ids);
+    if (got == UINT_MAX)
+      return got;
+    unsigned count = nv < nblk ? nv : nblk;
+    float *rs = alloc_(nv, sizeof *rs);
+    uint32_t *ri = alloc_(count, sizeof *ri);
+    idx_scores_gpu(iq, pool, nv, rs);
+    unsigned want = idx_select_gpu(rs, nv, nblk, ri);
+    parity_("score-and-select scores", rs, scores, (size_t)nv * sizeof *rs);
+    check(got == want, "local score-and-select count parity");
+    if (got == want)
+      parity_("score-and-select IDs", ri, ids, (size_t)got * sizeof *ri);
+    free(rs);
+    free(ri);
+    return got;
+  }
 #endif
   idx_scores_gpu(iq, pool, nv, scores);
   return idx_select_gpu(scores, nv, nblk, ids);
@@ -71,16 +134,52 @@ static int candidate_attention(const float *q, const float *k, const float *v,
                                unsigned n, unsigned cap, const float *g,
                                float *out, float *pm, float *pd, float *po) {
 #ifdef QSA_ORACLE_TARGET
-  if (gpu_mode)
-    return qsaoracle_gpu_attention(q, k, v, n, cap, g, out, pm, pd, po);
+  if (gpu_mode) {
+    int rc = qsaoracle_gpu_attention(q, k, v, n, cap, g, out, pm, pd, po);
+    if (rc)
+      return rc;
+    float ro[6144], rm[192], rd[192], *rp = alloc_(49152, sizeof *rp);
+    if (qsaoracle_attention(q, k, v, n, cap, g, ro, rm, rd, rp))
+      die("scalar attention parity execution failed");
+    parity_("attention output", ro, out, sizeof ro);
+    parity_("attention partition maxima", rm, pm, sizeof rm);
+    parity_("attention partition denominators", rd, pd, sizeof rd);
+    parity_("attention partition numerators", rp, po, 49152 * sizeof *rp);
+    free(rp);
+    return 0;
+  }
 #endif
   return qsaoracle_attention(q, k, v, n, cap, g, out, pm, pd, po);
+}
+static int candidate_quant(const float *x, unsigned groups, int8_t *q,
+                           uint16_t *scales, float *deq) {
+#ifdef QSA_ORACLE_TARGET
+  if (gpu_mode) {
+    int rc = qsaoracle_gpu_quant(x, groups, q, scales, deq);
+    if (rc)
+      return rc;
+    size_t n = (size_t)groups * 32;
+    int8_t *rq = alloc_(n, sizeof *rq);
+    uint16_t *rs = alloc_(groups, sizeof *rs);
+    float *rd = alloc_(n, sizeof *rd);
+    if (qsaoracle_quant(x, groups, rq, rs, rd))
+      die("scalar quantizer parity execution failed");
+    parity_("quantizer codes", rq, q, n * sizeof *rq);
+    parity_("quantizer scales", rs, scales, (size_t)groups * sizeof *rs);
+    parity_("quantizer observed dequantization", rd, deq, n * sizeof *rd);
+    free(rq);
+    free(rs);
+    free(rd);
+    return 0;
+  }
+#endif
+  return qsaoracle_quant(x, groups, q, scales, deq);
 }
 #define qsaoracle_index candidate_index
 #define idx_select_gpu candidate_select
 #define qsaoracle_attention candidate_attention
+#define qsaoracle_quant candidate_quant
 
-static unsigned failures, metric_count;
 static void die(const char *s) {
   fprintf(stderr, "qsa_oracle: %s\n", s);
   exit(2);
@@ -222,14 +321,17 @@ static void record(const char *name, Metric m, double abs_limit,
 static void begin_(const char *type, unsigned n) {
   failures = 0;
   metric_count = 0;
+  parity_checks = parity_failures = 0;
   printf("{\"type\":\"%s\",\"length\":%u,\"metrics\":[", type, n);
 }
 static int end_(void) {
   printf("],\"failures\":%u,\"status\":\"%s\",\"candidate_backend\":\"%s\","
+         "\"local_parity_checks\":%u,\"local_parity_failures\":%u,"
          "\"gpu_launches\":%lu,\"gpu_executed\":%s,\"checkpoint_conformance\":"
          "false}\n",
          failures, failures ? "FAIL_NATIVE" : "PASS_NATIVE",
-         gpu_mode ? "SM52" : "CPU_SCALAR", gpu_launches_(),
+         gpu_mode ? "SM52" : "CPU_SCALAR", parity_checks, parity_failures,
+         gpu_launches_(),
          gpu_launches_() ? "true" : "false");
   return failures ? 3 : 0;
 }
@@ -890,6 +992,124 @@ static int self_test(int negative) {
   free(po);
   return end_();
 }
+static int negative_parity(void) {
+  begin_("negative_local_parity_control", 2);
+  float reference[2] = {1.f, 0.f}, candidate[2] = {nextafterf(1.f, INFINITY), -0.f};
+  record("one_ulp_within_numerical_limit",
+         measure(reference, 0, candidate, 0, 2), 3e-5, 3e-5, 1);
+  parity_("negative control one ULP", reference, candidate, sizeof(float));
+  parity_("negative control signed zero", reference + 1, candidate + 1,
+          sizeof(float));
+  return end_();
+}
+static int quantizer_test(const char *dir) {
+  if (mkdir(dir, 0755))
+    die("quantizer output directory must be new");
+  begin_("quantizer_boundaries_and_batches", 8193);
+  /* Search adjacent positive FP32 input amplitudes around the *complete*
+   * scale computation. Testing nextafter(2^-25) at the FP16 converter alone
+   * misses the preceding rounded FP32 multiply by 1/127. */
+  uint32_t lo = 0, hi = bits(127.f * 0x1p-24f);
+  while (hi - lo > 1) {
+    uint32_t mid = lo + (hi - lo) / 2;
+    float scale = fmaxf(unbits(mid), 0x1p-100f) * (1.f / 127.f);
+    if (half_(scale) == 0)
+      lo = mid;
+    else
+      hi = mid;
+  }
+  check(bits(nextafterf(unbits(lo), INFINITY)) == hi,
+        "quantizer transition uses adjacent FP32 inputs");
+  float amplitudes[] = {0.f, -0.f, 0x1p-100f, 1e-10f, 1e-6f,
+                        unbits(lo), unbits(hi), 1.f, 3000.f,
+                        65504.f * 127.f};
+  unsigned na = sizeof amplitudes / sizeof amplitudes[0];
+  const unsigned counts[] = {10, 1, 15, 16, 17, 8191, 8192, 8193};
+  check(na == counts[0], "boundary fixture covers every amplitude");
+  save_(dir, "amplitudes.f32", amplitudes, na, sizeof *amplitudes);
+  char metadata[512];
+  int bytes = snprintf(metadata, sizeof metadata,
+      "{\"schema\":\"flash-sass.quantizer-fixtures.v1\","
+      "\"zero_scale_input_bits\":%u,\"nonzero_scale_input_bits\":%u,"
+      "\"expected_scale_bits\":[0,1],"
+      "\"group_counts\":[10,1,15,16,17,8191,8192,8193],"
+      "\"device_path\":\"ATTNQKQ V quantizer\","
+      "\"dequantization_location\":\"host\"}\n", lo, hi);
+  if (bytes < 0 || (size_t)bytes >= sizeof metadata)
+    die("quantizer metadata size");
+  save_(dir, "fixture.json", metadata, (size_t)bytes, 1);
+  for (unsigned c = 0; c < sizeof counts / sizeof counts[0]; c++) {
+    unsigned groups = counts[c];
+    size_t n = (size_t)groups * 32;
+    float *x = alloc_(n, sizeof *x), *deq = alloc_(n, sizeof *deq);
+    int8_t *codes = alloc_(n, sizeof *codes);
+    uint16_t *scales = alloc_(groups, sizeof *scales);
+    for (unsigned b = 0; b < groups; b++) {
+      float a = amplitudes[c ? (b * 7 + c) % na : b];
+      for (unsigned d = 0; d < 32; d++) {
+        int value = (int)((b * 19 + d * 37) % 255) - 127;
+        x[(size_t)b * 32 + d] = ((float)value / 127.f) * a;
+      }
+      x[(size_t)b * 32] = -a;
+      x[(size_t)b * 32 + 1] = a;
+      x[(size_t)b * 32 + 2] = 0.f;
+      x[(size_t)b * 32 + 3] = -0.f;
+    }
+    if (qsaoracle_quant(x, groups, codes, scales, deq))
+      die("quantizer fixture execution failed");
+    for (unsigned b = 0; b < groups; b++) {
+      float g = 0x1p-100f;
+      for (unsigned d = 0; d < 32; d++)
+        g = fmaxf(g, fabsf(x[(size_t)b * 32 + d]));
+      uint16_t want_scale = half_(g * (1.f / 127.f));
+      float inv = (1.f / g) * 127.f;
+      check(scales[b] == want_scale, "independent full quantizer scale");
+      for (unsigned d = 0; d < 32; d++) {
+        size_t i = (size_t)b * 32 + d;
+        float code = nearbyintf(x[i] * inv);
+        check(code >= -127.f && code <= 127.f && (float)codes[i] == code,
+              "independent full quantizer code");
+        float want = (float)codes[i] * unhalf_(want_scale);
+        check(bits(deq[i]) == bits(want),
+              "independent full quantizer reconstruction bits");
+      }
+    }
+    if (!c) {
+      check(scales[5] == 0 && scales[6] == 1,
+            "adjacent amplitudes cross actual quantizer zero-scale boundary");
+      check(codes[5 * 32 + 1] == 127 && deq[5 * 32 + 1] == 0.f &&
+                codes[6 * 32 + 1] == 127 && deq[6 * 32 + 1] > 0.f,
+            "nonzero codes expose zero-scale information loss");
+    }
+    char name[64], subdir[4096];
+    snprintf(name, sizeof name, "case-%u-groups-%u", c, groups);
+    path_(subdir, sizeof subdir, dir, name);
+    if (mkdir(subdir, 0755))
+      die("quantizer case directory must be new");
+    save_(subdir, "input.f32", x, n, sizeof *x);
+    save_(subdir, "codes.i8", codes, n, sizeof *codes);
+    save_(subdir, "scales.u16", scales, groups, sizeof *scales);
+    save_(subdir, "reconstructed.f32", deq, n, sizeof *deq);
+    record(name, measure(x, 0, deq, 0, n), DBL_MAX, DBL_MAX, 0);
+    free(x);
+    free(deq);
+    free(codes);
+    free(scales);
+  }
+  check(!qsaoracle_quant(NULL, 0, NULL, NULL, NULL),
+        "empty quantizer is a no-op");
+  const float invalid[] = {NAN, INFINITY, -INFINITY,
+                           nextafterf(65504.f * 127.f, INFINITY)};
+  float x[32] = {0}, deq[32];
+  int8_t codes[32];
+  uint16_t scale;
+  for (unsigned i = 0; i < sizeof invalid / sizeof invalid[0]; i++) {
+    x[0] = invalid[i];
+    check(qsaoracle_quant(x, 1, codes, &scale, deq) != 0,
+          "quantizer boundary rejects nonfinite/out-of-range input");
+  }
+  return end_();
+}
 static void full_chain_check(const char *dir, const float *expected) {
   unsigned n = 2052, nv = 513;
   float *raw = read_(dir, "raw_keys.f32", (size_t)n * 128, 4),
@@ -1088,6 +1308,8 @@ int main(int argc, char **argv) {
     return self_test(0);
   if (argc == 2 && !strcmp(argv[1], "--negative-score"))
     return self_test(1);
+  if (argc == 2 && !strcmp(argv[1], "--negative-parity"))
+    return negative_parity();
   if (argc == 3 && !strcmp(argv[1], "--bf16"))
     return frozen_bf16(argv[2]);
   capture_dir = getenv("QSA_ORACLE_CAPTURE_DIR");
@@ -1112,6 +1334,8 @@ int main(int argc, char **argv) {
 #endif
   }
 
+  if (argc == 3 && !strcmp(argv[1], "--quantizer-test"))
+    return quantizer_test(argv[2]);
   if (argc == 4) {
     unsigned n = count_(argv[3]);
     if (!strcmp(argv[1], "--generate-index"))
@@ -1129,7 +1353,8 @@ int main(int argc, char **argv) {
     if (!strcmp(argv[1], "--sparse"))
       return frozen_sparse(argv[2], n);
   }
-  die("usage: qsa_oracle --self-test | --negative-score | --bf16 DIR | "
+  die("usage: qsa_oracle --self-test | --negative-score | --negative-parity | "
+      "--bf16 DIR | --quantizer-test DIR | "
       "--cutoff|--full-chain|--index|--attention|--sparse|--generate-index|--"
       "generate-attention DIR LENGTH");
   return 2;

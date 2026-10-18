@@ -1,11 +1,12 @@
 /* Target-SM52 candidate adapter for the independent native QSA oracle.
  * Executes IDXQK (normalization, RoPE, pooling), IDXSCORE, sparse IDXSEL,
- * ATTNPARTN and ATTNMERGE. Host validation, dense all-block selection,
- * dequantization and fixture construction are not GPU measurements.
- * Whole-checkpoint logits and device KV quantization are outside this adapter.
+ * ATTNQKQ quantization, ATTNPARTN and ATTNMERGE. Host validation, dense
+ * all-block selection, dequantization and fixture construction are not GPU
+ * measurements. Whole-checkpoint logits are outside this adapter.
  */
 #include "qsa_oracle_gpu.h"
 #include "attn.h"
+#include "qsa.h"
 #include "dieops.h"
 #include <cuda.h>
 #include <limits.h>
@@ -119,6 +120,110 @@ done:
   return status;
 }
 unsigned long qsaoracle_gpu_launch_count(void) { return launch_count; }
+int qsaoracle_gpu_quant(const float *x, unsigned groups, int8_t *codes,
+                        uint16_t *scales, float *dequantized) {
+  enum { BATCH = 512 };
+  enum { VALUE, QUERY, KEY, NORM, CS, SN, QOUT, KQ, VQ, KS, VS, NBUF };
+  /* Values are already at the quantizer boundary. ATTNQKQ uses the same
+   * production q8 sequence for V and normalized K. Feeding these fixtures
+   * into V isolates that sequence from K normalization and RoPE. Each
+   * descriptor uses position zero and its own V output pointers; bounded
+   * batches do not allocate a cache at the fixture's context length. */
+  CUdeviceptr p[NBUF] = {0};
+  float *staging = NULL;
+  gpu_desc *d = NULL;
+  int status = -1;
+  if (!context || groups > 262144u * 16u)
+    return -1;
+  if (!groups)
+    return 0;
+  if (!x || !codes || !scales || !dequantized)
+    return -1;
+  for (size_t i = 0; i < (size_t)groups * 32; i++)
+    if (!isfinite(x[i]) || fabsf(x[i]) > 65504.f * 127.f)
+      return -1;
+  staging = calloc((size_t)BATCH * 512, sizeof *staging);
+  d = malloc((size_t)BATCH * sizeof *d);
+  if (!staging || !d)
+    goto done;
+  float norm[256], cosine[32];
+  for (unsigned i = 0; i < 256; i++)
+    norm[i] = 1.f;
+  for (unsigned i = 0; i < 32; i++)
+    cosine[i] = 1.f;
+  TRY(cuMemAlloc(&p[VALUE], (size_t)BATCH * 512 * 4));
+  TRY(cuMemAlloc(&p[QUERY], 12288 * 4));
+  TRY(cuMemAlloc(&p[KEY], 512 * 4));
+  TRY(cuMemAlloc(&p[NORM], 256 * 4));
+  TRY(cuMemAlloc(&p[CS], 32 * 4));
+  TRY(cuMemAlloc(&p[SN], 32 * 4));
+  TRY(cuMemAlloc(&p[QOUT], 6144 * 4));
+  TRY(cuMemAlloc(&p[KQ], 512));
+  TRY(cuMemAlloc(&p[VQ], (size_t)BATCH * 512));
+  TRY(cuMemAlloc(&p[KS], 16 * 2));
+  TRY(cuMemAlloc(&p[VS], (size_t)BATCH * 16 * 2));
+  TRY(cuMemsetD8(p[QUERY], 0, 12288 * 4));
+  TRY(cuMemsetD8(p[KEY], 0, 512 * 4));
+  TRY(cuMemcpyHtoD(p[NORM], norm, 256 * 4));
+  TRY(cuMemcpyHtoD(p[CS], cosine, 32 * 4));
+  TRY(cuMemsetD8(p[SN], 0, 32 * 4));
+  const float epsilon = 1e-6f;
+  uint32_t epsilon_bits;
+  memcpy(&epsilon_bits, &epsilon, sizeof epsilon_bits);
+  for (unsigned base = 0; base < groups;) {
+    unsigned count = groups - base;
+    if (count > BATCH * 16u)
+      count = BATCH * 16u;
+    unsigned rows = (count + 15) / 16;
+    memset(staging, 0, (size_t)rows * 512 * 4);
+    memcpy(staging, x + (size_t)base * 32, (size_t)count * 32 * 4);
+    for (unsigned i = 0; i < rows; i++) {
+      init_desc(&d[i], OP_ATTNQKQ, 26);
+      ptr(&d[i], 0x140, p[QUERY]);
+      ptr(&d[i], 0x148, p[KEY]);
+      ptr(&d[i], 0x150, p[VALUE] + (size_t)i * 512 * 4);
+      ptr(&d[i], 0x158, p[NORM]);
+      ptr(&d[i], 0x160, p[NORM]);
+      ptr(&d[i], 0x168, p[CS]);
+      ptr(&d[i], 0x170, p[SN]);
+      ptr(&d[i], 0x178, p[QOUT]);
+      ptr(&d[i], 0x180, p[KQ]);
+      ptr(&d[i], 0x188, p[VQ] + (size_t)i * 512);
+      u32(&d[i], 0x190, 0);
+      u32(&d[i], 0x194, epsilon_bits);
+      ptr(&d[i], 0x198, p[KS]);
+      ptr(&d[i], 0x1a0, p[VS] + (size_t)i * 16 * 2);
+    }
+    TRY(cuMemcpyHtoD(p[VALUE], staging, (size_t)rows * 512 * 4));
+    /* -128 and a NaN scale cannot be valid finite-domain quantizer output. */
+    TRY(cuMemsetD8(p[VQ], 0x80, (size_t)rows * 512));
+    TRY(cuMemsetD16(p[VS], 0x7e00, (size_t)rows * 16));
+    if (run(d, rows, 0))
+      goto done;
+    TRY(cuMemcpyDtoH(codes + (size_t)base * 32, p[VQ], (size_t)count * 32));
+    TRY(cuMemcpyDtoH(scales + base, p[VS], (size_t)count * 2));
+    for (unsigned b = 0; b < count; b++) {
+      uint16_t h = scales[base + b];
+      if ((h & 0x7c00u) == 0x7c00u || (h & 0x8000u))
+        goto done;
+      float scale = qsa_h2f(h);
+      for (unsigned i = 0; i < 32; i++) {
+        size_t at = (size_t)(base + b) * 32 + i;
+        if (codes[at] == INT8_MIN)
+          goto done;
+        dequantized[at] = (float)codes[at] * scale;
+      }
+    }
+    base += count;
+  }
+  status = 0;
+done:
+  if (release(p, NBUF))
+    status = -1;
+  free(staging);
+  free(d);
+  return status;
+}
 static int score_and_select(const float *iq, const uint16_t *pool, unsigned nv,
                             unsigned nblk, float *scores, uint32_t *ids) {
   int status = -1;
