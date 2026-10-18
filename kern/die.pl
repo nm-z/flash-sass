@@ -212,18 +212,28 @@ if (@ARGV && $ARGV[0] eq 'header') {
     print "static const char *const die_opname[] __attribute__((unused)) = { ", join(', ', map { "\"$_->[0]\"" } @OPS), " };\n#endif\n";
     exit 0;
 }
+require './trace.pl';
 my $maps = '';
 my $body = '';
 my $dispatch = '';
 for my $k (0 .. $#OPS) {
     my ($tag, $file, $kind, $env) = @{$OPS[$k]};
     my $op = load_op($tag, $file, $env);
+    if ($tag eq 'plerows' && $ENV{DIE_TRACE}) {
+        # Hash inputs in R18..R25 are dead here; the wait's live pointers and
+        # predicates use other registers. Keep the standalone op unchanged.
+        my $begin = trace_code(5, $TOK_OFF);
+        my $end = trace_code(6, $TOK_OFF);
+        $op->{code} =~ s/(plerows_WAITRDY:)/$begin$1/ or die 'PLE wait label missing';
+        $op->{code} =~ s/([^\n]*BRA plerows_WAITRDY;\n)/$1$end/ or die 'PLE wait branch missing';
+    }
     $maps .= $op->{map};
     $dispatch .= sprintf "--:-:-:-:6      ISETP.EQ.U32.AND P6, PT, op, 0x%x, PT;\n", $k;
     $dispatch .= "--:-:-:-:6      NOP;\n" x 3;
     $dispatch .= "--:-:-:-:6  \@P6 BRA ${tag}_SETUP;\n";
     my $step = $kind eq 'cta' ? $NCTA : 8 * $NCTA;
     $body .= "\n${tag}_SETUP:\n";
+    $body .= trace_code(8, $TOK_OFF, "8_${tag}");
     if ($kind eq 'cta') {
         $body .= "--:-:-:-:6      MOV vid, cta;\n";
         $body .= "--:-:-:-:6      MOV vtid, tid;\n";
@@ -249,6 +259,9 @@ for my $k (0 .. $#OPS) {
     $body .= "--:-:-:-:6      BRA POSITION_END;\n";
 }
 
+my @trace = map { trace_code($_, $TOK_OFF, undef, $FLAGS_OFF) } 0..10;
+my $unknown_body = trace_code(8, $TOK_OFF, '8_unknown');
+my $trace_send_fence = $ENV{DIE_TRACE} ? "02:-:-:-:6  \@P4 MEMBAR.SYS;\n" : '';
 print <<"EOF";
 # Kernel: die
 #
@@ -279,6 +292,7 @@ print <<"EOF";
     13    : op
     14,15 : fw<0-1>
     16,17 : dsp<0-1>
+    18,19 : traceclock<0-1>
     18    : bar_g
     19    : bar_g2
     20    : bar_old
@@ -294,6 +308,12 @@ print <<"EOF";
     28,29 : xg<0-1>
     30,31 : xh<0-1>
     32,33 : xi<0-1>
+    34,35 : tr_fw<0-1>
+    36,37 : tr_cp<0-1>
+    38,39 : tr_clock<0-1>
+    40    : tr_old
+    41    : tr_t
+    42    : tr_one
 $maps</REGISTER_MAPPING>
 
 --:-:6:-:1      S2R tid, SR_TID.X;
@@ -337,7 +357,7 @@ $maps</REGISTER_MAPPING>
 --:-:4:-:2 \@!P6 LDG.E vid, [dsp+0x7c];
 
 PHASE:
-# descriptor -> smem (warp 0, lane = word; the words were prefetched); word 31 is a
+$trace[0]# descriptor -> smem (warp 0, lane = word; the words were prefetched); word 31 is a
 # mask of the parameter words that get the token counter added
 01:-:-:-:6      ISETP.LT.U32.AND P6, PT, tid, 0x20, PT;
 --:-:-:-:6      SHL op, lane, 0x2;
@@ -397,7 +417,7 @@ PAIR_LOADED:
 --:-:1:-:1      LDS op, [RZ+0x@{[sprintf '%x', $DESC_OFF]}];
 --:-:1:-:2      LDS units, [RZ+0x@{[sprintf '%x', $DESC_OFF + 4]}];
 01:-:-:-:6      NOP;
-# ---- exchange wait (descriptor word 30 bit 1): warp 0 of every CTA polls this die's
+$trace[1]# ---- exchange wait (descriptor word 30 bit 1): warp 0 of every CTA polls this die's
 # flags (ctl[28..29] -> u32[6][16], one per sending die and CTA; absent dies hold ~0;
 # lane l reads words l, l + 32, l + 64) until all 96 read >= the exchange count (XG
 # in shared memory), invalidates L1, and the CTA syncs ----
@@ -433,10 +453,11 @@ XWSPIN:
 XWBAR:
 --:-:-:-:6      BAR.SYNC 0x1;
 XWDONE:
-OP_DISPATCH:
-$dispatch--:-:-:-:6      BRA POSITION_END;
+$trace[2]OP_DISPATCH:
+$dispatch$unknown_body--:-:-:-:6      BRA POSITION_END;
 $body
 POSITION_END:
+$trace[3]# Body completion precedes the framework's position and grid barriers.
 # Units of a stateful op belong to the same CTA for both positions. Finish every
 # unit and make its writes visible before replaying this op with position 1.
 # Independent ops also take this path; the grid barrier and peer flags happen
@@ -550,6 +571,7 @@ PHASE_END:
 --:-:-:-:6      IADD xi0.CC, xi0, units;
 --:-:-:-:6      IADD.X xi1, xi1, RZ;
 --:-:-:-:6      ISETP.EQ.U32.AND P2, PT, cta, RZ, P4;
+$trace[9]# Profiling brackets the six flag stores without clobbering live peer pointers.
 --:2:-:-:1  \@P4 STG.E.WT [xc], op;
 --:2:-:-:1  \@P4 STG.E.WT [xd], op;
 --:2:-:-:1  \@P4 STG.E.WT [xf], op;
@@ -558,6 +580,7 @@ PHASE_END:
 --:2:-:-:1  \@P4 STG.E.WT [xi], op;
 --:2:-:-:1  \@P4 STS [RZ+0x@{[sprintf '%x', $XG_OFF]}], op;
 --:2:-:-:6  \@P2 STG.E [bar_cp+0x20], op;
+$trace_send_fence$trace[10]# The profiling-only system fence completes publication before the upper bracket.
 BSPIN:
 --:-:1:-:2  \@P3 LDG.E.CV bar_g2, [xa+0x80];
 01:-:-:-:6      ISETP.GE.U32.AND P4, PT, bar_g2, bar_g, PT;
@@ -586,7 +609,7 @@ BDONE:
 --:-:-:-:6      IADD.X bar_cp1, bar_cp1, RZ;
 --:-:6:-:2  \@P4 S2R bar_g2, SR_GLOBALTIMERLO;
 20:-:-:-:6  \@P4 STG.E [bar_cp+0x100], bar_g2;
-# ---- next phase ----
+$trace[4]# ---- next phase ----
 --:-:1:-:2      LDS bar_t, [RZ+0x@{[sprintf '%x', $STEP_OFF]}];
 01:-:-:-:6      IADD pidx, pidx, bar_t;
 --:-:-:-:6      ISETP.LT.U32.AND P6, PT, pidx, nph, PT;
@@ -630,6 +653,7 @@ BDONE:
 --:2:-:-:6 \@!P5 STS [RZ+0x@{[sprintf '%x', $TOK_OFF]}], bar_t;
 --:2:-:-:6  \@P4 STG.E [bar_cp+0x8], bar_t;
 02:-:-:-:6      BAR.SYNC 0x1;
+$trace[7]# publication sample uses the completed position and last phase slot
 --:-:1:-:2      LDS bar_t, [RZ+0x@{[sprintf '%x', $TOK_OFF]}];
 --:-:-:-:6      MOV pidx, RZ;
 01:-:-:-:6      ISETP.LT.U32.AND P6, PT, bar_t, param_ntok, PT;

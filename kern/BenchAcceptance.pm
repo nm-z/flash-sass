@@ -6,6 +6,7 @@ use JSON::PP;
 use File::Basename qw(basename);
 use File::Copy qw(copy);
 use File::Path qw(make_path);
+use POSIX qw(isfinite);
 our @DEPTHS = (2048,2051,2052,3100,8000,65000,262000);
 my $json = JSON::PP->new->canonical;
 sub uint { defined($_[0]) && !ref($_[0]) && $_[0] =~ /\A[0-9]+\z/ }
@@ -42,7 +43,7 @@ sub capabilities {
         die "$name invalid capacity or die count\n"
             unless uint($c->{maxt}) && $c->{maxt}>0 && uint($c->{dies}) && $c->{dies}>0;
         if ($trace) {
-            die "$name lacks schema-2 phase tracing from PR #30\n"
+            die "$name lacks the integrated schema-2 phase tracing runtime\n"
                 unless ($c->{trace_schema}//'') eq '2';
             die "$name insufficient trace capacity\n"
                 unless uint($c->{trace_tokens}) && $c->{trace_tokens} >= $outputs;
@@ -193,14 +194,10 @@ sub validate_collected_row {
     return 1;
 }
 
-sub compare_attribution {
-    my ($out,$manifest,$rows,$directory) = @_;
-    my $other=PairedDepthBench::load_json("$directory/manifest.json");
-    my $state=PairedDepthBench::load_json("$directory/status.json");
-    die "attribution record was not collected successfully\n"
-        unless ($state->{collection_complete}//0) && ($other->{mode}//'') eq 'attribution';
+sub matching_runtime {
+    my ($manifest,$other,$context) = @_;
     for my $field (qw(source_sha source_dirty_sha256 weights sampling policy prompt_ids_sha256 tensors)) {
-        die "unexplained throughput/attribution difference: $field\n"
+        die "unexplained $context difference: $field\n"
             unless exists($manifest->{$field}) && exists($other->{$field})
             && $json->encode($manifest->{$field}) eq $json->encode($other->{$field});
     }
@@ -209,25 +206,34 @@ sub compare_attribution {
     for my $role (qw(executable library)) {
         my $a=$manifest->{provenance}{artifacts}{$role}{sha256};
         my $b=$other->{provenance}{artifacts}{$role}{sha256};
-        die "throughput/attribution $role identity differs or is absent\n"
+        die "$context $role identity differs or is absent\n"
             unless defined($a) && defined($b) && $a eq $b;
     }
     for my $name(qw(host vram)) {
         my $a=$manifest->{provenance}{core_launch_records}{$name};
         my $b=$other->{provenance}{core_launch_records}{$name};
-        die "throughput/attribution launch records absent\n" unless ref($a) eq 'HASH' && ref($b) eq 'HASH';
+        die "$context launch records absent\n" unless ref($a) eq 'HASH' && ref($b) eq 'HASH';
         for my $field(qw(launch_environment engine_reload_commands ple_cache_conditions)) {
             my $av=$a->{$field};my $bv=$b->{$field};
             if($field eq 'launch_environment') {
-                die "throughput/attribution launch environment absent\n" unless ref($av) eq 'HASH' && ref($bv) eq 'HASH';
+                die "$context launch environment absent\n" unless ref($av) eq 'HASH' && ref($bv) eq 'HASH';
                 $av={%$av};$bv={%$bv};
                 delete @$av{qw(FLASH_TRACE FLASH_TRACE_CTAS FLASH_CUBIN FLASH_SOCK)};
                 delete @$bv{qw(FLASH_TRACE FLASH_TRACE_CTAS FLASH_CUBIN FLASH_SOCK)};
             }
-            die "unexplained throughput/attribution launch difference: $name.$field\n"
+            die "unexplained $context launch difference: $name.$field\n"
                 unless defined($av) && defined($bv) && $json->encode($av) eq $json->encode($bv);
         }
     }
+}
+
+sub compare_attribution {
+    my ($out,$manifest,$rows,$directory) = @_;
+    my $other=PairedDepthBench::load_json("$directory/manifest.json");
+    my $state=PairedDepthBench::load_json("$directory/status.json");
+    die "attribution record was not collected successfully\n"
+        unless ($state->{collection_complete}//0) && ($other->{mode}//'') eq 'attribution';
+    matching_runtime($manifest,$other,'throughput/attribution');
     my $tr=PairedDepthBench::load_json("$directory/results.json");
     my (%trace,%raw_files);
     for my $r (@$tr) {
@@ -374,20 +380,34 @@ sub context_increments {
     PairedDepthBench::save("$out/context-increments.json",\@report);
 }
 
+sub counter_pointer {
+    my ($node,$pointer) = @_;
+    die "invalid counter JSON pointer\n" unless defined($pointer) && !ref($pointer)
+        && ($pointer eq '' || $pointer =~ m{\A/});
+    return $node if $pointer eq '';
+    my @parts=$pointer eq '/' ? ('') : split(m{/},substr($pointer,1),-1);
+    for my $part (@parts) {
+        die "invalid counter JSON pointer escape\n" if $part =~ /~(?![01])/;
+        $part =~ s/~1/\//g; $part =~ s/~0/~/g;
+        if (ref($node) eq 'HASH') {
+            die "counter JSON pointer member absent\n" unless exists($node->{$part});
+            $node=$node->{$part};
+        } elsif (ref($node) eq 'ARRAY') {
+            die "invalid counter JSON pointer index\n" unless $part =~ /\A(?:0|[1-9][0-9]*)\z/
+                && $part < @$node;
+            $node=$node->[$part];
+        } else { die "counter JSON pointer traverses a scalar\n"; }
+    }
+    return $node;
+}
+
 sub profiler_record {
     my($record,$manifest,$out)=@_;
     BenchManifest::safe($record,'profiler record');
     die "profiler record must identify a separate collection\n"
-        unless ref($record) eq 'HASH' && ($record->{schema}//0)==1
+        unless ref($record) eq 'HASH' && ($record->{schema}//0)==2
         && ($record->{scope}//'') eq 'separate_profiler';
-    for my $field(qw(source_sha source_dirty_sha256 prompt_ids_sha256)) {
-        die "profiler identity mismatch: $field\n"
-            unless ($record->{$field}//'') eq ($manifest->{$field}//'');
-    }
-    for my $field(qw(weights sampling policy)) {
-        die "profiler workload mismatch: $field\n"
-            unless exists($record->{$field}) && $json->encode($record->{$field}) eq $json->encode($manifest->{$field});
-    }
+    matching_runtime($manifest,$record,'throughput/profiler');
     for my $name(qw(host vram)) {
         my $c=$record->{configs}{$name};
         die "profiler runtime config absent: $name\n" unless ref($c) eq 'HASH';
@@ -403,25 +423,54 @@ sub profiler_record {
             && !(grep {!defined($_)||ref($_)||!length($_)} @{$c->{argv}});
     }
     die "profiler raw files missing\n" unless ref($record->{raw_files}) eq 'ARRAY' && @{$record->{raw_files}};
-    my $index=0;
+    my $index=0; my %verified;
     make_path("$out/profiler") if defined($out);
     for my $raw(@{$record->{raw_files}}) {
+        die "invalid profiler raw identity\n" unless ref($raw) eq 'HASH';
         my $actual=PairedDepthBench::identity($raw->{path});
         die "profiler raw file identity mismatch\n" unless $actual->{sha256} eq ($raw->{sha256}//'')
             && defined($raw->{bytes}) && $actual->{bytes}==$raw->{bytes};
+        my $verified_path=$raw->{path};
         if(defined($out)) {
             my $path='profiler/'.(++$index).'-'.basename($raw->{path});
             copy($raw->{path},"$out/$path") or die "copy profiler raw file: $!\n";
             die "profiler raw file changed while copying\n" unless PairedDepthBench::sha("$out/$path") eq $raw->{sha256};
             $raw->{archive_path}=$path;
+            $verified_path="$out/$path";
         }
+        $verified{$raw->{sha256}}=$verified_path;
     }
     die "profiler counters missing\n" unless ref($record->{counters}) eq 'ARRAY' && @{$record->{counters}};
+    my (%decoded,%seen,@accepted);
     for my $c(@{$record->{counters}}) {
-        die "invalid profiler counter\n" unless ref($c) eq 'HASH' && length($c->{name}//'')
-            && length($c->{unit}//'') && defined($c->{value}) && !ref($c->{value})
-            && $c->{value}=~/\A-?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?\z/;
+        die "invalid profiler counter\n" unless ref($c) eq 'HASH'
+            && defined($c->{name}) && !ref($c->{name}) && length($c->{name})
+            && defined($c->{unit}) && !ref($c->{unit}) && length($c->{unit});
+        die "profiler counter value must come from raw evidence\n" if exists($c->{value});
+        my $e=$c->{evidence};
+        die "profiler counter evidence missing\n" unless ref($e) eq 'HASH'
+            && defined($e->{raw_sha256}) && !ref($e->{raw_sha256})
+            && exists($verified{$e->{raw_sha256}})
+            && defined($e->{json_pointer}) && !ref($e->{json_pointer});
+        my $sha=$e->{raw_sha256};
+        die "duplicate profiler counter evidence\n" if $seen{"$sha\0$e->{json_pointer}"}++;
+        if (!exists($decoded{$sha})) {
+            my $bytes=PairedDepthBench::read_text($verified{$sha});
+            die "profiler counter bytes changed\n" unless sha256_hex($bytes) eq $sha;
+            $decoded{$sha}=$json->decode($bytes);
+        }
+        my $raw=counter_pointer($decoded{$sha},$e->{json_pointer});
+        die "profiler counter pointer must select a record\n" unless ref($raw) eq 'HASH';
+        for my $field(qw(name unit)) {
+            die "profiler counter $field disagrees with raw evidence\n"
+                unless defined($raw->{$field}) && !ref($raw->{$field}) && $raw->{$field} eq $c->{$field};
+        }
+        my $v=$raw->{value};
+        die "invalid raw profiler counter value\n" unless defined($v) && !ref($v)
+            && $v=~/\A-?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?\z/
+            && isfinite(0+$v);
+        push @accepted,{name=>$raw->{name},unit=>$raw->{unit},value=>$v,evidence=>{%$e}};
     }
-    return $record;
+    return {%$record,counters=>\@accepted};
 }
 1;

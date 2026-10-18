@@ -49,11 +49,14 @@ it does not make an occupied service or its memory available.
 
 Use the same arguments with **--trace**, a separate output directory, and
 the instrumented cubin. Omit --attribution-run for this collection itself.
-The engine must include this follow-up's metadata protocol and the schema-2
-trace runtime tracked by [PR #30](https://github.com/nm-z/flash-sass/pull/30).
+This branch includes the metadata protocol and schema-2 trace producer,
+integrated from [PR #30 at 257ea63c](https://github.com/nm-z/flash-sass/pull/30/commits/257ea63c6cc431e3a3c5b32f52ce0cfdfb8bfdff).
+Build the ordinary and instrumented images with `make -C kern die.cubin
+die_trace.cubin`; see [phase trace documentation](docs/phase-trace.md) for
+the full trace ABI and build prerequisites.
 
-PR #30's setting is FLASH_TRACE, reported as trace_tokens. For 129 outputs,
-use FLASH_TRACE=129 and FLASH_TRACE_CTAS=1. That runtime limits
+The runtime setting is FLASH_TRACE, reported as trace_tokens. For 129 outputs,
+use FLASH_TRACE=129 and FLASH_TRACE_CTAS=1. The runtime limits
 FLASH_TRACE * FLASH_TRACE_CTAS to 256. Sixteen-CTA captures therefore
 support short diagnostic windows, rather than the full acceptance window.
 
@@ -181,14 +184,36 @@ automatic semantic judge.
 
 ### Separate profiler evidence
 
-The profiler record has schema=1, scope=separate_profiler and matching
+The profiler record has schema=2, scope=separate_profiler and matching
 source_sha, source_dirty_sha256, prompt_ids_sha256, weights, sampling,
-policy and per-placement configs. It also contains:
+policy, tensors, per-placement configs and provenance. Executable/library
+hashes, launch environment, reload history and PLE cache conditions must match
+throughput; only the explicitly named tracing settings may differ. It also contains:
 
 - explicit instrumentation settings;
 - commands with exact argv arrays and successful exit codes;
 - raw_files with readable paths, bytes and sha256 identities;
-- nonempty counters with name, unit and finite numeric value.
+- nonempty counters with name, unit and an evidence reference to a raw record.
+
+Each counter's evidence names raw_sha256 from raw_files and a JSON pointer
+selecting a name/unit/value object in those verified bytes. For example:
+
+~~~json
+{"name":"dram_read_bytes","unit":"bytes",
+ "evidence":{"raw_sha256":"<actual report SHA256>","json_pointer":"/counters/0"}}
+~~~
+
+The raw JSON record supplies the finite numeric value; a decimal string
+preserves integers above 2^53. The runner rehashes the bytes it parses, verifies
+name/unit, rejects duplicate references and writes the extracted value to its
+accepted record. Input counters must not contain a separate declared value.
+Schema 1's unbound declarations cannot satisfy acceptance.
+
+Use a profiler's compatible JSON output directly, or preserve a small derived
+JSON counter export together with the original report and the adapter's identity,
+exact command and exit status. Describe derived exports in instrumentation.
+References identify which retained bytes supplied each counter; the operator
+remains responsible for supplying actual collector output.
 
 Preserve actual raw reports and available-metric queries. Collect counters
 separately from throughput. Phase durations already include memory stalls;

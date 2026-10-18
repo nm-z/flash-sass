@@ -1,10 +1,13 @@
 # build output
 *.cubin
+*.cubin.new
 *.dis
 *.so
 *.so.new
 *.o
 kern/die.sass
+kern/die_trace.sass
+kern/die_trace16.sass
 kern/dieops.h
 # the MaxAs checkout (patches are in maxas-patch/)
 maxas/

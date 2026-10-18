@@ -213,16 +213,55 @@ subtest 'separate evidence is revalidated and copied into the run' => sub {
     open my $f,'>>:raw',"$other/host.csv.gz" or die $!;print {$f} 'changed';close $f;
     rejects(sub{BenchAcceptance::compare_attribution($out,$m,\@rows,$other)},'changed raw trace rejected');
 
-    my $raw=PairedDepthBench::identity("$other/vram.csv.gz");
-    my $prof={schema=>1,scope=>'separate_profiler',map {$_=>$m->{$_}} qw(source_sha source_dirty_sha256 prompt_ids_sha256 weights sampling policy configs)};
+    my $counter_path="$other/counters.json";
+    PairedDepthBench::save($counter_path,{counters=>[
+        {name=>'fixture_counter',unit=>'count',value=>'9007199254740993'}]});
+    my $raw=PairedDepthBench::identity($counter_path);
+    my $prof={schema=>2,scope=>'separate_profiler',map {$_=>$m->{$_}}
+        qw(source_sha source_dirty_sha256 prompt_ids_sha256 weights tensors sampling policy configs provenance)};
     $prof->{instrumentation}={tool=>'CPU parser fixture only'};
     $prof->{commands}=[{argv=>['fixture-counter-collector'],exit=>0}];
-    $prof->{raw_files}=[$raw];$prof->{counters}=[{name=>'fixture_counter',unit=>'count',value=>1}];
-    BenchAcceptance::profiler_record($prof,$m,$out);
-    ok(-f "$out/profiler/1-vram.csv.gz",'profiler raw file copied');
+    $prof->{raw_files}=[$raw];$prof->{counters}=[{name=>'fixture_counter',unit=>'count',
+        evidence=>{raw_sha256=>$raw->{sha256},json_pointer=>'/counters/0'}}];
+    my $accepted=BenchAcceptance::profiler_record($prof,$m,$out);
+    ok(-f "$out/profiler/1-counters.json",'profiler raw file copied');
+    is($accepted->{counters}[0]{value},'9007199254740993','counter comes from exact raw bytes above 2^53');
+    ok(!exists($prof->{counters}[0]{value}),'normalization does not replace input references');
     $bad=copy($prof);$bad->{commands}[0]{exit}='not-an-exit';
     rejects(sub{BenchAcceptance::profiler_record($bad,$m)},'nonnumeric profiler exit rejected');
-    $bad=copy($prof);$bad->{counters}[0]{value}='NaN';
-    rejects(sub{BenchAcceptance::profiler_record($bad,$m)},'nonfinite counter rejected');
+    $bad=copy($prof);$bad->{schema}=1;
+    rejects(sub{BenchAcceptance::profiler_record($bad,$m)},'legacy unbound profiler schema cannot pass');
+    $bad=copy($prof);$bad->{provenance}{artifacts}{library}{sha256}='f'x64;
+    rejects(sub{BenchAcceptance::profiler_record($bad,$m)},'profiler with different actual library rejected');
+    $bad=copy($prof);$bad->{tensors}{fixture}='different conversion';
+    rejects(sub{BenchAcceptance::profiler_record($bad,$m)},'profiler with different loaded tensors rejected');
+    $bad=copy($prof);$bad->{provenance}{core_launch_records}{host}{ple_cache_conditions}{mode}='different cache';
+    rejects(sub{BenchAcceptance::profiler_record($bad,$m)},'profiler cache confounder rejected');
+    $bad=copy($prof);$bad->{counters}[0]{value}=1;
+    rejects(sub{BenchAcceptance::profiler_record($bad,$m)},'declared value cannot override raw evidence');
+    $bad=copy($prof);delete $bad->{counters}[0]{evidence};
+    rejects(sub{BenchAcceptance::profiler_record($bad,$m)},'unbound counter rejected');
+    $bad=copy($prof);$bad->{counters}[0]{evidence}{raw_sha256}='f'x64;
+    rejects(sub{BenchAcceptance::profiler_record($bad,$m)},'unverified counter source rejected');
+    $bad=copy($prof);$bad->{counters}[0]{unit}='seconds';
+    rejects(sub{BenchAcceptance::profiler_record($bad,$m)},'wrong raw counter unit rejected');
+    for my $pointer('/absent','/counters/01','/counters/9','/counters/0/value','/bad~2escape') {
+        $bad=copy($prof);$bad->{counters}[0]{evidence}{json_pointer}=$pointer;
+        rejects(sub{BenchAcceptance::profiler_record($bad,$m)},"bad counter reference rejected: $pointer");
+    }
+    is(BenchAcceptance::counter_pointer({'a/b'=>{'~'=>3}},'/a~1b/~0'),3,'JSON pointer escapes are exact');
+    is(BenchAcceptance::counter_pointer({''=>4},'/'),4,'JSON pointer preserves empty member name');
+    $bad=copy($prof);push @{$bad->{counters}},copy($bad->{counters}[0]);
+    rejects(sub{BenchAcceptance::profiler_record($bad,$m)},'duplicate counter evidence rejected');
+    for my $value('NaN','Infinity','1e9999',JSON::PP::true,undef) {
+        my $path="$other/invalid-counter.json";
+        PairedDepthBench::save($path,{counters=>[{name=>'fixture_counter',unit=>'count',value=>$value}]});
+        my $identity=PairedDepthBench::identity($path);
+        $bad=copy($prof);$bad->{raw_files}=[$identity];
+        $bad->{counters}[0]{evidence}{raw_sha256}=$identity->{sha256};
+        rejects(sub{BenchAcceptance::profiler_record($bad,$m)},'invalid numeric value in verified bytes rejected');
+    }
+    open $f,'>>:raw',$counter_path or die $!;print {$f} 'changed';close $f;
+    rejects(sub{BenchAcceptance::profiler_record($prof,$m)},'tampered counter source rejected');
 };
 done_testing;
