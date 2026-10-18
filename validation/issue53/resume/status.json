@@ -1,0 +1,22 @@
+{
+  "source_head": null,
+  "default_head": null,
+  "baseline": null,
+  "build_host": "engi",
+  "build_boot_id": "d42b112a-aedc-4dc4-9985-4a514d300317",
+  "recorded_at": "2026-10-18T02:53:02Z",
+  "build_exit_codes": {
+    "candidate": 0,
+    "baseline": 0,
+    "prompt_tools": 0
+  },
+  "kernel_rerun": {
+    "host": "archy",
+    "gpu": 7,
+    "wait_seconds": 300,
+    "exit_code": 75,
+    "tests_executed": 0,
+    "reason": "shared validation lock held by issue19 model runner"
+  },
+  "production_acceptance": "not measured"
+}

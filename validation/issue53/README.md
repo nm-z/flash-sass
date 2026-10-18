@@ -3,7 +3,10 @@
 This is a partial implementation for [issue #53](https://github.com/nm-z/flash-sass/issues/53),
 based on default-branch commit `b97b6b94bc0aba994830396fadebe5f8acd082f7`.
 The full issue body, evidence, and acceptance criteria were read; the comments
-endpoint returned no comments. This work remains a draft with `Refs #53`.
+endpoint returned no comments. [PR #76](https://github.com/nm-z/flash-sass/pull/76)
+is open as a draft. Default-branch commit `3d57d734d63aa74f167a6b5a02c616ddc018d2ff`
+was merged into this branch as `be5df804165f44e5fe74df98a6030445244837c4`;
+that merge changed CI and the QSA test's position bound, not the HC runtime code.
 The requested production performance and whole-model acceptance are not established.
 
 ## Changes
@@ -127,15 +130,32 @@ equal decoded text alone does not establish equal token IDs.
 
 `prof.sh` reports the last token's phase times, including peer waits attributed
 to the phase following an exchange. Querying the resident engine measures its
-loaded code. A candidate needs its own resources and the same benchmark
-configuration; a different KV or PLE mode would not establish the requested
-speedup.
+loaded code. Baseline and candidate need the same benchmark configuration;
+a different KV or PLE mode would not establish the requested speedup.
+The core's `reload` command can replace the library and its `FLASH_CUBIN`
+together while retaining the core, weight holders, and PLE allocation. Save
+the actual loaded library and cubin first, preserve the runtime settings,
+and restore both images after the comparison. A second six-die model is not
+required for that validation path.
 
-The final locked readiness inspection found GPUs 0 through 5 still occupied
-by the resident model, with only 3–77 MiB free per die. Those allocations and
-processes were preserved. The spare device supports kernel checks but does
-not provide the resources for a second matched six-die engine. A PR can change
-these kernels and provide reproducible tests; it cannot make the occupied
-production GPUs available under the instruction to preserve the resident
-engine. No hardware defect or need for PCIe, cooling, fan, clock, or BIOS
-changes has been established or addressed here.
+## Resumed validation
+
+The matching baseline and candidate libraries built successfully on engi at
+the revisions above. The candidate cubin's SHA-256 is unchanged from the
+earlier numerical run. [resume/status.json](resume/status.json) and
+[resume/sha256.txt](resume/sha256.txt) record the source and build identities;
+the two host build logs retain the existing `ref/quant.c` compiler warnings.
+
+Four fixed prompts were rendered with the checkpoint's own chat template and
+tokenizer: a capital-city question, a number sequence, a multi-turn arithmetic
+question, and a C function. [prompts.json](prompts.json) retains their messages,
+raw prompt IDs, stop IDs, and 64-token limits for baseline/candidate comparison.
+
+The new attempt to rerun `hc_phase_check.sh` on archy GPU 7 waited 300 seconds
+for `/tmp/flash-sass-engine-validation.lock`, then exited **75**, with **zero
+GPU tests executed**. The lock was held by issue #19's model validation
+(`run.rb --mode model --positions 128,32768,65536`). The complete wait output is
+in [resume/kernel-check.log](resume/kernel-check.log). The earlier passing
+numerical logs remain earlier evidence; this blocked attempt adds no GPU or
+production performance result. PR #76 must remain a draft until the full
+acceptance table above is satisfied.

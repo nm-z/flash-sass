@@ -1,0 +1,4 @@
+make: Entering directory '/home/nate/claude/flash-sass-resolve/issue-53/kern'
+cc -std=gnu99 -O2 -Wall -o tok_test tok_test.c tok.c ../ref/gguf.c -I../ref
+cc -std=gnu99 -O2 -Wall -o jinja_test jinja_test.c jinja.c json.c -lm
+make: Leaving directory '/home/nate/claude/flash-sass-resolve/issue-53/kern'
