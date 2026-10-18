@@ -1,3 +1,7 @@
+# Performance target
+
+- Decode 140 tok/s and prompt processing 1,200 tok/s. This is the calculated hardware ceiling. Do not re-derive it.
+
 # Job measurements and reuse
 
 - GPU jobs on archy use `ssh archy gpuq run -- COMMAND ...`. The queue records each job in its SQLite history.
