@@ -131,3 +131,21 @@ The integration suite exercises database-only output, exact exits, stdin replay,
 queue ordering/cancellation, inherited leases, artifacts, precision, historical
 import, read-only queries and interrupted-owner recovery. Real device collection
 is checked separately on archy through the installed queue.
+
+## Initial deployment on archy
+
+Installed recorder source: `38f13b5` (October 18, 2026). The installed integration
+job `cfb49df7-abdd-45d3-93e7-06195d0d36dd` passed all 21 checks. Its database
+records include real GPU samples, process resource usage, captured output and
+explicit trace unavailability for the uninstrumented resident engine. An earlier
+cancellation race was fixed and its failed job remains in history.
+
+Old evidence is archived separately at
+`/home/nate/.local/state/gpuq/archives/flash-sass-old-traces-20261018.zip` on archy
+(51,508,951 bytes; SHA-256
+`aeff637b04e082d1f1f0cbeeecb3471f3b28584d09eb7194ae91e8d8c768613e`).
+Archive job `c85e7e3d-2e1f-4765-a751-670bda35199a` created it and successfully read
+it back. It includes repository validation evidence, phase-trace and benchmark
+follow-up PR evidence, and performance-run records from engi and archy. Model
+GGUFs and generated library/cubin copies are excluded. No old run records were
+imported into the fresh history database.
