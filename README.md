@@ -31,6 +31,15 @@ Set `FLASH_PREFILL_CHUNK=64` to run known prompt positions in chunks of at most
 The final prompt position still computes the first generated token through the
 full B1 head. Unset or `0` disables chunking; valid sizes are `1..4096`.
 
+## Timing measurements
+
+[TIMINGS.md](TIMINGS.md) defines the shared CLI/HTTP timing schema, counts and
+rate denominators. Enable CLI records with `timings 1`; HTTP includes the same
+record under `timings.engine` and request/transport events under `timings.http`.
+Host-observed decode, device publication intervals and complete request timing
+are separate measurements. A request with fewer than two generated outputs has
+no measured decode interval rate. Optional device tracing and its validation
+commands are documented with the schema.
 
 #### Planned: 
 - MTP head

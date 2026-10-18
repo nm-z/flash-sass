@@ -18,9 +18,11 @@
  *   FLASHD_QUEUE_MAX (waiting requests, default 8), FLASHD_QUEUE_WAIT_S (default 600) */
 #define _GNU_SOURCE
 #include "jinja.h"
+#include "timings.h"
 #include "tok.h"
 #include <arpa/inet.h>
 #include <errno.h>
+#include <limits.h>
 #include <netinet/in.h>
 #include <poll.h>
 #include <pthread.h>
@@ -44,7 +46,22 @@ static int POSITIONS = 2048, THINK_DEFAULT = 1;
 static long REASONING_MAX = 262144, ANSWER_MAX = 131072;
 static double DEF_TEMP = 0.0, DEF_TOPP = 1.0; static int DEF_TOPK = 0;   /* general.sampling.* from the GGUF; temperature 0 = greedy */
 static uint32_t ID_END, ID_THINK_END;
-
+static unsigned long long request_sequence;
+static double CANCEL_DRAIN_MS = 60000.;
+static double http_clock_ms(void) {
+    struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1e6;
+}
+static void http_optional_ms(sbuf *b, const char *key, double stamp, double origin) {
+    sb_printf(b, ",\"%s\":", key);
+    if (stamp > 0) sb_printf(b, "%.17g", stamp - origin); else sb_puts(b, "null");
+}
+static void http_write_log(unsigned long long request_id,double origin,int attempted,int failed,int closed) {
+    char elapsed[48];
+    flash_timing_number(elapsed,http_clock_ms()-origin,attempted);
+    fprintf(stderr,"flashd_request_timing: {\"request_id\":\"%ld-%llu\",\"clock\":\"CLOCK_MONOTONIC\",\"response_write_returned_ms\":%s,\"write_attempted\":%s,\"failed\":%s,\"client_closed\":%s}\n",
+        (long)getpid(),request_id,elapsed,attempted?"true":"false",failed?"true":"false",closed?"true":"false");
+}
 
 /* ---- output ---- */
 static int wr(int fd, const char *s, size_t n) {
@@ -53,16 +70,29 @@ static int wr(int fd, const char *s, size_t n) {
 }
 static int wrs(int fd, const char *s) { return wr(fd, s, strlen(s)); }
 static int chunk(int fd, const char *s, size_t n) { char h[24]; int k = snprintf(h, sizeof h, "%zx\r\n", n); return wr(fd, h, (size_t)k) || wr(fd, s, n) || wr(fd, "\r\n", 2); }
-static void reply(int fd, int status, const char *ctype, const char *body, size_t n) {
+static int reply(int fd, int status, const char *ctype, const char *body, size_t n) {
 	char h[256]; const char *r = status == 200 ? "OK" : status == 400 ? "Bad Request" : status == 404 ? "Not Found" : status == 413 ? "Payload Too Large" : "Internal Server Error";
 	int k = snprintf(h, sizeof h, "HTTP/1.1 %d %s\r\nContent-Type: %s\r\nCache-Control: no-store\r\nContent-Length: %zu\r\nConnection: close\r\n\r\n", status, r, ctype, n);
-	wr(fd, h, (size_t)k); wr(fd, body, n);
+	return wr(fd, h, (size_t)k) || wr(fd, body, n) ? -1 : 0;
 }
 static void error(int fd, int status, const char *msg) {
 	sbuf b = {0}; sb_puts(&b, "{\"error\":{\"message\":"); sb_json_str(&b, msg, strlen(msg)); sb_printf(&b, ",\"code\":%d}}", status);
 	reply(fd, status, "application/json", b.s, b.n); sb_free(&b);
 }
 
+
+/* FIFO keepalives may already have committed SSE headers. Do not send a
+   second HTTP status line when admission is followed by a validation error. */
+static void admitted_error(int fd, int headers_sent, int status, const char *msg) {
+    if (!headers_sent) { error(fd, status, msg); return; }
+    sbuf b = {0};
+    sb_puts(&b, "data: {\"error\":{\"message\":");
+    sb_json_str(&b, msg, strlen(msg));
+    sb_printf(&b, ",\"code\":%d}}\n\n", status);
+    if (!chunk(fd, b.s, b.n) && !chunk(fd, "data: [DONE]\n\n", 14))
+        wrs(fd, "0\r\n\r\n");
+    sb_free(&b);
+}
 
 /* ---- the request queue ----
    The engine runs one sequence, so one request runs at a time and the others wait here in arrival order. A request whose client goes away
@@ -119,11 +149,48 @@ static void busy(int fd, const char *msg, int retry_after) {
 }
 
 /* ---- the engine socket ---- */
+/* A resident-engine validation can pin every backend connection to the
+   process covered by its external GPU lease. Ordinary serving is unchanged. */
+static int engine_peer_matches(int fd) {
+    const char *expected = getenv("FLASHD_EXPECT_CORE_PID");
+    if (!expected) return 1;
+    if (!*expected || strspn(expected, "0123456789") != strlen(expected)) return 0;
+    char *end; errno = 0; long pid = strtol(expected, &end, 10);
+    if (errno || *end || pid <= 1 || pid > INT_MAX) return 0;
+    struct ucred peer; socklen_t size = sizeof peer;
+    return getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &peer, &size) == 0
+        && size == sizeof peer && peer.pid == pid && peer.uid == getuid();
+}
 static FILE *engine_open(FILE **out) {
 	int s = socket(AF_UNIX, SOCK_STREAM, 0); struct sockaddr_un sa = { .sun_family = AF_UNIX };
 	snprintf(sa.sun_path, sizeof sa.sun_path, "%s", SOCK);
 	if (s < 0 || connect(s, (struct sockaddr *)&sa, sizeof sa)) { if (s >= 0) close(s); return NULL; }
+	if (!engine_peer_matches(s)) { close(s); errno = EPERM; return NULL; }
 	*out = fdopen(dup(s), "w"); return fdopen(s, "r");
+}
+
+/* Read complete protocol lines with one absolute deadline, including partial
+   writes. stdio fgets + SO_RCVTIMEO can otherwise wait forever on a slow line. */
+typedef struct { char bytes[8192]; size_t used; } engine_reader;
+static int engine_line(int fd,engine_reader *r,char *line,size_t cap,double deadline) {
+    for(;;) {
+        double left=deadline-http_clock_ms();if(left<=0)return -2;
+        char *end=memchr(r->bytes,'\n',r->used);
+        if(end) {
+            size_t n=(size_t)(end-r->bytes)+1;if(n>=cap)return -1;
+            memcpy(line,r->bytes,n);line[n]=0;r->used-=n;
+            memmove(r->bytes,r->bytes+n,r->used);return 1;
+        }
+        if(r->used==sizeof r->bytes)return -1;
+        struct pollfd p={.fd=fd,.events=POLLIN};
+        int ready=poll(&p,1,(int)ceil(left));
+        if(ready<0){if(errno==EINTR)continue;return -1;}
+        if(!ready)return -2;
+        ssize_t n=recv(fd,r->bytes+r->used,sizeof r->bytes-r->used,MSG_DONTWAIT);
+        if(n<0){if(errno==EINTR||errno==EAGAIN||errno==EWOULDBLOCK)continue;return -1;}
+        if(!n)return r->used?-1:0;
+        r->used+=(size_t)n;
+    }
 }
 
 /* ---- one reply being decoded ---- */
@@ -132,6 +199,7 @@ typedef struct {
 	unsigned char pend[8]; int npend;
 	sbuf content, reasoning;
 	long created;
+	double request_start_ms, first_text_send_ms;
 	long n_reason, n_answer; int cap_hit;   /* tokens so far in each part; set when one reaches its budget */
 } gen;
 
@@ -142,6 +210,7 @@ static void emit_delta(gen *g, const char *field, const char *s, size_t n) {
 		sb_printf(&b, "data: {\"choices\":[{\"index\":0,\"delta\":{\"%s\":", field); sb_json_str(&b, s, n);
 		sb_printf(&b, "},\"finish_reason\":null}],\"created\":%ld,\"id\":\"chatcmpl-flash\",\"model\":\"%s\",\"object\":\"chat.completion.chunk\"}\n\n", g->created, NAME);
 		if (chunk(g->fd, b.s, b.n)) g->gone = 1;
+        else if (!g->first_text_send_ms) g->first_text_send_ms = http_clock_ms();
 		sb_free(&b);
 	}
 	sbuf *acc = field[0] == 'r' ? &g->reasoning : &g->content;
@@ -234,7 +303,9 @@ static const char *vis_image(const unsigned char *bytes, size_t n, imgrec *r) {
 }
 
 /* ---- POST /v1/chat/completions ---- */
-static void chat(int fd, const char *body, size_t bn) {
+static void chat(int fd, const char *body, size_t bn, double request_start_ms) {
+    unsigned long long request_id = __sync_add_and_fetch(&request_sequence, 1);
+    double chat_start_ms = http_clock_ms(), tokenization_ms = 0;
 	arena *a = arena_new(); const char *je = NULL;
 	jv *req = json_parse(a, body, bn, &je);
 	if (!req || req->k != J_DICT) { error(fd, 400, "the body is not a JSON object"); arena_free(a); return; }
@@ -299,21 +370,24 @@ static void chat(int fd, const char *body, size_t bn) {
 	char *prompt = jinja_render(TPL, a, vars, &pn, err, sizeof err);
 	if (!prompt) { error(fd, 400, err); arena_free(a); return; }
 
+    double queue_start_ms = http_clock_ms();
 	int hdr = 0; double qwait = 0;
 	int qr = queue_enter(fd, stream, &hdr, &qwait);
 	if (qr) {
 		free(prompt); arena_free(a);
 		if (qr == -1) fprintf(stderr, "flashd: the client left the queue after %.1f s\n", qwait / 1e3);
 		else if (qr == -2) { fprintf(stderr, "flashd: queue full (%d waiting): 503\n", QMAX); busy(fd, "the request queue is full", 30); }
-		else { fprintf(stderr, "flashd: waited %.0f s in the queue: 503\n", qwait / 1e3); if (hdr) { chunk(fd, "data: {\"error\":{\"message\":\"waited too long in the request queue\",\"type\":\"queue_timeout\"}}\n\n", 90); chunk(fd, "data: [DONE]\n\n", 14); wrs(fd, "0\r\n\r\n"); } else busy(fd, "waited too long in the request queue", 30); }
+		else { fprintf(stderr, "flashd: waited %.0f s in the queue: 503\n", qwait / 1e3); if (hdr) { chunk(fd, "data: {\"error\":{\"message\":\"waited too long in the request queue\",\"type\":\"queue_timeout\"}}\n\n", sizeof("data: {\"error\":{\"message\":\"waited too long in the request queue\",\"type\":\"queue_timeout\"}}\n\n") - 1); chunk(fd, "data: [DONE]\n\n", 14); wrs(fd, "0\r\n\r\n"); } else busy(fd, "waited too long in the request queue", 30); }
 		return;
 	}
 	if (client_gone(fd)) { queue_leave(); free(prompt); arena_free(a); fprintf(stderr, "flashd: the client left while queued (%.1f s); not started\n", qwait / 1e3); return; }
+    double lock_acquired_ms = http_clock_ms(), encode_start_ms = lock_acquired_ms;
 	uint32_t *ids = malloc(4 * (pn + 16));
 	int np = tok_encode(V, prompt, pn, 1, ids, (int)pn + 16);
+    tokenization_ms += http_clock_ms() - encode_start_ms;
 	if (np < 1 || np + 1 >= POSITIONS) {
 		queue_leave(); free(ids); free(prompt); arena_free(a);
-		error(fd, 400, np < 1 ? "empty prompt" : "the prompt is longer than the engine's context"); return;
+		admitted_error(fd, hdr, 400, np < 1 ? "empty prompt" : "the prompt is longer than the engine's context"); return;
 	}
 	/* the engine returns n_new + 1 tokens (the one predicted at the last prompt position, then n_new more) */
 	long n_new = max_tokens - 1 < POSITIONS - np ? max_tokens - 1 : POSITIONS - np;
@@ -328,7 +402,9 @@ static void chat(int fd, const char *body, size_t bn) {
 		size_t pn2; char *p2 = jinja_render(TPL, a, vars, &pn2, err, sizeof err);
 		jv_set(a, vars, "messages", 8, msgs);
 		if (p2) {
+            encode_start_ms = http_clock_ms();
 			uint32_t *ids2 = malloc(4 * (pn2 + 16)); int n2 = tok_encode(V, p2, pn2, 1, ids2, (int)pn2 + 16);
+            tokenization_ms += http_clock_ms() - encode_start_ms;
 			int l = 0; while (l < n2 && l < np && ids2[l] == ids[l]) l++;
 			snap = l < np - 1 ? l : np - 1;
 			if (snap < 16) snap = 0;
@@ -340,7 +416,7 @@ static void chat(int fd, const char *body, size_t bn) {
 	int istart[8] = { 0 };
 	if (nim) {
 		int found = 0, first_img = -1; for (int i = 0; i < np; i++) if ((int)ids[i] == ID_IMGPAD) found++;
-		if (found != nim || ID_IMGPAD < 0) { queue_leave(); free(ids); free(prompt); arena_free(a); error(fd, 400, "the chat template did not place one image token per image"); return; }
+		if (found != nim || ID_IMGPAD < 0) { queue_leave(); free(ids); free(prompt); arena_free(a); admitted_error(fd, hdr, 400, "the chat template did not place one image token per image"); return; }
 		uint32_t *ex = malloc(4 * ((size_t)np + img_tokens + 16)); int k = 0, im = 0;
 		for (int i = 0; i < np; i++) {
 			if ((int)ids[i] == ID_IMGPAD) { if (first_img < 0) first_img = i; istart[im] = k; for (unsigned q = 0; q < imgs[im].ntok; q++) ex[k++] = ids[i]; im++; }
@@ -348,11 +424,13 @@ static void chat(int fd, const char *body, size_t bn) {
 		}
 		free(ids); ids = ex; np = k;
 		if (snap > first_img) snap = first_img < 16 ? 0 : first_img;
-		if (np + 1 >= POSITIONS) { queue_leave(); free(ids); free(prompt); arena_free(a); error(fd, 400, "the prompt is longer than the engine's context"); return; }
+		if (np + 1 >= POSITIONS) { queue_leave(); free(ids); free(prompt); arena_free(a); admitted_error(fd, hdr, 400, "the prompt is longer than the engine's context"); return; }
 		n_new = max_tokens - 1 < POSITIONS - np ? max_tokens - 1 : POSITIONS - np;
 	}
 	FILE *out = NULL, *in = engine_open(&out);
-	if (!in) { queue_leave(); free(ids); free(prompt); arena_free(a); error(fd, 500, "the engine is not running"); return; }
+	if (!in) { queue_leave(); free(ids); free(prompt); arena_free(a); admitted_error(fd, hdr, 500, "the engine is not running"); return; }
+	fputs("timings 1\n",out);   /* opt-in record before done/error */
+    fputs("cancel_on_eof 1\n",out); /* only an exact ACK enables half-close cancellation */
 	fprintf(out, "stop %u %u\n", ID_END, tok_eos(V) == ID_END ? 0xffffffffu : tok_eos(V));
 	fprintf(out, "sample %llu %.6g %ld %.6g\n", seed, temp, topk <= 0 ? 32 : topk, topp);
 	for (int i = 0; i < nim; i++) fprintf(out, "img %s %d\n", imgs[i].path, istart[i]);
@@ -360,7 +438,8 @@ static void chat(int fd, const char *body, size_t bn) {
 	fprintf(out, "chat %ld", n_new); for (int i = 0; i < np; i++) fprintf(out, " %u", ids[i]); fputc('\n', out); fflush(out);
 	free(ids);
 
-	gen g = { .fd = fd, .stream = stream, .created = (long)time(NULL) };
+    double engine_submitted_ms = http_clock_ms();
+	gen g = { .fd = fd, .stream = stream, .created = (long)time(NULL), .request_start_ms = request_start_ms };
 	g.in_think = pn >= 8 && !memcmp(prompt + pn - 8, "<think>\n", 8);
 	if (stream) {
 		const char *h = "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n";
@@ -370,64 +449,161 @@ static void chat(int fd, const char *body, size_t bn) {
 		if (!g.gone && chunk(fd, b.s, b.n)) g.gone = 1;
 		sb_free(&b);
 	}
-	char line[256]; int quiet = 0, ngen = 0, ended = 0, resumed = 0, snapped = 0, done = 0, failed = 0; double run_ms = 0, first_ms = 0;
+	char line[8192]; int quiet = 0, ngen = 0, ended = 0, resumed = 0, snapped = 0, done = 0, failed = 0; double run_ms = 0, first_ms = 0;
+    int raw_token_events = 0, negotiating = 2, cancel_on_eof = 0;
+    int cancel_requested = 0, cancel_drain_timed_out = 0;
+    double cancel_start_ms = 0;
+    double first_socket_observed_ms = 0, last_socket_observed_ms = 0;
+    sbuf engine_timing = {0};
+    engine_reader reader={0};
 	/* a long prompt takes minutes before the first token: an idle stream is cut by proxies (Cloudflare closes after 100 s), so an SSE comment goes out
 	   every 10 s while the engine is silent */
-	{ struct timeval tv = { 2, 0 }; setsockopt(fileno(in), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv); }
 	for (;;) {
-		if (!fgets(line, sizeof line, in)) {
-			if ((errno == EAGAIN || errno == EWOULDBLOCK) && !g.gone) { clearerr(in); if (client_gone(fd)) { g.gone = 1; break; } if (stream && ++quiet >= 5) { quiet = 0; if (chunk(fd, ": keepalive\n\n", 13)) { g.gone = 1; break; } } continue; }
+        if (!g.gone && client_gone(fd)) g.gone=1;
+        if ((g.gone || g.cap_hit) && !cancel_requested && !negotiating) {
+            cancel_requested=1;
+            if (!cancel_on_eof || shutdown(fileno(out),SHUT_WR)) break;
+            cancel_start_ms=http_clock_ms();
+        }
+        if (cancel_start_ms && http_clock_ms()-cancel_start_ms>=CANCEL_DRAIN_MS) {
+            cancel_drain_timed_out=1;break;
+        }
+        double deadline=http_clock_ms()+2000.;
+        if(cancel_start_ms && cancel_start_ms+CANCEL_DRAIN_MS<deadline)deadline=cancel_start_ms+CANCEL_DRAIN_MS;
+        int received=engine_line(fileno(in),&reader,line,sizeof line,deadline);
+		if (received<=0) {
+			if (received==-2) { if (client_gone(fd)) g.gone = 1; if (stream && !g.gone && !g.cap_hit && ++quiet >= 5) { quiet = 0; if (chunk(fd, ": keepalive\n\n", 13)) g.gone = 1; } continue; }
 			break;
 		}
-		unsigned id; int e, npm; double r, f;
-		if (sscanf(line, "tok %u", &id) == 1) { on_token(&g, id); if (g.gone || g.cap_hit) break; }
+        /* These two ordered acknowledgements precede chat. Unknown-command
+           compatibility applies only here, never to a later engine failure. */
+        if(negotiating) {
+            int which=negotiating--;
+            if(which==2 && !strcmp(line,"ok: timings 1\n"))continue;
+            if(which==1 && !strcmp(line,"ok: cancel_on_eof 1\n")){cancel_on_eof=1;continue;}
+            if(!strcmp(line,"error: gen|chat <n_new> <id>... | stop [<id> [<id>]] | info | cubin <path> | quit\n"))continue;
+            failed=1;break;
+        }
+        if(!strncmp(line,"timings ",8)) {
+            size_t ln=strlen(line);const char *te=NULL;
+            int terminated=ln>8 && line[ln-1]=='\n';
+            /* The engine's line terminator is protocol framing. Preserve the
+               JSON bytes without leaking an unprefixed line into SSE data. */
+            if(terminated){--ln;if(ln>8 && line[ln-1]=='\r')--ln;}
+            jv *v=terminated?json_parse(a,line+8,ln-8,&te):NULL;
+            sb_free(&engine_timing);engine_timing=(sbuf){0};
+            if(v && v->k==J_DICT)sb_put(&engine_timing,line+8,ln-8);
+            continue;
+        }
+        unsigned id; int e, npm; double r, f;
+		if (sscanf(line, "tok %u", &id) == 1) {
+            last_socket_observed_ms = http_clock_ms();
+            if (!raw_token_events++) first_socket_observed_ms = last_socket_observed_ms;
+            if(!g.gone && !g.cap_hit)on_token(&g, id);
+        }
 		else if (sscanf(line, "done %d %d %d %lf %lf %d %d", &ngen, &e, &npm, &r, &f, &resumed, &snapped) >= 5) { ended = e; run_ms = r; first_ms = f; done = 1; break; }
 		else if (!strncmp(line, "error", 5)) { fprintf(stderr, "flashd: engine: %s", line); failed = 1; break; }
 	}
 	if (!done && !g.gone && !g.cap_hit) failed = 1;   /* the engine's stream ended without its "done" line: the response is not complete */
+    if (!done) ngen = raw_token_events;
+    if (ngen < 0) ngen = 0;
 	fclose(in); fclose(out);
 	queue_leave();
 	free(prompt);
-	if (failed) {   /* an engine error or an engine that went away is an error to the client, not a normal completion with finish_reason "length" */
-		fprintf(stderr, "flashd: the engine failed during the response (%ld reasoning + %ld answer tokens had been generated)\n", g.n_reason, g.n_answer);
-		if (stream) {
-			if (!g.gone) {
-				sbuf b = {0};
-				sb_puts(&b, "data: {\"error\":{\"message\":\"the engine failed during the response\",\"type\":\"engine_error\"}}\n\n");
-				chunk(fd, b.s, b.n); sb_free(&b);
-				chunk(fd, "data: [DONE]\n\n", 14); wrs(fd, "0\r\n\r\n");
-			}
-		} else error(fd, 502, "the engine failed during the response");
-		sb_free(&g.content); sb_free(&g.reasoning); arena_free(a);
-		return;
-	}
-
-	if (g.gone) fprintf(stderr, "flashd: client left after %d bytes of text; the engine is told to stop\n", (int)(g.content.n + g.reasoning.n));
-	double pp = first_ms > 0 ? (np - resumed) / (first_ms / 1e3) : 0, dec_ms = run_ms - first_ms, dec = (ngen > 1 && dec_ms > 0) ? (ngen - 1) / (dec_ms / 1e3) : 0;
-	sbuf t = {0};
-	sb_printf(&t, "{\"prompt_n\":%d,\"cache_n\":%d,\"prompt_ms\":%.1f,\"prompt_per_second\":%.2f,\"predicted_n\":%d,\"predicted_ms\":%.1f,\"predicted_per_second\":%.2f,\"decode_intervals\":%d,\"decode_ms\":%.1f}", np, resumed, first_ms, pp, ngen, dec_ms > 0 ? dec_ms : 0, dec, ngen > 1 ? ngen - 1 : 0, dec_ms > 0 ? dec_ms : 0);   /* predicted_per_second = decode_intervals / decode_ms: the time after the first generated token, over the G - 1 tokens after it; predicted_n is all G */
-	const char *fin = ended ? "stop" : "length";
-	fprintf(stderr, "flashd: %d prompt (%d from the cache, snapshot at %d) + %d generated tokens, %.1f ms (first %.1f), %s, pp %.1f decode %.1f tok/s, queued %.1f s\n", np, resumed, snapped, ngen, run_ms, first_ms, fin, pp, dec, qwait / 1e3);
+    /* CLI timings is exactly this nested engine record. Flat fields
+       retain old names and use the canonical values when available. */
+    const char *te=NULL;jv *ej=engine_timing.s?json_parse(a,engine_timing.s,engine_timing.n,&te):NULL;
+    char fallback[4096];
+    flash_timing legacy={.prompt=np,.resumed=resumed,.completed=done?np-1+ngen:0,
+        .counts_known=done,.counts_final=done,.ended=ended,.aborted=g.gone||g.cap_hit,
+        .first_valid=done&&ngen>0,.first_ms=first_ms,.run_ms=done?run_ms:NAN,.build_ms=NAN};
+    if(!ej){flash_timing_json(fallback,sizeof fallback,&legacy);ej=json_parse(a,fallback,strlen(fallback),&te);}
+    jv *ea=jv_getz(ej,"aborted"),*es=jv_getz(ej,"stop_token_observed");
+    int engine_aborted=ea && ea->k==J_BOOL && ea->b;
+    if(engine_timing.s && es && es->k==J_BOOL)ended=es->b;
+    jv *eg=jv_getz(ej,"generated_tokens");
+    if(engine_timing.s && eg && eg->k==J_INT && eg->i>=0 && eg->i<=INT_MAX)ngen=(int)eg->i;
+    sbuf t={0};sb_puts(&t,"{");
+    static const char *aliases[]={"prompt_n","cache_n","prompt_ms","prompt_per_second","predicted_n","predicted_ms","predicted_per_second","decode_intervals","decode_ms"};
+    for(size_t k=0;k<sizeof aliases/sizeof aliases[0];k++) {
+        if(k)sb_puts(&t,",");
+        sb_json_str(&t,aliases[k],strlen(aliases[k]));sb_puts(&t,":");
+        jv *v=jv_getz(ej,aliases[k]);
+        if(v && v->k==J_NUM)sb_printf(&t,"%.17g",v->d);
+        else if(v && v->k==J_INT)sb_printf(&t,"%lld",(long long)v->i);
+        else sb_puts(&t,"null");
+    }
+    sb_printf(&t,",\"schema_version\":1,\"engine\":%s,\"http\":{\"request_id\":\"%ld-%llu\",\"clock\":\"CLOCK_MONOTONIC\",\"start_event\":\"request_worker_entry\",\"complete\":%s,\"aborted\":%s,\"engine_timing_available\":%s,\"raw_token_events\":%d,\"request_read_ms\":%.17g,\"prequeue_ms\":%.17g,\"queue_ms\":%.17g,\"tokenization_ms\":%.17g,\"setup_ms\":%.17g,\"engine_submitted_ms\":%.17g,\"completion_record_created_ms\":%.17g",
+        engine_timing.s?engine_timing.s:"null",(long)getpid(),request_id,done&&!failed&&!g.gone&&!g.cap_hit&&!engine_aborted?"true":"false",
+        g.gone||g.cap_hit||engine_aborted?"true":"false",engine_timing.s?"true":"false",raw_token_events,
+        chat_start_ms-request_start_ms,queue_start_ms-chat_start_ms,
+        qwait,tokenization_ms,engine_submitted_ms-lock_acquired_ms,
+        engine_submitted_ms-request_start_ms,http_clock_ms()-request_start_ms);
+    http_optional_ms(&t,"first_token_observed_ms",first_socket_observed_ms,request_start_ms);
+    http_optional_ms(&t,"last_token_observed_ms",last_socket_observed_ms,request_start_ms);
+    http_optional_ms(&t,"first_text_send_ms",g.first_text_send_ms,request_start_ms);
+    http_optional_ms(&t,"ttft_ms",g.first_text_send_ms,request_start_ms);
+    http_optional_ms(&t,"first_observation_to_text_send_ms",g.first_text_send_ms,first_socket_observed_ms);
+    sb_printf(&t,",\"cancel_requested\":%s,\"cancel_drain_timed_out\":%s,\"cancel_drain_ms\":",
+        cancel_requested?"true":"false",cancel_drain_timed_out?"true":"false");
+    if(cancel_start_ms)sb_printf(&t,"%.17g",http_clock_ms()-cancel_start_ms);else sb_puts(&t,"null");
+    sb_puts(&t,",\"socket_decode_tokens_per_second\":");
+    if(done && !failed && !g.gone && !g.cap_hit && !engine_aborted && raw_token_events>1 && last_socket_observed_ms>first_socket_observed_ms)
+        sb_printf(&t,"%.17g",1000.*(raw_token_events-1)/(last_socket_observed_ms-first_socket_observed_ms));
+    else sb_puts(&t,"null");
+    sb_puts(&t,",\"response_write_complete_ms\":null}}");
+    /* Disconnected clients cannot receive a final record; log the same object. */
+    fprintf(stderr,"flashd_timings: %s\n",t.s);
+    int response_write_attempted=0;
+    if (failed) {
+        fprintf(stderr,"flashd: the engine failed during the response\n");
+        sbuf b={0};
+        if(stream) {
+            if(!g.gone) {
+                response_write_attempted=1;
+                sb_printf(&b,"data: {\"error\":{\"message\":\"the engine failed during the response\",\"type\":\"engine_error\"},\"timings\":%s}\n\n",t.s);
+                if(chunk(fd,b.s,b.n)||chunk(fd,"data: [DONE]\n\n",14)||wrs(fd,"0\r\n\r\n"))g.gone=1;
+            }
+        } else {
+            response_write_attempted=1;
+            sb_printf(&b,"{\"error\":{\"message\":\"the engine failed during the response\",\"code\":502},\"timings\":%s}",t.s);
+            if(reply(fd,502,"application/json",b.s,b.n))g.gone=1;
+        }
+        http_write_log(request_id,request_start_ms,response_write_attempted,1,g.gone);
+        sb_free(&b);sb_free(&engine_timing);sb_free(&t);sb_free(&g.content);sb_free(&g.reasoning);arena_free(a);return;
+    }
+    if(g.gone)fprintf(stderr,"flashd: client left; engine cancellation requested\n");
+    char pp_text[48]="n/a",decode_text[48]="n/a";
+    jv *pp=jv_getz(ej,"prompt_positions_per_second"),*dec=jv_getz(ej,"decode_tokens_per_second");
+    if(pp && (pp->k==J_NUM||pp->k==J_INT))snprintf(pp_text,sizeof pp_text,"%.1f",pp->k==J_NUM?pp->d:(double)pp->i);
+    if(dec && (dec->k==J_NUM||dec->k==J_INT))snprintf(decode_text,sizeof decode_text,"%.1f",dec->k==J_NUM?dec->d:(double)dec->i);
+	const char *fin = g.gone || g.cap_hit || engine_aborted ? "cancelled" : ended ? "stop" : "length";
+	fprintf(stderr, "flashd: %d prompt (%d from the cache, snapshot at %d) + %d generated tokens, %.1f ms (first %.1f), %s, pp %s decode %s tok/s, queued %.1f s\n", np, resumed, snapped, ngen, run_ms, first_ms, fin, pp_text, decode_text, qwait / 1e3);
 	if (stream) {
 		if (!g.gone) {
+			response_write_attempted=1;
 			sbuf b = {0};
 			sb_printf(&b, "data: {\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"%s\"}],\"created\":%ld,\"id\":\"chatcmpl-flash\",\"model\":\"%s\",\"object\":\"chat.completion.chunk\",\"usage\":{\"completion_tokens\":%d,\"prompt_tokens\":%d,\"total_tokens\":%d},\"timings\":%s}\n\n", fin, g.created, NAME, ngen, np, ngen + np, t.s);
-			chunk(fd, b.s, b.n); sb_free(&b);
-			chunk(fd, "data: [DONE]\n\n", 14); wrs(fd, "0\r\n\r\n");
+			if(chunk(fd,b.s,b.n)||chunk(fd,"data: [DONE]\n\n",14)||wrs(fd,"0\r\n\r\n"))g.gone=1;
+            sb_free(&b);
 		}
 	} else {
+		response_write_attempted=1;
 		sbuf b = {0};
 		sb_puts(&b, "{\"choices\":[{\"index\":0,\"finish_reason\":\""); sb_puts(&b, fin); sb_puts(&b, "\",\"message\":{\"role\":\"assistant\",\"content\":");
 		sb_json_str(&b, g.content.s ? g.content.s : "", g.content.n);
 		if (g.reasoning.n) { sb_puts(&b, ",\"reasoning_content\":"); sb_json_str(&b, g.reasoning.s, g.reasoning.n); }
 		sb_printf(&b, "}}],\"created\":%ld,\"id\":\"chatcmpl-flash\",\"model\":\"%s\",\"object\":\"chat.completion\",\"usage\":{\"completion_tokens\":%d,\"prompt_tokens\":%d,\"total_tokens\":%d},\"timings\":%s}", g.created, NAME, ngen, np, ngen + np, t.s);
-		reply(fd, 200, "application/json", b.s, b.n); sb_free(&b);
+		if(reply(fd,200,"application/json",b.s,b.n))g.gone=1;
+            sb_free(&b);
 	}
-	sb_free(&t); sb_free(&g.content); sb_free(&g.reasoning); arena_free(a);
+    http_write_log(request_id,request_start_ms,response_write_attempted,0,g.gone);
+	sb_free(&engine_timing); sb_free(&t); sb_free(&g.content); sb_free(&g.reasoning); arena_free(a);
 }
 
 /* ---- HTTP ---- */
 static void *serve(void *arg) {
+	double request_start_ms = http_clock_ms();
 	int fd = (int)(long)arg; struct timeval tv = { 30, 0 };
 	setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
 	setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof tv);   /* a client that stops reading must not hold the engine lock: a send that blocks 30 s fails and the response is dropped */
@@ -459,7 +635,7 @@ static void *serve(void *arg) {
 		sb_printf(&b, "{\"default_generation_settings\":{\"n_ctx\":%d,\"temperature\":%g,\"top_k\":%d,\"top_p\":%g,\"presence_penalty\":0.0,\"repeat_penalty\":1.0,\"max_reasoning_tokens\":%ld,\"max_answer_tokens\":%ld},\"modalities\":{\"vision\":%s},\"model_alias\":", POSITIONS, DEF_TEMP, DEF_TOPK, DEF_TOPP, REASONING_MAX, ANSWER_MAX, VIS_SOCK ? "true" : "false"); sb_json_str(&b, NAME, strlen(NAME));
 		sb_puts(&b, ",\"chat_template\":"); sb_json_str(&b, t ? t : "", t ? strlen(t) : 0); sb_putc(&b, '}');
 		reply(fd, 200, "application/json", b.s, b.n); sb_free(&b);
-	} else if (!strcmp(method, "POST") && !strcmp(path, "/v1/chat/completions")) chat(fd, body, have);
+	} else if (!strcmp(method, "POST") && !strcmp(path, "/v1/chat/completions")) chat(fd, body, have, request_start_ms);
 	else error(fd, 404, "not found");
 	free(body); free(req); close(fd);
 	return NULL;
