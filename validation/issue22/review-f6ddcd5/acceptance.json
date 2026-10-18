@@ -1,0 +1,90 @@
+{
+  "schema": "flash-sass.issue22-review.v1",
+  "source_revision": "f6ddcd5d95f0a9219809b9361d7137a97eb35b3b",
+  "integrated_parent_revision": "8ab8cc5daa8e6a9a7d90b28c71f815036ba9c6ea",
+  "cpu": {
+    "pass": true,
+    "comparator_assertions": 74,
+    "layer_export_assertions": 48,
+    "indexer_replay_assertions": 36,
+    "analytic_indexer_assertions": 16,
+    "model_cli_boundary_checks": 32,
+    "synthetic_lengths": [
+      1,
+      2047,
+      2048,
+      2049,
+      2050,
+      2051,
+      2052,
+      2053,
+      2054,
+      2055,
+      3100,
+      8000,
+      65000,
+      262000
+    ],
+    "source_hashes_unchanged": true,
+    "model_cuda_intercepted": true
+  },
+  "historical_gpu": {
+    "source_revision": "06968d1a5d6d7fdaf12106236cc39a1cb5cdf389",
+    "same_implementation_placement_pairs_byte_identical": true,
+    "t4_budget512": true,
+    "t9_budget1": true,
+    "held_out_quality": false
+  },
+  "recovered_reference": {
+    "scope": "four-position same-quantized-GGUF backend diagnostic",
+    "positions": 4,
+    "historical_loaded_backend_identity_verified": false,
+    "acceptance_thresholds_applied": false,
+    "metrics": {
+      "candidate_mean_nll": 11.0028164323219,
+      "candidate_mean_target_rank": 1769.33333333333,
+      "candidate_perplexity": 60043.010875828,
+      "centered_logit_rmse": 0.18336896508605,
+      "logit_rmse": 0.186845505716465,
+      "maximum_absolute_logit_error": 1.18950200080872,
+      "maximum_absolute_probability_error": 0.0401032696906966,
+      "mean_absolute_logit_error": 0.145890713974802,
+      "mean_cosine_similarity": 0.997304563240772,
+      "mean_nll_increase": 0.155291599652249,
+      "mean_reference_to_candidate_kl": 0.0210943973410854,
+      "mean_topk_overlap": 0.85,
+      "perplexity_overflow": false,
+      "positions": 4,
+      "reference_mean_nll": 10.8475248326697,
+      "reference_mean_target_rank": 1920,
+      "reference_perplexity": 51406.753438667,
+      "relative_l2_logit_error": 0.0737277724678816,
+      "teacher_forced_labels": 3,
+      "top1_agreement": 1,
+      "topk": 10,
+      "vocabulary": 248320
+    },
+    "report": "recovered-reference/comparison.json"
+  },
+  "new_gpu_validation": {
+    "status": "blocked_shared_gpu_lock",
+    "performed": false,
+    "lock": "/tmp/flash-sass-engine-validation.lock",
+    "final_wait_seconds": 45,
+    "exit": 75,
+    "record": "gpu-preflight-final.log"
+  },
+  "unmeasured": [
+    "real GPU layer export and production sparse length grid",
+    "same-input same-selection attention output comparisons",
+    "upstream activation and projection quantization isolation",
+    "INT8 versus higher precision KV isolation",
+    "original checkpoint and conversion quality comparison",
+    "predeclared held-out loss/perplexity and retrieval/task accuracy",
+    "separately labeled free-running generation and controls for model changes #1/#2"
+  ],
+  "independent_checkpoint_evidence": false,
+  "original_checkpoint_quality": null,
+  "issue22_resolved": false,
+  "ready_for_review": false
+}

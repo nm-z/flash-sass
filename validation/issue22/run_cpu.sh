@@ -23,7 +23,7 @@ issue22_sources=(
     kern/model_layer_capture_test.pl kern/model_capture.h kern/model_test.c
     kern/model_capture_test.c kern/model_capture_test.pl
     kern/model_reference.c kern/Makefile validation/issue22/replay_placement.sh
-    validation/issue22/run_cpu.sh
+    validation/issue22/run_cpu.sh validation/issue22/replay_reference.sh
 )
 sha256sum -- "${issue22_sources[@]}" > "$issue22_out/source-before.sha256"
 git rev-parse HEAD > "$issue22_out/source-commit.txt"
@@ -63,6 +63,7 @@ issue22_run layer-export perl kern/model_layer_capture_test.pl
 issue22_run analytic-indexer kern/qsa_quality --selftest
 issue22_run frozen-indexer perl kern/qsa_quality_test.pl
 issue22_run placement-replay bash validation/issue22/replay_placement.sh "$issue22_out/placement"
+issue22_run recovered-reference bash validation/issue22/replay_reference.sh "$issue22_out/recovered-reference"
 issue22_run synthetic-inputs kern/qsa_quality --synthetic "$issue22_out/synthetic-inputs"
 mkdir -- "$issue22_out/synthetic-replay"
 jq -er '.snapshot_lengths | if type == "array" and length > 0 then .[] else error("missing synthetic lengths") end' \

@@ -131,4 +131,17 @@ $snapshot->{sparse_exclusion}='false';
 put("$capture/n8/snapshot.json",encode_json($snapshot));
 ($rc,$r)=run();
 ok($rc!=0&&!defined($r),'truthy string cannot replace sparse boolean');
+$complete->{budget}=2;
+$snapshot->{budget}=2;
+$snapshot->{attended_keys}=8;
+$snapshot->{sparse_exclusion}=JSON::PP::false;
+put("$capture/complete.json",encode_json($complete));
+put("$capture/n8/snapshot.json",encode_json($snapshot));
+put("$capture/n8/selected_ids.u32",pack('V*',0,1));
+put("$tmp/limits.json",encode_json($limits));
+($rc,$r)=run('--limits',"$tmp/limits.json");
+is($rc,0,'dense capture evaluates the applicable gates');
+is(scalar(grep { !$_->{applicable} } @{$r->{numerical_gates}{checks}}),3,
+   'dense score and selector readbacks are explicitly not applicable');
+ok($r->{numerical_gates}{passed},'dense gate result remains explicit');
 done_testing();

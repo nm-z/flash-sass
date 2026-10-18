@@ -1,0 +1,8 @@
+2026-10-18T03:17:08Z
+archy
+BLOCKED_BUSY: shared GPU validation lock remained occupied for 45 seconds
+4010221 ruby            FLOCK WRITE /tmp/flash-sass-engine-validation.lock
+  67178       00:45 bash -c date -u +%FT%TZ; hostname; exec 9>/tmp/flash-sass-engine-validation.lock; if ! flock -w 45 9; then printf "BLOCKED_BUSY: shared GPU validation lock remained occupied for 45 seconds\n"; lslocks --noheadings --output PID,COMMAND,TYPE,MODE,PATH | rg flash-sass-engine-validation.lock; ps -eo pid,etime,args | rg "ruby validation/issue19/run.rb|./flashcore"; exit 75; fi; printf "LOCK_ACQUIRED: read-only occupancy inspection\n"; nvidia-smi --query-gpu=index,name,memory.used,memory.total,utilization.gpu --format=csv; ps -eo pid,etime,args | rg "flashcore|model_test|run.rb --mode model|hold --|/hold |fence"
+  71785       00:00 rg ruby validation/issue19/run.rb|./flashcore
+3575268    01:51:56 ./flashcore /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf /home/nate/claude/flash-sass-live/kern/libengine.so /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+4010221       42:49 ruby validation/issue19/run.rb --mode model --out /home/nate/codex/flash-pr44-evidence-20261018 --core-pid 3575268 --socket /tmp/flash.sock --checkpoint /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf --lock-dir /home/nate/codex/asm-port --engine-lock /tmp/flash-sass-engine-validation.lock --positions 128,32768,65536
