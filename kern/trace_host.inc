@@ -47,8 +47,8 @@ static int host_trace_dump(FILE *out) {
     }
     fprintf(out, "hosttrace_begin request=%llu first=%u count=%u clock=CLOCK_MONOTONIC", (unsigned long long)trace_request, trace_first, trace_valid);
     trace_status_fields(out);
-    fprintf(out, " schema=2 abort_start_ns=%llu abort_end_ns=%llu abort_position=%d request_poll_calls=%llu request_poll_ns=%llu request_readback_calls=%llu request_readback_ns=%llu\n",
-            (unsigned long long)trace_abort_start, (unsigned long long)trace_abort_end, trace_abort_position,
+    fprintf(out, " schema=2 abort_start_ns=%llu abort_end_ns=%llu abort_position=%d abort_reason=%s request_poll_calls=%llu request_poll_ns=%llu request_readback_calls=%llu request_readback_ns=%llu\n",
+            (unsigned long long)trace_abort_start, (unsigned long long)trace_abort_end, trace_abort_position, trace_abort_reason,
             (unsigned long long)trace_poll_calls, (unsigned long long)trace_poll_ns,
             (unsigned long long)trace_readback_calls, (unsigned long long)trace_readback_ns);
     fprintf(out, "position,observed_ns,callback_start_ns,callback_end_ns,ple_staging_start_ns,ple_staging_end_ns,ple_ready_ns,ple_bytes,ple_short_reads,ple_read_start_ns,ple_read_end_ns,ple_ready_start_ns,poll_start_ns,poll_end_ns,readback_start_ns,readback_end_ns\n");

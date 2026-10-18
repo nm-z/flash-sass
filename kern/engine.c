@@ -128,6 +128,7 @@ static uint64_t trace_requested;
 static unsigned trace_completed, trace_aborted, trace_ended;
 static uint64_t trace_abort_start, trace_abort_end;
 static int trace_abort_position = -1;
+static const char *trace_abort_reason = "none";
 static uint64_t trace_poll_calls, trace_poll_ns, trace_readback_calls, trace_readback_ns;
 static int prof_layer[MAXD][4096];
 typedef struct {
@@ -278,10 +279,10 @@ typedef struct {
 	const engine_cb *cb;
 } runctx;
 
-static void abort_run(runctx *r) {
+static void abort_run(runctx *r, const char *reason) {
 	/* the client is gone: every die ends the turn when its token count reaches a value a few tokens ahead of all of
 	   them (the dies are within one token of each other), so they stop together */
-	if (trace_n) { trace_abort_start = host_ns(); trace_abort_position = r->sent; }
+	if (trace_n) { trace_abort_start = host_ns(); trace_abort_position = r->sent; trace_abort_reason = reason; }
 	r->aborted = 1; trace_aborted = 1; *h_abort = (uint32_t)r->count + 8;
 	if (*h_abort < (uint32_t)r->ntok) for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoDAsync(dCTL[d] + 0x18, h_abort, 4, pollst[d])); CK(cuStreamSynchronize(pollst[d])); }
 	CK(cuCtxSetCurrent(ctx[0]));
@@ -363,11 +364,11 @@ static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 				int cancel = r->cb && r->cb->token && r->cb->token(r->cb->arg, r->sent, h_toks[r->sent]);
 				if (ti >= 0) trace_host[ti].callback_end = host_ns();
 				/* Callback time ends on return, before cancellation publishes to the dies. */
-				if (cancel && !r->aborted && !r->ended) abort_run(r);
+				if (cancel && !r->aborted && !r->ended) abort_run(r, "callback");
 			}
 		}
 		if (!fin) ple_pump(r, 8);
-		if (!r->aborted && !fin && r->cb && r->cb->alive && now() - last_alive > 0.02) { last_alive = now(); if (r->cb->alive(r->cb->arg) && !r->ended) abort_run(r); }
+		if (!r->aborted && !fin && r->cb && r->cb->alive && now() - last_alive > 0.02) { last_alive = now(); if (r->cb->alive(r->cb->arg) && !r->ended) abort_run(r, "alive"); }
 		/* a die whose kernel failed (an illegal address, a trap) ends its launch while the others spin in an exchange: look at all of them, and give
 		   up when the token count has not moved for FLASH_WATCHDOG_S seconds (a deadlock) */
 		if (!fin && now() - last_chk > 0.05) {
@@ -492,6 +493,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	trace_first = nprompt > 0 ? (unsigned)(nprompt - 1) : 0;
 	trace_valid = trace_completed = trace_aborted = trace_ended = 0;
 	trace_abort_start = trace_abort_end = 0; trace_abort_position = -1;
+	trace_abort_reason = "none";
 	trace_poll_calls = trace_poll_ns = trace_readback_calls = trace_readback_ns = 0;
 	trace_requested = nprompt > 0 && n_new >= 0 ? (uint64_t)(unsigned)nprompt + (unsigned)n_new : 0;
 	trace_status = "argument_error";
