@@ -11,6 +11,7 @@ static unsigned fake_current, fake_completed, fake_launches, fake_syncs;
 static unsigned fake_peer_queries, fake_peer_delay;
 static int fake_peer_stuck;
 static uint32_t fake_ctl[TEST_DIES][CTL_WORDS], fake_tok, fake_toks[8], fake_abort;
+static phase_t fake_program[TEST_DIES];
 static core_t fake_core;
 
 CUresult CUDAAPI cuCtxSetCurrent(CUcontext c) {
@@ -52,6 +53,14 @@ CUresult CUDAAPI cuMemcpyHtoDAsync(CUdeviceptr dst, const void *src, size_t n, C
 CUresult CUDAAPI cuMemcpyDtoH(void *dst, CUdeviceptr src, size_t n) {
     memcpy(dst, (const void *)(uintptr_t)src, n); return CUDA_SUCCESS;
 }
+CUresult CUDAAPI cuMemcpyHtoD(CUdeviceptr dst, const void *src, size_t n) {
+    memcpy((void *)(uintptr_t)dst, src, n); return CUDA_SUCCESS;
+}
+CUresult CUDAAPI cuMemsetD32(CUdeviceptr dst, unsigned value, size_t n) {
+    unsigned *p = (unsigned *)(uintptr_t)dst;
+    for (size_t i = 0; i < n; i++) p[i] = value;
+    return CUDA_SUCCESS;
+}
 CUresult CUDAAPI cuStreamSynchronize(CUstream s) { (void)s; return CUDA_SUCCESS; }
 CUresult CUDAAPI cuGetErrorString(CUresult r, const char **s) {
     (void)r; *s = "mock CUDA error"; return CUDA_SUCCESS;
@@ -67,6 +76,7 @@ static void prepare(int failed, unsigned delay, int stuck) {
     for (unsigned d = 0; d < TEST_DIES; d++) {
         core->ctx[d] = (CUcontext)(uintptr_t)(d + 1);
         dCTL[d] = (CUdeviceptr)(uintptr_t)fake_ctl[d];
+        dPROG[d] = (CUdeviceptr)(uintptr_t)&fake_program[d];
         db[d].toks = (CUdeviceptr)(uintptr_t)fake_toks;
         /* The token stream ended, but the final peer can still be running. */
         fake_ctl[d][2] = UINT32_C(0x80000000);
@@ -112,11 +122,32 @@ static void stuck_case(void) {
     printf("PASS simulated CUDA stuck peer: watchdog %.3f ms; no blocking sync\n",
            elapsed * 1e3);
 }
+static void chunk_failure_case(void) {
+    prepare(1, 0, 0);
+    phase_t descriptor = {0};
+    prog_t prefix[TEST_DIES] = {{0}};
+    for (int d = 0; d < TEST_DIES; d++) {
+        prefix[d].p = &descriptor; prefix[d].n = 1;
+        /* A staged-ahead read failed, but this short chunk ends before that row. */
+        fake_ctl[d][2] = 4; fake_ctl[d][0x1c / 4] = 0;
+    }
+    prefill_chunk = 4;
+    runctx r = {.T = 16, .nprompt = 16, .sent = 15};
+    alarm(3);
+    if (setjmp(run_jb)) { fputs("chunk I/O error became a watchdog fault\n", stderr); abort(); }
+    int rc = run_prefill_prefix(&r, prefix, prefix, NULL, 8);
+    alarm(0);
+    assert(rc == -5 && r.count == 4 && ple_io_segment_end == 4);
+    assert(fake_launches == TEST_DIES && fake_syncs == TEST_DIES);
+    assert(ple_io_sync_mask == 63u && ple_io_error_mask == 0u);
+    puts("PASS simulated CUDA prefill boundary: I/O error returned before dispatching another chunk");
+}
 int main(void) {
     assert(!setenv("FLASH_WATCHDOG_S", "0.03", 1));
     completed_case(0, 0);
     completed_case(1, 8);
     stuck_case();
+    chunk_failure_case();
     puts("ple_io_wait_test: CPU simulation only; GPU termination remains unmeasured");
     return 0;
 }

@@ -86,7 +86,8 @@ sub failure {
     my $before = status();
     my ($tokens, $done, $error, $after) = ask($label, $ids, $new);
     check(!$done && $error, "$label missing explicit error");
-    verify_failure($before, $after, $position, $mode, $prelaunch, $failure_bound);
+    my $chunked = @$ids > 2 && $config =~ /\bprefill_chunk=([1-9]\d*)\b/;
+    verify_failure($before, $after, $position, $mode, $prelaunch, $failure_bound, $chunked);
     check($error eq 'error: '.failure_detail($after), "$label lost error metadata: $error");
     check(same($tokens, $expected_prefix), "$label wrong emitted prefix");
     print "PASS $label: failure_ms=$after->{failure_ms}, completion_mask=$after->{sync_mask}\n";

@@ -283,7 +283,7 @@ attnmerge.cubin: attnmerge.sass fmath.pl skel_attnmerge.cubin
 	cp skel_attnmerge.cubin $@
 	$(MAXAS) -i attnmerge.sass $@
 
-attn_test: attn_test.c ../ref/attn.c ../ref/attn.h ../ref/fmath.c
+attn_test: attn_test.c ../ref/attn.c ../ref/attn.h ../ref/fmath.c ../ref/checked.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ attn_test.c ../ref/attn.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
 
 .PHONY: attn
@@ -479,7 +479,7 @@ model_test: model_test.c prog.c prog.h holdc.c hold.h dieops.h ../ref/block.c ..
 ENGINE_SRC = engine.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c
 # the commit (and -dirty when the tree differs from it) the library is built from: the engine reports it with its `config` command
 FLASH_REV ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)$(shell git diff --quiet HEAD -- .. 2>/dev/null || echo -dirty)
-libengine.so: $(ENGINE_SRC) prog.h hold.h core.h engine.h ple_io.h dieops.h ../ref/split.h ../ref/qsa.h ../ref/block.h ../ref/attn.h ../ref/ple.h ../ref/gguf.h ../ref/quant.h ../ref/fmath.h ../ref/hc.h ../ref/deltanet.h ../ref/router.h
+libengine.so: $(ENGINE_SRC) prefill.h prog.h hold.h core.h engine.h ple_io.h dieops.h ../ref/split.h ../ref/qsa.h ../ref/block.h ../ref/attn.h ../ref/ple.h ../ref/gguf.h ../ref/quant.h ../ref/fmath.h ../ref/hc.h ../ref/deltanet.h ../ref/router.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -DFLASH_REV='"$(FLASH_REV)"' -o $@.new $(ENGINE_SRC) -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
 
 flashcore: flashcore.c core.h hold.h holdc.c ../ref/gguf.c ../ref/gguf.h
@@ -501,7 +501,7 @@ sample_test: sample_test.c dieops.h ../ref/sample.c ../ref/sample.h ../ref/fmath
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ sample_test.c ../ref/sample.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
 
 # ---- QSA: int8 KV cache, indexer, selection, gather through the persistent kernel vs ref/qsa.c ----
-qsa_test: qsa_test.c dieops.h ../ref/qsa.c ../ref/qsa.h ../ref/attn.c ../ref/attn.h ../ref/fmath.c ../ref/quant.c ../ref/gguf.c
+qsa_test: qsa_test.c dieops.h ../ref/qsa.c ../ref/qsa.h ../ref/attn.c ../ref/attn.h ../ref/fmath.c ../ref/quant.c ../ref/gguf.c ../ref/checked.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ qsa_test.c ../ref/qsa.c ../ref/attn.c ../ref/fmath.c ../ref/quant.c ../ref/gguf.c -I../ref -I$(CUDA)/include -lcuda -lm
 
 attnpartn_unitmap: attnpartn_unitmap.c
@@ -520,23 +520,24 @@ fence: fence.c
 
 
 # Fault injection is compiled only into this test library.
-libengine_pleiotest.so: $(ENGINE_SRC) prog.h hold.h core.h engine.h ple_io.h dieops.h ../ref/split.h ../ref/qsa.h ../ref/block.h ../ref/attn.h ../ref/ple.h ../ref/gguf.h ../ref/quant.h ../ref/fmath.h ../ref/hc.h ../ref/deltanet.h ../ref/router.h
+libengine_pleiotest.so: $(ENGINE_SRC) prefill.h prog.h hold.h core.h engine.h ple_io.h dieops.h ../ref/split.h ../ref/qsa.h ../ref/block.h ../ref/attn.h ../ref/ple.h ../ref/gguf.h ../ref/quant.h ../ref/fmath.h ../ref/hc.h ../ref/deltanet.h ../ref/router.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -DFLASH_PLE_IO_TEST=1 -DFLASH_REV='"$(FLASH_REV)"' -o $@.new $(ENGINE_SRC) -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
 
 ple_io_test: ple_io_test.c ple_io.h
 	$(CC) -std=gnu99 -O2 -Wall -Wextra -UNDEBUG -o $@ ple_io_test.c
 
 # CPU-only checks. CUDA calls in the wait test are supplied by its local mock.
-ple_io_wait_test: ple_io_wait_test.c engine.c engine.h core.h prog.h ple_io.h dieops.h ../ref/ple.c ../ref/fmath.c
+ple_io_wait_test: ple_io_wait_test.c engine.c engine.h core.h prefill.h prog.h ple_io.h dieops.h ../ref/ple.c ../ref/fmath.c
 	$(CC) -std=gnu99 -O2 -Wall -UNDEBUG -ffunction-sections -fdata-sections -o $@ ple_io_wait_test.c ../ref/ple.c ../ref/fmath.c -I../ref -I$(CUDA)/include -Wl,--gc-sections -lm
 
 ple_io_http_stub_test: ple_io_http_stub_test.c flashd.c tok.h jinja.c jinja.h json.c json.h
 	$(CC) -std=gnu99 -O2 -Wall -UNDEBUG -ffunction-sections -fdata-sections -o $@ ple_io_http_stub_test.c jinja.c json.c -Wl,--gc-sections -lm -lpthread
 
-test-ple-io-cpu: ple_io_test pair_prog_test pair_bf16_plan_test ple_io_wait_test ple_io_http_stub_test
+test-ple-io-cpu: ple_io_test pair_prog_test pair_bf16_plan_test prefill_plan_test ple_io_wait_test ple_io_http_stub_test
 	./ple_io_test
 	./pair_prog_test
 	./pair_bf16_plan_test
+	./prefill_plan_test
 	./ple_io_wait_test
 	perl SocketEvidence_test.pl
 	perl -c ple_io_check.pl
@@ -544,6 +545,9 @@ test-ple-io-cpu: ple_io_test pair_prog_test pair_bf16_plan_test ple_io_wait_test
 	./ple_io_http_stub_test
 
 .PHONY: test-ple-io-cpu
+
+qsa_direct_test: qsa_direct_test.c qsa_direct_projection.h qsa_direct_fixtures.h qsa_test.c prog.c prog.h dieops.h ../ref/qsa.c ../ref/qsa.h ../ref/block.c ../ref/block.h ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -DFLASH_REV='"$(FLASH_REV)"' -o $@ qsa_direct_test.c prog.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I$(CUDA)/include -lcuda -lm
 
 # Two-position descriptor and state equivalence tests.
 pair_prog_test: pair_prog_test.c prog.c prog.h dieops.h ../ref/quant.c ../ref/gguf.c ../ref/split.c
@@ -558,6 +562,10 @@ pair_bf16_test: pair_bf16_test.c dieops.h
 pair_bf16_plan_test: pair_bf16_plan_test.c prog.c prog.h dieops.h ../ref/quant.c ../ref/gguf.c ../ref/split.c
 	$(CC) -std=gnu99 -O2 -Wall -o $@ pair_bf16_plan_test.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I$(CUDA)/include -lm
 
+# This planner test needs only a C compiler.
+prefill_plan_test: prefill_plan_test.c prefill.h
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -o $@ prefill_plan_test.c
+
 output_tokens_test: output_tokens_test.c flashd.c tok.c tok.h jinja.c json.c ../ref/gguf.c
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ output_tokens_test.c tok.c jinja.c json.c ../ref/gguf.c -I../ref -lm -lpthread
 
@@ -566,3 +574,6 @@ dn_l2norm_test: dn_l2norm_test.c ../ref/deltanet.c ../ref/fmath.c
 
 ple_eos_test: ple_eos_test.c ../ref/ple.c ../ref/fmath.c
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ ple_eos_test.c ../ref/ple.c ../ref/fmath.c -I../ref -lm
+
+checked_test: checked_test.c ../ref/checked.c ../ref/checked.h ../ref/attn.c ../ref/qsa.c ../ref/fmath.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ checked_test.c ../ref/checked.c ../ref/attn.c ../ref/qsa.c ../ref/fmath.c -I../ref -lm

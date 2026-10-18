@@ -30,6 +30,12 @@ A normal PLE failure returns engine status `-5` and invalidates the snapshot.
 A watchdog/device-fault recovery is a failed validation, not evidence that the
 PLE protocol completed correctly.
 
+With bounded prefill chunks, a staged-ahead read can fail beyond the current
+chunk's end. In that case every die completes that chunk normally, and the host
+returns the PLE error before dispatching another chunk. No device error word is
+expected for a row that no die reached. The test diagnostics record the launch
+end and require every die's count to equal that earlier boundary.
+
 Each new request clears readiness entries and device error words. Request IDs
 exclude both zero and `UINT32_MAX`. A healthy request after failure recomputes
 the invalidated prefix; a later matching request may reuse a new snapshot.
@@ -80,7 +86,8 @@ perl kern/ple_io_http_check.pl \
   --out "$NEW_HTTP_REPORT_DIRECTORY"
 ```
 
-Run the matrix with `FLASH_TWO_POSITION=0` and `FLASH_TWO_POSITION=1`.
+Run the matrix with `FLASH_TWO_POSITION=0` and `FLASH_TWO_POSITION=1`, each
+with `FLASH_PREFILL_CHUNK=0` and `FLASH_PREFILL_CHUNK=64`.
 Set a finite `FLASH_WATCHDOG_S` for the owned core and retain the complete core
 log. Record the source revision, SHA-256 of the library/cubin/test drivers,
 the engine's `config` response, GPU/process inventory, commands and exit codes.
@@ -106,7 +113,10 @@ The required evidence is:
 The test-only `ple_io_test status` command reports cumulative launches and
 per-request launch/completion/error masks, individual die counts/error words,
 failure latency, resumed position, snapshot state and read-injection counters.
-For six-die midrun failures, the completion and error masks must both be 63.
+For six-die midrun failures within the current launch, the completion and error
+masks must both be 63. A staged-ahead failure beyond a prefill chunk's end must
+have completion mask 63, error mask zero, and all counts exactly at that launch
+end before the failed position.
 Prelaunch failures must have zero launch/completion/error masks.
 
 Fault controls are compiled only into `libengine_pleiotest.so` using

@@ -47,7 +47,7 @@ sub status_fields {
     $line =~ /^ple_io_test / or die "invalid PLE status: $line\n";
     my %s = map { $_->[0] => 0 + $_->[1] }
         map { [split /=/, $_, 2] } grep { /^[a-z][a-z0-9_]*=-?\d+(?:\.\d+)?$/ } split /\s+/, $line;
-    for my $key (qw(launches failed pos head snapshot offset bytes expected errnum eof dies launched_mask sync_mask error_mask resumed failure_ms read_calls partial_reads eintr_retries fault_matches fault_reads), map { ("count$_", "error$_") } 0..5) {
+    for my $key (qw(launches failed pos head snapshot offset bytes expected errnum eof dies launched_mask sync_mask error_mask resumed segment_end failure_ms read_calls partial_reads eintr_retries fault_matches fault_reads), map { ("count$_", "error$_") } 0..5) {
         exists $s{$key} or die "status lacks $key: $line\n";
     }
     $s{dies} == 6 or die "six dies required: $line\n";
@@ -61,22 +61,28 @@ sub verify_healthy {
     for (0..5) { !$s->{"error$_"} or die "healthy request retained die $_ error\n"; }
 }
 sub verify_failure {
-    my ($before, $s, $position, $mode, $prelaunch, $bound_ms) = @_;
+    my ($before, $s, $position, $mode, $prelaunch, $bound_ms, $allow_chunk_boundary) = @_;
     $s->{failed} == 1 && $s->{pos} == $position && $s->{head} == 3 && $s->{offset} >= 0
         && $s->{bytes} == 17 && $s->{expected} == 90 && $s->{snapshot} == 0
         && $s->{eof} == ($mode eq 'eof' ? 1 : 0) && $s->{errnum} == ($mode eq 'eof' ? 0 : EIO)
         or die "incorrect failure metadata or snapshot state\n";
     $s->{fault_reads} == 1 && $s->{fault_matches} >= 2 or die "injected fault was not observed\n";
     $s->{failure_ms} >= 0 && $s->{failure_ms} < $bound_ms or die "PLE failure exceeded termination bound\n";
+    my $boundary = !$prelaunch && $allow_chunk_boundary && !$s->{error_mask};
+    if ($boundary) {
+        $s->{segment_end} > 0 && $s->{segment_end} < $position
+            or die "error-free completion did not stop before the failed row\n";
+        for (0..5) { $s->{"count$_"} == $s->{segment_end} or die "die $_ missed the chunk boundary\n"; }
+    }
     if ($prelaunch) {
         $s->{launches} == $before->{launches} && !$s->{launched_mask} && !$s->{sync_mask} && !$s->{error_mask}
             or die "prelaunch failure dispatched kernels\n";
     } else {
-        $s->{launches} > $before->{launches} && $s->{launched_mask} == 63 && $s->{sync_mask} == 63 && $s->{error_mask} == 63
+        $s->{launches} > $before->{launches} && $s->{launched_mask} == 63 && $s->{sync_mask} == 63 && $s->{error_mask} == ($boundary ? 0 : 63)
             or die "midrun failure did not finish every die normally\n";
     }
     for (0..5) {
-        $s->{"error$_"} == ($prelaunch ? 0 : 1) && $s->{"count$_"} <= $position
+        $s->{"error$_"} == ($prelaunch || $boundary ? 0 : 1) && $s->{"count$_"} <= $position
             or die "die $_ consumed beyond the failing position or has wrong error\n";
     }
 }

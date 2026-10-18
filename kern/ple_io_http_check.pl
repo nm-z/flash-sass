@@ -23,7 +23,7 @@ my $timeout = $ENV{PLE_TEST_TIMEOUT_S} // 600;
 my $failure_bound = $ENV{PLE_TEST_FAILURE_BOUND_MS} // 60000;
 my $run_status = 'FAIL';
 sub check { $_[0] or die "$_[1]\n"; }
-sub decode_json { JSON::PP->new->utf8->decode($_[0]); }
+sub json_value { JSON::PP->new->utf8->decode($_[0]); }
 sub same {
     my $j = JSON::PP->new->canonical;
     return $j->encode($_[0]) eq $j->encode($_[1]);
@@ -104,7 +104,7 @@ sub sse_failure {
     my ($errors, $failed, $text) = (0, 0, '');
     for my $raw (@data) {
         check($raw ne '[DONE]', 'SSE has duplicate transport terminator');
-        my $event = decode_json($raw);
+        my $event = json_value($raw);
         check(!exists($event->{usage}) && !exists($event->{timings}), 'failed SSE contains success metadata');
         if (exists $event->{error}) {
             $errors++; $failed = 1;
@@ -156,8 +156,7 @@ sub start_flashd {
         open STDOUT, '>:raw', "$out/flashd.log" or _exit(126);
         open STDERR, '>&', \*STDOUT or _exit(126);
         $ENV{FLASHD_THINKING} = '0';
-        exec {$argv[0]} @argv;
-        _exit(127);
+        exec {$argv[0]} @argv or _exit(127);
     }
     $proc = {pid => $pid};
     my $end = monotonic() + 60;
@@ -173,7 +172,7 @@ sub successful {
     my ($label, $baseline, $cold) = @_;
     my ($code, $body) = post($label, 0, 0);
     check($code == 200, "$label expected HTTP 200");
-    my $payload = decode_json($body);
+    my $payload = json_value($body);
     check(!exists($payload->{error}) && same($payload->{choices}, $baseline->{choices}),
           "$label healthy output differs");
     my $s = status(); verify_healthy($s);
@@ -192,7 +191,7 @@ sub matrix {
     fresh(); start_flashd();
     my ($code, $body) = post('baseline', 0, 0);
     check($code == 200, "baseline HTTP $code");
-    my $baseline = decode_json($body);
+    my $baseline = json_value($body);
     my $prompt_n = $baseline->{usage}{prompt_tokens};
     check(defined($prompt_n) && $prompt_n > 0 && $baseline->{usage}{completion_tokens} > 20,
           'baseline ended too early for a decode failure after text');
@@ -213,7 +212,8 @@ sub matrix {
                 my $before = status();
                 my ($status_code, $response, $elapsed) = post($label, $stream, $phase =~ /^prefill/);
                 my $after = status();
-                verify_failure($before, $after, $position, $mode, $position == 0, $failure_bound);
+                my $chunked = $phase =~ /^prefill/ && $config =~ /\bprefill_chunk=([1-9]\d*)\b/;
+                verify_failure($before, $after, $position, $mode, $position == 0, $failure_bound, $chunked);
                 if ($phase eq 'decode') {
                     check($before->{snapshot} > 0 && $after->{resumed} == $before->{snapshot},
                           "$label snapshot test was vacuous");
@@ -225,7 +225,7 @@ sub matrix {
                     $prefix_bytes = sse_failure($response, $detail, $phase eq 'decode', $baseline_text);
                 } else {
                     check($status_code == 502, "$label expected JSON 502");
-                    my $payload = decode_json($response);
+                    my $payload = json_value($response);
                     check($payload->{error}{message} eq $detail && !exists($payload->{choices})
                         && !exists($payload->{usage}) && !exists($payload->{timings}), "$label invalid JSON error");
                 }
