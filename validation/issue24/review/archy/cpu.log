@@ -1,0 +1,306 @@
+make: Entering directory '/tmp/flash-pr34-build-dCSmH6/kern'
+cc -std=gnu99 -O2 -Wall -Wextra -UNDEBUG -o ple_io_test ple_io_test.c
+cc -std=gnu99 -O2 -Wall -o pair_prog_test pair_prog_test.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I/opt/cuda/include -lm
+cc -std=gnu99 -O2 -Wall -o pair_bf16_plan_test pair_bf16_plan_test.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I/opt/cuda/include -lm
+cc -std=gnu99 -O2 -Wall -UNDEBUG -ffunction-sections -fdata-sections -o ple_io_wait_test ple_io_wait_test.c ../ref/ple.c ../ref/fmath.c -I../ref -I/opt/cuda/include -Wl,--gc-sections -lm
+cc -std=gnu99 -O2 -Wall -UNDEBUG -ffunction-sections -fdata-sections -o ple_io_http_stub_test ple_io_http_stub_test.c jinja.c json.c -Wl,--gc-sections -lm -lpthread
+In file included from ple_io_http_stub_test.c:4:
+flashd.c: In function 'serve.isra':
+flashd.c:230:162: warning: '%s' directive output may be truncated writing up to 255 bytes into a region of size between 100 and 299 [-Wformat-truncation=]
+  230 |           while (d && (e = readdir(d))) { if (e->d_name[0] == '.' || strstr(e->d_name, ".tmp")) continue; struct stat st; char p[300]; snprintf(p, sizeof p, "%s/%s", dir, e->d_name); if (stat(p, &st)) continue; if (nk < 64) { keep[nk].t = st.st_mtime; snprintf(keep[nk].name, sizeof keep[nk].name, "%s", e->d_name); nk++; } }
+      |                                                                                                                                                                  ^~
+In function 'vis_image',
+    inlined from 'chat' at flashd.c:268:21,
+    inlined from 'serve.isra' at flashd.c:473:79:
+flashd.c:230:136: note: 'snprintf' output between 2 and 456 bytes into a destination of size 300
+  230 |           while (d && (e = readdir(d))) { if (e->d_name[0] == '.' || strstr(e->d_name, ".tmp")) continue; struct stat st; char p[300]; snprintf(p, sizeof p, "%s/%s", dir, e->d_name); if (stat(p, &st)) continue; if (nk < 64) { keep[nk].t = st.st_mtime; snprintf(keep[nk].name, sizeof keep[nk].name, "%s", e->d_name); nk++; } }
+      |                                                                                                                                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+flashd.c: In function 'serve.isra':
+flashd.c:230:300: warning: '%s' directive output may be truncated writing up to 255 bytes into a region of size 64 [-Wformat-truncation=]
+  230 |           while (d && (e = readdir(d))) { if (e->d_name[0] == '.' || strstr(e->d_name, ".tmp")) continue; struct stat st; char p[300]; snprintf(p, sizeof p, "%s/%s", dir, e->d_name); if (stat(p, &st)) continue; if (nk < 64) { keep[nk].t = st.st_mtime; snprintf(keep[nk].name, sizeof keep[nk].name, "%s", e->d_name); nk++; } }
+      |                                                                                                                                                                                                                                                                                                            ^~
+In function 'vis_image',
+    inlined from 'chat' at flashd.c:268:21,
+    inlined from 'serve.isra' at flashd.c:473:79:
+flashd.c:230:253: note: 'snprintf' output between 1 and 256 bytes into a destination of size 64
+  230 |           while (d && (e = readdir(d))) { if (e->d_name[0] == '.' || strstr(e->d_name, ".tmp")) continue; struct stat st; char p[300]; snprintf(p, sizeof p, "%s/%s", dir, e->d_name); if (stat(p, &st)) continue; if (nk < 64) { keep[nk].t = st.st_mtime; snprintf(keep[nk].name, sizeof keep[nk].name, "%s", e->d_name); nk++; } }
+      |                                                                                                                                                                                                                                                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+./ple_io_test
+PASS none: reads=1 partial=0 EINTR=0
+PASS partial: reads=12 partial=11 EINTR=0
+PASS eintr: reads=3 partial=1 EINTR=1
+PASS eof: exact metadata, unread tail retained, unmatched row succeeds
+PASS eio: exact metadata, unread tail retained, unmatched row succeeds
+PASS real truncated-file EOF, invalid-fd error, and plan validation
+./pair_prog_test
+pair_prog_test: token offsets, descriptor preservation, shape rejection, and unchanged-on-error PASS
+./pair_bf16_plan_test
+matching weights and independent buffers: fused
+different weights: generic fallback
+different rows: generic fallback
+primary token mask: generic fallback
+secondary token mask: generic fallback
+own output/input alias: generic fallback
+cross output/input alias: generic fallback
+cross output/output alias: generic fallback
+output/weight alias: generic fallback
+different virtual units: generic fallback
+different scalar opcode: generic fallback
+separate biases: fused
+output/bias alias: generic fallback
+K320 independent buffers: fused
+four-slice HC independent buffers: fused
+XOUT no allocation guarantee: generic fallback
+XOUT disjoint allocation guarantee: fused
+BF16 fusion eligibility: 17 cases passed
+./ple_io_wait_test
+engine: PLE failure did not terminate all dies within 0.0 s
+PASS simulated CUDA healthy: all six streams completed before sync; 0.009 ms
+PASS simulated CUDA delayed failure: all six streams completed before sync; 4.642 ms
+PASS simulated CUDA stuck peer: watchdog 50.563 ms; no blocking sync
+ple_io_wait_test: CPU simulation only; GPU termination remains unmeasured
+perl SocketEvidence_test.pl
+ok 1 - fragmented line retains NUL
+ok 2 - coalesced second line
+ok 3 - unterminated final line at EOF
+ok 4 - EOF exhausted
+ok 5 - fragment server completed
+ok 6 - partial line times out
+ok 7 - read deadline is bounded
+ok 8 - partial buffer survives timeout
+ok 9 - EOF after resumed line
+ok 10 - timeout server completed
+ok 11 - optional response cap enforced
+ok 12 - cap server completed
+ok 13 - blocked large write times out
+ok 14 - nonblocking write deadline is bounded
+ok 15 - write deadline server completed
+ok 16 - regular valid lines cannot extend whole-request deadline
+ok 17 - total request duration bounded despite progress
+ok 18 - expired request rejects complete buffered line
+ok 19 - expired request rejects even empty send
+ok 20 - deadline rejection preserves buffered bytes
+ok 21 - total-deadline server completed
+1..21
+perl -c ple_io_check.pl
+ple_io_check.pl syntax OK
+perl -c ple_io_http_check.pl
+Subroutine decode_json redefined at ple_io_http_check.pl line 26.
+Statement unlikely to be reached at ple_io_http_check.pl line 160.
+	(Maybe you meant system() when you said exec()?)
+ple_io_http_check.pl syntax OK
+./ple_io_http_stub_test
+flashd: engine: error: PLE I/O position 160 head 3 offset 123456 bytes 17/90: unexpected EOF
+flashd: the engine failed during the response (0 reasoning + 0 answer tokens had been generated)
+flashd: engine: error: PLE I/O position 160 head 3 offset 123456 bytes 17/90: unexpected EOF
+flashd: the engine failed during the response (0 reasoning + 2 answer tokens had been generated)
+flashd: engine: error: PLE I/O position 160 head 3 offset 123456 bytes 17/90: unexpected EOF
+flashd: the engine failed during the response (0 reasoning + 0 answer tokens had been generated)
+flashd: engine: error: PLE I/O position 160 head 3 offset 123456 bytes 17/90: unexpected EOF
+flashd: the engine failed during the response (0 reasoning + 2 answer tokens had been generated)
+flashd: engine: error: PLE I/O position 160 head 3 offset 123456 bytes 17/90: Input/output error
+flashd: the engine failed during the response (0 reasoning + 0 answer tokens had been generated)
+flashd: engine: error: PLE I/O position 160 head 3 offset 123456 bytes 17/90: Input/output error
+flashd: the engine failed during the response (0 reasoning + 2 answer tokens had been generated)
+flashd: engine: error: PLE I/O position 160 head 3 offset 123456 bytes 17/90: Input/output error
+flashd: the engine failed during the response (0 reasoning + 0 answer tokens had been generated)
+flashd: engine: error: PLE I/O position 160 head 3 offset 123456 bytes 17/90: Input/output error
+flashd: the engine failed during the response (0 reasoning + 2 answer tokens had been generated)
+
+CASE simulated core: JSON before tokens EOF
+HTTP/1.1 502 Internal Server Error
+Content-Type: application/json
+Cache-Control: no-store
+Content-Length: 104
+Connection: close
+
+{"error":{"message":"PLE I/O position 160 head 3 offset 123456 bytes 17/90: unexpected EOF","code":502}}
+PASS simulated core JSON before tokens EOF: 0.478 ms
+
+CASE simulated core: JSON after decoded text EOF
+HTTP/1.1 502 Internal Server Error
+Content-Type: application/json
+Cache-Control: no-store
+Content-Length: 104
+Connection: close
+
+{"error":{"message":"PLE I/O position 160 head 3 offset 123456 bytes 17/90: unexpected EOF","code":502}}
+PASS simulated core JSON after decoded text EOF: 0.299 ms
+
+CASE simulated core: SSE before tokens EOF
+HTTP/1.1 200 OK
+Content-Type: text/event-stream
+Cache-Control: no-cache
+Transfer-Encoding: chunked
+Connection: close
+
+dd
+data: {"choices":[{"index":0,"delta":{"role":"assistant","content":null},"finish_reason":null}],"created":1792282742,"id":"chatcmpl-flash","model":"Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass","object":"chat.completion.chunk"}
+
+
+7b
+data: {"error":{"message":"PLE I/O position 160 head 3 offset 123456 bytes 17/90: unexpected EOF","type":"engine_error"}}
+
+
+e
+data: [DONE]
+
+
+0
+
+
+PASS simulated core SSE before tokens EOF: 0.317 ms
+
+CASE simulated core: SSE after decoded text EOF
+HTTP/1.1 200 OK
+Content-Type: text/event-stream
+Cache-Control: no-cache
+Transfer-Encoding: chunked
+Connection: close
+
+dd
+data: {"choices":[{"index":0,"delta":{"role":"assistant","content":null},"finish_reason":null}],"created":1792282742,"id":"chatcmpl-flash","model":"Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass","object":"chat.completion.chunk"}
+
+
+cd
+data: {"choices":[{"index":0,"delta":{"content":"hello"},"finish_reason":null}],"created":1792282742,"id":"chatcmpl-flash","model":"Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass","object":"chat.completion.chunk"}
+
+
+ce
+data: {"choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null}],"created":1792282742,"id":"chatcmpl-flash","model":"Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass","object":"chat.completion.chunk"}
+
+
+7b
+data: {"error":{"message":"PLE I/O position 160 head 3 offset 123456 bytes 17/90: unexpected EOF","type":"engine_error"}}
+
+
+e
+data: [DONE]
+
+
+0
+
+
+PASS simulated core SSE after decoded text EOF: 0.430 ms
+
+CASE simulated core: JSON before tokens EIO
+HTTP/1.1 502 Internal Server Error
+Content-Type: application/json
+Cache-Control: no-store
+Content-Length: 108
+Connection: close
+
+{"error":{"message":"PLE I/O position 160 head 3 offset 123456 bytes 17/90: Input/output error","code":502}}
+PASS simulated core JSON before tokens EIO: 0.432 ms
+
+CASE simulated core: JSON after decoded text EIO
+HTTP/1.1 502 Internal Server Error
+Content-Type: application/json
+Cache-Control: no-store
+Content-Length: 108
+Connection: close
+
+{"error":{"message":"PLE I/O position 160 head 3 offset 123456 bytes 17/90: Input/output error","code":502}}
+PASS simulated core JSON after decoded text EIO: 0.260 ms
+
+CASE simulated core: SSE before tokens EIO
+HTTP/1.1 200 OK
+Content-Type: text/event-stream
+Cache-Control: no-cache
+Transfer-Encoding: chunked
+Connection: close
+
+dd
+data: {"choices":[{"index":0,"delta":{"role":"assistant","content":null},"finish_reason":null}],"created":1792282742,"id":"chatcmpl-flash","model":"Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass","object":"chat.completion.chunk"}
+
+
+7f
+data: {"error":{"message":"PLE I/O position 160 head 3 offset 123456 bytes 17/90: Input/output error","type":"engine_error"}}
+
+
+e
+data: [DONE]
+
+
+0
+
+
+PASS simulated core SSE before tokens EIO: 0.303 ms
+
+CASE simulated core: SSE after decoded text EIO
+HTTP/1.1 200 OK
+Content-Type: text/event-stream
+Cache-Control: no-cache
+Transfer-Encoding: chunked
+Connection: close
+
+dd
+data: {"choices":[{"index":0,"delta":{"role":"assistant","content":null},"finish_reason":null}],"created":1792282742,"id":"chatcmpl-flash","model":"Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass","object":"chat.completion.chunk"}
+
+
+cd
+data: {"choices":[{"index":0,"delta":{"content":"hello"},"finish_reason"flashd: the engine failed during the response (0 reasoning + 0 answer tokens had been generated)
+flashd: the engine failed during the response (0 reasoning + 2 answer tokens had been generated)
+:null}],"created":1792282742,"id":"chatcmpl-flash","model":"Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass","object":"chat.completion.chunk"}
+
+
+ce
+data: {"choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null}],"created":1792282742,"id":"chatcmpl-flash","model":"Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass","object":"chat.completion.chunk"}
+
+
+7f
+data: {"error":{"message":"PLE I/O position 160 head 3 offset 123456 bytes 17/90: Input/output error","type":"engine_error"}}
+
+
+e
+data: [DONE]
+
+
+0
+
+
+PASS simulated core SSE after decoded text EIO: 0.394 ms
+
+CASE simulated core: JSON timeout then clean EOF
+HTTP/1.1 502 Internal Server Error
+Content-Type: application/json
+Cache-Control: no-store
+Content-Length: 72
+Connection: close
+
+{"error":{"message":"the engine failed during the response","code":502}}
+PASS simulated core JSON timeout then clean EOF: 3000.441 ms
+
+CASE simulated core: SSE text then timeout and clean EOF
+HTTP/1.1 200 OK
+Content-Type: text/event-stream
+Cache-Control: no-cache
+Transfer-Encoding: chunked
+Connection: close
+
+dd
+data: {"choices":[{"index":0,"delta":{"role":"assistant","content":null},"finish_reason":null}],"created":1792282745,"id":"chatcmpl-flash","model":"Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass","object":"chat.completion.chunk"}
+
+
+cd
+data: {"choices":[{"index":0,"delta":{"content":"hello"},"finish_reason":null}],"created":1792282745,"id":"chatcmpl-flash","model":"Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass","object":"chat.completion.chunk"}
+
+
+ce
+data: {"choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null}],"created":1792282745,"id":"chatcmpl-flash","model":"Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass","object":"chat.completion.chunk"}
+
+
+5b
+data: {"error":{"message":"the engine failed during the response","type":"engine_error"}}
+
+
+e
+data: [DONE]
+
+
+0
+
+
+PASS simulated core SSE text then timeout and clean EOF: 3000.709 ms
+PASS ten HTTP/SSE CPU regressions; real GPU propagation remains unmeasured
+make: Leaving directory '/tmp/flash-pr34-build-dCSmH6/kern'
