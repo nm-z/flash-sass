@@ -8,14 +8,14 @@ the required whole-model runs.
 ## Tested source and build
 
 The exact source revision is
-[`4524f06797812b6f9b35a8a158d094fe1728412c`](https://github.com/nm-z/flash-sass/commit/4524f06797812b6f9b35a8a158d094fe1728412c).
+[`a43770d1830fd33939f7632cb9c06f117df2f8e7`](https://github.com/nm-z/flash-sass/commit/a43770d1830fd33939f7632cb9c06f117df2f8e7).
 It was exported with `git archive`, extracted into an isolated directory on
 archy, and built with `FLASH_REV` set to that full revision.
 
 | Record | Result |
 | --- | --- |
 | [Source/export identity](review/source.json) | Source revision, archive SHA-256, execution location and explicit GPU status. |
-| [Build command and toolchain](review/archy/build-meta.log) | GCC 16.2.1; CUDA 11.4.152 ptxas; 2026-10-18 00:18:34–00:19:08 UTC. |
+| [Build command and toolchain](review/archy/build-meta.log) | GCC 16.2.1; CUDA 11.4.152 ptxas; 2026-10-18 00:30:32–00:31:08 UTC. |
 | [Raw build output](review/archy/build.log), [exit code](review/archy/build.rc) | Production library, test library, persistent cubin, core and HTTP daemon built; exit 0. |
 | [CPU regression output](review/archy/cpu.log), [exit code](review/archy/cpu.rc) | `make -C kern test-ple-io-cpu` completed; exit 0. |
 | [Production injection gate](review/archy/production-gate.log), [exit code](review/archy/production-gate.rc) | The production library has no `ple_io_test status` command; exit 0. |
@@ -26,7 +26,7 @@ archy, and built with `FLASH_REV` set to that full revision.
 The built persistent cubin SHA-256 is
 `35787c07056e4c6947bc519149f49c6f8a5fc2375fd98b155a1b1dd76c341193`.
 The test library SHA-256 is
-`3ad2400bc87f988a6e2065b6aecd1de5556c23b4ed32f574edb5f23045e886db`.
+`21da71944d7ce92031aea2db9052a8134d96766bd2879dd9ccef37a8f42adae1`.
 
 The build log includes assembler register-bank conflict diagnostics and C
 warnings. Its successful exit establishes that these artifacts build with the
@@ -39,7 +39,8 @@ target toolchain; it does not establish their runtime correctness.
 | Exact 90-byte reads | Full read: 1 call; injected partial reads: 12 calls, 11 partials; EINTR: 3 calls, 1 retry. All three produced identical bytes. | CPU reader, not model inference. |
 | EOF and EIO | Both preserved position/head/offset, 17/90 received bytes and distinct EOF/errno. Unread tail remained untouched. Real truncated-file EOF and invalid-fd cases also passed. | Does not exercise GPU readiness. |
 | Descriptor pairing | PLE failure flag is separate from paired control flags; the two PLE descriptors remain separate while following eligible work stays paired. Descriptor and BF16 pairing plan checks passed. | CPU descriptor construction. |
-| Host completion wait | Six simulated launch streams completed before any blocking context synchronization. Delayed-peer error returned in 4.642 ms. A stuck peer reached the watchdog in 50.563 ms without blocking synchronization. | CUDA calls are mocked. These numbers are not GPU failure latencies. |
+| Host completion wait | Six simulated launch streams completed before any blocking context synchronization. Delayed-peer error returned in 4.484 ms. A stuck peer reached the watchdog in 50.282 ms without blocking synchronization. | CUDA calls are mocked. These numbers are not GPU failure latencies. |
+| Bounded prefill chunks | Configuration, exhaustive chunk boundaries, snapshot, cancellation and overflow planner checks passed. A separate host-loop regression staged an I/O failure beyond the current chunk: all six simulated dies completed at position 4 with zero error words, the host returned -5, and no second chunk launched. | CUDA calls are mocked. This verifies error propagation through the prefill-chunk path merged from master; it does not measure device coordination. |
 | Socket deadlines | 21 checks passed, including fragmented/NUL-containing lines, read/write bounds, and an absolute request deadline despite continuing valid lines. | Local CPU sockets. |
 | HTTP/SSE propagation | Ten cases used the real `flashd.c` HTTP handler over actual loopback TCP. EOF/EIO errors were tested before tokens and after decoded text, for JSON and SSE. Exact metadata survived; failed SSE had one error and one transport `[DONE]`, without a successful finish or usage/timings. | Tokenizer and core responses are simulated. No model inference occurred. |
 | EOF after a read timeout | Both JSON and SSE completed at approximately 3000 ms when the simulated core closed after the daemon's two-second read timeout. | CPU regression for stale errno handling. |
@@ -70,7 +71,8 @@ none of these results is claimed:
 ## Prepared runtime matrix
 
 See [PLE_IO.md](../../PLE_IO.md) for setup and commands. Run both
-`FLASH_TWO_POSITION=0` and `FLASH_TWO_POSITION=1` with an owned six-die,
+`FLASH_TWO_POSITION=0` and `FLASH_TWO_POSITION=1`, each with
+`FLASH_PREFILL_CHUNK=0` and `FLASH_PREFILL_CHUNK=64`, using an owned six-die,
 48-layer disk-PLE core and the matching source/library/cubin.
 
 The Perl core driver covers positive partial reads, EINTR, unused rows after
@@ -85,8 +87,13 @@ baseline's measured prompt length. Its SSE check requires nonempty text before
 the error. Every failure is followed by cold recovery and a later warm request.
 
 Both drivers require exact row metadata, evidence that injection actually
-executed, per-die error/count readbacks and completion masks. A midrun failure
-must complete with all six bits set in the completion and error masks. A
+executed, per-die error/count readbacks and completion masks. A device-observed
+midrun failure must complete with all six bits set in the completion and error
+masks. For chunked prefill only, a staged failure may instead be reported when
+all six dies finish a chunk before the failed row: completion must be 63,
+the error mask must be 0, and every die count must equal the recorded
+`segment_end`, strictly below the failed position. This is a separate host
+failure path and is not evidence of device error-barrier coordination. A
 watchdog reset, socket timeout, process restart or missing status response
 fails validation. Reports retain actual durations, configured bounds,
 responses, control transcripts, config and driver identities.
@@ -98,5 +105,6 @@ review feedback is resolved should PR #34 be marked ready.
 
 The top-level [cpu.log](cpu.log) and [build-archy.log](build-archy.log) predate
 this revision. They are retained as historical records; the `review/archy/`
-records above identify and validate the current source. The correct evidence
-directory is `validation/issue24`.
+records above identify and validate the current source. The earlier build of
+`4524f06` remains available in commit `626d0e4`. The correct evidence directory
+is `validation/issue24`.

@@ -6959,7 +6959,7 @@ Modified die ParamSecSize: 108 => 120
 Modified die KernelSize: 192 => 483840
 Kernel: die, Instructions: 0, Register Count: 249, Bank Conflicts: 7666, Reuse: 20.1% (13833/68883)
 perl die.pl header > dieops.h
-cc -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -DFLASH_REV='"4524f06797812b6f9b35a8a158d094fe1728412c"' -o libengine.so.new engine.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm && mv -f libengine.so.new libengine.so
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -DFLASH_REV='"a43770d1830fd33939f7632cb9c06f117df2f8e7"' -o libengine.so.new engine.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm && mv -f libengine.so.new libengine.so
 ../ref/quant.c: In function 'gemv_bf16_ref':
 ../ref/quant.c:315:25: warning: 'v' may be used uninitialized [-Wmaybe-uninitialized]
   315 |                 y[r] = v[0];
@@ -7002,7 +7002,7 @@ cc -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -DFLASH_REV='"4524f06797
 ../ref/quant.c:661:15: note: 'v' declared here
   661 |         float v[32], w[32];
       |               ^
-cc -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -DFLASH_PLE_IO_TEST=1 -DFLASH_REV='"4524f06797812b6f9b35a8a158d094fe1728412c"' -o libengine_pleiotest.so.new engine.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm && mv -f libengine_pleiotest.so.new libengine_pleiotest.so
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -DFLASH_PLE_IO_TEST=1 -DFLASH_REV='"a43770d1830fd33939f7632cb9c06f117df2f8e7"' -o libengine_pleiotest.so.new engine.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm && mv -f libengine_pleiotest.so.new libengine_pleiotest.so
 ../ref/quant.c: In function 'gemv_bf16_ref':
 ../ref/quant.c:315:25: warning: 'v' may be used uninitialized [-Wmaybe-uninitialized]
   315 |                 y[r] = v[0];
