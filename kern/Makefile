@@ -112,7 +112,7 @@ test-gemv: all
 	./gemv_test $(SHARD1) blk.4.ffn_down_exps.weight 0 20
 
 clean:
-	rm -f *.cubin *.dis *.so *.so.new die.sass dieops.h flashcore flashd flashvis hold memtest fence *_test model_quality model_quality_json.o qsa_quality model_reference
+	rm -f *.cubin *.dis *.so *.so.new die.sass dieops.h flashcore flashd flashvis hold memtest fence *_test model_quality model_quality_json.o qsa_quality qsa_attention_quality qsa_attention_gpu model_reference
 
 # CPU-only FP32 logit comparison using core Perl modules.
 model_quality: model_quality.pl
@@ -121,6 +121,13 @@ model_quality: model_quality.pl
 
 qsa_quality: qsa_quality.c
 	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -fno-fast-math -ffp-contract=off -o $@ $< -lm
+
+qsa_attention_quality: qsa_attention_quality.c
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -fno-fast-math -ffp-contract=off -o $@ $< -lm
+
+# Fixed-projection GPU fixtures; supplied selection, no model/indexer claim.
+qsa_attention_gpu: qsa_attention_gpu.c dieops.h
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -fno-fast-math -ffp-contract=off -DFLASH_REV='"$(FLASH_REV)"' -o $@ $< -I$(CUDA)/include -lcuda -lm
 
 # Independent backend source/build supplied explicitly; no GPU backend loading.
 # Rebuild when LLAMA_DIR changes even if model_reference.c has not changed.
