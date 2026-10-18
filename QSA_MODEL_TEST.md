@@ -33,9 +33,9 @@ The harness checks the executed QSA opcode counts and requested block budget.
 `MODEL_INJECT=selection|layer|logits|dn|conv|ple` provides negative controls; an
 injection must reach the named comparison and exit 3. Selection injection needs
 actual exclusion, logits needs the head, DN/conv need a recurrent block, and PLE
-needs block 1. Invalid input or unreachable controls must be rejected before
-CUDA initialization, with exit 2. A malformed configuration is not an expected
-numerical-mismatch result.
+needs block 1. The CLI boundary checks require malformed model arguments/IDs
+and unreachable controls to be rejected before CUDA initialization, with exit
+2. A setup/configuration failure is not an expected numerical-mismatch result.
 
 ## Inputs and execution
 
@@ -66,6 +66,49 @@ context. Release the lock after the run. Keep existing holders and the resident
 engine intact: do not kill another worker's process or park, restart, reload,
 or reconfigure the resident engine to make a test fit.
 
+`kern/run_qsa_model_matrix.pl` records a selected matrix, binary/source and input
+identities, effective environment, GPU/process admission checks, and raw outputs.
+It requires an exact successful comparison summary, the QSA banner and matching
+opcode/budget assertions. Negative controls require a reachability marker,
+comparison mismatch and exit 3. `--controls none` selects positives only;
+`--controls all` selects reachable controls; an explicit list rejects unreachable
+requests. A passing report says `SELECTED_CASES_PASSED` and leaves
+`acceptance_complete` false.
+
+```sh
+perl kern/run_qsa_model_matrix.pl --self-test
+bash kern/test_model_cli.sh kern/model_test
+perl kern/run_qsa_model_matrix.pl --repo "$PWD" --out /new/results \
+  --cache /full/cache --ids /teacher-ids --blocks 0:48 --tokens 2052 --flags eh \
+  --manifest /holder0 --manifest /holder1 --manifest /holder2 \
+  --manifest /holder3 --manifest /holder4 --manifest /holder5 \
+  --cuda-visible 0,1,2,3,4,5 --budgets 1,512 --kv 0,1 --modes token,loop \
+  --controls none --plan
+```
+
+`--plan` does no GPU work. Actual runs acquire the fixed shared lock and admit
+only explicitly named holder PIDs whose executable and manifest match. An owned
+holder wrapper may pass `--lock-fd 9`; the runner verifies that descriptor's
+device/inode against the fixed lock and retains it through each child. Both
+paths inspect GPU and process state before each run. Minimum free-memory
+thresholds are admission checks, not guarantees that arbitrary allocations fit.
+The CPU CLI checks intercept `cuInit`, include a positive interception control,
+and require invalid/zero-length cases to exit 2 before reaching it.
+
+For bounded private-engine fixtures, `FLASH_LAYERS` limits initialization,
+request reset and snapshot copying to the executed blocks. The default remains
+48. Partial-layer engine results must report the effective `config` and remain
+labeled as partial-model results, regardless of head/logit comparisons.
+
+`kern/check_qsa_engine_requests.pl` uses the same lock/admission helpers for
+owned one-die cores. It checks fresh requests, prompt changes, snapshots at
+positions 1/2/3/5, resume counts, final state/logit fingerprints and actual
+paired/chunk counters. A separate `gen 1` request has its own full-head engine
+reference; it is not a teacher-forced scalar-model comparison. `--self-test`
+checks the parser on CPU and `--plan` displays the exact request sequence.
+Actual execution requires an inherited reservation and an explicitly identified
+holder, such as those supplied by `validation/issue9/with_private_holder.sh`.
+
 ## CPU tile cache export
 
 `make -C kern hold_cache` builds the exact holder packing/merging implementation
@@ -91,7 +134,9 @@ Preserve checkpoint/cache hashes and exact executable identity with results.
 | Evidence | What was measured | Limits |
 |---|---|---|
 | [Archived block 3](validation/issue9/block3-1e299ef) | Source `1e299ef5e169ed9a88f2f6c8d0241831ab688f72`; actual block-3 weights across six resident arenas; nine sequential synthetic-stream positions; budget 1; both KV placements; 9/9 positions exact in each; selection/layer controls exited 3 in both placements. | No embedding, output head, additional model blocks, request reuse, or snapshot test. |
-| [Integrated direct-position matrix](validation/issue9/review-e7921ae/direct/matrix/results.json) | Source `e7921ae`; 41 passing cases, comprising 146 positive checked positions and three negative controls. Both KV placements, budget 512, every modulo-four tail around required depths through 262,144; budget-8 short-history replay. Selection/gather/output controls exited 3. | Synthetic component history and fixture weights. It does not measure actual-weight full-model logits or request/snapshot behavior. |
+| [Integrated direct-position matrix](validation/issue9/review-523110f/README.md) | Source `523110f`; 41 passing cases, comprising 146 positive checked positions and three negative controls. Both KV placements, budget 512, every modulo-four tail around required depths through 262,144; budget-8 short-history replay. Selection/gather/output controls exited 3. | Synthetic component history and fixture weights. It does not measure actual-weight full-model logits or request/snapshot behavior. |
+| [Eight-block model matrix](validation/issue9/review-4429cbd/README.md) | C source `4429cbd0e40c9338cb9e5cf809afd52cb71e0a5e`; actual embedding, blocks 0..7 and full output head; both KV placements; budgets 1/512; token/loop launches. Main batch: 12 positive cases and 12 deliberately rejected mismatches, plus one separate initial positive. | One-die partial model. Nine-ID budget-512 cases stay below exclusion. Loop runs retain only the final detailed buffers. |
+| [Private-engine requests](validation/issue9/review-4429cbd/engine-batch-v2/matrices/) | 128 passing request checks across eight owned cores: budgets 1/512, host/VRAM, scalar/paired launches, reset, snapshots/resume at 1/2/3/5, and a separate short generation/chunk check. Actual `config` and state/logit fingerprints are recorded. | Eight blocks on one die; GPU-versus-GPU FNV fingerprints. This is not full-model CPU agreement or production-budget deep exclusion. |
 
 The archived Python runner was removed from the current PR. Historical
 `IDENTITIES.json` and raw command records retain the original runner hash;
@@ -106,13 +151,11 @@ measured results:
 
 - Actual-weight embedding → all 48 blocks → full vocabulary logits, with the
   scalar and GPU consuming identical teacher-forced IDs.
-- Additional real-weight attention/recurrent/PLE layers and reachable state and
-  logits negative controls on the revised harness.
 - Full-model coverage at the production selection budget and explicit separation
   from the long synthetic component fixtures.
-- Consecutive requests and snapshot/resume on the candidate implementation, with
-  single-/multi-token launches and state validation. Restarting `model_test` as
-  a new process does not exercise reuse or snapshot restoration.
+- Extension of the measured eight-block request/snapshot/generation matrix to
+  the complete model and production die placement. Restarting `model_test` as a
+  new process does not exercise reuse or snapshot restoration.
 - Both KV placements and the production die layout for the applicable model
   matrix, with exact source/library/cubin/cache/device identities and raw logs.
 

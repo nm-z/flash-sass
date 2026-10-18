@@ -570,4 +570,5 @@ sub main {
     return $ok ? 0 : 1;
 }
 
-exit main(@ARGV);
+unless (caller) { exit main(@ARGV); }
+1;

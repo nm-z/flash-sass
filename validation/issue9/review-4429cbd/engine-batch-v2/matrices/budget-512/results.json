@@ -1,0 +1,3055 @@
+{
+   "acceptance_complete" : false,
+   "block_budget" : 512,
+   "commands" : [
+      "config",
+      "gen 0 10 11 12 13 14 15 16 17 18",
+      "statehash",
+      "gen 0 30 31 32 33 34 35 36 37 38",
+      "statehash",
+      "snap 1",
+      "gen 0 10 11 12 13 14 15 16 17 18",
+      "statehash",
+      "gen 0 10 11 12 13 14 15 16 17 18",
+      "statehash",
+      "gen 0 30 31 32 33 34 35 36 37 38",
+      "statehash",
+      "snap 2",
+      "gen 0 10 11 12 13 14 15 16 17 18",
+      "statehash",
+      "gen 0 10 11 12 13 14 15 16 17 18",
+      "statehash",
+      "gen 0 30 31 32 33 34 35 36 37 38",
+      "statehash",
+      "snap 3",
+      "gen 0 10 11 12 13 14 15 16 17 18",
+      "statehash",
+      "gen 0 10 11 12 13 14 15 16 17 18",
+      "statehash",
+      "gen 0 30 31 32 33 34 35 36 37 38",
+      "statehash",
+      "snap 5",
+      "gen 0 10 11 12 13 14 15 16 17 18",
+      "statehash",
+      "gen 0 10 11 12 13 14 15 16 17 18",
+      "statehash",
+      "gen 0 30 31 32 33 34 35 36 37 38",
+      "statehash",
+      "gen 0 10 11 12 13 14 15 16 17 18",
+      "statehash",
+      "gen 1 10 11 12 13 14 15 16 17 18",
+      "statehash",
+      "quit"
+   ],
+   "commands_identity" : {
+      "bytes" : 728,
+      "mtime" : 1792284690,
+      "path" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/matrices/budget-512/commands.txt",
+      "sha256" : "e8d56bcf09d462957eef7448225b9dc3e602a24ebac6045317db096479d26e75"
+   },
+   "cores" : [
+      {
+         "argv" : [
+            "/tmp/flash-pr35-4429cbd/source/kern/flashcore",
+            "/home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+            "/tmp/flash-pr35-4429cbd/source/kern/libengine.so",
+            "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/holder.manifest"
+         ],
+         "config" : {
+            "fields" : {
+               "attn_dies" : "0",
+               "attn_map" : "0,0,0,0,0,0,0,0,0,0,0,0",
+               "cubin" : "die.cubin",
+               "cubin_fnv" : "669dbb2e43186b1a",
+               "dies" : "1",
+               "img_rows" : "0",
+               "kv_host" : "0",
+               "layers" : "8/48",
+               "maxt" : "128",
+               "nblk" : "512",
+               "ple_disk" : "1",
+               "prefill_chunk" : "0",
+               "rev" : "4429cbd0e40c9338cb9e5cf809afd52cb71e0a5e",
+               "split" : "1",
+               "two_position" : "0"
+            },
+            "raw" : "config rev=4429cbd0e40c9338cb9e5cf809afd52cb71e0a5e kv_host=0 ple_disk=1 maxt=128 layers=8/48 nblk=512 dies=1 attn_dies=0 split=1 attn_map=0,0,0,0,0,0,0,0,0,0,0,0 img_rows=0 two_position=0 prefill_chunk=0 cubin=die.cubin cubin_fnv=669dbb2e43186b1a",
+            "sha256" : "a1a904ffd4b8e4c636141a22347723423b5307e737e34e43e8f4b1a9ddaef014"
+         },
+         "elapsed_seconds" : 3.30613803863525,
+         "environment" : {
+            "ATTN_MAP" : "0,0,0,0,0,0,0,0,0,0,0,0",
+            "CUDA_DEVICE_ORDER" : "PCI_BUS_ID",
+            "CUDA_VISIBLE_DEVICES" : 7,
+            "FLASH_ENGINE_MAXT" : "128",
+            "FLASH_KV_HOST" : "0",
+            "FLASH_LAYERS" : "8",
+            "FLASH_MAXIMG" : "0",
+            "FLASH_MAXT" : "128",
+            "FLASH_NBLK" : "512",
+            "FLASH_PLE_DISK" : "1",
+            "FLASH_PLE_OFF" : "192",
+            "FLASH_PREFILL_CHUNK" : "0",
+            "FLASH_TWO_POSITION" : "0",
+            "SPLIT_SHARES" : "1"
+         },
+         "exit_code" : 0,
+         "interrupted" : false,
+         "name" : "kv0-scalar",
+         "passed" : true,
+         "pid" : 3394207,
+         "requests" : [
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "fresh-A",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 119.7 ms for 9 positions run (0 from the snapshot; 13.30 ms per position run; first token 119.7 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  220,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "75c2768b6681b0e9",
+                  "1" : "0e9f68a4debbd701",
+                  "2" : "b6f9d2aabc84578a",
+                  "3" : "fdde0acf4a6796cd",
+                  "4" : "238620fe82650ef8",
+                  "5" : "2f2f81a528629be7",
+                  "6" : "6677ffb49ea043e2",
+                  "7" : "9ccd97ab6ba82041"
+               },
+               "logits" : "ee86e748c8a64b0d",
+               "name" : "fresh-B",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "193faffafe4ebe6d",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "B",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 119.7 ms for 9 positions run (0 from the snapshot; 13.30 ms per position run; first token 119.7 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  104357,
+                  226080,
+                  1862,
+                  47432,
+                  154293,
+                  106830,
+                  96029,
+                  9594,
+                  24465
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "save-1-A",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 0,
+               "snap" : 1,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 121.7 ms for 9 positions run (0 from the snapshot; 13.53 ms per position run; first token 121.7 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  220,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "resume-1-A",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 8,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 1,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 107.6 ms for 8 positions run (1 from the snapshot; 13.45 ms per position run; first token 107.5 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  0,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "75c2768b6681b0e9",
+                  "1" : "0e9f68a4debbd701",
+                  "2" : "b6f9d2aabc84578a",
+                  "3" : "fdde0acf4a6796cd",
+                  "4" : "238620fe82650ef8",
+                  "5" : "2f2f81a528629be7",
+                  "6" : "6677ffb49ea043e2",
+                  "7" : "9ccd97ab6ba82041"
+               },
+               "logits" : "ee86e748c8a64b0d",
+               "name" : "reset-1-B",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "193faffafe4ebe6d",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "B",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 119.7 ms for 9 positions run (0 from the snapshot; 13.30 ms per position run; first token 119.6 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  104357,
+                  226080,
+                  1862,
+                  47432,
+                  154293,
+                  106830,
+                  96029,
+                  9594,
+                  24465
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "save-2-A",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 0,
+               "snap" : 2,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 121.3 ms for 9 positions run (0 from the snapshot; 13.48 ms per position run; first token 121.3 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  220,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "resume-2-A",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 7,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 2,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 94.2 ms for 7 positions run (2 from the snapshot; 13.46 ms per position run; first token 94.1 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  0,
+                  0,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "75c2768b6681b0e9",
+                  "1" : "0e9f68a4debbd701",
+                  "2" : "b6f9d2aabc84578a",
+                  "3" : "fdde0acf4a6796cd",
+                  "4" : "238620fe82650ef8",
+                  "5" : "2f2f81a528629be7",
+                  "6" : "6677ffb49ea043e2",
+                  "7" : "9ccd97ab6ba82041"
+               },
+               "logits" : "ee86e748c8a64b0d",
+               "name" : "reset-2-B",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "193faffafe4ebe6d",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "B",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 119.7 ms for 9 positions run (0 from the snapshot; 13.30 ms per position run; first token 119.7 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  104357,
+                  226080,
+                  1862,
+                  47432,
+                  154293,
+                  106830,
+                  96029,
+                  9594,
+                  24465
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "save-3-A",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 0,
+               "snap" : 3,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 121.2 ms for 9 positions run (0 from the snapshot; 13.47 ms per position run; first token 121.2 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  220,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "resume-3-A",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 6,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 3,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 80.8 ms for 6 positions run (3 from the snapshot; 13.47 ms per position run; first token 80.8 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  0,
+                  0,
+                  0,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "75c2768b6681b0e9",
+                  "1" : "0e9f68a4debbd701",
+                  "2" : "b6f9d2aabc84578a",
+                  "3" : "fdde0acf4a6796cd",
+                  "4" : "238620fe82650ef8",
+                  "5" : "2f2f81a528629be7",
+                  "6" : "6677ffb49ea043e2",
+                  "7" : "9ccd97ab6ba82041"
+               },
+               "logits" : "ee86e748c8a64b0d",
+               "name" : "reset-3-B",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "193faffafe4ebe6d",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "B",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 119.6 ms for 9 positions run (0 from the snapshot; 13.29 ms per position run; first token 119.6 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  104357,
+                  226080,
+                  1862,
+                  47432,
+                  154293,
+                  106830,
+                  96029,
+                  9594,
+                  24465
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "save-5-A",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 0,
+               "snap" : 5,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 121.2 ms for 9 positions run (0 from the snapshot; 13.47 ms per position run; first token 121.2 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  220,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "resume-5-A",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 4,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 5,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 53.9 ms for 4 positions run (5 from the snapshot; 13.48 ms per position run; first token 53.9 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "75c2768b6681b0e9",
+                  "1" : "0e9f68a4debbd701",
+                  "2" : "b6f9d2aabc84578a",
+                  "3" : "fdde0acf4a6796cd",
+                  "4" : "238620fe82650ef8",
+                  "5" : "2f2f81a528629be7",
+                  "6" : "6677ffb49ea043e2",
+                  "7" : "9ccd97ab6ba82041"
+               },
+               "logits" : "ee86e748c8a64b0d",
+               "name" : "reset-5-B",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "193faffafe4ebe6d",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "B",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 119.8 ms for 9 positions run (0 from the snapshot; 13.31 ms per position run; first token 119.8 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  104357,
+                  226080,
+                  1862,
+                  47432,
+                  154293,
+                  106830,
+                  96029,
+                  9594,
+                  24465
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "final-A",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 119.8 ms for 9 positions run (0 from the snapshot; 13.31 ms per position run; first token 119.8 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  220,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "729e8f3a8df7a20e",
+                  "1" : "adb55f1b4e6da87c",
+                  "2" : "70b175ec310639c1",
+                  "3" : "c8c7871f900f7d5a",
+                  "4" : "5e2d5dde45df3544",
+                  "5" : "473e69db8dc2e8a0",
+                  "6" : "009cc5915228d928",
+                  "7" : "62c58ee81be7f81c"
+               },
+               "logits" : "a3ffe491154e8cd9",
+               "n_new" : 1,
+               "name" : "generation-A",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "9b45367a86d18a91",
+               "positions_run" : 10,
+               "prefill_chunks" : 0,
+               "prompt" : "G",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 10
+               },
+               "time_line" : "time: 138.2 ms for 10 positions run (0 from the snapshot; 13.82 ms per position run; first token 119.7 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  123350,
+                  48419
+               ]
+            }
+         ],
+         "signal" : 0,
+         "stderr" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/matrices/budget-512/kv0-scalar.stderr",
+         "stderr_identity" : {
+            "bytes" : 414,
+            "mtime" : 1792284691,
+            "path" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/matrices/budget-512/kv0-scalar.stderr",
+            "sha256" : "2907ed6c70fcf39f69f929a98438f0a37de19d0321abf0c90526aab662bd9c68"
+         },
+         "stdin" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/matrices/budget-512/commands.txt",
+         "stdout" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/matrices/budget-512/kv0-scalar.stdout",
+         "stdout_identity" : {
+            "bytes" : 12121,
+            "mtime" : 1792284694,
+            "path" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/matrices/budget-512/kv0-scalar.stdout",
+            "sha256" : "99c71e592d97a795c428afc6df68683c817892b1287978d04b3d0e6909eeac89"
+         },
+         "timed_out" : false
+      },
+      {
+         "argv" : [
+            "/tmp/flash-pr35-4429cbd/source/kern/flashcore",
+            "/home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+            "/tmp/flash-pr35-4429cbd/source/kern/libengine.so",
+            "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/holder.manifest"
+         ],
+         "config" : {
+            "fields" : {
+               "attn_dies" : "0",
+               "attn_map" : "0,0,0,0,0,0,0,0,0,0,0,0",
+               "cubin" : "die.cubin",
+               "cubin_fnv" : "669dbb2e43186b1a",
+               "dies" : "1",
+               "img_rows" : "0",
+               "kv_host" : "0",
+               "layers" : "8/48",
+               "maxt" : "128",
+               "nblk" : "512",
+               "ple_disk" : "1",
+               "prefill_chunk" : "3",
+               "rev" : "4429cbd0e40c9338cb9e5cf809afd52cb71e0a5e",
+               "split" : "1",
+               "two_position" : "1"
+            },
+            "raw" : "config rev=4429cbd0e40c9338cb9e5cf809afd52cb71e0a5e kv_host=0 ple_disk=1 maxt=128 layers=8/48 nblk=512 dies=1 attn_dies=0 split=1 attn_map=0,0,0,0,0,0,0,0,0,0,0,0 img_rows=0 two_position=1 prefill_chunk=3 cubin=die.cubin cubin_fnv=669dbb2e43186b1a",
+            "sha256" : "47c758cb12e8c4f19d5ae52e6a5ec351bd791d422154214b186b6ee1901e3723"
+         },
+         "elapsed_seconds" : 3.30713391304016,
+         "environment" : {
+            "ATTN_MAP" : "0,0,0,0,0,0,0,0,0,0,0,0",
+            "CUDA_DEVICE_ORDER" : "PCI_BUS_ID",
+            "CUDA_VISIBLE_DEVICES" : 7,
+            "FLASH_ENGINE_MAXT" : "128",
+            "FLASH_KV_HOST" : "0",
+            "FLASH_LAYERS" : "8",
+            "FLASH_MAXIMG" : "0",
+            "FLASH_MAXT" : "128",
+            "FLASH_NBLK" : "512",
+            "FLASH_PLE_DISK" : "1",
+            "FLASH_PLE_OFF" : "192",
+            "FLASH_PREFILL_CHUNK" : "3",
+            "FLASH_TWO_POSITION" : "1",
+            "SPLIT_SHARES" : "1"
+         },
+         "exit_code" : 0,
+         "interrupted" : false,
+         "name" : "kv0-chunk3",
+         "passed" : true,
+         "pid" : 3394646,
+         "requests" : [
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "fresh-A",
+               "paired_positions" : 8,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 8,
+                  "positions" : 9
+               },
+               "time_line" : "time: 111.9 ms for 9 positions run (0 from the snapshot; 12.43 ms per position run; first token 111.9 ms; 256 phases; programs 0 ms; 8 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  220,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "75c2768b6681b0e9",
+                  "1" : "0e9f68a4debbd701",
+                  "2" : "b6f9d2aabc84578a",
+                  "3" : "fdde0acf4a6796cd",
+                  "4" : "238620fe82650ef8",
+                  "5" : "2f2f81a528629be7",
+                  "6" : "6677ffb49ea043e2",
+                  "7" : "9ccd97ab6ba82041"
+               },
+               "logits" : "ee86e748c8a64b0d",
+               "name" : "fresh-B",
+               "paired_positions" : 8,
+               "passed" : true,
+               "ple" : "193faffafe4ebe6d",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "B",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 8,
+                  "positions" : 9
+               },
+               "time_line" : "time: 111.8 ms for 9 positions run (0 from the snapshot; 12.42 ms per position run; first token 111.8 ms; 256 phases; programs 0 ms; 8 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  104357,
+                  226080,
+                  1862,
+                  47432,
+                  154293,
+                  106830,
+                  96029,
+                  9594,
+                  24465
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "save-1-A",
+               "paired_positions" : 6,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 0,
+               "snap" : 1,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 6,
+                  "positions" : 9
+               },
+               "time_line" : "time: 115.7 ms for 9 positions run (0 from the snapshot; 12.86 ms per position run; first token 115.7 ms; 256 phases; programs 0 ms; 6 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  220,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "resume-1-A",
+               "paired_positions" : 6,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 8,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 1,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 6,
+                  "positions" : 9
+               },
+               "time_line" : "time: 101.8 ms for 8 positions run (1 from the snapshot; 12.73 ms per position run; first token 101.8 ms; 256 phases; programs 0 ms; 6 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  0,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "75c2768b6681b0e9",
+                  "1" : "0e9f68a4debbd701",
+                  "2" : "b6f9d2aabc84578a",
+                  "3" : "fdde0acf4a6796cd",
+                  "4" : "238620fe82650ef8",
+                  "5" : "2f2f81a528629be7",
+                  "6" : "6677ffb49ea043e2",
+                  "7" : "9ccd97ab6ba82041"
+               },
+               "logits" : "ee86e748c8a64b0d",
+               "name" : "reset-1-B",
+               "paired_positions" : 8,
+               "passed" : true,
+               "ple" : "193faffafe4ebe6d",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "B",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 8,
+                  "positions" : 9
+               },
+               "time_line" : "time: 111.8 ms for 9 positions run (0 from the snapshot; 12.42 ms per position run; first token 111.8 ms; 256 phases; programs 0 ms; 8 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  104357,
+                  226080,
+                  1862,
+                  47432,
+                  154293,
+                  106830,
+                  96029,
+                  9594,
+                  24465
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "save-2-A",
+               "paired_positions" : 8,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 0,
+               "snap" : 2,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 8,
+                  "positions" : 9
+               },
+               "time_line" : "time: 113.5 ms for 9 positions run (0 from the snapshot; 12.61 ms per position run; first token 113.5 ms; 256 phases; programs 0 ms; 8 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  220,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "resume-2-A",
+               "paired_positions" : 6,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 7,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 2,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 6,
+                  "positions" : 9
+               },
+               "time_line" : "time: 88.4 ms for 7 positions run (2 from the snapshot; 12.62 ms per position run; first token 88.4 ms; 256 phases; programs 1 ms; 6 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  0,
+                  0,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "75c2768b6681b0e9",
+                  "1" : "0e9f68a4debbd701",
+                  "2" : "b6f9d2aabc84578a",
+                  "3" : "fdde0acf4a6796cd",
+                  "4" : "238620fe82650ef8",
+                  "5" : "2f2f81a528629be7",
+                  "6" : "6677ffb49ea043e2",
+                  "7" : "9ccd97ab6ba82041"
+               },
+               "logits" : "ee86e748c8a64b0d",
+               "name" : "reset-2-B",
+               "paired_positions" : 8,
+               "passed" : true,
+               "ple" : "193faffafe4ebe6d",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "B",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 8,
+                  "positions" : 9
+               },
+               "time_line" : "time: 111.7 ms for 9 positions run (0 from the snapshot; 12.42 ms per position run; first token 111.7 ms; 256 phases; programs 0 ms; 8 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  104357,
+                  226080,
+                  1862,
+                  47432,
+                  154293,
+                  106830,
+                  96029,
+                  9594,
+                  24465
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "save-3-A",
+               "paired_positions" : 6,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 0,
+               "snap" : 3,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 6,
+                  "positions" : 9
+               },
+               "time_line" : "time: 115.8 ms for 9 positions run (0 from the snapshot; 12.87 ms per position run; first token 115.8 ms; 256 phases; programs 0 ms; 6 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  220,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "resume-3-A",
+               "paired_positions" : 4,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 6,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 3,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 4,
+                  "positions" : 9
+               },
+               "time_line" : "time: 77.1 ms for 6 positions run (3 from the snapshot; 12.85 ms per position run; first token 77.1 ms; 256 phases; programs 0 ms; 4 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  0,
+                  0,
+                  0,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "75c2768b6681b0e9",
+                  "1" : "0e9f68a4debbd701",
+                  "2" : "b6f9d2aabc84578a",
+                  "3" : "fdde0acf4a6796cd",
+                  "4" : "238620fe82650ef8",
+                  "5" : "2f2f81a528629be7",
+                  "6" : "6677ffb49ea043e2",
+                  "7" : "9ccd97ab6ba82041"
+               },
+               "logits" : "ee86e748c8a64b0d",
+               "name" : "reset-3-B",
+               "paired_positions" : 8,
+               "passed" : true,
+               "ple" : "193faffafe4ebe6d",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "B",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 8,
+                  "positions" : 9
+               },
+               "time_line" : "time: 111.8 ms for 9 positions run (0 from the snapshot; 12.42 ms per position run; first token 111.7 ms; 256 phases; programs 0 ms; 8 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  104357,
+                  226080,
+                  1862,
+                  47432,
+                  154293,
+                  106830,
+                  96029,
+                  9594,
+                  24465
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "save-5-A",
+               "paired_positions" : 6,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 0,
+               "snap" : 5,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 6,
+                  "positions" : 9
+               },
+               "time_line" : "time: 115.4 ms for 9 positions run (0 from the snapshot; 12.82 ms per position run; first token 115.4 ms; 256 phases; programs 0 ms; 6 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  220,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "resume-5-A",
+               "paired_positions" : 2,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 4,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 5,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 2,
+                  "positions" : 9
+               },
+               "time_line" : "time: 52.4 ms for 4 positions run (5 from the snapshot; 13.09 ms per position run; first token 52.4 ms; 256 phases; programs 0 ms; 2 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "75c2768b6681b0e9",
+                  "1" : "0e9f68a4debbd701",
+                  "2" : "b6f9d2aabc84578a",
+                  "3" : "fdde0acf4a6796cd",
+                  "4" : "238620fe82650ef8",
+                  "5" : "2f2f81a528629be7",
+                  "6" : "6677ffb49ea043e2",
+                  "7" : "9ccd97ab6ba82041"
+               },
+               "logits" : "ee86e748c8a64b0d",
+               "name" : "reset-5-B",
+               "paired_positions" : 8,
+               "passed" : true,
+               "ple" : "193faffafe4ebe6d",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "B",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 8,
+                  "positions" : 9
+               },
+               "time_line" : "time: 111.6 ms for 9 positions run (0 from the snapshot; 12.40 ms per position run; first token 111.6 ms; 256 phases; programs 0 ms; 8 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  104357,
+                  226080,
+                  1862,
+                  47432,
+                  154293,
+                  106830,
+                  96029,
+                  9594,
+                  24465
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "final-A",
+               "paired_positions" : 8,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 8,
+                  "positions" : 9
+               },
+               "time_line" : "time: 111.8 ms for 9 positions run (0 from the snapshot; 12.42 ms per position run; first token 111.8 ms; 256 phases; programs 0 ms; 8 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  220,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "729e8f3a8df7a20e",
+                  "1" : "adb55f1b4e6da87c",
+                  "2" : "70b175ec310639c1",
+                  "3" : "c8c7871f900f7d5a",
+                  "4" : "5e2d5dde45df3544",
+                  "5" : "473e69db8dc2e8a0",
+                  "6" : "009cc5915228d928",
+                  "7" : "62c58ee81be7f81c"
+               },
+               "logits" : "a3ffe491154e8cd9",
+               "n_new" : 1,
+               "name" : "generation-A",
+               "paired_positions" : 6,
+               "passed" : true,
+               "ple" : "9b45367a86d18a91",
+               "positions_run" : 10,
+               "prefill_chunks" : 3,
+               "prompt" : "G",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 3,
+                  "paired" : 6,
+                  "positions" : 10
+               },
+               "time_line" : "time: 97.0 ms for 10 positions run (0 from the snapshot; 9.70 ms per position run; first token 83.8 ms; 256 phases; programs 0 ms; 6 paired positions; 3 prefill chunks)",
+               "tokens" : [
+                  123350,
+                  48419
+               ]
+            }
+         ],
+         "signal" : 0,
+         "stderr" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/matrices/budget-512/kv0-chunk3.stderr",
+         "stderr_identity" : {
+            "bytes" : 414,
+            "mtime" : 1792284696,
+            "path" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/matrices/budget-512/kv0-chunk3.stderr",
+            "sha256" : "19421dbd060913873bd6e1b37b1df20039b86bfd9407502a21143c7c257adbb1"
+         },
+         "stdin" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/matrices/budget-512/commands.txt",
+         "stdout" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/matrices/budget-512/kv0-chunk3.stdout",
+         "stdout_identity" : {
+            "bytes" : 12118,
+            "mtime" : 1792284698,
+            "path" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/matrices/budget-512/kv0-chunk3.stdout",
+            "sha256" : "dc4d45549244372d710c78ce2ce9209cb9912d2ac6ffdd58ba6ad36e685ec3f2"
+         },
+         "timed_out" : false
+      },
+      {
+         "argv" : [
+            "/tmp/flash-pr35-4429cbd/source/kern/flashcore",
+            "/home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+            "/tmp/flash-pr35-4429cbd/source/kern/libengine.so",
+            "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/holder.manifest"
+         ],
+         "config" : {
+            "fields" : {
+               "attn_dies" : "0",
+               "attn_map" : "0,0,0,0,0,0,0,0,0,0,0,0",
+               "cubin" : "die.cubin",
+               "cubin_fnv" : "669dbb2e43186b1a",
+               "dies" : "1",
+               "img_rows" : "0",
+               "kv_host" : "1",
+               "layers" : "8/48",
+               "maxt" : "128",
+               "nblk" : "512",
+               "ple_disk" : "1",
+               "prefill_chunk" : "0",
+               "rev" : "4429cbd0e40c9338cb9e5cf809afd52cb71e0a5e",
+               "split" : "1",
+               "two_position" : "0"
+            },
+            "raw" : "config rev=4429cbd0e40c9338cb9e5cf809afd52cb71e0a5e kv_host=1 ple_disk=1 maxt=128 layers=8/48 nblk=512 dies=1 attn_dies=0 split=1 attn_map=0,0,0,0,0,0,0,0,0,0,0,0 img_rows=0 two_position=0 prefill_chunk=0 cubin=die.cubin cubin_fnv=669dbb2e43186b1a",
+            "sha256" : "7235592bee4bc49d4c146227359fb5cfdbd5e3337f8be1dd456f393b38c2f8e7"
+         },
+         "elapsed_seconds" : 3.35694694519043,
+         "environment" : {
+            "ATTN_MAP" : "0,0,0,0,0,0,0,0,0,0,0,0",
+            "CUDA_DEVICE_ORDER" : "PCI_BUS_ID",
+            "CUDA_VISIBLE_DEVICES" : 7,
+            "FLASH_ENGINE_MAXT" : "128",
+            "FLASH_KV_HOST" : "1",
+            "FLASH_LAYERS" : "8",
+            "FLASH_MAXIMG" : "0",
+            "FLASH_MAXT" : "128",
+            "FLASH_NBLK" : "512",
+            "FLASH_PLE_DISK" : "1",
+            "FLASH_PLE_OFF" : "192",
+            "FLASH_PREFILL_CHUNK" : "0",
+            "FLASH_TWO_POSITION" : "0",
+            "SPLIT_SHARES" : "1"
+         },
+         "exit_code" : 0,
+         "interrupted" : false,
+         "name" : "kv1-scalar",
+         "passed" : true,
+         "pid" : 3395071,
+         "requests" : [
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "fresh-A",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 120.0 ms for 9 positions run (0 from the snapshot; 13.33 ms per position run; first token 120.0 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  220,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "75c2768b6681b0e9",
+                  "1" : "0e9f68a4debbd701",
+                  "2" : "b6f9d2aabc84578a",
+                  "3" : "fdde0acf4a6796cd",
+                  "4" : "238620fe82650ef8",
+                  "5" : "2f2f81a528629be7",
+                  "6" : "6677ffb49ea043e2",
+                  "7" : "9ccd97ab6ba82041"
+               },
+               "logits" : "ee86e748c8a64b0d",
+               "name" : "fresh-B",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "193faffafe4ebe6d",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "B",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 120.0 ms for 9 positions run (0 from the snapshot; 13.33 ms per position run; first token 120.0 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  104357,
+                  226080,
+                  1862,
+                  47432,
+                  154293,
+                  106830,
+                  96029,
+                  9594,
+                  24465
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "save-1-A",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 0,
+               "snap" : 1,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 121.9 ms for 9 positions run (0 from the snapshot; 13.54 ms per position run; first token 121.9 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  220,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "resume-1-A",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 8,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 1,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 107.9 ms for 8 positions run (1 from the snapshot; 13.49 ms per position run; first token 107.9 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  0,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "75c2768b6681b0e9",
+                  "1" : "0e9f68a4debbd701",
+                  "2" : "b6f9d2aabc84578a",
+                  "3" : "fdde0acf4a6796cd",
+                  "4" : "238620fe82650ef8",
+                  "5" : "2f2f81a528629be7",
+                  "6" : "6677ffb49ea043e2",
+                  "7" : "9ccd97ab6ba82041"
+               },
+               "logits" : "ee86e748c8a64b0d",
+               "name" : "reset-1-B",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "193faffafe4ebe6d",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "B",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 120.2 ms for 9 positions run (0 from the snapshot; 13.36 ms per position run; first token 120.2 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  104357,
+                  226080,
+                  1862,
+                  47432,
+                  154293,
+                  106830,
+                  96029,
+                  9594,
+                  24465
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "save-2-A",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 0,
+               "snap" : 2,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 145.8 ms for 9 positions run (0 from the snapshot; 16.20 ms per position run; first token 145.8 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  220,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "resume-2-A",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 7,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 2,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 94.6 ms for 7 positions run (2 from the snapshot; 13.52 ms per position run; first token 94.6 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  0,
+                  0,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "75c2768b6681b0e9",
+                  "1" : "0e9f68a4debbd701",
+                  "2" : "b6f9d2aabc84578a",
+                  "3" : "fdde0acf4a6796cd",
+                  "4" : "238620fe82650ef8",
+                  "5" : "2f2f81a528629be7",
+                  "6" : "6677ffb49ea043e2",
+                  "7" : "9ccd97ab6ba82041"
+               },
+               "logits" : "ee86e748c8a64b0d",
+               "name" : "reset-2-B",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "193faffafe4ebe6d",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "B",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 120.3 ms for 9 positions run (0 from the snapshot; 13.37 ms per position run; first token 120.3 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  104357,
+                  226080,
+                  1862,
+                  47432,
+                  154293,
+                  106830,
+                  96029,
+                  9594,
+                  24465
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "save-3-A",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 0,
+               "snap" : 3,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 121.8 ms for 9 positions run (0 from the snapshot; 13.53 ms per position run; first token 121.8 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  220,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "resume-3-A",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 6,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 3,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 81.1 ms for 6 positions run (3 from the snapshot; 13.52 ms per position run; first token 81.0 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  0,
+                  0,
+                  0,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "75c2768b6681b0e9",
+                  "1" : "0e9f68a4debbd701",
+                  "2" : "b6f9d2aabc84578a",
+                  "3" : "fdde0acf4a6796cd",
+                  "4" : "238620fe82650ef8",
+                  "5" : "2f2f81a528629be7",
+                  "6" : "6677ffb49ea043e2",
+                  "7" : "9ccd97ab6ba82041"
+               },
+               "logits" : "ee86e748c8a64b0d",
+               "name" : "reset-3-B",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "193faffafe4ebe6d",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "B",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 120.0 ms for 9 positions run (0 from the snapshot; 13.34 ms per position run; first token 120.0 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  104357,
+                  226080,
+                  1862,
+                  47432,
+                  154293,
+                  106830,
+                  96029,
+                  9594,
+                  24465
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "save-5-A",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 0,
+               "snap" : 5,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 121.3 ms for 9 positions run (0 from the snapshot; 13.48 ms per position run; first token 121.3 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  220,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "resume-5-A",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 4,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 5,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 54.1 ms for 4 positions run (5 from the snapshot; 13.53 ms per position run; first token 54.1 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "75c2768b6681b0e9",
+                  "1" : "0e9f68a4debbd701",
+                  "2" : "b6f9d2aabc84578a",
+                  "3" : "fdde0acf4a6796cd",
+                  "4" : "238620fe82650ef8",
+                  "5" : "2f2f81a528629be7",
+                  "6" : "6677ffb49ea043e2",
+                  "7" : "9ccd97ab6ba82041"
+               },
+               "logits" : "ee86e748c8a64b0d",
+               "name" : "reset-5-B",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "193faffafe4ebe6d",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "B",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 120.2 ms for 9 positions run (0 from the snapshot; 13.35 ms per position run; first token 120.0 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  104357,
+                  226080,
+                  1862,
+                  47432,
+                  154293,
+                  106830,
+                  96029,
+                  9594,
+                  24465
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "final-A",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 9
+               },
+               "time_line" : "time: 120.0 ms for 9 positions run (0 from the snapshot; 13.33 ms per position run; first token 120.0 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  220,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "729e8f3a8df7a20e",
+                  "1" : "adb55f1b4e6da87c",
+                  "2" : "70b175ec310639c1",
+                  "3" : "c8c7871f900f7d5a",
+                  "4" : "5e2d5dde45df3544",
+                  "5" : "473e69db8dc2e8a0",
+                  "6" : "009cc5915228d928",
+                  "7" : "62c58ee81be7f81c"
+               },
+               "logits" : "a3ffe491154e8cd9",
+               "n_new" : 1,
+               "name" : "generation-A",
+               "paired_positions" : 0,
+               "passed" : true,
+               "ple" : "9b45367a86d18a91",
+               "positions_run" : 10,
+               "prefill_chunks" : 0,
+               "prompt" : "G",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 0,
+                  "positions" : 10
+               },
+               "time_line" : "time: 133.7 ms for 10 positions run (0 from the snapshot; 13.37 ms per position run; first token 120.3 ms; 256 phases; programs 0 ms; 0 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  123350,
+                  48419
+               ]
+            }
+         ],
+         "signal" : 0,
+         "stderr" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/matrices/budget-512/kv1-scalar.stderr",
+         "stderr_identity" : {
+            "bytes" : 414,
+            "mtime" : 1792284700,
+            "path" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/matrices/budget-512/kv1-scalar.stderr",
+            "sha256" : "2907ed6c70fcf39f69f929a98438f0a37de19d0321abf0c90526aab662bd9c68"
+         },
+         "stdin" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/matrices/budget-512/commands.txt",
+         "stdout" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/matrices/budget-512/kv1-scalar.stdout",
+         "stdout_identity" : {
+            "bytes" : 12121,
+            "mtime" : 1792284703,
+            "path" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/matrices/budget-512/kv1-scalar.stdout",
+            "sha256" : "01adbda2894764649a0ff1c1994c800916ac056fef2ac21edcbf2fd008b3ac5c"
+         },
+         "timed_out" : false
+      },
+      {
+         "argv" : [
+            "/tmp/flash-pr35-4429cbd/source/kern/flashcore",
+            "/home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+            "/tmp/flash-pr35-4429cbd/source/kern/libengine.so",
+            "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/holder.manifest"
+         ],
+         "config" : {
+            "fields" : {
+               "attn_dies" : "0",
+               "attn_map" : "0,0,0,0,0,0,0,0,0,0,0,0",
+               "cubin" : "die.cubin",
+               "cubin_fnv" : "669dbb2e43186b1a",
+               "dies" : "1",
+               "img_rows" : "0",
+               "kv_host" : "1",
+               "layers" : "8/48",
+               "maxt" : "128",
+               "nblk" : "512",
+               "ple_disk" : "1",
+               "prefill_chunk" : "3",
+               "rev" : "4429cbd0e40c9338cb9e5cf809afd52cb71e0a5e",
+               "split" : "1",
+               "two_position" : "1"
+            },
+            "raw" : "config rev=4429cbd0e40c9338cb9e5cf809afd52cb71e0a5e kv_host=1 ple_disk=1 maxt=128 layers=8/48 nblk=512 dies=1 attn_dies=0 split=1 attn_map=0,0,0,0,0,0,0,0,0,0,0,0 img_rows=0 two_position=1 prefill_chunk=3 cubin=die.cubin cubin_fnv=669dbb2e43186b1a",
+            "sha256" : "b0da4a6bf58712c4fb4b3f6ed086460d7af64db7728e2ab673996c0eabc522b5"
+         },
+         "elapsed_seconds" : 3.2060558795929,
+         "environment" : {
+            "ATTN_MAP" : "0,0,0,0,0,0,0,0,0,0,0,0",
+            "CUDA_DEVICE_ORDER" : "PCI_BUS_ID",
+            "CUDA_VISIBLE_DEVICES" : 7,
+            "FLASH_ENGINE_MAXT" : "128",
+            "FLASH_KV_HOST" : "1",
+            "FLASH_LAYERS" : "8",
+            "FLASH_MAXIMG" : "0",
+            "FLASH_MAXT" : "128",
+            "FLASH_NBLK" : "512",
+            "FLASH_PLE_DISK" : "1",
+            "FLASH_PLE_OFF" : "192",
+            "FLASH_PREFILL_CHUNK" : "3",
+            "FLASH_TWO_POSITION" : "1",
+            "SPLIT_SHARES" : "1"
+         },
+         "exit_code" : 0,
+         "interrupted" : false,
+         "name" : "kv1-chunk3",
+         "passed" : true,
+         "pid" : 3395525,
+         "requests" : [
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "fresh-A",
+               "paired_positions" : 8,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 8,
+                  "positions" : 9
+               },
+               "time_line" : "time: 112.1 ms for 9 positions run (0 from the snapshot; 12.46 ms per position run; first token 112.1 ms; 256 phases; programs 0 ms; 8 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  220,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "75c2768b6681b0e9",
+                  "1" : "0e9f68a4debbd701",
+                  "2" : "b6f9d2aabc84578a",
+                  "3" : "fdde0acf4a6796cd",
+                  "4" : "238620fe82650ef8",
+                  "5" : "2f2f81a528629be7",
+                  "6" : "6677ffb49ea043e2",
+                  "7" : "9ccd97ab6ba82041"
+               },
+               "logits" : "ee86e748c8a64b0d",
+               "name" : "fresh-B",
+               "paired_positions" : 8,
+               "passed" : true,
+               "ple" : "193faffafe4ebe6d",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "B",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 8,
+                  "positions" : 9
+               },
+               "time_line" : "time: 111.9 ms for 9 positions run (0 from the snapshot; 12.43 ms per position run; first token 111.9 ms; 256 phases; programs 0 ms; 8 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  104357,
+                  226080,
+                  1862,
+                  47432,
+                  154293,
+                  106830,
+                  96029,
+                  9594,
+                  24465
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "save-1-A",
+               "paired_positions" : 6,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 0,
+               "snap" : 1,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 6,
+                  "positions" : 9
+               },
+               "time_line" : "time: 116.0 ms for 9 positions run (0 from the snapshot; 12.89 ms per position run; first token 116.0 ms; 256 phases; programs 0 ms; 6 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  220,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "resume-1-A",
+               "paired_positions" : 6,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 8,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 1,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 6,
+                  "positions" : 9
+               },
+               "time_line" : "time: 102.1 ms for 8 positions run (1 from the snapshot; 12.76 ms per position run; first token 102.1 ms; 256 phases; programs 0 ms; 6 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  0,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "75c2768b6681b0e9",
+                  "1" : "0e9f68a4debbd701",
+                  "2" : "b6f9d2aabc84578a",
+                  "3" : "fdde0acf4a6796cd",
+                  "4" : "238620fe82650ef8",
+                  "5" : "2f2f81a528629be7",
+                  "6" : "6677ffb49ea043e2",
+                  "7" : "9ccd97ab6ba82041"
+               },
+               "logits" : "ee86e748c8a64b0d",
+               "name" : "reset-1-B",
+               "paired_positions" : 8,
+               "passed" : true,
+               "ple" : "193faffafe4ebe6d",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "B",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 8,
+                  "positions" : 9
+               },
+               "time_line" : "time: 111.8 ms for 9 positions run (0 from the snapshot; 12.42 ms per position run; first token 111.8 ms; 256 phases; programs 0 ms; 8 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  104357,
+                  226080,
+                  1862,
+                  47432,
+                  154293,
+                  106830,
+                  96029,
+                  9594,
+                  24465
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "save-2-A",
+               "paired_positions" : 8,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 0,
+               "snap" : 2,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 8,
+                  "positions" : 9
+               },
+               "time_line" : "time: 113.7 ms for 9 positions run (0 from the snapshot; 12.64 ms per position run; first token 113.7 ms; 256 phases; programs 0 ms; 8 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  220,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "resume-2-A",
+               "paired_positions" : 6,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 7,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 2,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 6,
+                  "positions" : 9
+               },
+               "time_line" : "time: 88.6 ms for 7 positions run (2 from the snapshot; 12.66 ms per position run; first token 88.6 ms; 256 phases; programs 0 ms; 6 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  0,
+                  0,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "75c2768b6681b0e9",
+                  "1" : "0e9f68a4debbd701",
+                  "2" : "b6f9d2aabc84578a",
+                  "3" : "fdde0acf4a6796cd",
+                  "4" : "238620fe82650ef8",
+                  "5" : "2f2f81a528629be7",
+                  "6" : "6677ffb49ea043e2",
+                  "7" : "9ccd97ab6ba82041"
+               },
+               "logits" : "ee86e748c8a64b0d",
+               "name" : "reset-2-B",
+               "paired_positions" : 8,
+               "passed" : true,
+               "ple" : "193faffafe4ebe6d",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "B",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 8,
+                  "positions" : 9
+               },
+               "time_line" : "time: 111.8 ms for 9 positions run (0 from the snapshot; 12.43 ms per position run; first token 111.8 ms; 256 phases; programs 0 ms; 8 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  104357,
+                  226080,
+                  1862,
+                  47432,
+                  154293,
+                  106830,
+                  96029,
+                  9594,
+                  24465
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "save-3-A",
+               "paired_positions" : 6,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 0,
+               "snap" : 3,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 6,
+                  "positions" : 9
+               },
+               "time_line" : "time: 116.0 ms for 9 positions run (0 from the snapshot; 12.89 ms per position run; first token 116.0 ms; 256 phases; programs 0 ms; 6 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  220,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "resume-3-A",
+               "paired_positions" : 4,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 6,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 3,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 4,
+                  "positions" : 9
+               },
+               "time_line" : "time: 77.3 ms for 6 positions run (3 from the snapshot; 12.88 ms per position run; first token 77.2 ms; 256 phases; programs 0 ms; 4 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  0,
+                  0,
+                  0,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "75c2768b6681b0e9",
+                  "1" : "0e9f68a4debbd701",
+                  "2" : "b6f9d2aabc84578a",
+                  "3" : "fdde0acf4a6796cd",
+                  "4" : "238620fe82650ef8",
+                  "5" : "2f2f81a528629be7",
+                  "6" : "6677ffb49ea043e2",
+                  "7" : "9ccd97ab6ba82041"
+               },
+               "logits" : "ee86e748c8a64b0d",
+               "name" : "reset-3-B",
+               "paired_positions" : 8,
+               "passed" : true,
+               "ple" : "193faffafe4ebe6d",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "B",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 8,
+                  "positions" : 9
+               },
+               "time_line" : "time: 112.1 ms for 9 positions run (0 from the snapshot; 12.45 ms per position run; first token 112.1 ms; 256 phases; programs 0 ms; 8 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  104357,
+                  226080,
+                  1862,
+                  47432,
+                  154293,
+                  106830,
+                  96029,
+                  9594,
+                  24465
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "save-5-A",
+               "paired_positions" : 6,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 0,
+               "snap" : 5,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 6,
+                  "positions" : 9
+               },
+               "time_line" : "time: 115.6 ms for 9 positions run (0 from the snapshot; 12.85 ms per position run; first token 115.6 ms; 256 phases; programs 0 ms; 6 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  220,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "resume-5-A",
+               "paired_positions" : 2,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 4,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 5,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 2,
+                  "positions" : 9
+               },
+               "time_line" : "time: 52.3 ms for 4 positions run (5 from the snapshot; 13.09 ms per position run; first token 52.3 ms; 256 phases; programs 0 ms; 2 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "75c2768b6681b0e9",
+                  "1" : "0e9f68a4debbd701",
+                  "2" : "b6f9d2aabc84578a",
+                  "3" : "fdde0acf4a6796cd",
+                  "4" : "238620fe82650ef8",
+                  "5" : "2f2f81a528629be7",
+                  "6" : "6677ffb49ea043e2",
+                  "7" : "9ccd97ab6ba82041"
+               },
+               "logits" : "ee86e748c8a64b0d",
+               "name" : "reset-5-B",
+               "paired_positions" : 8,
+               "passed" : true,
+               "ple" : "193faffafe4ebe6d",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "B",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 8,
+                  "positions" : 9
+               },
+               "time_line" : "time: 112.1 ms for 9 positions run (0 from the snapshot; 12.46 ms per position run; first token 112.1 ms; 256 phases; programs 0 ms; 8 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  104357,
+                  226080,
+                  1862,
+                  47432,
+                  154293,
+                  106830,
+                  96029,
+                  9594,
+                  24465
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "f46f32681279a381",
+                  "1" : "a071be549fc37d87",
+                  "2" : "f7b47c6e1b6af405",
+                  "3" : "83f9c11fa303820c",
+                  "4" : "3d3647463516d010",
+                  "5" : "53ddc0fce6877742",
+                  "6" : "d37245a172e8f121",
+                  "7" : "53e8fc0d7811c950"
+               },
+               "logits" : "0788d74b417df48e",
+               "name" : "final-A",
+               "paired_positions" : 8,
+               "passed" : true,
+               "ple" : "c34302f227f73e6e",
+               "positions_run" : 9,
+               "prefill_chunks" : 0,
+               "prompt" : "A",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 0,
+                  "paired" : 8,
+                  "positions" : 9
+               },
+               "time_line" : "time: 112.1 ms for 9 positions run (0 from the snapshot; 12.45 ms per position run; first token 112.0 ms; 256 phases; programs 0 ms; 8 paired positions; 0 prefill chunks)",
+               "tokens" : [
+                  220,
+                  226355,
+                  102345,
+                  58460,
+                  4508,
+                  19483,
+                  145502,
+                  97421,
+                  123350
+               ]
+            },
+            {
+               "layer_states" : {
+                  "0" : "729e8f3a8df7a20e",
+                  "1" : "adb55f1b4e6da87c",
+                  "2" : "70b175ec310639c1",
+                  "3" : "c8c7871f900f7d5a",
+                  "4" : "5e2d5dde45df3544",
+                  "5" : "473e69db8dc2e8a0",
+                  "6" : "009cc5915228d928",
+                  "7" : "62c58ee81be7f81c"
+               },
+               "logits" : "a3ffe491154e8cd9",
+               "n_new" : 1,
+               "name" : "generation-A",
+               "paired_positions" : 6,
+               "passed" : true,
+               "ple" : "9b45367a86d18a91",
+               "positions_run" : 10,
+               "prefill_chunks" : 3,
+               "prompt" : "G",
+               "resume" : 0,
+               "snap" : 0,
+               "statehash_header" : {
+                  "chunks" : 3,
+                  "paired" : 6,
+                  "positions" : 10
+               },
+               "time_line" : "time: 107.9 ms for 10 positions run (0 from the snapshot; 10.79 ms per position run; first token 94.6 ms; 256 phases; programs 1 ms; 6 paired positions; 3 prefill chunks)",
+               "tokens" : [
+                  123350,
+                  48419
+               ]
+            }
+         ],
+         "signal" : 0,
+         "stderr" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/matrices/budget-512/kv1-chunk3.stderr",
+         "stderr_identity" : {
+            "bytes" : 414,
+            "mtime" : 1792284705,
+            "path" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/matrices/budget-512/kv1-chunk3.stderr",
+            "sha256" : "730d8b0efda4fb46e89d090b0a821cc4a5361effff4c8468e95e290ef0044579"
+         },
+         "stdin" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/matrices/budget-512/commands.txt",
+         "stdout" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/matrices/budget-512/kv1-chunk3.stdout",
+         "stdout_identity" : {
+            "bytes" : 12120,
+            "mtime" : 1792284708,
+            "path" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/matrices/budget-512/kv1-chunk3.stdout",
+            "sha256" : "aa59808fdb2434b3e4e69a59691b5474b796b99664e7b8fe73e90d615b301cad"
+         },
+         "timed_out" : false
+      }
+   ],
+   "expected_revision" : "4429cbd0e40c9338cb9e5cf809afd52cb71e0a5e",
+   "file_identities" : [
+      {
+         "bytes" : 41328,
+         "mtime" : 1792283358,
+         "path" : "/tmp/flash-pr35-4429cbd/source/kern/flashcore",
+         "sha256" : "0257e1fbf4a6505bc54ed230b93abe22d5f21ed66daa22345a85b73f6a673d06"
+      },
+      {
+         "bytes" : 169744,
+         "mtime" : 1792283353,
+         "path" : "/tmp/flash-pr35-4429cbd/source/kern/libengine.so",
+         "sha256" : "f7e64ae2538d544ea31a83c6740b2b5c77d23c2b571767049585742255e6c031"
+      },
+      {
+         "bytes" : 485608,
+         "mtime" : 1792283338,
+         "path" : "/tmp/flash-pr35-4429cbd/source/kern/die.cubin",
+         "sha256" : "116d828f20139d144d46d7d8115a28e35313dac1f6c24ba81c1b5c0984f50e14"
+      },
+      {
+         "bytes" : 11120,
+         "mtime" : 1792284671,
+         "path" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch-v2/holder.manifest",
+         "sha256" : "22848180e0832b45f9f3cc571e3130b60a54fa3360c01c5f7dad4c1d84d103a0"
+      },
+      {
+         "bytes" : 57987,
+         "mtime" : 1792283338,
+         "path" : "/tmp/flash-pr35-4429cbd/source/kern/engine.c",
+         "sha256" : "eef9205d589a9b1289f42267a89b9437279a031bdb00274baf7b5885b9eaf899"
+      },
+      {
+         "bytes" : 14090,
+         "mtime" : 1792283338,
+         "path" : "/tmp/flash-pr35-4429cbd/source/kern/flashcore.c",
+         "sha256" : "9d86bfba3fd397deaa03a1925c4497eccf9ea1b80c05b425484b70131e0d7940"
+      },
+      {
+         "bytes" : 33204,
+         "mtime" : 1792283338,
+         "path" : "/tmp/flash-pr35-4429cbd/source/kern/prog.c",
+         "sha256" : "b3fa145ffff96605a5e5eb55eb9c4344e9de0296da590145b7e197fe7afa4553"
+      },
+      {
+         "bytes" : 20239,
+         "mtime" : 1792284630,
+         "path" : "/tmp/flash-pr35-4429cbd/request-scripts/check_qsa_engine_requests.pl",
+         "sha256" : "b59c2d40804469015369443c295a5f90921e45d55b2f952fd63200c91f999cf1"
+      },
+      {
+         "bytes" : 25111,
+         "mtime" : 1792284412,
+         "path" : "/tmp/flash-pr35-4429cbd/request-scripts/run_qsa_model_matrix.pl",
+         "sha256" : "b234aa76464b5fef22187289734b7db6fd57c123e73e8a5eecab3b92e0b0556b"
+      }
+   ],
+   "finished_epoch" : 1792284708.70668,
+   "git_head" : "4429cbd0e40c9338cb9e5cf809afd52cb71e0a5e\n",
+   "git_status" : "?? kern/hold_cache\n",
+   "layers" : 8,
+   "limitations" : [
+      "No scalar model or independent checkpoint comparison.",
+      "State comparisons use engine FNV fingerprints.",
+      "gen 0 is teacher-forced. The separate gen 1 response is compared with the full-head scalar-launch engine mode, not with a CPU reference for generated IDs.",
+      "Resumed token comparisons exclude the cleared output prefix."
+   ],
+   "references" : {
+      "A" : {
+         "fingerprint" : {
+            "layer_states" : {
+               "0" : "f46f32681279a381",
+               "1" : "a071be549fc37d87",
+               "2" : "f7b47c6e1b6af405",
+               "3" : "83f9c11fa303820c",
+               "4" : "3d3647463516d010",
+               "5" : "53ddc0fce6877742",
+               "6" : "d37245a172e8f121",
+               "7" : "53e8fc0d7811c950"
+            },
+            "logits" : "0788d74b417df48e",
+            "ple" : "c34302f227f73e6e"
+         },
+         "kv_host" : 0,
+         "mode" : "scalar",
+         "tokens" : [
+            220,
+            226355,
+            102345,
+            58460,
+            4508,
+            19483,
+            145502,
+            97421,
+            123350
+         ]
+      },
+      "B" : {
+         "fingerprint" : {
+            "layer_states" : {
+               "0" : "75c2768b6681b0e9",
+               "1" : "0e9f68a4debbd701",
+               "2" : "b6f9d2aabc84578a",
+               "3" : "fdde0acf4a6796cd",
+               "4" : "238620fe82650ef8",
+               "5" : "2f2f81a528629be7",
+               "6" : "6677ffb49ea043e2",
+               "7" : "9ccd97ab6ba82041"
+            },
+            "logits" : "ee86e748c8a64b0d",
+            "ple" : "193faffafe4ebe6d"
+         },
+         "kv_host" : 0,
+         "mode" : "scalar",
+         "tokens" : [
+            104357,
+            226080,
+            1862,
+            47432,
+            154293,
+            106830,
+            96029,
+            9594,
+            24465
+         ]
+      },
+      "G" : {
+         "fingerprint" : {
+            "layer_states" : {
+               "0" : "729e8f3a8df7a20e",
+               "1" : "adb55f1b4e6da87c",
+               "2" : "70b175ec310639c1",
+               "3" : "c8c7871f900f7d5a",
+               "4" : "5e2d5dde45df3544",
+               "5" : "473e69db8dc2e8a0",
+               "6" : "009cc5915228d928",
+               "7" : "62c58ee81be7f81c"
+            },
+            "logits" : "a3ffe491154e8cd9",
+            "ple" : "9b45367a86d18a91"
+         },
+         "kv_host" : 0,
+         "mode" : "scalar",
+         "tokens" : [
+            123350,
+            48419
+         ]
+      }
+   },
+   "request_plan" : [
+      {
+         "name" : "fresh-A",
+         "prompt" : "A",
+         "resume" : 0,
+         "snap" : 0
+      },
+      {
+         "name" : "fresh-B",
+         "prompt" : "B",
+         "resume" : 0,
+         "snap" : 0
+      },
+      {
+         "name" : "save-1-A",
+         "prompt" : "A",
+         "resume" : 0,
+         "snap" : 1
+      },
+      {
+         "name" : "resume-1-A",
+         "prompt" : "A",
+         "resume" : 1,
+         "snap" : 0
+      },
+      {
+         "name" : "reset-1-B",
+         "prompt" : "B",
+         "resume" : 0,
+         "snap" : 0
+      },
+      {
+         "name" : "save-2-A",
+         "prompt" : "A",
+         "resume" : 0,
+         "snap" : 2
+      },
+      {
+         "name" : "resume-2-A",
+         "prompt" : "A",
+         "resume" : 2,
+         "snap" : 0
+      },
+      {
+         "name" : "reset-2-B",
+         "prompt" : "B",
+         "resume" : 0,
+         "snap" : 0
+      },
+      {
+         "name" : "save-3-A",
+         "prompt" : "A",
+         "resume" : 0,
+         "snap" : 3
+      },
+      {
+         "name" : "resume-3-A",
+         "prompt" : "A",
+         "resume" : 3,
+         "snap" : 0
+      },
+      {
+         "name" : "reset-3-B",
+         "prompt" : "B",
+         "resume" : 0,
+         "snap" : 0
+      },
+      {
+         "name" : "save-5-A",
+         "prompt" : "A",
+         "resume" : 0,
+         "snap" : 5
+      },
+      {
+         "name" : "resume-5-A",
+         "prompt" : "A",
+         "resume" : 5,
+         "snap" : 0
+      },
+      {
+         "name" : "reset-5-B",
+         "prompt" : "B",
+         "resume" : 0,
+         "snap" : 0
+      },
+      {
+         "name" : "final-A",
+         "prompt" : "A",
+         "resume" : 0,
+         "snap" : 0
+      },
+      {
+         "n_new" : 1,
+         "name" : "generation-A",
+         "prompt" : "G",
+         "resume" : 0,
+         "snap" : 0
+      }
+   ],
+   "schema" : "flash-sass.private-qsa-request-check.v1",
+   "scope" : "Partial-model GPU request/snapshot and paired-launch equivalence.",
+   "status" : "SELECTED_REQUEST_CHECKS_PASSED"
+}
