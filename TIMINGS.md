@@ -28,6 +28,8 @@ The prompt rate is `1000 * prompt_positions_processed / first_observed_ms`. The 
 
 `counts_known` states whether a completed-position observation exists. `counts_final` distinguishes a drained final count from a partial observation retained during a device failure. Unknown counts serialize as null, including their aliases; they do not become zero or reuse the previous request's values. `error_code`, `aborted` and `stop_token_observed` are separate. The stop field is null when the stop flag could not be read. A malformed run command replaces the preceding request's trace identity and timing record even when it is rejected before `engine_run`.
 
+A failed host program allocation reports `error_code: -4` and trace status `allocation_error`. It records the measured build duration, with run time, unobserved counters, and derived rates null. The failure occurs before snapshot restoration and kernel launch; an eligible snapshot is not counted as a completed restore. The CLI emits the timing record before its explicit allocation error and keeps the session available.
+
 ## Device publication
 
 Device timestamps use die 0's `SR_GLOBALTIMER`. The raw nanosecond stamps are decimal JSON strings so consumers cannot silently round a 64-bit integer through a JavaScript number. Subtract timestamps as integers before converting their difference to milliseconds.
@@ -68,6 +70,8 @@ If an admitted error occurs after queue-wait SSE headers have been sent, the fro
 Host callback spans end immediately after the callback returns, before any cancellation propagation to the devices. They include the optional callback dispatch; when no callback is installed, the empty dispatch still has paired start/end markers. Cancellation synchronization remains part of engine run/completion time. The CPU session fixture traps CUDA work and checks that the callback-return marker exists before cancellation enters the driver.
 
 The deterministic C fixtures cover count derivation, snapshot resume, no output, one output, multiple outputs, stop, abort, partial/failed observations, invalid requests, overflow-safe bounds, aliases and integer device timing. The HTTP fixture runs the actual frontend/tokenizer with a tiny generated tokenizer GGUF and a controlled Unix protocol engine. Fifteen scenarios are exercised through both JSON and SSE, for 30 transport cases, including cancellation during prompt processing, final-count draining after a frontend cap, older engines and deadlines for silent, continuously producing and fragmented canceled output. Helper checks also cover role/keepalive exclusion, successful text writes and errors after SSE admission. `trace_session_test` exercises the actual session parser and half-close callback without initializing a GPU, including timing opt-out and preservation of ordinary CLI input EOF.
+
+The session fixture also forces failure of each host program allocation and checks the actual CLI error record, request identity, null unobserved counters, and rejection of stale traces. These failures occur before any device operation.
 
 ```sh
 make -C kern timings_test flashd_timing_test flashd

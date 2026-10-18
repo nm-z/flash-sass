@@ -1,7 +1,10 @@
 #define _GNU_SOURCE
 #include <cuda.h>
+#include <stdlib.h>
 static CUresult test_context_entry(CUcontext context);
 static CUresult unexpected_cuda_call(void);
+static void *test_program_calloc(size_t count, size_t size);
+#define calloc(count,size) test_program_calloc(count,size)
 #define cuCtxSetCurrent(context) test_context_entry(context)
 #define cuInit(...) unexpected_cuda_call()
 #define cuLaunchKernel(fn,gx,gy,gz,bx,by,bz,shared,stream,params,extra) ((void)(params), unexpected_cuda_call())
@@ -9,6 +12,7 @@ static CUresult unexpected_cuda_call(void);
 #define cuMemcpyHtoDAsync(...) unexpected_cuda_call()
 #define cuStreamSynchronize(...) unexpected_cuda_call()
 #include "engine.c"
+#undef calloc
 #undef cuCtxSetCurrent
 #undef cuInit
 #undef cuLaunchKernel
@@ -17,6 +21,12 @@ static CUresult unexpected_cuda_call(void);
 #undef nd
 #include <assert.h>
 #include <sys/socket.h>
+
+static unsigned calloc_fail_at, calloc_calls;
+static void *test_program_calloc(size_t count, size_t size) {
+    if (++calloc_calls == calloc_fail_at) return NULL;
+    return calloc(count, size);
+}
 
 static int abort_driver_entries;
 static CUresult unexpected_cuda_call(void) {
@@ -138,6 +148,51 @@ static void reject_case(const char *command) {
     free(output);
     core = NULL;
 }
+
+/* Fail each program allocation before any snapshot restore or device launch.
+ * The real session must export the failure, never a successful timing record. */
+static void program_allocation_failure(void) {
+    core_t fake_core = {0};
+    uint32_t prompt[] = {17, 23}, ids_buffer[34] = {0};
+    uint32_t stop[] = {0xffffffffu, 0xffffffffu};
+    fake_core.nd = 1; core = &fake_core;
+    MAXT = 32; h_ids = ids_buffer;
+    snap_s = ple_disk = imap_dirty = rope_dirty_T = 0;
+    two_position = 1; prefill_chunk = 2;
+    for (unsigned fail_at = 1; fail_at <= 3; fail_at++) {
+        trace_request = 41; trace_n = trace_valid = 1;
+        trace_status = "completed";
+        calloc_calls = 0; calloc_fail_at = fail_at;
+        assert(engine_run(prompt, 2, 2, stop, NULL, 0, NULL, 0, NULL, NULL) == -4);
+        assert(calloc_calls == 3 && !in_run);
+        assert(last_timing_valid && last_timing.error_code == -4);
+        assert(last_timing.request_id == 42 && trace_request == 42);
+        assert(!strcmp(trace_status, "allocation_error") && !trace_valid);
+        assert(!last_timing.counts_known && !last_timing.counts_final);
+        assert(!last_timing.first_valid && !last_timing.stop_known);
+        assert(isfinite(last_timing.build_ms) && last_timing.build_ms >= 0);
+        assert(isnan(last_timing.run_ms));
+    }
+    char input[] = "timings on\nchat 2 17 23\nhosttrace\ntrace 0\nquit\n";
+    FILE *in = fmemopen(input, strlen(input), "r");
+    char *output = NULL; size_t output_size = 0;
+    FILE *out = open_memstream(&output, &output_size);
+    assert(in && out && s_ids && s_toks);
+    calloc_calls = 0; calloc_fail_at = 1;
+    assert(engine_session(in, out) == 1);
+    assert(!fclose(in) && !fclose(out));
+    const char *record = strstr(output, "timings {");
+    const char *error = strstr(output, "error: host program allocation failed\n");
+    assert(record && error && record < error);
+    assert(strstr(output, "\"error_code\":-4"));
+    assert(strstr(output, "\"positions_completed\":null"));
+    assert(strstr(output, "\"run_ms\":null"));
+    assert(strstr(output, "status=allocation_error"));
+    assert(!strstr(output, "done ") && !strstr(output, "trace_begin"));
+    free(output);
+    calloc_fail_at = 0; two_position = prefill_chunk = 0;
+    h_ids = NULL; core = NULL; trace_n = 0;
+}
 int main(void) {
     reject_case("chat nonsense");
     reject_case("gen -1");
@@ -146,7 +201,8 @@ int main(void) {
     reject_case("chat 999999999999999999999999999999999999999999");
     session_options();half_close_options();
     callback_return_before_cancel();
+    program_allocation_failure();
     free(s_ids); free(s_toks); s_ids = s_toks = NULL;
-    puts("trace_session_test: request identity, timing options, half-close, and callback-before-cancellation PASS");
+    puts("trace_session_test: request identity, timing options, half-close, callback-before-cancellation, and allocation failures PASS");
     return 0;
 }

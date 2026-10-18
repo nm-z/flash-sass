@@ -544,7 +544,14 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
     /* gen 0 is the existing teacher-forced, full-head diagnostic interface. */
     prog_t *prefix = prefill_chunk && n_new > 0 ? calloc(MAXD, sizeof *prefix) : NULL;
     if (!P || (two_position && !pair) || (prefill_chunk && n_new > 0 && !prefix)) {
-        free(P); free(pair); free(prefix); in_run = 0; return -1;
+        free(P); free(pair); free(prefix);
+        /* No snapshot has been restored or current-request counter observed.
+           Allocation failure must not retain the provisional success record. */
+        last_timing.error_code = -4;
+        last_timing.counts_known = last_timing.counts_final = 0;
+        last_timing.build_ms = (now() - timing_request_start) * 1e3;
+        trace_status = "allocation_error";
+        in_run = 0; return -4;
     }
 	if (resume) state_copy(0);
 	for (int d = 0; d < nd; d++) {
@@ -984,6 +991,7 @@ int engine_session(FILE *in, FILE *out) {
         if(emit_timing && last_timing_valid){char json[4096];if(!flash_timing_json(json,sizeof json,&last_timing))fprintf(out,"timings %s\n",json);}
 		snap_req = 0; npend = 0;
 		if (rc == -3) { fprintf(out, "error: bad image data (a file, a position or too many image tokens)\n"); fflush(out); continue; }
+		if (rc == -4) { fprintf(out, "error: host program allocation failed\n"); fflush(out); continue; }
 		if (rc == -2) {
 		fprintf(out, "error: device fault; the core rebuilds the contexts and the engine; request=%llu", (unsigned long long)trace_request);
 		trace_status_fields(out); fputc('\n', out); fflush(out); free(line); return 3;
