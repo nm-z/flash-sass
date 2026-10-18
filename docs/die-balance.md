@@ -82,4 +82,4 @@ For a passing candidate, retain both baseline and candidate capture directories 
 - All measured decode rates and their arithmetic mean, plus identical input/output token sequences.
 - The other measured candidates and the reason the chosen candidate wins the busiest-die objective.
 
-Until those measurements exist and pass, #54 remains open and its PR remains draft.
+The owner requested review of the collector and measured baseline without testing a different split. The resident model cannot be unloaded or its holders replaced for this work. The PR is submitted for review with that limitation; the remaining placement measurements and #54 performance criteria are still unmet.

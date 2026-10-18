@@ -23,4 +23,4 @@ Changing `SPLIT_SHARES` or `ATTN_MAP` requires compatible weight holders. The ex
 
 See [the experiment procedure](../../docs/die-balance.md) for capture/comparison commands and the required evidence. The runtime source revision in `config` identifies the measured engine; `manifest.source_revision` identifies the collector checkout. The mapped engine library and core/frontend executables have separate SHA-256 identities. The checkpoint is identified by path and file metadata, which is explicitly weaker than a full content hash.
 
-The PR remains draft until an actual measured candidate satisfies the issue's requirements.
+The owner requested that this tooling and baseline PR be opened for review without testing a different split. The resident model cannot be unloaded or its holders replaced for this work. Review readiness does not assert that the outstanding performance criteria have passed.
