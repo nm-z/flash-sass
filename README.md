@@ -35,7 +35,7 @@ See [BATCH.md](BATCH.md) and [PAIR_TESTING.md](PAIR_TESTING.md).
 
 ## What one token runs
 
-| Kind | What it does | phases per token (plain die / attention die) | µs per phase | ms per token (all phases of this kind) | exchanges it carries |
+| Kind | What it does | CONFLICT TEST 2 | µs per phase | ms per token (all phases of this kind) | exchanges it carries |
 |---|---|---|---|---|---|
 | **exchange and quantize** | | | | **6.26** | |
 | `xsend` | send this die's slice to its peers (P2P stores, fence, flag) | 111 / 111 | 12.8 | 1.42 | 50 projection, 49 contraction, 13 broadcast (112 sent; the profile times 111) |
