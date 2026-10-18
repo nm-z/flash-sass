@@ -120,8 +120,9 @@ pair. Historical cubins must not be loaded into the newer disk-PLE engine; the
 compatible matched pair isolates the CTA mapping while keeping that protocol
 and all other current operations fixed.
 
-Before GPU execution, run `LD_BIND_NOW=1 attnpartn_regress --self-test` against
-the target host's real CUDA driver library. Eager symbol binding checks driver
+The matrix runner automatically runs `LD_BIND_NOW=1 attnpartn_regress --self-test`
+before acquiring the GPU reservation and retains `driver-abi-preflight.json`.
+Use the target host's real CUDA driver library. Eager symbol binding checks driver
 ABI compatibility even though the self-test does not initialize CUDA. A CPU
 self-test linked to SDK stubs alone cannot establish target-driver compatibility.
 

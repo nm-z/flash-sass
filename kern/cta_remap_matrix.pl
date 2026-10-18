@@ -164,6 +164,17 @@ sub median {
  my @v=sort {$a<=>$b}@_;@v or die "no values for median\n";
  my $i=int(@v/2);return @v%2?$v[$i]:($v[$i-1]+$v[$i])/2;
 }
+sub validate_preflight {
+ my($r)=@_;
+ ref($r) eq 'HASH' && defined($r->{exit}) && $r->{exit}==0
+  or die "eager driver-ABI self-test failed before GPU reservation\n";
+ my $v=eval {JSON::PP->new->decode($r->{stdout}//'')};
+ ref($v) eq 'HASH' && ($v->{self_test}//'') eq 'pass' && $v->{cpu_only}
+  && ($v->{negative_canary_cases}//0)==16 && ($v->{negative_trace_cases}//0)==14
+  && ($v->{mapping_cases}//0)==64
+  or die "incomplete CPU-only driver-ABI self-test evidence\n";
+ return $v;
+}
 sub validate {
  my($v,$trace)=@_;ref($v) eq 'HASH' or die "harness result is not an object\n";
  $v->{bit_exact} && $v->{boundary_canaries}
@@ -268,6 +279,11 @@ sub self_test {
    close $held unless $release;
   });
  }
+ my $preflight=sub {return {exit=>0,stdout=>'{"self_test":"pass","cpu_only":true,"negative_canary_cases":16,"negative_trace_cases":14,"mapping_cases":64}'};};
+ $expect->('eager CPU-only preflight accepted',sub {validate_preflight($preflight->());});
+ $expect->('driver ABI loader failure rejects before lock',sub {my $r=$preflight->();$r->{exit}=127;validate_preflight($r);},qr/driver-ABI self-test failed/);
+ $expect->('invalid eager preflight JSON rejects',sub {my $r=$preflight->();$r->{stdout}='';validate_preflight($r);},qr/incomplete CPU-only/);
+ $expect->('non-CPU-only preflight rejects',sub {my $r=$preflight->();$r->{stdout}=~s/true/false/;validate_preflight($r);},qr/incomplete CPU-only/);
  my $valid=sub {return {bit_exact=>JSON::PP::true,boundary_canaries=>JSON::PP::true,boundary_canary_words=>64,
   partial_values=>49536,final_values=>6144,steps_per_sample=>64,
   old=>{event=>{median_us=>1}},new=>{event=>{median_us=>2}},trace_verified=>JSON::PP::false,trace_launches=>0};};
@@ -329,7 +345,7 @@ sub main {
  if($a{trace}) {$env{ATTN_TRACE_CHECK}='1';} else {delete $env{ATTN_TRACE_CHECK};}
  my(@rows,@locks);my($rc,$launches)=(0,0);
  eval {
-  my %traceenv=map {$_=>$env{$_}} grep {/\A(?:CUDA_|ATTN_|DIE_|FLASH_GPU_)/} keys %env;
+  my %traceenv=map {$_=>$env{$_}} grep {/\A(?:CUDA_|ATTN_|DIE_|FLASH_GPU_|LD_LIBRARY_PATH\z|LD_PRELOAD\z|LD_BIND_NOW\z)/} keys %env;
   my $manifest={arguments=>\%a,utc=>utc(),runner=>image($0),helper=>image("$FindBin::Bin/QsaEvidence.pm"),
    environment=>\%traceenv,trace_requested=>$a{trace}?JSON::PP::true:JSON::PP::false,
    measurement_mode=>$a{check_only}?'check-only':$a{trace}?'physical-cta-trace':'untraced-performance',
@@ -346,6 +362,15 @@ sub main {
    $manifest->{input}='finite fixed-seed FP32 values; seed0 has zero query; padding finite zero';
   }
   put("$out/manifest.json",$manifest);
+  if(!$a{check_only}) {
+   # The harness returns before cuInit in this mode. Eager binding catches
+   # missing legacy-driver symbols before waiting for the shared GPU lease.
+   my %preflight_env=(%env,LD_BIND_NOW=>'1');
+   my $preflight=result([absolute($a{harness}),'--self-test'],\%preflight_env,30);
+   $preflight->{LD_BIND_NOW}=1;
+   put("$out/driver-abi-preflight.json",$preflight);
+   validate_preflight($preflight);
+  }
   put("$out/status.json",{status=>'WAITING',cases=>0,gpu_executed=>JSON::PP::false});
   push @locks,acquire_lock($a{host_lock},\%a);
   push @locks,acquire_lock("$a{lock_dir}/$a{gpu}.lock",\%a);
