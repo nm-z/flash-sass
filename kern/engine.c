@@ -12,8 +12,10 @@
 #include "split.h"
 #include "qsa.h"
 #include <math.h>
+#include <limits.h>
 #include "gguf.h"
 #include "engine.h"
+#include "request_meta.h"
 #include "prefill.h"
 #include "core.h"
 #include <setjmp.h>
@@ -34,6 +36,9 @@ CUresult cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev);
 static jmp_buf init_jb, run_jb; static int in_init, in_run;
 #define CK(x) do { CUresult r_ = (x); if (r_ != CUDA_SUCCESS) { const char *s_ = "?"; cuGetErrorString(r_, &s_); fprintf(stderr, "engine.c:%d: %s -> %s\n", __LINE__, #x, s_); if (in_init) longjmp(init_jb, 1); if (in_run) longjmp(run_jb, 1); exit(1); } } while (0)
 static double now(void) { struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts); return ts.tv_sec + ts.tv_nsec * 1e-9; }
+static uint64_t now_ns(void) { struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts); return (uint64_t)ts.tv_sec * UINT64_C(1000000000) + (uint64_t)ts.tv_nsec; }
+/* Global storage survives a device-error longjmp; every attempt clears it. */
+static request_meta requestmeta;
 
 #define MAXD CORE_MAXD
 #define NB 48
@@ -258,7 +263,7 @@ typedef struct {
 static void abort_run(runctx *r) {
 	/* the client is gone: every die ends the turn when its token count reaches a value a few tokens ahead of all of
 	   them (the dies are within one token of each other), so they stop together */
-	r->aborted = 1; *h_abort = (uint32_t)r->count + 8;
+	r->aborted = 1; requestmeta.aborted = 1; *h_abort = (uint32_t)r->count + 8;
 	if (*h_abort < (uint32_t)r->ntok) for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoDAsync(dCTL[d] + 0x18, h_abort, 4, pollst[d])); CK(cuStreamSynchronize(pollst[d])); }
 	CK(cuCtxSetCurrent(ctx[0]));
 }
@@ -310,8 +315,12 @@ static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 		CK(cuMemcpyDtoHAsync(h_tok, dCTL[0] + 0x8, 4, pollst[0])); CK(cuStreamSynchronize(pollst[0]));
 		r->count = (int)(*h_tok & 0x7fffffffu); r->ended = (int)(*h_tok >> 31);
 		if (r->count > r->T) r->count = r->T;
+		requestmeta.completed = (uint64_t)r->count;
+		requestmeta.ended = (uint64_t)r->ended;
+		requestmeta.ple_short_reads = ple_short_reads;
 		if (r->count > r->sent) {
 			CK(cuMemcpyDtoHAsync(h_toks + r->sent, db[0].toks + 4u * (unsigned)r->sent, 4 * (size_t)(r->count - r->sent), pollst[0])); CK(cuStreamSynchronize(pollst[0]));
+			if (r->count >= r->nprompt) request_meta_observe(&requestmeta, now_ns());
 			if (!r->tfirst) r->tfirst = now();
 			for (; r->sent < r->count; r->sent++)
 				if (r->cb && r->cb->token && r->cb->token(r->cb->arg, r->sent, h_toks[r->sent]) && !r->aborted && !r->ended) abort_run(r);
@@ -355,10 +364,17 @@ static void run_known_prefix(runctx *r, const prog_t *single, const prog_t *pair
  * in-flight poll ran. No generated ID is admitted to this program. */
 static void run_prefill_prefix(runctx *r, const prog_t *full,
                                const prog_t *prefix, const prog_t *pair, int end) {
-    if (!prefix) { run_known_prefix(r, full, pair, end); return; }
+    int start = r->count;
+    if (!prefix) {
+        run_known_prefix(r, full, pair, end);
+        if (!r->aborted && r->count > start && r->count == r->nprompt - 1)
+            requestmeta.engine_prefix_observed_ns = now_ns();
+        return;
+    }
     while (!r->aborted && r->count < end) {
         if (r->cb && r->cb->alive && r->cb->alive(r->cb->arg)) {
             r->aborted = 1;
+            requestmeta.aborted = 1;
             break;
         }
         prefill_chunk_t chunk;
@@ -374,6 +390,8 @@ static void run_prefill_prefix(runctx *r, const prog_t *full,
             longjmp(run_jb, 1);
         }
     }
+    if (!r->aborted && r->count > start && r->count == r->nprompt - 1)
+        requestmeta.engine_prefix_observed_ns = now_ns();
 }
 
 /* ---- images: the embeddings that replace placeholder tokens, and the M-RoPE positions of every token ----
@@ -437,14 +455,24 @@ static int prepare_images(const engine_img *imgs, int nimg, int nprompt, int T) 
 }
 
 int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], const sampling *sm, int snap_at, const engine_img *imgs, int nimg, const engine_cb *cb, run_stats *st) {
-	if (nprompt < 1 || nprompt > MAXT || n_new < 0 || n_new > MAXT - nprompt) return -1;
+	request_meta_begin(&requestmeta, now_ns());
+	ple_short_reads = 0;
+	if (nprompt > 0) requestmeta.prompt = (uint64_t)nprompt;
+	if (nprompt > 0 && n_new >= 0) requestmeta.requested = (uint64_t)nprompt + (uint64_t)n_new;
+	if (nprompt < 1 || nprompt > MAXT || n_new < 0 || n_new > MAXT - nprompt) {
+		request_meta_finish(&requestmeta, "argument_error", now_ns()); return -1;
+	}
 	int T = nprompt + n_new;
 	/* a CUDA error from here on unwinds to this point: the contexts are no longer usable, the core rebuilds them (return -2) */
 	in_run = 1;
-	if (setjmp(run_jb)) { in_run = 0; snap_s = 0; return -2; }
+	if (setjmp(run_jb)) {
+		in_run = 0; snap_s = 0; requestmeta.ple_short_reads = ple_short_reads;
+		request_meta_finish(&requestmeta, "device_error", now_ns()); return -2;
+	}
 	memcpy(h_ids, ids, 4 * (size_t)nprompt); memset(h_ids + nprompt, 0, 4 * (size_t)(T + 2 - nprompt));
 	int irc = prepare_images(imgs, nimg, nprompt, T);
-	if (irc) { in_run = 0; return irc; }
+	if (irc) { in_run = 0; request_meta_finish(&requestmeta, "image_error", now_ns()); return irc; }
+	requestmeta.build_start_ns = now_ns();
 	double t0 = now();
 	int samp_k = (sm && sm->temp > 0.f && sm->top_k >= 2) ? (sm->top_k > 32 ? 32 : sm->top_k) : 0;
 	float samp_topp = sm && sm->topp > 0.f ? sm->topp : 1.0f, samp_invT = samp_k ? 1.0f / sm->temp : 1.0f;
@@ -455,6 +483,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	/* the prefix cache: resume from the snapshot if the prompt starts with its tokens (at least one prompt token must
 	   still run, to produce the logits of the last one) */
 	int resume = (snap_s > 0 && snap_s <= nprompt - 1 && !memcmp(ids, snap_ids, 4 * (size_t)snap_s)) ? snap_s : 0;
+	requestmeta.resumed = (uint64_t)resume; requestmeta.completed = (uint64_t)resume;
 	if (snap_at > nprompt - 1) snap_at = nprompt - 1;
 	for (int i = 0; i < nimg; i++) if (snap_at > imgs[i].s) snap_at = imgs[i].s;   /* the snapshot would not know the image */
 	if (snap_at <= resume) snap_at = 0;
@@ -469,7 +498,8 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
     /* gen 0 is the existing teacher-forced, full-head diagnostic interface. */
     prog_t *prefix = prefill_chunk && n_new > 0 ? calloc(MAXD, sizeof *prefix) : NULL;
     if (!P || (two_position && !pair) || (prefill_chunk && n_new > 0 && !prefix)) {
-        free(P); free(pair); free(prefix); in_run = 0; return -1;
+        free(P); free(pair); free(prefix); in_run = 0;
+        request_meta_finish(&requestmeta, "device_error", now_ns()); return -1;
     }
 	if (resume) state_copy(0);
 	for (int d = 0; d < nd; d++) {
@@ -501,6 +531,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 		}
 	}
 	upload_programs(P, nph, 1);
+	requestmeta.build_end_ns = now_ns(); requestmeta.run_start_ns = now_ns();
 	double t1 = now();
 	runctx r = { .T = T, .nprompt = nprompt, .sent = nprompt - 1, .count = resume, .cb = cb };
 	ple_pump(&r, PLE_AHEAD);   /* the first rows are in place before the kernels start (the position they start at waits for its flag) */
@@ -509,6 +540,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 		if (!r.aborted && r.count == snap_at) {
 			state_copy(1);
 			memcpy(snap_ids, ids, 4 * (size_t)snap_at); snap_s = snap_at;
+			requestmeta.snapshot = (uint64_t)snap_s;
 		}
 	}
 	if ((pair || prefix) && !r.aborted) run_prefill_prefix(&r, P, prefix, pair, nprompt - 1);
@@ -520,6 +552,10 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	if (pair) { for (int d = 0; d < nd; d++) prog_free(&pair[d]); free(pair); }
 	if (prefix) { for (int d = 0; d < nd; d++) prog_free(&prefix[d]); free(prefix); }
 	free(P);
+	requestmeta.completed = (uint64_t)r.count; requestmeta.ended = (uint64_t)r.ended;
+	requestmeta.aborted = (uint64_t)r.aborted; requestmeta.ple_short_reads = ple_short_reads;
+	request_meta_finish(&requestmeta, r.aborted ? "aborted" :
+	    (ple_short_reads || (!r.ended && r.count < T)) ? "device_error" : "completed", now_ns());
 	in_run = 0;
 	return 0;
 }
@@ -736,6 +772,8 @@ static int client_gone(void *arg) {
  *   snap <s>                 take a prefix-cache snapshot after s positions of the next response; a later response
  *                            whose prompt starts with the same s tokens resumes there instead of from 0
  *   info                     "info <positions> <image token capacity>"
+ *   requestmeta              schema-1 lifecycle and host timing of the last attempt
+ *   tensormeta               loaded arena/tensor inventory, without IPC handles
  *   cubin <path>             reload the kernel on every die
  *   reload [path]            replace this library (the weights and the PLE table stay loaded)
  *   quit                     stop the whole process */
@@ -779,11 +817,26 @@ int engine_session(FILE *in, FILE *out) {
 			fprintf(out, "\n"); fflush(out); free(ts); continue;
 		}
 		if (!strncmp(p, "statehash", 9)) { state_hashes(out); continue; }
+		if (!strncmp(p, "requestmeta", 11) && strspn(p + 11, " \t\r\n") == strlen(p + 11)) {
+			request_meta_write(out, &requestmeta); fflush(out); continue;
+		}
+		if (!strncmp(p, "tensormeta", 10) && strspn(p + 10, " \t\r\n") == strlen(p + 10)) {
+			fprintf(out, "tensormeta_begin schema=1 dies=%d\n", nd);
+			for (int d = 0; d < nd; d++) {
+				fprintf(out, "arena die=%d physical_die=%d bytes=%zu tensors=%d\n", d, ar[d].die, ar[d].bytes, ar[d].n);
+				for (int i = 0; i < ar[d].n; i++) {
+					const hold_tensor *t = &ar[d].t[i];
+					fprintf(out, "tensor die=%d name=%s offset=%zu bytes=%zu type=%u rows=%d K=%d stride=%d experts=%d\n",
+					        d, t->name, t->off, t->bytes, t->type, t->rows, t->K, t->stride, t->experts);
+				}
+			}
+			fprintf(out, "tensormeta_end\n"); fflush(out); continue;
+		}
 		if (!strncmp(p, "info", 4)) { fprintf(out, "info %d %u\n", MAXT, img_rows_max); fflush(out); continue; }
 		if (!strncmp(p, "config", 6)) {   /* what this engine is: the identity to attach to a measurement (the commit it was built from, where the KV lives, the layers it runs, the kernel image) */
 			char ad[64] = ""; for (int d = 0; d < nd; d++) if (has_attn[d]) { char one[8]; snprintf(one, sizeof one, "%s%d", ad[0] ? "," : "", d); strncat(ad, one, sizeof ad - strlen(ad) - 1); }
 			const char *sh = getenv("SPLIT_SHARES"), *am = getenv("ATTN_MAP");
-			fprintf(out, "config rev=%s kv_host=%d ple_disk=%d maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u two_position=%d prefill_chunk=%d cubin=%s cubin_fnv=%016llx\n",
+			fprintf(out, "config rev=%s kv_host=%d ple_disk=%d maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u two_position=%d prefill_chunk=%d cubin=%s cubin_fnv=%016llx requestmeta_schema=1 tensor_schema=1\n",
 			        FLASH_REV, kv_host, ple_disk, MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, two_position, prefill_chunk, cubin_path, (unsigned long long)cubin_fnv);
 			fflush(out); continue;
 		}
@@ -811,7 +864,11 @@ int engine_session(FILE *in, FILE *out) {
 		}
 		int chat = !strncmp(p, "chat", 4);
 		if (!chat && strncmp(p, "gen", 3)) { fprintf(out, "error: gen|chat <n_new> <id>... | stop [<id> [<id>]] | info | cubin <path> | quit\n"); fflush(out); continue; }
-		p += chat ? 4 : 3; char *end; long n_new = strtol(p, &end, 10); if (end == p || n_new < 0) { fprintf(out, "error: gen|chat <n_new> <id>...\n"); fflush(out); continue; }
+		p += chat ? 4 : 3; char *end; long n_new = strtol(p, &end, 10);
+		if (end == p || n_new < 0 || n_new > INT_MAX) {
+			request_meta_begin(&requestmeta, now_ns()); request_meta_finish(&requestmeta, "argument_error", now_ns());
+			fprintf(out, "error: gen|chat <n_new> <id>...\n"); fflush(out); continue;
+		}
 		int nprompt = 0; p = end;
 		for (;;) { long v = strtol(p, &end, 10); if (end == p) break; if (nprompt + 2 >= MAXT) break; ids[nprompt++] = (uint32_t)v; p = end; }
 		run_stats st;

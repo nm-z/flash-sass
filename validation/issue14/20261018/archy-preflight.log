@@ -1,0 +1,42 @@
+
+COMMAND hostname
+archy
+EXIT 0
+
+COMMAND date -u +%Y-%m-%dT%H:%M:%SZ
+2026-10-18T02:04:05Z
+EXIT 0
+LOCK_ACQUIRED /tmp/flash-sass-engine-validation.lock
+
+COMMAND nvidia-smi --query-gpu=index\,uuid\,memory.free\,memory.used\,utilization.gpu\,temperature.gpu\,pcie.link.gen.current\,pcie.link.width.current --format=csv
+index, uuid, memory.free [MiB], memory.used [MiB], utilization.gpu [%], temperature.gpu, pcie.link.gen.current, pcie.link.width.current
+0, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, 52 MiB, 7566 MiB, 0 %, 68, 3, 16
+1, GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, 16 MiB, 7602 MiB, 0 %, 49, 3, 16
+2, GPU-c767d250-4454-d181-d648-8706b5f2fb64, 77 MiB, 7541 MiB, 0 %, 64, 3, 16
+3, GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, 7 MiB, 7611 MiB, 0 %, 47, 3, 16
+4, GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, 3 MiB, 7615 MiB, 0 %, 78, 3, 16
+5, GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, 65 MiB, 7553 MiB, 0 %, 56, 3, 16
+6, GPU-431371bd-b482-96b2-4b70-04f83c6d075b, 7615 MiB, 3 MiB, 0 %, 39, 1, 16
+7, GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4, 7480 MiB, 138 MiB, 0 %, 33, 1, 16
+EXIT 0
+
+COMMAND ps -eo pid,ppid,stat,comm (filtered display to model processes)
+    PID    PPID STAT COMMAND
+ 974018  974015 Sl   hold
+ 974061  974058 Sl   hold
+ 974103  974100 Sl   fence
+ 988060  988058 Sl   hold
+ 988067  988065 Sl   hold
+ 988072  988070 Sl   hold
+ 988080  988079 Sl   hold
+1578451       1 Ss   flashd
+3575268       1 Ssl  flashcore
+EXIT 0
+
+COMMAND config over /tmp/flash.sock via timeout 10 socat -T 5
+config rev=edc66d9 kv_host=0 ple_disk=1 maxt=230000 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=4096 two_position=0 prefill_chunk=0 cubin=die.cubin cubin_fnv=61f38fc0784534a2
+EXIT 0
+
+No model request, reload, stop, sampling change, or GPU benchmark was issued.
+LOCK_RELEASED /tmp/flash-sass-engine-validation.lock
+SSH_EXIT 0
