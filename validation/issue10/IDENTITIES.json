@@ -1,126 +1,178 @@
 {
-  "die4-power-clock-snapshot.txt": {
-    "bytes": 3326,
-    "sha256": "bba772b3efbe73855951fcee15f3bc4a38421c0e380029306433f1860f469efa"
-  },
-  "matched-phase-deltas.json": {
-    "bytes": 1667,
-    "sha256": "6a8a7bb95b8c7d0e2d4cb77451e1beb999a4d54470ed1896609bc96c3ff5f85b"
-  },
-  "review/STATUS.json": {
-    "bytes": 70,
-    "sha256": "a6928a081587ad4c7e9eeb0d08f22ff538ff71f4b588700990c1e0e08fdb9d7d"
-  },
-  "review/raw-excerpts/README.json": {
-    "bytes": 423,
-    "sha256": "77c5fc7e83266fb2f9f2c650212a7b9f5cfcd6323e407da9c98afdeeefa51a9f"
-  },
-  "review/raw-excerpts/depth-3100-pair-2-host-die-0.csv.gz": {
-    "bytes": 56141,
-    "sha256": "775a18cfa8860cd56aa1069847c0d479f28be21ec66de3d4091a7ac18dfdbd9d"
-  },
-  "review/raw-excerpts/depth-3100-pair-2-host-die-4.csv.gz": {
-    "bytes": 59443,
-    "sha256": "572ca40b3798fb498aa25a6092b061ba623e55cf51976f8ab213f5dff4ebc48b"
-  },
-  "review/raw-excerpts/depth-3100-pair-2-host-host.csv.gz": {
-    "bytes": 3615,
-    "sha256": "ff9e8ec668564c0ea02ace122682ec1066704961b6962a152101346b5e2236f1"
-  },
-  "review/raw-excerpts/depth-3100-pair-2-vram-die-0.csv.gz": {
-    "bytes": 56445,
-    "sha256": "051c229511e26439ead4067fb5425c4de1d06c4aa81015902d67846637d24da5"
-  },
-  "review/raw-excerpts/depth-3100-pair-2-vram-die-4.csv.gz": {
-    "bytes": 59355,
-    "sha256": "42e892d704d90f5ec964a0c8b44f8b721ad6081f26d5ff37f8d9795c607456ca"
-  },
-  "review/raw-excerpts/depth-3100-pair-2-vram-host.csv.gz": {
-    "bytes": 3618,
-    "sha256": "6549af73d4149b77b69961305a607d2d71f5c47e495854457ee9897a816ab312"
-  },
-  "review/raw-excerpts/depth-8000-pair-2-host-die-0.csv.gz": {
-    "bytes": 56258,
-    "sha256": "d25ba9eb1904635c5c74a42cdcc51333389c982823ef1e05b7255b81080a3f22"
-  },
-  "review/raw-excerpts/depth-8000-pair-2-host-die-4.csv.gz": {
-    "bytes": 59449,
-    "sha256": "37b7b59e2503e26aa8f8f54364953a3e1bc90a9eee33fe98d65a8f3a8139bc84"
-  },
-  "review/raw-excerpts/depth-8000-pair-2-host-host.csv.gz": {
-    "bytes": 3657,
-    "sha256": "1ea630caa382259f187c4067a700765a8a845e234cc6e0cc54ad5187ce71e8d8"
-  },
-  "review/raw-excerpts/depth-8000-pair-2-vram-die-0.csv.gz": {
-    "bytes": 56405,
-    "sha256": "5ba072c0389be6a7ed03bc21b33be5bd171c3e21f3cc017d41da83873937a93e"
-  },
-  "review/raw-excerpts/depth-8000-pair-2-vram-die-4.csv.gz": {
-    "bytes": 59273,
-    "sha256": "f0bf5daaf2518ebcfe66331995c9bd646fa0f5992f9265be506ca7f015f533ee"
-  },
-  "review/raw-excerpts/depth-8000-pair-2-vram-host.csv.gz": {
-    "bytes": 3616,
-    "sha256": "7bdc66380fe1c96494f2f86a2896b79946174c32dbf868a70a2f202c93123cc2"
-  },
-  "review/raw-trace-archive.json": {
-    "bytes": 72594,
-    "sha256": "de8fcd860530c40139c7285d0cfe9c8991afb158915af067d6173cae8cb45212"
-  },
-  "review/setup/bench_pair_job3.py": {
-    "bytes": 4327,
-    "sha256": "6c9ae192ead8d4bfc26921ba5b0132fad158dba7b356512e73419243ba5c859e"
-  },
-  "review/setup/bench_pair_job4.py": {
-    "bytes": 4444,
-    "sha256": "28fe28362693305ba1e12685064c66d3dd2c5f78b1734f4eaa9de1587a071f03"
-  },
-  "review/setup/job3-build.json": {
-    "bytes": 1534,
-    "sha256": "c1ebd95e778ad325c484d1419cf1df6e63331c9dd175a7f42dcd5568fbf169c1"
-  },
-  "review/setup/job3-command.json": {
-    "bytes": 799,
-    "sha256": "93fa94d111fc79502c04375efa5f2d54e9e589dee8a576bab721a3962b598d59"
-  },
-  "review/setup/job3-job-exit.json": {
-    "bytes": 354,
-    "sha256": "46b1101f6cf8d394bed384d834cae91fea392000facef67fb7412fda21069587"
-  },
-  "review/setup/job4-build.json": {
-    "bytes": 1552,
-    "sha256": "1bec499795630c79b7b242946ee43701f400321f2af51580cdc542e1073dcca0"
-  },
-  "review/setup/job4-command.json": {
-    "bytes": 754,
-    "sha256": "2506e1b18e4012be4a8d46cef25a036994c498ce809944b13e82432cadf779c0"
-  },
-  "review/setup/job4-job-exit.json": {
-    "bytes": 354,
-    "sha256": "46b1101f6cf8d394bed384d834cae91fea392000facef67fb7412fda21069587"
-  },
-  "review/setup/job4-launch-environment.json": {
-    "bytes": 435,
-    "sha256": "37ccd6d5fd509aa6b0249a9e4eca124a891962ce0c499a13aacb01ff0bab606b"
-  },
-  "traced-all-die-phase-totals.json.gz": {
-    "bytes": 395412,
-    "sha256": "ff780ef850e4d0e65ccd19ddbb3a0153615a4cb52bdec1af167f5d413dcdce0b"
-  },
-  "traced-summary.json": {
-    "bytes": 4004,
-    "sha256": "f05271c084148b2b4e66b9bafd3d99bf857ea3ba30140e7ddca51d7e737878d3"
-  },
-  "traced.json.gz": {
-    "bytes": 168708,
-    "sha256": "34aaea18a91b7dfd159296eee88e3507fb01346d0982533c456aac3a9ff8dc23"
-  },
-  "untraced-summary.json": {
-    "bytes": 1335,
-    "sha256": "d09c11585f1b4c916fba67840af66793c1f0aa7b41b851f53aa5e46f654fdd64"
-  },
-  "untraced.json.gz": {
-    "bytes": 36769,
-    "sha256": "f7e2c51e06c5d04e1354537a9297817aef17f2d011265fbaf5a5f261da142430"
-  }
+   "acceptance.json" : {
+      "bytes" : 5816,
+      "sha256" : "f898285e158e69c9d9503c2f0601c2dfec2335663026ba289cae3c9a1b982293"
+   },
+   "counters/README.md" : {
+      "bytes" : 2883,
+      "sha256" : "8f90ffd1546f851ca3a396b6dca8a6ecf161ffceecddca27487acf4237aedfbf"
+   },
+   "counters/profiler/discovery.json" : {
+      "bytes" : 2101,
+      "sha256" : "03736165e00a12fb5c85e6fe6d6ab2aa80b9b75841bd3850da3efadeb52da965"
+   },
+   "counters/profiler/nvidia-package-records.txt" : {
+      "bytes" : 1448,
+      "sha256" : "e850be5392fd54e7ffc9f6453a23a39b4de87872e89decb3b9448853bb99175d"
+   },
+   "counters/profiler/nvprof114-events.txt" : {
+      "bytes" : 11361,
+      "sha256" : "36577fbaaf5588b3e0adf8cbbf00b25534aa2ab019b3eb34d5f61c9183317b36"
+   },
+   "counters/profiler/nvprof114-metrics.txt" : {
+      "bytes" : 16912,
+      "sha256" : "de12e8c809a998fb4cab436012b56177e558c37b6984e4ffe5a93d6eef24a76f"
+   },
+   "counters/profiler/nvprof12-exits.json" : {
+      "bytes" : 74,
+      "sha256" : "3d432245537e25d13ff5905fe74ee635f6eba38fdb937986dc9b0b3d67f6e79e"
+   },
+   "counters/profiler/nvprof12-metrics-failed.txt" : {
+      "bytes" : 126,
+      "sha256" : "75aa31f2ea713734e46ffe3fa4bbfd6d75592daddfad0a3fa7610c875f0e1f41"
+   },
+   "counters/profiler/nvprof12-root-metrics-failed.txt" : {
+      "bytes" : 126,
+      "sha256" : "75aa31f2ea713734e46ffe3fa4bbfd6d75592daddfad0a3fa7610c875f0e1f41"
+   },
+   "die4-power-clock-snapshot.txt" : {
+      "bytes" : 3326,
+      "sha256" : "bba772b3efbe73855951fcee15f3bc4a38421c0e380029306433f1860f469efa"
+   },
+   "matched-phase-deltas.json" : {
+      "bytes" : 1667,
+      "sha256" : "6a8a7bb95b8c7d0e2d4cb77451e1beb999a4d54470ed1896609bc96c3ff5f85b"
+   },
+   "perl-replay/IDENTITIES.json" : {
+      "bytes" : 870,
+      "sha256" : "ab5b5ad177c8d975f5fe075b9222c7d6cf6d64313b59338a5e9d95d12e290a7d"
+   },
+   "perl-replay/matched-phase-deltas.json" : {
+      "bytes" : 1672,
+      "sha256" : "a5903f81342dfa21f0591ddf83468badc00703dabb40b5d059faa1bb4c7187f2"
+   },
+   "perl-replay/result.json" : {
+      "bytes" : 810,
+      "sha256" : "fdc8f71362aed38e004619363b40fbbf9fcc2f97a311e5f737ec0bdf897fc38b"
+   },
+   "perl-replay/traced-summary.json" : {
+      "bytes" : 4460,
+      "sha256" : "4e8a5b5f6d20638a8c8976c84458e34b8e53cd56f06ca78d21009cabe4347ab9"
+   },
+   "perl-replay/untraced-summary.json" : {
+      "bytes" : 1487,
+      "sha256" : "f95bcdb02d2f7cdd085136dfa7353e79e58ec95d8399ba1bd5abe22bd244be29"
+   },
+   "review/STATUS.json" : {
+      "bytes" : 70,
+      "sha256" : "a6928a081587ad4c7e9eeb0d08f22ff538ff71f4b588700990c1e0e08fdb9d7d"
+   },
+   "review/raw-excerpts/README.json" : {
+      "bytes" : 423,
+      "sha256" : "77c5fc7e83266fb2f9f2c650212a7b9f5cfcd6323e407da9c98afdeeefa51a9f"
+   },
+   "review/raw-excerpts/depth-3100-pair-2-host-die-0.csv.gz" : {
+      "bytes" : 56141,
+      "sha256" : "775a18cfa8860cd56aa1069847c0d479f28be21ec66de3d4091a7ac18dfdbd9d"
+   },
+   "review/raw-excerpts/depth-3100-pair-2-host-die-4.csv.gz" : {
+      "bytes" : 59443,
+      "sha256" : "572ca40b3798fb498aa25a6092b061ba623e55cf51976f8ab213f5dff4ebc48b"
+   },
+   "review/raw-excerpts/depth-3100-pair-2-host-host.csv.gz" : {
+      "bytes" : 3615,
+      "sha256" : "ff9e8ec668564c0ea02ace122682ec1066704961b6962a152101346b5e2236f1"
+   },
+   "review/raw-excerpts/depth-3100-pair-2-vram-die-0.csv.gz" : {
+      "bytes" : 56445,
+      "sha256" : "051c229511e26439ead4067fb5425c4de1d06c4aa81015902d67846637d24da5"
+   },
+   "review/raw-excerpts/depth-3100-pair-2-vram-die-4.csv.gz" : {
+      "bytes" : 59355,
+      "sha256" : "42e892d704d90f5ec964a0c8b44f8b721ad6081f26d5ff37f8d9795c607456ca"
+   },
+   "review/raw-excerpts/depth-3100-pair-2-vram-host.csv.gz" : {
+      "bytes" : 3618,
+      "sha256" : "6549af73d4149b77b69961305a607d2d71f5c47e495854457ee9897a816ab312"
+   },
+   "review/raw-excerpts/depth-8000-pair-2-host-die-0.csv.gz" : {
+      "bytes" : 56258,
+      "sha256" : "d25ba9eb1904635c5c74a42cdcc51333389c982823ef1e05b7255b81080a3f22"
+   },
+   "review/raw-excerpts/depth-8000-pair-2-host-die-4.csv.gz" : {
+      "bytes" : 59449,
+      "sha256" : "37b7b59e2503e26aa8f8f54364953a3e1bc90a9eee33fe98d65a8f3a8139bc84"
+   },
+   "review/raw-excerpts/depth-8000-pair-2-host-host.csv.gz" : {
+      "bytes" : 3657,
+      "sha256" : "1ea630caa382259f187c4067a700765a8a845e234cc6e0cc54ad5187ce71e8d8"
+   },
+   "review/raw-excerpts/depth-8000-pair-2-vram-die-0.csv.gz" : {
+      "bytes" : 56405,
+      "sha256" : "5ba072c0389be6a7ed03bc21b33be5bd171c3e21f3cc017d41da83873937a93e"
+   },
+   "review/raw-excerpts/depth-8000-pair-2-vram-die-4.csv.gz" : {
+      "bytes" : 59273,
+      "sha256" : "f0bf5daaf2518ebcfe66331995c9bd646fa0f5992f9265be506ca7f015f533ee"
+   },
+   "review/raw-excerpts/depth-8000-pair-2-vram-host.csv.gz" : {
+      "bytes" : 3616,
+      "sha256" : "7bdc66380fe1c96494f2f86a2896b79946174c32dbf868a70a2f202c93123cc2"
+   },
+   "review/raw-trace-archive.json" : {
+      "bytes" : 72594,
+      "sha256" : "de8fcd860530c40139c7285d0cfe9c8991afb158915af067d6173cae8cb45212"
+   },
+   "review/setup/historical-runners.json" : {
+      "bytes" : 835,
+      "sha256" : "65f67e0567426e890b133300d86ae33ab9ce59e1f650236c73fb3a77db92f462"
+   },
+   "review/setup/job3-build.json" : {
+      "bytes" : 1534,
+      "sha256" : "c1ebd95e778ad325c484d1419cf1df6e63331c9dd175a7f42dcd5568fbf169c1"
+   },
+   "review/setup/job3-command.json" : {
+      "bytes" : 799,
+      "sha256" : "93fa94d111fc79502c04375efa5f2d54e9e589dee8a576bab721a3962b598d59"
+   },
+   "review/setup/job3-job-exit.json" : {
+      "bytes" : 354,
+      "sha256" : "46b1101f6cf8d394bed384d834cae91fea392000facef67fb7412fda21069587"
+   },
+   "review/setup/job4-build.json" : {
+      "bytes" : 1552,
+      "sha256" : "1bec499795630c79b7b242946ee43701f400321f2af51580cdc542e1073dcca0"
+   },
+   "review/setup/job4-command.json" : {
+      "bytes" : 754,
+      "sha256" : "2506e1b18e4012be4a8d46cef25a036994c498ce809944b13e82432cadf779c0"
+   },
+   "review/setup/job4-job-exit.json" : {
+      "bytes" : 354,
+      "sha256" : "46b1101f6cf8d394bed384d834cae91fea392000facef67fb7412fda21069587"
+   },
+   "review/setup/job4-launch-environment.json" : {
+      "bytes" : 435,
+      "sha256" : "37ccd6d5fd509aa6b0249a9e4eca124a891962ce0c499a13aacb01ff0bab606b"
+   },
+   "traced-all-die-phase-totals.json.gz" : {
+      "bytes" : 395412,
+      "sha256" : "ff780ef850e4d0e65ccd19ddbb3a0153615a4cb52bdec1af167f5d413dcdce0b"
+   },
+   "traced-summary.json" : {
+      "bytes" : 4004,
+      "sha256" : "f05271c084148b2b4e66b9bafd3d99bf857ea3ba30140e7ddca51d7e737878d3"
+   },
+   "traced.json.gz" : {
+      "bytes" : 168708,
+      "sha256" : "34aaea18a91b7dfd159296eee88e3507fb01346d0982533c456aac3a9ff8dc23"
+   },
+   "untraced-summary.json" : {
+      "bytes" : 1335,
+      "sha256" : "d09c11585f1b4c916fba67840af66793c1f0aa7b41b851f53aa5e46f654fdd64"
+   },
+   "untraced.json.gz" : {
+      "bytes" : 36769,
+      "sha256" : "f7e2c51e06c5d04e1354537a9297817aef17f2d011265fbaf5a5f261da142430"
+   }
 }

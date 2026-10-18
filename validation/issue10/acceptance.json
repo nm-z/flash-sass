@@ -1,0 +1,169 @@
+{
+  "schema": "flash.issue10.acceptance.v1",
+  "issue": "https://github.com/nm-z/flash-sass/issues/10",
+  "pull_request": "https://github.com/nm-z/flash-sass/pull/38",
+  "reviewed_remote_head": "0a24e35861e01339a43215b1e40f308c8b6583d6",
+  "status": "INCOMPLETE",
+  "ready_for_review": false,
+  "scope": "Acceptance inventory for the preserved depth investigation. Capture/replay PASS flags do not imply issue closure.",
+  "historical_claim": {
+    "status": "UNREPRODUCED",
+    "rates_tokens_per_second": [
+      36,
+      28,
+      19
+    ],
+    "above_cap_increment_ms_per_token": 16.917,
+    "matched_historical_manifest_available": false
+  },
+  "checks": [
+    {
+      "criterion": 1,
+      "status": "PARTIAL",
+      "requirement": "Complete source, build, launch, model, token, device and runtime provenance",
+      "available": [
+        "traced.json.gz",
+        "untraced.json.gz",
+        "review/setup"
+      ],
+      "remaining": [
+        "Traced parent environment is empty",
+        "Historical full driver-counter query exited 2",
+        "Resident core source revision and GGUF conversion revision were not recorded",
+        "Original constructor/reload settings cannot be reconstructed completely"
+      ]
+    },
+    {
+      "criterion": 2,
+      "status": "PARTIAL",
+      "requirement": "Matched host/VRAM depth matrix and explicit supported capacity",
+      "available": [
+        "traced-summary.json",
+        "traced.json.gz"
+      ],
+      "measured_prompt_depths": [
+        256,
+        2048,
+        2051,
+        2052,
+        3100,
+        8000
+      ],
+      "capacity_skipped_prompt_depths": [
+        65000,
+        262000
+      ],
+      "recorded_engine_capacity": 8192,
+      "remaining": [
+        "No matched deeper-context captures",
+        "An 8192-position experiment limit is not a measurement of the host's maximum supported capacity"
+      ]
+    },
+    {
+      "criterion": 3,
+      "status": "PARTIAL",
+      "requirement": "Initialization, prefill, first output, steady decode and host overhead with repeated complete runs",
+      "available": [
+        "traced.json.gz",
+        "untraced.json.gz",
+        "review/raw-excerpts"
+      ],
+      "measured_outputs_per_request": 129,
+      "measured_intervals_per_request": 128,
+      "pairs_per_depth": 5,
+      "remaining": [
+        "Complete startup/prefill provenance is not present",
+        "Existing traced and untraced series have different clock conditions and do not establish tracing overhead"
+      ]
+    },
+    {
+      "criterion": 4,
+      "status": "PARTIAL",
+      "requirement": "Wrap-safe per-token all-die phase timing with precise phase boundaries",
+      "available": [
+        "traced-all-die-phase-totals.json.gz",
+        "review/raw-excerpts",
+        "review/raw-trace-archive.json"
+      ],
+      "remaining": [
+        "Legacy body interval begins before opcode dispatch",
+        "Schema-2 trace validation uses a separate runtime and has not been run as this depth matrix"
+      ]
+    },
+    {
+      "criterion": 5,
+      "status": "PARTIAL",
+      "requirement": "Separate sender compute and receiver waits with overlap-aware wall-time reconciliation",
+      "available": [
+        "matched-phase-deltas.json",
+        "traced-all-die-phase-totals.json.gz"
+      ],
+      "remaining": [
+        "Legacy arithmetic partitions do not prove a cross-die critical path",
+        "Useful compute is not isolated from all dispatch/bookkeeping in the legacy body category"
+      ]
+    },
+    {
+      "criterion": 6,
+      "status": "MISSING_MEASUREMENTS",
+      "requirement": "Maxwell-compatible memory traffic, occupancy, eligible-warp and stall counters",
+      "available": [
+        "counters/profiler/discovery.json",
+        "counters/profiler/nvprof114-metrics.txt",
+        "counters/profiler/nvprof114-events.txt"
+      ],
+      "remaining": [
+        "Metric enumeration succeeded but no accepted workload-counter values are present",
+        "Actual profiler runs must be collected separately from throughput timings"
+      ]
+    },
+    {
+      "criterion": 7,
+      "status": "PARTIAL",
+      "requirement": "Changing clustered, spread, random and checkpoint-derived selected-block layouts",
+      "available": [
+        "https://github.com/nm-z/flash-sass/pull/43"
+      ],
+      "remaining": [
+        "Representative gather evidence is in a separate PR/runtime",
+        "Checkpoint-derived ID provenance and matched hardware-counter arms are not included in this investigation"
+      ]
+    },
+    {
+      "criterion": 8,
+      "status": "PARTIAL",
+      "requirement": "Explain reproduced phase/host increment or replace unreproduced historical rates with a fully reproducible experiment",
+      "available": [
+        "DECODE_INVESTIGATION.md",
+        "matched-phase-deltas.json"
+      ],
+      "remaining": [
+        "The historical result remains explicitly unreproduced",
+        "The observed replacement increment is small but the full protocol remains incomplete"
+      ]
+    }
+  ],
+  "related_work": [
+    {
+      "pull_request": 30,
+      "head": "257ea63c6cc431e3a3c5b32f52ce0cfdfb8bfdff",
+      "observed_state": "OPEN",
+      "observed_draft": false,
+      "scope": "Schema-2 trace/lifecycle and separate short-generation overhead evidence"
+    },
+    {
+      "pull_request": 78,
+      "head": "035693cd6fa0e14acfc39c6d5b8096764260379f",
+      "observed_state": "OPEN",
+      "observed_draft": true,
+      "scope": "Live provenance and strict matched campaign runner; genuine campaign remains pending"
+    },
+    {
+      "pull_request": 43,
+      "head": "68e302a87c0d48e158012bf53c072f9dd88bb7ce",
+      "observed_state": "OPEN",
+      "observed_draft": true,
+      "scope": "Representative gather layouts; hardware traffic measurements remain pending"
+    }
+  ]
+}

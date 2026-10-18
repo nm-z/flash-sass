@@ -1,6 +1,6 @@
 # Decode-depth investigation
 
-This report replaces an unqualified extrapolation from the historical 36/28/19 tok/s note with reproducible, matched measurements. The original result remains **unreproduced as a matched experiment**: SPEC records the numbers, but the record does not identify the executable, complete configuration, input IDs, clocks or timing window.
+This report preserves a paired investigation of the historical 36/28/19 tok/s note. **Issue #10 remains incomplete.** The captures support the observations below, but missing launch provenance, a clock-confounded tracing comparison, and missing hardware traffic measurements prevent acceptance of the full protocol. The original result remains **unreproduced as a matched experiment**: SPEC records the numbers, but the record does not identify the executable, complete configuration, input IDs, clocks or timing window.
 
 The historical 3,100-to-8,000 comparison would be 35.714 to 52.632 ms/token, a 16.917 ms/token increment. It does not establish a linear context cost or a 200k-token throughput prediction.
 
@@ -32,6 +32,8 @@ The traced median increment from 3,100 to 8,000 is 0.340 ms/token with host KV a
 ## Where the time went
 
 Each die has its own timer epoch. The analysis partitions a die's publication-to-publication interval into dispatch, exchange wait, body excluding PLE wait, barrier/send, PLE wait, between-phase gaps, publication footer and between-token gap. These components reconcile to the same die's measured interval. The maximum accepted arithmetic residual in the analysis is 0.00001 microseconds; the recorded residuals are floating-point summation noise below that bound.
+
+These are the historical trace schema's categories. Its body interval begins before opcode dispatch, so `body_excluding_ple_wait` is not a measurement of useful compute alone. Likewise, `barrier_send` combines two activities. An arithmetically complete partition does not by itself reconstruct the critical path across dies or validate the boundaries' semantics. The schema-2 trace work in [PR #30](https://github.com/nm-z/flash-sass/pull/30) addresses these boundaries; its separate validation must not be relabeled as a new run of this depth matrix.
 
 Do not add the six complete die timelines. They overlap. Sender work and the receiver waiting for it are also two observations of the same dependency.
 
@@ -83,7 +85,26 @@ The traced runner also captured an empty parent environment. The setup script re
 
 The resident core was constructed with a larger capacity than the private host core, even though both engine configurations report 8,192. Core-level PLE staging allocation can consequently differ. The weight holders are shared, disk PLE uses shard two at offset 192, and storage cache state was not flushed or independently controlled. Effective configuration equality does not erase those allocation and cache-state limits.
 
-The compact artifacts preserve raw client observation times, generated IDs, every run mean, every die/opcode total and all rejected capacity cases. The analyzer requires successful capture exits, complete five-pair groups, matching configurations apart from KV placement, matching continuations, and exact reconstruction of the 128 client intervals before producing its summaries.
+The compact artifacts preserve raw client observation times, generated IDs, every run mean, every die/opcode total and all rejected capacity cases. The analyzer requires successful capture exits, complete five-pair groups, matching configurations apart from KV placement, matching continuations, and exact reconstruction of the 128 client intervals before producing its summaries. These are capture and consistency checks; they do not recover missing provenance or certify every acceptance criterion. In particular, the `PASS` in `review/STATUS.json` concerns the 420-file raw archive check, not closure of issue #10.
+
+## Acceptance status
+
+The machine-readable inventory is [acceptance.json](validation/issue10/acceptance.json). The following distinction is essential when reviewing this evidence:
+
+| Issue #10 requirement | Evidence available | Remaining gap |
+| --- | --- | --- |
+| Complete run provenance | Engine and artifact identities, token IDs, realized configs, run records | Empty traced parent environment, failed full driver query, incomplete core/conversion and launch records |
+| Matched depth matrix | Five host/VRAM pairs at 256, 2,048, 2,051, 2,052, 3,100 and 8,000 | 65,000 and 262,000 have capacity-skip records only; the controlled capacity is not a measured global hardware limit |
+| Request and steady decode timing | 129 outputs and 128 recorded intervals per measured request; all repetitions retained | Complete startup/prefill record and an equivalent-clock tracing-overhead comparison |
+| All-die phase boundaries | Legacy 129-token traces, phase zero, all-die opcode aggregates | Repeat with the precise schema-2 compute/dispatch boundaries |
+| Sender work and receiver waits | Per-die arithmetic reconciliation and illustrative wait deltas | Cross-die causal reconciliation for this depth matrix |
+| Hardware traffic and execution counters | Successful CUDA 11.4 metric/event enumeration | Accepted workload counter samples, including system/DRAM traffic, occupancy, eligible warps and stalls |
+| Changing selected-block layouts | Related gather work in PR #43 | Matched counter arms with verified checkpoint-derived layout provenance |
+| Historical slowdown attribution | Historical rates explicitly marked unreproduced; measured replacement deltas retained | A replacement campaign satisfying the complete protocol |
+
+[PR #30](https://github.com/nm-z/flash-sass/pull/30) now contains schema-2 traces and a separate matched, short-generation overhead experiment. [PR #78](https://github.com/nm-z/flash-sass/pull/78) adds stricter live provenance and campaign acceptance checks to the runner from merged [PR #32](https://github.com/nm-z/flash-sass/pull/32). [PR #43](https://github.com/nm-z/flash-sass/pull/43) supplies representative gather workloads. Their source identities and measurement scopes differ from the legacy captures here. They are dependencies and additional evidence, not interchangeable samples for this experiment.
+
+The [profiler discovery record](validation/issue10/counters/README.md) preserves the failed CUDA 12.9 probes and successful CUDA 11.4 inventory. It is explicitly classified as enumeration, not measured hardware traffic.
 
 ## Reproduction and evidence
 
@@ -92,11 +113,24 @@ Run the resident-core benchmark from PR #32 using the supplied model/placement m
 Analyze the captured outputs:
 
 ~~~bash
-python3 kern/decode_forensics.py \
+perl kern/decode_forensics.pl \
   --traced /path/to/paired-depth-trace3/runs \
   --untraced /path/to/paired-depth-untraced4/runs \
-  --out validation/issue10
+  --out /tmp/issue10-from-captures
 ~~~
+
+The output directory must be new. For a CPU-only numerical replay using the compact artifacts already committed in this PR, run:
+
+~~~bash
+perl kern/decode_forensics.pl \
+  --archive validation/issue10 \
+  --out /tmp/issue10-compact-replay
+prove -v kern/decode_forensics_test.pl
+~~~
+
+Archive mode verifies artifact sizes and SHA256 identities before reading strict gzip/JSON inputs. It requires the complete 60-run traced and 20-run untraced matrices, exact paired continuations, 129 publications and 128 positive observation intervals, consistent request/completion fields, and all 360 die records. It checks the per-position selected-key cap/tail counts, phase/opcode partitions, die-0 projections and host/device arithmetic. It independently regenerates all three saved summary files, rejecting differences greater than 1e-8 in their reported units. Outputs identify both Perl source files and the input identity manifest. A rejected archive produces no PASS directory, and an existing output directory is never overwritten.
+
+These checks establish consistency of the supplied compact archive. They do not reread the original phase CSVs, recover missing provenance, or certify the GPU protocol. Artifact identities must still be anchored to the reviewed Git revision; a newly supplied, self-consistent manifest is not proof of historical authenticity.
 
 - [All run intervals, manifests, outputs and die-0 timelines](validation/issue10/traced.json.gz)
 - [Untraced intervals, manifests and all 20 runs](validation/issue10/untraced.json.gz)
@@ -113,3 +147,11 @@ python3 kern/decode_forensics.py \
 The complete raw per-phase CSV collection is retained at /home/nate/claude/flash-sass-prs/paired-depth-trace3/runs on archy. Its full content is not duplicated in git. The compact review artifacts preserve every run and opcode total. Two-position phase excerpts are attached for dies 0 and 4 at 3,100/8,000 in both KV placements, together with the complete corresponding host traces. The archive manifest identifies every original CSV stream by size and SHA256.
 
 Refs #10. Trace format and lifecycle work are in #13; reproducible capture in #14; shared timing API in #15; representative gather inputs in #16.
+
+## Native reanalysis
+
+The original Perl port replayed all 60 traced and 20 untraced records. Its summary statistics and matched phase deltas agree with the recorded analysis within 1e-8 in the reported units. [Original replay commands, driver hash and comparison](validation/issue10/perl-replay/result.json) retain that driver's identity and measured maximum difference. This older record applies to the exact driver hash it names.
+
+The current compact archive replay and rejection tests are recorded separately in [the native validation record](validation/issue10/native-validation). They exercise successful numerical reproduction and deliberately incomplete, inconsistent, nonfinite, truncated and tampered inputs. Neither replay is a new inference or tracing-overhead experiment.
+
+The original orchestration scripts remain identified by exact Git revision, path, bytes and SHA256 in [historical runner provenance](validation/issue10/review/setup/historical-runners.json). Their executed commands and restoration records remain in the setup JSON files.
