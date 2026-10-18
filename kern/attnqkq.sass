@@ -11,6 +11,10 @@
 #
 # Params: 0:0x140 Q  1:0x148 K  2:0x150 V  3:0x158 QN  4:0x160 KN  5:0x168 CS  6:0x170 SN
 #         7:0x178 QO  8:0x180 KQ  9:0x188 VQ  10:0x190 t (u32)  11:0x194 eps (f32)  12:0x198 KS  13:0x1a0 VS
+# Validation builds only: QSA_KV_TRACE=1 adds RAW at 0x1a8 (nullable pointer to
+# u32 magnitude bits [position][K=0,V=1][head][group], 32 words per position).
+# QSA_KV_UNBOUNDED=1 removes clipping solely for same-source overhead comparison.
+# Neither trace parameters nor trace instructions exist in the default image.
 
 <CONSTANT_MAPPING>
     param_Q0  : c[0x0][0x140]
@@ -39,6 +43,13 @@
     param_KS1 : c[0x0][0x19c]
     param_VS0 : c[0x0][0x1a0]
     param_VS1 : c[0x0][0x1a4]
+<CODE>
+    my $trace = $ENV{QSA_KV_TRACE} // '0';
+    my $unbounded = $ENV{QSA_KV_UNBOUNDED} // '0';
+    die "QSA_KV_TRACE must be 0 or 1" unless $trace =~ /\A[01]\z/;
+    die "QSA_KV_UNBOUNDED must be 0 or 1" unless $unbounded =~ /\A[01]\z/;
+    return $trace eq '1' ? "    param_RAW0 : c[0x0][0x1a8]\n    param_RAW1 : c[0x0][0x1ac]\n" : '';
+</CODE>
 </CONSTANT_MAPPING>
 
 <REGISTER_MAPPING>
@@ -77,20 +88,54 @@
     83    : c127
     84,85 : pk<0-1>
     86,87 : ta<0-1>
+<CODE>
+    return ($ENV{QSA_KV_TRACE} // '0') eq '1'
+        ? "    88 : raw_g\n    89 : raw_tmp\n    90,91 : raw_p<0-1>\n" : '';
+</CODE>
 </REGISTER_MAPPING>
 
 <CODE>
     my $o = '';
+    my $trace = ($ENV{QSA_KV_TRACE} // '0') eq '1';
+    my $unbounded = ($ENV{QSA_KV_UNBOUNDED} // '0') eq '1';
     # quantise the 8 values R[0..7] of this lane (a 32-block = 4 lanes) and store them: 8 bytes to [$dp], the
     # fp16 scale to [$spp] from the lanes with (lane & 3) == 0 (P3)
     my $q8 = sub {
-        my ($R, $dp, $spp) = @_;
+        my ($R, $dp, $spp, $kind) = @_;
         my $x = '';
+        if ($trace) {
+            # Integer magnitude max preserves NaN/Inf instead of FMNMX masking it.
+            # 0xffffffff is an impossible sign-cleared result: the host's unwritten sentinel.
+            $x .= "08:-:-:-:6      LOP32I.AND raw_g, $R->[0], 0x7fffffff;\n";
+            for my $e (1..7) {
+                $x .= "--:-:-:-:6      LOP32I.AND raw_tmp, $R->[$e], 0x7fffffff;\n";
+                $x .= "--:-:-:-:6      IMNMX.U32 raw_g, raw_g, raw_tmp, !PT;\n";
+            }
+            for my $m (1, 2) {
+                $x .= sprintf "--:-:5:-:3      SHFL.BFLY PT, raw_tmp, raw_g, 0x%x, 0x1f;\n", $m;
+                $x .= "10:-:-:-:6      IMNMX.U32 raw_g, raw_g, raw_tmp, !PT;\n";
+            }
+            $x .= "--:-:-:-:6      MOV raw_tmp, param_RAW0;\n";
+            $x .= "--:-:-:-:6      LOP.OR raw_tmp, raw_tmp, param_RAW1;\n";
+            $x .= "--:-:-:-:6      ISETP.NE.U32.AND P4, PT, raw_tmp, RZ, P3;\n";
+            $x .= "--:-:-:-:6      MOV raw_tmp, param_t;\n";
+            $x .= "--:-:-:-:6      SHL raw_p0, raw_tmp, 0x7;\n";
+            $x .= "--:-:-:-:6      SHL raw_tmp, kh, 0x5;\n";
+            $x .= "--:-:-:-:6      IADD raw_p0, raw_p0, raw_tmp;\n";
+            $x .= "--:-:-:-:6      LOP32I.AND raw_tmp, lane, 0x1c;\n";
+            $x .= "--:-:-:-:6      IADD raw_p0, raw_p0, raw_tmp;\n";
+            $x .= "--:-:-:-:6      IADD raw_p0, raw_p0, 0x40;\n" if $kind;
+            $x .= "--:-:-:-:6      IADD raw_p0.CC, raw_p0, param_RAW0;\n";
+            $x .= "--:-:-:-:6      IADD.X raw_p1, RZ, param_RAW1;\n";
+            $x .= "--:4:-:-:6  \@P4 STG.E [raw_p], raw_g;\n";
+        }
         # Clip components, not only the stored scale. Keep the original input wait.
-        $x .= "08:-:-:-:6      MOV32I t, 0x4afde040;\n";
-        $x .= "--:-:-:-:1      FMNMX $_, $_, t, PT;\n" for @$R;
-        $x .= "--:-:-:-:1      FMNMX $_, $_, -t, !PT;\n" for @$R;
-        $x .= "--:-:-:-:6      FMNMX g, |$R->[0]|, |$R->[1]|, !PT;\n";
+        if (!$unbounded) {
+            $x .= "08:-:-:-:6      MOV32I t, 0x4afde040;\n";
+            $x .= "--:-:-:-:1      FMNMX $_, $_, t, PT;\n" for @$R;
+            $x .= "--:-:-:-:1      FMNMX $_, $_, -t, !PT;\n" for @$R;
+        }
+        $x .= ($unbounded ? '08' : '--') . ":-:-:-:6      FMNMX g, |$R->[0]|, |$R->[1]|, !PT;\n";
         $x .= "--:-:-:-:6      FMNMX g, g, |$R->[$_]|, !PT;\n" for 2..7;
         for my $m (1, 2) {
             $x .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, g, 0x%x, 0x1f;\n", $m;
@@ -231,8 +276,8 @@
     $o .= "\nKEYOUT:\n";
     my @vr = ((map "vv$_", 0..3), (map "vw$_", 0..3));
     my @kr = map "x$_", 0..7;
-    $o .= $q8->(\@vr, 'vp', 'vsp');
-    $o .= $q8->(\@kr, 'op', 'kp');
+    $o .= $q8->(\@vr, 'vp', 'vsp', 1);
+    $o .= $q8->(\@kr, 'op', 'kp', 0);
     $o .= "08:-:-:-:f      EXIT;\n";
     return $o;
 </CODE>

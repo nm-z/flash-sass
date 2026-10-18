@@ -5,6 +5,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include "attn.h"
 #include "qsa.h"
+#include "quant_range_cases.h"
 #include "fmath.h"
 #include "quant.h"
 #include "gguf.h"
@@ -60,16 +61,69 @@ static int cmpb(const char *what, const void *ref, const void *got, size_t n, in
 }
 
 
-#include <float.h>
-static void quant_extremes_(float*v,unsigned token){
- float z=ldexpf(127.f,-25),a[18]={0,1e-6f,-1e-6f,1e7f,-1e7f,
- nextafterf(QSA_KV_MAX_ABS,0),QSA_KV_MAX_ABS,nextafterf(QSA_KV_MAX_ABS,INFINITY),FLT_MAX,-FLT_MAX,
- nextafterf(z,0),z,nextafterf(z,INFINITY),-nextafterf(z,0),-z,-nextafterf(z,INFINITY),127.f*0x1p-24f,127.f*0x1p-14f};
- for(unsigned i=0;i<512;i++){float x=a[(i/32+token)%18];v[i]=(i%3==0)?0:(i&1)?-x:x;}
+static unsigned quant_extreme_fixture(unsigned token, unsigned group) {
+ return (2u * token + group) % QUANT_RANGE_SIGNED_COUNT;
+}
+static uint32_t quant_raw_max_bits(const float *x) {
+ uint32_t maximum = 0;
+ for (unsigned i = 0; i < 32; ++i) {
+  uint32_t magnitude = quant_float_bits(x[i]) & 0x7fffffffu;
+  if (magnitude > maximum) maximum = magnitude;
+ }
+ return maximum;
+}
+static void quant_extremes_(float *v, unsigned token) {
+ for (unsigned group = 0; group < 16; ++group) {
+  unsigned fixture = quant_extreme_fixture(token, group);
+  quant_range_group(v + 32 * group, quant_range_amplitude(fixture));
+ }
+}
+static int quant_extremes_check(unsigned token, const float *v,
+                               const int8_t *cpu_q, const uint16_t *cpu_s,
+                               const int8_t *gpu_q, const uint16_t *gpu_s,
+                               unsigned char *seen) {
+ int bad = 0;
+ for (unsigned group = 0; group < 16; ++group) {
+  unsigned fixture = quant_extreme_fixture(token, group);
+  const quant_range_case *test = &quant_range_cases[fixture / 2];
+  size_t qi = (size_t)token * 512 + 32 * group;
+  size_t si = (size_t)token * 16 + group;
+  if (gpu_s[si] != test->scale_bits || cpu_s[si] != test->scale_bits) {
+   fprintf(stderr, "quant-range scale failure t=%u group=%u case=%s expected=%04x cpu=%04x gpu=%04x\n",
+           token, group, test->name, test->scale_bits, cpu_s[si], gpu_s[si]);
+   bad = 1;
+  }
+  for (unsigned i = 0; i < 32; ++i) {
+   float x = v[32 * group + i];
+   int expected = x > 0.f ? 127 : x < 0.f ? -127 : 0;
+   if (gpu_q[qi + i] != expected || cpu_q[qi + i] != expected) {
+    fprintf(stderr, "quant-range code failure t=%u group=%u channel=%u expected=%d cpu=%d gpu=%d\n",
+            token, group, i, expected, cpu_q[qi + i], gpu_q[qi + i]);
+    bad = 1; break;
+   }
+  }
+  if (!seen[fixture]) {
+   printf("quant-range gpu fixture=%u case=%s input=%08x expected_scale=%04x cpu_scale=%04x gpu_scale=%04x cpu_q1=%d gpu_q1=%d cpu_q2=%d gpu_q2=%d cpu_deq1=%08x gpu_bits_deq1=%08x\n",
+          fixture, test->name, quant_float_bits(quant_range_amplitude(fixture)),
+          test->scale_bits, cpu_s[si], gpu_s[si], cpu_q[qi + 1], gpu_q[qi + 1],
+          cpu_q[qi + 2], gpu_q[qi + 2],
+          quant_float_bits(kv_deq_gpu(cpu_q[qi + 1], cpu_s[si])),
+          quant_float_bits(kv_deq_gpu(gpu_q[qi + 1], gpu_s[si])));
+   seen[fixture] = 1;
+  }
+ }
+ return bad;
 }
 static int test_kv(unsigned T, unsigned NBLK) {
 	const float eps = 1e-6f;
 	unsigned npos = T + 64;
+	const int trace_check = getenv("QSA_KV_TRACE_CHECK") != NULL;
+	CUdeviceptr dTRACE = 0;
+	uint32_t trace_expected[32], trace_got[32];
+	if (trace_check) {
+		dTRACE = dalloc((size_t)npos * 32 * sizeof(uint32_t));
+		CK(cuMemsetD32(dTRACE, 0xffffffffu, (size_t)npos * 32));
+	}
 	float *rcs = malloc(4 * 32 * (size_t)npos), *rsn = malloc(4 * 32 * (size_t)npos);
 	for (unsigned t = 0; t < npos; t++) rope_table_gpu(t, 1e7f, rcs + 32 * t, rsn + 32 * t);
 	float qn[256], kn[256]; for (int i = 0; i < 256; i++) { qn[i] = 0.5f + 0.5f * frand(); kn[i] = 0.5f + 0.5f * frand(); }
@@ -88,6 +142,7 @@ static int test_kv(unsigned T, unsigned NBLK) {
 	d_ptr(&prog[0], 0x140, dQG); d_ptr(&prog[0], 0x148, dK); d_ptr(&prog[0], 0x150, dV); d_ptr(&prog[0], 0x158, dQN); d_ptr(&prog[0], 0x160, dKN);
 	d_ptr(&prog[0], 0x168, dCS); d_ptr(&prog[0], 0x170, dSN); d_ptr(&prog[0], 0x178, dQO); d_ptr(&prog[0], 0x180, dKQ); d_ptr(&prog[0], 0x188, dVQ);
 	d_tok(&prog[0], 0x190, 0); d_f32(&prog[0], 0x194, eps); d_ptr(&prog[0], 0x198, dKS); d_ptr(&prog[0], 0x1a0, dVS);
+	d_ptr(&prog[0], 0x1a8, dTRACE);
 	d_init(&prog[1], OP_KVGATHER, NBLK + 1);
 	d_ptr(&prog[1], 0x140, dKQ); d_ptr(&prog[1], 0x148, dKS); d_ptr(&prog[1], 0x150, dVQ); d_ptr(&prog[1], 0x158, dVS); d_ptr(&prog[1], 0x160, dKC); d_ptr(&prog[1], 0x168, dVC);
 	d_ptr(&prog[1], 0x170, dSEL); d_tok(&prog[1], 0x178, 0); d_u32(&prog[1], 0x17c, NBLK);
@@ -103,6 +158,8 @@ static int test_kv(unsigned T, unsigned NBLK) {
 	uint32_t *sel = malloc(4 * (NBLK + 8));
 	int bad = 0, shown = 0;
 	const int last_only = getenv("QSA_KV_LAST_ONLY") != NULL;
+	const int extremes = getenv("QSA_KV_EXTREMES") != NULL;
+	unsigned char quant_seen[QUANT_RANGE_SIGNED_COUNT] = {0};
 	for (unsigned t = 0; t < T; t++) {
 		int b = 0, check_attn = !last_only || t + 1 == T;
 		for (int i = 0; i < 12288; i++) qg[i] = 2.f * frand();
@@ -110,7 +167,7 @@ static int test_kv(unsigned T, unsigned NBLK) {
 		if (t % 7 == 3) for (int i = 0; i < 512; i++) v[i] *= 1e-4f;          /* tiny scales (fp16 subnormals) */
 		if (t % 11 == 5) for (int i = 256; i < 512; i++) v[i] = 0.f;          /* an all-zero kv head */
 		if (t % 13 == 6) for (int i = 0; i < 512; i++) v[i] *= 3e3f;
-		if(getenv("QSA_KV_EXTREMES"))quant_extremes_(v,t);
+		if (extremes) quant_extremes_(v, t);
 		unsigned nv = (t + 1) >> 2, ns = nv < NBLK ? nv : NBLK;
 		if (nv > NBLK) {   /* a pseudo-random ascending selection of NBLK of the nv blocks */
 			unsigned *perm = malloc(4 * nv); for (unsigned i = 0; i < nv; i++) perm[i] = i;
@@ -128,13 +185,22 @@ static int test_kv(unsigned T, unsigned NBLK) {
 			qk_norm_rope_gpu(k + 256 * h, kn, eps, rcs + 32 * t, rsn + 32 * t, y);
 			for (int b = 0; b < 8; b++) {
 				size_t row = (size_t)t * 2 + h;
+				if (trace_check) {
+					trace_expected[h * 8 + b] = quant_raw_max_bits(y + 32 * b);
+					trace_expected[16 + h * 8 + b] = quant_raw_max_bits(v + 256 * h + 32 * b);
+				}
 				kv_quant32_gpu(y + 32 * b, kq + row * 256 + 32 * b, &ks[row * 8 + b]);
 				kv_quant32_gpu(v + 256 * h + 32 * b, vq + row * 256 + 32 * b, &vs[row * 8 + b]);
 			}
 		}
 		unsigned n = qsa_gather_gpu(kq, ks, vq, vs, sel, t, NBLK, kc, vc);
+		if (trace_check) {
+			CK(cuMemcpyDtoH(trace_got, dTRACE + (size_t)t * sizeof trace_got, sizeof trace_got));
+			b |= cmpb("raw KV maxima", trace_expected, trace_got, sizeof trace_got, &shown);
+		}
 		if (check_attn) attn_decode_gpu(qo, kc, vc, n, qg, out);
 		CK(cuMemcpyDtoH(kqg, dKQ, (size_t)npos * 512)); CK(cuMemcpyDtoH(vqg, dVQ, (size_t)npos * 512)); CK(cuMemcpyDtoH(ksg, dKS, (size_t)npos * 32)); CK(cuMemcpyDtoH(vsg, dVS, (size_t)npos * 32));
+		if (extremes) b |= quant_extremes_check(t, v, vq, vs, vqg, vsg, quant_seen);
         for(unsigned j=0;j<16;j++){size_t si=(size_t)t*16+j;if(!isfinite(qsa_h2f(ksg[si]))||!isfinite(qsa_h2f(vsg[si]))){fprintf(stderr,"nonfinite KV scale at t=%u group=%u\n",t,j);b=1;}}
         for(unsigned j=0;j<512;j++){size_t qi=(size_t)t*512+j,si=(size_t)t*16+j/32;if(!isfinite(kv_deq_gpu(kqg[qi],ksg[si]))||!isfinite(kv_deq_gpu(vqg[qi],vsg[si])))b=1;}
 
@@ -142,7 +208,8 @@ static int test_kv(unsigned T, unsigned NBLK) {
 			/* Corrupt only the readback: prove that an isolated query failure reaches main. */
 			if (getenv("QSA_INJECT_QO_MISMATCH") && t + 1 == T) ((unsigned char *)qog)[0] ^= 1;
 			int bq = cmpb("qo", qo, qog, 4 * 6144, &shown); b |= bq;
-			if (bq && !bad) printf("  (qo differs at t = %u)\n", t); free(qog); }
+			if (bq && !bad) printf("  (qo differs at t = %u)\n", t);
+			free(qog); }
 		if (getenv("QSA_DUMP") && t == 0) { printf("kq gpu:"); for (int i = 0; i < 40; i++) printf(" %d", kqg[i]); printf("\n    ref:"); for (int i = 0; i < 40; i++) printf(" %d", kq[i]); printf("\nks gpu:"); for (int i = 0; i < 16; i++) printf(" %04x", ksg[i]); printf("\n    ref:"); for (int i = 0; i < 16; i++) printf(" %04x", ks[i]); printf("\nvq gpu:"); for (int i = 0; i < 40; i++) printf(" %d", vqg[i]); printf("\n    ref:"); for (int i = 0; i < 40; i++) printf(" %d", vq[i]); printf("\n"); }
 		b |= cmpb("kq", kq + (size_t)t * 512, kqg + (size_t)t * 512, 512, &shown); b |= cmpb("vq", vq + (size_t)t * 512, vqg + (size_t)t * 512, 512, &shown);
 		b |= cmpb("ks", ks + (size_t)t * 16, ksg + (size_t)t * 16, 32, &shown); b |= cmpb("vs", vs + (size_t)t * 16, vsg + (size_t)t * 16, 32, &shown);
@@ -165,8 +232,19 @@ static int test_kv(unsigned T, unsigned NBLK) {
 		if (b && !bad) printf("first mismatch at t = %u (n = %u keys, %u blocks selected)\n", t, n, ns);
 		bad += b;
 	}
-	printf("kv: %u tokens, NBLK %u: %s (%d tokens differ; query/append checks %u, gather/attention checks %u)\n", T, NBLK, bad ? "MISMATCH" : "BIT-EXACT", bad, T, last_only && T ? 1 : T);
-	return bad;
+	if (trace_check)
+		printf("quant-range raw-maxima trace: %zu groups; %s\n", (size_t)T * 32, bad ? "FAIL" : "PASS");
+	unsigned coverage = 0;
+	int coverage_bad = 0;
+	if (extremes) {
+		for (unsigned i = 0; i < QUANT_RANGE_SIGNED_COUNT; ++i) coverage += quant_seen[i] != 0;
+		coverage_bad = coverage != QUANT_RANGE_SIGNED_COUNT;
+		printf("quant-range coverage: %u/%u signed fixtures; %s\n",
+		       coverage, (unsigned)QUANT_RANGE_SIGNED_COUNT, bad || coverage_bad ? "FAIL" : "PASS");
+		if (coverage_bad) fputs("incomplete extreme fixture coverage; use at least 16 tokens\n", stderr);
+	}
+	printf("kv: %u tokens, NBLK %u: %s (%d tokens differ; query/append checks %u, gather/attention checks %u)\n", T, NBLK, bad || coverage_bad ? "MISMATCH" : "BIT-EXACT", bad, T, last_only && T ? 1 : T);
+	return bad || coverage_bad;
 }
 
 static size_t pkt_idx(unsigned b, int d) { return (size_t)(b >> 5) * 4096 + (size_t)(d >> 2) * 128 + (b & 31) * 4 + (d & 3); }

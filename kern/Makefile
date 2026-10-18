@@ -501,7 +501,7 @@ sample_test: sample_test.c dieops.h ../ref/sample.c ../ref/sample.h ../ref/fmath
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ sample_test.c ../ref/sample.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
 
 # ---- QSA: int8 KV cache, indexer, selection, gather through the persistent kernel vs ref/qsa.c ----
-qsa_test: qsa_test.c dieops.h ../ref/qsa.c ../ref/qsa.h ../ref/attn.c ../ref/attn.h ../ref/fmath.c ../ref/quant.c ../ref/gguf.c
+qsa_test: qsa_test.c quant_range_cases.h dieops.h ../ref/qsa.c ../ref/qsa.h ../ref/attn.c ../ref/attn.h ../ref/fmath.c ../ref/quant.c ../ref/gguf.c
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ qsa_test.c ../ref/qsa.c ../ref/attn.c ../ref/fmath.c ../ref/quant.c ../ref/gguf.c -I../ref -I$(CUDA)/include -lcuda -lm
 
 attnpartn_unitmap: attnpartn_unitmap.c
@@ -518,9 +518,12 @@ memtest: memtest.c
 fence: fence.c
 	$(CC) -std=gnu99 -O2 -Wall -o $@ fence.c -I$(CUDA)/include -lcuda
 
-quant_range_test: quant_range_test.c ../ref/qsa.c ../ref/qsa.h ../ref/fmath.c ../ref/fmath.h
+quant_range_test: quant_range_test.c quant_range_cases.h ../ref/qsa.c ../ref/qsa.h ../ref/fmath.c ../ref/fmath.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -UNDEBUG -Wall -Wextra -o $@ quant_range_test.c ../ref/qsa.c ../ref/fmath.c -I../ref -lm
 .PHONY: test-quant-range
+quant_bench: quant_bench.c dieops.h
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -Wextra -DFLASH_REV='"$(FLASH_REV)"' -o $@ quant_bench.c -I$(CUDA)/include -lcuda -lm
+
 test-quant-range: quant_range_test
 	./quant_range_test
 

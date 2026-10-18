@@ -1,5 +1,6 @@
 #include "qsa.h"
 #include "fmath.h"
+#include "quant_range_cases.h"
 #include <assert.h>
 #include <float.h>
 #include <fenv.h>
@@ -18,8 +19,40 @@ static void group(float a){
  if(fabsf(a)>=QSA_KV_MAX_ABS)assert(s==0x7bff&&fabsf(kv_deq_gpu(q[1],s))==QSA_KV_MAX_ABS);
  uint32_t bits;memcpy(&bits,&a,4);printf("input=%08x scale=%04x q1=%d q2=%d\n",bits,s,q[1],q[2]);
 }
+static void explicit_boundaries(void) {
+ const float reciprocal = 1.f / 127.f;
+ assert(quant_float_bits(reciprocal) == 0x3c010204u);
+ volatile float lower_product = quant_float_from_bits(0x367e0001u) * reciprocal;
+ volatile float upper_product = quant_float_from_bits(0x367e0002u) * reciprocal;
+ assert(quant_float_bits(lower_product) == 0x33000000u);
+ assert(quant_float_bits(upper_product) == 0x33000001u);
+ for (unsigned i = 8; i < QUANT_RANGE_CASE_COUNT; i += 2) {
+  uint32_t lo = quant_range_cases[i].input_bits, hi = quant_range_cases[i + 1].input_bits;
+  assert(hi == lo + 1);
+  assert(quant_float_bits(nextafterf(quant_float_from_bits(lo), INFINITY)) == hi);
+ }
+ for (unsigned fixture = 0; fixture < QUANT_RANGE_SIGNED_COUNT; ++fixture) {
+  const quant_range_case *test = &quant_range_cases[fixture / 2];
+  float a = quant_range_amplitude(fixture), x[32];
+  int8_t q[32]; uint16_t scale;
+  quant_range_group(x, a);
+  assert(!kv_quant32_checked(x, q, &scale));
+  assert(scale == test->scale_bits);
+  for (unsigned i = 0; i < 32; ++i) {
+   int expected = x[i] > 0.f ? 127 : x[i] < 0.f ? -127 : 0;
+   assert(q[i] == expected);
+   assert(isfinite(kv_deq_gpu(q[i], scale)));
+  }
+  printf("quant-range cpu fixture=%u case=%s input=%08x expected_scale=%04x scale=%04x q1=%d q2=%d deq1=%08x deq2=%08x\n",
+         fixture, test->name, quant_float_bits(a), test->scale_bits, scale, q[1], q[2],
+         quant_float_bits(kv_deq_gpu(q[1], scale)), quant_float_bits(kv_deq_gpu(q[2], scale)));
+ }
+ printf("PASS: %u explicit signed KV range fixtures; adjacent scale boundaries verified\n",
+        (unsigned)QUANT_RANGE_SIGNED_COUNT);
+}
 int main(void){
  if(fegetround()!=FE_TONEAREST){fputs("requires FE_TONEAREST\n",stderr);return 2;}
+ explicit_boundaries();
  {float levels[]={0,127.f*0x1p-24f,127.f*0x1p-14f,QSA_KV_MAX_ABS};uint16_t expected[]={0,1,0x400,0x7bff};for(unsigned j=0;j<4;j++){float x[32];for(int i=0;i<32;i++)x[i]=levels[j];int8_t q[32];uint16_t h;assert(!kv_quant32_checked(x,q,&h)&&h==expected[j]);}}
  float ordinary[]={0,-0.f,1e-10f,1e-6f,-1e-6f,.1f,1,-1,3000,QSA_KV_MAX_ABS,-QSA_KV_MAX_ABS,1e7f,-1e7f,FLT_MAX,-FLT_MAX,nextafterf(QSA_KV_MAX_ABS,0),nextafterf(QSA_KV_MAX_ABS,INFINITY)};
  for(unsigned i=0;i<sizeof ordinary/sizeof*ordinary;i++)group(ordinary[i]);

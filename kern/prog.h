@@ -149,6 +149,9 @@ typedef struct {
 	 * the ones above; nblk: blocks of 4 keys attended at most (QSA_NBLK, 512) */
 	int qsa; unsigned nblk;
 	CUdeviceptr kq, ks, vq, vs, pkt, ring, iqk, iq, sc, hst, sel;
+	/* Validation-only raw pre-clamp maxima: u32[position][K/V][2 heads][8 groups].
+	 * Null normally; only a QSA_KV_TRACE=1 cubin consumes this descriptor field. */
+	CUdeviceptr kv_rawmax;
 } dn_bufs_t;
 
 void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps);
