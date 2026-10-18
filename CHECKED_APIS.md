@@ -17,9 +17,13 @@ allocation bounds or support arbitrary nonfinite padding; see #18/#19.
 
 Both attention test CLIs accept unsigned decimal digits only. They reject
 empty/signed/malformed/overflowing arguments, unknown modes, extra arguments,
-zero keys, unsupported budgets and positions above 262144 before allocation or
-CUDA initialization. idxscore accepts zero complete blocks because a nonempty
-prefix may have no completed block; idxsel/idxfull require a nonzero block count.
+zero keys, unsupported budgets and visible lengths above 262144 before allocation
+or CUDA initialization. Supported zero-based positions are 0..262143. idxscore
+accepts zero complete blocks and uses position 0: one current token is visible
+after append. idxsel/idxfull require a nonzero block count. The idxscore fixture
+position is computed and checked before CUDA initialization; its generated tail
+is limited to the remaining capacity. At 65536 complete blocks it uses position
+262143 with no tail. The RNG draw order for the fixture data is preserved.
 
 CPU validation:
 
@@ -27,6 +31,9 @@ CPU validation:
        -Iref kern/checked_test.c ref/checked.c ref/qsa.c ref/attn.c \
        ref/fmath.c -lm -o /tmp/flash-checked-test
     /tmp/flash-checked-test
+
+    make -C kern idxscore_position_test
+    ./kern/idxscore_position_test
 
 After building qsa_test and attn_test on the target host:
 
@@ -49,3 +56,16 @@ separately from the completed child-case report. These are boundary tests;
 no successful GPU kernel execution is claimed by the CLI guard suite.
 Evidence is in validation/issue20/current-archy. The unsuccessful engi GPU
 link attempt is retained in current-engi; archy supplied the successful build.
+
+## Maximum-position follow-up
+
+The idxscore position regression covers all four generated tails at zero and
+maximum complete blocks, the adjacent lower block count, a partial final block
+at a smaller capacity, arithmetic near UINT_MAX, and unchanged outputs on
+invalid dimensions. UINT_MAX cases test the helper's arithmetic only; the GPU
+harness capacity remains 262144 and the scalar APIs retain their own size bounds.
+
+The CLI suite now checks 52 invalid invocations (exit 2) and seven accepted
+boundary controls (exit 99 at the CUDA trap), including zero and maximum complete
+blocks with budgets 1 and 4096. The controls also verify that the trap is active.
+These CPU and prelaunch checks do not claim GPU arithmetic or model validation.

@@ -501,7 +501,7 @@ sample_test: sample_test.c dieops.h ../ref/sample.c ../ref/sample.h ../ref/fmath
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ sample_test.c ../ref/sample.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
 
 # ---- QSA: int8 KV cache, indexer, selection, gather through the persistent kernel vs ref/qsa.c ----
-qsa_test: qsa_test.c dieops.h ../ref/qsa.c ../ref/qsa.h ../ref/attn.c ../ref/attn.h ../ref/fmath.c ../ref/quant.c ../ref/gguf.c ../ref/checked.h
+qsa_test: qsa_test.c qsa_test_bounds.h dieops.h ../ref/qsa.c ../ref/qsa.h ../ref/attn.c ../ref/attn.h ../ref/fmath.c ../ref/quant.c ../ref/gguf.c ../ref/checked.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ qsa_test.c ../ref/qsa.c ../ref/attn.c ../ref/fmath.c ../ref/quant.c ../ref/gguf.c -I../ref -I$(CUDA)/include -lcuda -lm
 
 attnpartn_unitmap: attnpartn_unitmap.c
@@ -549,3 +549,6 @@ ple_eos_test: ple_eos_test.c ../ref/ple.c ../ref/fmath.c
 
 checked_test: checked_test.c ../ref/checked.c ../ref/checked.h ../ref/attn.c ../ref/qsa.c ../ref/fmath.c
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ checked_test.c ../ref/checked.c ../ref/attn.c ../ref/qsa.c ../ref/fmath.c -I../ref -lm
+
+idxscore_position_test: idxscore_position_test.c qsa_test_bounds.h
+	$(CC) -std=gnu99 -O2 -Wall -Wextra -o $@ idxscore_position_test.c
