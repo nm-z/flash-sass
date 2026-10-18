@@ -1,6 +1,5 @@
 #!/usr/bin/env ruby
 # Controlled ABBA comparison against the actual flashcore line protocol.
-require 'base64'
 require 'digest'
 require 'fileutils'
 require 'json'
@@ -42,7 +41,7 @@ module TraceValidation
     end
     def send_line(text)
       bytes = text + "\n"; @socket.write(bytes); @tx.write(bytes); @tx.flush
-      @events&.puts(JSON.generate(direction: 'send',monotonic_ns: TraceValidation.ns,base64: Base64.strict_encode64(bytes)))
+      @events&.puts(JSON.generate(direction: 'send',monotonic_ns: TraceValidation.ns,base64: [bytes].pack('m0')))
     end
     def line
       deadline = TraceValidation.ns + (@timeout*1e9).to_i
@@ -54,7 +53,7 @@ module TraceValidation
         next if bytes == :wait_readable
         raise Error,'socket closed before response terminator' unless bytes
         at = TraceValidation.ns; @rx.write(bytes)
-        @events&.puts(JSON.generate(direction: 'receive',monotonic_ns: at,base64: Base64.strict_encode64(bytes)))
+        @events&.puts(JSON.generate(direction: 'receive',monotonic_ns: at,base64: [bytes].pack('m0')))
         @buffer << bytes
         while (i = @buffer.index("\n"))
           @lines << [@buffer.slice!(0,i+1),at]
