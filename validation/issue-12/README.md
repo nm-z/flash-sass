@@ -4,6 +4,10 @@ PR #29 remains draft until the new target-GPU checks and matched whole-model
 measurements run successfully. The original component results below are retained
 as historical evidence; they do not validate the later trace or canary changes.
 
+The [2026-10-18 review checkpoint](review-20261018/README.md) records six successful
+isolated builds, the current CPU checks, and the latest shared-GPU lock blocker.
+It contains no new target-GPU measurement.
+
 ## Historical component measurement
 
 The 48 JSON cases in this directory compare exact parent
