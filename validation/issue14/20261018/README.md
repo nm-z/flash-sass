@@ -14,6 +14,31 @@ throughput benchmark or validation of the new executable. It ran on `archy`
 through the connected Codex session on `engi`. The shared lock was acquired
 before `nvidia-smi` and `ps`, and released afterward. No process was stopped.
 
+## CPU validation
+
+The checked implementation commit is
+`9db8780e1caf16897db9d45c1ab2b36234080fb3`, with a clean source tree before
+validation. The subsequent evidence commit only adds these records and this
+explanation. `cpu-validation.json` preserves exact command argument arrays,
+individual exit codes, source-file hashes, log hashes and the linked artifact
+identity. Every recorded command exited zero.
+
+| Check | Result and raw record |
+| --- | --- |
+| Four Perl regression suites | 60 top-level tests passed; three optional historical full-array fixtures skipped (`perl-tests.log`) |
+| C metadata helper, strict C11 build | Passed with `-Wall -Wextra -Werror -pedantic` (`requestmeta-build.log`) |
+| C metadata lifecycle tests | `request_meta_test: ok` (`requestmeta-test.log`) |
+| Generated opcode header | Passed (`generate-header.log`) |
+| Engine C syntax | Passed with `-Wall -Werror` (`engine-syntax.log`) |
+| Engine shared-library build | Passed using the CUDA SDK stub library (`engine-stub-link.log`) |
+| Whitespace check | Passed (`diff-check.log`) |
+
+The link command explicitly uses `CC=cc -L/opt/cuda/lib64/stubs` because
+`engi` does not have the NVIDIA driver library in its normal linker path.
+This verifies compilation and linkage against the SDK stub; it is not a
+driver load or target-GPU execution test. The link log preserves six
+`-Wmaybe-uninitialized` warnings in the unchanged `ref/quant.c` functions.
+
 ## Observed blocker
 
 At `2026-10-18T02:04:05Z`, the six dies holding the model reported these free
@@ -36,6 +61,13 @@ also change someone else's active runtime. The follow-up did neither.
 
 See `archy-preflight.log` for the actual commands, exit codes, GPU UUIDs,
 process inventory and unmodified `config` response.
+
+A second read-only preflight at `2026-10-18T02:58:54Z` found the shared
+validation lock busy and exited 73. It performed no GPU query, process
+inspection or socket command after that failed acquisition. See
+`archy-preflight-latest.log`. The earlier hardware/configuration snapshot
+therefore remains historical evidence, not a claim about the current owner
+of the lock or current GPU state.
 
 ## Acceptance still requires real measurements
 

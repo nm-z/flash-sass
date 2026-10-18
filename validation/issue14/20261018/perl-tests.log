@@ -1,0 +1,457 @@
+argv: ["prove","-v","kern/paired_depth_bench_test.pl","kern/bench_manifest_test.pl","kern/bench_trace_test.pl","kern/bench_acceptance_test.pl"]
+exit: 0
+stdout:
+kern/paired_depth_bench_test.pl .. 
+# Subtest: partition and phase zero
+    ok 1 - publication interval
+    ok 2 - phase time
+    ok 3 - between phases
+    ok 4 - publication footer
+    ok 5 - first publication position excluded from decode work
+    ok 6 - PLE wait partition
+    1..6
+ok 1 - partition and phase zero
+# Subtest: 64 bit epoch
+    ok 1 - interval independent of absolute epoch
+    1..1
+ok 2 - 64 bit epoch
+# Subtest: missing phase
+    ok 1 - missing rejected
+    1..1
+ok 3 - missing phase
+# Subtest: duplicate phase
+    ok 1 - duplicate rejected
+    1..1
+ok 4 - duplicate phase
+# Subtest: missing publication
+    ok 1 - missing publication rejected
+    1..1
+ok 5 - missing publication
+# Subtest: wrong layout
+    ok 1 - 16 CTA layout rejected
+    1..1
+ok 6 - wrong layout
+# Subtest: invalid PLE wait
+    ok 1 - wait outside body rejected
+    1..1
+ok 7 - invalid PLE wait
+# Subtest: single publication
+    ok 1 - no intervals
+    ok 2 - zero decode duration
+    1..2
+ok 8 - single publication
+# Subtest: manifest gate
+    ok 1 - KV placement difference allowed
+    ok 2 - unexplained configuration difference rejected
+    1..2
+ok 9 - manifest gate
+# Subtest: failed driver query cannot pass
+    ok 1 - query failure rejected
+    ok 2 - valid XML accepted
+    1..2
+ok 10 - failed driver query cannot pass
+# Subtest: core launch records
+    ok 1 - valid launch metadata retained
+    ok 2 - missing setting rejected
+    1..2
+ok 11 - core launch records
+# Subtest: host short read
+    ok 1 - short read invalidates measurement
+    1..1
+ok 12 - host short read
+# Subtest: legacy lifecycle is analysis only
+    ok 1 - absent historical lifecycle remains unknown
+    ok 2 - live lifecycle required
+    1..2
+ok 13 - legacy lifecycle is analysis only
+# Subtest: current lifecycle success
+    ok 1 - reported success
+    ok 2 - completed positions retained
+    1..2
+ok 14 - current lifecycle success
+# Subtest: failed lifecycle cannot be historical success
+    ok 1 - aborted phase rejected
+    ok 2 - aborted host rejected
+    ok 3 - argument_error phase rejected
+    ok 4 - argument_error host rejected
+    ok 5 - image_error phase rejected
+    ok 6 - image_error host rejected
+    ok 7 - device_error phase rejected
+    ok 8 - device_error host rejected
+    ok 9 - running phase rejected
+    ok 10 - running host rejected
+    ok 11 - none phase rejected
+    ok 12 - none host rejected
+    1..12
+ok 15 - failed lifecycle cannot be historical success
+# Subtest: stop analyzable but not fixed continuation
+    ok 1 - stopped historical trace analyzable
+    ok 2 - fixed continuation rejects stop
+    1..2
+ok 16 - stop analyzable but not fixed continuation
+# Subtest: partial or malformed lifecycle
+    ok 1 - partial metadata rejected
+    ok 2 - malformed lifecycle {"aborted":"2"}
+    ok 3 - malformed lifecycle {"ended":"false"}
+    ok 4 - malformed lifecycle {"completed":"-1"}
+    ok 5 - malformed lifecycle {"requested":"nan"}
+    ok 6 - malformed lifecycle {"completed":"2049"}
+    ok 7 - malformed lifecycle {"completed":"2051"}
+    1..7
+ok 17 - partial or malformed lifecycle
+# Subtest: wrong request or excessive window
+    ok 1 - wrong request rejected
+    ok 2 - window beyond completed positions rejected
+    1..2
+ok 18 - wrong request or excessive window
+# Subtest: CSV quoting and gzip
+    ok 1 - CSV quoting
+    ok 2 - compressed rows retained
+    1..2
+ok 19 - CSV quoting and gzip
+# Subtest: subprocess capture
+    ok 1 - exit status
+    ok 2 - stdout
+    ok 3 - stderr
+    1..3
+ok 20 - subprocess capture
+# Subtest: subprocess drains large stderr
+    ok 1 - large-output child exits
+    ok 2 - all stderr captured
+    ok 3 - stdout not blocked
+    1..3
+ok 21 - subprocess drains large stderr
+# Subtest: exact file identity
+    ok 1 - size
+    ok 2 - SHA256
+    ok 3 - integer nanosecond timestamp
+    1..3
+ok 22 - exact file identity
+# Subtest: committed historical prompt identity
+    ok 1 - known first 32 IDs
+    ok 2 - all 262000 historical IDs
+    1..2
+ok 23 - committed historical prompt identity
+ok 24 # skip supply --prompt-fixture for historical full-array regression
+ok 25 # skip supply --prompt-fixture for historical full-array regression
+ok 26 # skip supply --prompt-fixture for historical full-array regression
+1..26
+ok
+kern/bench_manifest_test.pl ...... 
+# Subtest: independent file identities and exact FNV
+    ok 1 - size
+    ok 2 - SHA256
+    ok 3 - integer nanoseconds
+    ok 4 - independent verification
+    ok 5 - bad hash rejected
+    ok 6 - bad hash rejected reason
+    ok 7 - FNV empty vector
+    ok 8 - FNV one byte
+    ok 9 - FNV multiple bytes
+    1..9
+ok 1 - independent file identities and exact FNV
+# Subtest: environment preserves unset and ignores no unknown setting
+    ok 1 - known setting
+    ok 2 - unrelated credential rejected
+    ok 3 - unrelated credential rejected reason
+    ok 4 - secret-like prefix extension rejected
+    ok 5 - secret-like prefix extension rejected reason
+    ok 6 - empty and unset are different
+    ok 7 - empty and unset are different reason
+    1..7
+ok 2 - environment preserves unset and ignores no unknown setting
+# Subtest: complete weight and conversion identities
+    ok 1 - complete CPU schema
+    ok 2 - empty files rejected
+    ok 3 - empty files rejected reason
+    ok 4 - unidentified tensor file rejected
+    ok 5 - unidentified tensor file rejected reason
+    ok 6 - failed conversion rejected
+    ok 7 - failed conversion rejected reason
+    ok 8 - unverified conversion input rejected
+    ok 9 - unverified conversion input rejected reason
+    1..9
+ok 3 - complete weight and conversion identities
+# Subtest: matched launch and explicit PLE conditions
+    ok 1 - only placement/socket vary
+    ok 2 - capacity mismatch rejected
+    ok 3 - capacity mismatch rejected reason
+    ok 4 - staging mismatch rejected
+    ok 5 - staging mismatch rejected reason
+    ok 6 - missing cache record
+    ok 7 - missing cache record reason
+    ok 8 - unknown cache policy
+    ok 9 - unknown cache policy reason
+    ok 10 - ambiguous shell-string reload
+    ok 11 - ambiguous shell-string reload reason
+    1..11
+ok 4 - matched launch and explicit PLE conditions
+# Subtest: build records bind source flags and every output role
+    ok 1 - complete CPU build schema
+    ok 2 - wrong source
+    ok 3 - wrong source reason
+    ok 4 - different source patch
+    ok 5 - different source patch reason
+    ok 6 - missing library output
+    ok 7 - missing library output reason
+    ok 8 - flag absent from argv
+    ok 9 - flag absent from argv reason
+    1..9
+ok 5 - build records bind source flags and every output role
+# Subtest: runtime revisions capabilities and loaded cubin
+    ok 1 - equal future capability keys tolerated
+    ok 2 - unknown differing key
+    ok 3 - unknown differing key reason
+    ok 4 - missing lifecycle capability
+    ok 5 - missing lifecycle capability reason
+    ok 6 - wrong loaded cubin
+    ok 7 - wrong loaded cubin reason
+    ok 8 - wrong loaded revision
+    ok 9 - wrong loaded revision reason
+    1..9
+ok 6 - runtime revisions capabilities and loaded cubin
+# Subtest: actual tensor inventory cannot omit or invent loaded entries
+    ok 1 - real physical die retained
+    ok 2 - complete actual inventory
+    ok 3 - missing live tensor
+    ok 4 - missing live tensor reason
+    ok 5 - model manifest omits live tensor
+    ok 6 - model manifest omits live tensor reason
+    ok 7 - invalid bounds
+    ok 8 - invalid bounds reason
+    1..8
+ok 7 - actual tensor inventory cannot omit or invent loaded entries
+# Subtest: process evidence cannot be asserted when absent
+    ok 1 - missing process rejected
+    ok 2 - missing process rejected reason
+    1..2
+ok 8 - process evidence cannot be asserted when absent
+1..8
+ok
+kern/bench_trace_test.pl ......... 
+# Subtest: 1 CTA exact sampled local timing
+    ok 1 - exact periods above 2^53
+    ok 2 - independent lanes retained
+    ok 3 - decode counts exclude first output and CTA duplicates
+    ok 4 - all-output execution count retained
+    ok 5 - one attention count per layer/position including first
+    ok 6 - dispatch separate from body
+    ok 7 - body excludes nested wait
+    ok 8 - no overlapping aggregate category
+    ok 9 - exact local partition
+    ok 10 - exact local partition
+    ok 11 - exact period partition
+    ok 12 - exact local partition
+    ok 13 - exact period partition
+    1..13
+ok 1 - 1 CTA exact sampled local timing
+# Subtest: 16 CTA exact sampled local timing
+    ok 1 - exact periods above 2^53
+    ok 2 - independent lanes retained
+    ok 3 - decode counts exclude first output and CTA duplicates
+    ok 4 - all-output execution count retained
+    ok 5 - one attention count per layer/position including first
+    ok 6 - dispatch separate from body
+    ok 7 - body excludes nested wait
+    ok 8 - no overlapping aggregate category
+    ok 9 - exact local partition
+    ok 10 - exact local partition
+    ok 11 - exact period partition
+    ok 12 - exact local partition
+    ok 13 - exact period partition
+    ok 14 - exact local partition
+    ok 15 - exact local partition
+    ok 16 - exact period partition
+    ok 17 - exact local partition
+    ok 18 - exact period partition
+    ok 19 - exact local partition
+    ok 20 - exact local partition
+    ok 21 - exact period partition
+    ok 22 - exact local partition
+    ok 23 - exact period partition
+    ok 24 - exact local partition
+    ok 25 - exact local partition
+    ok 26 - exact period partition
+    ok 27 - exact local partition
+    ok 28 - exact period partition
+    ok 29 - exact local partition
+    ok 30 - exact local partition
+    ok 31 - exact period partition
+    ok 32 - exact local partition
+    ok 33 - exact period partition
+    ok 34 - exact local partition
+    ok 35 - exact local partition
+    ok 36 - exact period partition
+    ok 37 - exact local partition
+    ok 38 - exact period partition
+    ok 39 - exact local partition
+    ok 40 - exact local partition
+    ok 41 - exact period partition
+    ok 42 - exact local partition
+    ok 43 - exact period partition
+    ok 44 - exact local partition
+    ok 45 - exact local partition
+    ok 46 - exact period partition
+    ok 47 - exact local partition
+    ok 48 - exact period partition
+    ok 49 - exact local partition
+    ok 50 - exact local partition
+    ok 51 - exact period partition
+    ok 52 - exact local partition
+    ok 53 - exact period partition
+    ok 54 - exact local partition
+    ok 55 - exact local partition
+    ok 56 - exact period partition
+    ok 57 - exact local partition
+    ok 58 - exact period partition
+    ok 59 - exact local partition
+    ok 60 - exact local partition
+    ok 61 - exact period partition
+    ok 62 - exact local partition
+    ok 63 - exact period partition
+    ok 64 - exact local partition
+    ok 65 - exact local partition
+    ok 66 - exact period partition
+    ok 67 - exact local partition
+    ok 68 - exact period partition
+    ok 69 - exact local partition
+    ok 70 - exact local partition
+    ok 71 - exact period partition
+    ok 72 - exact local partition
+    ok 73 - exact period partition
+    ok 74 - exact local partition
+    ok 75 - exact local partition
+    ok 76 - exact period partition
+    ok 77 - exact local partition
+    ok 78 - exact period partition
+    ok 79 - exact local partition
+    ok 80 - exact local partition
+    ok 81 - exact period partition
+    ok 82 - exact local partition
+    ok 83 - exact period partition
+    ok 84 - exact local partition
+    ok 85 - exact local partition
+    ok 86 - exact period partition
+    ok 87 - exact local partition
+    ok 88 - exact period partition
+    1..88
+ok 2 - 16 CTA exact sampled local timing
+ok 3 - missing row
+ok 4 - duplicate phase
+ok 5 - body dispatch reversed
+ok 6 - PLE outside body
+ok 7 - nonterminal publication
+ok 8 - missing publication
+ok 9 - overlapping positions
+ok 10 - wrong CTA order
+ok 11 - phase identity changes
+ok 12 - malformed integer
+ok 13 - unsupported schema
+ok 14 - incomplete CTA dimensions
+ok 15 - incorrect runtime selected-key field
+# Subtest: dense and capped QSA cannot share a label
+    ok 1 - default QSA caps at 512 blocks
+    ok 2 - capped at long context
+    ok 3 - dense actual keys use visible length
+    ok 4 - QSA budget metadata retained separately
+    ok 5 - dense mode identified from executed opcode
+    ok 6 - larger budget remains uncapped
+    ok 7 - uncapped is explicit
+    1..7
+ok 16 - dense and capped QSA cannot share a label
+1..16
+ok
+kern/bench_acceptance_test.pl .... 
+# Subtest: complete policy cannot be confused with a short experiment
+    ok 1 - required matrix
+    ok 2 - two outputs are custom
+    ok 3 - one depth is custom
+    ok 4 - fewer than five pairs rejected
+    1..4
+ok 1 - complete policy cannot be confused with a short experiment
+# Subtest: untraced lifecycle and timings
+    ok 1 - first-to-last host observation
+    ok 2 - device prefill remains unmeasured
+    ok 3 - bad live metadata rejected
+    ok 4 - bad live metadata rejected
+    ok 5 - bad live metadata rejected
+    ok 6 - bad live metadata rejected
+    ok 7 - bad live metadata rejected
+    ok 8 - bad live metadata rejected
+    ok 9 - bad live metadata rejected
+    ok 10 - stale prior request rejected
+    ok 11 - stale prior request rejected: reason
+    ok 12 - missing I/O error counter rejected
+    1..12
+ok 2 - untraced lifecycle and timings
+# Subtest: capability gate distinguishes modes before requests
+    ok 1 - untraced current metadata supported
+    ok 2 - missing schema 2 cannot be attribution
+    ok 3 - legacy untraced engine cannot pass
+    ok 4 - instrumented image cannot be throughput
+    ok 5 - attribution mode requires complete capability
+    1..5
+ok 3 - capability gate distinguishes modes before requests
+# Subtest: independent reference identity and invalid answer gate
+    ok 1 - exact reference match
+    ok 2 - different output rejected
+    ok 3 - missing reference depth rejected
+    ok 4 - invalid answer cannot be a reference
+    ok 5 - wrong prompt identity rejected
+    1..5
+ok 4 - independent reference identity and invalid answer gate
+# Subtest: partial raw responses survive request failures
+    ok 1 - device error propagates
+    ok 2 - error line and preceding token preserved
+    ok 3 - partial generated tokens preserved
+    ok 4 - request excluded
+    ok 5 - disconnect propagates
+    ok 6 - partial disconnect record retained
+    1..6
+ok 5 - partial raw responses survive request failures
+# Subtest: ordinary untraced completion still requires requestmeta
+    ok 1 - protocol collection succeeds
+    ok 2 - lifecycle checked with tracing disabled
+    ok 3 - two outputs give one interval
+    ok 4 - legacy done line cannot override failed metadata
+    1..4
+ok 6 - ordinary untraced completion still requires requestmeta
+# Subtest: aggregate excludes unvalidated answers and incomplete pairs
+    ok 1 - two validated placements
+    ok 2 - unknown answer excluded
+    ok 3 - missing pair excluded
+    1..3
+ok 7 - aggregate excludes unvalidated answers and incomplete pairs
+# Subtest: initialization failure leaves truthful process exit and files
+    ok 1 - CLI exits one on required-metadata failure
+    ok 2 - saved code matches actual process exit
+    ok 3 - failure reason preserved
+    ok 4 - initial manifest preserved
+    ok 5 - no successful aggregate
+    1..5
+ok 8 - initialization failure leaves truthful process exit and files
+# Subtest: all attention layers and positions must execute default QSA
+    ok 1 - complete sampled work
+    ok 2 - missing attention layer rejected
+    ok 3 - dense cannot be labeled default QSA
+    ok 4 - larger budget cannot be default QSA
+    1..4
+ok 9 - all attention layers and positions must execute default QSA
+# Subtest: separate evidence is revalidated and copied into the run
+    ok 1 - matched raw attribution accepted
+    ok 2 - raw files copied
+    ok 3 - different actual library rejected
+    ok 4 - stored duration cannot override raw timestamps
+    ok 5 - changed raw trace rejected
+    ok 6 - profiler raw file copied
+    ok 7 - nonnumeric profiler exit rejected
+    ok 8 - nonfinite counter rejected
+    1..8
+ok 10 - separate evidence is revalidated and copied into the run
+1..10
+ok
+All tests successful.
+Files=4, Tests=60,  1 wallclock secs ( 0.03 usr  0.01 sys +  0.79 cusr  0.21 csys =  1.04 CPU)
+Result: PASS
+
+stderr:

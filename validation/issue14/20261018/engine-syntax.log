@@ -1,0 +1,5 @@
+argv: ["cc","-std=gnu99","-O2","-ffp-contract=off","-Wall","-Werror","-fsyntax-only","-Iref","-Ikern","-I/opt/cuda/include","kern/engine.c"]
+exit: 0
+stdout:
+
+stderr:
