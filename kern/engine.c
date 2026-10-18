@@ -103,6 +103,8 @@ static int nlayers_run = NB;   /* FLASH_LAYERS: run only the first blocks (bisec
 static unsigned nblk_qsa = QSA_NBLK;   /* blocks of 4 keys attended per layer and token (FLASH_NBLK: a small value exercises the selection on short prompts) */
 static int has_attn[MAXD];             /* the die runs at least one attention layer */
 static int rope_owner = -1;            /* optional shared table, addressed through enabled peer mappings */
+static unsigned attn_q_split_mask;
+static unsigned attn_q_split_mode;
 #ifndef FLASH_REV
 #define FLASH_REV "unknown"             /* the Makefile passes the commit (and -dirty) this library was built from */
 #endif
@@ -772,6 +774,75 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 }
 
 /* ---- build and tear down all device state (the core keeps the contexts, the arenas and the PLE table) ---- */
+/* Reuse the resident attention weights, copying only each worker's query rows.
+ * The owner handles K/V/indexer while other workers compute Q. Plan after all normal serving allocations
+ * so context/image capacity and paired scratch are included in the budget. */
+static void split_attention_queries(void) {
+	attn_q_split_mask = 0;
+	attn_q_split_mode = 0;
+	const char *option = getenv("FLASH_ATTN_Q_SPLIT");
+	if (!option || !strcmp(option, "0")) return;
+	if (strcmp(option, "1")) { fprintf(stderr, "FLASH_ATTN_Q_SPLIT must be 0 or 1\n"); longjmp(init_jb, 1); }
+	size_t room[MAXD] = {0}, needed[MAXD] = {0};
+	unsigned first[MAXD][NB] = {{0}}, rows[MAXD][NB] = {{0}}, mask = 0;
+	const size_t reserve = 8u << 20;
+	for (int d = 0; d < nd; d++) {
+		size_t avail, total; CK(cuCtxSetCurrent(ctx[d])); CK(cuMemGetInfo(&avail, &total));
+		room[d] = avail > reserve ? avail - reserve : 0;
+		if (room[d]) mask |= 1u << d;
+	}
+	for (;;) {
+		unsigned available = 0;
+		for (int d = 0; d < nd; d++) available += !!(mask & (1u << d));
+		if (available < 2) { fprintf(stderr, "engine: insufficient room for attention Q split\n"); longjmp(init_jb, 1); }
+		memset(needed, 0, sizeof needed);
+		memset(first, 0, sizeof first); memset(rows, 0, sizeof rows);
+		for (int bb = 0; bb < NB; bb++) if (BLK_IS_ATTN(bb)) {
+			int owner = attn_die_of(bb);
+			unsigned participants = mask;
+			/* Reserve the owner for K/V/indexer when at least two other workers fit. */
+			if (available >= 3) participants &= ~(1u << owner);
+			unsigned workers = 0, rank = 0;
+			for (int d = 0; d < nd; d++) workers += !!(participants & (1u << d));
+			const hold_tensor *q = hold_find(&ar[owner], tn(bb, "attn_q.weight"));
+			if (!q || q->K != 2560 || q->rows != 12288 || q->stride <= 0 || q->bytes < (size_t)q->rows * q->stride) {
+				fprintf(stderr, "engine: unsupported resident Q tensor at block %d\n", bb); longjmp(init_jb, 1);
+			}
+			for (int d = 0; d < nd; d++) if (participants & (1u << d)) {
+				/* Multiples of 32 rows preserve vector/tile alignment. */
+				first[d][bb] = (384u * rank / workers) * 32;
+				rows[d][bb] = (384u * (rank + 1) / workers) * 32 - first[d][bb]; rank++;
+				if (d != owner) needed[d] += ((size_t)rows[d][bb] * q->stride + 65535) & ~(size_t)65535;
+			}
+		}
+		int remove = -1;
+		for (int d = 0; d < nd; d++) if ((mask & (1u << d)) && needed[d] > room[d] && (remove < 0 || room[d] < room[remove])) remove = d;
+		if (remove < 0) break;
+		mask &= ~(1u << remove);
+	}
+	for (int d = 0; d < nd; d++) {
+		CK(cuCtxSetCurrent(ctx[d]));
+		for (int bb = 0; bb < NB; bb++) if (BLK_IS_ATTN(bb)) {
+			int owner = attn_die_of(bb);
+			dn_weights_t *w = &dw[d][bb];
+			w->attn_q_split = 1;
+			w->attn_q_first = first[d][bb]; w->attn_q_rows = rows[d][bb];
+			if (!rows[d][bb]) continue;
+			const hold_tensor *q = hold_find(&ar[owner], tn(bb, "attn_q.weight"));
+			CUdeviceptr src = ar[owner].base + q->off + (size_t)first[d][bb] * q->stride;
+			if (d == owner) w->attn_q = src;
+			else {
+				size_t bytes = (size_t)rows[d][bb] * q->stride;
+				w->attn_q = dalloc(bytes);
+				CK(cuMemcpyPeer(w->attn_q, ctx[d], src, ctx[owner], bytes));
+			}
+		}
+		fprintf(stderr, "engine: Q split die=%d copied_bytes=%zu\n", d, needed[d]);
+	}
+	attn_q_split_mask = mask;
+	attn_q_split_mode = 1;
+}
+
 int engine_init(core_t *c) {
 	trace_n = getenv("FLASH_TRACE") ? (unsigned)strtoul(getenv("FLASH_TRACE"), NULL, 10) : 0;
 	if (trace_n > 256) { fprintf(stderr, "FLASH_TRACE must be 0..256\n"); return -1; }
@@ -979,6 +1050,7 @@ int engine_init(core_t *c) {
 	embed_die = -1; for (int d = 0; d < nd; d++) if (dw[d][0].token_embd) { embed_die = d; break; }
 	if (embed_die < 0) { fprintf(stderr, "engine: no die holds token_embd\n"); if (in_init) longjmp(init_jb, 1); exit(1); }
 	free(rcs); free(rsn);
+	split_attention_queries();
 	uint64_t tab[12] = { 0 };
 	for (int d = 0; d < 6; d++) { tab[d] = (uint64_t)xc[d < nd ? d : 0].inbox; tab[6 + d] = (uint64_t)xc[d < nd ? d : 0].flags; }
 	for (int d = 0; d < nd; d++) {
@@ -1143,8 +1215,8 @@ int engine_session(FILE *in, FILE *out) {
 		if (!strncmp(p, "config", 6)) {   /* what this engine is: the identity to attach to a measurement (the commit it was built from, where the KV lives, the layers it runs, the kernel image) */
 			char ad[64] = ""; for (int d = 0; d < nd; d++) if (has_attn[d]) { char one[8]; snprintf(one, sizeof one, "%s%d", ad[0] ? "," : "", d); strncat(ad, one, sizeof ad - strlen(ad) - 1); }
 			const char *sh = getenv("SPLIT_SHARES"), *am = getenv("ATTN_MAP");
-			fprintf(out, "config rev=%s kv_host=%d kv_trace=%d ple_disk=%d ple_readers=%u ple_file=%s ple_cache=%s maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u rope_owner=%d trace_tokens=%u two_position=%d prefill_chunk=%d cubin=%s cubin_fnv=%016llx\n",
-			        FLASH_REV, kv_host, kv_trace, ple_disk, ple_disk ? ple_readers : 0, ple_cache_active ? ple_cache_path : "core", ple_cache_path[0] ? ple_cache_path : "core", MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, rope_owner, trace_n, two_position, prefill_chunk, cubin_path, (unsigned long long)cubin_fnv);
+			fprintf(out, "config rev=%s kv_host=%d kv_trace=%d ple_disk=%d ple_readers=%u ple_file=%s ple_cache=%s maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u rope_owner=%d trace_tokens=%u two_position=%d prefill_chunk=%d attn_q_split=%u attn_q_mask=%x cubin=%s cubin_fnv=%016llx\n",
+			        FLASH_REV, kv_host, kv_trace, ple_disk, ple_disk ? ple_readers : 0, ple_cache_active ? ple_cache_path : "core", ple_cache_path[0] ? ple_cache_path : "core", MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, rope_owner, trace_n, two_position, prefill_chunk, attn_q_split_mode, attn_q_split_mask, cubin_path, (unsigned long long)cubin_fnv);
 			fflush(out); continue;
 		}
 		if (!strncmp(p, "cubin", 5)) {
