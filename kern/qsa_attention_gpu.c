@@ -156,6 +156,9 @@ int main(int argc, char **argv) {
     CK(cuInit(0));
     CUdevice dev; CUcontext ctx; CUmodule mod; CUfunction fn;
     CK(cuDeviceGet(&dev,0)); CK(cuCtxCreate_v2(&ctx,CU_CTX_SCHED_SPIN,dev));
+    char pci_bus_id[32]; int driver_version;
+    CK(cuDeviceGetPCIBusId(pci_bus_id,sizeof pci_bus_id,dev));
+    CK(cuDriverGetVersion(&driver_version));
     CK(cuModuleLoad(&mod,getenv("DIE_CUBIN") ? getenv("DIE_CUBIN") : "die.cubin"));
     CK(cuModuleGetFunction(&fn,mod,"die"));
     if (mkdir(root,0700)) fail("cannot create output directory");
@@ -276,6 +279,7 @@ int main(int argc, char **argv) {
     FILE *f=new_file("complete.json.tmp");
     if (fprintf(f,"{\"schema\":\"flash-sass.qsa-attention-capture.v1\","
         "\"positions\":%u,\"budget\":%u,\"epsilon\":%.17g,\"byte_order\":\"little\","
+        "\"device_pci_bus_id\":\"%s\",\"cuda_driver_version\":%d,"
         "\"teacher_forced\":false,\"input_boundary\":\"post_projection_before_norm_rope_and_kv_quantization\","
         "\"gamma\":\"supplied_multiplicative_f32\",\"rope_tables\":\"supplied_f32\","
         "\"rope_base\":10000000,\"rope_table_generator\":\"fp64_libm_cast_f32\","
@@ -285,7 +289,7 @@ int main(int argc, char **argv) {
         "\"kv_dtype\":\"int8_with_fp16_group32_scales\",\"upstream_activation_quantization_isolated\":false,"
         "\"normalized_k_available\":true,\"prequant_k_source\":\"separate_gpu_fp32_append\","
         "\"independent_checkpoint_evidence\":false,\"quality_validation\":false,\"snapshot_lengths\":[",
-        total,budget,(double)eps,FLASH_REV)<0) fail("completion write failed");
+        total,budget,(double)eps,pci_bus_id,driver_version,FLASH_REV)<0) fail("completion write failed");
     for (unsigned i=0;i<nlengths;i++) if (fprintf(f,"%s%u",i ? "," : "",lengths[i])<0) fail("completion write failed");
     if (fputs("]}\n",f)==EOF) fail("completion write failed");
     close_file(f);

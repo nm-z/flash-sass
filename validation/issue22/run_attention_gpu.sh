@@ -40,22 +40,32 @@ sha256sum kern/qsa_attention_gpu kern/qsa_attention_gpu.c kern/die.cubin kern/di
     validation/issue22/attention-limits.json validation/issue22/run_attention_gpu.sh \
     > "$issue22_out/source-before.sha256"
 exec 9>/tmp/flash-sass-engine-validation.lock
-while true; do
-    if flock -w 45 -E 75 9; then
-        date -u '+%FT%TZ acquired shared validation lock' | tee -a "$issue22_out/lock.log"
-        break
-    else
-        issue22_rc=$?
-        (( issue22_rc == 75 )) || exit "$issue22_rc"
+# Stay queued instead of repeatedly losing our position to other waiters.
+# flock and this shell share the same open file description for descriptor 9.
+flock -w 1800 -E 75 9 &
+issue22_waiter=$!
+trap 'if [[ -n $issue22_waiter ]]; then kill -TERM "$issue22_waiter" 2>/dev/null || true; fi; exec 9>&-' EXIT
+issue22_waited=0
+while kill -0 "$issue22_waiter" 2>/dev/null; do
+    if (( issue22_waited % 180 == 0 )); then
+        date -u '+%FT%TZ queued for shared validation lock' | tee -a "$issue22_out/lock.log"
+        lslocks --noheadings --output PID,COMMAND,TYPE,MODE,PATH |
+            rg 'flash-sass-engine-validation.lock' >> "$issue22_out/lock.log" || true
     fi
-    date -u '+%FT%TZ waiting for shared validation lock' | tee -a "$issue22_out/lock.log"
-    lslocks --noheadings --output PID,COMMAND,TYPE,MODE,PATH |
-        rg 'flash-sass-engine-validation.lock' >> "$issue22_out/lock.log" || true
-    sleep 45
-    sleep 45
-    sleep 45
+    sleep 5
+    (( issue22_waited += 5 ))
 done
-trap 'exec 9>&-' EXIT
+set +e
+wait "$issue22_waiter"
+issue22_rc=$?
+set -e
+issue22_waiter=
+if (( issue22_rc != 0 )); then
+    printf 'shared validation lock acquisition ended with exit %s after up to 1800 seconds\n' "$issue22_rc" \
+        | tee "$issue22_out/blocked.txt"
+    exit "$issue22_rc"
+fi
+date -u '+%FT%TZ acquired shared validation lock' | tee -a "$issue22_out/lock.log"
 nvidia-smi > "$issue22_out/gpu-before.txt"
 nvidia-smi -i "$issue22_gpu" --query-gpu=index,uuid,pci.bus_id,name,memory.free,utilization.gpu \
     --format=csv,noheader,nounits > "$issue22_out/device-before.csv"

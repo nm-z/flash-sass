@@ -19,6 +19,9 @@ export LC_ALL=C
 issue22_sources=(
     kern/model_quality.pl kern/model_quality_test.pl
     kern/qsa_quality.c kern/qsa_quality_replay.pl kern/qsa_quality_test.pl
+    kern/qsa_attention_quality.c kern/qsa_attention_replay.pl kern/qsa_attention_test.pl
+    kern/qsa_attention_gpu.c validation/issue22/run_attention_gpu.sh
+    validation/issue22/attention-limits.json
     kern/model_layer_capture.h kern/model_layer_capture_test.c
     kern/model_layer_capture_test.pl kern/model_capture.h kern/model_test.c
     kern/model_capture_test.c kern/model_capture_test.pl
@@ -56,12 +59,14 @@ issue22_run() {
     fi
     printf 'PASS: %s\n' "$issue22_label"
 }
-issue22_run build make -B -C kern model_quality qsa_quality model_layer_capture_test model_capture_test
+issue22_run build make -B -C kern model_quality qsa_quality qsa_attention_quality model_layer_capture_test model_capture_test
 issue22_run comparator perl kern/model_quality_test.pl
 issue22_run logit-export perl kern/model_capture_test.pl
 issue22_run layer-export perl kern/model_layer_capture_test.pl
 issue22_run analytic-indexer kern/qsa_quality --selftest
 issue22_run frozen-indexer perl kern/qsa_quality_test.pl
+issue22_run analytic-attention kern/qsa_attention_quality --selftest
+issue22_run frozen-attention perl kern/qsa_attention_test.pl
 issue22_run placement-replay bash validation/issue22/replay_placement.sh "$issue22_out/placement"
 issue22_run recovered-reference bash validation/issue22/replay_reference.sh "$issue22_out/recovered-reference"
 issue22_run synthetic-inputs kern/qsa_quality --synthetic "$issue22_out/synthetic-inputs"
@@ -78,7 +83,7 @@ if ! cmp -s -- "$issue22_out/source-before.sha256" "$issue22_out/source-after.sh
     printf 'source changed during checks; no completion report\n' >&2
     exit 2
 fi
-sha256sum kern/model_quality kern/qsa_quality kern/model_layer_capture_test kern/model_capture_test \
+sha256sum kern/model_quality kern/qsa_quality kern/qsa_attention_quality kern/model_layer_capture_test kern/model_capture_test \
     > "$issue22_out/executable.sha256"
 jq -n --arg revision "$(cat "$issue22_out/source-commit.txt")" \
     --slurpfile fixture "$issue22_out/synthetic-inputs/complete.json" \
