@@ -17,7 +17,6 @@ module GPUQ
       search:'gpuq search WORDS (FTS5 query)',
       query:'gpuq query SELECT_SQL (read-only SQLite connection)',
       rerun:'gpuq rerun JOB_ID [--exclude GROUPS] (reuse saved argv; current source identity is recorded)',
-      import:'gpuq import PATH... (idempotent historical artifact import; never invents missing run timestamps)',
       emit:'gpuq emit METRIC UNIT JSON_VALUE (inside a job; writes directly to its database)',
       put:'gpuq put SOURCE_LABEL (inside a job; stdin goes directly to its database)',
       schema:'gpuq schema / gpuq doctor',
@@ -120,29 +119,6 @@ module GPUQ
         emit(tables:@db.execute("SELECT name,sql FROM sqlite_master WHERE type IN ('table','view') AND name NOT LIKE 'document_search_%' ORDER BY name"),metrics:@db.execute('SELECT * FROM metric_definitions ORDER BY name'),collectors:GROUPS);0
       when 'doctor'
         emit(database:@db.path,sqlite:SQLite3::SQLITE_VERSION,integrity:@db.execute('PRAGMA quick_check'),queue:ENV.fetch('GPUQ_QUEUE','/tmp/gpuq'),lock:ENV.fetch('GPUQ_LOCK','/tmp/flash-sass-engine-validation.lock'));0
-      when 'import'
-        raise 'import path required' if @args.empty?
-        groups={}
-        @args.each do |input|
-          root=File.expand_path(input)
-          raise "missing input #{root}" unless File.exist?(root)
-          Find.find(root) do |path|
-            if File.directory?(path)
-              Find.prune if %w[.git node_modules].include?(File.basename(path)) || File.symlink?(path)
-            elsif File.file?(path) && !File.symlink?(path) && path.match?(Importer::TEXT_EXT)
-              (groups[File.dirname(path)]||=[]) << path
-            end
-          end
-        end
-        groups.sort.each do |dir,paths|
-          key="import:#{Socket.gethostname}:#{dir}"
-          row=@db.one('SELECT id FROM jobs WHERE source_key=?',[key])
-          id=row ? row['id'] : @db.create_job(argv:[],cwd:dir,label:File.basename(dir),origin:'imported',source_key:key,status:'imported')
-          importer=Importer.new(@db,id)
-          paths.sort.each { |path| importer.file(path,kind:'historical_artifact') }
-          @db.collector(id,'artifacts',importer.count['errors']>0 ? 'partial' : 'complete',nil,config:importer.count)
-        end
-        0 # imports are writes; inspect them through jobs/query, not printed logs
       when 'emit'
         job=ENV.fetch('GPUQ_JOB_ID');name,unit,value=@args
         raise 'metric, unit and JSON value required' unless value
@@ -166,7 +142,7 @@ module GPUQ
       rescue StandardError
         # Storage failure must never fall back to executing an unrecorded job.
       end
-      emit(error:e.message,database:@path) unless %w[run rerun import emit put].include?(@command)
+      emit(error:e.message,database:@path) unless %w[run rerun emit put].include?(@command)
       2
     ensure
       @db&.close

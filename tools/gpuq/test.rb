@@ -55,19 +55,14 @@ Dir.mktmpdir('gpuq-integration-') do |dir|
   parent=db.one("SELECT * FROM jobs WHERE label='nested-parent'");child=db.one("SELECT * FROM jobs WHERE label='nested-child'")
   check.call('nested queue inherits lease without deadlock',status.success? && out.empty? && err.empty? && child && child['parent_id']==parent['id'] && child['status']=='succeeded')
 
-  import_dir=File.join(dir,'legacy');FileUtils.mkdir_p(import_dir)
-  File.write(File.join(import_dir,'results.json'),JSON.generate(engine_decode_tps:31.5))
   ns=9007199254741000
-  File.write(File.join(import_dir,'trace.csv'),"trace_begin request=3 die=1\nposition,phase,layer,opcode,start_ns,wait_start_ns,wait_end_ns,body_end_ns,end_ns,ple_wait_start_ns,ple_wait_end_ns\n2,0,-1,embrow,#{ns},#{ns+10},#{ns+20},#{ns+30},#{ns+40},0,0\ntrace_end\n")
-  out,err,status=call.call('import',import_dir)
-  check.call('historical import quiet',status.success? && out.empty? && err.empty?)
-  imported=db.one("SELECT * FROM jobs WHERE origin='imported'")
-  check.call('unknown historical time remains unknown',db.one('SELECT observed_ns FROM samples WHERE job_id=?',[imported['id']])['observed_ns'].nil?)
-  phase=db.one('SELECT * FROM phase_intervals WHERE job_id=?',[imported['id']])
+  trace="trace_begin request=3 die=1\nposition,phase,layer,opcode,start_ns,wait_start_ns,wait_end_ns,body_end_ns,end_ns,ple_wait_start_ns,ple_wait_end_ns\n2,0,-1,embrow,#{ns},#{ns+10},#{ns+20},#{ns+30},#{ns+40},0,0\ntrace_end\n"
+  program='File.write(File.join(ENV.fetch("GPUQ_RUN_DIR"),"trace.csv"),ARGV.fetch(0))'
+  out,err,status=call.call('run','--exclude','gpu,engine,profiler,provenance','--',RbConfig.ruby,'-e',program,trace)
+  traced=latest.call
+  check.call('new-job trace capture quiet',status.success? && out.empty? && err.empty?)
+  phase=db.one('SELECT * FROM phase_intervals WHERE job_id=?',[traced['id']])
   check.call('phase arithmetic beyond binary64 exact integer',phase && phase['dispatch_ns']==10 && phase['body_ns']==10 && phase['barrier_ns']==10)
-  before=db.one('SELECT count(*) AS n FROM documents')['n']
-  call.call('import',import_dir)
-  check.call('idempotent import',db.one('SELECT count(*) AS n FROM documents')['n']==before)
 
   out,err,status=call.call('search','omega')
   check.call('database full-text lookup',status.success? && JSON.parse(out).any? { |r| r['kind']=='stderr' })

@@ -78,9 +78,9 @@ module GPUQ
         [id,parent,replay_of,label,origin=='live' ? Socket.gethostname : 'unknown',boot,Process.pid,GPUQ.process_start(Process.pid),cwd,GPUQ.json(argv),GPUQ.json(env),submitted_ns,status,GPUQ.json(exclusions),origin,source_key])
       GROUPS.each do |name|
         excluded=exclusions.include?(name)
-        collector(id,name,excluded ? 'excluded' : (origin=='live' ? 'pending' : 'historical_unknown'),excluded ? 'explicit --exclude' : nil)
+        collector(id,name,excluded ? 'excluded' : (origin=='live' ? 'pending' : 'not_applicable'),excluded ? 'explicit --exclude' : nil)
       end
-      MANDATORY.each { |name| collector(id,name,origin=='live' ? 'pending' : 'historical_unknown','mandatory capture') }
+      MANDATORY.each { |name| collector(id,name,origin=='live' ? 'pending' : 'not_applicable','mandatory capture') }
       id
     end
     def update_job(id,fields)

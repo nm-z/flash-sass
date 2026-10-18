@@ -1,6 +1,5 @@
 require 'csv'
 require 'stringio'
-require 'time'
 require_relative 'store'
 
 module GPUQ
@@ -29,8 +28,6 @@ module GPUQ
       @count=Hash.new(0)
       @seen={}
       @row_sequences=Hash.new(0)
-      info=@db.one('SELECT origin,started_ns FROM jobs WHERE id=?',[@job])
-      @historical=info['origin']!='live';@at=info['started_ns']
     end
     def enabled?(group) = !@excluded.include?(group)
     def file(path,kind:'artifact',remove:false)
@@ -97,17 +94,13 @@ module GPUQ
       # Raw bytes remain in documents, including ordinary non-metric text.
     end
     def metric(doc,name,value,unit,dims)
-      @db.metric(@job,name,value,unit:unit,dimensions:dims,document:doc,at:@historical ? @at : GPUQ.now_ns)
+      @db.metric(@job,name,value,unit:unit,dimensions:dims,document:doc,at:GPUQ.now_ns)
       @count['metrics']+=1
     end
     def json(doc,obj,dims,path='',depth=0)
       return if depth>32
       case obj
       when Hash
-        if @historical && obj['started_utc'].is_a?(String)
-          @at=(Time.iso8601(obj['started_utc']).to_r*1_000_000_000).to_i rescue nil
-          @db.update_job(@job,started_ns:@at) if @at
-        end
         if obj.key?('gpuq_metric') && obj.key?('value')
           return unless enabled?(obj.fetch('collector','timing'))
           metric(doc,obj.fetch('gpuq_metric'),obj['value'],obj.fetch('unit'),dims.merge(obj.fetch('dimensions',{})))

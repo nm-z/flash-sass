@@ -19,7 +19,7 @@ ssh archy gpuq compare decode.engine.tokens_s JOB_A JOB_B
 ssh archy gpuq query 'SELECT * FROM job_metric_status WHERE job_id="JOB_ID"'
 ```
 
-Run/import/emit commands print no normal output. Command stdout and stderr are
+Run/emit commands print no normal output. Command stdout and stderr are
 captured verbatim, including binary bytes and unterminated lines, into compressed
 database documents. Noninteractive stdin is captured as it is forwarded. Rerun
 reuses the recorded argv, working directory, exclusions and stdin; it records the
@@ -98,26 +98,21 @@ files deleted by the program before collection cannot be intercepted by a
 generic subprocess wrapper; use the direct API or managed output directory.
 This is an agent workflow, not a filesystem security sandbox.
 
-## Historical data
+## Old evidence and new history
 
-```sh
-gpuq import /path/to/validation /path/to/past-run-directories
-gpuq query 'SELECT job_id,metric,unit,value_json,dimensions_json FROM metric_history WHERE metric="decode.engine.tokens_s"'
-gpuq compare phase.body_ns JOB_A JOB_B
-```
-
-Import creates one historical artifact group per directory, is idempotent, and
-retains original bytes, hashes and paths, including compressed traces. It does
-not execute historical code or delete historical evidence. Unknown execution
-time and host remain unknown; ingestion time is not passed off as measurement
-time. Explicit `started_utc` fields retain the producer's timestamp. Imported
-records are not certified successful experiments. Phase intervals subtract only
-within one device clock; the PLE wait is a subset of the body interval. Do not sum
-concurrent die intervals. Raw trace rows remain queryable in `records`.
+Old traces and run logs are kept in one ZIP archive. They are not imported into
+this database. History starts with new queued jobs.
 
 `metric_history`, `job_metric_status`, and `phase_intervals` are reusable SQL
 interfaces. `query` uses a read-only connection; full text search covers captured
-output, scripts and artifacts. Failed jobs and rejected metrics remain visible.
+output, scripts and artifacts. Failed jobs remain visible. Phase intervals
+subtract within one device clock; `body_ns` includes post-wait dispatch and PLE
+wait is a subset of body time. Do not sum concurrent die intervals.
+
+```sh
+gpuq query 'SELECT job_id,metric,unit,value_json FROM metric_history WHERE metric="decode.engine.tokens_s"'
+gpuq compare phase.body_ns JOB_A JOB_B
+```
 
 ## Install and check
 
