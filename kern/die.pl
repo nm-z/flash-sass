@@ -33,6 +33,7 @@ my $PAIR_MODE_OFF = 0xbf54; # word 30 bits 3/4: generic paired / fused paired bo
 my $FLAGS_OFF = 0xbf58;    # primary descriptor's exchange / barrier flags
 my $T0_OFF = 0xbf5c;      # %globaltimer.hi at launch (u32), per CTA; a phase that starts 70 units (4.29 s each, 300 s) later ends the kernel
 my $EXP_OFF = 0xbf60;     # set by thread 0 when the 300 s are up
+$ENV{DIE_T0_OFF} = $T0_OFF; $ENV{DIE_EXP_OFF} = $EXP_OFF;   # the op bodies' waits (xchg.sass) check the same limit
 
 # opcode = index. tag, file, unit kind, environment for the generator
 my @OPS = (
@@ -459,10 +460,34 @@ XWSPIN:
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
+# 300 s since launch: leave the wait (VOTE.ANY keeps the warp together)
+--:-:6:-:2      S2R bar_t, SR_GLOBALTIMERHI;
+--:-:6:-:2      LDS bar_old, [RZ+0x@{[sprintf q{%x}, $T0_OFF]}];
+20:-:-:-:6      IADD bar_t, bar_t, -bar_old;
+--:-:-:-:6      ISETP.GE.U32.AND P5, PT, bar_t, 0x46, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      VOTE.ANY P5, P5;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P5 BRA XWEXP;
 --:-:-:-:6 \@!P4 BRA XWSPIN;
 --:-:-:-:6      MEMBAR.GL.IVALLD;
+--:-:-:-:6      BRA XWBAR;
+XWEXP:
+--:-:-:-:6      MOV32I bar_old, 0x1;
+--:2:-:-:6      STS [RZ+0x@{[sprintf q{%x}, $EXP_OFF]}], bar_old;
+02:-:-:-:6      NOP;
 XWBAR:
 --:-:-:-:6      BAR.SYNC 0x1;
+--:-:1:-:2      LDS bar_old, [RZ+0x@{[sprintf q{%x}, $EXP_OFF]}];
+01:-:-:-:6      ISETP.NE.U32.AND P5, PT, bar_old, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P5 BRA EXPIRED;
 XWDONE:
 OP_DISPATCH:
 $dispatch--:-:-:-:6      BRA POSITION_END;
@@ -599,6 +624,19 @@ BSPIN:
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
+# 300 s since launch: leave the wait (VOTE.ANY keeps the warp together)
+--:-:6:-:2      S2R bar_t, SR_GLOBALTIMERHI;
+--:-:6:-:2      LDS bar_old, [RZ+0x@{[sprintf q{%x}, $T0_OFF]}];
+20:-:-:-:6      IADD bar_t, bar_t, -bar_old;
+--:-:-:-:6      ISETP.GE.U32.AND P5, PT, bar_t, 0x46, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      VOTE.ANY P5, P5;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P5 BRA BEXP;
 --:-:-:-:6 \@!P4 BRA BSPIN;
 --:-:-:-:6      MEMBAR.GL.IVALLD;
 02:-:-:-:6      IADD bar_t, cta, tid;
@@ -607,6 +645,10 @@ BSPIN:
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
 --:2:-:-:6  \@P4 STG.E [bar_cp+0x4], bar_g;
+--:-:-:-:6      BRA BDONE;
+BEXP:
+--:-:-:-:6      MOV32I bar_old, 0x1;
+--:2:-:-:6      STS [RZ+0x@{[sprintf q{%x}, $EXP_OFF]}], bar_old;
 BDONE:
 02:-:-:-:6      BAR.SYNC 0x1;
 # ---- phase timestamp: CTA 0 thread 0 writes %globaltimer.lo to ctl[16 + pidx] ----
