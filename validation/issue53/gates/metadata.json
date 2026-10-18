@@ -1,0 +1,28 @@
+{
+  "baseline_source_rev": "b97b6b94bc0aba994830396fadebe5f8acd082f7",
+  "candidate_source_rev": "be5df804165f44e5fe74df98a6030445244837c4",
+  "candidate_evidence_head_before_run": "10469eb71802e31fb68d34963d0f3bc716f1ba4e",
+  "shared_lock": "/tmp/flash-sass-engine-validation.lock",
+  "wait_seconds": 2700,
+  "numerical_attempt": {
+    "exit_code": 0,
+    "gpu": 7,
+    "processes_passed": 6,
+    "persistent_hc_cases": 102,
+    "readable_log_format": "Trailing display spaces removed in kernel-check-2700.log; exact original bytes retained in kernel-check-2700.raw.json."
+  },
+  "live_attempt": {
+    "exit_code": 1,
+    "status": "FAIL_LIVE_GATES",
+    "restoration": "PASS",
+    "files": 140
+  },
+  "source_sha256": {
+    "engine_check.rb": "29ae63430ea090aadca3b4fcc477ac2b8a70938c64762864a3992f31f774c12b",
+    "engine_check_test.rb": "f024525a3eb32875e55d92ffed5fcb274cd8bd16e3dd703ea037c8420ab2c356",
+    "model_check.sh": "1ba02092ab17a42dd383c09c2282ddc96ddfe378942bda4703d55a849d0e8666",
+    "prompts.json": "d3fc452f12d056a4df82ae7df38379a4c6a05212228b488e64b492987feff1c2"
+  },
+  "raw_bundle_format": "Keys are original filenames; each text value retains the exact original UTF-8 bytes. SHA-256 and byte count describe those bytes.",
+  "saved_original_images": "Original engine library and cubin remain on archy at the paths in live-summary.json. The restored engine references that cubin path; do not remove the originals while it remains configured there."
+}

@@ -7,7 +7,12 @@ endpoint returned no comments. [PR #76](https://github.com/nm-z/flash-sass/pull/
 is open as a draft. Default-branch commit `3d57d734d63aa74f167a6b5a02c616ddc018d2ff`
 was merged into this branch as `be5df804165f44e5fe74df98a6030445244837c4`;
 that merge changed CI and the QSA test's position bound, not the HC runtime code.
-The requested production performance and whole-model acceptance are not established.
+The candidate **fails both measured production performance gates**: total HC
+time reaches **8.496 ms/token** against the 4.0 ms limit, and short-context
+decode averages **36.3167 tok/s** against the 38 tok/s requirement. The four
+fixed-prompt output token streams match exactly. The documented `model_test`
+regression is being run separately; an all-48-block C-twin comparison is not
+established. PR #76 remains a draft.
 
 ## Changes
 
@@ -27,14 +32,14 @@ barriers protect partial row groups and scratch reuse. This changes the store
 pattern without adding registers. The candidate persistent kernel uses 249
 registers and 49,152 bytes of shared memory.
 
-The number of global phases and the profiling names are unchanged. This PR
-does not establish how much production time these changes save. Build the
+The number of global phases and the profiling names are unchanged: the
+production trace still contains 242 HC phases per token. Build the
 host phase builder and `die.cubin` together: an old host still dispatching ten
 `hcwsum` units cannot drive the new 160-column layout correctly.
 
 ## Results
 
-All GPU checks ran on archy GPU 7, a Tesla M60 (`sm_52`, 16 SMs), on
+The isolated numerical checks ran on archy GPU 7, a Tesla M60 (`sm_52`, 16 SMs), on
 2026-10-18 UTC. Every test acquired the shared validation lock and the existing
 per-UUID reservation, checked `nvidia-smi` and `ps`, and waited when the device
 or lock was busy. The resident engine and holders remained running.
@@ -47,7 +52,7 @@ or lock was busy. The resident engine and holders remained running.
 | Existing `gemv_bf16_test`, `blk.4.hc_attn_down.weight` | All 320 rows bit-exact, K=10,240 |
 | Existing `gemv_bf16_test`, `blk.4.hc_attn_up.weight` | All 10,240 rows bit-exact, K=320 |
 | New persistent `hc_phase_test` | 102 cases, zero failures, each run against baseline and candidate |
-| `model_test` | Built successfully; whole-model execution remains outstanding |
+| `model_test` | Built successfully; separate locked regression attempt pending; no all-48-block C-twin result |
 
 The new C test compares HCWSUM with an independent fixed-order peer sum and
 the existing C stream-write twin, including logical die counts 1 through 6,
@@ -68,6 +73,64 @@ Evidence:
 - [readiness.log](readiness.log): locked inspection after validation and resident-process state.
 - [build.txt](build.txt): baseline revision, toolchain identities, source/binary SHA-256 values, and candidate resource use.
 - [test-build.log](test-build.log): new C test compiler command and clean build.
+- [gates/kernel-check-2700.log](gates/kernel-check-2700.log): the fresh rerun with a 2,700-second resource wait budget; all six processes exited 0 and all 102 persistent HC cases passed again.
+
+## Measured live-engine gates — 2026-10-18
+
+The live comparison ran from 05:32:22 to 05:33:04 UTC on archy's six-die,
+48-layer resident engine. It acquired `/tmp/flash-sass-engine-validation.lock`
+immediately, after issue #19's validation had finished. Both arms ran under
+one lock, with the same core process, holder manifests, split, attention map,
+KV/PLE mode, context capacity, image capacity, and prefill settings. Each arm
+loaded its matching host library and cubin; the validator checked the reported
+revision, cubin fingerprint, and actual mapped library bytes.
+
+| Gate | Baseline | Candidate | Acceptance |
+| --- | --- | --- | --- |
+| HC sum, largest of six dies across three captures | 9.0819 ms | **8.4960 ms** | **FAIL:** at most 4.0 ms |
+| HC sum, range across all 18 die/capture pairs | 8.2329–9.0819 ms | **7.7630–8.4960 ms** | Every candidate value exceeds 4.0 ms |
+| Three measured decode requests | 35.77, 35.75, 35.74 tok/s | **36.31, 36.29, 36.35 tok/s** | Mean must reach 38 tok/s |
+| Arithmetic mean decode speed | 35.7533 tok/s | **36.3167 tok/s** | **FAIL** |
+| Four fixed-prompt output token streams | 90 generated IDs | Same 90 IDs, in the same four streams | **PASS** for these fixtures |
+| Original engine restoration | Revision `edc66d9` | Same revision, cubin fingerprint, mapped library SHA-256 and core identity after restoration | **PASS** |
+
+The maximum HC sum fell by approximately 6.45%, and mean decode throughput
+rose by approximately 1.58% in this matched experiment. Those improvements
+are insufficient for issue #53. Each capture contains `bf16hcup` ×97,
+`hcwsum` ×48, `bf16hcrwx` ×48, and `bf16hcrx` ×49. The validator sums all HC
+kinds independently on each die; it does not add concurrent dies' times
+together. Even the fastest candidate observation exceeds the time limit.
+
+Each arm used one HTTP warmup followed by three serial measured requests
+with the exact prompt, token limit, and temperature from
+`kern/linkmatrix_test.sh`. Every response generated 38 completion tokens.
+`PROF_ALL=1 prof.sh` ran immediately after each measured response, with no
+intervening generation. No PCIe link settings were changed.
+
+The separate token-ID comparison used [prompts.json](prompts.json), greedy
+sampling, identical raw input and stop IDs, disabled snapshot reuse, and
+matching runtime settings. The C-code, capital-city, multi-turn arithmetic,
+and number-sequence cases generated 21, 2, 3, and 64 IDs respectively. The
+validator requires a complete terminal response and checks token counts,
+stop status, prompt length, and absence of prefix reuse before comparing IDs.
+This is a four-fixture production comparison, not a full-model numerical
+oracle for every input.
+
+The wrapper exited **1** because the two performance gates failed, with
+restoration recorded separately as **PASS**. The original engine library and
+cubin were saved before either reload and restored before releasing the lock.
+The resident core and weight holders remained running. The restored engine
+references the saved cubin path in the summary; those original images must
+remain on archy while it is configured to use them.
+
+Evidence and validator:
+
+- [gates/live-summary.json](gates/live-summary.json): gate booleans, all per-die phase totals, requests, raw token arrays, runtime settings, source revisions, holder identities, and restoration result.
+- [gates/live-raw.json](gates/live-raw.json): all 140 original text artifacts, with exact contents, byte counts, and SHA-256 values, including command arguments, responses, profiles, and readiness checks.
+- [gates/profiles.txt](gates/profiles.txt): readable copies of all six complete profiling captures.
+- [gates/live-driver.log](gates/live-driver.log), [gates/live-exit.txt](gates/live-exit.txt), and [gates/metadata.json](gates/metadata.json): execution timeline, process result, and artifact provenance.
+- [engine_check.rb](engine_check.rb): locked baseline/candidate comparison and verified restoration.
+- [engine_check_test.rb](engine_check_test.rb) and [gates/engine-check-cpu.log](gates/engine-check-cpu.log): CPU-only malformed-protocol checks and failure-injection checks for restoration after either arm fails and rejection of a restoration mismatch.
 
 ## Reproduction
 
@@ -112,14 +175,14 @@ Each test retains its locks until it exits. Unavailable resources produce
 exit 75 after the wait budget, never a passing result. Failed device queries
 also fail the run.
 
-## Full acceptance still required
+## Acceptance status
 
-| Requirement | Remaining evidence |
+| Requirement | Current evidence |
 | --- | --- |
-| HC phase total at most 4.0 ms/token | Matched candidate `PROF_ALL=1 kern/prof.sh` capture on all six production dies; count all HC operations and retain raw output |
-| Existing whole-model bit-exact checks | Execute `model_test` against the same checkpoint with correctness checks enabled |
-| Identical output tokens on fixed prompts | Compare raw token IDs from baseline and candidate using the same prompt IDs, stop IDs, sampling, KV, and PLE configuration |
-| Short-context decode at least 38 tok/s | One warmup and three serial requests using the protocol in `kern/linkmatrix_test.sh`; retain each request and result |
+| HC phase total at most 4.0 ms/token | **FAIL:** candidate maximum 8.496 ms; all 18 observations exceed 4.0 ms |
+| Existing whole-model bit-exact checks | Pending separate `model_test` attempt; documented blocks [0,4) do not establish an all-48-block C-twin comparison |
+| Identical output tokens on fixed prompts | **PASS:** all four baseline/candidate streams match, 90 generated IDs per arm |
+| Short-context decode at least 38 tok/s | **FAIL:** arithmetic mean 36.3167 tok/s using one warmup and three measured requests |
 
 Do not execute `kern/linkmatrix_test.sh` itself on the shared host: it runs
 `sudo setpci` to retrain links. Reproduce only its HTTP protocol: prompt
@@ -138,7 +201,7 @@ the actual loaded library and cubin first, preserve the runtime settings,
 and restore both images after the comparison. A second six-die model is not
 required for that validation path.
 
-## Resumed validation
+## Earlier blocked attempt
 
 The matching baseline and candidate libraries built successfully on engi at
 the revisions above. The candidate cubin's SHA-256 is unchanged from the
@@ -151,11 +214,44 @@ tokenizer: a capital-city question, a number sequence, a multi-turn arithmetic
 question, and a C function. [prompts.json](prompts.json) retains their messages,
 raw prompt IDs, stop IDs, and 64-token limits for baseline/candidate comparison.
 
-The new attempt to rerun `hc_phase_check.sh` on archy GPU 7 waited 300 seconds
+The earlier attempt to rerun `hc_phase_check.sh` on archy GPU 7 waited 300 seconds
 for `/tmp/flash-sass-engine-validation.lock`, then exited **75**, with **zero
 GPU tests executed**. The lock was held by issue #19's model validation
 (`run.rb --mode model --positions 128,32768,65536`). The complete wait output is
 in [resume/kernel-check.log](resume/kernel-check.log). The earlier passing
 numerical logs remain earlier evidence; this blocked attempt adds no GPU or
-production performance result. PR #76 must remain a draft until the full
-acceptance table above is satisfied.
+production performance result. It is retained as historical evidence; the
+2,700-second rerun and live measurements above supersede its lock blocker.
+PR #76 must remain a draft until the acceptance table above is satisfied.
+
+## Reproduce the live comparison
+
+Run the validator on the GPU host with matching baseline/candidate
+`libengine.so`, `die.cubin`, and `prof.sh` artifacts. The source revisions below
+identify the compiled runtime; later branch commits contain evidence and
+validation tooling. Use a fresh output directory and a current, verified
+resident core PID.
+
+```bash
+ruby validation/issue53/engine_check.rb \
+  --core-pid 3575268 --socket /tmp/flash.sock \
+  --url http://127.0.0.1:18090 \
+  --baseline-dir /tmp/flash-sass-issue53-resume.IwwJba/baseline \
+  --candidate-dir /tmp/flash-sass-issue53-resume.IwwJba/candidate \
+  --baseline-rev b97b6b94bc0aba994830396fadebe5f8acd082f7 \
+  --candidate-rev be5df804165f44e5fe74df98a6030445244837c4 \
+  --fixtures validation/issue53/prompts.json \
+  --out /tmp/issue53-live-new-attempt --wait-seconds 2700
+```
+
+The validator waits up to 45 minutes for the shared lock and for each idle
+admission check. A measured gate failure exits 1; it is not a lock timeout or
+a passing result. A lock timeout does not cause a reload. The output directory
+contains the original engine images needed for restoration; preserve it
+after the run while the restored engine references its cubin.
+
+The CPU checks require no GPU or resident engine:
+
+```bash
+FLASH_SOCK=/tmp/issue53-cpu-mock ruby validation/issue53/engine_check_test.rb
+```
