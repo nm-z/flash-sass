@@ -2,8 +2,10 @@
 
 Refs #11. This PR has separate gates for native mathematical agreement, frozen
 external-reference agreement, target M60 execution, and independent checkpoint
-teacher-forced logits. A synthetic CPU pass does not establish the last two.
-The PR stays draft while required target and checkpoint evidence is missing.
+teacher-forced logits. The M60 numerical suite now passes at `ca4a476`, including
+707 exact target/scalar byte comparisons; a synthetic target pass does not
+establish full-checkpoint conformance. The PR stays draft while the current
+full-model capture and verified checkpoint/conversion evidence remain missing.
 
 ## Reproduce without Python
 
@@ -267,6 +269,29 @@ Same-implementation placement comparisons and isolated block-3 captures from
 #9/#22 do not supply this gate.
 
 ## Recorded evidence
+
+### Actual M60 execution after the queued wait
+
+[validation/issue11/target-ca4a476](validation/issue11/target-ca4a476/README.md)
+records the production image and native adapter running on physical M60 #6
+under `/tmp/flash-sass-engine-validation.lock`. The gate waited in the queue
+for 161 seconds, then the suite completed in 66.2644050121307 seconds with
+`PASS_TARGET_SYNTHETIC`, exit 0: all 58 expected outcomes, including 54
+target-bearing invocations, 1898 kernel launches and 707 exact byte comparisons
+with zero target parity failures. Source, binary and image identities remained
+unchanged. All 1347 generated artifacts were copied to persistent storage on
+engi and verified against their measured size/hash catalog; the pinned replay
+and quantizer arrays are also committed in the compressed evidence bundle.
+
+A subsequent current-image full-model capture probe acquired the same lock
+but failed `cuMemAlloc(&p, bytes)` with `out of memory`, exit 1. It used the
+separately pinned PR #46 capture harness and byte-identical production image
+and program builders. No new full-model logits or complete layer capture were
+produced, and no resident process was stopped or reconfigured. The allocation
+failure, exact command and GPU inventory are retained in the target record.
+Original checkpoint/tokenizer/conversion lineage and the paired long-sparse
+full-model acceptance remain unresolved; the earlier historical numerical
+comparison is not relabeled as a current model pass or failure.
 
 ### Independent full-model CPU capture with QSA tensors
 
