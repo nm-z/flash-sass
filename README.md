@@ -100,6 +100,7 @@ Each token makes:
 | `kern/die.pl` | generator of the persistent kernel: phase dispatcher, grid barrier, token loop, exchange flags |
 | `kern/prog.c`, `engine.c` | the per-token program builder and the reloadable engine library |
 | `kern/flashcore.c`, `flashd.c`, `serve.sh` | the persistent core, the HTTP front-end, start/reload script |
+| `.github/` | CI: `scripts/pr-audit.sh` (language and issue-link rules, also `PR=N .github/scripts/pr-audit.sh` locally) on every PR push, and `scripts/draft-conflicting.sh`, which converts ready PRs with merge conflicts to drafts |
 | `kern/prof.sh` | per-phase profile of the last token (`PROF_ALL=1` lists every phase kind) |
 | `kern/hold.c` | the weight holder (keeps the weights in GPU memory, shared by CUDA IPC) |
 | `kern/tok.c`, `jinja.c`, `json.c` | tokenizer, chat-template interpreter, JSON |
@@ -117,6 +118,14 @@ the six-die split (`SPLIT_SHARES`) are set for the author's machine; read `kern/
 ```
 make -C kern die.cubin libengine.so flashcore flashd hold
 ```
+
+## PLE row reads
+
+With `FLASH_PLE_DISK=1 FLASH_PLE_READERS=16`, the engine reads a position's sixteen
+90-byte rows with a persistent pool of 16 readers. Serial reads remain the default;
+values from 2 through 16 bound the number of concurrent readers. The pool does not pin
+the full PLE file. See [PLE_READS.md](PLE_READS.md) for the lifecycle, configuration,
+and C correctness and file-I/O benchmarks.
 
 ## Optional PLE file-cache warm-up
 

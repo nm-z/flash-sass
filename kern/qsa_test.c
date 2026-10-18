@@ -251,7 +251,7 @@ static int test_idxqk(unsigned T) {
 
 static int test_idxscore(unsigned nv, unsigned NBLK) {
 	unsigned ngrp = (nv + 31) / 32 + 1, t = 4 * nv + (urand() & 3) - ((nv > 0) ? 1 : 0);
-	if (nv == 0) t = 0;
+	if (nv == 0) t = 0; else if (t > 262143) t = 262143;   /* last supported zero-based position; the RNG draw above is kept */
 	float iq[512]; for (int i = 0; i < 512; i++) iq[i] = 1.5f * frand();
 	uint16_t *pool = calloc((size_t)(nv + 1) * 128, 2), *pkt = calloc((size_t)ngrp * 4096, 2);
 	for (unsigned b = 0; b < nv; b++) for (int d = 0; d < 128; d++) { uint16_t h = qsa_f2h(2.f * frand() + (b % 5 == 0 ? 0.7f : 0.f)); pool[(size_t)b * 128 + d] = h; pkt[pkt_idx(b, d)] = h; }
