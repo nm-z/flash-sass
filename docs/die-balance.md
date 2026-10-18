@@ -4,6 +4,8 @@ Issue [#54](https://github.com/nm-z/flash-sass/issues/54) requires a measured pl
 
 The capture and analysis tools prepare that experiment. They do not apply a placement or claim that an unmeasured proposal meets those requirements.
 
+The [2026-10-18 resident baseline](../validation/issue54/baseline-20261018T053200Z/README.md) was captured successfully under the shared lock. Its 2.2927 ms worst spread and 35.7767 tok/s mean decode miss the acceptance limits; a candidate placement remains to be measured.
+
 ## Capture one loaded configuration
 
 Run the collector on the GPU host, with the existing core and front-end PIDs:

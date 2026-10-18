@@ -168,6 +168,38 @@ class TestDieBalanceCapture < Minitest::Test
     refute File.exist?(File.join(@directory, "error.txt"))
   end
 
+  def test_engine_identity_finds_the_requested_cores_loaded_generation
+    maps = <<~MAPS
+      1000-2000 r-xp 00001000 08:13 100 /usr/lib/libc.so.6
+      2000-3000 r--p 00001000 00:2b 200 /tmp/flashcore-123-gen21.so
+      3000-4000 r-xp 00002000 00:2b 200 /tmp/flashcore-123-gen21.so
+      4000-5000 r-xp 00002000 00:2b 300 /tmp/flashcore-124-gen1.so
+    MAPS
+    row = DieBalanceCapture.engine_mapping(123, maps)
+    assert_equal "/tmp/flashcore-123-gen21.so", row[5]
+    assert_equal "200", row[4]
+    assert_raises(DieBalanceCapture::CaptureError) { DieBalanceCapture.engine_mapping(125, maps) }
+    duplicate = maps + "5000-6000 r-xp 00002000 00:2b 400 /tmp/flashcore-123-gen22.so\n"
+    assert_raises(DieBalanceCapture::CaptureError) { DieBalanceCapture.engine_mapping(123, duplicate) }
+    direct = "3000-4000 r-xp 00002000 00:2b 200 /private/libengine.so\n"
+    assert_equal "/private/libengine.so", DieBalanceCapture.engine_mapping(123, direct)[5]
+    deleted = maps.sub("3000-4000 r-xp 00002000 00:2b 200 /tmp/flashcore-123-gen21.so",
+      "3000-4000 r-xp 00002000 00:2b 200 /tmp/flashcore-123-gen21.so (deleted)")
+    assert_equal "/tmp/flashcore-123-gen21.so (deleted)", DieBalanceCapture.engine_mapping(123, deleted)[5]
+  end
+
+  def test_numeric_nvidia_queries_need_no_csv_gem
+    uuid = "GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f"
+    patterns = [/\A\d+\z/, DieBalanceCapture::GPU_UUID, /\A(?:100|[1-9]?\d)\z/]
+    assert_equal [["0", uuid, "0"], ["5", uuid, "100"]],
+      DieBalanceCapture.nvidia_rows("0, #{uuid}, 0\n5, #{uuid}, 100\n", patterns)
+    assert_empty DieBalanceCapture.nvidia_rows("", [/\A[1-9]\d*\z/, DieBalanceCapture::GPU_UUID])
+    ["0, #{uuid}, N/A\n", "0, #{uuid}, 101\n", "0, #{uuid}\n", "0, #{uuid}, 0, extra\n",
+     "0, invalid-uuid, 0\n", "\"0\", #{uuid}, 0\n", "\n"].each do |raw|
+      assert_raises(DieBalanceCapture::CaptureError) { DieBalanceCapture.nvidia_rows(raw, patterns) }
+    end
+  end
+
   def test_child_cleanup_does_not_signal_nonchildren
     DieBalanceCapture.stop_owned_child(Process.pid)
     assert Process.kill(0, Process.pid)

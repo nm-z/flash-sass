@@ -1,7 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 # One warmup + matched linkmatrix requests. Never reloads the resident engine.
-require "csv"
 require "digest"
 require "fileutils"
 require "json"
@@ -17,8 +16,9 @@ module DieBalanceCapture
   REQUEST = DieBalance::REQUEST
   IO_TIMEOUT = 120
   MAX_LINE = 4 * 1024 * 1024
-  FRONTEND_ENV = %w[FLASHD_NAME FLASHD_THINKING FLASHD_QUEUE_MAX FLASHD_QUEUE_WAIT_S FLASHD_IMGDIR FLASHD_GREEDY FLASHVIS_SOCK].freeze
+  FRONTEND_ENV = %w[FLASHD_NAME FLASHD_THINKING FLASHD_QUEUE_MAX FLASHD_QUEUE_WAIT_S FLASHD_REQUEST_MAX_S FLASHD_IMGDIR FLASHD_GREEDY FLASHVIS_SOCK].freeze
   ROOT_PORTS = %w[00:01.0 00:02.0 00:03.0].freeze
+  GPU_UUID = /\AGPU-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/i
   class CaptureError < StandardError; end
   module_function
 
@@ -73,11 +73,18 @@ module DieBalanceCapture
      "comm" => File.read("#{base}/comm").strip}
   end
 
+  def engine_mapping(pid, raw_maps)
+    # flashcore copies each loaded generation before dlopen so reload can recover it.
+    snapshot = %r{\A/tmp/flashcore-#{pid}-gen[1-9]\d*\.so(?: \(deleted\))?\z}
+    direct = %r{/libengine[^/]*\.so(?: \(deleted\))?\z}
+    rows = raw_maps.lines.map { |row| row.strip.split(/\s+/, 6) }
+    rows = rows.select { |row| row[1]&.include?("x") && row[5] && (snapshot.match?(row[5]) || direct.match?(row[5])) }
+    raise CaptureError, "expected one identifiable mapped engine generation" unless rows.length == 1
+    rows.first
+  end
+
   def engine_identity(pid)
-    rows = File.readlines("/proc/#{pid}/maps").map { |row| row.strip.split(/\s+/, 6) }
-    rows = rows.select { |row| row[1].include?("x") && row[5]&.match?(%r{/libengine[^/]*\.so(?: \(deleted\))?\z}) }
-    raise CaptureError, "expected one identifiable mapped libengine" unless rows.length == 1
-    row = rows.first
+    row = engine_mapping(pid, File.read("/proc/#{pid}/maps"))
     path = row[5]
     raise CaptureError, "mapped engine file was replaced/deleted" if path.end_with?(" (deleted)")
     stat = File.stat(path)
@@ -149,19 +156,30 @@ module DieBalanceCapture
     {"identity" => identity, "pci_link_snapshot" => links.join("\n") + "\n"}
   end
 
+  # Query only numeric fields and UUIDs, which cannot contain CSV quoting or commas.
+  # Ruby 3.4 no longer bundles the csv gem; the collector needs no optional gems.
+  def nvidia_rows(raw, patterns)
+    raw.lines.map do |line|
+      row = line.chomp.split(",", -1).map(&:strip)
+      unless row.length == patterns.length && row.zip(patterns).all? { |value, pattern| value.match?(pattern) }
+        raise CaptureError, "malformed NVIDIA numeric/UUID row: #{line.inspect}"
+      end
+      row
+    end
+  end
+
   def idle_preflight(out, core_pid, socket)
     command(["ps", "-eo", "pid,ppid,lstart,stat,args"], out, "preflight-processes")
     metrics = command(["nvidia-smi", "--query-gpu=index,uuid,utilization.gpu", "--format=csv,noheader,nounits"], out, "preflight-gpu-load")
-    rows = CSV.parse(metrics).map { |row| row.map(&:strip) }
+    rows = nvidia_rows(metrics, [/\A\d+\z/, GPU_UUID, /\A(?:100|[1-9]?\d)\z/])
     selected = rows.select { |row| (0...6).include?(Integer(row[0], 10)) }
     unless selected.map { |row| Integer(row[0], 10) }.sort == (0...6).to_a &&
            selected.all? { |row| Integer(row[2], 10).zero? }
       raise CaptureError, "dies 0-5 are absent or busy; wait for an idle host"
     end
     uuids = selected.map { |row| row[1] }
-    apps = command(["nvidia-smi", "--query-compute-apps=pid,process_name,gpu_uuid", "--format=csv,noheader,nounits"], out, "preflight-compute-apps")
-    CSV.parse(apps).each do |row|
-      pid, _name, uuid = row.map(&:strip)
+    apps = command(["nvidia-smi", "--query-compute-apps=pid,gpu_uuid", "--format=csv,noheader,nounits"], out, "preflight-compute-apps")
+    nvidia_rows(apps, [/\A[1-9]\d*\z/, GPU_UUID]).each do |pid, uuid|
       next unless uuids.include?(uuid)
       pid = Integer(pid, 10)
       comm = File.read("/proc/#{pid}/comm").strip
