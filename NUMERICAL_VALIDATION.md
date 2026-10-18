@@ -2,10 +2,13 @@
 
 Refs #11. This PR has separate gates for native mathematical agreement, frozen
 external-reference agreement, target M60 execution, and independent checkpoint
-teacher-forced logits. The M60 numerical suite now passes at `ca4a476`, including
+teacher-forced logits. The M60 numerical suite passed at `ca4a476`, including
 707 exact target/scalar byte comparisons; a synthetic target pass does not
-establish full-checkpoint conformance. The PR stays draft while the current
-full-model capture and verified checkpoint/conversion evidence remain missing.
+establish full-checkpoint conformance. The subsequent master merge at `99a6b9d`
+passes the 58-outcome native suite and the capture/trace host checks, but changes
+the production kernels and needs a new target run. The PR stays draft while
+the current full-model capture and verified checkpoint/conversion evidence
+remain missing.
 
 ## Reproduce without Python
 
@@ -275,6 +278,18 @@ Same-implementation placement comparisons and isolated block-3 captures from
 #9/#22 do not supply this gate.
 
 ## Recorded evidence
+
+### Host validation after merging master
+
+[validation/issue11/master-99a6b9d](validation/issue11/master-99a6b9d/README.md)
+records the resolved engine/Makefile merge, successful engine compilation and
+linking, 58 native outcomes, 92 capture I/O assertions, 90 descriptor cases,
+156 reference-trace checks and 32 CPU-only gate checks. The shared-branch
+integration through `151af5c` preserves these sources and the other worker's
+evidence. This host result does not extend the earlier M60 execution claim to
+master's changed kernels. The retained target full-model probe still fails at
+`model_test.c:73: cuMemAlloc(&p, bytes) -> out of memory`; no completed current
+target model capture is available.
 
 ### Actual M60 execution after the queued wait
 
