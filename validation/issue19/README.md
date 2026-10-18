@@ -41,7 +41,11 @@ These are separate build trees, so an environment flag cannot accidentally reuse
 
 Model mode uses the already loaded real checkpoint through the production QSA engine, all 48 blocks, all 12 attention layers, a 512-block sparse cutoff, mapped host KV, and complete known-input prefill from position zero. It disables snapshot creation and verifies the reported number of processed positions. Each request is serialized on one core connection, and its source revision, cubin path and configuration are checked before any token is submitted.
 
+Model mode explicitly disables paired execution and chunked prefill and checks both effective settings. `--capacity N` can keep the engine allocation size fixed while testing a shorter token prefix; it defaults to the largest requested context plus 16 and must leave at least that margin. The effective capacity is checked before token submission. For example, `--positions 128 --capacity 65552` checks a short request with the allocation size used by a 65,536-position run.
+
 Before loading the trace engine, the runner saves the exact loaded engine image and verifies that the original kernel file matches the core's recorded FNV. It restores the original engine, kernel and settings after the measurements, including on a validation failure, and checks the restored configuration. Checkpoint and holder-manifest identities are recorded.
+
+Restoration loads saved copies of the original engine and cubin, verifies the original cubin identity and effective settings, and restores the original prefill/trace settings when reported by that engine. The saved copy's cubin path is retained so restoration does not depend on an original file that another worker might replace.
 
 Without `--corpus`, the input is a deterministic concatenation of this revision's README, SPEC, C sources, Perl generators and SASS sources. This is a repository-text workload, not a repeated synthetic KV cache or a claim about every natural-language workload. The two context lengths use distinct slices of its actual tokenizer output. The corpus/source hashes, complete token arrays, offsets, commands and outputs make the workload reproducible. An explicit UTF-8 corpus can be supplied with `--corpus`.
 

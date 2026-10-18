@@ -42,6 +42,7 @@ OptionParser.new do |p|
   p.on('--checkpoint FILE', 'GGUF shard containing the tokenizer') { |v| opt[:checkpoint] = File.expand_path(v) }
   p.on('--corpus FILE', 'UTF-8 source text; default is tracked repository text') { |v| opt[:corpus] = File.expand_path(v) }
   p.on('--positions LIST', 'Comma-separated true prefill lengths') { |v| opt[:positions] = v.split(',').map { |x| Integer(x) } }
+  p.on('--capacity N', Integer, 'Model engine capacity; default is largest context plus 16') { |v| opt[:capacity] = v }
   p.on('--iterations N', Integer) { |v| opt[:iterations] = v }
   p.on('--samples N', Integer) { |v| opt[:samples] = v }
 end.parse!
@@ -157,6 +158,8 @@ begin
     else
       raise 'model requires --socket, --core-pid and --checkpoint' unless opt.values_at(:socket, :core_pid, :checkpoint).all?
       raise 'Invalid positions' unless opt[:positions].all? { |n| n >= 1 && n < 262144 }
+      opt[:capacity] ||= opt[:positions].max + 16
+      raise 'Capacity must leave 16 positions beyond the largest requested context' unless opt[:capacity] >= opt[:positions].max + 16
     end
     seq = 0
     idle = lambda do |name|
@@ -314,11 +317,12 @@ begin
       restore = {'FLASH_CUBIN' => restore_cubin, 'FLASH_ENGINE_MAXT' => original.fetch('maxt'),
                  'FLASH_KV_HOST' => original.fetch('kv_host'), 'FLASH_MAXIMG' => original.fetch('img_rows'),
                  'FLASH_TWO_POSITION' => original.fetch('two_position'), 'FLASH_LAYERS' => '48',
-                 'FLASH_NBLK' => original.fetch('nblk'), 'FLASH_KV_TRACE' => '0'}
+                 'FLASH_PREFILL_CHUNK' => original.fetch('prefill_chunk', '0'),
+                 'FLASH_NBLK' => original.fetch('nblk'), 'FLASH_KV_TRACE' => original.fetch('kv_trace', '0')}
       settings = {'FLASH_CUBIN' => File.join(kern.call(:trace), 'die.cubin'),
-                  'FLASH_ENGINE_MAXT' => (opt[:positions].max + 16).to_s, 'FLASH_KV_HOST' => '1',
+                  'FLASH_ENGINE_MAXT' => opt[:capacity].to_s, 'FLASH_KV_HOST' => '1',
                   'FLASH_MAXIMG' => '1', 'FLASH_TWO_POSITION' => '0', 'FLASH_LAYERS' => '48',
-                  'FLASH_NBLK' => '512', 'FLASH_KV_TRACE' => '1'}
+                  'FLASH_PREFILL_CHUNK' => '0', 'FLASH_NBLK' => '512', 'FLASH_KV_TRACE' => '1'}
       raise 'Engine protocol cannot encode whitespace in paths' if [restore_lib, *restore.values, *settings.values].any? { |v| v.match?(/\s/) }
       touched = false
       begin
@@ -337,7 +341,7 @@ begin
           idle.call("model-#{n}")
           check_config = lambda do |line|
             conf = fields.call(line)
-            raise 'Wrong engine/cubin/configuration before request' unless conf['rev'] == head && conf['layers'] == '48/48' && conf['nblk'] == '512' && conf['kv_host'] == '1' && conf['kv_trace'] == '1' && conf['cubin'] == settings['FLASH_CUBIN']
+            raise 'Wrong engine/cubin/configuration before request' unless conf['rev'] == head && conf['layers'] == '48/48' && conf['nblk'] == '512' && conf['kv_host'] == '1' && conf['kv_trace'] == '1' && conf['cubin'] == settings['FLASH_CUBIN'] && conf['maxt'] == settings['FLASH_ENGINE_MAXT'] && conf['two_position'] == '0' && conf['prefill_chunk'] == '0'
           end
           output = exchange.call("model-#{n}", ['snap 0', 'stop', 'gen 0 ' + ids.join(' '), 'kvstats', 'statehash', 'info'],
                                  terminator: /^info /, validate: check_config)
@@ -366,7 +370,8 @@ begin
           raise 'Could not restore the original resident engine' unless restored.include?('ok: engine reloaded')
           after = exchange.call('restored-config', ['config', 'info'], terminator: /^info /)
           conf = fields.call(after.lines.find { |l| l.start_with?('config ') } || '')
-          %w[rev kv_host maxt layers nblk dies img_rows two_position cubin_fnv].each do |key|
+          (%w[rev kv_host maxt layers nblk dies img_rows two_position cubin_fnv] +
+            %w[prefill_chunk kv_trace].select { |key| original.key?(key) }).each do |key|
             raise "Restored #{key} differs from the original" unless conf[key] == original[key]
           end
           manifest[:original_engine_restored] = true

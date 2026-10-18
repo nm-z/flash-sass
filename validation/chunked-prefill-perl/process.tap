@@ -1,0 +1,11 @@
+ok 1 - nonzero child status retained
+ok 2 - stdout drained completely
+ok 3 - stderr drained concurrently
+ok 4 - signal termination retained
+ok 5 - wall timeout fails explicitly
+ok 6 - timeout included in raw evidence
+ok 7 - working-directory command succeeds
+ok 8 - working directory applied only to child
+ok 9 - CSV preserves quoted comma, newline and escaped quote
+ok 10 - malformed CSV rejected
+1..10
