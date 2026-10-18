@@ -293,6 +293,7 @@ static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 	r->ntok = ntok_;
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
+		CK(cuMemsetD32(dCTL[d] + 0x2c, 0, 1));   /* ctl[11]: set by the kernel when it ends at its 300 s limit */
 		unsigned ntok = (unsigned)ntok_; void *params[] = { &dPROG[d], (void *)&nph[d], &dCTL[d], &ntok };
 		CK(cuLaunchKernel(fn[d], 16, 1, 1, 256, 1, 1, 0, 0, params, NULL));
 	}
@@ -330,6 +331,7 @@ static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 		if (!fin) nanosleep(&nap, NULL);
 	}
 	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuCtxSynchronize()); }
+	for (int d = 0; d < nd; d++) { uint32_t lim = 0; CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyDtoH(&lim, dCTL[d] + 0x2c, 4)); if (lim) { fprintf(stderr, "engine: die %d hit the 300 s kernel limit at token %d; the contexts are rebuilt\n", d, r->count); longjmp(run_jb, 1); } }
 }
 
 /* The paired program may only consume known ids. Stop before the last prompt

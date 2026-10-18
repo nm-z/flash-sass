@@ -31,6 +31,8 @@ my $PAIR_DESC_OFF = 0xbe80; # second position's unchanged 128-byte descriptor
 my $STEP_OFF = 0xbf50;     # physical descriptors consumed by this phase (1 or 2)
 my $PAIR_MODE_OFF = 0xbf54; # word 30 bits 3/4: generic paired / fused paired body
 my $FLAGS_OFF = 0xbf58;    # primary descriptor's exchange / barrier flags
+my $T0_OFF = 0xbf5c;      # %globaltimer.hi at launch (u32), per CTA; a phase that starts 70 units (4.29 s each, 300 s) later ends the kernel
+my $EXP_OFF = 0xbf60;     # set by thread 0 when the 300 s are up
 
 # opcode = index. tag, file, unit kind, environment for the generator
 my @OPS = (
@@ -318,6 +320,15 @@ $maps</REGISTER_MAPPING>
 # and the grid barrier generation (GEN), seeded from ctl[1]
 02:-:1:-:2      LDG.E op, [fw+0x4];
 01:2:-:-:6      STS [RZ+0x@{[sprintf '%x', $GEN_OFF]}], op;
+# the 300 s limit: thread 0 of every CTA keeps the launch %globaltimer.hi
+--:-:-:-:6      ISETP.EQ.U32.AND P5, PT, tid, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:6:-:2  \@P5 S2R op, SR_GLOBALTIMERHI;
+20:2:-:-:6  \@P5 STS [RZ+0x@{[sprintf q{%x}, $T0_OFF]}], op;
+02:2:-:-:6  \@P5 STS [RZ+0x@{[sprintf q{%x}, $EXP_OFF]}], RZ;
+02:-:-:-:6      NOP;
 # launch timestamp -> ctl[15]
 02:-:-:-:6      IADD op, cta, tid;
 --:-:-:-:6      ISETP.EQ.U32.AND P4, PT, op, RZ, PT;
@@ -337,6 +348,20 @@ $maps</REGISTER_MAPPING>
 --:-:4:-:2 \@!P6 LDG.E vid, [dsp+0x7c];
 
 PHASE:
+# 300 s since launch: thread 0 flags it; every thread reads the flag after the descriptor barrier and exits
+--:-:-:-:6      ISETP.EQ.U32.AND P5, PT, tid, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:6:-:2  \@P5 S2R bar_g2, SR_GLOBALTIMERHI;
+--:-:6:-:2  \@P5 LDS bar_old, [RZ+0x@{[sprintf q{%x}, $T0_OFF]}];
+20:-:-:-:6  \@P5 IADD bar_g2, bar_g2, -bar_old;
+--:-:-:-:6      ISETP.GE.U32.AND P5, PT, bar_g2, 0x46, P5;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P5 MOV32I bar_old, 0x1;
+--:2:-:-:6  \@P5 STS [RZ+0x@{[sprintf q{%x}, $EXP_OFF]}], bar_old;
 # descriptor -> smem (warp 0, lane = word; the words were prefetched); word 31 is a
 # mask of the parameter words that get the token counter added
 01:-:-:-:6      ISETP.LT.U32.AND P6, PT, tid, 0x20, PT;
@@ -352,6 +377,12 @@ PHASE:
 --:-:-:-:6  \@P5 IADD vtid, vtid, bar_t;
 --:2:-:-:6  \@P6 STS [units], vtid;
 02:-:-:-:6      BAR.SYNC 0x1;
+--:-:1:-:2      LDS bar_old, [RZ+0x@{[sprintf q{%x}, $EXP_OFF]}];
+01:-:-:-:6      ISETP.NE.U32.AND P5, PT, bar_old, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P5 BRA EXPIRED;
 --:-:1:-:1      LDS op, [RZ+0x@{[sprintf '%x', $DESC_OFF]}];
 --:-:1:-:2      LDS units, [RZ+0x@{[sprintf '%x', $DESC_OFF + 4]}];
 01:-:-:-:6      NOP;
@@ -638,4 +669,11 @@ BDONE:
 --:-:-:-:6      NOP;
 --:-:-:-:6  \@P6 BRA PHASE;
 --:-:-:-:f      EXIT;
+EXPIRED:
+# ctl[11] = 1 tells the host the kernel hit its 300 s limit
+--:-:-:-:6      MOV bar_cp0, ctl0;
+--:-:-:-:6      MOV bar_cp1, ctl1;
+--:-:-:-:6      MOV32I bar_old, 0x1;
+--:2:-:-:6      STG.E [bar_cp+0x2c], bar_old;
+02:-:-:-:f      EXIT;
 EOF
