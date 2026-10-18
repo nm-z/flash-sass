@@ -262,8 +262,8 @@ static void report(const char *p, size_t n, size_t total, size_t budget, double 
         "v_storage_sensitivity",
         "combined_k_storage_normalization_rope_and_v_storage_sensitivity",
         "q_normalization_and_rope_arithmetic_sensitivity",
-        "k_storage_sensitivity_using_separate_gpu_fp32_append",
-        "kv_storage_sensitivity_using_separate_gpu_fp32_append"};
+        "k_append_normalization_rope_and_storage_path_sensitivity",
+        "k_append_path_and_v_storage_combined_sensitivity"};
     FILE *f=fopen(p,"wbx");
     if (!f) fail("cannot exclusively create %s: %s",p,strerror(errno));
     fprintf(f,"{\"schema\":\"flash-sass.qsa-attention-reference.v1\",\"complete\":true,"
@@ -282,6 +282,8 @@ static void report(const char *p, size_t n, size_t total, size_t budget, double 
         "\"gqa_group_size\":12,\"qk_scale\":0.0625,\"rope_rotated_dimensions\":64,"
         "\"rope_pair_offset\":32,\"cumulative_allocated_bytes\":%zu,"
         "\"normalized_k_available\":%s,"
+        "\"pure_k_storage_isolated\":false,"
+        "\"fp32_k_append_note\":\"separate_append_may_include_k_normalization_rope_differences\","
         "\"relative_l2_zero_reference_rule\":\"zero_when_both_zero_else_null_meaning_positive_infinity\","
         "\"selected_ids\":",n,total,budget,eps,n/4,count,n/4-count,n%4,keep,allocated,
         normalized_k_available?"true":"false");
