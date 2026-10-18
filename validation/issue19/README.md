@@ -4,7 +4,7 @@
 
 The runner requires committed sources and records the exact revision, runner hash, tool versions, assembler source hashes, build flags, binary/cubin hashes, commands, exit statuses, raw stdout/stderr, and elapsed times. Build outputs are isolated `git archive` copies under the chosen output directory. A build from a different revision or an altered artifact is rejected.
 
-The [2026-10-18 evidence](20261018/README.md) records the completed CPU/build/M60 measurements at `6da421bccb68e613ecbdc8142104935deecccb29` and identifies the remaining checkpoint work. The [older evidence](archy-final/README.md) is retained with its original measured revision.
+The [2026-10-18 evidence](20261018/README.md) records completed CPU/build/M60 checks and real-checkpoint traces at 128, 32,768 and 65,536 positions from `6da421bccb68e613ecbdc8142104935deecccb29`. It separately records merged-runtime checks at `d46d188a435c5d959993f16dc1f78c837cc9f70d` and scalar API overhead at `5b3ea525005fa5f8573ab544bfbeee6783c62e25`, with exact measured scope, commands and raw records. The [older evidence](archy-final/README.md) is retained with its original measured revision.
 
 ## Commands
 
@@ -36,6 +36,8 @@ The optional `--core-pid` and `--socket` arguments in GPU mode identify the exis
 These are separate build trees, so an environment flag cannot accidentally reuse a previously generated kernel. The unbounded control is not a supported production quantizer. Ordinary inputs must agree with the bounded contract in every build. The unbounded extreme control must fail with a numerical witness; a missing cubin or CUDA startup error is not accepted as that witness.
 
 `quant_bench` reports repeated CUDA-event measurements for the complete Q/K normalization, RoPE and INT8 KV append operation. It uses 12 samples by default, all six variant orders twice, and 10,000 operations in each persistent launch. It verifies the completed operation count and unchanged outputs after every launch. The difference between the bounded and unbounded variants measures the incremental clamp cost within that operation. The difference between trace and bounded measures diagnostic overhead. Raw negative timing deltas are retained. These measurements are not whole-model tokens/second and do not include the optional checked scalar API.
+
+The standalone C benchmark `scalar_bench.c` measures successful checked versus unchecked scalar calls with the same finite input groups and output checks. Its [commands and measured results](20261018/scalar/README.md) include thread CPU and monotonic wall times, 12 alternating paired samples and exact source/compiler identities. It does not access a GPU.
 
 ## Checkpoint measurements
 

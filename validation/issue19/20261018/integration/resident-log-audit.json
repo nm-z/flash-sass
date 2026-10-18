@@ -1,0 +1,12 @@
+{
+  "captured_utc": "2026-10-18T05:21:57Z",
+  "core_pid": 3575268,
+  "source": "/tmp/flashcore.err",
+  "file": "resident-stderr-through-restoration.log",
+  "bytes": 4170,
+  "sha256": "a8fecddc7f780d687293d8fa536931d9735bc0faff1c040cdd0f28f01f312960",
+  "earlier_snapshot_preserved_as_prefix": true,
+  "error_pattern": "error|failed|short.read|watchdog|fault|timeout (case insensitive)",
+  "matching_lines": [],
+  "scope": "The full resident log includes activity before issue #19 validation. The baseline snapshot was captured during the 65536-position run; subsequent reload/restoration messages are retained."
+}
