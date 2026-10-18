@@ -1,0 +1,687 @@
+{
+   "accepted_controls" : [
+      {
+         "args" : [
+            "idxscore",
+            "0",
+            "1"
+         ],
+         "binary" : "qsa",
+         "exit" : 99,
+         "passed" : true,
+         "stderr" : "",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "idxscore",
+            "0",
+            "4096"
+         ],
+         "binary" : "qsa",
+         "exit" : 99,
+         "passed" : true,
+         "stderr" : "",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "idxscore",
+            "65535",
+            "512"
+         ],
+         "binary" : "qsa",
+         "exit" : 99,
+         "passed" : true,
+         "stderr" : "",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "idxscore",
+            "65536",
+            "1"
+         ],
+         "binary" : "qsa",
+         "exit" : 99,
+         "passed" : true,
+         "stderr" : "",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "idxscore",
+            "65536",
+            "512"
+         ],
+         "binary" : "qsa",
+         "exit" : 99,
+         "passed" : true,
+         "stderr" : "",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "idxscore",
+            "65536",
+            "4096"
+         ],
+         "binary" : "qsa",
+         "exit" : 99,
+         "passed" : true,
+         "stderr" : "",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "1"
+         ],
+         "binary" : "attn",
+         "exit" : 99,
+         "passed" : true,
+         "stderr" : "",
+         "stdout" : ""
+      }
+   ],
+   "binaries" : {
+      "attn" : {
+         "path" : "/home/nate/claude/flash-sass-issue20-position/kern/attn_test",
+         "sha256" : "4b3e4a44e45925fb6d9204d507185460ed4e744a70b870856e79f18b36e2017e"
+      },
+      "qsa" : {
+         "path" : "/home/nate/claude/flash-sass-issue20-position/kern/qsa_test",
+         "sha256" : "58f606233de49a83bf132c20a6a18b0a4532f2779ebddc5f50703065ec96984f"
+      }
+   },
+   "cases" : [
+      {
+         "args" : [],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "usage: qsa_test kv|idxqk|idxscore|idxsel|idxfull|embimg|gathertime [arguments]\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "unknown"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "unknown test: unknown\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "embimg",
+            "extra"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "too many arguments for embimg\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "kv",
+            "1",
+            "512",
+            "extra"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "too many arguments for kv\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "idxsel",
+            "0",
+            "512"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for idxsel: 0\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "idxsel",
+            "700",
+            "512",
+            "0",
+            "6"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for idxsel: 6\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "idxscore",
+            "65537"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for idxscore: 65537\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "idxfull",
+            "0"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for idxfull: 0\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "gathertime",
+            "2"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for gathertime: 2\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "gathertime",
+            "0",
+            "511"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for gathertime: 511\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "gathertime",
+            "0",
+            "65524"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for gathertime: 65524\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "idxfull",
+            "65536",
+            "512",
+            "2"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "idxfull run exceeds supported token positions\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "idxscore",
+            "-1"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for idxscore: -1\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "idxscore",
+            "4294967295"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for idxscore: 4294967295\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "idxscore",
+            "65536",
+            "0"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for idxscore: 0\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "idxscore",
+            "65536",
+            "4097"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for idxscore: 4097\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "idxscore",
+            "0",
+            "0"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for idxscore: 0\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "idxscore",
+            "65536",
+            "512",
+            "extra"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "too many arguments for idxscore\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "kv",
+            "0",
+            "512"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for kv: 0\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "kv",
+            "-1",
+            "512"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for kv: -1\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "kv",
+            "+1",
+            "512"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for kv: +1\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "kv",
+            "",
+            "512"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for kv: \n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "kv",
+            " 1",
+            "512"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for kv:  1\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "kv",
+            "1 ",
+            "512"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for kv: 1 \n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "kv",
+            "1x",
+            "512"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for kv: 1x\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "kv",
+            "1.0",
+            "512"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for kv: 1.0\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "kv",
+            "1e3",
+            "512"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for kv: 1e3\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "kv",
+            "0x10",
+            "512"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for kv: 0x10\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "kv",
+            "262145",
+            "512"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for kv: 262145\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "kv",
+            "4294967295",
+            "512"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for kv: 4294967295\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "kv",
+            "9999999999999999999999",
+            "512"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for kv: 9999999999999999999999\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "kv",
+            "1",
+            "0"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for kv: 0\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "kv",
+            "1",
+            "-1"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for kv: -1\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "kv",
+            "1",
+            "4097"
+         ],
+         "binary" : "qsa",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "invalid argument for kv: 4097\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "0"
+         ],
+         "binary" : "attn",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "usage: attn_test [keys1..262144] [iters0..262144], unsigned decimal digits only\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "-1"
+         ],
+         "binary" : "attn",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "usage: attn_test [keys1..262144] [iters0..262144], unsigned decimal digits only\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "+1"
+         ],
+         "binary" : "attn",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "usage: attn_test [keys1..262144] [iters0..262144], unsigned decimal digits only\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            ""
+         ],
+         "binary" : "attn",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "usage: attn_test [keys1..262144] [iters0..262144], unsigned decimal digits only\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            " 1"
+         ],
+         "binary" : "attn",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "usage: attn_test [keys1..262144] [iters0..262144], unsigned decimal digits only\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "1 "
+         ],
+         "binary" : "attn",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "usage: attn_test [keys1..262144] [iters0..262144], unsigned decimal digits only\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "1x"
+         ],
+         "binary" : "attn",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "usage: attn_test [keys1..262144] [iters0..262144], unsigned decimal digits only\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "1.0"
+         ],
+         "binary" : "attn",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "usage: attn_test [keys1..262144] [iters0..262144], unsigned decimal digits only\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "1e3"
+         ],
+         "binary" : "attn",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "usage: attn_test [keys1..262144] [iters0..262144], unsigned decimal digits only\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "0x10"
+         ],
+         "binary" : "attn",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "usage: attn_test [keys1..262144] [iters0..262144], unsigned decimal digits only\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "262145"
+         ],
+         "binary" : "attn",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "usage: attn_test [keys1..262144] [iters0..262144], unsigned decimal digits only\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "4294967295"
+         ],
+         "binary" : "attn",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "usage: attn_test [keys1..262144] [iters0..262144], unsigned decimal digits only\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "9999999999999999999999"
+         ],
+         "binary" : "attn",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "usage: attn_test [keys1..262144] [iters0..262144], unsigned decimal digits only\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "1",
+            "-1"
+         ],
+         "binary" : "attn",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "usage: attn_test [keys1..262144] [iters0..262144], unsigned decimal digits only\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "1",
+            "+1"
+         ],
+         "binary" : "attn",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "usage: attn_test [keys1..262144] [iters0..262144], unsigned decimal digits only\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "1",
+            "1x"
+         ],
+         "binary" : "attn",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "usage: attn_test [keys1..262144] [iters0..262144], unsigned decimal digits only\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "1",
+            "262145"
+         ],
+         "binary" : "attn",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "usage: attn_test [keys1..262144] [iters0..262144], unsigned decimal digits only\n",
+         "stdout" : ""
+      },
+      {
+         "args" : [
+            "1",
+            "0",
+            "extra"
+         ],
+         "binary" : "attn",
+         "exit" : 2,
+         "passed" : true,
+         "stderr" : "usage: attn_test [keys1..262144] [iters0..262144], unsigned decimal digits only\n",
+         "stdout" : ""
+      }
+   ],
+   "guard" : "CUDA entry points exit99",
+   "status" : "PASS"
+}

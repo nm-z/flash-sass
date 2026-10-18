@@ -12,6 +12,7 @@ run() {
     local label=$1 expected=$2 rc command
     shift 2
     printf -v command '%q ' "$@"
+    command=${command% }
     set +e
     "$@" > "$out/$label.log" 2>&1
     rc=$?

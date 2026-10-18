@@ -1,0 +1,6 @@
+test	exit	expected	command
+cpu-build	0	0	make -C kern -B idxscore_position_test checked_test
+positions	0	0	./kern/idxscore_position_test
+checked-api	0	0	./kern/checked_test
+harness-build	0	0	make -C kern -B CC=cc\ -L/opt/cuda/targets/x86_64-linux/lib/stubs qsa_test attn_test
+cli	0	0	env LD_LIBRARY_PATH=/tmp/flash-sass-issue20-position-review/source-99c2fc0/cuda-stub perl checked_cli_test.pl --out /tmp/flash-sass-issue20-position-review/source-99c2fc0/cli

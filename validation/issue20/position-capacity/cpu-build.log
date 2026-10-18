@@ -1,0 +1,67 @@
+make: Entering directory '/home/nate/claude/flash-sass-issue20-position/kern'
+cc -std=gnu99 -O2 -Wall -Wextra -o idxscore_position_test idxscore_position_test.c
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -o checked_test checked_test.c ../ref/checked.c ../ref/attn.c ../ref/qsa.c ../ref/fmath.c -I../ref -lm
+In file included from checked_test.c:2:
+../ref/checked.h: In function ‘checked_parse_unsigned’:
+../ref/checked.h:13:2: warning: this ‘if’ clause does not guard... [-Wmisleading-indentation]
+   13 |  if(!s||!*s||!out||lo>hi)return 1;unsigned v=0;
+      |  ^~
+../ref/checked.h:13:35: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the ‘if’
+   13 |  if(!s||!*s||!out||lo>hi)return 1;unsigned v=0;
+      |                                   ^~~~~~~~
+../ref/checked.h:15:2: warning: this ‘if’ clause does not guard... [-Wmisleading-indentation]
+   15 |  if(v<lo||v>hi)return 1;*out=v;return 0;
+      |  ^~
+../ref/checked.h:15:25: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the ‘if’
+   15 |  if(v<lo||v>hi)return 1;*out=v;return 0;
+      |                         ^
+checked_test.c: In function ‘main’:
+checked_test.c:26:2: warning: this ‘for’ clause does not guard... [-Wmisleading-indentation]
+   26 |  for(int i=0;i<512;i++)v[i]=1;assert(!attn_decode_checked(q,k,KF,v,VF,1,gate,out));for(int i=0;i<6144;i++)assert(out[i]==.5f);
+      |  ^~~
+In file included from checked_test.c:5:
+checked_test.c:26:31: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the ‘for’
+   26 |  for(int i=0;i<512;i++)v[i]=1;assert(!attn_decode_checked(q,k,KF,v,VF,1,gate,out));for(int i=0;i<6144;i++)assert(out[i]==.5f);
+      |                               ^~~~~~
+checked_test.c:28:2: warning: this ‘for’ clause does not guard... [-Wmisleading-indentation]
+   28 |  for(int i=0;i<CAP*16;i++)ks[i]=vs[i]=0x3c00;for(int i=0;i<512;i++){kq[i]=1;vq[i]=2;}
+      |  ^~~
+checked_test.c:28:46: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the ‘for’
+   28 |  for(int i=0;i<CAP*16;i++)ks[i]=vs[i]=0x3c00;for(int i=0;i<512;i++){kq[i]=1;vq[i]=2;}
+      |                                              ^~~
+In file included from ../ref/checked.c:1:
+../ref/checked.h: In function ‘checked_parse_unsigned’:
+../ref/checked.h:13:2: warning: this ‘if’ clause does not guard... [-Wmisleading-indentation]
+   13 |  if(!s||!*s||!out||lo>hi)return 1;unsigned v=0;
+      |  ^~
+../ref/checked.h:13:35: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the ‘if’
+   13 |  if(!s||!*s||!out||lo>hi)return 1;unsigned v=0;
+      |                                   ^~~~~~~~
+../ref/checked.h:15:2: warning: this ‘if’ clause does not guard... [-Wmisleading-indentation]
+   15 |  if(v<lo||v>hi)return 1;*out=v;return 0;
+      |  ^~
+../ref/checked.h:15:25: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the ‘if’
+   15 |  if(v<lo||v>hi)return 1;*out=v;return 0;
+      |                         ^
+../ref/checked.c: In function ‘attn_decode_checked’:
+../ref/checked.c:10:2: warning: this ‘if’ clause does not guard... [-Wmisleading-indentation]
+   10 |  if(!q||!k||!v||!g||!out)return 1;size_t nk,nv;if(attn_cache_sizes_checked(n,&nk,&nv)||kf<nk||vf<nv)return 1;attn_decode_gpu(q,k,v,n,g,out);return 0;
+      |  ^~
+../ref/checked.c:10:35: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the ‘if’
+   10 |  if(!q||!k||!v||!g||!out)return 1;size_t nk,nv;if(attn_cache_sizes_checked(n,&nk,&nv)||kf<nk||vf<nv)return 1;attn_decode_gpu(q,k,v,n,g,out);return 0;
+      |                                   ^~~~~~
+../ref/checked.c: In function ‘qsa_nkeys_checked’:
+../ref/checked.c:13:2: warning: this ‘if’ clause does not guard... [-Wmisleading-indentation]
+   13 |  if(!n||!cap||p>=cap||b<1||b>4096)return 1;size_t k,v;if(attn_cache_sizes_checked(cap,&k,&v))return 1;
+      |  ^~
+../ref/checked.c:13:44: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the ‘if’
+   13 |  if(!n||!cap||p>=cap||b<1||b>4096)return 1;size_t k,v;if(attn_cache_sizes_checked(cap,&k,&v))return 1;
+      |                                            ^~~~~~
+../ref/checked.c: In function ‘qsa_gather_checked’:
+../ref/checked.c:17:2: warning: this ‘if’ clause does not guard... [-Wmisleading-indentation]
+   17 |  if(!kq||!ks||!vq||!vs||!k||!v||!n)return 1;unsigned keys;if(qsa_nkeys_checked(p,cap,b,&keys))return 1;
+      |  ^~
+../ref/checked.c:17:45: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the ‘if’
+   17 |  if(!kq||!ks||!vq||!vs||!k||!v||!n)return 1;unsigned keys;if(qsa_nkeys_checked(p,cap,b,&keys))return 1;
+      |                                             ^~~~~~~~
+make: Leaving directory '/home/nate/claude/flash-sass-issue20-position/kern'
