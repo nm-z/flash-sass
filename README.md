@@ -136,6 +136,35 @@ values from 2 through 16 bound the number of concurrent readers. The pool does n
 the full PLE file. See [PLE_READS.md](PLE_READS.md) for the lifecycle, configuration,
 and C correctness and file-I/O benchmarks.
 
+### Local PLE file cache
+
+`FLASH_PLE_FILE=/absolute/path/to/copied-shard.gguf` redirects disk-mode PLE
+row reads to a local copy. The copy must contain the entire original second
+shard, including its header; the engine keeps the core's existing table offset.
+Initialization rejects an unreadable, non-regular, or differently sized file.
+The setting does not change the GPU kernels, staging buffers, weights, context
+capacity, or image capacity.
+
+Create the copy under a temporary name and rename it only after copying succeeds.
+The original model file remains the source of truth. File-size checking detects
+an incomplete copy; it does not identify an unrelated model with the same size.
+
+```sh
+cp --sparse=always "$GGUF2" /local/cache/flash-ple.gguf.tmp &&
+  mv /local/cache/flash-ple.gguf.tmp /local/cache/flash-ple.gguf
+```
+
+To apply it to an already resident model, use the engine's reload command:
+
+```text
+reload /absolute/path/to/libengine.so FLASH_PLE_FILE=/local/cache/flash-ple.gguf
+```
+
+The engine logs the selected file and reports `ple_file` in `config`. Reloading
+with `FLASH_PLE_FILE=` returns to the core's original file descriptor. The engine
+owns only the override descriptor and closes it after stopping its reader pool.
+Serial and parallel reader settings remain available for either source.
+
 ## Optional PLE file-cache warm-up
 
 Set `FLASH_PLE_DISK=1 FLASH_PLE_PREWARM=1` when starting `kern/serve.sh core` or
