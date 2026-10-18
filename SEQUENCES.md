@@ -45,6 +45,8 @@ make -C kern CUDA=/opt/cuda FLASH_REV="$revision" \
 
 Use `sequence_validate.sh` on the same host as the six resident weight holders. Supply the model's placement explicitly. The launcher takes `/tmp/flash-sass-engine-validation.lock`, checks `nvidia-smi` and `ps`, waits for other GPU work or resident cores to clear, and only starts a private core when that gate passes. It never stops another process. Output directories must be new; core sockets use a generated temporary directory. Build prerequisites, including the patched MaxAs checkout, are described in `README.md` and `maxas-patch/`.
 
+A queue controller that must retain the lease across several runs and a resident-core restoration can open and lock fd 9 on that same path, then pass `SEQUENCE_LOCK_FD=9` to the launcher. The launcher verifies the inherited descriptor's file identity and calls `flock` on it; there is no unlocked execution mode. The parent retains its descriptor until every test core has exited and restoration is complete. A restored long-lived process must close fd 9 when launched so it cannot retain the validation lease. Each run records when it waits for and acquires the lease in `lease.log`.
+
 Example placement for the current archy holders:
 
 ```sh

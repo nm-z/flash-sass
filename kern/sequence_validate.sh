@@ -64,11 +64,22 @@ env | LC_ALL=C sort | awk '/^(CUDA_VISIBLE_DEVICES|CUDA_DEVICE_ORDER|SPLIT_SHARE
 # All sequence workers use this lease; retain resident read-only holders/fences.
 # This path is shared with the other repository workers. TMPDIR must not
 # silently give this worker a different GPU lease.
-exec 9>/tmp/flash-sass-engine-validation.lock
+if [[ -n ${SEQUENCE_LOCK_FD:-} ]]; then
+    # A queue controller can retain the same lease across several matrices and
+    # restore a temporarily stopped resident core before finally releasing it.
+    [[ $SEQUENCE_LOCK_FD == 9 && /proc/$BASHPID/fd/9 -ef /tmp/flash-sass-engine-validation.lock ]] || {
+        printf 'SEQUENCE_LOCK_FD must be inherited fd 9 for the shared lease.\n' >&2
+        exit 2
+    }
+else
+    exec 9>/tmp/flash-sass-engine-validation.lock
+fi
+printf '%s pid=%s waiting\n' "$(date -u +%FT%TZ)" "$$" > "$out/lease.log"
 if ! flock -w "$wait_seconds" 9; then
     printf 'GPU validation lease is busy; no core started.\n' | tee "$out/blocked.txt"
     exit 75
 fi
+printf '%s pid=%s acquired\n' "$(date -u +%FT%TZ)" "$$" >> "$out/lease.log"
 started_wait=$SECONDS
 attempt=0
 while :; do
