@@ -12,7 +12,7 @@
  * MODEL_NOTWIN skips the twin (timing); MODEL_IDS=file reads prompt ids (u32 text).
  * MODEL_ATTN=dense (default) or qsa (production INT8 chain). FLASH_NBLK defaults
  * to 512; FLASH_KV_HOST defaults to 1. QSA validation requires all teacher-forced
- * ids. MODEL_INJECT=layer|logits|selection must make comparison fail; selection
+ * ids. MODEL_INJECT=layer|logits|selection|dn|conv|ple must make comparison fail; selection
  * needs T >= 4*(FLASH_NBLK+1). Per-token mode checks every token/layer, loop mode
  * every prediction and the final token layer stages. */
 #define _POSIX_C_SOURCE 200809L
@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <errno.h>
 
 CUresult cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev);
 #define CK(x) do { CUresult r_ = (x); if (r_ != CUDA_SUCCESS) { const char *s_ = "?"; cuGetErrorString(r_, &s_); \
@@ -71,9 +72,18 @@ static CUdeviceptr dptr(int d, int blk, const char *suffix) { return dptr_raw(d,
 static uint32_t ttype(int blk, const char *suffix) { const hold_tensor *t = hold_find(&ar[0], tn(blk, suffix)); if (!t) { fprintf(stderr, "no %s\n", tname); exit(1); } return t->type; }
 static CUdeviceptr dalloc(size_t bytes) { CUdeviceptr p; CK(cuMemAlloc(&p, bytes)); CK(cuMemsetD8(p, 0, bytes)); return p; }
 
-static int cmpbuf(const char *what, const void *ref, CUdeviceptr dev, size_t bytes, int elemsz) {
+static const char *model_inject;
+static int model_inject_reached;
+static int cmpbuf_control(const char *what, const void *ref, CUdeviceptr dev, size_t bytes, int elemsz, const char *control) {
 	void *got = malloc(bytes);
+	if (!got) { fprintf(stderr, "comparison allocation failed\n"); exit(1); }
 	CK(cuMemcpyDtoH(got, dev, bytes));
+	if (bytes && model_inject && control && !model_inject_reached && !strcmp(model_inject, control)) {
+		/* Perturb the readback only: neither execution path's live state is changed. */
+		((unsigned char *)got)[0] ^= 1;
+		model_inject_reached = 1;
+		printf("MODEL_INJECT=%s reached at %s\n", control, what);
+	}
 	size_t n = bytes / elemsz; int bad = 0; size_t first = 0;
 	for (size_t i = 0; i < n; i++) if (memcmp((const char *)ref + i * elemsz, (const char *)got + i * elemsz, elemsz)) { if (!bad) first = i; bad++; }
 	if (bad) {
@@ -84,41 +94,70 @@ static int cmpbuf(const char *what, const void *ref, CUdeviceptr dev, size_t byt
 	free(got);
 	return bad;
 }
-
-#include "model_qsa_test.h"
+static int cmpbuf(const char *what, const void *ref, CUdeviceptr dev, size_t bytes, int elemsz) {
+	return cmpbuf_control(what, ref, dev, bytes, elemsz, NULL);
+}
 
 /* the twin's per-block state (dn_hbufs_t carries one block's) */
 typedef struct { float *dn_state, *conv_state, *ple_state, *kc, *vc; } hstate_t;
 
+#include "model_qsa_test.h"
+
+/* Reject malformed arguments and unreachable controls before creating a CUDA context. */
+static int decimal_arg(const char *s, unsigned max, const char *label) {
+	if (!s || !*s) { fprintf(stderr, "invalid %s\n", label); return -1; }
+	for (const char *p = s; *p; p++) if (*p < '0' || *p > '9') {
+		fprintf(stderr, "invalid %s: %s\n", label, s); return -1;
+	}
+	errno = 0;
+	unsigned long v = strtoul(s, NULL, 10);
+	if (errno || v > max) { fprintf(stderr, "invalid %s: %s\n", label, s); return -1; }
+	return (int)v;
+}
+
 int main(int argc, char **argv) {
 	if (argc < 7) { fprintf(stderr, "usage: model_test <fullcache> <b0> <b1> <T> <flags: e h -> <manifest0> [manifest1 ...]\n"); return 2; }
-	fullcache = argv[1]; int b0 = atoi(argv[2]), b1 = atoi(argv[3]), T = atoi(argv[4]); const char *flags = argv[5]; nd = argc - 6; float eps = 1e-6f;
+	fullcache = argv[1]; int b0 = decimal_arg(argv[2], MAXB - 1, "first block"), b1 = decimal_arg(argv[3], MAXB, "end block"), T = decimal_arg(argv[4], 262144, "token count"); const char *flags = argv[5]; nd = argc - 6; float eps = 1e-6f;
 	int do_embed = strchr(flags, 'e') != NULL, do_head = strchr(flags, 'h') != NULL, do_loop = strchr(flags, 'l') != NULL;   /* l: one launch for all T tokens */
 	if (nd < 1 || nd > MAXD || b0 < 0 || b1 > MAXB || b0 >= b1 || T < 1) { fprintf(stderr, "bad arguments\n"); return 2; }
+	if (!*flags || (strcmp(flags, "-") && strspn(flags, "ehl") != strlen(flags))) {
+		fprintf(stderr, "flags must contain e, h, l, or be -\n"); return 2;
+	}
 	int notwin = getenv("MODEL_NOTWIN") != NULL;
 	const char *attn_mode = getenv("MODEL_ATTN") ? getenv("MODEL_ATTN") : "dense";
 	if (strcmp(attn_mode, "dense") && strcmp(attn_mode, "qsa")) {
 		fprintf(stderr, "MODEL_ATTN must be dense or qsa\n"); return 2;
 	}
 	model_qsa = !strcmp(attn_mode, "qsa");
-	model_host = getenv("FLASH_KV_HOST") ? atoi(getenv("FLASH_KV_HOST")) != 0 : 1;
-	model_budget = getenv("FLASH_NBLK") ? (unsigned)atoi(getenv("FLASH_NBLK")) : QSA_NBLK;
-	if (model_qsa && (model_budget < 1 || model_budget > 4096)) {
+	model_host = getenv("FLASH_KV_HOST") ? decimal_arg(getenv("FLASH_KV_HOST"), 1, "FLASH_KV_HOST") : 1;
+	int budget = getenv("FLASH_NBLK") ? decimal_arg(getenv("FLASH_NBLK"), 4096, "FLASH_NBLK") : QSA_NBLK;
+	if (model_host < 0 || budget < 1) {
 		fprintf(stderr, "FLASH_NBLK must be in [1,4096]\n"); return 2;
 	}
+	model_budget = (unsigned)budget;
 	if (model_qsa && getenv("MODEL_NPH")) {
 		fprintf(stderr, "MODEL_NPH cannot truncate a production QSA validation program\n"); return 2;
 	}
-	int model_attention_layers = 0;
-	for (int b = b0; b < b1; b++) if (BLK_IS_ATTN(b)) model_attention_layers++;
+	int model_attention_layers = 0, model_recurrent_layers = 0;
+	for (int b = b0; b < b1; b++) {
+		if (BLK_IS_ATTN(b)) {
+			model_attention_layers++;
+			if (model_qsa && (attn_die_of(b) < 0 || attn_die_of(b) >= nd)) {
+				fprintf(stderr, "block %d attention owner %d outside %d test dies\n", b, attn_die_of(b), nd); return 2;
+			}
+		} else model_recurrent_layers++;
+	}
 	if (model_qsa && !model_attention_layers) {
 		fprintf(stderr, "MODEL_ATTN=qsa needs at least one attention block\n"); return 2;
 	}
-	if (getenv("MODEL_INJECT")) {
-		const char *inj = getenv("MODEL_INJECT");
+	model_inject = getenv("MODEL_INJECT");
+	if (model_inject) {
+		const char *inj = model_inject;
 		if (!model_qsa || notwin ||
-		    (strcmp(inj, "layer") && strcmp(inj, "logits") && strcmp(inj, "selection")) ||
+		    (strcmp(inj, "layer") && strcmp(inj, "logits") && strcmp(inj, "selection") && strcmp(inj, "dn") && strcmp(inj, "conv") && strcmp(inj, "ple")) ||
 		    (!strcmp(inj, "logits") && !do_head) ||
+		    ((!strcmp(inj, "dn") || !strcmp(inj, "conv")) && !model_recurrent_layers) ||
+		    (!strcmp(inj, "ple") && !(b0 <= 1 && 1 < b1)) ||
 		    (!strcmp(inj, "selection") && (unsigned)T < 4u * (model_budget + 1u))) {
 			fprintf(stderr, "MODEL_INJECT requires QSA validation and a reachable requested comparison\n"); return 2;
 		}
@@ -131,13 +170,29 @@ int main(int argc, char **argv) {
 	if (model_qsa) printf("FLASH_NBLK=%u FLASH_KV_HOST=%d; cache positions=%u compact positions=%u\n", model_budget, model_host, model_maxp, compact_positions);
 	unsigned npos = ((unsigned)T + 8192 + 64 + 31) / 32 * 32;
 	size_t kcf = ATTN_KC_FLOATS(npos), vcf = (size_t)npos * 512;
+	uint32_t *ids = calloc((size_t)T + 2, 4); int nprompt = T;
+	if (!ids) { fprintf(stderr, "ID allocation failed\n"); return 1; }
+	if (getenv("MODEL_IDS")) {
+		FILE *f = fopen(getenv("MODEL_IDS"), "r"); if (!f) { perror(getenv("MODEL_IDS")); return 2; }
+		nprompt = 0;
+		char word[64];
+		while (nprompt < T && fscanf(f, "%63s", word) == 1) {
+			int id = decimal_arg(word, 248319, "MODEL_IDS token");
+			if (id < 0) { fclose(f); return 2; }
+			ids[nprompt++] = (uint32_t)id;
+		}
+		if (ferror(f)) { perror(getenv("MODEL_IDS")); fclose(f); return 2; }
+		fclose(f);
+	} else for (int i = 0; i < T; i++) { ids[i] = (uint32_t)((rs >> 8) % 248000u); frand(); }
+	if (model_qsa && !notwin && nprompt != T) {
+		fprintf(stderr, "QSA comparison needs identical teacher-forced IDs at all %d positions; MODEL_IDS supplied %d. Use MODEL_NOTWIN for separate free-running smoke/timing.\n", T, nprompt); return 2;
+	}
 	CK(cuInit(0));
-	CUmodule mod[MAXD]; CUfunction fn[MAXD]; int dev_of[MAXD];
+	CUmodule mod[MAXD]; CUfunction fn[MAXD];
 	for (int d = 0; d < nd; d++) {
 		FILE *f = fopen(argv[6 + d], "r"); size_t bytes; int die;
 		if (!f || fscanf(f, "arena %zu die %d", &bytes, &die) != 2) { fprintf(stderr, "bad manifest %s\n", argv[6 + d]); return 1; }
 		fclose(f);
-		dev_of[d] = die;
 		CUdevice dev; if (hold_ordinal(die) < 0) { fprintf(stderr, "die %d is not in CUDA_VISIBLE_DEVICES\n", die); return 1; } CK(cuDeviceGet(&dev, hold_ordinal(die)));
 		CK(cuCtxCreate_v2(&ctx[d], CU_CTX_SCHED_SPIN, dev));
 		if (hold_open(&ar[d], argv[6 + d])) return 1;
@@ -145,18 +200,6 @@ int main(int argc, char **argv) {
 	}
 	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); for (int e = 0; e < nd; e++) if (e != d) CK(cuCtxEnablePeerAccess(ctx[e], 0)); }
 	/* prompt ids: MODEL_IDS or random; the PLE's synthetic table and constants */
-	uint32_t *ids = calloc((size_t)T + 2, 4); int nprompt = T;
-	if (getenv("MODEL_IDS")) {
-		FILE *f = fopen(getenv("MODEL_IDS"), "r"); if (!f) { perror(getenv("MODEL_IDS")); return 1; }
-		nprompt = 0; while (nprompt < T && fscanf(f, "%u", &ids[nprompt]) == 1) nprompt++;
-		fclose(f);
-	} else for (int i = 0; i < T; i++) { ids[i] = (uint32_t)((rs >> 8) % 248000u); frand(); }
-	if (model_qsa && !notwin && nprompt != T) {
-		fprintf(stderr, "QSA comparison needs identical teacher-forced IDs at all %d positions; MODEL_IDS supplied %d. Use MODEL_NOTWIN for separate free-running smoke/timing.\n", T, nprompt); return 2;
-	}
-	for (int i = 0; i < nprompt; i++) if (ids[i] >= 248320u) {
-		fprintf(stderr, "MODEL_IDS token %d outside vocabulary: %u\n", i, ids[i]); return 2;
-	}
 	const size_t PLE_R = 1u << 20; uint8_t *ptab = NULL, *ctab = NULL; unsigned pcompact = 0; uint8_t ppc[160]; uint64_t pmult[3], poff[16], pvoc[16]; uint32_t pabsent = PLE_EOS_TOKEN, pend = PLE_EOS_TOKEN;
 /* the 16 real rows of position t -> the compact table slot the GPU reads (plerows compact mode) */
 #define PLE_STAGE(t) do { uint64_t rows_[16]; ple_rows_c(ids, (size_t)(t), pabsent, &pend, 1, pmult, poff, pvoc, rows_); for (int h_ = 0; h_ < 16; h_++) memcpy(ctab + ((size_t)(t) * 16 + h_) * 90, ptab + rows_[h_] * 90, 90); } while (0)
@@ -421,7 +464,7 @@ int main(int argc, char **argv) {
 			free(ts);
 		}
 		unsigned *tg = calloc((size_t)T + 1, 4); int bad = 0;
-		if (model_qsa && !notwin) bad += model_compare_layers(b0, b1, (unsigned)T - 1, do_head, hb, db, sp);
+		if (model_qsa && !notwin) bad += model_compare_layers(b0, b1, (unsigned)T - 1, do_head, hb, db, sp, hs, dst_dn, dst_conv, dst_ple);
 		for (int d = 0; d < nd; d++) {
 			CK(cuCtxSetCurrent(ctx[d]));
 			if (do_head) {
@@ -441,7 +484,10 @@ int main(int argc, char **argv) {
 			if (first >= 0) printf("; first difference at %d (gpu %u given %u)", first, tg[first], ids[first + 1]);
 			printf("\n");
 		}
-		printf("%s\n", notwin ? "ran" : bad ? "FAIL" : "OK: one launch, every token exact");
+		if (model_inject && !model_inject_reached) { fprintf(stderr, "requested injection was not reached\n"); bad++; }
+		if (notwin) printf("ran: one launch; no scalar comparison\n");
+		else if (bad) printf("FAIL\n");
+		else printf("OK: one launch; %s; final-token %s buffers exact\n", do_head ? "every prediction exact" : "no head prediction comparison", model_qsa ? "layer/QSA/recurrent/logit (when enabled)" : "stream");
 		for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); hold_close(&ar[d]); }
 		for (int d = 0; d < nd; d++) prog_free(&P[d]);
 		return bad && !notwin ? 3 : 0;
@@ -523,7 +569,7 @@ int main(int argc, char **argv) {
 			printf("\n");
 		}
 		int bad = 0;
-		if (model_qsa && !notwin) bad += model_compare_layers(b0, b1, (unsigned)t, do_head, hb, db, sp);
+		if (model_qsa && !notwin) bad += model_compare_layers(b0, b1, (unsigned)t, do_head, hb, db, sp, hs, dst_dn, dst_conv, dst_ple);
 		if (!notwin) {
 			for (int d = 0; d < nd; d++) {
 				CK(cuCtxSetCurrent(ctx[d]));
@@ -544,7 +590,6 @@ int main(int argc, char **argv) {
 			printf("\n  total %.1f us in %u phases\n", (ts[64 + nph[0] - 1] - ts[15]) / 1e3, nph[0]);
 			free(ts);
 		}
-		for (int d = 0; d < nd; d++) prog_free(&P[d]);
 		for (int d = 0; d < nd; d++) prog_free(&P[d]);
 	}
 	if (getenv("MODEL_DUMP_DIR")) {   /* die 0's whole-vector buffers after the last launch (with MODEL_NPH: a snapshot mid-block) */
@@ -576,6 +621,7 @@ int main(int argc, char **argv) {
 		printf("  S dumped to %s: lanes sum %.6g %.6g %.6g %.6g, |S| %.6g\n", getenv("MODEL_DUMP_S"), (double)S[0], (double)S[2560], (double)S[5120], (double)S[7680], ss);
 		free(S);
 	}
+	if (model_inject && !model_inject_reached) { fprintf(stderr, "requested injection was not reached\n"); fails++; }
 	printf("%s: %d of %d tokens %s; mean %.3f ms per token\n", fails ? "FAIL" : "OK", T - fails, T, notwin ? "run" : "exact", tsum / T * 1e3);
 	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); hold_close(&ar[d]); }
 	return fails ? 3 : 0;

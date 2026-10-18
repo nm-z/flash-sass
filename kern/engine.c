@@ -196,7 +196,7 @@ static void alloc_second_position(int d) {
 static void state_copy(int to_snapshot) {
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
-		for (int bb = 0; bb < NB; bb++) {
+		for (int bb = 0; bb < nlayers_run; bb++) {
 			if (BLK_IS_ATTN(bb)) {   /* the raw indexer keys of the unfinished block (the caches themselves are positional) */
 				if (dst_ring[d][bb]) { if (to_snapshot) CK(cuMemcpyDtoD(snap_ring[d][bb], dst_ring[d][bb], 2048)); else CK(cuMemcpyDtoD(dst_ring[d][bb], snap_ring[d][bb], 2048)); }
 				continue;
@@ -476,7 +476,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 		/* a fresh response: states and caches start from zero (not when resuming from the snapshot: the recurrent states
 		   were restored, the attention caches below the snapshot are intact), and so do the end flag and the abort count */
 		if (!resume) {
-			for (int bb = 0; bb < NB; bb++) {
+			for (int bb = 0; bb < nlayers_run; bb++) {
 				/* the int8 caches, the indexer pool and the ring of an attention layer need no reset: positions are written before they are read */
 				if (BLK_IS_ATTN(bb)) continue;
 				else { CK(cuMemsetD8(dst_dn[d][bb], 0, dn_bytes[d][bb])); CK(cuMemsetD8(dst_conv[d][bb], 0, conv_bytes[d][bb])); }
@@ -556,7 +556,7 @@ int engine_init(core_t *c) {
 		CK(cuCtxSetCurrent(ctx[0])); CK(cuMemHostAlloc(&h_kv, 12 * kv_layer, CU_MEMHOSTALLOC_DEVICEMAP | CU_MEMHOSTALLOC_PORTABLE)); memset(h_kv, 0, 12 * kv_layer);
 	}
 	memset(has_attn, 0, sizeof has_attn);
-	for (int bb = 3; bb < NB; bb += 4) if (attn_die_of(bb) < nd) has_attn[attn_die_of(bb)] = 1;
+	for (int bb = 3; bb < nlayers_run; bb += 4) if (attn_die_of(bb) >= 0 && attn_die_of(bb) < nd) has_attn[attn_die_of(bb)] = 1;
 	double ts0 = now();
 	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuModuleLoad(&mod[d], cubin)); CK(cuModuleGetFunction(&fn[d], mod[d], "die")); }
 	snprintf(cubin_path, sizeof cubin_path, "%s", cubin); cubin_fnv = file_fnv(cubin);
@@ -610,7 +610,8 @@ int engine_init(core_t *c) {
 		snap_ple[d] = dalloc(4 * 10 * 10240);
 		b->hlo = dalloc(4u * (unsigned)s0.on); b->amo = dalloc(8); b->apart = dalloc(16 * 8); b->acnt = dalloc(4); b->tokout = dalloc(8); b->toks = dalloc(4 * ((size_t)MAXT + 2));
 		b->tkout = dalloc(256); b->tkpart = dalloc(16 * 256); b->tkcnt = dalloc(4); b->rnd = dalloc(4 * ((size_t)MAXT + 2));
-		for (int bb = 0; bb < NB; bb++) {
+		/* FLASH_LAYERS fixtures need weights and state only for executed blocks. */
+		for (int bb = 0; bb < nlayers_run; bb++) {
 			split_t *s = &sp[d][bb]; split_of(s, d, nd, bb);
 			dn_weights_t *w = &dw[d][bb]; int is_attn = BLK_IS_ATTN(bb);
 			w->hc_attn_norm = dptr(d, bb, "hc_attn_norm.weight"); w->hc_attn_dj = dptr(d, bb, "hc_attn_dj.weight"); w->hc_attn_up = dptr(d, bb, "hc_attn_up.weight");
@@ -687,7 +688,7 @@ int engine_init(core_t *c) {
 	CK(cuMemAllocHost((void **)&h_ids, 4 * ((size_t)MAXT + 2))); CK(cuMemAllocHost((void **)&h_toks, 4 * ((size_t)MAXT + 2))); CK(cuMemAllocHost((void **)&h_rnd, 4 * ((size_t)MAXT + 2)));
 	CK(cuMemAllocHost((void **)&h_tok, 64)); CK(cuMemHostAlloc((void **)&h_abort, 64, CU_MEMHOSTALLOC_PORTABLE));
 	in_init = 0;
-	fprintf(stderr, "engine: %d dies, %d blocks, up to %d positions, %.0f MB of buffers per die, ready in %.1f s\n", nd, NB, MAXT, (double)alloc_bytes / nd / 1e6, now() - ts0);
+	fprintf(stderr, "engine: %d dies, %d/%d blocks, up to %d positions, %.0f MB of buffers per die, ready in %.1f s\n", nd, nlayers_run, NB, MAXT, (double)alloc_bytes / nd / 1e6, now() - ts0);
 	return 0;
 }
 
