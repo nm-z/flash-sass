@@ -98,8 +98,8 @@ The machine-readable inventory is [acceptance.json](validation/issue10/acceptanc
 | Request and steady decode timing | 129 outputs and 128 recorded intervals per measured request; all repetitions retained | Complete startup/prefill record and an equivalent-clock tracing-overhead comparison |
 | All-die phase boundaries | Legacy 129-token traces, phase zero, all-die opcode aggregates | Repeat with the precise schema-2 compute/dispatch boundaries |
 | Sender work and receiver waits | Per-die arithmetic reconciliation and illustrative wait deltas | Cross-die causal reconciliation for this depth matrix |
-| Hardware traffic and execution counters | CUDA 11.4 enumeration and eight real host/VRAM component profiler arms at 8,000 positions | Full-model counter attribution and a completed matched depth/layout matrix |
-| Changing selected-block layouts | Related PR #43 gather work and a verified four-row changing-layout component counter capture | Changing clustered/spread/random variants and matched counter arms with verified checkpoint-derived layout provenance |
+| Hardware traffic and execution counters | CUDA 11.4 enumeration, an initial eight-command smoke, and a completed 64-command host/VRAM component counter matrix at 3,100/8,000 positions | Full-model counter attribution and matched full-model timing |
+| Changing selected-block layouts | Related PR #43 gather work and matched component counters for four layout modes at both contexts; changing mode verifies four distinct output rows | Changing clustered/spread/random variants and matched counter arms with verified checkpoint-derived layout provenance |
 | Historical slowdown attribution | Historical rates explicitly marked unreproduced; measured replacement deltas retained | A replacement campaign satisfying the complete protocol |
 
 [PR #30](https://github.com/nm-z/flash-sass/pull/30) now contains schema-2 traces and a separate matched, short-generation overhead experiment. [PR #78](https://github.com/nm-z/flash-sass/pull/78) adds stricter live provenance and campaign acceptance checks to the runner from merged [PR #32](https://github.com/nm-z/flash-sass/pull/32). [PR #43](https://github.com/nm-z/flash-sass/pull/43) supplies representative gather workloads. Their source identities and measurement scopes differ from the legacy captures here. They are dependencies and additional evidence, not interchangeable samples for this experiment.
@@ -115,6 +115,14 @@ The raw profiler's per-invocation average `sysmem_read_bytes` is **2,359,296 byt
 The [component report, exact commands and raw data](validation/issue10/counters/workloads/README.md) state the narrower scope. The profiled `die` kernel includes gather/dequantization and its persistent-kernel framework; the reported 18 logical invocations include correctness preflight and ten repeated-row warmups. Profiling may replay kernels internally. Profiled CUDA-event rates are retained only as raw diagnostics and are **not authoritative throughput or tracing-overhead measurements**. The native binary's older embedded source identity is kept distinct from the collector and PR revisions.
 
 This sample does not explain the historical 16.917 ms/token increment or validate the full-model depth matrix. A follow-up 3,100/8,000 layout matrix waited 120 seconds for the shared lock and exited 73 before its first GPU query or workload. Full-model schema-2 attribution, complete launch/conversion provenance, matched 129-output runs, supported longer contexts, and actual checkpoint-derived selected rows remain required. PR #38 remains a draft.
+
+### Completed component matrix after the old issue #7 validator
+
+The previously blocked 3,100/8,000 component matrix subsequently completed under the shared lock on **2026-10-18, 06:10:59–06:13:27 UTC**. Eight context/layout cases contain **64 successful profiler commands and 208 accepted metric rows**. Each case has matched host/VRAM payloads and verified outputs. The measured average system-memory read count is 2,359,296 bytes per logical kernel invocation for host-pinned KV and zero for VRAM KV in all eight cases.
+
+[The completed matrix report](validation/issue10/counters/workloads/MATRIX.md) and raw data supersede the earlier claim that this component matrix was still absent. They do not replace the missing full-model experiment. Only the native `changing` layout varies its selected row per iteration; the other three patterns and ten warmups use fixed rows. No checkpoint-derived selection is claimed.
+
+A separate read-only full-model preflight also acquired the shared lock, at **06:18:12 UTC**, but its six samples each observed model GPUs 1–5 at 100% utilization. It exited **75** without inference or service mutation. The recorded GPU/process observations are timestamped evidence, not a claim that the same processes persist. Full-model readiness and the remaining acceptance requirements must be established before this PR is marked ready.
 
 ## Reproduction and evidence
 

@@ -1,5 +1,7 @@
 # Actual Maxwell gather counters
 
+This page preserves the initial eight-command smoke and its first blocked follow-ups. The later [completed 64-command component matrix](MATRIX.md) covers 3,100 and 8,000 positions and supersedes those blocked component-matrix statuses. Neither campaign is a full-model acceptance result.
+
 ## Accepted measurement and limits
 
 `smoke-8000-changing/status.json` records a successful **single-die component counter capture**, not closure of issue #10. The native C gather benchmark from PR #43 ran on archy under `/tmp/flash-sass-engine-validation.lock`. Its full driver snapshots bracket the capture at **October 17, 2026, 22:34:27–22:34:46 host-local time**. The selected Tesla M60 UUID was `GPU-431371bd-b482-96b2-4b70-04f83c6d075b`.

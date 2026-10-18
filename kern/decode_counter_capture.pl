@@ -220,6 +220,20 @@ sub acquire_lock {
     }
     return $lock;
 }
+sub inherited_lock {
+    my ($path, $fd) = @_;
+    die "invalid inherited lock descriptor\n" unless defined($fd) && $fd =~ /\A[0-9]+\z/ && $fd >= 3;
+    # Duplicate the inherited open-file description, not the pathname. An
+    # outer blocking flock can queue a finite campaign once and retain its
+    # lease across individual captures without self-deadlocking.
+    open my $lock, '+<&', $fd or die "open inherited lock descriptor: $!\n";
+    my @held = stat($lock);
+    my @named = lstat($path);
+    die "inherited lock does not identify the shared lock file\n" unless @held && @named &&
+        -f $lock && !-l $path && $held[0] == $named[0] && $held[1] == $named[1];
+    die "BLOCKED: inherited descriptor cannot acquire the shared GPU lock\n" unless flock($lock, LOCK_EX | LOCK_NB);
+    return $lock;
+}
 sub manifest {
     my ($path) = @_;
     my $m = $JSON->decode(read_text($path));
@@ -254,10 +268,10 @@ sub manifest {
 }
 sub main {
     my @args = @_;
-    my ($input, $out, $sudo, $wait, $poll, $timeout) = (undef, undef, 0, 120, 30, 180);
+    my ($input, $out, $sudo, $wait, $poll, $timeout, $lock_fd) = (undef, undef, 0, 120, 30, 180, undef);
     GetOptionsFromArray(\@args, 'manifest=s' => \$input, 'out=s' => \$out,
         'sudo!' => \$sudo, 'wait-seconds=i' => \$wait, 'poll-seconds=i' => \$poll,
-        'timeout-seconds=i' => \$timeout) or die "invalid arguments\n";
+        'timeout-seconds=i' => \$timeout, 'lock-fd=i' => \$lock_fd) or die "invalid arguments\n";
     die "--manifest and new --out required\n" unless defined($input) && defined($out) && !@args;
     die "invalid time limits\n" unless 0 <= $wait && $wait <= 2700 && 1 <= $poll && $poll <= 60 && 1 <= $timeout && $timeout <= 900;
     die "output already exists\n" if -e $out || -l $out;
@@ -279,11 +293,12 @@ sub main {
         $report->{input_identities} = [map {identity($_)} @files];
         save("$out/status.json", $report);
         my $checks = 0;
-        my $lock = acquire_lock($LOCK, $wait, $poll, sub {
+        my $lock = defined($lock_fd) ? inherited_lock($LOCK, $lock_fd) : acquire_lock($LOCK, $wait, $poll, sub {
             my $r = run_command(['lslocks', '-o', 'PID,COMMAND,TYPE,MODE,PATH'], 15);
             save(sprintf('%s/lock-check-%03d.json', $out, ++$checks), $r);
             print "BUSY: shared GPU lock check $checks\n";
         });
+        $report->{lock_mode} = defined($lock_fd) ? 'verified_inherited_descriptor' : 'owned_lock';
         print "ACQUIRED: shared GPU lock; read-only device preflight\n";
         successful(['hostname'], 10, "$out/hostname.json");
         successful(['ps', '-eo', 'pid,ppid,etime,comm'], 15, "$out/processes.json");

@@ -123,6 +123,30 @@ is($notes,1,'blocked attempt records lock status');
 close $lock;
 $lock=DecodeCounterCapture::acquire_lock("$tmp/lock",0,1,undef);
 ok($lock,'same inode can be acquired after release');
+my $inherited=DecodeCounterCapture::inherited_lock("$tmp/lock",fileno($lock));
+ok($inherited,'duplicate inherited queue lease without reopening its path');
+close $inherited;
+rejects('closing borrowed descriptor preserves outer lease',sub {
+    DecodeCounterCapture::acquire_lock("$tmp/lock",0,1,undef);
+},qr/^BLOCKED:/);
+open my $other,'+>',"$tmp/unrelated" or die $!;
+rejects('reject unrelated inherited descriptor',sub {
+    DecodeCounterCapture::inherited_lock("$tmp/lock",fileno($other));
+},qr/does not identify/);
+for my $fd (0,1,2,-1,'not-a-descriptor') {
+    rejects("reject invalid inherited descriptor $fd",sub {
+        DecodeCounterCapture::inherited_lock("$tmp/lock",$fd);
+    },qr/invalid inherited/);
+}
+symlink "$tmp/lock","$tmp/link" or die $!;
+rejects('inherited lease rejects a symlink pathname',sub {
+    DecodeCounterCapture::inherited_lock("$tmp/link",fileno($lock));
+},qr/does not identify/);
+rejects('separate open description cannot borrow another lock',sub {
+    open my $separate,'+<',"$tmp/lock" or die $!;
+    DecodeCounterCapture::inherited_lock("$tmp/lock",fileno($separate));
+},qr/^BLOCKED:/);
+close $other;
 close $lock;
 my $r=DecodeCounterCapture::run_command([$^X,'-e','print "out"; print STDERR "err"; exit 7'],5);
 is_deeply([@$r{qw(exit stdout stderr)}],[7,'out','err'],'subprocess exit and both streams preserved');

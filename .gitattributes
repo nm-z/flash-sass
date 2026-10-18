@@ -8,3 +8,6 @@ validation/issue10/counters/workloads/**/*.nvprof.csv whitespace=-blank-at-eof
 # Preserve raw process and prove output, including terminal alignment spaces.
 validation/issue10/counters/workloads/latest-lock.log whitespace=-blank-at-eol
 validation/issue10/counters/workloads/native-validation/*-tests.log whitespace=-blank-at-eol
+validation/issue10/counters/workloads/matrix-3100-8000/resident-preflight.txt whitespace=-blank-at-eol
+validation/issue10/counters/workloads/native-validation-matrix/tests.log whitespace=-blank-at-eol
+validation/issue10/counters/workloads/native-validation-matrix/tested-code.patch whitespace=-blank-at-eol

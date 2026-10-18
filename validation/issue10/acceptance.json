@@ -92,13 +92,16 @@
             "counters/profiler/nvprof114-metrics.txt",
             "counters/profiler/nvprof114-events.txt",
             "counters/workloads/smoke-8000-changing/status.json",
-            "counters/workloads/README.md"
+            "counters/workloads/README.md",
+            "counters/workloads/MATRIX.md",
+            "counters/workloads/matrix-3100-8000",
+            "counters/workloads/matrix-replay/summary.json"
          ],
          "criterion" : 6,
          "remaining" : [
-            "Accepted single-die gather counters do not provide full-model phase attribution",
-            "The matched 3100/8000 layout matrix was blocked before its first GPU operation",
-            "Kernel-level counters include gather and persistent-kernel framework; profiled elapsed rates are not authoritative throughput"
+            "The completed 64-command component matrix does not provide full-model phase attribution",
+            "Full-model timing, host overhead and device critical-path reconciliation remain separate acceptance requirements",
+            "Profiled elapsed rates include profiler replay and are not authoritative throughput"
          ],
          "requirement" : "Maxwell-compatible memory traffic, occupancy, eligible-warp and stall counters",
          "status" : "PARTIAL"
@@ -107,13 +110,16 @@
          "available" : [
             "https://github.com/nm-z/flash-sass/pull/43",
             "counters/workloads/smoke-8000-changing/status.json",
-            "counters/workloads/README.md"
+            "counters/workloads/README.md",
+            "counters/workloads/MATRIX.md",
+            "counters/workloads/matrix-3100-8000",
+            "counters/workloads/matrix-replay/summary.json"
          ],
          "criterion" : 7,
          "remaining" : [
-            "Only one 8000-position changing-layout host/VRAM component case has accepted counters",
-            "The native clustered/even/random patterns hold their selected row fixed; changing variants and real checkpoint-derived rows remain required",
-            "No accepted selected-ID extraction lineage from a checkpoint trace is present"
+            "Clustered, evenly spread and random native modes retain fixed selected rows; only changing mode varies them per iteration",
+            "No accepted checkpoint-derived selected-ID extraction lineage is present",
+            "Counter averages include ten repeated-row warmup launches and the finite die framework"
          ],
          "requirement" : "Changing clustered, spread, random and checkpoint-derived selected-block layouts",
          "status" : "PARTIAL"
@@ -148,20 +154,64 @@
       "status" : "PASS",
       "visible_positions" : 8000
    },
+   "counter_matrix_validation" : {
+      "cases" : 8,
+      "collector_tests" : 67,
+      "finished_utc" : "2026-10-18T06:13:27Z",
+      "full_issue_acceptance" : false,
+      "lock_acquired_utc" : "2026-10-18T06:10:59Z",
+      "matrix_tests" : 48,
+      "metric_rows" : 208,
+      "paired_metric_rows" : 104,
+      "patterns" : [
+         "clustered",
+         "even",
+         "random",
+         "changing"
+      ],
+      "profiled_commands" : 64,
+      "queue_exit" : 0,
+      "raw" : "counters/workloads/matrix-3100-8000",
+      "record" : "counters/workloads/matrix-replay/summary.json",
+      "scope" : "Single-die native component counters; no full-model acceptance",
+      "status" : "PASS",
+      "total_cpu_tests" : 192,
+      "validation_record" : "counters/workloads/native-validation-matrix/result.json",
+      "visible_positions" : [
+         3100,
+         8000
+      ]
+   },
    "gpu_work_blocker" : {
-      "attempt_started_utc" : "2026-10-18T05:43:39Z",
-      "exit_code" : 73,
-      "holder_pid" : 970242,
-      "holder_task" : "bash kern/sequence_validate.sh (issue #7 validation)",
-      "latest_lock_record" : "counters/workloads/latest-lock.log",
-      "latest_observed_utc" : "2026-10-18T05:52:34Z",
+      "exit_code" : 75,
+      "kind" : "FULL_MODEL_READINESS",
+      "last_sample_utc" : "2026-10-18T06:18:39Z",
       "lock" : "/tmp/flash-sass-engine-validation.lock",
+      "lock_acquired" : true,
+      "lock_acquired_utc" : "2026-10-18T06:18:12Z",
       "new_gpu_measurements" : true,
-      "note" : "The component smoke completed before the lock was reacquired by other validators. No full-model campaign was accepted.",
-      "record" : "counters/workloads/matrix-attempt/nv775-clustered/status.json",
-      "retry_record" : "counters/workloads/retry-3100-changing/status.json",
-      "status" : "BLOCKED",
-      "wait_seconds" : 120
+      "note" : "The former issue #7 lock blocker is cleared. The component campaign and readiness probe both acquired the lock. This is a timestamped observation, not attribution of GPU activity to one process or a claim that the same PID remains alive. No full-model inference or resident-service mutation was attempted.",
+      "observed_busy_model_gpus" : [
+         1,
+         2,
+         3,
+         4,
+         5
+      ],
+      "observed_model_gpu_free_mib" : [
+         52,
+         16,
+         77,
+         7,
+         3,
+         65
+      ],
+      "observed_resident_core_pid" : 3575268,
+      "observed_utilization_percent" : 100,
+      "raw" : "counters/workloads/full-model-readiness-20261018",
+      "record" : "counters/workloads/full-model-readiness-20261018/readiness.log",
+      "samples" : 6,
+      "status" : "BLOCKED"
    },
    "historical_claim" : {
       "above_cap_increment_ms_per_token" : 16.917,
@@ -180,6 +230,21 @@
       "source_commit" : "7d19d09c6ab734847bf737cfa75448161fb092e9",
       "status" : "PASS",
       "test_count" : 77
+   },
+   "previous_counter_matrix_lock_blocker" : {
+      "attempt_started_utc" : "2026-10-18T05:43:39Z",
+      "exit_code" : 73,
+      "holder_pid" : 970242,
+      "holder_task" : "bash kern/sequence_validate.sh (issue #7 validation)",
+      "latest_lock_record" : "counters/workloads/latest-lock.log",
+      "latest_observed_utc" : "2026-10-18T05:52:34Z",
+      "lock" : "/tmp/flash-sass-engine-validation.lock",
+      "new_gpu_measurements" : true,
+      "note" : "The component smoke completed before the lock was reacquired by other validators. No full-model campaign was accepted.",
+      "record" : "counters/workloads/matrix-attempt/nv775-clustered/status.json",
+      "retry_record" : "counters/workloads/retry-3100-changing/status.json",
+      "status" : "BLOCKED",
+      "wait_seconds" : 120
    },
    "previous_gpu_work_blocker" : {
       "attempt_started_utc" : "2026-10-18T03:45:22Z",
@@ -217,7 +282,7 @@
          "scope" : "Representative gather layouts; hardware traffic measurements remain pending"
       }
    ],
-   "reviewed_remote_head" : "e80c2173e3eb4653413aa5dade1400ed2b477ffc",
+   "reviewed_remote_head" : "f620ec94faf5a2eeea64e7ff7d3ee3eee03dc4e0",
    "schema" : "flash.issue10.acceptance.v1",
    "scope" : "Acceptance inventory for the preserved depth investigation. Capture/replay PASS flags do not imply issue closure.",
    "status" : "INCOMPLETE"
