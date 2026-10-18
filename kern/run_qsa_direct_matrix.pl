@@ -36,6 +36,8 @@ sub validate_build {
   or die "build manifest must identify a full source revision\n";
  defined($b->{build}{exit_code}) && $b->{build}{exit_code} == 0
   or die "build did not succeed\n";
+ $b->{passed} && $b->{sources_unchanged}
+  or die "build receipt is incomplete or its sources changed\n";
  ref($b->{sources_sha256}) eq 'HASH' && keys %{$b->{sources_sha256}}
   or die "build has no source fingerprints\n";
  for my $path (sort keys %{$b->{sources_sha256}}) {
@@ -49,7 +51,41 @@ sub validate_build {
   sha($b->{$target}{path}) eq $b->{$target}{sha256}
    or die "$target changed after build\n";
  }
+ for my $path ('kern/die.sass', 'kern/dieops.h') {
+  sha("$root/$path") eq ($b->{generated_sources_sha256}{$path} // '')
+   or die "generated source changed after build: $path\n";
+ }
  return $b;
+}
+
+sub preparing_gpu_workers {
+ my ($snapshot, $gpu, $index) = @_;
+ my @busy;
+ for my $line (split /\n/, $snapshot) {
+  next unless $line =~ /^\s*(\d+)\s+\d+\s+\d+\s+\S+\s+(\S+)\s*$/;
+  my ($pid, $comm) = ($1, $2);
+  next unless $comm =~ /^(?:(?:qsa|model|attn|gemv|idx|die).*_test|memtest|ncu|nvprof|compute-sanitiz)$/;
+  if (!open(my $envfile, '<:raw', "/proc/$pid/environ")) {
+   push @busy, $pid unless $!{ENOENT};
+   next;
+  } else {
+   my $process_env;
+   { local $/; $process_env = <$envfile>; }
+   close $envfile;
+   my ($visible) = map { /^CUDA_VISIBLE_DEVICES=(.*)$/s ? $1 : () }
+                       split /\0/, ($process_env // '');
+   if (!defined $visible) { push @busy, $pid; next; }
+   for my $device (split /,/, $visible) {
+    $device =~ s/^\s+|\s+$//g;
+    if ($device eq "$index" || $device eq $gpu ||
+        ($device =~ /^GPU-/ && index($gpu, $device) == 0)) {
+     push @busy, $pid;
+     last;
+    }
+   }
+  }
+ }
+ return @busy;
 }
 
 # Hold the same per-UUID lock used by the other workers, and check both
@@ -68,8 +104,8 @@ sub wait_idle {
    ['nvidia-smi', "--id=$gpu",
     '--query-compute-apps=gpu_uuid,pid,process_name,used_gpu_memory',
     '--format=csv,noheader,nounits'], $env, "$stem-compute.csv");
-  checked_command(['ps', '-eo', 'pid,ppid,etimes,stat,comm'],
-                  $env, "$stem-ps.txt");
+  my $processes = checked_command(['ps', '-eo', 'pid,ppid,etimes,stat,comm'],
+                                 $env, "$stem-ps.txt");
   my @lines = grep { /\S/ } split /\n/, $query;
   @lines == 2 or die "GPU query must return exactly one device\n";
   my @fields = split /,\s*/, $lines[1];
@@ -77,11 +113,12 @@ sub wait_idle {
    or die "GPU identity is not the selected Tesla M60\n";
   my ($util) = $fields[8] =~ /^(\d+)\s*%?$/;
   defined($util) or die "unreadable GPU utilization\n";
-  if ($apps !~ /\S/ && $util == 0) {
+  my @preparing = preparing_gpu_workers($processes, $gpu, $fields[0]);
+  if ($apps !~ /\S/ && $util == 0 && !@preparing) {
    return {gpu_csv => "$stem-gpu.csv", compute_csv => "$stem-compute.csv",
            ps => "$stem-ps.txt", attempts => $attempt};
   }
-  print "GPU $gpu is busy; waiting (preflight $index, attempt $attempt)\n";
+  print "GPU $gpu is busy; waiting (preflight $index, attempt $attempt, preparing PIDs @preparing)\n";
   sleep 5;
  }
 }
@@ -166,6 +203,11 @@ sub main {
   $tag .= '-replay' if $replay;
   $tag .= '-inject-'.$injection if defined $injection;
   my $preflight = wait_idle($gpu, \%env, $out, $i);
+  sha($manifest) eq $info->{build_manifest_sha256}
+   or die "build manifest changed while waiting\n";
+  validate_build($manifest, $root);
+  sha($binary) eq $info->{binary_sha256}
+   or die "binary changed while waiting\n";
   my %runenv = (%env, QSA_DIRECT_SEED => "$seed", QSA_HOSTKV => "$host",
                QSA_PATTERN => $pattern, QSA_REPLAY_PREFIX => "$replay");
   $runenv{QSA_DIRECT_INJECT} = $injection if defined $injection;
