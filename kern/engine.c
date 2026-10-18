@@ -14,6 +14,7 @@
 #include <math.h>
 #include "gguf.h"
 #include "engine.h"
+#include "prefill.h"
 #include "core.h"
 #include "ple_read_pool.h"
 #include <setjmp.h>
@@ -75,8 +76,8 @@ static CUmodule mod[MAXD]; static CUfunction fn[MAXD];
 static uint32_t *s_ids, *s_toks;   /* engine_session scratch (positions each) */
 static dn_weights_t (*dw)[NB]; static dn_bufs_t db[MAXD]; static xchg_t xc[MAXD]; static split_t (*sp)[NB];
 static dn_bufs_t db_pair[MAXD]; static xchg_t xc_pair[MAXD];
-static int two_position;       /* opt-in causal forward over two known prompt ids */
-static int last_positions, last_paired_positions;
+static int two_position, prefill_chunk;       /* opt-in causal forward over two known prompt ids */
+static int last_positions, last_paired_positions, last_prefill_chunks;
 static CUdeviceptr dPROG[MAXD], dCTL[MAXD], (*dst_dn)[NB], (*dst_conv)[NB], (*dst_kq)[NB], (*dst_ks)[NB], (*dst_vq)[NB], (*dst_vs)[NB], (*dst_pkt)[NB], (*dst_ring)[NB], (*snap_ring)[NB], dst_ple[MAXD];
 static size_t dn_bytes[MAXD][NB], conv_bytes[MAXD][NB], kcf, vcf;
 static int kv_host = 1;                  /* FLASH_KV_HOST=0: the int8 KV caches in VRAM (small contexts) instead of pinned host memory */
@@ -139,7 +140,7 @@ static uint64_t device_fnv(CUdeviceptr p, size_t bytes, uint64_t h) {
 }
 static void state_hashes(FILE *out) {
 	const uint64_t seed = 0xcbf29ce484222325ull;
-	fprintf(out, "statehash positions=%d paired_positions=%d\n", last_positions, last_paired_positions);
+	fprintf(out, "statehash positions=%d paired_positions=%d prefill_chunks=%d\n", last_positions, last_paired_positions, last_prefill_chunks);
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
 		for (int bb = 0; bb < nlayers_run; bb++) {
@@ -252,7 +253,7 @@ static void upload_programs(const prog_t *P, unsigned *nph, unsigned positions) 
 /* ---- persistent launches bounded by snapshots and known-prefix tails ---- */
 typedef struct {
 	int T, nprompt, ntok, sent, count, ended, aborted;
-	int paired_positions;
+	int paired_positions, prefill_chunks;
 	double tfirst;
 	const engine_cb *cb;
 } runctx;
@@ -356,6 +357,32 @@ static void run_known_prefix(runctx *r, const prog_t *single, const prog_t *pair
 	}
 }
 
+/* Bound headless prompt work by both the requested chunk and snapshot end.
+ * Poll at every host boundary, even if a fast GPU launch finished before its
+ * in-flight poll ran. No generated ID is admitted to this program. */
+static void run_prefill_prefix(runctx *r, const prog_t *full,
+                               const prog_t *prefix, const prog_t *pair, int end) {
+    if (!prefix) { run_known_prefix(r, full, pair, end); return; }
+    while (!r->aborted && r->count < end) {
+        if (r->cb && r->cb->alive && r->cb->alive(r->cb->arg)) {
+            r->aborted = 1;
+            break;
+        }
+        prefill_chunk_t chunk;
+        if (prefill_plan_chunk(r->count, r->nprompt, end, prefill_chunk,
+                               pair != NULL, &chunk) != 1) {
+            fprintf(stderr, "engine: invalid prefill boundary at %d of %d\n", r->count, end);
+            longjmp(run_jb, 1);
+        }
+        run_known_prefix(r, prefix, pair, chunk.end);
+        if (r->count == chunk.end) r->prefill_chunks++;
+        else if (!r->aborted) {
+            fprintf(stderr, "engine: prefill stopped at %d before %d\n", r->count, chunk.end);
+            longjmp(run_jb, 1);
+        }
+    }
+}
+
 /* ---- images: the embeddings that replace placeholder tokens, and the M-RoPE positions of every token ----
    Image tokens take fp16 rows of the img table through imap; the attention layers rotate q / k by the position triple (t, y, x) of
    a token, one axis per rope pair (pair p takes axis p % 3, the interleaved sections of the model), so the RoPE tables of the
@@ -446,6 +473,11 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	}
 	prog_t *P = calloc(MAXD, sizeof *P); unsigned nph[MAXD];
 	prog_t *pair = two_position ? calloc(MAXD, sizeof *pair) : NULL;
+    /* gen 0 is the existing teacher-forced, full-head diagnostic interface. */
+    prog_t *prefix = prefill_chunk && n_new > 0 ? calloc(MAXD, sizeof *prefix) : NULL;
+    if (!P || (two_position && !pair) || (prefill_chunk && n_new > 0 && !prefix)) {
+        free(P); free(pair); free(prefix); in_run = 0; return -1;
+    }
 	if (resume) state_copy(0);
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
@@ -464,11 +496,12 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 		CK(cuMemsetD8(db[d].toks, 0, 4 * ((size_t)T + 2)));
 		if (samp_k) CK(cuMemcpyHtoD(db[d].rnd, h_rnd, 4 * ((size_t)T + 2)));
 		model_program(&P[d], d, 0, (unsigned)nprompt, stop, samp_k, samp_topp, samp_invT, 1);
+		if (prefix) model_program(&prefix[d], d, 0, (unsigned)nprompt, stop, samp_k, samp_topp, samp_invT, 0);
 		if (pair) {
 			prog_t second;
-			model_program(&second, d, 1, (unsigned)nprompt, stop, samp_k, samp_topp, samp_invT, 1);
+			model_program(&second, d, 1, (unsigned)nprompt, stop, samp_k, samp_topp, samp_invT, prefix == NULL);
 			prog_init(&pair[d]);
-			if (prog_pair(&pair[d], &P[d], &second)) { fprintf(stderr, "engine: incompatible position programs on die %d\n", d); prog_free(&second); longjmp(run_jb, 1); }
+			if (prog_pair(&pair[d], prefix ? &prefix[d] : &P[d], &second)) { fprintf(stderr, "engine: incompatible position programs on die %d\n", d); prog_free(&second); longjmp(run_jb, 1); }
 			/* alloc_second_position gives every position disjoint scratch/inboxes. */
 			prog_pair_fuse_bf16(&pair[d], 1);
 			prog_free(&second);
@@ -479,19 +512,20 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	runctx r = { .T = T, .nprompt = nprompt, .sent = nprompt - 1, .count = resume, .cb = cb };
 	ple_pump(&r, PLE_AHEAD);   /* the first rows are in place before the kernels start (the position they start at waits for its flag) */
 	if (snap_at) {   /* run the prompt up to the snapshot position, copy the states, go on */
-		run_known_prefix(&r, P, pair, snap_at);
-		if (!r.aborted) {
+		run_prefill_prefix(&r, P, prefix, pair, snap_at);
+		if (!r.aborted && r.count == snap_at) {
 			state_copy(1);
 			memcpy(snap_ids, ids, 4 * (size_t)snap_at); snap_s = snap_at;
 		}
 	}
-	if (pair && !r.aborted) run_known_prefix(&r, P, pair, nprompt - 1);
+	if ((pair || prefix) && !r.aborted) run_prefill_prefix(&r, P, prefix, pair, nprompt - 1);
 	if (!r.aborted) { upload_programs(P, nph, 1); run_segment(&r, nph, T); }
 	double t2 = now();
-	last_positions = r.count; last_paired_positions = r.paired_positions;
-	if (st) { st->ntok = r.count; st->ended = r.ended; st->nph = nph[0]; st->resumed = resume; st->snapshot = snap_at; st->build_ms = (t1 - t0) * 1e3; st->run_ms = (t2 - t1) * 1e3; st->first_ms = r.tfirst ? (r.tfirst - t1) * 1e3 : 0; st->paired_positions = r.paired_positions; }
+	last_positions = r.count; last_paired_positions = r.paired_positions; last_prefill_chunks = r.prefill_chunks;
+	if (st) { st->ntok = r.count; st->ended = r.ended; st->nph = nph[0]; st->resumed = resume; st->snapshot = snap_at; st->build_ms = (t1 - t0) * 1e3; st->run_ms = (t2 - t1) * 1e3; st->first_ms = r.tfirst ? (r.tfirst - t1) * 1e3 : 0; st->paired_positions = r.paired_positions; st->prefill_chunks = r.prefill_chunks; }
 	for (int d = 0; d < nd; d++) prog_free(&P[d]);
 	if (pair) { for (int d = 0; d < nd; d++) prog_free(&pair[d]); free(pair); }
+	if (prefix) { for (int d = 0; d < nd; d++) prog_free(&prefix[d]); free(prefix); }
 	free(P);
 	in_run = 0;
 	return 0;
@@ -503,13 +537,17 @@ int engine_init(core_t *c) {
 	core = c; in_init = 1;
 	if (setjmp(init_jb)) { in_init = 0; engine_fini(); return -1; }
 	MAXT = c->maxt;
-	last_positions = last_paired_positions = 0;
-	const char *pair_env = getenv("FLASH_TWO_POSITION");
+	last_positions = last_paired_positions = last_prefill_chunks = 0;
+	if (prefill_parse_chunk(getenv("FLASH_PREFILL_CHUNK"), &prefill_chunk)) {
+        fprintf(stderr, "engine: FLASH_PREFILL_CHUNK must be 0..%d\n", FLASH_PREFILL_CHUNK_MAX);
+        in_init = 0; return -1;
+    }
+    const char *pair_env = getenv("FLASH_TWO_POSITION");
 	if (pair_env && strcmp(pair_env, "0") && strcmp(pair_env, "1")) {
 		fprintf(stderr, "engine: FLASH_TWO_POSITION must be 0 or 1\n");
 		in_init = 0; return -1;
 	}
-	two_position = pair_env && !strcmp(pair_env, "1");
+	two_position = pair_env ? !strcmp(pair_env, "1") : prefill_chunk > 1;
 	if (ple_read_parse_readers(getenv("FLASH_PLE_READERS"), &ple_readers)) {
 		fprintf(stderr, "engine: FLASH_PLE_READERS must be a decimal integer from 1 to 16\n");
 		longjmp(init_jb, 1);
@@ -691,7 +729,7 @@ void engine_fini(void) {
 	free(s_ids); free(s_toks); s_ids = s_toks = NULL;
 	free(h_imap); h_imap = NULL; imap_dirty = rope_dirty_T = 0;
 	memset(db, 0, sizeof db); memset(xc, 0, sizeof xc); memset(dPROG, 0, sizeof dPROG); memset(dCTL, 0, sizeof dCTL); memset(dst_ple, 0, sizeof dst_ple);
-	memset(db_pair, 0, sizeof db_pair); memset(xc_pair, 0, sizeof xc_pair); two_position = 0;
+	memset(db_pair, 0, sizeof db_pair); memset(xc_pair, 0, sizeof xc_pair); two_position = prefill_chunk = 0;
 	core = NULL;
 }
 
@@ -751,7 +789,8 @@ int engine_session(FILE *in, FILE *out) {
 				for (int k = 0; k < 8; k++) if (big[k] < 0 || us > (uint32_t)(ts[big[k]] - ts[big[k] - 1]) / 1e3) { for (int j = 7; j > k; j--) big[j] = big[j - 1]; big[k] = i; break; }
 			}
 			fprintf(out, "prof: %d phases, %.2f ms between the first and last timestamp\n", nph_, all / 1e3);
-			for (int rep = 0; rep < 12; rep++) { int bi = -1; for (int o = 0; o < OP_COUNT; o++) if (cnt[o] && (bi < 0 || tot[o] > tot[bi])) bi = o; if (bi < 0 || tot[bi] <= 0) break; fprintf(out, "  %-10s %4d phases %9.1f us (%6.1f us each)\n", die_opname[bi], cnt[bi], tot[bi], tot[bi] / cnt[bi]); tot[bi] = 0; }
+			const int all_kinds = strstr(p, "all") != NULL;   /* prof [die] all: every phase kind of the token, not the twelve longest */
+			for (int rep = 0; rep < (all_kinds ? OP_COUNT : 12); rep++) { int bi = -1; for (int o = 0; o < OP_COUNT; o++) if (cnt[o] && (bi < 0 || tot[o] > tot[bi])) bi = o; if (bi < 0 || tot[bi] <= 0) break; fprintf(out, "  %-10s %4d phases %9.1f us (%6.1f us each)\n", die_opname[bi], cnt[bi], tot[bi], tot[bi] / cnt[bi]); tot[bi] = 0; }
 			fprintf(out, "  longest:"); for (int k = 0; k < 8 && big[k] > 0; k++) fprintf(out, " #%d %s %.0f us;", big[k], die_opname[pop[big[k]]], (uint32_t)(ts[big[k]] - ts[big[k] - 1]) / 1e3);
 			fprintf(out, "\n"); fflush(out); free(ts); continue;
 		}
@@ -760,8 +799,8 @@ int engine_session(FILE *in, FILE *out) {
 		if (!strncmp(p, "config", 6)) {   /* what this engine is: the identity to attach to a measurement (the commit it was built from, where the KV lives, the layers it runs, the kernel image) */
 			char ad[64] = ""; for (int d = 0; d < nd; d++) if (has_attn[d]) { char one[8]; snprintf(one, sizeof one, "%s%d", ad[0] ? "," : "", d); strncat(ad, one, sizeof ad - strlen(ad) - 1); }
 			const char *sh = getenv("SPLIT_SHARES"), *am = getenv("ATTN_MAP");
-			fprintf(out, "config rev=%s kv_host=%d ple_disk=%d ple_readers=%u maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u two_position=%d cubin=%s cubin_fnv=%016llx\n",
-			        FLASH_REV, kv_host, ple_disk, ple_disk ? ple_readers : 0, MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, two_position, cubin_path, (unsigned long long)cubin_fnv);
+			fprintf(out, "config rev=%s kv_host=%d ple_disk=%d ple_readers=%u maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u two_position=%d prefill_chunk=%d cubin=%s cubin_fnv=%016llx\n",
+			        FLASH_REV, kv_host, ple_disk, ple_disk ? ple_readers : 0, MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, two_position, prefill_chunk, cubin_path, (unsigned long long)cubin_fnv);
 			fflush(out); continue;
 		}
 		if (!strncmp(p, "cubin", 5)) {
@@ -804,8 +843,8 @@ int engine_session(FILE *in, FILE *out) {
 			CK(cuCtxSetCurrent(ctx[0])); CK(cuMemcpyDtoH(toks, db[0].toks, 4 * (size_t)st.ntok));
 			fprintf(out, "tokens:"); for (int t = n_new ? nprompt - 1 : 0; t < st.ntok; t++) fprintf(out, " %u", toks[t]); fprintf(out, "\n");
 			/* st.ntok is the final position count; the first st.resumed positions came from the snapshot and were not run, so they are not in the average */
-			fprintf(out, "time: %.1f ms for %d positions run (%d from the snapshot; %.2f ms per position run; first token %.1f ms; %u phases; programs %.0f ms; %d paired positions)%s\n",
-			        st.run_ms, st.ntok - st.resumed, st.resumed, st.run_ms / (st.ntok - st.resumed > 0 ? st.ntok - st.resumed : 1), st.first_ms, st.nph, st.build_ms, st.paired_positions, st.ended ? "; end of turn" : "");
+			fprintf(out, "time: %.1f ms for %d positions run (%d from the snapshot; %.2f ms per position run; first token %.1f ms; %u phases; programs %.0f ms; %d paired positions; %d prefill chunks)%s\n",
+			        st.run_ms, st.ntok - st.resumed, st.resumed, st.run_ms / (st.ntok - st.resumed > 0 ? st.ntok - st.resumed : 1), st.first_ms, st.nph, st.build_ms, st.paired_positions, st.prefill_chunks, st.ended ? "; end of turn" : "");
 		}
 		fflush(out);
 	}
