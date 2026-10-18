@@ -183,6 +183,13 @@ alongside the engine's rounded completion fields. State the metric, repeat
 count and observed spread. All-CTA tracing is a separate configuration with
 its own overhead. Do not treat traced throughput as production throughput.
 
+The completed schema-2 acceptance run is in
+[`schema2-c7d0a6e`](../validation/issue13/schema2-c7d0a6e/README.md): 10 real
+lifecycle cases, matched CTA-0 and 16-CTA ABBA measurements, exact per-die
+reconciliation and bounded cross-die GPU critical paths. It includes raw
+captures, commands, source/image identities, uncertainty and the documented
+memory failure and restoration.
+
 The historical lifecycle evidence at
 [`lifecycle-7262065`](../validation/issue13/lifecycle-7262065/README.md)
 retains its original executable identity and scope. The implementation and new
@@ -205,7 +212,10 @@ the fixed-protocol ABBA comparison. The JSON names exact artifacts, resident
 process identities, runtime fields and explicit preparation/restoration helpers.
 `--check-config`, `--plan` and `--preflight DIR` expose its checks independently.
 `trace_control.rb` is the optional explicit idle-core reload/restore helper;
-its caller holds the cooperative lock throughout the operation.
+its caller holds the cooperative lock throughout the operation. Before
+enabling tracing, it requires matching ordinary runtime settings and checks
+free memory plus the trace allocation released on reload against the requested
+buffer and a configured reserve (8 MiB by default) on every declared GPU.
 
 `ruby kern/trace_reconcile.rb --dies 6 --out REPORT.json TRACE_FILES HOST_FILE`
 analyzes complete schema-2 wire exports, including gzip files. Add

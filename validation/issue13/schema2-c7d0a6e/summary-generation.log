@@ -1,0 +1,377 @@
+{
+  "engine_source": "c7d0a6e14e99edd9e91ea16c010ae7938ac647e0",
+  "memory_guard_source": "99c7134a0ef68ae9a37a827de05e8ab2fd8df17b",
+  "schema": 2,
+  "quantum_ns": 1024,
+  "clock_assumption": "Unknown constant relative GPU offsets during each capture; no independently measured drift bound.",
+  "metric_scope": "Short-generation client-observed delivery; complete request differs from the bounded GPU output window.",
+  "windows": [
+    {
+      "file": "cta1-slot-02-window.json.gz",
+      "layout": "cta1",
+      "positions": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "original_gpu_phase_records": 28416,
+      "local_partitions": 24,
+      "die_envelopes": 24,
+      "local_residual_ns": 0,
+      "die_residual_ns": 0,
+      "span_lower_ns": 126035968,
+      "span_upper_ns": 126042112,
+      "span_interval_width_ns": 6144,
+      "matched_generations": 1368,
+      "grid_barrier_joins": 24960,
+      "sampled_chain_ns": 126036992
+    },
+    {
+      "file": "cta1-slot-03-window.json.gz",
+      "layout": "cta1",
+      "positions": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "original_gpu_phase_records": 28416,
+      "local_partitions": 24,
+      "die_envelopes": 24,
+      "local_residual_ns": 0,
+      "die_residual_ns": 0,
+      "span_lower_ns": 126048256,
+      "span_upper_ns": 126054400,
+      "span_interval_width_ns": 6144,
+      "matched_generations": 1368,
+      "grid_barrier_joins": 24960,
+      "sampled_chain_ns": 126049280
+    },
+    {
+      "file": "cta1-slot-06-window.json.gz",
+      "layout": "cta1",
+      "positions": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "original_gpu_phase_records": 28416,
+      "local_partitions": 24,
+      "die_envelopes": 24,
+      "local_residual_ns": 0,
+      "die_residual_ns": 0,
+      "span_lower_ns": 125982720,
+      "span_upper_ns": 125989888,
+      "span_interval_width_ns": 7168,
+      "matched_generations": 1368,
+      "grid_barrier_joins": 24960,
+      "sampled_chain_ns": 125983744
+    },
+    {
+      "file": "cta1-slot-07-window.json.gz",
+      "layout": "cta1",
+      "positions": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "original_gpu_phase_records": 28416,
+      "local_partitions": 24,
+      "die_envelopes": 24,
+      "local_residual_ns": 0,
+      "die_residual_ns": 0,
+      "span_lower_ns": 126078976,
+      "span_upper_ns": 126085120,
+      "span_interval_width_ns": 6144,
+      "matched_generations": 1368,
+      "grid_barrier_joins": 24960,
+      "sampled_chain_ns": 126080000
+    },
+    {
+      "file": "cta1-slot-10-window.json.gz",
+      "layout": "cta1",
+      "positions": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "original_gpu_phase_records": 28416,
+      "local_partitions": 24,
+      "die_envelopes": 24,
+      "local_residual_ns": 0,
+      "die_residual_ns": 0,
+      "span_lower_ns": 126050304,
+      "span_upper_ns": 126056448,
+      "span_interval_width_ns": 6144,
+      "matched_generations": 1368,
+      "grid_barrier_joins": 24960,
+      "sampled_chain_ns": 126051328
+    },
+    {
+      "file": "cta1-slot-11-window.json.gz",
+      "layout": "cta1",
+      "positions": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "original_gpu_phase_records": 28416,
+      "local_partitions": 24,
+      "die_envelopes": 24,
+      "local_residual_ns": 0,
+      "die_residual_ns": 0,
+      "span_lower_ns": 126055424,
+      "span_upper_ns": 126061568,
+      "span_interval_width_ns": 6144,
+      "matched_generations": 1368,
+      "grid_barrier_joins": 24960,
+      "sampled_chain_ns": 126056448
+    },
+    {
+      "file": "cta16-slot-02-window.json.gz",
+      "layout": "cta16",
+      "positions": [
+        1,
+        2
+      ],
+      "original_gpu_phase_records": 227328,
+      "local_partitions": 192,
+      "die_envelopes": 12,
+      "local_residual_ns": 0,
+      "die_residual_ns": 0,
+      "span_lower_ns": 65872896,
+      "span_upper_ns": 65879040,
+      "span_interval_width_ns": 6144,
+      "matched_generations": 684,
+      "grid_barrier_joins": 12480,
+      "sampled_chain_ns": 65872896
+    },
+    {
+      "file": "cta16-slot-03-window.json.gz",
+      "layout": "cta16",
+      "positions": [
+        1,
+        2
+      ],
+      "original_gpu_phase_records": 227328,
+      "local_partitions": 192,
+      "die_envelopes": 12,
+      "local_residual_ns": 0,
+      "die_residual_ns": 0,
+      "span_lower_ns": 65887232,
+      "span_upper_ns": 65894400,
+      "span_interval_width_ns": 7168,
+      "matched_generations": 684,
+      "grid_barrier_joins": 12480,
+      "sampled_chain_ns": 65888256
+    },
+    {
+      "file": "cta16-slot-06-window.json.gz",
+      "layout": "cta16",
+      "positions": [
+        1,
+        2
+      ],
+      "original_gpu_phase_records": 227328,
+      "local_partitions": 192,
+      "die_envelopes": 12,
+      "local_residual_ns": 0,
+      "die_residual_ns": 0,
+      "span_lower_ns": 65861632,
+      "span_upper_ns": 65868800,
+      "span_interval_width_ns": 7168,
+      "matched_generations": 684,
+      "grid_barrier_joins": 12480,
+      "sampled_chain_ns": 65861632
+    },
+    {
+      "file": "cta16-slot-07-window.json.gz",
+      "layout": "cta16",
+      "positions": [
+        1,
+        2
+      ],
+      "original_gpu_phase_records": 227328,
+      "local_partitions": 192,
+      "die_envelopes": 12,
+      "local_residual_ns": 0,
+      "die_residual_ns": 0,
+      "span_lower_ns": 65898496,
+      "span_upper_ns": 65904640,
+      "span_interval_width_ns": 6144,
+      "matched_generations": 684,
+      "grid_barrier_joins": 12480,
+      "sampled_chain_ns": 65899520
+    },
+    {
+      "file": "cta16-slot-10-window.json.gz",
+      "layout": "cta16",
+      "positions": [
+        1,
+        2
+      ],
+      "original_gpu_phase_records": 227328,
+      "local_partitions": 192,
+      "die_envelopes": 12,
+      "local_residual_ns": 0,
+      "die_residual_ns": 0,
+      "span_lower_ns": 65869824,
+      "span_upper_ns": 65876992,
+      "span_interval_width_ns": 7168,
+      "matched_generations": 684,
+      "grid_barrier_joins": 12480,
+      "sampled_chain_ns": 65869824
+    },
+    {
+      "file": "cta16-slot-11-window.json.gz",
+      "layout": "cta16",
+      "positions": [
+        1,
+        2
+      ],
+      "original_gpu_phase_records": 227328,
+      "local_partitions": 192,
+      "die_envelopes": 12,
+      "local_residual_ns": 0,
+      "die_residual_ns": 0,
+      "span_lower_ns": 65885184,
+      "span_upper_ns": 65892352,
+      "span_interval_width_ns": 7168,
+      "matched_generations": 684,
+      "grid_barrier_joins": 12480,
+      "sampled_chain_ns": 65886208
+    }
+  ],
+  "measured_local_partitions": 1296,
+  "measured_die_envelopes": 216,
+  "measured_gpu_phase_records": 1534464,
+  "lifecycle_cases": [
+    {
+      "name": "single",
+      "lifecycle": {
+        "request": "1",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "2",
+        "requested": "2"
+      }
+    },
+    {
+      "name": "normal",
+      "lifecycle": {
+        "request": "2",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "5",
+        "requested": "5"
+      }
+    },
+    {
+      "name": "stop-single",
+      "lifecycle": {
+        "request": "3",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "1",
+        "completed": "2",
+        "requested": "5"
+      }
+    },
+    {
+      "name": "stop-multi",
+      "lifecycle": {
+        "request": "4",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "1",
+        "completed": "2",
+        "requested": "5"
+      }
+    },
+    {
+      "name": "disconnect",
+      "lifecycle": {
+        "request": "5",
+        "status": "aborted",
+        "aborted": "1",
+        "ended": "1",
+        "completed": "11",
+        "requested": "42"
+      }
+    },
+    {
+      "name": "argument-error",
+      "lifecycle": {
+        "request": "6",
+        "status": "argument_error",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "0",
+        "requested": "514"
+      }
+    },
+    {
+      "name": "image-error",
+      "lifecycle": {
+        "request": "7",
+        "status": "image_error",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "0",
+        "requested": "5"
+      }
+    },
+    {
+      "name": "recovery",
+      "lifecycle": {
+        "request": "8",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "5",
+        "requested": "5"
+      }
+    },
+    {
+      "name": "pair-first",
+      "lifecycle": {
+        "request": "9",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "7",
+        "requested": "7"
+      }
+    },
+    {
+      "name": "pair-resume",
+      "lifecycle": {
+        "request": "10",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "7",
+        "requested": "7"
+      }
+    }
+  ],
+  "callback_cancellation": {
+    "position": 2,
+    "callback_start_ns": 68843962914684,
+    "callback_end_ns": 68843962922038,
+    "abort_start_ns": 68843962922262,
+    "abort_end_ns": 68843963015341,
+    "reason": "callback",
+    "callback_duration_ns": 7354,
+    "return_to_abort_start_ns": 224,
+    "abort_duration_ns": 93079
+  },
+  "operational_limit": "The first four-output CTA16 reload exceeded free VRAM and its fallback exited. The original service was restarted with unchanged baseline artifacts and configuration. The new guard rejected that request before reload. Successful CTA16 evidence uses two outputs, a 16 MiB buffer per die, and an 8 MiB headroom reserve."
+}

@@ -297,6 +297,8 @@ class LifecycleCheck
       collect(core,'disconnect','aborted',1,1,42)
       need(@results.last[:headers].last.include?('abort_reason=callback'),
            'disconnect did not exercise callback-triggered cancellation')
+      need(@results.last[:validation].any? { |v| v[:cancellation_callback_checked] },
+           'callback cancellation position was outside the validated trace window')
       tokens,error = run(core,@maxt,[10,11])
       need(tokens.empty? && error.start_with?('error:'), 'oversized request accepted')
       collect(core,'argument-error','argument_error',0,0,@maxt+2,0,error: true)
