@@ -124,6 +124,12 @@ MaxAs checkout with `maxas-patch/` applied, Perl, a C compiler, and the model fi
 the six-die split (`SPLIT_SHARES`) are set for the author's machine; read `kern/Makefile`,
 `kern/serve.sh` and `SPEC.md` before expecting it to run elsewhere.
 
+Refresh the files from `maxas-patch/` in an existing MaxAs checkout before building
+the direct-dispatch kernel; its BRX encoding and label relocation support are
+required. The default build uses `DIE_DISPATCH=jump`, `GEMV_HC_ROWS=4`, and
+`GEMV_HC_SLICE_LOOP=1`. The prior linear dispatcher and eight-row/unrolled HC
+variants remain selectable with their corresponding build variables.
+
 ```
 make -C kern die.cubin libengine.so flashcore flashd hold
 ```
