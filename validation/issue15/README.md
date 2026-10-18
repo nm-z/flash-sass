@@ -1,8 +1,48 @@
 # Issue 15 timing validation
 
-## Status
+## Current status: resumed review on 2026-10-18
 
-The timing implementation is in commit
+Current host implementation: `bec699ca07f6cf1ac7452a93698d41509aa58576`.
+The resumed review found that a failed host program allocation returned an
+error while retaining `error_code: 0` and trace status `running`. The fix gives
+that failure its own `-4` code and `allocation_error` status, measures build
+time, leaves unobserved counts and run time null, and emits an explicit CLI
+error. It does not trigger a device-context rebuild.
+
+The CPU regression forces each of the three program allocations to fail and
+checks the real session's timing/error order and stale-trace rejection. It
+failed against the preceding implementation (exit 134), then passed with the
+fix (exit 0). The complete current commands, exit codes and artifact hashes are
+in [the resumed evidence](20261018-resume/results.json).
+
+| Current check | Result | Evidence |
+| --- | --- | --- |
+| Canonical count, timing and device-integer fixtures | PASS, exit 0 | [Timing fixtures](20261018-resume/timings.log) |
+| Real session, callback/cancellation and forced allocation failures | PASS, exit 0 | [Session fixtures](20261018-resume/session.log) |
+| Actual frontend JSON/SSE fixtures | PASS, exit 0; 33 groups, 30 transport cases | [Frontend TAP](20261018-resume/http-fixtures.tap.gz) |
+| Shared lock guard | PASS, exit 0; 16 assertions | [Guard TAP](20261018-resume/engine-guard.tap) |
+| Prefill planner | PASS, exit 0 | [Planner fixture](20261018-resume/prefill-plan.log) |
+| Production engine library from the committed source, CUDA stub link on engi | PASS, exit 0 | [Build log](20261018-resume/engine-build.log), [hashes](20261018-resume/artifact-sha256.txt) |
+| Final target preflight at 2026-10-18T03:32:14Z | **BLOCKED, exit 75**; lock unavailable, zero GPU queries and zero cores | [Preflight result](20261018-resume/target-preflight-final.json) |
+
+The shared lock on archy was held by PID 4010221, the issue-19 model validator;
+see the [targeted lock-owner observation](20261018-resume/lock-owner.txt).
+The first preflight at 03:21:26Z and the final check both returned 75. Neither
+check acquired the lock or measured current GPU occupancy. The older resident
+allocation observations below must not be treated as a fresh occupancy check.
+
+Both preflights used the existing frozen `5f6c120` source on archy. The guard and
+device source are identical to the current implementation; only the guard was
+invoked. The new host implementation has not run a target-GPU request. The
+existing workers and shared lock inode were left in place.
+
+**PR #50 remains draft.** Its real target-GPU request, raw device/host event
+reconciliation, and separate measured observation/transport overhead remain
+unresolved. CPU fixtures and a successful build do not satisfy that gate.
+
+## Earlier validation at 5f6c120
+
+The preceding timing implementation is in commit
 `5f6c120bab7b5cd2fc734575a127b40a9394b6ff`, which includes the callback-return fix
 `9be16f4` and merges default-branch commit
 `bf53cfd7c2b89972fa6adb2235531afa2da05a63`.
