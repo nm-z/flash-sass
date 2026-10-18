@@ -579,9 +579,12 @@ BSPIN:
 BDONE:
 02:-:-:-:6      BAR.SYNC 0x1;
 # ---- coordinated disk-PLE failure after the mandatory grid barrier ----
---:-:6:-:2      LDS bar_old, [RZ+0x@{[sprintf '%x', $DESC_OFF + 0x78]}];
-20:-:-:-:6      LOP32I.AND bar_old, bar_old, 0x8;
+--:-:6:-:2      LDS bar_old, [RZ+0x@{[sprintf '%x', $FLAGS_OFF]}];
+20:-:-:-:6      LOP32I.AND bar_old, bar_old, 0x20;
 --:-:-:-:6      ISETP.NE.U32.AND P4, PT, bar_old, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
 --:-:6:-:2  \@P4 LDG.E.CV bar_g2, [bar_cp+0x1c];
 20:-:-:-:6  \@P4 ISETP.NE.U32.AND P4, PT, bar_g2, RZ, PT;
 --:-:-:-:6      NOP;

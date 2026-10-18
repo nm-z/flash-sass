@@ -35,5 +35,24 @@ int main(void) {
     prog_t absolute;prog_init(&absolute);absolute.token_offset=7;
     ph_conv1d(&absolute,1,2,3,4,99,1024); CHECK(absolute.p[0].w[tw]==99 && !absolute.p[0].w[31]);
     prog_free(&absolute);prog_free(&a);prog_free(&b);prog_free(&out);
+    /* PLE failure must be checked before reading the second position, while
+     * the following independent operation still consumes a paired descriptor. */
+    prog_init(&a); prog_init(&b); prog_init(&out);
+    a.loop=b.loop=1; b.token_offset=1;
+    for (int k=0;k<2;k++) {
+        prog_t *p=k?&b:&a;
+        phase_t *row=prog_add(p,OP_PLEROWS,1);
+        row->w[30]=PHASE_PLE_CHECK;
+        ph_tokv(p,row,0x168,0,0);
+        prog_add(p,OP_ACTQ256,1);
+    }
+    CHECK(!(PHASE_PLE_CHECK & 24u));
+    CHECK(prog_pair(&out,&a,&b)==0 && out.n==4);
+    CHECK(out.p[0].w[30]==PHASE_PLE_CHECK && out.p[1].w[30]==PHASE_PLE_CHECK);
+    CHECK(out.p[0].w[2+(0x168-0x140)/4]==0 && out.p[1].w[2+(0x168-0x140)/4]==1);
+    CHECK((out.p[2].w[30]&8u) && !(out.p[3].w[30]&8u));
+    CHECK(!memcmp(&out.p[0],&a.p[0],sizeof(phase_t)));
+    CHECK(!memcmp(&out.p[1],&b.p[0],sizeof(phase_t)));
+    prog_free(&a);prog_free(&b);prog_free(&out);
     puts("pair_prog_test: token offsets, descriptor preservation, shape rejection, and unchanged-on-error PASS");return 0;
 }

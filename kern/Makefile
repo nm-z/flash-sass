@@ -524,7 +524,27 @@ libengine_pleiotest.so: $(ENGINE_SRC) prog.h hold.h core.h engine.h ple_io.h die
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -DFLASH_PLE_IO_TEST=1 -DFLASH_REV='"$(FLASH_REV)"' -o $@.new $(ENGINE_SRC) -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
 
 ple_io_test: ple_io_test.c ple_io.h
-	$(CC) -std=gnu99 -O2 -Wall -Wextra -o $@ ple_io_test.c
+	$(CC) -std=gnu99 -O2 -Wall -Wextra -UNDEBUG -o $@ ple_io_test.c
+
+# CPU-only checks. CUDA calls in the wait test are supplied by its local mock.
+ple_io_wait_test: ple_io_wait_test.c engine.c engine.h core.h prog.h ple_io.h dieops.h ../ref/ple.c ../ref/fmath.c
+	$(CC) -std=gnu99 -O2 -Wall -UNDEBUG -ffunction-sections -fdata-sections -o $@ ple_io_wait_test.c ../ref/ple.c ../ref/fmath.c -I../ref -I$(CUDA)/include -Wl,--gc-sections -lm
+
+ple_io_http_stub_test: ple_io_http_stub_test.c flashd.c tok.h jinja.c jinja.h json.c json.h
+	$(CC) -std=gnu99 -O2 -Wall -UNDEBUG -ffunction-sections -fdata-sections -o $@ ple_io_http_stub_test.c jinja.c json.c -Wl,--gc-sections -lm -lpthread
+
+test-ple-io-cpu: ple_io_test pair_prog_test pair_bf16_plan_test ple_io_wait_test ple_io_http_stub_test
+	./ple_io_test
+	./pair_prog_test
+	./pair_bf16_plan_test
+	./ple_io_wait_test
+	perl SocketEvidence_test.pl
+	perl -c ple_io_check.pl
+	perl -c ple_io_http_check.pl
+	./ple_io_http_stub_test
+
+.PHONY: test-ple-io-cpu
+
 # Two-position descriptor and state equivalence tests.
 pair_prog_test: pair_prog_test.c prog.c prog.h dieops.h ../ref/quant.c ../ref/gguf.c ../ref/split.c
 	$(CC) -std=gnu99 -O2 -Wall -o $@ pair_prog_test.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I$(CUDA)/include -lm

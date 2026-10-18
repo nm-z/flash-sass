@@ -104,8 +104,13 @@ static uint32_t ple_absent_id, ple_end_id; /* the constants block's absent / end
 static uint32_t *ple_seq;                  /* the ids of the response so far: the prompt, then each generated token as it arrives */
 static int ple_next, ple_start;            /* the first position whose rows are not staged yet; the position the response starts at */
 static ple_io_error ple_failure; static int ple_failed;
+static double ple_failed_at;
 #ifdef FLASH_PLE_IO_TEST
 static unsigned long long ple_io_launches;
+static unsigned ple_io_launched_mask, ple_io_sync_mask, ple_io_error_mask;
+static uint32_t ple_io_counts[MAXD], ple_io_errors[MAXD];
+static int ple_io_resumed;
+static double ple_io_failure_ms;
 #endif
 static unsigned long long ple_short_reads; /* failed row reads; publish failure instead of a valid zero-filled row */
 #define PLE_AHEAD 128                      /* positions staged ahead of the one that runs */
@@ -286,7 +291,7 @@ static void ple_pump(runctx *r, int budget) {
         for (int h = 0; h < 16; h++) {
             off_t at = ple_off + (off_t)(rows[h] * 90);
             if (ple_read_exact(ple_fd, dst + h * 90, 90, at, q, h, &ple_failure)) {
-                ple_failed = 1; ple_short_reads++;
+                ple_failed = 1; ple_failed_at = now(); ple_short_reads++;
                 __atomic_store_n(&h_rdy[q], UINT32_MAX, __ATOMIC_RELEASE);
                 fprintf(stderr, "engine: PLE I/O position %d head %d offset %lld bytes %zu/%zu: %s\n",
                         ple_failure.position, ple_failure.head,
@@ -310,18 +315,37 @@ static int run_segment(runctx *r, const unsigned *nph, int ntok_) {
 		CK(cuCtxSetCurrent(ctx[d]));
 		unsigned ntok = (unsigned)ntok_; void *params[] = { &dPROG[d], (void *)&nph[d], &dCTL[d], &ntok };
 		CK(cuLaunchKernel(fn[d], 16, 1, 1, 256, 1, 1, 0, 0, params, NULL));
+#ifdef FLASH_PLE_IO_TEST
+        ple_io_launched_mask |= 1u << d;
+#endif
 	}
 	/* poll ctl[2] on die 0 through a non-blocking stream (the kernel runs on the legacy one), then the new tokens;
 	   once the kernel is done, one last read */
 	CK(cuCtxSetCurrent(ctx[0]));
 	struct timespec nap = { 0, ple_disk ? 50000 : 500000 };   /* with the PLE rows staged on demand a new token is learned of as soon as possible: the next position's rows wait on it */
 	double last_alive = now();
-	int warned = 0;
 	double last_chk = now(), last_move = now(), watchdog_s = getenv("FLASH_WATCHDOG_S") ? atof(getenv("FLASH_WATCHDOG_S")) : 600.0; int last_count = -1;
+    unsigned completed = 0;
 	for (int fin = 0; !fin; ) {
-		CUresult q = cuStreamQuery(0);
-		if (q != CUDA_SUCCESS && q != CUDA_ERROR_NOT_READY) CK(q);
-		fin = q == CUDA_SUCCESS;
+        /* A finished die 0 does not prove its peers finished. Keep every
+         * stream inside this bounded polling loop; synchronizing a stuck
+         * peer after leaving the loop would bypass the watchdog. */
+        double check_at = now();
+        for (int d = 0; d < nd; d++) {
+            if (completed & (1u << d)) continue;
+            /* Preserve the existing 50 ms peer polling cadence while die 0
+             * runs. Once it finishes, poll unfinished peers on every pass. */
+            if (d && !(completed & 1u) && check_at - last_chk <= 0.05) continue;
+            CK(cuCtxSetCurrent(ctx[d]));
+            CUresult q = cuStreamQuery(0);
+            if (q != CUDA_SUCCESS && q != CUDA_ERROR_NOT_READY) CK(q);
+            if (q == CUDA_SUCCESS) completed |= 1u << d;
+        }
+        fin = completed == ((1u << nd) - 1u);
+#ifdef FLASH_PLE_IO_TEST
+        ple_io_sync_mask = completed;
+#endif
+        CK(cuCtxSetCurrent(ctx[0]));
 		CK(cuMemcpyDtoHAsync(h_tok, dCTL[0] + 0x8, 4, pollst[0])); CK(cuStreamSynchronize(pollst[0]));
 		r->count = (int)(*h_tok & 0x7fffffffu); r->ended = (int)(*h_tok >> 31);
 		if (r->count > r->T) r->count = r->T;
@@ -337,10 +361,12 @@ static int run_segment(runctx *r, const unsigned *nph, int ntok_) {
 		   up when the token count has not moved for FLASH_WATCHDOG_S seconds (a deadlock) */
 		if (!fin && now() - last_chk > 0.05) {
 			last_chk = now();
-			for (int d = 1; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CUresult qd = cuStreamQuery(0); if (qd != CUDA_SUCCESS && qd != CUDA_ERROR_NOT_READY) { fprintf(stderr, "engine: die %d failed\n", d); CK(qd); } if (qd == CUDA_SUCCESS && !r->aborted && !warned) { warned = 1; fprintf(stderr, "engine: die %d finished its launch (token count %d of %d)\n", d, r->count, r->ntok); } }
-			CK(cuCtxSetCurrent(ctx[0]));
 			if (r->count != last_count) { last_count = r->count; last_move = now(); }
 			if (now() - last_move > watchdog_s) { fprintf(stderr, "engine: no progress for %.0f s at token %d: giving up\n", watchdog_s, r->count); longjmp(run_jb, 1); }
+            if (ple_failed && now() - ple_failed_at > watchdog_s) {
+                fprintf(stderr, "engine: PLE failure did not terminate all dies within %.1f s\n", watchdog_s);
+                longjmp(run_jb, 1);
+            }
 		}
 		if (!fin) nanosleep(&nap, NULL);
 	}
@@ -349,10 +375,16 @@ static int run_segment(runctx *r, const unsigned *nph, int ntok_) {
     for (int d = 0; d < nd; d++) {
         uint32_t error = 0; CK(cuCtxSetCurrent(ctx[d]));
         CK(cuMemcpyDtoH(&error, dCTL[d] + 0x1c, 4));
+#ifdef FLASH_PLE_IO_TEST
+        ple_io_errors[d] = error;
+        CK(cuMemcpyDtoH(&ple_io_counts[d], dCTL[d] + 0x8, 4));
+        ple_io_counts[d] &= 0x7fffffffu;
+        if (error) ple_io_error_mask |= 1u << d;
+#endif
         if (error) {
             failed = 1;
             if (!ple_failed) {
-                ple_failed = 1;
+                ple_failed = 1; ple_failed_at = now();
                 ple_failure = (ple_io_error){ .position = r->count, .head = -1,
                     .offset = (off_t)-1, .expected = 90, .errnum = EIO };
             }
@@ -463,8 +495,15 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	for (int i = 0; i < nimg; i++) if (snap_at > imgs[i].s) snap_at = imgs[i].s;   /* the snapshot would not know the image */
 	if (snap_at <= resume) snap_at = 0;
 	if (!resume) snap_s = 0;   /* this response rewrites the attention caches from position 0 */
+#ifdef FLASH_PLE_IO_TEST
+    ple_io_launched_mask = ple_io_sync_mask = ple_io_error_mask = 0;
+    memset(ple_io_counts, 0, sizeof ple_io_counts);
+    memset(ple_io_errors, 0, sizeof ple_io_errors);
+    ple_io_resumed = resume; ple_io_failure_ms = 0;
+    ple_io_test_reset_stats();
+#endif
 	if (ple_disk) {   /* a new id for this response (never 0); the rows of the positions it runs are staged from `resume` on */
-		ple_failed = 0; memset(&ple_failure, 0, sizeof ple_failure);
+		ple_failed = 0; ple_failed_at = 0; memset(&ple_failure, 0, sizeof ple_failure);
         memset(h_rdy, 0, 4 * ((size_t)T + 2));
         ple_rid++; if (!ple_rid || ple_rid == UINT32_MAX) ple_rid = 1; ple_start = ple_next = resume; ple_short_reads = 0;
 		memcpy(ple_seq, ids, 4 * (size_t)nprompt);
@@ -523,6 +562,10 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
     return 0;
 ple_io_failed:
     snap_s = 0;
+    last_positions = r.count; last_paired_positions = r.paired_positions;
+#ifdef FLASH_PLE_IO_TEST
+    ple_io_failure_ms = ple_failed_at ? (now() - ple_failed_at) * 1e3 : 0;
+#endif
     if (pair) { for (int d = 0; d < nd; d++) prog_free(&pair[d]); free(pair); }
     for (int d = 0; d < nd; d++) prog_free(&P[d]);
     free(P); in_run = 0; return -5;
@@ -761,8 +804,18 @@ int engine_session(FILE *in, FILE *out) {
 		char *p = line; while (*p == ' ') p++;
 		#ifdef FLASH_PLE_IO_TEST
         if (!strncmp(p, "ple_io_test status", 18)) {
-            fprintf(out, "ple_io_test launches=%llu failed=%d pos=%d head=%d snapshot=%d\n",
-                    ple_io_launches, ple_failed, ple_failure.position, ple_failure.head, snap_s);
+            fprintf(out, "ple_io_test launches=%llu failed=%d pos=%d head=%d snapshot=%d"
+                    " offset=%lld bytes=%zu expected=%zu errnum=%d eof=%d"
+                    " dies=%d launched_mask=%u sync_mask=%u error_mask=%u resumed=%d failure_ms=%.3f"
+                    " read_calls=%llu partial_reads=%llu eintr_retries=%llu fault_matches=%llu fault_reads=%llu",
+                    ple_io_launches, ple_failed, ple_failure.position, ple_failure.head, snap_s,
+                    (long long)ple_failure.offset, ple_failure.bytes, ple_failure.expected,
+                    ple_failure.errnum, ple_failure.eof,
+                    nd, ple_io_launched_mask, ple_io_sync_mask, ple_io_error_mask, ple_io_resumed, ple_io_failure_ms,
+                    ple_io_stats.read_calls, ple_io_stats.partial_reads, ple_io_stats.eintr_retries,
+                    ple_io_stats.fault_matches, ple_io_stats.fault_reads);
+            for (int d = 0; d < nd; d++) fprintf(out, " count%d=%u error%d=%u", d, ple_io_counts[d], d, ple_io_errors[d]);
+            fputc('\n', out);
             fflush(out); continue;
         }
         if (!strncmp(p, "ple_io_test ", 12)) {

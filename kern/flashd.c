@@ -370,19 +370,28 @@ static void chat(int fd, const char *body, size_t bn) {
 		if (!g.gone && chunk(fd, b.s, b.n)) g.gone = 1;
 		sb_free(&b);
 	}
-	char line[256]; int quiet = 0, ngen = 0, ended = 0, resumed = 0, snapped = 0, done = 0, failed = 0; double run_ms = 0, first_ms = 0;
+	char line[256], engine_error[256] = "the engine failed during the response";
+	int quiet = 0, ngen = 0, ended = 0, resumed = 0, snapped = 0, done = 0, failed = 0; double run_ms = 0, first_ms = 0;
 	/* a long prompt takes minutes before the first token: an idle stream is cut by proxies (Cloudflare closes after 100 s), so an SSE comment goes out
 	   every 10 s while the engine is silent */
 	{ struct timeval tv = { 2, 0 }; setsockopt(fileno(in), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv); }
 	for (;;) {
 		if (!fgets(line, sizeof line, in)) {
-			if ((errno == EAGAIN || errno == EWOULDBLOCK) && !g.gone) { clearerr(in); if (client_gone(fd)) { g.gone = 1; break; } if (stream && ++quiet >= 5) { quiet = 0; if (chunk(fd, ": keepalive\n\n", 13)) { g.gone = 1; break; } } continue; }
+			int read_error = ferror(in), saved_errno = errno;
+			if (read_error && (saved_errno == EAGAIN || saved_errno == EWOULDBLOCK) && !g.gone) { clearerr(in); if (client_gone(fd)) { g.gone = 1; break; } if (stream && ++quiet >= 5) { quiet = 0; if (chunk(fd, ": keepalive\n\n", 13)) { g.gone = 1; break; } } continue; }
 			break;
 		}
 		unsigned id; int e, npm; double r, f;
 		if (sscanf(line, "tok %u", &id) == 1) { on_token(&g, id); if (g.gone || g.cap_hit) break; }
 		else if (sscanf(line, "done %d %d %d %lf %lf %d %d", &ngen, &e, &npm, &r, &f, &resumed, &snapped) >= 5) { ended = e; run_ms = r; first_ms = f; done = 1; break; }
-		else if (!strncmp(line, "error", 5)) { fprintf(stderr, "flashd: engine: %s", line); failed = 1; break; }
+		else if (!strncmp(line, "error", 5)) {
+			fprintf(stderr, "flashd: engine: %s", line);
+			char *detail = line + 5; if (*detail == ':') detail++;
+			while (*detail == ' ' || *detail == '\t') detail++;
+			detail[strcspn(detail, "\r\n")] = 0;
+			if (*detail) snprintf(engine_error, sizeof engine_error, "%s", detail);
+			failed = 1; break;
+		}
 	}
 	if (!done && !g.gone && !g.cap_hit) failed = 1;   /* the engine's stream ended without its "done" line: the response is not complete */
 	fclose(in); fclose(out);
@@ -393,11 +402,13 @@ static void chat(int fd, const char *body, size_t bn) {
 		if (stream) {
 			if (!g.gone) {
 				sbuf b = {0};
-				sb_puts(&b, "data: {\"error\":{\"message\":\"the engine failed during the response\",\"type\":\"engine_error\"}}\n\n");
+				sb_puts(&b, "data: {\"error\":{\"message\":");
+				sb_json_str(&b, engine_error, strlen(engine_error));
+				sb_puts(&b, ",\"type\":\"engine_error\"}}\n\n");
 				chunk(fd, b.s, b.n); sb_free(&b);
 				chunk(fd, "data: [DONE]\n\n", 14); wrs(fd, "0\r\n\r\n");
 			}
-		} else error(fd, 502, "the engine failed during the response");
+		} else error(fd, 502, engine_error);
 		sb_free(&g.content); sb_free(&g.reasoning); arena_free(a);
 		return;
 	}

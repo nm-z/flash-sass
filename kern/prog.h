@@ -9,6 +9,9 @@
 #include <stdint.h>
 
 typedef struct { uint32_t w[32]; } phase_t;
+/* Descriptor word 30: bits 3/4 belong to paired execution. Bit 5 requests
+ * a grid-wide PLE failure check before the following phase. */
+#define PHASE_PLE_CHECK 32u
 typedef struct { phase_t *p; int n, cap; int xj; int loop; unsigned token_offset; int pending_wait; uint32_t stop[2]; CUdeviceptr end; int samp_k; float samp_topp, samp_invT; } prog_t;   /* stop[2], end: a generated token equal to stop[0] or stop[1] sets *end (ctl[5]) = 0x80000000 and the kernel exits after that token (0xffffffff: none) */
    /* pending_wait: the next phase consumes an exchange */   /* xj: exchanges issued (slot parity); loop: token-relative
  * parameters are marked for the kernel's token loop instead of taking the position literally */
