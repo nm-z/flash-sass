@@ -1,0 +1,80 @@
+{
+   "artifacts" : [
+      {
+         "bytes" : 3856,
+         "name" : "cutoff-adjacent-low-id-a.npz",
+         "sha256" : "b77724668c60ba8ea50ae12a791d2a9ae7b0b3002e24557a31efe3dd40a3ace9"
+      },
+      {
+         "bytes" : 3858,
+         "name" : "cutoff-adjacent-low-id-b.npz",
+         "sha256" : "4ec0219485b1085472816f4d7cf0cc10895ea29300135de24e1ca62d9d4a279f"
+      },
+      {
+         "bytes" : 3825,
+         "name" : "cutoff-equal.npz",
+         "sha256" : "ab28de6fc4ba912bc28b6fa37e42ba941a0e1349c35ae386c358ff779d467ea1"
+      },
+      {
+         "bytes" : 3821,
+         "name" : "cutoff-zero.npz",
+         "sha256" : "f612412998065bac58c86cc374e32361d9187dc6757a114e2c7797635881eb8e"
+      },
+      {
+         "bytes" : 21279,
+         "name" : "full-chain-cutoff-0.npz",
+         "sha256" : "3ffb7e256a9b451de097c96f0b489bcff00104dae6d9c1a0386185cfd6e11f80"
+      },
+      {
+         "bytes" : 21291,
+         "name" : "full-chain-cutoff-1.npz",
+         "sha256" : "8e8edda197f1793287bfaa317867f451c4f372bac7c9241c0d69af17a79bd2e9"
+      },
+      {
+         "bytes" : 5242,
+         "name" : "hf-bf16-boundary.npz",
+         "sha256" : "f871cd22134619ab62a5293a9722bcdb08565a10ec210e583ff2befa69738fb0"
+      },
+      {
+         "bytes" : 389417,
+         "name" : "index-2052.npz",
+         "sha256" : "b6b166be3452d3ecc975916340ae3ddc3e4705a2a9d54b580f79a230b5e48efe"
+      },
+      {
+         "bytes" : 198964,
+         "name" : "attention-1.npz",
+         "sha256" : "c2f0966cb9b213e83226a92b3376495e9c0df27c32d63319bcbfc96e552a67ab"
+      },
+      {
+         "bytes" : 247017,
+         "name" : "attention-2.npz",
+         "sha256" : "b7bf23f4f3ba726804a6e58fb45717307fd5569696082c8b8f7eed58d19cfd86"
+      },
+      {
+         "bytes" : 251801,
+         "name" : "attention-3.npz",
+         "sha256" : "046003b9a2f5c54a128f486051ace636580fe40bd5c5afbefd6d507d3116282d"
+      },
+      {
+         "bytes" : 256548,
+         "name" : "attention-4.npz",
+         "sha256" : "83b9635c07ce2ce6660812fb77b7f3d39300050c8acd6c429a8311741c7e434f"
+      },
+      {
+         "bytes" : 5205185,
+         "name" : "attention-1025.npz",
+         "sha256" : "144b3b4948bd68ee5cf990b19161cb98789828b161dd1dc948ac24ff1e29f6d0"
+      }
+   ],
+   "external_oracle" : {
+      "blob" : "946f5fd6e9ba21347654b1b2ca196e86b0f751b3",
+      "commit" : "8498ed425fa01bbee7d086efdf1a6634c2962aed",
+      "execution" : "literal AST definitions; observation before topk",
+      "path" : "src/transformers/models/qwen4_exp/modeling_qwen4_exp.py",
+      "repository" : "huggingface/transformers",
+      "tie_policy" : "backend dependent; admissible cutoff sets tested"
+   },
+   "original_artifacts_sha256" : "e6588cc3686becef542f02a8f42de7483ae8e11fe160a5b08b482ec3eaf86280",
+   "original_report_sha256" : "d213b972c0e20552c45e6b2fd880036618090430d4893dbdb4e686d7a46e3b41",
+   "schema" : "flash-sass.qsa-goldens.v1"
+}

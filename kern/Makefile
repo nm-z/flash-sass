@@ -112,7 +112,7 @@ test-gemv: all
 	./gemv_test $(SHARD1) blk.4.ffn_down_exps.weight 0 20
 
 clean:
-	rm -f *.cubin *.dis *.so *.so.new die.sass dieops.h flashcore flashd flashvis hold memtest fence *_test
+	rm -f *.cubin *.dis *.so *.so.new die.sass dieops.h flashcore flashd flashvis hold memtest fence *_test qsa_oracle qsa_oracle_gpu qsa_logits_check
 
 .PHONY: all test test-gemv clean
 
@@ -504,6 +504,15 @@ sample_test: sample_test.c dieops.h ../ref/sample.c ../ref/sample.h ../ref/fmath
 qsa_test: qsa_test.c dieops.h ../ref/qsa.c ../ref/qsa.h ../ref/attn.c ../ref/attn.h ../ref/fmath.c ../ref/quant.c ../ref/gguf.c
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ qsa_test.c ../ref/qsa.c ../ref/attn.c ../ref/fmath.c ../ref/quant.c ../ref/gguf.c -I../ref -I$(CUDA)/include -lcuda -lm
 
+# Strict numerical validation: implicit contraction and reassociation would
+# invalidate the declared comparison with the instruction-order scalar twins.
+ORACLE_CFLAGS = -std=gnu11 -O2 -fno-fast-math -ffp-contract=off -frounding-math -Wall -Wextra -Werror
+qsa_oracle: qsa_oracle.c qsa_oracle_bridge.c ../ref/qsa.c ../ref/qsa.h ../ref/attn.c ../ref/attn.h ../ref/fmath.c ../ref/fmath.h
+	$(CC) $(ORACLE_CFLAGS) -I../ref -o $@ qsa_oracle.c qsa_oracle_bridge.c ../ref/qsa.c ../ref/attn.c ../ref/fmath.c -lm
+
+qsa_logits_check: qsa_logits_check.c
+	$(CC) $(ORACLE_CFLAGS) -o $@ $< -lm
+
 attnpartn_unitmap: attnpartn_unitmap.c
 	$(CC) -std=gnu99 -O2 -Wall -Wextra -o $@ $<
 
@@ -527,3 +536,9 @@ dn_l2norm_test: dn_l2norm_test.c ../ref/deltanet.c ../ref/fmath.c
 
 ple_eos_test: ple_eos_test.c ../ref/ple.c ../ref/fmath.c
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ ple_eos_test.c ../ref/ple.c ../ref/fmath.c -I../ref -lm
+
+# Override CUDA_LIBDIR with $(CUDA)/lib64/stubs for compile-only checks.
+# Never add the CUDA stub directory to the runtime library search path.
+CUDA_LIBDIR ?= $(CUDA)/lib64
+qsa_oracle_gpu: qsa_oracle.c qsa_oracle_bridge.c qsa_oracle_gpu.c qsa_oracle_gpu.h dieops.h ../ref/qsa.c ../ref/qsa.h ../ref/attn.c ../ref/attn.h ../ref/fmath.c ../ref/fmath.h
+	$(CC) $(ORACLE_CFLAGS) -DQSA_ORACLE_TARGET -I../ref -I$(CUDA)/include -o $@ qsa_oracle.c qsa_oracle_bridge.c qsa_oracle_gpu.c ../ref/qsa.c ../ref/attn.c ../ref/fmath.c -L$(CUDA_LIBDIR) -lcuda -lm

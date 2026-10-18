@@ -1592,8 +1592,12 @@ unfinished block.
 - indexer key `ik = W_ik z` (128), kept raw in a ring of the last four; the token that completes a block pools it:
   mean of the four raw keys ((r0 + r1) + r2) + r3 times 0.25, `RMS128 ⊙ k_norm`, RoPE at the position of the block's
   first token, stored as fp16;
-- score of block b = Σ_h relu(q_h · pool_b) over the nv complete blocks (the 1/√128 of the reference does not
-  change the order); the best min(nv, 512) blocks, lower index first among equal scores, plus the tail block, are
+- score of block b = Σ_h relu(q_h · pool_b) over the nv complete blocks. Positive scaling by 1/√128 preserves
+  strict order over exact real numbers. The reference's rounded FP32 division can merge adjacent scores into
+  a tie at the cutoff, changing selected IDs; its backend top-k tie policy need not match the local lower-ID
+  policy. See [QSA numerical validation](NUMERICAL_VALIDATION.md) for the pinned operation sequence,
+  executable cutoff witnesses, and measured selection/output effects. The best min(nv, 512) blocks,
+  lower index first among equal local scores, plus the tail block, are
   attended (keys 4 b .. 4 b + 3 of each, ascending), everything else is dropped. With nv ≤ 512 nothing is dropped,
   so below 2,051 tokens the sparse path is the dense one.
 
