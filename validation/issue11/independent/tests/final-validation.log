@@ -1,0 +1,102 @@
+host=engi
+source=3f8a00f2803db6eafc53491856c8eae0eda415f2
+initial_status=host arithmetic/domain gates: PASS (exit 0)
+negative control rejected by actual score NRMS gate: PASS (exit 3)
+one-ULP and signed-zero controls rejected by local byte parity: PASS (exit 3)
+quantizer boundary and batch fixtures: PASS (exit 0)
+frozen/cutoff-adjacent-low-id-a.npz: PASS (exit 0)
+frozen/cutoff-adjacent-low-id-b.npz: PASS (exit 0)
+frozen/cutoff-equal.npz: PASS (exit 0)
+frozen/cutoff-zero.npz: PASS (exit 0)
+frozen/full-chain-cutoff-0.npz: PASS (exit 0)
+frozen/full-chain-cutoff-1.npz: PASS (exit 0)
+frozen/hf-bf16-boundary.npz: PASS (exit 0)
+frozen/index-2052.npz: PASS (exit 0)
+frozen/attention-1.npz: PASS (exit 0)
+frozen/attention-2.npz: PASS (exit 0)
+frozen/attention-3.npz: PASS (exit 0)
+frozen/attention-4.npz: PASS (exit 0)
+frozen/attention-1025.npz: PASS (exit 0)
+generated/index-and-sparse-1: PASS (exit 0)
+generated/index-and-sparse-2047: PASS (exit 0)
+generated/index-and-sparse-2048: PASS (exit 0)
+generated/index-and-sparse-2049: PASS (exit 0)
+generated/index-and-sparse-2050: PASS (exit 0)
+generated/index-and-sparse-2051: PASS (exit 0)
+generated/index-and-sparse-2052: PASS (exit 0)
+generated/index-and-sparse-3100: PASS (exit 0)
+generated/index-and-sparse-3101: PASS (exit 0)
+generated/index-and-sparse-3102: PASS (exit 0)
+generated/index-and-sparse-3103: PASS (exit 0)
+generated/index-and-sparse-8000: PASS (exit 0)
+generated/index-and-sparse-8001: PASS (exit 0)
+generated/index-and-sparse-8002: PASS (exit 0)
+generated/index-and-sparse-8003: PASS (exit 0)
+generated/index-and-sparse-65000: PASS (exit 0)
+generated/index-and-sparse-65001: PASS (exit 0)
+generated/index-and-sparse-65002: PASS (exit 0)
+generated/index-and-sparse-65003: PASS (exit 0)
+generated/index-and-sparse-262000: PASS (exit 0)
+generated/index-and-sparse-262001: PASS (exit 0)
+generated/index-and-sparse-262002: PASS (exit 0)
+generated/index-and-sparse-262003: PASS (exit 0)
+generated/attention-1: PASS (exit 0)
+generated/attention-2: PASS (exit 0)
+generated/attention-3: PASS (exit 0)
+generated/attention-4: PASS (exit 0)
+generated/attention-1023: PASS (exit 0)
+generated/attention-1024: PASS (exit 0)
+generated/attention-1025: PASS (exit 0)
+generated/attention-1026: PASS (exit 0)
+generated/attention-1027: PASS (exit 0)
+generated/attention-2047: PASS (exit 0)
+generated/attention-2048: PASS (exit 0)
+generated/attention-2049: PASS (exit 0)
+generated/attention-2050: PASS (exit 0)
+generated/attention-2051: PASS (exit 0)
+generated/attention-2052: PASS (exit 0)
+generated/attention-8191: PASS (exit 0)
+generated/attention-8192: PASS (exit 0)
+generated/attention-8193: PASS (exit 0)
+PASS_NATIVE_SYNTHETIC: /home/nate/codex/issue11-continue-XDHJ8Fal/cpu-final/report.json
+make: Entering directory '/home/nate/codex/issue11-continue-XDHJ8Fal/final-validation/kern'
+cc -std=gnu11 -O2 -fno-fast-math -ffp-contract=off -frounding-math -Wall -Wextra -Werror -o qsa_reference_trace_test qsa_reference_trace_test.c
+cc -std=gnu11 -O2 -fno-fast-math -ffp-contract=off -frounding-math -Wall -Wextra -Werror -o qsa_logits_check qsa_logits_check.c -lm
+make: Leaving directory '/home/nate/codex/issue11-continue-XDHJ8Fal/final-validation/kern'
+QSA reference trace row 0 layer 3 missing role bits 0xfd
+QSA reference trace row 3 layer 3 missing role bits 0xff
+PASS: 156 synthetic trace checks; no checkpoint or GPU execution
+PASS identical expected=0 actual=0
+PASS zero expected=0 actual=0
+PASS signed_zero expected=0 actual=0
+PASS below_thresholds expected=0 actual=0
+PASS zero_floor_pass expected=0 actual=0
+PASS absolute_only expected=3 actual=3
+PASS nrms_only expected=3 actual=3
+PASS zero_floor_fail expected=3 actual=3
+PASS largest_score_hides_nrms expected=3 actual=3
+PASS bad_row_hidden_by_aggregate expected=3 actual=3
+PASS different_ids expected=2 actual=2
+PASS id_outside_vocabulary expected=2 actual=2
+PASS short_reference_ids expected=2 actual=2
+PASS extra_candidate_ids expected=2 actual=2
+PASS short_candidate_logits expected=2 actual=2
+PASS extra_reference_logits expected=2 actual=2
+PASS empty_logit_file expected=2 actual=2
+PASS zero_rows expected=2 actual=2
+PASS zero_vocab expected=2 actual=2
+PASS empty_rows_argument expected=2 actual=2
+PASS negative_rows expected=2 actual=2
+PASS trailing_junk_rows expected=2 actual=2
+PASS decimal_overflow expected=2 actual=2
+PASS logit_size_overflow expected=2 actual=2
+PASS vocab_range_overflow expected=2 actual=2
+PASS existing_report expected=2 actual=2
+PASS ref_nan expected=2 actual=2
+PASS ref_positive_inf expected=2 actual=2
+PASS ref_negative_inf expected=2 actual=2
+PASS candidate_nan expected=2 actual=2
+PASS candidate_positive_inf expected=2 actual=2
+PASS candidate_negative_inf expected=2 actual=2
+32 tests; 0 failures; /home/nate/codex/issue11-continue-XDHJ8Fal/logit-check-tests-clean/report.json
+final_status=

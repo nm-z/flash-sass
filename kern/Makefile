@@ -112,7 +112,7 @@ test-gemv: all
 	./gemv_test $(SHARD1) blk.4.ffn_down_exps.weight 0 20
 
 clean:
-	rm -f *.cubin *.dis *.so *.so.new die.sass dieops.h flashcore flashd flashvis hold memtest fence *_test qsa_oracle qsa_oracle_gpu qsa_logits_check
+	rm -f *.cubin *.dis *.so *.so.new die.sass dieops.h flashcore flashd flashvis hold memtest fence *_test qsa_oracle qsa_oracle_gpu qsa_logits_check qsa_model_reference
 
 .PHONY: all test test-gemv clean
 
@@ -525,6 +525,19 @@ qsa_capture_test: qsa_capture_test.c qsa_capture.c qsa_capture.h ../ref/attn.h
 
 qsa_capture_prog_test: qsa_capture_prog_test.c qsa_capture.h prog.c prog.h dieops.h ../ref/quant.c ../ref/gguf.c ../ref/split.c
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ qsa_capture_prog_test.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I$(CUDA)/include -lm
+
+# Independent CPU full-model capture. Rebuild the adapter when the supplied
+# build directory changes; its source pin is not a source-to-binary attestation.
+LLAMA_REF_BUILD ?= $(LLAMA_REF_SRC)/build
+QSA_REFERENCE_REV = fcac19079f3f2985fe74ed845f0880e7e9a8030a
+.PHONY: qsa_model_reference
+qsa_model_reference: qsa_model_reference.c qsa_reference_trace.h
+	@test -n "$(LLAMA_REF_SRC)" || { echo 'set LLAMA_REF_SRC to the pinned independent source' >&2; exit 2; }
+	@test "$$(git -C "$(LLAMA_REF_SRC)" rev-parse HEAD)" = "$(QSA_REFERENCE_REV)" || { echo 'independent reference revision mismatch' >&2; exit 2; }
+	$(CC) $(ORACLE_CFLAGS) -DQSA_REFERENCE_REV='"$(QSA_REFERENCE_REV)"' -I$(LLAMA_REF_SRC)/include -I$(LLAMA_REF_SRC)/ggml/include -o $@ qsa_model_reference.c -L$(LLAMA_REF_BUILD)/bin -Wl,-rpath,$(LLAMA_REF_BUILD)/bin -lllama -lggml -lggml-base -ldl -lm
+
+qsa_reference_trace_test: qsa_reference_trace_test.c qsa_reference_trace.h
+	$(CC) $(ORACLE_CFLAGS) -o $@ $<
 
 attnpartn_unitmap: attnpartn_unitmap.c
 	$(CC) -std=gnu99 -O2 -Wall -Wextra -o $@ $<

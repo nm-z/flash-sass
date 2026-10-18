@@ -1,0 +1,16 @@
+{
+"schema":"flash-sass.independent-qsa-capture.v1",
+"teacher_forced":true,"positions":4,"vocab_size":248320,
+"dtype":"<f4","byte_order":"little",
+"input_semantics":"row t predicts after supplied token t; no inserted tokens",
+"independent_checkpoint_evidence":false,"quality_validation":false,
+"scope":"CPU llama.cpp same-quantized-GGUF numerical capture",
+"declared_reference_source":"fcac19079f3f2985fe74ed845f0880e7e9a8030a","qsa_trace_rows":4,"qsa_layers_per_trace_row":12,
+"gpu_layers":0,"offload_kqv":false,"op_offload":false,
+"kv_dtype":"f32","flash_attention":false,"mmap":true,
+"lazy_marked_tensors":true,"extra_buffer_types":false,"mtp":false,
+"threads":2,"context_capacity":256,"elapsed_seconds":99.441147,
+"system_info":"CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | AVX512 = 1 | AVX512_VBMI = 1 | AVX512_VNNI = 1 | AVX512_BF16 = 1 | LLAMAFILE = 1 | OPENMP = 1 | REPACK = 1 | ",
+"command":["/home/nate/codex/issue11-continue-XDHJ8Fal/tree/kern/qsa_model_reference","/home/nate/models/flash-next-q20/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf","/home/nate/codex/issue11-continue-XDHJ8Fal/reference-ids.txt","/home/nate/codex/issue11-continue-XDHJ8Fal/reference-capture","2","840","all"],
+"complete":true
+}
