@@ -1,6 +1,49 @@
 # Issue 15 timing validation
 
-## Current status: resumed review on 2026-10-18
+## Current status: queued target retry on 2026-10-18
+
+Frozen source and target build revision:
+`7f52b0886829236a833c637ea3a87777b76648fe` (host implementation `bec699c`).
+The current PR source was transferred from engi with `git archive` to
+`/home/nate/claude/flash-sass-resolve/timing-7f52b08` on archy. The ordinary and
+traced cubins, engine library, core, frontend, and validation binaries all built
+successfully (exit 0) with archy's installed CUDA toolchain and driver library.
+The [build log](20261018-queued/cuda-build.log.gz) and
+[artifact hashes](20261018-queued/artifact-sha256.txt) are recorded. This build
+does not establish a successful GPU request.
+
+The shared lock was available at 05:19:29 UTC. The current-revision preflight
+acquired it at 05:20:56 UTC and released it after recording a **different
+blocker**: the six required model GPUs still have existing allocations. The
+recorded free memory for ordinals 0–5 is respectively **52, 16, 77, 7, 3, and
+65 MiB**. The first rejected compute process is weight-holder PID **974018**;
+the snapshot also contains the other weight holders, resident core
+**3575268**, and frontend **753710**. The
+[occupancy and selected process evidence](20261018-queued/occupancy-1.log)
+and [raw GPU queries](20261018-queued/gpu-preflight-1.log) were captured while
+the validator held the shared lock. No existing process was stopped or
+reconfigured, and no owned core or request was launched.
+
+| Retry, UTC on 2026-10-18 | Invocation | Measured result |
+| --- | --- | --- |
+| 05:20:56–05:20:57 | Current-source preflight | **BLOCKED, exit 75** after acquiring the lock; resident GPU allocations ([result](20261018-queued/preflight-1-results.json)) |
+| 05:23:52 | Full driver, current target build | **BLOCKED, exit 75** before GPU queries; lock unavailable ([result](20261018-queued/attempt-1-results.json)) |
+| 05:26:04 | Full driver retry | **BLOCKED, exit 75** before GPU queries; lock unavailable ([result](20261018-queued/attempt-2-results.json)) |
+
+At 05:24:53 UTC, the observed lock owner was **PID 847383**, running
+`flock -w 300 -E 73 /tmp/flash-sass-engine-validation.lock bash --noprofile --norc -i`;
+see [the owner observation](20261018-queued/lock-owner-2.log). The earlier
+issue-19 validator PID is not the owner observed in this retry. The later
+lock-blocked attempts did not remeasure GPU occupancy.
+
+**PR #50 remains draft.** A permitted setup with enough capacity on the
+required GPUs is still needed in addition to the shared lock. The real request,
+event reconciliation, and observation/transport overhead gate has not passed.
+The [retry summary and commands](20261018-queued/results.json) distinguish
+these blocked attempts from validation success. The built source and existing
+guarded driver are staged for that setup.
+
+## Previous resumed review on 2026-10-18
 
 Current host implementation: `bec699ca07f6cf1ac7452a93698d41509aa58576`.
 The resumed review found that a failed host program allocation returned an
