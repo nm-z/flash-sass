@@ -1,13 +1,19 @@
 # Issue #12: attention CTA remap validation
 
-PR #29 is open and non-draft at the user's request. This state change does not
-establish that the remaining target-GPU and whole-model acceptance checks passed.
-The original component results below are retained
+PR #29 contains the component validation and a test-only whole-model benchmark.
+The matched whole-model acceptance checks remain pending; the PR's review state
+does not establish that those checks passed. The original component results below are retained
 as historical evidence; they do not validate the later trace or canary changes.
 
-The [2026-10-18 review checkpoint](review-20261018/README.md) records six successful
-isolated builds, the current CPU checks, and the latest shared-GPU lock blocker.
-It contains no new target-GPU measurement.
+The [2026-10-18 target-GPU checkpoint](gpu-20261018/README.md) records **144 passing
+component cases**, real boundary canaries, physical CTA work/wait records, and the
+target-GPU uninstrumented-image rejection. At 2,051 keys the matched untraced
+median was **249.813 us before and 155.400 us after**, a 37.79% component latency
+reduction. The six-die whole-model experiment is still blocked by insufficient
+free VRAM alongside the resident core; no whole-model benefit is claimed.
+
+The earlier [review checkpoint](review-20261018/README.md) retains the CPU/build
+checks and availability evidence from before this target-GPU run.
 
 ## Historical component measurement
 
@@ -182,14 +188,25 @@ with it, or treating component timing as a matched whole-model measurement.
 
 ## Whole-model procedure and timing definitions
 
-The benchmark library must run in a core and weight-holder group owned by the
-validation job. Acquire the shared host reservation and check `nvidia-smi` and
-`ps` before starting GPU work. If another holder, fence, server, or validation
-process is present, wait. Do not stop or reload another worker's process.
+The benchmark library must run in a core owned by the validation job. Its
+mutable buffers, contexts, snapshots and control channel must be private.
+Existing holders can supply unchanged weights through CUDA IPC after checking
+that the engine uses those imports only for weight reads and that the holders
+remain alive. `hold_close` closes the private imports; it does not free a
+holder's allocation. This application-level read-only use does not make an IPC
+mapping hardware-protected against writes.
+
+Acquire the shared host reservation and check GPU activity, process identities
+and free memory before starting. There must be enough space for the private
+contexts, state, snapshots, KV, scratch and trace buffers on every die. Resident
+allocations being idle does not establish that capacity is available. Do not
+stop or reload another worker's core or holders. For a stdio validation core,
+unset `FLASH_SOCK` and `FLASH_PLE_CONSUME`, and use real disk PLE with the correct
+offset. Retain manifest hashes and resident process identities with the run.
 
 The builder also produces a matching `flashcore` and `hold` in `matched-new/kern`.
 Use `FLASH_CUBIN` to point the validation core at the compatible untraced image
-when it starts. After initializing that core with real PLE data, its own six
+when it starts. After initializing that core with real PLE data, six verified
 weight manifests, the test library, and enough context capacity, send this command
 on its stdin. Paths must be absolute and contain no whitespace:
 
@@ -246,12 +263,15 @@ JSON and trace files. Keep those files with the summary.
 
 ## Remaining acceptance
 
-1. Rerun the component matrix with the boundary canaries on M60.
-2. Run the physical-CTA traces and the rejection test using an uninstrumented
-   image; verify the observed work distribution for both mappings.
-3. Run and retain the matched six-die whole-model experiment, with the telemetry
+The component matrix, boundary canaries, actual physical-CTA work counts and
+uninstrumented-image rejection passed in the target-GPU checkpoint above.
+Retained CTA body/wait records come from the initial correctness launches;
+warmed event samples and timed-launch trace-validation counts are reported
+separately. They are not a whole-model timing decomposition.
+
+1. Run and retain the matched six-die whole-model experiment, with the telemetry
    and raw files described above.
-4. Replace the estimated whole-model benefit with that measured result, including
+2. Replace the estimated whole-model benefit with that measured result, including
    a regression or no material gain if that is what the measurements show.
 
 CPU compilation, assembler success, and synthetic rejection tests do not close
