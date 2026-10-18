@@ -1,17 +1,18 @@
 name: Draft on conflict
 
 # A ready pull request that no longer merges is converted to a draft, with a comment (see .github/scripts/draft-conflicting.sh).
-# push to master: other pull requests can become conflicting right then. schedule: GitHub does not run pull_request workflows
-# on a PR that has merge conflicts, so a periodic sweep is the catch-all. workflow_dispatch: run it by hand.
+# push to master: other pull requests can become conflicting right then. pull_request_target: GitHub does not run pull_request workflows
+# on a PR that has merge conflicts but does run this one, so a PR marked ready while it conflicts is drafted again. It never checks out
+# or runs PR code (only .github/scripts from the base ref). workflow_dispatch: run it by hand.
 #
 # The default GITHUB_TOKEN is refused for converting a pull request to draft ("Resource not accessible by integration"),
 # so this needs a repository secret DRAFT_TOKEN: a fine-grained personal access token for this repository with
-# "Pull requests: read and write". Without it the job fails (push, manual run) or only warns (schedule).
+# "Pull requests: read and write". Without it the job only warns and does nothing (recipe-dev works the same way with RECIPE_POLICY_TOKEN).
 on:
   push:
     branches: [master]
-  schedule:
-    - cron: '7,22,37,52 * * * *'
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
   workflow_dispatch:
 
 permissions:
@@ -33,9 +34,8 @@ jobs:
         shell: bash
         run: |
           if [ -z "$GH_TOKEN" ]; then
-            echo "::error::repository secret DRAFT_TOKEN is not set; GITHUB_TOKEN cannot convert a pull request to draft"
-            [ "$GITHUB_EVENT_NAME" = schedule ] && exit 0
-            exit 1
+            echo "::warning::repository secret DRAFT_TOKEN is not set, so this job did nothing (GITHUB_TOKEN cannot convert a pull request to draft)"
+            exit 0
           fi
           .github/scripts/draft-conflicting.sh | tee -a "$GITHUB_STEP_SUMMARY"
         env:
