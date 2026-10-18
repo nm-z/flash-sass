@@ -1,0 +1,1 @@
+perl kern/qsa_oracle.pl --full --gpu kern/die.cubin --binary kern/qsa_oracle_gpu --device 0 --out /tmp/flash-sass-issue11-f6c54db-evidence/gpu 

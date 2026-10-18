@@ -2,13 +2,12 @@
 
 Refs #11. This PR has separate gates for native mathematical agreement, frozen
 external-reference agreement, target M60 execution, and independent checkpoint
-teacher-forced logits. The M60 numerical suite passed at `ca4a476`, including
-707 exact target/scalar byte comparisons; a synthetic target pass does not
-establish full-checkpoint conformance. The subsequent master merge at `99a6b9d`
-passes the 58-outcome native suite and the capture/trace host checks, but changes
-the production kernels and needs a new target run. The PR stays draft while
-the current full-model capture and verified checkpoint/conversion evidence
-remain missing.
+teacher-forced logits. The updated M60 numerical suite passed at `f6c54db`
+after merging master, including 707 exact target/scalar byte comparisons and
+1898 kernel launches; a synthetic target pass does not establish full-checkpoint
+conformance. The master merge also passes the 58-outcome native suite and the
+capture/trace host checks. The PR stays draft while the current full-model
+capture and verified checkpoint/conversion evidence remain missing.
 
 ## Reproduce without Python
 
@@ -278,6 +277,18 @@ Same-implementation placement comparisons and isolated block-3 captures from
 #9/#22 do not supply this gate.
 
 ## Recorded evidence
+
+### Updated M60 execution after the master merge
+
+[validation/issue11/target-f6c54db](validation/issue11/target-f6c54db/README.md)
+records an actual run of the updated production image on M60 #6 under the
+shared lock: 58/58 expected outcomes, 54 target-bearing invocations, 1898 CUDA
+launches, 707 exact byte comparisons and zero target parity failures. The run
+took 68.0273389816284 seconds, and its 1347 artifacts were copied to engi and
+verified by size and SHA-256. The maximum scaled-score normalized RMS remains
+0.000157283398165829 against the unchanged 0.005 limit. This closes the target
+revalidation gap recorded immediately after the master merge. It does not
+supply the missing current full-model target capture or checkpoint lineage.
 
 ### Host validation after merging master
 
