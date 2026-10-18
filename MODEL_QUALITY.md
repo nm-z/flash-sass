@@ -212,6 +212,13 @@ source; preserve the hashes and compact reports with an actual experiment.
 
 ## Review measurements and current status
 
+[Capture-completion follow-up at c20f156](validation/issue22/review-c20f156/README.md)
+records 204 passing analytic/regression checks, all 14 synthetic lengths,
+recomputed archived comparisons, and a successful harness build. The new v2
+capture completion rules are included in those checks. Both shared-GPU lock
+attempts returned exit 75 after 45 seconds; no new GPU run occurred. The
+machine-readable report leaves issue #22 unresolved and PR #46 in draft.
+
 [Review evidence for f6ddcd5](validation/issue22/review-f6ddcd5/README.md)
 records passing CPU checks: 74 comparator assertions, 48 export-mock assertions,
 36 replay assertions, 16 analytic assertions, 32 model CLI boundary checks,
