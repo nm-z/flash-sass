@@ -41,7 +41,7 @@ sub validate_build {
  ref($b->{sources_sha256}) eq 'HASH' && keys %{$b->{sources_sha256}}
   or die "build has no source fingerprints\n";
  for my $path (sort keys %{$b->{sources_sha256}}) {
-  $path =~ m{^(?:kern|ref|maxas)/} && $path !~ m{(?:^|/)\.\.(?:/|$)}
+  $path =~ m{^(?:kern|ref|maxas|maxas-patch)/} && $path !~ m{(?:^|/)\.\.(?:/|$)}
    or die "invalid source path in manifest: $path\n";
   sha("$root/$path") eq $b->{sources_sha256}{$path}
    or die "source changed after build: $path\n";

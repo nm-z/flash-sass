@@ -4,6 +4,8 @@
 
 The default inputs are fixed FP32[2560] activations and deterministic BF16 projection matrices. Q/K/V norm vectors are FP32[256], indexer norm vectors FP32[128], and the indexer output is four query heads plus one raw key of 128 values. Historical KV is derived from deterministic raw activations through the same norm/RoPE/INT8 contract; pooled keys and the four-key ring are seeded consistently. Future raw-cache slots contain distinguishable finite sentinels. Historical state is synthetic, not a real model prefix.
 
+The patched MaxAs checkout described in the repository README must already exist at `maxas/`. The build receipt preserves its upstream commit, exact Perl source hashes and local patch, together with the repository's `maxas-patch/` inputs.
+
 ```sh
 QSA_EVIDENCE=$(mktemp -d)
 perl kern/build_qsa_direct.pl --out "$QSA_EVIDENCE/build"
