@@ -53,7 +53,7 @@ static int test_direct(unsigned visible,unsigned budget,unsigned steps,unsigned 
  if(!kq||!vq||!ks||!vs||!pool||!pkt||!score||!kc||!vc||!sel){fprintf(stderr,"prefix allocation failed\n");return 1;}
  direct_seed_kv(t0,npos,seed,&frame,kq,ks,vq,vs);
  for(unsigned b=0;b<t0/4;b++){float raw[512],cs[32],sn[32];for(unsigned j=0;j<4;j++)for(unsigned d=0;d<128;d++)raw[j*128+d]=direct_raw(4*b+j,d,seed);rope_table_gpu(4*b,1e7f,cs,sn);idx_pool_gpu(raw,frame.ikn,eps,cs,sn,pool+(size_t)b*128);for(int d=0;d<128;d++)pkt[pkt_idx(b,d)]=pool[(size_t)b*128+d];}
- direct_seed_ring(t0,seed,ring);direct_history_pattern(getenv("QSA_PATTERN"),t0,budget,&frame,pool,pkt);int host=direct_host;
+ direct_seed_ring(t0,seed,ring);direct_history_pattern(getenv("QSA_PATTERN"),t0,budget,&frame,ring,pool,pkt);int host=direct_host;
  CUdeviceptr dKQ=host?halloc((size_t)npos*512):dalloc((size_t)npos*512),dVQ=host?halloc((size_t)npos*512):dalloc((size_t)npos*512),dKS=host?halloc((size_t)npos*32):dalloc((size_t)npos*32),dVS=host?halloc((size_t)npos*32):dalloc((size_t)npos*32);
  CUdeviceptr dPKT=dalloc((size_t)ngrp*8192),dRING=dalloc(2048),dIQK=dalloc(2560),dIQ=dalloc(2048),dSC=dalloc(4*((size_t)npos/4+64)),dHST=dalloc(5120),dSEL=dalloc(4*(budget+8));
  CUdeviceptr dQG=dalloc(4*12288),dK=dalloc(2048),dV=dalloc(2048),dQN=dalloc(1024),dKN=dalloc(1024),dIQN=dalloc(512),dIKN=dalloc(512);
@@ -79,7 +79,7 @@ static int test_direct(unsigned visible,unsigned budget,unsigned steps,unsigned 
   if(step&&frames){if(fread(&frame,sizeof frame,1,frames)!=1)return 2;if(memcmp(frame.qn,initial.qn,sizeof frame.qn)||memcmp(frame.kn,initial.kn,sizeof frame.kn)||memcmp(frame.iqn,initial.iqn,sizeof frame.iqn)||memcmp(frame.ikn,initial.ikn,sizeof frame.ikn)){fprintf(stderr,"norm weights changed\n");return 2;}}
   if(step&&projection.enabled)direct_projection_cpu(&projection,&frame,t,seed);
   for(size_t j=0;j<sizeof frame/sizeof(float);j++)if(!isfinite(((float*)&frame)[j])){fprintf(stderr,"nonfinite frame at step %u\n",step);return 2;}
-  if(!step&&direct_replay){direct_replay_io io={dQG,dK,dV,dIQK,dCS,dSN,dKQ,dKS,dVQ,dVS,dPKT,dRING};int rc=direct_replay_prefix(p,t0,seed,&io,kq,ks,vq,vs);if(rc)return rc;}
+  if(!step&&direct_replay){direct_replay_io io={dQG,dK,dV,dIQK,dCS,dSN,dKQ,dKS,dVQ,dVS,dPKT,dRING};int rc=direct_replay_prefix(p,t0,seed,&io,kq,ks,vq,vs,ring,pkt);if(rc)return rc;}
   if(projection.enabled){CK(cuMemcpyHtoD(projection.z,projection.input,sizeof projection.input));}
   else{CK(cuMemcpyHtoD(dQG,frame.qg,sizeof frame.qg));CK(cuMemcpyHtoD(dK,frame.k,sizeof frame.k));CK(cuMemcpyHtoD(dV,frame.v,sizeof frame.v));CK(cuMemcpyHtoD(dIQK,frame.iqk,sizeof frame.iqk));}
   rope_table_gpu(t,1e7f,cs,sn);for(int h=0;h<24;h++)qk_norm_rope_gpu(frame.qg+512*h,frame.qn,eps,cs,sn,qo+256*h);
@@ -94,7 +94,18 @@ static int test_direct(unsigned visible,unsigned budget,unsigned steps,unsigned 
   DC("QO",qo,dQO,sizeof qo);DC("IQ",iq,dIQ,sizeof iq);DC("ring",ring,dRING,sizeof ring);
   DC("K codes",kq+(size_t)t*512,dKQ+(size_t)t*512,512);DC("V codes",vq+(size_t)t*512,dVQ+(size_t)t*512,512);DC("K scales",ks+(size_t)t*16,dKS+(size_t)t*32,32);DC("V scales",vs+(size_t)t*16,dVS+(size_t)t*32,32);
   if((t&3)==3){size_t off=(size_t)((t/4)>>5)*8192;DC("new pool group",(const char*)pkt+off,dPKT+off,8192);}
-  if(nv>budget){if(inject&&!strcmp(inject,"selection"))sel[0]^=1;DC("score bits",score,dSC,4*(size_t)nv);DC("selected IDs",sel,dSEL,4*budget);}
+  if(nv>budget){
+   float*gpu_score=malloc(4*(size_t)nv);
+   uint32_t*gpu_selected=malloc(4*(size_t)budget);
+   if(!gpu_score||!gpu_selected){free(gpu_score);free(gpu_selected);return 1;}
+   CK(cuMemcpyDtoH(gpu_score,dSC,4*(size_t)nv));
+   CK(cuMemcpyDtoH(gpu_selected,dSEL,4*(size_t)budget));
+   if(inject&&!strcmp(inject,"selection"))sel[0]^=1;
+   b|=cmpb("score bits",score,gpu_score,4*(size_t)nv,&shown);
+   b|=cmpb("selected IDs",sel,gpu_selected,4*(size_t)budget,&shown);
+   if(!step)b|=direct_check_cutoff(getenv("QSA_PATTERN"),t+1,budget,gpu_score,gpu_selected);
+   free(gpu_score);free(gpu_selected);
+  }
   if(inject&&!strcmp(inject,"gather"))direct_flip(kc+attn_kidx(0,0,0));
   float*kg=malloc(4*kcf),*vg=malloc(4*(size_t)gathered*512);if(!kg||!vg)return 1;CK(cuMemcpyDtoH(kg,dKC,4*kcf));CK(cuMemcpyDtoH(vg,dVC,4*(size_t)gathered*512));int gb=0;
   for(unsigned j=0;j<gathered;j++)for(int kv=0;kv<2;kv++)for(int d=0;d<256;d++){size_t ki=attn_kidx(j,kv,d),vi=(size_t)j*512+kv*256+d;if(memcmp(kg+ki,kc+ki,4)||memcmp(vg+vi,vc+vi,4))gb++;}free(kg);free(vg);if(gb){if(shown++<6)printf("compact K/V mismatch: %d\n",gb);b=1;}
