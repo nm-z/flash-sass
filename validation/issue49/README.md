@@ -74,3 +74,9 @@ follow-up commit and retain build/test logs, checksums, and explicit outcomes.
 The production reader pool is unchanged from the historically measured commit.
 The additional attempted target-host CPU builds were blocked by the shared
 validation lock and are recorded as unexecuted, not as passing checks.
+
+The subsequent [resumed validation](resume/README.md) fixes a CPU-test collision
+with the production lock and records successful fresh engine linking and CPU
+tests on archy, plus the full suite under the shared lock on engi. It preserves
+the earlier failed/blocked attempts and keeps historical GPU/I/O measurements
+separate from the new CPU-only results.
