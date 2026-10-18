@@ -40,6 +40,7 @@ static __thread double timing_request_start, timing_run_start;
 #include <poll.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/stat.h>
 
 CUresult cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev);
 /* during engine_init a failure unwinds to it (the core and its weights and table stay up); later ones are fatal */
@@ -115,6 +116,7 @@ static uint32_t *h_ids, *h_toks;    /* pinned: the prompt, and the tokens as die
 /* ---- FLASH_PLE_DISK: the 28.8 GB PLE table stays in its file. A token needs 16 rows of 90 B; the host reads them into the pinned compact table (16 rows per position) just
    ahead of the position that runs and then stores this response's id in a ready flag, which plerows (compact mode) waits for. ---- */
 static int ple_disk, ple_fd = -1; static off_t ple_off; static uint8_t *ple_host; static size_t ple_rdy_off;
+static int ple_owned_fd = -1;
 static struct ple_read_pool ple_reads;
 static unsigned ple_readers = 1;
 static uint32_t *h_rdy;                    /* the u32 ready flag of each position (pinned) */
@@ -797,6 +799,19 @@ int engine_init(core_t *c) {
 	for (int h = 0; h < 16; h++) { uint32_t o32 = (uint32_t)ple_head_offsets[h], v32 = (uint32_t)ple_head_vocab[h]; memcpy(ppc + 24 + 4 * h, &o32, 4); memcpy(ppc + 88 + 4 * h, &v32, 4); }
 	memcpy(ppc + 152, &pabsent, 4); memcpy(ppc + 156, &pend, 4);
 	ple_disk = c->ple_disk; ple_fd = c->ple_fd; ple_off = c->ple_off; ple_host = c->ple_host; ple_rdy_off = c->ple_rdy_off;
+	const char *ple_file=getenv("FLASH_PLE_FILE");
+	if (ple_disk && ple_file && *ple_file) {
+		struct stat source,copy;
+		ple_owned_fd=open(ple_file,O_RDONLY|O_CLOEXEC);
+		if (ple_owned_fd<0 || fstat(ple_fd,&source) || fstat(ple_owned_fd,&copy)
+		    || !S_ISREG(copy.st_mode) || copy.st_size!=source.st_size) {
+			fprintf(stderr,"engine: FLASH_PLE_FILE must be a complete copy of the PLE source file\n");
+			longjmp(init_jb,1);
+		}
+		ple_fd=ple_owned_fd;
+		posix_fadvise(ple_fd,0,0,POSIX_FADV_RANDOM);
+		fprintf(stderr,"engine: PLE rows from %s (%lld bytes, offset %lld)\n",ple_file,(long long)copy.st_size,(long long)ple_off);
+	}
 	if (ple_disk) {
 		int err = ple_read_pool_init(&ple_reads, ple_readers);
 		if (err) { fprintf(stderr, "engine: starting PLE readers failed: %s\n", strerror(err)); longjmp(init_jb, 1); }
@@ -929,6 +944,7 @@ int engine_init(core_t *c) {
 
 void engine_fini(void) {
 	ple_read_pool_destroy(&ple_reads);
+	if (ple_owned_fd>=0) { close(ple_owned_fd);ple_owned_fd=-1; }
 	if (!core) return;
 	for (int d = 0; d < nd; d++) { if (pollst[d]) { cuCtxSetCurrent(ctx[d]); cuStreamDestroy(pollst[d]); pollst[d] = 0; } }
 	cuCtxSetCurrent(ctx[0]);
@@ -1068,8 +1084,8 @@ int engine_session(FILE *in, FILE *out) {
 		if (!strncmp(p, "config", 6)) {   /* what this engine is: the identity to attach to a measurement (the commit it was built from, where the KV lives, the layers it runs, the kernel image) */
 			char ad[64] = ""; for (int d = 0; d < nd; d++) if (has_attn[d]) { char one[8]; snprintf(one, sizeof one, "%s%d", ad[0] ? "," : "", d); strncat(ad, one, sizeof ad - strlen(ad) - 1); }
 			const char *sh = getenv("SPLIT_SHARES"), *am = getenv("ATTN_MAP");
-			fprintf(out, "config rev=%s kv_host=%d kv_trace=%d ple_disk=%d ple_readers=%u maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u trace_tokens=%u two_position=%d prefill_chunk=%d cubin=%s cubin_fnv=%016llx\n",
-			        FLASH_REV, kv_host, kv_trace, ple_disk, ple_disk ? ple_readers : 0, MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, trace_n, two_position, prefill_chunk, cubin_path, (unsigned long long)cubin_fnv);
+			fprintf(out, "config rev=%s kv_host=%d kv_trace=%d ple_disk=%d ple_readers=%u ple_file=%s maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u trace_tokens=%u two_position=%d prefill_chunk=%d cubin=%s cubin_fnv=%016llx\n",
+			        FLASH_REV, kv_host, kv_trace, ple_disk, ple_disk ? ple_readers : 0, ple_owned_fd >= 0 ? getenv("FLASH_PLE_FILE") : "core", MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, trace_n, two_position, prefill_chunk, cubin_path, (unsigned long long)cubin_fnv);
 			fflush(out); continue;
 		}
 		if (!strncmp(p, "cubin", 5)) {
