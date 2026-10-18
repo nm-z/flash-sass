@@ -66,3 +66,11 @@ disk-heavy validation on archy, acquire
 release the lock afterward. Never stop another worker's process. The collection
 wrapper in [PLE_READS.md](../../PLE_READS.md) records these checks and refuses
 observed contention.
+
+## Follow-up implementation checks
+
+[Current host-validation records](current/README.md) identify the clean tested
+follow-up commit and retain build/test logs, checksums, and explicit outcomes.
+The production reader pool is unchanged from the historically measured commit.
+The additional attempted target-host CPU builds were blocked by the shared
+validation lock and are recorded as unexecuted, not as passing checks.
