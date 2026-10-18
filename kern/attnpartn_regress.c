@@ -15,6 +15,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+/* CUDA 13 headers redirect this API to cuEventElapsedTime_v2, which the
+ * Maxwell driver's 470 branch does not export. Keep its original driver ABI. */
+#undef cuEventElapsedTime
+CUresult CUDAAPI cuEventElapsedTime(float *, CUevent, CUevent);
 CUresult cuCtxCreate_v2(CUcontext *, unsigned, CUdevice);
 #define CK(x) do { CUresult r=(x); if(r) {const char *e="?";cuGetErrorString(r,&e);fprintf(stderr,"%s: %s\n",#x,e);exit(2);} } while(0)
 enum { GUARD_WORDS=64, TRACE_TOKENS=2, PHASES=2, CTL_BYTES=8192 };

@@ -120,6 +120,11 @@ pair. Historical cubins must not be loaded into the newer disk-PLE engine; the
 compatible matched pair isolates the CTA mapping while keeping that protocol
 and all other current operations fixed.
 
+Before GPU execution, run `LD_BIND_NOW=1 attnpartn_regress --self-test` against
+the target host's real CUDA driver library. Eager symbol binding checks driver
+ABI compatibility even though the self-test does not initialize CUDA. A CPU
+self-test linked to SDK stubs alone cannot establish target-driver compatibility.
+
 The component runner accepts explicit paths to both cubins, both libraries, the
 harness, its full source commit, the GPU UUID, and a new evidence directory:
 
