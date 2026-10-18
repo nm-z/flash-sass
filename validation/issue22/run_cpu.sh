@@ -78,7 +78,7 @@ if ! cmp -s -- "$issue22_out/source-before.sha256" "$issue22_out/source-after.sh
     printf 'source changed during checks; no completion report\n' >&2
     exit 2
 fi
-sha256sum kern/model_quality kern/qsa_quality kern/model_layer_capture_test \
+sha256sum kern/model_quality kern/qsa_quality kern/model_layer_capture_test kern/model_capture_test \
     > "$issue22_out/executable.sha256"
 jq -n --arg revision "$(cat "$issue22_out/source-commit.txt")" \
     --slurpfile fixture "$issue22_out/synthetic-inputs/complete.json" \

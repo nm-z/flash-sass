@@ -173,27 +173,6 @@ those later comparisons possible; exporting them alone supplies no numerical
 agreement result. Synthetic CPU fixtures retain their synthetic origin in each
 report.
 
-An optional `--limits LIMITS_JSON` argument applies explicit numerical gates.
-Its JSON object uses schema `flash-sass.qsa-numerical-limits.v1` and requires
-the following fields. The evaluator must choose and preserve the limits before
-the intended evaluation; a file hash records the chosen bytes without attesting
-when that choice occurred.
-
-| Field | Meaning |
-| --- | --- |
-| `raw_last_key_max_abs` | Maximum difference between the last raw key in the prefix and the snapshot. |
-| `candidate_raw_score_max_abs` | Maximum difference between supplied production scores and FP64 scoring over exported query/pool inputs. |
-| `candidate_scaled_score_max_abs` | Maximum scaled-score difference against the full FP64 indexer control. |
-| `query_max_abs` | Maximum query difference against FP64 norm/RoPE. |
-| `candidate_selection_exact_ties` | Must be `true`; supplied IDs must agree with supplied scores, allowing exact cutoff ties. |
-| `full_fp64_selection_min_overlap` | Minimum fraction of selected IDs shared with the FP64 control, from zero through one. |
-
-All numeric values must be finite nonnegative JSON numbers. Unknown keys and
-missing limits are errors. Score and score-selection gates are inapplicable
-when every complete block is retained. Failed evaluated limits preserve the
-diagnostic report and return exit 3. Diagnostic replay without a limit profile
-does not claim numerical acceptance. Neither mode establishes model quality.
-
 ## Independent backend capture
 
 `kern/model_reference.c` calls the C API of an explicitly supplied llama.cpp
