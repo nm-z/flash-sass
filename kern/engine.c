@@ -57,14 +57,17 @@ typedef struct { CUdeviceptr p; CUcontext c; size_t bytes; } allocrec;
 static allocrec *allocs; static int nallocs, capallocs; static size_t alloc_bytes;
 static CUdeviceptr dalloc_at(size_t bytes, int line) {
 	CUdeviceptr p; CUcontext c;
+	CK(cuCtxGetCurrent(&c));
 	CUresult result = cuMemAlloc(&p, bytes);
 	if (result != CUDA_SUCCESS) {
 		CUdevice device = -1; size_t available = 0, total = 0;
+		size_t requested = 0; int count = 0;
+		for (int i = 0; i < nallocs; i++) if (allocs[i].c == c) { requested += allocs[i].bytes; count++; }
 		cuCtxGetDevice(&device); cuMemGetInfo(&available, &total);
-		fprintf(stderr, "engine: cuMemAlloc failed at engine.c:%d: visible_device=%d bytes=%zu free_bytes=%zu total_bytes=%zu\n",
-		        line, device, bytes, available, total);
+		fprintf(stderr, "engine: cuMemAlloc failed at engine.c:%d: visible_device=%d bytes=%zu free_bytes=%zu total_bytes=%zu engine_payload_bytes=%zu backing_allocations=%d\n",
+		        line, device, bytes, available, total, requested, count);
 	}
-	CK(result); CK(cuCtxGetCurrent(&c));
+	CK(result);
 	if (nallocs == capallocs) { capallocs = capallocs ? 2 * capallocs : 1024; allocs = realloc(allocs, sizeof *allocs * (size_t)capallocs); }
 	allocs[nallocs++] = (allocrec){ p, c, bytes }; alloc_bytes += bytes;
 	CK(cuMemsetD8(p, 0, bytes));
@@ -147,6 +150,22 @@ static CUdeviceptr d_kv_rawmax[MAXD];
 static int nlayers_run = NB;   /* FLASH_LAYERS: run only the first blocks (bisecting a failure; the answers are meaningless) */
 static unsigned nblk_qsa = QSA_NBLK;   /* blocks of 4 keys attended per layer and token (FLASH_NBLK: a small value exercises the selection on short prompts) */
 static int has_attn[MAXD];             /* the die runs at least one attention layer */
+/* Each recurrent layer retains four independent ranges. One backing allocation
+ * avoids paying device-allocation granularity separately for the small conv
+ * histories. Both sizes are multiples of 2048, preserving 256-byte alignment.
+ * These state ranges are never cloned by scratch_like; fini frees the backing. */
+static void alloc_recurrent_state(int d, int bb) {
+    size_t state = dn_bytes[d][bb], conv = conv_bytes[d][bb];
+    if (state > SIZE_MAX - conv || state + conv > SIZE_MAX / 2) {
+        fprintf(stderr, "engine: recurrent-state allocation size overflow\n");
+        longjmp(init_jb, 1);
+    }
+    CUdeviceptr backing = dalloc(2 * (state + conv));
+    dst_dn[d][bb] = backing;
+    snap_dn[d][bb] = backing + state;
+    dst_conv[d][bb] = backing + 2 * state;
+    snap_conv[d][bb] = backing + 2 * state + conv;
+}
 #ifndef FLASH_REV
 #define FLASH_REV "unknown"             /* the Makefile passes the commit (and -dirty) this library was built from */
 #endif
@@ -802,8 +821,7 @@ static void extra_slot_init(unsigned maxp) {
         dPROG[d] = dalloc(128 * 4096);
         for (int bb = 0; bb < NB; bb++) {
             if (!BLK_IS_ATTN(bb)) {
-                dst_dn[d][bb] = dalloc(dn_bytes[d][bb]); dst_conv[d][bb] = dalloc(conv_bytes[d][bb]);
-                snap_dn[d][bb] = dalloc(dn_bytes[d][bb]); snap_conv[d][bb] = dalloc(conv_bytes[d][bb]);
+                alloc_recurrent_state(d, bb);
             } else if (d == attn_die_of(bb)) {
                 if (kv_host) {
                     CUdeviceptr base; CK(cuMemHostGetDevicePointer(&base, h_kv, 0));
@@ -964,8 +982,7 @@ int engine_init(core_t *c) {
 				w->ssm_ab = dptr(d, bb, "ssm_ab.weight"); w->ssm_ab_bias = dptr(d, bb, "ssm_ab.bias");
 				w->ssm_conv1d = dptr(d, bb, "ssm_conv1d.weight"); w->ssm_a = dptr(d, bb, "ssm_a"); w->ssm_norm = dptr(d, bb, "ssm_norm.weight");
 				dn_bytes[d][bb] = (size_t)s->hn * 16384 * 4; conv_bytes[d][bb] = 4 * 4 * SPLIT_NLOC(s);
-				dst_dn[d][bb] = dalloc(dn_bytes[d][bb]); dst_conv[d][bb] = dalloc(conv_bytes[d][bb]);
-				snap_dn[d][bb] = dalloc(dn_bytes[d][bb]); snap_conv[d][bb] = dalloc(conv_bytes[d][bb]);
+				alloc_recurrent_state(d, bb);
 			} else {
 				w->attn_q = dptr(d, bb, "attn_q.weight"); w->attn_q_type = ttype(bb, "attn_q.weight");
 				w->attn_k = dptr(d, bb, "attn_k.weight"); w->attn_k_type = ttype(bb, "attn_k.weight");

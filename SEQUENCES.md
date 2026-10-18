@@ -4,6 +4,8 @@
 
 Each slot owns its token IDs, sampling random values, raw INT8 KV, pooled indexer keys and raw-key ring, DeltaNet matrices, convolution histories, PLE history, image positions, and prefix snapshot. Weights and temporary activation buffers are shared. In disk PLE mode each slot also owns its staged rows and readiness flags. VRAM remains the default placement selected by the serving launcher; `FLASH_KV_HOST=1` explicitly selects mapped host KV.
 
+Each recurrent layer's live DeltaNet state, saved state, live convolution history and saved history occupy four separate aligned ranges in one device allocation. This reduces the number of small allocations while retaining each slot's complete state and snapshot.
+
 ## Scheduling
 
 The core accepts concurrent socket connections. Admission waits for an available slot; `chat_slot <slot> <n_new> <ids...>` and `gen_slot <slot> <n_new> <ids...>` select a particular slot. Ordinary `chat` and `gen` use the first available slot. Slot allocation serves the oldest eligible waiter, and waiting clients can cancel. A request for an occupied explicit slot does not block an unrelated free slot. The HTTP frontend keeps its own connection for each request and locks only the tokenizer's shared BPE scratch.
