@@ -12,7 +12,9 @@ With multiple slots, GPU work uses the existing one-position kernels. A single s
 
 Device exchanges and grid-barrier counters keep increasing across slot switches. Only the token, end and abort counters are restored for the next turn. A slot's state stays allocated until engine unload; releasing a request makes that slot available and retains its own prefix snapshot. A CUDA failure marks the scheduler broken so waiting requests fail and the core can drain callers before rebuilding its contexts. Reload and shutdown close admission and wait for active sessions before unloading the library.
 
-`info` returns `info <positions-per-slot> <image-capacity> <slots> <prefill-quantum>`. `config` includes `sequences`, `quantum` and `two_position`. `statehash` requires one sequence slot and waits for the whole request to release that slot before reading state. The `done` record appends the actual slot ID; HTTP timing records include `sequence_slot`. Existing readers of the original leading fields remain compatible.
+`info` returns `info <positions-per-slot> <image-capacity> <slots> <prefill-quantum>`. `config` includes `sequences`, `quantum`, `two_position`, `ple_readers` and `kv_trace`. The validation diagnostics `statehash` and `kvstats` require one sequence slot and wait for the whole request to release that slot before reading state. `FLASH_KV_TRACE=1` also requires one slot because its diagnostic raw-max buffer describes one completed request. The `done` record appends the actual slot ID; HTTP timing records include `sequence_slot`. Existing readers of the original leading fields remain compatible.
+
+Disk PLE reads retain the shared `FLASH_PLE_READERS` pool from master. Each synchronous batch writes to the active slot's staging rows and completes before the GPU turn yields; the slot keeps its own readiness flags and history. Reload drains requests before replacing the engine and reader pool.
 
 Snapshots contain a text prefix. Introducing an image before an existing snapshot boundary must invalidate that snapshot even when all placeholder token IDs match. A request interrupted before its requested snapshot boundary reports no new snapshot.
 
@@ -61,12 +63,12 @@ export SEQUENCE_REVISION="$revision"
 FLASH_QUANTUM=1 FLASH_NBLK=1 FLASH_KV_HOST=0 \
     kern/sequence_validate.sh "$RESULTS/vram-q1-b1" "$PLE_SHARD" \
     "$MANIFEST0" "$MANIFEST1" "$MANIFEST2" "$MANIFEST3" "$MANIFEST4" "$MANIFEST5"
-FLASH_QUANTUM=8 FLASH_NBLK=512 FLASH_KV_HOST=1 FLASH_PREFILL_CHUNK=4 \
+FLASH_QUANTUM=8 FLASH_NBLK=512 FLASH_KV_HOST=1 FLASH_PREFILL_CHUNK=4 FLASH_PLE_READERS=4 \
     kern/sequence_validate.sh "$RESULTS/host-q8-b512" "$PLE_SHARD" \
     "$MANIFEST0" "$MANIFEST1" "$MANIFEST2" "$MANIFEST3" "$MANIFEST4" "$MANIFEST5"
 ```
 
-The small QSA budget exercises selection and gather within the bounded slot capacity. The second matrix preserves the production budget while varying the prefill quantum and KV placement, and exercises the merged headless prefill path with four-position chunks. Results establish agreement between serial and concurrent execution of this implementation; they are not an independent model-quality oracle.
+The small QSA budget exercises selection and gather within the bounded slot capacity. The second matrix preserves the production budget while varying the prefill quantum and KV placement, and exercises the merged headless prefill path with four-position chunks and four PLE readers. Results establish agreement between serial and concurrent execution of this implementation; they are not an independent model-quality oracle.
 
 For a core already created by the same validation job:
 

@@ -12,12 +12,15 @@
 #include "split.h"
 #include "qsa.h"
 #include <math.h>
+#include <fenv.h>
 #include "gguf.h"
 #include "engine.h"
 #include "prefill.h"
 #include "core.h"
 #include "seqsched.h"
 #include "seqtrace.h"
+#include "ple_read_pool.h"
+#include "ple_read_reload.h"
 #include <setjmp.h>
 #include <cuda.h>
 #include <stdio.h>
@@ -128,6 +131,11 @@ static seqsched schedule;
 #define rope_dirty_T (active->rope_dirty)
 static size_t dn_bytes[MAXD][NB], conv_bytes[MAXD][NB], kcf, vcf;
 static int kv_host = 1;                  /* FLASH_KV_HOST=0: the int8 KV caches in VRAM (small contexts) instead of pinned host memory */
+/* Validation-only raw group maxima. The ordinary cubin has no trace instructions. */
+static int kv_trace, kv_trace_start, kv_trace_complete;
+static uint32_t *h_kv_rawmax;
+static CUdeviceptr d_kv_rawmax[MAXD];
+#define KV_TRACE_WORDS 32u
 static int nlayers_run = NB;   /* FLASH_LAYERS: run only the first blocks (bisecting a failure; the answers are meaningless) */
 static unsigned nblk_qsa = QSA_NBLK;   /* blocks of 4 keys attended per layer and token (FLASH_NBLK: a small value exercises the selection on short prompts) */
 static int has_attn[MAXD];             /* the die runs at least one attention layer */
@@ -144,6 +152,8 @@ static uint64_t file_fnv(const char *path) {
 /* ---- FLASH_PLE_DISK: the 28.8 GB PLE table stays in its file. A token needs 16 rows of 90 B; the host reads them into the pinned compact table (16 rows per position) just
    ahead of the position that runs and then stores this response's id in a ready flag, which plerows (compact mode) waits for. ---- */
 static int ple_disk, ple_fd = -1; static off_t ple_off;
+static struct ple_read_pool ple_reads;
+static unsigned ple_readers = 1;
 static uint32_t ple_absent_id, ple_end_id; /* the constants block's absent / end ids: the hash of a position needs the same ones */
 #define PLE_AHEAD 128                      /* positions staged ahead of the one that runs */
 static uint32_t *h_tok;             /* pinned: ctl[2] (count, bit 31 = the turn ended) */
@@ -201,6 +211,71 @@ static void state_hashes(FILE *out) {
 	}
 	CK(cuCtxSetCurrent(ctx[0]));
 	fprintf(out, "statehash done\n"); fflush(out);
+}
+
+/* Explicit validation readback; counts refer to 32-component groups, not values. */
+static void kv_stats(FILE *out) {
+	if (!kv_trace || !h_kv_rawmax || last_positions <= 0) {
+		fprintf(out, "kvstats error=disabled_or_no_completed_positions\nkvstats done status=FAIL rows=0 positions=%d start=%d\n", last_positions, kv_trace_start);
+		fflush(out); return;
+	}
+	size_t nscale = (size_t)last_positions * 16u;
+	uint16_t *scales = malloc(nscale * sizeof *scales);
+	if (!scales) {
+		fprintf(out, "kvstats error=allocation\nkvstats done status=FAIL rows=0 positions=%d start=%d\n", last_positions, kv_trace_start);
+		fflush(out); return;
+	}
+	int rows = 0, all_ok = kv_trace_complete && kv_trace_start == 0 && fegetround() == FE_TONEAREST;
+	fprintf(out, "kvstats begin rev=%s cubin_fnv=%016llx positions=%d start=%d complete=%d rounding=%s counts=groups raw=pre_clamp_pre_floor\n",
+	        FLASH_REV, (unsigned long long)cubin_fnv, last_positions, kv_trace_start, kv_trace_complete,
+	        fegetround() == FE_TONEAREST ? "nearest_even" : "unsupported");
+	for (int bb = 3; bb < nlayers_run; bb += 4) {
+		int d = attn_die_of(bb);
+		if (d < 0 || d >= nd || !dst_ks[d][bb] || !dst_vs[d][bb]) { all_ok = 0; continue; }
+		CK(cuCtxSetCurrent(ctx[d]));
+		const uint32_t *raw = h_kv_rawmax + (size_t)((bb - 3) / 4) * (size_t)MAXT * KV_TRACE_WORDS;
+		for (int kind = 0; kind < 2; kind++) {
+			CUdeviceptr sptr = kind ? dst_vs[d][bb] : dst_ks[d][bb];
+			CK(cuMemcpyDtoH(scales, sptr, nscale * sizeof *scales));
+			unsigned long long groups = 0, missing = 0, zero = 0, underflow = 0, subnormal = 0;
+			unsigned long long would_overflow = 0, clipped = 0, nonfinite = 0, bad_scales = 0, mismatches = 0;
+			uint32_t max_bits = 0; int max_pos = 0, max_head = 0, max_group = 0;
+			for (int t = 0; t < last_positions; t++) for (int g = 0; g < 16; g++) {
+				uint32_t bits = raw[(size_t)t * KV_TRACE_WORDS + (unsigned)kind * 16u + (unsigned)g];
+				if (bits == 0xffffffffu) { missing++; continue; }
+				groups++;
+				uint16_t s16 = scales[(size_t)t * 16u + (unsigned)g];
+				if ((s16 & 0x7c00u) == 0x7c00u) bad_scales++;
+				if (bits >= 0x7f800000u) { nonfinite++; continue; }
+				float a; memcpy(&a, &bits, sizeof a);
+				if (bits > max_bits) { max_bits = bits; max_pos = t; max_head = g / 8; max_group = g % 8; }
+				if (!bits) zero++;
+				if (bits && s16 == 0) underflow++;
+				if (s16 > 0 && s16 < 0x0400u) subnormal++;
+				if (a > QSA_KV_MAX_ABS) clipped++;
+				const float tiny = 7.8886090522101180541e-31f;
+				float raw_g = a < tiny ? tiny : a;
+				uint16_t unbounded = qsa_f2h(raw_g * (1.0f / 127.0f));
+				if ((unbounded & 0x7c00u) == 0x7c00u) would_overflow++;
+				float bounded_g = a > QSA_KV_MAX_ABS ? QSA_KV_MAX_ABS : a;
+				if (bounded_g < tiny) bounded_g = tiny;
+				uint16_t expected = qsa_f2h(bounded_g * (1.0f / 127.0f));
+				if (s16 != expected) mismatches++;
+			}
+			float max_abs; memcpy(&max_abs, &max_bits, sizeof max_abs);
+			int ok = kv_trace_complete && kv_trace_start == 0 && fegetround() == FE_TONEAREST
+			    && !missing && !nonfinite && !bad_scales && !mismatches;
+			all_ok = all_ok && ok; rows++;
+			fprintf(out, "kvstats layer=%d kind=%s die=%d groups=%llu expected_groups=%zu max_abs=%.9g max_hex=%a max_bits=%08x max_position=%d max_head=%d max_group=%d zero_groups=%llu underflow_groups=%llu subnormal_scale_groups=%llu would_overflow_groups=%llu clipped_groups=%llu nonfinite_input_groups=%llu nonfinite_stored_scales=%llu scale_mismatches=%llu missing_slots=%llu status=%s\n",
+			        bb, kind ? "V" : "K", d, groups, nscale, (double)max_abs, (double)max_abs, max_bits,
+			        max_pos, max_head, max_group, zero, underflow, subnormal, would_overflow, clipped,
+			        nonfinite, bad_scales, mismatches, missing, ok ? "PASS" : "FAIL");
+		}
+	}
+	CK(cuCtxSetCurrent(ctx[0])); free(scales);
+	if (rows != 2 * (nlayers_run / 4)) all_ok = 0;
+	fprintf(out, "kvstats done status=%s rows=%d positions=%d start=%d\n", all_ok ? "PASS" : "FAIL", rows, last_positions, kv_trace_start);
+	fflush(out);
 }
 
 static void alloc_second_position(int d) {
@@ -262,6 +337,8 @@ static void model_program(prog_t *P, int d, unsigned position, unsigned nprompt,
 		layer.qsa = 1; layer.nblk = nblk_qsa;
 		layer.kq = dst_kq[d][bb]; layer.ks = dst_ks[d][bb]; layer.vq = dst_vq[d][bb]; layer.vs = dst_vs[d][bb];
 		layer.pkt = dst_pkt[d][bb]; layer.ring = dst_ring[d][bb];
+		layer.kv_rawmax = kv_trace && layer.kq
+		    ? d_kv_rawmax[d] + (size_t)((bb - 3) / 4) * (size_t)MAXT * KV_TRACE_WORDS * sizeof(uint32_t) : 0;
 		if (bb == 1) prog_ple_prefix(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
 		if (BLK_IS_ATTN(bb)) prog_attn_block(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
 		else prog_deltanet_block(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
@@ -301,8 +378,8 @@ static void abort_run(runctx *r) {
 }
 
 /* stage the PLE rows of the positions that are known and close ([ple_next, min(known, finished + PLE_AHEAD)), at most `budget` of them): position q is known when
-   q < nprompt or the token q - 1 has arrived (q <= count); its 16 row numbers are the hash of ids[q-2..q], the rows are read from the file (the misses side by side: the
-   WILLNEED hints go out first) and the flag is stored last */
+   q < nprompt or the token q - 1 has arrived (q <= count); its 16 row numbers are the hash of ids[q-2..q].
+   WILLNEED hints precede a batch of parallel row reads; the flag is stored after every reader completes. */
 static void ple_pump(runctx *r, int budget) {
 	if (!ple_disk) return;
 	int c = r->count < ple_start ? ple_start : r->count;
@@ -315,10 +392,14 @@ static void ple_pump(runctx *r, int budget) {
 		uint64_t rows[16]; uint32_t endid = ple_end_id;
 		ple_rows_c(ple_seq, (size_t)q, ple_absent_id, &endid, 1, ple_multipliers, ple_head_offsets, ple_head_vocab, rows);
 		uint8_t *dst = seq_ple_host + (size_t)q * 16 * 90;
-		for (int h = 0; h < 16; h++) posix_fadvise(ple_fd, ple_off + (off_t)(rows[h] * 90), 90, POSIX_FADV_WILLNEED);
+		off_t offsets[PLE_READ_HEADS]; struct ple_read_result results[PLE_READ_HEADS];
+		for (int h = 0; h < PLE_READ_HEADS; h++) {
+			offsets[h] = ple_off + (off_t)(rows[h] * 90);
+			posix_fadvise(ple_fd, offsets[h], PLE_READ_ROW_BYTES, POSIX_FADV_WILLNEED);
+		}
+		ple_read_batch(&ple_reads, ple_fd, offsets, dst, results);
 		for (int h = 0; h < 16; h++) {
-			size_t got = 0; off_t at = ple_off + (off_t)(rows[h] * 90);
-			while (got < 90) { ssize_t n = pread(ple_fd, dst + h * 90 + got, 90 - got, at + (off_t)got); if (n <= 0) break; got += (size_t)n; }
+			size_t got = results[h].got;
 			if (got < 90) { memset(dst + h * 90 + got, 0, 90 - got); if (!ple_short_reads++) fprintf(stderr, "engine: PLE row read failed at position %d (head %d)\n", q, h); }
 		}
 		__atomic_store_n(&h_rdy[q], seq_ple_rid, __ATOMIC_RELEASE);
@@ -501,6 +582,12 @@ int engine_run_slot(int wanted, const uint32_t *ids, int nprompt, int n_new, con
         if (prefix) { for (int d = 0; d < nd; d++) prog_free(&prefix[d]); free(prefix); }
         seqsched_leave(&schedule); seqsched_release(&schedule, slot); return -2;
     }
+	kv_trace_complete = 0;
+	if (kv_trace) {
+		for (int l = 0; l < 12; l++)
+			memset(h_kv_rawmax + (size_t)l * (size_t)MAXT * KV_TRACE_WORDS, 0xff,
+			       (size_t)T * KV_TRACE_WORDS * sizeof(uint32_t));
+	}
 	memcpy(h_ids, ids, 4 * (size_t)nprompt); memset(h_ids + nprompt, 0, 4 * (size_t)(T + 2 - nprompt));
 	int irc = prepare_images(imgs, nimg, nprompt, T);
 	if (irc) {
@@ -524,6 +611,7 @@ int engine_run_slot(int wanted, const uint32_t *ids, int nprompt, int n_new, con
         if (snap_at > imgs[i].s) snap_at = imgs[i].s;
     }
 
+	kv_trace_start = resume;
 	if (snap_at <= resume) snap_at = 0;
 	if (!resume) snap_s = 0;   /* this response rewrites the attention caches from position 0 */
 	if (ple_disk) {   /* a new id for this response (never 0); the rows of the positions it runs are staged from `resume` on */
@@ -544,8 +632,10 @@ int engine_run_slot(int wanted, const uint32_t *ids, int nprompt, int n_new, con
 	if (resume) state_copy(0);
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
-		/* a fresh response: states and caches start from zero (not when resuming from the snapshot: the recurrent states
-		   were restored, the attention caches below the snapshot are intact), and so do the end flag and the abort count */
+		/* A fresh response resets recurrent state; attention rows are overwritten
+		   before becoming visible. Snapshot resume restores recurrent state and the
+		   unfinished indexer ring, preserving prefix attention rows. Reset the end
+		   flag and abort count in either case. */
 		if (!resume) {
 			for (int bb = 0; bb < NB; bb++) {
 				/* the int8 caches, the indexer pool and the ring of an attention layer need no reset: positions are written before they are read */
@@ -638,6 +728,7 @@ int engine_run_slot(int wanted, const uint32_t *ids, int nprompt, int n_new, con
     double t2 = now();
     if (nsequences == 1) {
         last_positions = r.count; last_paired_positions = r.paired_positions; last_prefill_chunks = r.prefill_chunks;
+        kv_trace_complete = !r.aborted && r.count == T && resume == 0;
     }
     if (st) {
         st->paired_positions = r.paired_positions; st->prefill_chunks = r.prefill_chunks;
@@ -738,11 +829,22 @@ int engine_init(core_t *c) {
     if (seqtrace_open(getenv("FLASH_SEQUENCE_TRACE"))) { in_init = 0; engine_fini(); return -1; }
 	MAXT = c->maxt;
 	last_positions = last_paired_positions = last_prefill_chunks = 0;
+	const char *trace_env = getenv("FLASH_KV_TRACE");
+	if (trace_env && strcmp(trace_env, "0") && strcmp(trace_env, "1")) {
+		fprintf(stderr, "engine: FLASH_KV_TRACE must be 0 or 1\n");
+		longjmp(init_jb, 1);
+	}
+	kv_trace = trace_env && !strcmp(trace_env, "1");
+	if (kv_trace && nsequences != 1) {
+		fprintf(stderr, "engine: FLASH_KV_TRACE requires FLASH_SEQUENCES=1\n");
+		longjmp(init_jb, 1);
+	}
+	kv_trace_start = kv_trace_complete = 0;
 	if (prefill_parse_chunk(getenv("FLASH_PREFILL_CHUNK"), &prefill_chunk)) {
-        fprintf(stderr, "engine: FLASH_PREFILL_CHUNK must be 0..%d\n", FLASH_PREFILL_CHUNK_MAX);
-        in_init = 0; return -1;
-    }
-    const char *pair_env = getenv("FLASH_TWO_POSITION");
+		fprintf(stderr, "engine: FLASH_PREFILL_CHUNK must be 0..%d\n", FLASH_PREFILL_CHUNK_MAX);
+		longjmp(init_jb, 1);
+	}
+	const char *pair_env = getenv("FLASH_TWO_POSITION");
 	if (pair_env && strcmp(pair_env, "0") && strcmp(pair_env, "1")) {
 		fprintf(stderr, "engine: FLASH_TWO_POSITION must be 0 or 1\n");
 		in_init = 0; engine_fini(); return -1;
@@ -752,6 +854,10 @@ int engine_init(core_t *c) {
         fprintf(stderr, "engine: FLASH_TWO_POSITION requires FLASH_SEQUENCES=1\n");
         in_init = 0; engine_fini(); return -1;
     }
+	if (ple_read_parse_readers(getenv("FLASH_PLE_READERS"), &ple_readers)) {
+		fprintf(stderr, "engine: FLASH_PLE_READERS must be a decimal integer from 1 to 16\n");
+		longjmp(init_jb, 1);
+	}
 	if (getenv("FLASH_ENGINE_MAXT")) { int m = atoi(getenv("FLASH_ENGINE_MAXT")); if (m > 0 && m <= c->maxt) MAXT = m; }   /* a library reloaded with FLASH_ENGINE_MAXT=n serves fewer positions than the core was started for (the KV caches shrink) */
     if (nsequences > 1) MAXT = (MAXT / nsequences) & ~127;
     if (MAXT < 2) {
@@ -769,8 +875,14 @@ int engine_init(core_t *c) {
 	kcf = ATTN_KC_FLOATS(cpos); vcf = (size_t)cpos * 512;
 	unsigned maxp = ((unsigned)MAXT + 127) & ~127u;   /* positions of the int8 caches and the pool: whole groups of 32 blocks */
 	size_t kv_layer = (size_t)maxp * 1088;   /* K, V int8 [pos][2][256] and their fp16 scales [pos][2][8] */
-	if (kv_host) {   /* DEVICEMAP | PORTABLE: every die reads and writes it over PCIe; zeroed, so the unwritten tail of a block is finite */
+	if (kv_host) {   /* DEVICEMAP | PORTABLE: every die reads/writes over PCIe. Initially zeroed; reuse/rollback correctness relies on logical masks, not tail contents. */
 		CK(cuCtxSetCurrent(ctx[0])); CK(cuMemHostAlloc(&h_kv, 12 * kv_layer, CU_MEMHOSTALLOC_DEVICEMAP | CU_MEMHOSTALLOC_PORTABLE)); memset(h_kv, 0, 12 * kv_layer);
+	}
+	if (kv_trace) {
+		CK(cuCtxSetCurrent(ctx[0]));
+		size_t bytes = 12u * (size_t)MAXT * KV_TRACE_WORDS * sizeof(uint32_t);
+		CK(cuMemHostAlloc((void **)&h_kv_rawmax, bytes, CU_MEMHOSTALLOC_DEVICEMAP | CU_MEMHOSTALLOC_PORTABLE));
+		memset(h_kv_rawmax, 0xff, bytes);
 	}
 	memset(has_attn, 0, sizeof has_attn);
 	for (int bb = 3; bb < NB; bb += 4) if (attn_die_of(bb) < nd) has_attn[attn_die_of(bb)] = 1;
@@ -784,6 +896,10 @@ int engine_init(core_t *c) {
 	for (int h = 0; h < 16; h++) { uint32_t o32 = (uint32_t)ple_head_offsets[h], v32 = (uint32_t)ple_head_vocab[h]; memcpy(ppc + 24 + 4 * h, &o32, 4); memcpy(ppc + 88 + 4 * h, &v32, 4); }
 	memcpy(ppc + 152, &pabsent, 4); memcpy(ppc + 156, &pend, 4);
 	ple_disk = c->ple_disk; ple_fd = c->ple_fd; ple_off = c->ple_off; seq_ple_host = c->ple_host; seq_ple_rdy_off = c->ple_rdy_off;
+	if (ple_disk) {
+		int err = ple_read_pool_init(&ple_reads, ple_readers);
+		if (err) { fprintf(stderr, "engine: starting PLE readers failed: %s\n", strerror(err)); longjmp(init_jb, 1); }
+	}
 	h_rdy = ple_disk ? (uint32_t *)(c->ple_host + c->ple_rdy_off) : NULL;
 	ple_absent_id = pabsent; ple_end_id = pend;
 	free(ple_seq); ple_seq = ple_disk ? calloc((size_t)MAXT + 2, 4) : NULL; ple_next = ple_start = 0;
@@ -796,6 +912,7 @@ int engine_init(core_t *c) {
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
 		split_t s0; split_of(&s0, d, nd, 0);
+		if (kv_trace) CK(cuMemHostGetDevicePointer(&d_kv_rawmax[d], h_kv_rawmax, 0));
 		dn_bufs_t *b = &db[d]; memset(b, 0, sizeof *b);
 		unsigned nlocmax = 128u * (2u * (unsigned)s0.nk + (unsigned)s0.hn)   /* q, k of the die's key heads, v of its value heads */, cols = 32u * (unsigned)s0.cbn, hrows = 128u * (unsigned)s0.hn;
 		b->S = dalloc(4 * 10240); b->S2 = dalloc(4 * 10240); b->xh = dalloc(4 * 10240); b->t = dalloc(4 * 324);
@@ -911,10 +1028,14 @@ int engine_init(core_t *c) {
 }
 
 void engine_fini(void) {
+	ple_read_pool_destroy(&ple_reads);
     seqtrace_close();
 	if (!core) return;
 	for (int d = 0; d < nd; d++) { if (pollst[d]) { cuCtxSetCurrent(ctx[d]); cuStreamDestroy(pollst[d]); pollst[d] = 0; } }
 	cuCtxSetCurrent(ctx[0]);
+	if (h_kv_rawmax) { cuMemFreeHost(h_kv_rawmax); h_kv_rawmax = NULL; }
+	memset(d_kv_rawmax, 0, sizeof d_kv_rawmax);
+	kv_trace = kv_trace_start = kv_trace_complete = 0;
     for (int i = 0; i < nsequences; i++) {
         active = &slots[i];
         if (h_kv) cuMemFreeHost(h_kv);
@@ -981,6 +1102,16 @@ int engine_session(FILE *in, FILE *out) {
 		char *p = line; while (*p == ' ') p++;
 		if (!strncmp(p, "quit", 4)) { quit = 1; break; }
         if (!strncmp(p,"reload",6)) {
+			/* Reject every invalid reader override before applying settings
+			 * or unloading, including duplicate keys. */
+			int preflight = ple_read_reload_preflight(p + 6);
+			if (preflight) {
+				fprintf(out, "error: reload rejected: %s\n", preflight == EINVAL
+				        ? "FLASH_PLE_READERS must be a decimal integer from 1 to 16"
+				        : "could not validate reload settings");
+				fflush(out);
+				continue;
+			}
             const char *arg=p+6;while(*arg==' '||*arg=='\t')arg++;
             size_t n=strcspn(arg,"\r\n");
             if(n>=sizeof reload_command){fprintf(out,"error: reload command is too long\n");fflush(out);continue;}
@@ -1017,13 +1148,24 @@ int engine_session(FILE *in, FILE *out) {
             active = &slots[slot]; state_hashes(out);
             seqsched_leave(&schedule); seqsched_release(&schedule, slot); continue;
         }
+        if (!strncmp(p, "kvstats", 7)) {
+            if (nsequences != 1) { fprintf(out, "error: kvstats requires FLASH_SEQUENCES=1\n"); fflush(out); continue; }
+            int slot = seqsched_claim(&schedule, 0, NULL, NULL);
+            if (slot < 0) { fprintf(out, "error: engine requires recovery\n"); fflush(out); continue; }
+            if (seqsched_enter(&schedule)) {
+                seqsched_leave(&schedule); seqsched_release(&schedule, slot);
+                fprintf(out, "error: engine requires recovery\n"); fflush(out); continue;
+            }
+            active = &slots[slot]; kv_stats(out);
+            seqsched_leave(&schedule); seqsched_release(&schedule, slot); continue;
+        }
 		if (!strncmp(p, "info", 4)) { fprintf(out, "info %d %u %d %d\n", MAXT, img_rows_max, nsequences, quantum); fflush(out); continue; }
 		if (!strncmp(p, "config", 6)) {
             int gate_broken = seqsched_enter(&schedule); (void)gate_broken;   /* what this engine is: the identity to attach to a measurement (the commit it was built from, where the KV lives, the layers it runs, the kernel image) */
 			char ad[64] = ""; for (int d = 0; d < nd; d++) if (has_attn[d]) { char one[8]; snprintf(one, sizeof one, "%s%d", ad[0] ? "," : "", d); strncat(ad, one, sizeof ad - strlen(ad) - 1); }
 			const char *sh = getenv("SPLIT_SHARES"), *am = getenv("ATTN_MAP");
-			fprintf(out, "config rev=%s kv_host=%d ple_disk=%d maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u cubin=%s cubin_fnv=%016llx sequences=%d quantum=%d two_position=%d prefill_chunk=%d\n",
-			        FLASH_REV, kv_host, ple_disk, MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, cubin_path, (unsigned long long)cubin_fnv, nsequences, quantum, two_position, prefill_chunk);
+			fprintf(out, "config rev=%s kv_host=%d kv_trace=%d ple_disk=%d ple_readers=%u maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u cubin=%s cubin_fnv=%016llx sequences=%d quantum=%d two_position=%d prefill_chunk=%d\n",
+			        FLASH_REV, kv_host, kv_trace, ple_disk, ple_disk ? ple_readers : 0, MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, cubin_path, (unsigned long long)cubin_fnv, nsequences, quantum, two_position, prefill_chunk);
 			fflush(out); seqsched_leave(&schedule); continue;
 		}
 		if (!strncmp(p, "cubin", 5)) {

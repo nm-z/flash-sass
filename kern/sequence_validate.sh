@@ -29,9 +29,10 @@ export FLASH_MAXT=${FLASH_MAXT:-1024}
 export FLASH_ENGINE_MAXT=${FLASH_ENGINE_MAXT:-$FLASH_MAXT}
 export FLASH_MAXIMG=${FLASH_MAXIMG:-2}
 export FLASH_PLE_DISK=1 FLASH_PLE_OFF=${FLASH_PLE_OFF:-192}
+export FLASH_PLE_READERS=${FLASH_PLE_READERS:-1}
 export FLASH_SEQUENCES=2 FLASH_QUANTUM=${FLASH_QUANTUM:-1}
 export FLASH_NBLK=${FLASH_NBLK:-512} FLASH_KV_HOST=${FLASH_KV_HOST:-0}
-export FLASH_TWO_POSITION=0 FLASH_TRACE=0
+export FLASH_TWO_POSITION=0 FLASH_TRACE=0 FLASH_KV_TRACE=0
 export FLASH_PREFILL_CHUNK=${FLASH_PREFILL_CHUNK:-0}
 export FLASH_WATCHDOG_S=${FLASH_WATCHDOG_S:-60}
 export FLASH_CUBIN=$(realpath -e -- "${FLASH_CUBIN:-$src/die.cubin}")
@@ -60,7 +61,7 @@ jq -n --arg hostname "$(hostname)" --arg boot_id "$(cat /proc/sys/kernel/random/
    '{hostname:$hostname,boot_id:$boot_id,started_utc:$utc,revision:$revision,case:$case_name}' > "$out/identity.json"
 sha256sum -- "$src/flashcore" "$library" "$FLASH_CUBIN" "$checker" "$src/sequence_validate.sh" "${manifests[@]}" > "$out/sha256.txt"
 for manifest in "${manifests[@]}"; do head -1 -- "$manifest"; done > "$out/holder-arenas.txt"
-env | LC_ALL=C sort | awk '/^(CUDA_VISIBLE_DEVICES|CUDA_DEVICE_ORDER|SPLIT_SHARES|ATTN_DIE|ATTN_MAP|FLASH_(ANCHOR_DIE|MAXT|ENGINE_MAXT|MAXIMG|PLE_DISK|PLE_OFF|SEQUENCES|QUANTUM|NBLK|KV_HOST|TWO_POSITION|PREFILL_CHUNK|TRACE|WATCHDOG_S|CUBIN|SOCK|SEQUENCE_TRACE))=/' > "$out/environment.txt"
+env | LC_ALL=C sort | awk '/^(CUDA_VISIBLE_DEVICES|CUDA_DEVICE_ORDER|SPLIT_SHARES|ATTN_DIE|ATTN_MAP|FLASH_(ANCHOR_DIE|MAXT|ENGINE_MAXT|MAXIMG|PLE_DISK|PLE_OFF|PLE_READERS|SEQUENCES|QUANTUM|NBLK|KV_HOST|KV_TRACE|TWO_POSITION|PREFILL_CHUNK|TRACE|WATCHDOG_S|CUBIN|SOCK|SEQUENCE_TRACE))=/' > "$out/environment.txt"
 # All sequence workers use this lease; retain resident read-only holders/fences.
 # This path is shared with the other repository workers. TMPDIR must not
 # silently give this worker a different GPU lease.
