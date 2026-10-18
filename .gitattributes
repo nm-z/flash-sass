@@ -1,3 +1,5 @@
 # Preserve raw nvprof stdout byte-for-byte, including its terminal blank lines.
 validation/issue10/counters/profiler/nvprof114-events.txt whitespace=-blank-at-eof
 validation/issue10/counters/profiler/nvprof114-metrics.txt whitespace=-blank-at-eof
+# Preserve the raw prove progress line in the validation transcript.
+validation/issue10/native-validation/tests.log whitespace=-blank-at-eol
