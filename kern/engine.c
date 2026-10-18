@@ -722,7 +722,11 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	double t1 = now();
     timing_run_start=t1;last_timing.build_ms=(t1-timing_request_start)*1e3;last_timing.run_ms=0;
 	runctx r = { .T = T, .nprompt = nprompt, .sent = nprompt - 1, .count = resume, .cb = cb };
-	ple_pump(&r, PLE_AHEAD);   /* the first rows are in place before the kernels start (the position they start at waits for its flag) */
+	/* Prime the first position, then overlap subsequent staging with GPU work.
+	 * A paired pass waits on its second ready flag while the host's normal
+	 * in-flight pump fills it. Reading the entire lookahead before launch
+	 * serialized cold prompt I/O with all of the prompt's compute. */
+	ple_pump(&r, 1);
 	if (snap_at) {   /* run the prompt up to the snapshot position, copy the states, go on */
 		run_prefill_prefix(&r, P, prefix, pair, snap_at);
 		if (!r.aborted && r.count == snap_at) {
