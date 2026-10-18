@@ -44,6 +44,7 @@ my $state = {status=>'RUNNING', source=>$source, source_sha=>$revision,
     resident_pid=>$pid, resident_start_tick=>$start_tick, commands=>[], protocol=>[],
     started_utc=>strftime('%Y-%m-%dT%H:%M:%SZ', gmtime)};
 my ($lease, $baseline, $plan, $logical_library, $cubin_file, $mutated, $restored);
+my ($trace_probe_required, $settings_changed);
 my $restoring = 0;
 my %children;
 $SIG{PIPE} = 'IGNORE';
@@ -214,7 +215,7 @@ sub restore {
     return if !$mutated || $restored;
     $state->{status} = 'RESTORING'; persist();
     check_original_artifacts();
-    check(exchange(reload_command($logical_library, $plan->{restore})) eq 'ok: engine reloaded',
+    check(exchange(reload_command($logical_library, $settings_changed ? $plan->{restore} : {})) eq 'ok: engine reloaded',
           'Baseline engine reload failed');
     my $config = parse_config(exchange('config'));
     for my $field (keys %$baseline) {
@@ -249,7 +250,12 @@ my $ok = eval {
     $baseline = parse_config(exchange('config'));
     my $image = live_image();
     check(sha($image) eq $baseline_sha, 'Current resident library differs from approved baseline artifact');
-    $plan = validation_plan($baseline, $baseline_sha, "$source/kern/die_trace.cubin");
+    $trace_probe_required = !exists $baseline->{trace_tokens};
+    # Validate the baseline shape before any reload. A missing trace setting
+    # is read from the candidate under the unchanged environment below; zero
+    # here is only a shape-check placeholder, never an assumed restore value.
+    $plan = validation_plan({%$baseline, $trace_probe_required ? (trace_tokens=>'0') : ()},
+        $baseline_sha, "$source/kern/die_trace.cubin");
 
     my $stderr = readlink("/proc/$pid/fd/2") // die "Read core stderr path: $!";
     check(-f $stderr, 'Cannot establish current logical library from core log');
@@ -265,14 +271,14 @@ my $ok = eval {
     $state->{baseline} = {config=>$baseline, private_image=>$image,
         engine_sha256=>$baseline_sha, logical_library=>$logical_library,
         cubin_file=>$cubin_file, cubin_sha256=>sha($cubin_file),
-        trace_restore_basis=>$plan->{trace_restore_basis}};
+        trace_restore_basis=>$trace_probe_required ? 'pending unchanged-environment readback' : $plan->{trace_restore_basis}};
     check_original_artifacts();
     copy($image, "$out/baseline-libengine.so") or die "Save exact baseline image: $!";
     copy($cubin_file, "$out/baseline-die.cubin") or die "Save baseline cubin: $!";
     check(sha("$out/baseline-libengine.so") eq $baseline_sha, 'Baseline image copy differs');
     check(sha("$out/baseline-die.cubin") eq $state->{baseline}{cubin_sha256},
           'Baseline cubin copy differs');
-    save('restore-command.txt', reload_command($logical_library, $plan->{restore}) . "\n");
+    save('restore-command.txt', reload_command($logical_library, {}) . "\n");
     $state->{plan} = $plan;
     $state->{restoration_scope} = 'Exact library bytes and effective configuration; reload clears engine snapshots and caches. Startup environment is not used as effective readback.';
     persist();
@@ -280,10 +286,30 @@ my $ok = eval {
     command('session-fixtures', 30, "$source/kern/trace_session_test");
     my $gguf = '/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf';
     command('output-token-regression', 30, "$source/kern/output_tokens_test", $gguf);
+    if ($trace_probe_required) {
+        $state->{status} = 'READING_UNCHANGED_ENVIRONMENT';
+        $mutated = 1; $state->{mutation_started_utc} //= utc(); persist();
+        check(exchange(reload_command("$source/kern/libengine.so", {})) eq 'ok: engine reloaded',
+              'Unchanged-environment candidate reload failed');
+        my $config = parse_config(exchange('config'));
+        check($config->{rev} eq $revision && sha(live_image()) eq $state->{artifacts}{'libengine.so'},
+              'Trace readback came from a different candidate library');
+        for my $field (grep {$_ ne 'rev'} keys %$baseline) {
+            check(defined($config->{$field}) && $config->{$field} eq $baseline->{$field},
+                  "Unchanged-environment reload changed $field");
+        }
+        check(exists($config->{trace_tokens}), 'Candidate does not expose the effective trace setting');
+        $plan = validation_plan({%$baseline, trace_tokens=>$config->{trace_tokens}},
+            $baseline_sha, "$source/kern/die_trace.cubin");
+        $state->{unchanged_environment_config} = $config;
+        $state->{baseline}{trace_restore_basis} = 'candidate config readback before any environment assignment';
+        $state->{plan} = $plan; persist();
+    }
+    save('restore-command.txt', reload_command($logical_library, $plan->{restore}) . "\n");
     for my $pair (0, 1) {
         check_original_artifacts();
         $state->{status} = "LOADING_PAIR_$pair";
-        $mutated = 1; $state->{mutation_started_utc} //= utc(); persist();
+        $mutated = 1; $settings_changed = 1; $state->{mutation_started_utc} //= utc(); persist();
         check(exchange(reload_command("$source/kern/libengine.so", $plan->{candidates}[$pair]))
             eq 'ok: engine reloaded', 'Candidate reload failed');
         $state->{candidate_configs}[$pair] = verify_candidate($pair);

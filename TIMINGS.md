@@ -112,6 +112,10 @@ the inherited descriptor:
 The runner verifies that the descriptor shares the supervisor's locked open-file
 description, checks the actual Unix peer PID/UID and process start tick, and
 captures the effective configuration and exact mapped library before mutation.
+If the baseline omits its trace setting, the runner first loads the candidate
+without assigning any environment variables and reads `trace_tokens` from that
+configuration. An error in this stage restores the original library with the
+environment still unchanged. Only after this readback does it enable tracing.
 It requires a verified baseline restore path, runs scalar and paired CLI/HTTP
 measurements through a private frontend, then verifies the restored library
 bytes and configuration before completion. Reload clears engine snapshots and
