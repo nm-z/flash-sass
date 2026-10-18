@@ -1,0 +1,6 @@
+argv: ["bash","-c","nvidia-smi"]
+exit: 127
+stdout:
+
+stderr:
+bash: line 1: nvidia-smi: command not found

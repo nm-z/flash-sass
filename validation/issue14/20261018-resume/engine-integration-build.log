@@ -1,0 +1,9 @@
+argv: ["make","-B","-C","kern","bench_engine_trace_test","CC=cc -L/opt/cuda/lib64/stubs"]
+exit: 0
+stdout:
+make: Entering directory '/home/nate/codex/flash-issue14-20261018/kern'
+perl die.pl header > dieops.h
+cc -L/opt/cuda/lib64/stubs -std=gnu99 -O2 -ffp-contract=off -Wall -ffunction-sections -fdata-sections -Wl,--gc-sections -o bench_engine_trace_test bench_engine_trace_test.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm
+make: Leaving directory '/home/nate/codex/flash-issue14-20261018/kern'
+
+stderr:

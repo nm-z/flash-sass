@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "scope": "Read-only target-host lock preflight; no GPU/benchmark request",
+  "source_sha": "83644519f87c9f8c9f005b596feb1cba3d2534a3",
+  "target_host": "archy",
+  "lock_path": "/tmp/flash-sass-engine-validation.lock",
+  "attempts": [
+    {
+      "utc": "2026-10-18T05:40:16Z",
+      "exit": 73,
+      "lock_acquired": false,
+      "log": "archy-preflight.log"
+    },
+    {
+      "utc": "2026-10-18T05:45:22Z",
+      "exit": 73,
+      "lock_acquired": false,
+      "log": "archy-preflight-latest.log"
+    }
+  ],
+  "argv": [
+    "ssh",
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    "ConnectTimeout=10",
+    "nate@archy",
+    "bash",
+    "-s"
+  ],
+  "stdin_file": "archy-preflight.sh",
+  "blocker": "Shared validation lock busy; each attempt stopped before GPU queries, process inspection and socket commands."
+}

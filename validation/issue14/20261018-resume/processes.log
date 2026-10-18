@@ -1,0 +1,1292 @@
+argv: ["ps","-eo","pid,ppid,stat,comm"]
+exit: 0
+stdout:
+    PID    PPID STAT COMMAND
+      1       0 Ss   systemd
+      2       0 S    kthreadd
+      3       2 S    pool_workqueue_release
+      4       2 I<   kworker/R-rcu_gp
+      5       2 I<   kworker/R-sync_wq
+      6       2 I<   kworker/R-kvfree_rcu_reclaim
+      7       2 I<   kworker/R-slub_flushwq
+      8       2 I<   kworker/R-netns
+     11       2 I<   kworker/0:0H-kblockd
+     14       2 I<   kworker/R-mm_percpu_wq
+     15       2 S    ksoftirqd/0
+     16       2 I    rcu_preempt
+     17       2 S    rcub/0
+     18       2 S    rcu_exp_par_gp_kthread_worker/0
+     19       2 S    rcu_exp_gp_kthread_worker
+     20       2 S    migration/0
+     21       2 S    kprobe-optimizer
+     22       2 S    idle_inject/0
+     23       2 S    cpuhp/0
+     24       2 S    cpuhp/1
+     25       2 S    idle_inject/1
+     26       2 S    migration/1
+     27       2 S    ksoftirqd/1
+     29       2 I<   kworker/1:0H-kblockd
+     30       2 S    cpuhp/2
+     31       2 S    idle_inject/2
+     32       2 S    migration/2
+     33       2 S    ksoftirqd/2
+     35       2 I<   kworker/2:0H-kblockd
+     36       2 S    cpuhp/3
+     37       2 S    idle_inject/3
+     38       2 S    migration/3
+     39       2 S    ksoftirqd/3
+     41       2 I<   kworker/3:0H-kblockd
+     42       2 S    cpuhp/4
+     43       2 S    idle_inject/4
+     44       2 S    migration/4
+     45       2 S    ksoftirqd/4
+     47       2 I<   kworker/4:0H-kblockd
+     48       2 S    cpuhp/5
+     49       2 S    idle_inject/5
+     50       2 S    migration/5
+     51       2 S    ksoftirqd/5
+     53       2 I<   kworker/5:0H-kblockd
+     54       2 S    cpuhp/6
+     55       2 S    idle_inject/6
+     56       2 S    migration/6
+     57       2 S    ksoftirqd/6
+     59       2 I<   kworker/6:0H-kblockd
+     60       2 S    cpuhp/7
+     61       2 S    idle_inject/7
+     62       2 S    migration/7
+     63       2 S    ksoftirqd/7
+     65       2 I<   kworker/7:0H-kblockd
+     66       2 S    cpuhp/8
+     67       2 S    idle_inject/8
+     68       2 S    migration/8
+     69       2 S    ksoftirqd/8
+     71       2 I<   kworker/8:0H-kblockd
+     72       2 S    cpuhp/9
+     73       2 S    idle_inject/9
+     74       2 S    migration/9
+     75       2 S    ksoftirqd/9
+     77       2 I<   kworker/9:0H-kblockd
+     78       2 S    cpuhp/10
+     79       2 S    idle_inject/10
+     80       2 S    migration/10
+     81       2 S    ksoftirqd/10
+     83       2 I<   kworker/10:0H-kblockd
+     84       2 S    cpuhp/11
+     85       2 S    idle_inject/11
+     86       2 S    migration/11
+     87       2 S    ksoftirqd/11
+     89       2 I<   kworker/11:0H-kblockd
+     90       2 S    kdevtmpfs
+     91       2 I<   kworker/R-inet_frag_wq
+     92       2 I    rcu_tasks_kthread
+     93       2 I    rcu_tasks_rude_kthread
+     94       2 S    kauditd
+     95       2 S    khungtaskd
+     96       2 S    oom_reaper
+     99       2 I<   kworker/R-writeback
+    100       2 S    kcompactd0
+    101       2 SN   ksmd
+    102       2 SN   khugepaged
+    103       2 I<   kworker/R-kblockd
+    104       2 I<   kworker/R-blkcg_punt_bio
+    105       2 I<   kworker/R-kintegrityd
+    106       2 S    irq/9-acpi
+    107       2 I<   kworker/R-tpm_dev_wq
+    108       2 I<   kworker/R-ata_sff
+    109       2 I<   kworker/R-edac-poller
+    110       2 I<   kworker/R-devfreq_wq
+    111       2 S    watchdogd
+    112       2 I<   kworker/R-quota_events_unbound
+    113       2 S    irq/26-AMD-Vi
+    115       2 S    kswapd0
+    116       2 I<   kworker/R-kthrotld
+    118       2 I<   kworker/R-acpi_thermal_pm
+    131       2 S    scsi_eh_0
+    132       2 I<   kworker/R-scsi_tmf_0
+    133       2 S    scsi_eh_1
+    134       2 I<   kworker/R-scsi_tmf_1
+    135       2 S    scsi_eh_2
+    136       2 I<   kworker/R-scsi_tmf_2
+    137       2 S    scsi_eh_3
+    138       2 I<   kworker/R-scsi_tmf_3
+    139       2 S    scsi_eh_4
+    140       2 I<   kworker/R-scsi_tmf_4
+    141       2 S    scsi_eh_5
+    142       2 I<   kworker/R-scsi_tmf_5
+    145       2 I<   kworker/R-mld
+    146       2 I<   kworker/R-ipv6_addrconf
+    147       2 I<   kworker/R-kstrp
+    151       2 S    irq/27-ACPI:Event
+    224       2 I<   kworker/R-nvme-wq
+    225       2 I<   kworker/R-nvme-reset-wq
+    226       2 I<   kworker/R-nvme-delete-wq
+    227       2 I<   kworker/R-nvme-auth-wq
+    234       2 I<   kworker/2:1H-kblockd
+    238       2 I<   kworker/0:1H-kblockd
+    253       2 S    jbd2/nvme0n1p3-8
+    254       2 I<   kworker/R-ext4-rsv-conversion
+    262       2 I<   kworker/R-amdgpu-reset-dev
+    263       2 I<   kworker/R-ttm
+    264       2 I<   kworker/R-amdgpu_dm_hpd_rx_offload_wq
+    265       2 I<   kworker/R-amdgpu_dm_hpd_rx_offload_wq
+    266       2 I<   kworker/R-amdgpu_dm_hpd_rx_offload_wq
+    267       2 I<   kworker/R-amdgpu_dm_hpd_rx_offload_wq
+    268       2 I<   kworker/R-amdgpu_dm_hpd_rx_offload_wq
+    269       2 I<   kworker/R-dm_vblank_control_workqueue
+    270       2 I<   kworker/R-hdmi_frl_status_polling_workque
+    271       2 S    card1-crtc0
+    272       2 S    card1-crtc1
+    273       2 S    card1-crtc2
+    274       2 S    card1-crtc3
+    275       2 I<   kworker/R-gfx_0.0.0
+    276       2 I<   kworker/R-comp_1.0.0
+    277       2 I<   kworker/R-comp_1.1.0
+    278       2 I<   kworker/R-comp_1.2.0
+    279       2 I<   kworker/R-comp_1.3.0
+    280       2 I<   kworker/R-comp_1.0.1
+    281       2 I<   kworker/R-comp_1.1.1
+    282       2 I<   kworker/R-comp_1.2.1
+    283       2 I<   kworker/R-comp_1.3.1
+    284       2 I<   kworker/R-sdma0
+    285       2 I<   kworker/R-sdma1
+    286       2 I<   kworker/R-vcn_unified_0
+    287       2 I<   kworker/R-vcn_unified_1
+    288       2 I<   kworker/R-jpeg_dec
+    302       2 I<   kworker/3:1H-kblockd
+    329       2 I<   kworker/5:1H-kblockd
+    340       1 Ss   systemd-journal
+    362       2 I<   kworker/R-usbip_event
+    371       1 Ss   systemd-userdbd
+    373       2 I<   kworker/11:1H-kblockd
+    375       2 I<   kworker/7:1H-kblockd
+    376       2 I<   kworker/1:1H-kblockd
+    377       2 I<   kworker/9:1H-kblockd
+    383       2 S    psimon
+    389       1 Ssl  systemd-timesyn
+    394       1 Ss   systemd-udevd
+    396       2 I<   kworker/R-iprt-VBoxWQueue
+    397       2 S    psimon
+    455       2 S    scsi_eh_6
+    456       2 I<   kworker/R-scsi_tmf_6
+    457       2 S    usb-storage
+    462       2 I<   kworker/R-uas
+    463       2 S    iprt-VBoxTscThread
+    533       2 I<   kworker/R-kdmflush/253:0
+    775       2 I<   kworker/R-cfg80211
+    798       2 S    irq/118-iwlwifi:default_queue
+    800       2 S    irq/119-iwlwifi:queue_1
+    801       2 S    irq/120-iwlwifi:queue_2
+    802       2 S    irq/121-iwlwifi:queue_3
+    804       2 S    irq/122-iwlwifi:queue_4
+    805       2 S    irq/123-iwlwifi:queue_5
+    807       2 S    irq/124-iwlwifi:queue_6
+    808       2 S    irq/125-iwlwifi:queue_7
+    809       2 S    irq/126-iwlwifi:queue_8
+    810       2 S    irq/127-iwlwifi:queue_9
+    811       2 S    irq/128-iwlwifi:queue_10
+    812       2 S    irq/129-iwlwifi:queue_11
+    816       2 S    irq/130-iwlwifi:queue_12
+    817       2 S    irq/131-iwlwifi:exception
+    886       2 D    jbd2/dm-0-8
+    887       2 I<   kworker/R-ext4-rsv-conversion
+    913       2 I    kdamond.0
+    927       1 Ss   dbus-broker-lau
+    928     927 S    dbus-broker
+    929       1 S<Ls earlyoom
+    930       1 Ssl  NetworkManager
+    932       1 Ss   avahi-daemon
+    934       1 Ssl  python3
+    937       1 Ss   systemd-logind
+    938       1 Ss   systemd-machine
+    940       1 Ssl  udisksd
+    957       1 S<   atopacctd
+    964       2 I<   kworker/8:1H-kblockd
+    981     932 S    avahi-daemon
+   1042       1 Ss   cupsd
+   1043       1 Ssl  libvirtd
+   1044       1 Ss   python3
+   1057       1 Ssl  sddm
+   1059       1 Ss   systemd
+   1061       2 I<   kworker/10:1H-kblockd
+   1063       1 Ssl  colord
+   1064    1059 S    (sd-pam)
+   1065     934 S    python3
+   1072    1057 Ssl+ Xorg
+   1087    1059 Ss   dbus-broker-lau
+   1088    1087 S    dbus-broker
+   1089    1059 Ss   desktop-watch.s
+   1093    1059 Ss   ceo_dash_server
+   1094    1059 Ss   withkey
+   1095    1059 Ssl  llm-mux-anthrop
+   1096    1059 Ssl  mcp-gateway
+   1098    1059 Ss   bash
+   1099    1059 Sl   brscan-skey-exe
+   1103    1089 S    desktop-watch.s
+   1104    1103 S    pw-top
+   1106    1103 S    desktop-watch.s
+   1108    1103 S    desktop-watch.s
+   1109    1106 S    awk
+   1142    1059 S<sl pipewire
+   1164    1059 Ss   recipe
+   1173    1094 Sl   cli-proxy-api
+   1175    1173 S    withkey
+   1176    1173 S    withkey
+   1230       2 I<   kworker/4:1H-kblockd
+   1241    1059 S<Lsl wireplumber
+   1243    1059 S<Lsl pipewire-pulse
+   1244    1059 Ss   ydotoold
+   1255    1059 SNs  night-display-g
+   1261    1059 SNsl progress-board
+   1264    1059 Ss   bash
+   1501    1059 Ssl  gnome-keyring-d
+   1511    1059 SLsl gnome-keyring-d
+   1762    1164 S    recipe-script-1
+   2056       1 Ssl  upowerd
+   2135       1 Ssl  containerd
+   2143       1 Ssl  ollama
+   2144       1 Ss   smbd
+   2149       1 Ss   bluetoothd
+   2313       1 Ssl  dockerd
+   2408    2144 S    smbd-notifyd
+   2410    2144 S    smbd-cleanupd
+   3246       1 Ss   wpa_supplicant
+   3437       1 S    dnsmasq
+   3438    3437 S    dnsmasq
+   3576       1 Sl   containerd-shim
+   3630    3576 Ss   docker-init
+   3723    2313 Sl   docker-proxy
+   3750    3630 Sl   hound
+   5459    1059 Ssl  mcp-gateway
+   6976    1059 SNsl nates-dsh
+   6989    6976 SNsl+ claude
+   8343    1059 Ssl  krunner
+   8942    1059 Ssl  baloorunner
+   9043    1059 Ss   bash
+   9065    1059 S    srt-logger
+   9607    1059 Ssl  cloudflared
+   9808    6989 SNl+ kwin-mcp-shim
+  10358    1057 S    sddm-helper
+  10404       1 SLl  ksecretd
+  10405   10358 Ssl+ startplasma-way
+  11000    1059 Ss   systembus-notif
+  11028    1059 Ssl  kwin_wayland_wr
+  11034    1059 Ssl  agent
+  11036    1059 Ssl  DiscoverNotifie
+  11039   11028 Sl   kwin_wayland
+  11041    1059 SNsl baloo_file
+  11062    1059 Ssl  xdg-desktop-por
+  11088    1059 Ssl  xdg-permission-
+  11108    9043 Sl   steam
+  11113    1059 Ssl  xdg-document-po
+  11121   11113 Ss   fusermount3
+  11126    1059 Ssl  xdg-desktop-por
+  11237   11108 Ss   srt-bwrap
+  11248    1059 S    srt-logger
+  11503    1059 Ssl  at-spi-bus-laun
+  11519   11039 Sl   Xwayland
+  11526   11503 S    dbus-broker-lau
+  11528   11526 S    dbus-broker
+  11533    1059 S<sl claude-desktop
+  11534    1059 S<sl chrome
+  11540    1059 S<Lsl spotify
+  11569   11534 S    cat
+  11570   11534 S    cat
+  11583    1059 Sl   chrome_crashpad
+  11585    1059 Sl   chrome_crashpad
+  11590   11534 S    chrome
+  11591   11534 S    chrome
+  11646   11108 Sl   steam-runtime-l
+  11658   11237 Ss   pv-adverb
+  11665    1059 Ssl  at-spi2-registr
+  11687   11658 S<l  steamwebhelper
+  11711   11658 Sl   steamwebhelper
+  11730   11687 S    steamwebhelper
+  11732   11687 S    steamwebhelper
+  11735   11732 S    steamwebhelper
+  11744   11533 S    claude-desktop
+  11746   11533 S    claude-desktop
+  11786   11590 S<l  chrome
+  11793   11746 S    claude-desktop
+  11794   11534 Sl   chrome
+  11814    1059 S<l  spotify
+  11815   11730 S<l  steamwebhelper
+  11847   11591 Sl   chrome
+  11926   11687 Sl   steamwebhelper
+  11935   11735 Sl   steamwebhelper
+  11936    1059 Ssl  ksmserver
+  11940    1059 Ssl  kded6
+  11951   11735 S<l  steamwebhelper
+  11963   11540 S<   spotify
+  11965   11540 S<   spotify
+  12052    1059 Ssl  plasmashell
+  12174   11591 SNl  chrome
+  12215    1059 Ssl  dconf-service
+  12244    1059 Ssl  kactivitymanage
+  12269    1059 Ssl  gmenudbusmenupr
+  12272    1059 Ssl  kaccess
+  12277    1059 Ssl  polkit-kde-auth
+  12281    1059 Ssl  org_kde_powerde
+  12283    1059 Ssl  xdg-desktop-por
+  12286    1059 Ssl  xembedsniproxy
+  12308    1059 SLsl kwalletd6
+  12318       2 S<   krfcommd
+  12370    1059 S<l  chrome_crashpad
+  12383       1 SNsl rtkit-daemon
+  12567   11963 S<l  spotify
+  12587   11540 S<l  spotify
+  12648    1059 S    xsettingsd
+  12776   11965 S<l  spotify
+  12821   11687 Sl   steamwebhelper
+  12942    1059 Ss   ssh
+  12975   11744 S<l  claude-desktop
+  13018   11533 Sl   claude-desktop
+  13274   11965 S<l  spotify
+  14225   11793 SNl  claude-desktop
+  14365   11591 SNl  chrome
+  14619   11534 Sl   plasma-browser-
+  14691   11793 S<l  claude-desktop
+  15587   11533 S<l  cowork-linux-he
+  16001   11965 S<l  spotify
+  16028   11591 Sl   chrome
+  16217   11533 Sl   claude-desktop
+  16844   11533 Sl   claude-desktop
+  17782   11533 Sl   claude-desktop
+  18030    1059 Ss   ssh-agent
+  23738   11591 SNl  chrome
+  24270       1 Ssl  accounts-daemon
+  27699   11591 SNl  chrome
+  27710   11591 SNl  chrome
+  28281   11591 SNl  chrome
+  28292   11591 SNl  chrome
+  28337   11591 SNl  chrome
+  28611   11591 SNl  chrome
+  28784   11534 Sl   chrome
+  29082   11591 SNl  chrome
+  29599   11591 SNl  chrome
+  29662   11591 SNl  chrome
+  29831   11533 S<sl claude
+  29870   11533 Sl   claude-desktop
+  29873   29831 S<l  kwin-mcp-shim
+  29902   29870 Ss+  bash
+  30110   11591 SNl  chrome
+  30403   11591 SNl  chrome
+  30448   29870 Ss   bash
+  31140   11591 SNl  chrome
+  31209   11591 SNl  chrome
+  31256   11591 SNl  chrome
+  31338   11591 SNl  chrome
+  31424   11591 SNl  chrome
+  31646   11591 SNl  chrome
+  44012   11735 SNl  steamwebhelper
+  52268 3886306 SN   bash
+  52271   52268 SN   bash
+  52274   52271 SN   orgctl
+  52341   52274 SN   drawd
+  52352   52341 SNl  asmux-draw
+  52794   52274 SNl  asmux-layout
+  52802 3886371 Sl   Xwayland
+  52898   11591 SNl  chrome
+  92991    1059 Ssl  dolphin
+ 105861       2 I<   kworker/u49:11-ttm
+ 194118    1059 SNsl codex
+ 194891  194118 SNl  kwin-mcp
+ 194900  194118 SNl  node_repl
+ 194901  194118 SNl  MainThread
+ 195114  194901 SNl  node_repl
+ 195322  194118 SNl  node
+ 196006    1059 SNsl nates-dsh
+ 196010  196006 SNsl+ codex
+ 197440  194118 SNl  codex-code-mode
+ 209881   30448 Sl+  gh
+ 221547    1059 Ssl  drkonqi-coredum
+ 244670    1059 Ssl  drkonqi-coredum
+ 263942   11533 Sl   claude-desktop
+ 290979    1059 SNsl codex
+ 291382  290979 SNl  MainThread
+ 291385  290979 SNl  node_repl
+ 291386  290979 SNl  kwin-mcp
+ 291418  291382 SNl  node_repl
+ 291659  290979 SNl  node
+ 292117    1059 SNsl nates-dsh
+ 292120  292117 SNsl+ codex
+ 295067  290979 SNl  codex-code-mode
+ 296478 4173557 RNl  chrome
+ 311584 3167945 ZN   nates-dsh <defunct>
+ 367069    1059 SNsl codex
+ 368055  367069 SNl  node_repl
+ 368068  367069 SNl  kwin-mcp
+ 368118  367069 SNl  MainThread
+ 368300  368118 SNl  node_repl
+ 368503  367069 SNl  node
+ 369343    1059 SNsl nates-dsh
+ 369389  369343 SNsl+ codex
+ 371664  367069 SNl  codex-code-mode
+ 378241   29870 Ss   bash
+ 378749  378241 Sl+  gh
+ 380824 4173557 Dl   chrome
+ 385192       2 I<   kworker/u49:5-hci1
+ 411506    1059 SNsl codex
+ 411806  411506 SNl  node_repl
+ 411808  411506 SNl  kwin-mcp
+ 411825  411506 SNl  MainThread
+ 411878  411825 SNl  node_repl
+ 412044  411506 SNl  node
+ 412340    1059 SNsl nates-dsh
+ 412356  412340 SNsl+ codex
+ 415369  411506 SNl  codex-code-mode
+ 471961   52794 SNs+ bash
+ 486181    1059 SNsl codex
+ 486959  486181 SNl  MainThread
+ 486964  486181 SNl  node_repl
+ 486973  486181 SNl  kwin-mcp
+ 487043  486959 SNl  node_repl
+ 487459  486181 SNl  node
+ 488370    1059 RNsl nates-dsh
+ 488383  488370 SNsl+ codex
+ 491186  486181 SNl  codex-code-mode
+ 519202    1059 Ssl  codex
+ 537219 1614905 Ss+  bash
+ 539344       2 I<   kworker/u49:4-ttm
+ 570920   11533 S<sl claude
+ 570971   29870 Ss+  bash
+ 571448  570920 S<l  kwin-mcp-shim
+ 573861   29870 Ss+  bash
+ 577783 3886250 SN   drawd
+ 579434 4152514 SNl  xdg-dbus-proxy
+ 579442 4152514 SN   dbus-daemon
+ 579463 4152514 SNl  xdg-dbus-proxy
+ 579484 4152514 SN   passt.avx2
+ 579494  579484 SN   bwrap
+ 579504  579494 SN   bwrap
+ 579506  579504 SN   bash
+ 579507  579506 SN   kwin-mcp-exe
+ 579510  579506 SN   dbus-daemon
+ 579530  579506 SNl  kwin_wayland
+ 579622  579506 S<l  pipewire
+ 579623  579506 S<l  wireplumber
+ 579662  579504 SNl  at-spi-bus-laun
+ 579668  579662 SN   dbus-daemon
+ 579670  579504 SNl  dconf-service
+ 579672  579504 SNl  at-spi2-registr
+ 581549  579506 SN   bash
+ 581550  581549 SN   bash
+ 581552  581550 SNl  konsole
+ 581591  581552 SNs  bash
+ 583154  581591 SN   drawd
+ 583166  581591 SN+  orgctl
+ 583167  583166 SNs+ cat
+ 583168  579530 Sl   Xwayland
+ 585625  579506 SN   bash
+ 585626  585625 SN   bash
+ 585629  585626 SNl  konsole
+ 585675  585629 SNs+ bash
+ 602460 1614905 Ss+  bash
+ 606475 3886306 SN   bash
+ 606476  606475 SN   bash
+ 606478  606476 SN   orgctl
+ 606515  606478 SNs+ bash
+ 618109  579506 SN   bash
+ 618110  618109 SN   bash
+ 618112  618110 R<l  chrome
+ 618120  618112 SN   cat
+ 618121  618112 SN   cat
+ 618129  579504 Sl   chrome_crashpad
+ 618131  579504 Sl   chrome_crashpad
+ 618143  618112 S    chrome
+ 618149  618112 S    chrome
+ 618272  618143 S<l  chrome
+ 618283  618112 Sl   chrome
+ 618322  618149 Sl   chrome
+ 618461  618149 SNl  chrome
+ 618511  618149 SNl  chrome
+ 618525  618149 Sl   chrome
+ 618544  618149 Sl   chrome
+ 618630  618149 Sl   chrome
+ 618811  618112 Sl   chrome-native-h
+ 619199  618149 SNl  chrome
+ 619308  618112 Sl   plasma-browser-
+ 621076  618149 SNl  chrome
+ 630876 3886306 SN   bash
+ 630877  630876 SN   bash
+ 630879  630877 SN   orgctl
+ 630898  630879 SN   drawd
+ 631158  630879 SNs+ bash
+ 639932 3542606 SNl  xdg-dbus-proxy
+ 639949 3542606 SN   dbus-daemon
+ 639967 3542606 SNl  xdg-dbus-proxy
+ 639983 3542606 SN   passt.avx2
+ 639993  639983 SN   bwrap
+ 640003  639993 SN   bwrap
+ 640006  640003 SN   bash
+ 640007  640006 SNl  kwin-mcp-exe
+ 640010  640006 SN   dbus-daemon
+ 640035  640006 SNl  kwin_wayland
+ 640187  640006 S<l  pipewire
+ 640188  640006 S<l  wireplumber
+ 640281  640003 SNl  at-spi-bus-laun
+ 640295  640281 SN   dbus-daemon
+ 640302  640003 SNl  at-spi2-registr
+ 640304  640003 SNl  dconf-service
+ 643104  640006 SN   bash
+ 643105  643104 SN   bash
+ 643114  643105 SNl  konsole
+ 643133  643114 SNs+ bash
+ 646552  640003 SNl  kactivitymanage
+ 646655  640003 SNl  xdg-desktop-por
+ 646661  640003 SNl  xdg-permission-
+ 646669  640003 SNl  xdg-document-po
+ 646681  646669 SN   fusermount3
+ 646683  640007 SNs  fusermount3
+ 646688  640003 SNl  xdg-desktop-por
+ 651292    1059 Ssl  llm-mux-chatgpt
+ 651294    1059 Ssl  llm-mux-copilot
+ 651295    1059 Ssl  llm-mux-deepsee
+ 651319    1059 Ssl  llm-mux-grok
+ 651320    1059 Ssl  llm-mux-hugging
+ 651321    1059 Ssl  llm-mux-kimi
+ 651322    1059 Ssl  llm-mux-lechat
+ 651324    1059 Ssl  llm-mux-muse
+ 651326    1059 Ssl  llm-mux-perplex
+ 651351    1059 Ssl  llm-mux-qwen
+ 662002   29870 Ss+  bash
+ 672178  643133 SN   orgctl
+ 672180  672178 SNs  bash
+ 672181  672178 SNl  asmux-layout
+ 672182  640035 Sl   Xwayland
+ 672574  672180 SN+  bash
+ 677082       1 Ssl  polkitd
+ 680345 3167945 ZN   nates-dsh <defunct>
+ 681226    1059 SNsl codex
+ 681458  681226 SNl  kwin-mcp
+ 681466  681226 SNl  node_repl
+ 681474  681226 SNl  MainThread
+ 681526  681474 SNl  node_repl
+ 681794  681226 SNl  node
+ 682106    1059 SNsl nates-dsh
+ 682109  682106 SNsl+ codex
+ 683682  681226 SNl  codex-code-mode
+ 705888  643133 SN   drawd
+ 705893  705888 SNl  asmux-draw
+ 725948  640006 SN   bash
+ 725949  725948 SN   bash
+ 725951  725949 S<l  chrome
+ 725957  725951 SN   cat
+ 725958  725951 SN   cat
+ 725967  640003 Sl   chrome_crashpad
+ 725969  640003 Sl   chrome_crashpad
+ 725974  725951 S    chrome
+ 725975  725951 S    chrome
+ 726029  725974 S<l  chrome
+ 726035  725951 Sl   chrome
+ 726064  725975 Sl   chrome
+ 726102  725975 SNl  chrome
+ 726116  725975 SNl  chrome
+ 726135  725975 Sl   chrome
+ 726152  725975 Sl   chrome
+ 726216  725975 Sl   chrome
+ 726296  725951 Sl   chrome-native-h
+ 726698  725975 SNl  chrome
+ 726750  725951 Sl   plasma-browser-
+ 727994  725975 SNl  chrome
+ 760597       2 I    kworker/7:2-events
+ 778013  643133 SN   drawd
+ 811759 3886306 SN   bash
+ 811761  811759 SN   bash
+ 811765  811761 SN   orgctl
+ 811802  811765 SN   drawd
+ 811829 3886306 SN   bash
+ 811830  811829 SN   bash
+ 811832  811830 SN   orgctl
+ 811855  811832 SN   drawd
+ 811857  811855 SNl  asmux-draw
+ 812030  811765 SNs+ bash
+ 812060  811832 SNs  bash
+ 812061  811832 SNl  asmux-layout
+ 812374       2 S    psimon
+ 812392  812060 SN+  bash
+ 925380       2 I<   kworker/u49:8-ttm
+ 972451 4173557 RNl  chrome
+ 981311 3167945 ZN   nates-dsh <defunct>
+ 998747 4173557 SNl  chrome
+1005208    1059 SNsl codex
+1006775    1059 SNsl nates-dsh
+1006780 1006775 SNsl+ codex
+1007407 1005208 SNl  node_repl
+1007434 1005208 SNl  node
+1007451 1005208 SNl  MainThread
+1007459 1005208 SNl  kwin-mcp
+1007566 1007451 SNl  node_repl
+1016062 1005208 SNl  codex-code-mode
+1016312    1042 S    dbus
+1016313    1042 S    dbus
+1026738 4173557 SNl  chrome
+1031675       2 I    kworker/u48:2-vcn_unified_0
+1031682       2 I    kworker/u48:13-events_unbound
+1035790       2 I<   kworker/u49:1-ttm
+1065371 4173557 SNl  chrome
+1081221       2 I<   kworker/6:2H-kblockd
+1096558    1059 Ssl  llm-mux-gemini
+1109753    1059 Ss   ssh
+1161087       2 I<   kworker/u49:13-ttm
+1178802   11591 SNl  chrome
+1199033    1059 SNs  bash
+1227821 4173557 SNl  chrome
+1271040 1614905 Ss+  bash
+1280286 4173557 SNl  chrome
+1319618       2 I    kworker/u48:52-events_unbound
+1342217    1059 Ssl  llm-mux-agy
+1356876 3167945 ZN   nates-dsh <defunct>
+1374300    1059 SNsl codex
+1379248 1374300 SNl  codex-code-mode
+1379884    1059 SNsl codex
+1384597 1379884 SNl  kwin-mcp
+1384650 1379884 SNl  node_repl
+1384654 1379884 SNl  MainThread
+1384746 1384654 SNl  node_repl
+1384776 1379884 SNl  node
+1389551 1379884 SNl  codex-code-mode
+1437779 1614905 Ss   bash
+1443339 1614905 Ss   bash
+1444545 1614905 Ss   bash
+1447418 1614905 Ss   bash
+1449196 1443339 S+   ssh
+1450155 1447418 S+   ssh
+1452340 1444545 S+   ssh
+1477291       2 I    kworker/u48:1-flush-253:0
+1554911    1059 Ssl  llm-mux-opencod
+1554940 1554911 Sl   opencode
+1563487 2450439 SNl  codex-code-mode
+1564339   11793 Sl   claude-desktop
+1564878   11793 SNl  claude-desktop
+1565982   11793 SNl  claude-desktop
+1576451 4173557 SNl  chrome
+1597276    1059 Ssl  llm-mux
+1604089    1059 SNsl codex
+1607539 4173557 SNl  chrome
+1608046 1604089 SNl  node_repl
+1608047 1604089 SNl  MainThread
+1608059 1604089 SNl  kwin-mcp
+1608192 1608047 SNl  node_repl
+1608793 1604089 SNl  node
+1612160 1604089 SNl  codex-code-mode
+1612725       2 I<   kworker/u49:9-rb_allocator
+1614905    1059 Ssl  konsole
+1626737 4173557 SNl  chrome
+1659348  368068 SNl  xdg-dbus-proxy
+1659374  368068 SN   dbus-daemon
+1659481  368068 SNl  xdg-dbus-proxy
+1659646  368068 SN   passt.avx2
+1659670 1659646 SN   bwrap
+1659689 1659670 SN   bwrap
+1659715 1659689 SN   bash
+1659717 1659715 SN   kwin-mcp-exe
+1659741 1659715 SN   dbus-daemon
+1659794 1659715 SNl  kwin_wayland
+1659990 1659715 S<l  pipewire
+1660046 4173557 SNl  chrome
+1660098 1659689 SNl  at-spi-bus-laun
+1660128 1660098 SN   dbus-daemon
+1660132 1659689 SNl  dconf-service
+1660134 1659689 SNl  at-spi2-registr
+1662277 1659715 SN   bash
+1662278 1662277 SN   bash
+1662280 1662278 S<l  chrome
+1662287 1662280 SN   cat
+1662288 1662280 SN   cat
+1662515 1659689 Sl   chrome_crashpad
+1662525 1659689 Sl   chrome_crashpad
+1662545 1662280 S    chrome
+1662546 1662280 S    chrome
+1662706 1662545 S<l  chrome
+1662714 1662280 Sl   chrome
+1662798 1662546 Sl   chrome
+1662880 1662546 SNl  chrome
+1662908 1662546 SNl  chrome
+1662929 1662546 Sl   chrome
+1662948 1662546 Sl   chrome
+1663055 1662546 Sl   chrome
+1663298 1662280 Sl   chrome-native-h
+1663648 1662546 SNl  chrome
+1663753 1662280 Sl   plasma-browser-
+1665185 1662546 S<l  chrome
+1667372       2 I<   kworker/u49:6-ttm
+1700228       2 I    kworker/u48:33-events_unbound
+1709082   11591 Sl   chrome
+1754866       2 I<   kworker/u49:15-ttm
+1774455 3167945 ZN   nates-dsh <defunct>
+1781926 1437779 Sl+  btop
+1799049    1096 Sl   codex-mcp
+1799470 1799049 Sl   codex
+1801463 1799470 Sl   node_repl
+1801467 1799470 Sl   node-MainThread
+1801468 1799470 Sl   kwin-mcp
+1801481 1799470 Sl   MainThread
+1801567 1801481 Sl   node_repl
+1833413 4173557 SNl  chrome
+1853485       2 I    kworker/4:0-events
+1871380       2 I<   kworker/u49:10-ttm
+1873116       2 D    kworker/u48:4+events_unbound
+1898446    1059 Ss   bash
+1917040 1614905 Ss+  bash
+1945506    1059 Ssl  llm-mux-copilot
+1956502       2 I<   kworker/u49:12-ttm
+1998239  519202 Zs   codex <defunct>
+2019856    1059 SNsl codex
+2020198 2019856 SNl  kwin-mcp
+2020214 2019856 SNl  node_repl
+2020225 2019856 SNl  MainThread
+2020427 2020225 SNl  node_repl
+2020659 2019856 SNl  node
+2021054    1059 SNsl nates-dsh
+2021067 2021054 SNsl+ codex
+2022372 2019856 SNl  codex-code-mode
+2069322 3167945 ZN   nates-dsh <defunct>
+2088661       2 I    kworker/2:1-events
+2090773       2 I    kworker/5:1-events
+2091989   11591 SNl  chrome
+2123681       2 I    kworker/u48:5-flush-253:0
+2145335    1059 Ss   ssh
+2145336    1059 Ss   ssh
+2145966    1059 SNs  ssh
+2145967    1059 SNs  ssh
+2150377    1059 Ss   ssh
+2150378    1059 Ss   ssh
+2151050    1059 Ss   ssh
+2151051    1059 Ss   ssh
+2151052    1059 Ss   ssh
+2151053    1059 Ss   ssh
+2151489    1059 Ss   ssh
+2151490    1059 Ss   ssh
+2175525       2 I    kworker/1:1-events
+2176415       2 I    kworker/8:0-rcu_gp
+2252659    5459 Sl   kwin-mcp-shim
+2252697 2252659 Ssl  kwin-mcp
+2255926 2252697 Sl   xdg-dbus-proxy
+2255932 2252697 S    dbus-daemon
+2255984 2252697 Sl   xdg-dbus-proxy
+2256042 2252697 S    passt.avx2
+2256058 2256042 S    bwrap
+2256080 2256058 S    bwrap
+2256099 2256080 S    bash
+2256100 2256099 S    kwin-mcp-exe
+2256113 2256099 S    dbus-daemon
+2256139 2256099 Sl   kwin_wayland
+2256240 2256099 S<l  pipewire
+2256241 2256099 S<l  wireplumber
+2256269 2256080 Sl   at-spi-bus-laun
+2256276 2256269 S    dbus-daemon
+2256283 2256080 Sl   dconf-service
+2256285 2256080 Sl   at-spi2-registr
+2257914 4173557 SNl  chrome
+2266023 2252697 Sl   xdg-dbus-proxy
+2266056 2252697 S    dbus-daemon
+2266075 2252697 Sl   xdg-dbus-proxy
+2266088 2252697 S    passt.avx2
+2266095 2266088 S    bwrap
+2266116 2266095 S    bwrap
+2266149 2266116 S    bash
+2266150 2266149 S    kwin-mcp-exe
+2266153 2266149 S    dbus-daemon
+2266198 2266149 Sl   kwin_wayland
+2266398 2266149 S<l  pipewire
+2266399 2266149 S<l  wireplumber
+2266433 2266116 Sl   at-spi-bus-laun
+2266439 2266433 S    dbus-daemon
+2266442 2266116 Sl   dconf-service
+2266443 2266116 Sl   at-spi2-registr
+2269552       2 I    kworker/u48:7-flush-253:0
+2273785 2252659 Ssl  kwin-mcp
+2274842 2273785 Sl   xdg-dbus-proxy
+2274857 2273785 S    dbus-daemon
+2274903 2273785 Sl   xdg-dbus-proxy
+2274924 2273785 S    passt.avx2
+2274927 2274924 S    bwrap
+2274937 2274927 S    bwrap
+2274946 2274937 S    bash
+2274948 2274946 S    kwin-mcp-exe
+2274952 2274946 S    dbus-daemon
+2274973 2274946 Sl   kwin_wayland
+2275046 2274946 S<l  pipewire
+2275047 2274946 S<l  wireplumber
+2275070 2274937 Sl   at-spi-bus-laun
+2275083 2275070 S    dbus-daemon
+2275085 2274937 Sl   dconf-service
+2275087 2274937 Sl   at-spi2-registr
+2278218 2252659 Ssl  kwin-mcp
+2279695 2278218 Sl   xdg-dbus-proxy
+2279702 2278218 S    dbus-daemon
+2279719 2278218 Sl   xdg-dbus-proxy
+2279725 2278218 S    passt.avx2
+2279735 2279725 S    bwrap
+2279752 2279735 S    bwrap
+2279759 2279752 S    bash
+2279760 2279759 S    kwin-mcp-exe
+2279766 2279759 S    dbus-daemon
+2279785 2279759 Sl   kwin_wayland
+2279881 2279759 S<l  pipewire
+2279882 2279759 S<l  wireplumber
+2279911 2279752 Sl   at-spi-bus-laun
+2279917 2279911 S    dbus-daemon
+2279920 2279752 Sl   dconf-service
+2279921 2279752 Sl   at-spi2-registr
+2280301 2274946 S    bash
+2280302 2280301 S    bash
+2280304 2280302 S<l  chrome
+2280312 2280304 S    cat
+2280313 2280304 S    cat
+2280325 2274937 Sl   chrome_crashpad
+2280327 2274937 Sl   chrome_crashpad
+2280332 2280304 S    chrome
+2280333 2280304 S    chrome
+2280381 2280332 S<l  chrome
+2280384 2280304 Sl   chrome
+2280421 2280333 Sl   chrome
+2280452 2280333 SNl  chrome
+2280502 2280333 SNl  chrome
+2280513 2280333 SNl  chrome
+2280514 2280333 Sl   chrome
+2280535 2280333 Sl   chrome
+2280562 2280333 Sl   chrome
+2280622 2280333 Sl   chrome
+2280774 2280304 Sl   chrome-native-h
+2281049 2280333 SNl  chrome
+2281091 2280304 Sl   plasma-browser-
+2282502 2280333 SNl  chrome
+2284357 2252659 Ssl  kwin-mcp
+2285831 2284357 Sl   xdg-dbus-proxy
+2285862 2284357 S    dbus-daemon
+2285906 2284357 Sl   xdg-dbus-proxy
+2285944 2284357 S    passt.avx2
+2285950 2285944 S    bwrap
+2285968 2285950 S    bwrap
+2285997 2285968 S    bash
+2286005 2285997 S    kwin-mcp-exe
+2286008 2285997 S    dbus-daemon
+2286024 2285997 Sl   kwin_wayland
+2286140 2285997 S<l  pipewire
+2286141 2285997 S<l  wireplumber
+2286191 2285968 Sl   at-spi-bus-laun
+2286199 2286191 S    dbus-daemon
+2286201 2285968 Sl   dconf-service
+2286205 2285968 Sl   at-spi2-registr
+2286876 2285997 S    bash
+2286877 2286876 S    bash
+2286879 2286877 Sl   konsole
+2286915 2286879 Ss+  bash
+2288413       2 I<   kworker/u49:0-hci1
+2290281 2279759 S    bash
+2290282 2290281 S    bash
+2290284 2290282 S<l  chrome
+2290290 2290284 S    cat
+2290291 2290284 S    cat
+2290293 2279752 Sl   chrome_crashpad
+2290295 2279752 Sl   chrome_crashpad
+2290307 2290284 S    chrome
+2290308 2290284 S    chrome
+2290353 2290307 S<l  chrome
+2290356 2290284 Sl   chrome
+2290391 2290308 Sl   chrome
+2290421 2290308 SNl  chrome
+2290451 2290308 SNl  chrome
+2290463 2290308 Sl   chrome
+2290484 2290308 Sl   chrome
+2290577 2290308 S<l  chrome
+2290661 2290284 Sl   chrome-native-h
+2290889 2290308 SNl  chrome
+2290938 2290284 Sl   plasma-browser-
+2291644 2290308 S<l  chrome
+2299558 2252659 Ssl  kwin-mcp
+2300820 2299558 Sl   xdg-dbus-proxy
+2300827 2299558 S    dbus-daemon
+2300871 2299558 Sl   xdg-dbus-proxy
+2300876 2299558 S    passt.avx2
+2300878 2300876 S    bwrap
+2300888 2300878 S    bwrap
+2300929 2300888 S    bash
+2300930 2300929 S    kwin-mcp-exe
+2300934 2300929 S    dbus-daemon
+2300964 2300929 Sl   kwin_wayland
+2301052 2300929 S<l  pipewire
+2301053 2300929 S<l  wireplumber
+2301189 2300888 Sl   at-spi-bus-laun
+2301195 2301189 S    dbus-daemon
+2301197 2300888 Sl   dconf-service
+2301199 2300888 Sl   at-spi2-registr
+2303549 2300929 S    bash
+2303550 2303549 S    bash
+2303553 2303550 S<l  chrome
+2303567 2303553 S    cat
+2303568 2303553 S    cat
+2303570 2300888 Sl   chrome_crashpad
+2303572 2300888 Sl   chrome_crashpad
+2303577 2303553 S    chrome
+2303578 2303553 S    chrome
+2303614 2303577 S<l  chrome
+2303617 2303553 Sl   chrome
+2303648 2303578 Sl   chrome
+2303669 2303578 SNl  chrome
+2303699 2303578 SNl  chrome
+2303729 2303578 SNl  chrome
+2303731 2303578 Sl   chrome
+2303747 2303578 Sl   chrome
+2303764 2303578 Sl   chrome
+2303838 2303578 Sl   chrome
+2303907 2303553 Sl   chrome-native-h
+2304189 2303578 SNl  chrome
+2304270 2303553 Sl   plasma-browser-
+2306527 2303578 S<l  chrome
+2317171 2252697 Sl   xdg-dbus-proxy
+2317177 2252697 S    dbus-daemon
+2317191 2252697 Sl   xdg-dbus-proxy
+2317289 2252697 S    passt.avx2
+2317291 2317289 S    bwrap
+2317303 2317291 S    bwrap
+2317313 2317303 S    bash
+2317314 2317313 S    bridge
+2317317 2317313 S    dbus-daemon
+2317336 2317313 Sl   kwin_wayland
+2317406 2317313 S<l  pipewire
+2317417 3167945 ZN   nates-dsh <defunct>
+2317442 2317313 S<l  wireplumber
+2317482 2317303 Sl   at-spi-bus-laun
+2317495 2317482 S    dbus-daemon
+2317498 2317303 Sl   dconf-service
+2317499 2317303 Sl   at-spi2-registr
+2325258       2 I    kworker/u48:11-vcn_unified_0
+2325259       2 I    kworker/u48:15-flush-253:0
+2328580 3673513 SNl  chrome
+2328591 3673513 SNl  chrome
+2331931 2285997 S    bash
+2331932 2331931 S    bash
+2331934 2331932 S<l  chrome
+2331940 2331934 S    cat
+2331941 2331934 S    cat
+2331951 2285968 Sl   chrome_crashpad
+2331953 2285968 Sl   chrome_crashpad
+2331958 2331934 S    chrome
+2331959 2331934 S    chrome
+2331996 2331958 S<l  chrome
+2331999 2331934 Sl   chrome
+2332044 2331959 Sl   chrome
+2332069 2331959 SNl  chrome
+2332096 2331959 SNl  chrome
+2332109 2331959 SNl  chrome
+2332111 2331959 Sl   chrome
+2332131 2331959 Sl   chrome
+2332151 2331959 Sl   chrome
+2332292 2331959 Sl   chrome
+2332406 2331934 Sl   chrome-native-h
+2332557 2331959 SNl  chrome
+2332611 2331934 Sl   plasma-browser-
+2334497 2331959 S<l  chrome
+2342841       2 I    kworker/3:2-kdmflush/253:0
+2356242       2 I    kworker/2:0-events
+2357525 2317313 S    bash
+2357526 2357525 S    bash
+2357528 2357526 S<l  chrome
+2357534 2357528 S    cat
+2357535 2357528 S    cat
+2357544 2317303 Sl   chrome_crashpad
+2357546 2317303 Sl   chrome_crashpad
+2357551 2357528 S    chrome
+2357552 2357528 S    chrome
+2357602 2357551 S<l  chrome
+2357605 2357528 Sl   chrome
+2357638 2357552 Sl   chrome
+2357679 2357552 SNl  chrome
+2357695 2357552 SNl  chrome
+2357716 2357552 Sl   chrome
+2357732 2357552 Sl   chrome
+2357798 2357552 Sl   chrome
+2357912 2357528 Sl   chrome-native-h
+2358143 2357552 SNl  chrome
+2358230 2357528 Sl   plasma-browser-
+2359479 2357552 Sl   chrome
+2365719       2 I    kworker/7:0-events
+2368677 2357552 SNl  chrome
+2372076 3673513 SNl  chrome
+2372523 3673512 Sl   chrome
+2376869       2 I    kworker/10:1-events
+2392468       2 I    kworker/0:1-kdmflush/253:0
+2405666       1 Ssl  fwupd
+2406122       2 S    psimon
+2406264       1 Ssl  passimd
+2407333       2 I    kworker/9:2-events
+2411815    1059 Ss   nates-dsh
+2411841 2411815 Ss   drawd
+2411842 2411841 Sl   asmux-draw
+2416721       2 I<   kworker/u49:14-ttm
+2417283   11533 S<sl claude
+2417531 2417283 S<l  kwin-mcp-shim
+2418544       2 I    kworker/u48:0-sdma0
+2418547       2 I    kworker/u48:3-dm_vblank_control_workqueue
+2450439    1059 SNsl codex
+2451880    1059 SNsl nates-dsh
+2451900 2451880 SNsl+ codex
+2452677 2450439 SNl  MainThread
+2452681 2450439 SNl  node_repl
+2452686 2450439 SNl  kwin-mcp
+2452708 2450439 SNl  node
+2452732 2452677 SNl  node_repl
+2457448       2 I    kworker/6:2-events
+2464872       1 S<Ls atop
+2477385       2 I    kworker/8:1-events
+2479057       2 I    kworker/11:1-events
+2479615       2 I    kworker/3:3-events
+2495019       2 I    kworker/10:3-events
+2499102       2 I<   kworker/u49:3-ttm
+2507224       2 I    kworker/0:2-events
+2518077 1799470 Ss+  ssh
+2536205       2 I    kworker/9:0-mm_percpu_wq
+2548835    1059 S<sl codex
+2549531 2548835 S<l  kwin-mcp
+2549532 2548835 S<l  MainThread
+2549533 2548835 S<l  node_repl
+2549710 2549532 S<l  node_repl
+2550055 2548835 S<l  node
+2550376 2548835 S<l  node
+2550378 2548835 S<l  kwin-mcp
+2550384 2548835 S<l  MainThread
+2550397 2548835 S<l  node_repl
+2550471 2550384 S<l  node_repl
+2550710 2548835 S<l  node
+2550711 2548835 S<l  node_repl
+2550717 2548835 S<l  kwin-mcp
+2550751 2548835 S<l  MainThread
+2550797 2550751 S<l  node_repl
+2554531 2548835 S<l  codex-code-mode
+2569131       2 I    kworker/7:1-events
+2576296       2 I    kworker/3:0-events
+2576587   29870 Ss   bash
+2577170 2576587 Sl+  codex
+2577542       2 I    kworker/u48:10-gfx_0.0.0
+2577543       2 I    kworker/u48:16-sdma1
+2577544       2 I    kworker/u48:17-flush-253:0
+2577545       2 I    kworker/u48:18-flush-253:0
+2577546       2 I    kworker/u48:19-ext4-rsv-conversion
+2577547       2 I    kworker/u48:20-dm_vblank_control_workqueue
+2577548       2 I    kworker/u48:21-ext4-rsv-conversion
+2577549       2 I    kworker/u48:22-flush-253:0
+2580018       2 I    kworker/6:1-events
+2580500       2 I    kworker/10:2
+2581867 3167945 ZN   nates-dsh <defunct>
+2582392       2 I    kworker/4:1-events
+2582761       2 I    kworker/1:2-events
+2583594       2 I    kworker/11:2-events
+2587750       2 I    kworker/5:0-events
+2596071       2 I<   kworker/u49:17-ttm
+2607179 1799470 Ss   ssh
+2617135       2 I    kworker/0:0-events
+2631205       2 I    kworker/8:2
+2631746       2 I    kworker/2:2-inode_switch_wbs
+2641622     371 S    systemd-userwor
+2642677       2 I    kworker/9:1-mm_percpu_wq
+2642703 1799470 Ss   bash
+2642744     371 S    systemd-userwor
+2642787 2642703 S    ssh
+2642788 2642703 S    tee
+2648054     371 S    systemd-userwor
+2665516 1799470 Ss   bash
+2665657 2665516 S    ssh
+2669655 1799470 Ss   bash
+2670493 4173557 SNl  chrome
+2670505 4173557 SNl  chrome
+2671219 2669655 S    ssh
+2672086       2 I    kworker/10:0-events
+2672826 1799470 Ss   bash
+2672844 2672826 S    ssh
+2673956       2 I    kworker/u48:6-flush-253:0
+2675027       2 I    kworker/u48:8-flush-253:0
+2675028       2 I    kworker/u48:9-flush-253:0
+2675029       2 I    kworker/u48:12-gfx_0.0.0
+2675030       2 I    kworker/u48:14-flush-253:0
+2675031       2 I    kworker/u48:23-flush-253:0
+2675032       2 I    kworker/u48:24
+2675033       2 I    kworker/u48:25-events_unbound
+2675847 1898446 S    sleep
+2676223 3673513 SNl  chrome
+2676276 4173557 SNl  chrome
+2676323    1059 SNsl ruby
+2676337       2 I    kworker/2:3-cgroup_release
+2676746 3673513 Sl   chrome
+2677057    1255 SN   sleep
+2677114 1199033 SN   sleep
+2677253    1089 S    sleep
+2677270 3673473 Sl   chrome
+2677288  672181 SN   asmux-standby
+2677309    1264 S    sleep
+2677310  812061 SN   asmux-standby
+2677312   52794 SN   asmux-standby
+2677320    1098 S    sleep
+2677322 2676323 SNl  codex
+2677361 1799470 Ss   perl
+2677400 3673448 S    sleep
+2677408 3673513 SNl  chrome
+2677434 2677361 R    ps
+2745174 1614905 Ss   bash
+2804644    1059 Ss   ssh
+2810089    1059 Ss   ssh
+2910719    1059 Ssl  drkonqi-coredum
+3002326   11533 S<sl claude
+3002903 3002326 S<l  kwin-mcp-shim
+3062838 4173557 SNl  chrome
+3086738 4173557 SNl  chrome
+3110111 4173557 RNl  chrome
+3143923 4173557 RNl  chrome
+3167945    1059 SNsl nates-dsh
+3168105 3167945 SN   pw-top
+3181861 4173557 RNl  chrome
+3279240   11533 Sl   claude-desktop
+3379849 3167945 ZN   nates-dsh <defunct>
+3482666 2745174 Sl+  claude
+3482910 3482666 Sl+  kwin-mcp-shim
+3542087    1059 SNsl codex
+3542606 3542087 SNl  kwin-mcp
+3542609 3542087 SNl  node_repl
+3542621 3542087 SNl  MainThread
+3542676 3542621 SNl  node_repl
+3542827 3542087 SNl  node
+3543297    1059 SNsl nates-dsh
+3543307 3543297 SNsl+ codex
+3544760 3542087 SNl  codex-code-mode
+3592415    1059 SNsl codex
+3594465 3592415 SNl  kwin-mcp
+3594480 3592415 SNl  node_repl
+3594483 3592415 SNl  MainThread
+3594546 3592415 SNl  node
+3594902 3594483 SNl  node_repl
+3595801    1059 SNsl nates-dsh
+3595822 3595801 SNsl+ codex
+3596923 3592415 SNl  codex-code-mode
+3668744    1059 Ssl  llm-mux-gateway
+3668768 3668744 Sl   llm-mux-relay
+3669000 3668744 Sl   kwin-mcp
+3672512 3669000 Sl   xdg-dbus-proxy
+3672518 3669000 S    dbus-daemon
+3672629 3669000 Sl   xdg-dbus-proxy
+3672947 3669000 S    passt.avx2
+3672988 3672947 S    bwrap
+3673024 3672988 S    bwrap
+3673112 3673024 S    bash
+3673117 3673112 S    kwin-mcp-exe
+3673124 3673112 S    dbus-daemon
+3673251 3673112 Sl   kwin_wayland
+3673329 3673112 S<l  pipewire
+3673330 3673112 S<l  wireplumber
+3673413 3673024 Sl   at-spi-bus-laun
+3673422 3673413 S    dbus-daemon
+3673431 3673024 Sl   dconf-service
+3673433 3673024 Sl   at-spi2-registr
+3673442 3673112 S    bash
+3673443 3673442 S    bash
+3673448 3673443 S    bash
+3673473 3673448 R<l  chrome
+3673499 3673473 S    cat
+3673500 3673473 S    cat
+3673503 3673024 Sl   chrome_crashpad
+3673506 3673024 Sl   chrome_crashpad
+3673512 3673473 S    chrome
+3673513 3673473 S    chrome
+3673557 3673512 R<l  chrome
+3673567 3673473 Sl   chrome
+3673590 3673513 Sl   chrome
+3673631 3673513 SNl  chrome
+3673653 3673513 SNl  chrome
+3673675 3673513 SNl  chrome
+3673695 3673513 Sl   chrome
+3673737 3673513 SNl  chrome
+3673820 3673513 Sl   chrome
+3673974 3673473 Sl   plasma-browser-
+3674004 3673473 Sl   chrome-native-h
+3675582 3673513 SNl  chrome
+3682152 3673513 SNl  chrome
+3695587 3673473 Sl   chrome
+3703365       2 I<   kworker/u49:2-ttm
+3758147 3167945 ZN   nates-dsh <defunct>
+3765739    1059 SNsl codex
+3766996 3765739 SNl  kwin-mcp
+3767022 3765739 SNl  node_repl
+3767029 3765739 SNl  MainThread
+3767575 3765739 SNl  node
+3767668 3767029 SNl  node_repl
+3768181    1059 SNsl nates-dsh
+3768189 3768181 SNsl+ codex
+3769939 3765739 SNl  codex-code-mode
+3793560    1059 SNsl codex
+3793909 3793560 SNl  MainThread
+3793911 3793560 SNl  node_repl
+3793912 3793560 SNl  kwin-mcp
+3794021 3793909 SNl  node_repl
+3794211 3793560 SNl  node
+3794517    1059 SNsl nates-dsh
+3794525 3794517 SNsl+ codex
+3796422 3793560 SNl  codex-code-mode
+3801855       2 I<   kworker/u49:16-ttm
+3847871    1059 Ssl  drkonqi-coredum
+3863707       2 I<   kworker/u49:7-ttm
+3886004 3793912 SNl  xdg-dbus-proxy
+3886047 3793912 SN   dbus-daemon
+3886137 3793912 SNl  xdg-dbus-proxy
+3886208 3793912 SN   passt.avx2
+3886224 3886208 SN   bwrap
+3886250 3886224 SN   bwrap
+3886306 3886250 SN   bash
+3886307 3886306 SN   kwin-mcp-exe
+3886320 3886306 SN   dbus-daemon
+3886371 3886306 SNl  kwin_wayland
+3886558 3886306 S<l  pipewire
+3886559 3886306 S<l  wireplumber
+3886775 3886250 SNl  at-spi-bus-laun
+3886801 3886775 SN   dbus-daemon
+3886817 3886250 SNl  at-spi2-registr
+3886818 3886250 SNl  dconf-service
+4116541 3167945 ZN   nates-dsh <defunct>
+4150882    1059 SNsl codex
+4152511 4150882 SNl  node_repl
+4152512 4150882 SNl  MainThread
+4152514 4150882 SNl  kwin-mcp
+4152529 4150882 SNl  node
+4152558 4152512 SNl  node_repl
+4153438    1059 SNsl nates-dsh
+4153448 4153438 SNsl+ codex
+4155708 4150882 SNl  codex-code-mode
+4172788 3482910 Ssl  kwin-mcp
+4172839 4172788 Sl   xdg-dbus-proxy
+4172845 4172788 S    dbus-daemon
+4172859 4172788 Sl   xdg-dbus-proxy
+4172906 4172788 S    passt.avx2
+4172919 4172906 S    bwrap
+4172939 4172919 S    bwrap
+4172946 4172939 S    bash
+4172947 4172946 S    kwin-mcp-exe
+4172950 4172946 S    dbus-daemon
+4172956 4172946 SLl  kwin_wayland
+4173026 4172946 S<l  pipewire
+4173027 4172946 S<l  wireplumber
+4173036 4172939 Sl   at-spi-bus-laun
+4173042 4173036 S    dbus-daemon
+4173045 4172939 Sl   dconf-service
+4173048 4172939 Sl   at-spi2-registr
+4173511 4172788 SLl  kwin-viewer
+4173532 4172946 S    bash
+4173533 4173532 S    bash
+4173535 4173533 R<l  chrome
+4173543 4173535 S    cat
+4173544 4173535 S    cat
+4173549 4172939 Sl   chrome_crashpad
+4173551 4172939 Sl   chrome_crashpad
+4173556 4173535 S    chrome
+4173557 4173535 S    chrome
+4173589 4173556 R<l  chrome
+4173592 4173535 Sl   chrome
+4173624 4173557 Sl   chrome
+4173654 4173557 SNl  chrome
+4173672 4173557 Dl   chrome
+4173703 4173557 Sl   chrome
+4173770 4173557 Sl   chrome
+4173852 4173535 Sl   chrome-native-h
+4173912 4173557 SNl  chrome
+4173950 4173535 Sl   plasma-browser-
+4174406 4173557 DNl  chrome
+
+stderr:

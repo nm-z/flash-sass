@@ -1,0 +1,6 @@
+argv: ["perl","-Ikern","-e","\n        require \"paired_depth_bench.pl\";\n        my @lines=split /\\n/,PairedDepthBench::read_text($ARGV[0]);\n        my $meta=PairedDepthBench::fields(shift @lines);\n        die \"missing footer\\n\" unless pop(@lines) eq \"trace_end\";\n        my @columns=split /,/,shift @lines;\n        my @rows=map {my @v=split /,/;die \"columns\\n\" unless @v==@columns;\n            my %r;@r{@columns}=@v;\\%r} @lines;\n        my $s=PairedDepthBench::phase_summary(\\@rows,$meta);\n        die \"export window\\n\" unless $meta->{count}==129 && @rows==258;\n        die \"decode interval total\\n\" unless $s->{decode_ms}==0.128;\n        print \"Actual C export parsed: 129 outputs, 128 intervals, 258 phase rows; exact 0.128 ms CPU fixture span\\n\";\n    ","/home/nate/codex/flash-issue14-evidence-20261018/resume/final-cpu/engine-cpu-trace.txt"]
+exit: 0
+stdout:
+Actual C export parsed: 129 outputs, 128 intervals, 258 phase rows; exact 0.128 ms CPU fixture span
+
+stderr:
