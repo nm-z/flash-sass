@@ -9,10 +9,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <errno.h>
 
 CUresult cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev);
 #define CK(x) do { CUresult r_ = (x); if (r_ != CUDA_SUCCESS) { const char *s_ = "?"; cuGetErrorString(r_, &s_); \
 	fprintf(stderr, "%s:%d: %s -> %s\n", __FILE__, __LINE__, #x, s_); exit(1); } } while (0)
+
+#include "test_guards.h"
 
 static uint32_t rs = 77;
 static float frand(void) { rs = rs * 1664525u + 1013904223u; return ((rs >> 8) & 0xffff) / 32768.f - 1.f; }
@@ -28,6 +31,20 @@ static int cmp(const char *what, const float *ref, const float *got, size_t cnt,
 	return bad;
 }
 
+
+/* FLASH_PADDING_POISON_TEST: test-only padding, never visible data. */
+static int padding_poison_value_(const char *mode, float *value) {
+    if (!mode || !strcmp(mode, "off")) return 0;
+    uint32_t bits;
+    if (!strcmp(mode, "nan")) bits = 0x7fc12345u;
+    else if (!strcmp(mode, "inf")) bits = 0x7f800000u;
+    else if (!strcmp(mode, "-inf")) bits = 0xff800000u;
+    else if (!strcmp(mode, "max")) bits = 0x7f7fffffu;
+    else if (!strcmp(mode, "finite")) bits = 0x40500000u; /* +/-3.25, independent of valid data */
+    else { fprintf(stderr, "invalid padding poison: %s\n", mode); exit(2); }
+    memcpy(value, &bits, sizeof bits);
+    return 1;
+}
 #include "checked.h"
 int main(int argc, char **argv) {
  unsigned n=3000,it=0;
@@ -52,6 +69,24 @@ int main(int argc, char **argv) {
 	attn_merge_gpu(pm, pd, po, gate, out);
 	printf("n=%u: reference %.2f s\n", n, now() - t0);
 
+	
+    const char *poison_k_mode = getenv("ATTN_POISON_K");
+    const char *poison_v_mode = getenv("ATTN_POISON_V");
+    if (!poison_k_mode) poison_k_mode = getenv("ATTN_POISON_PADDING");
+    if (!poison_v_mode) poison_v_mode = getenv("ATTN_POISON_PADDING");
+    float poison_k_value = 0.f, poison_v_value = 0.f;
+    int poison_k = padding_poison_value_(poison_k_mode, &poison_k_value);
+    int poison_v = padding_poison_value_(poison_v_mode, &poison_v_value);
+
+    for (unsigned j = n; j < npos; j++) {
+        for (int kv = 0; kv < 2; kv++)
+            for (int d = 0; d < 256; d++) {
+                float sign = (j + (unsigned)d + (unsigned)kv) & 1 ? -1.f : 1.f;
+                if (poison_k) kc[attn_kidx(j, kv, d)] = !strcmp(poison_k_mode, "finite") ? sign * poison_k_value : poison_k_value;
+                if (poison_v) vc[(size_t)j * 512 + kv * 256 + d] = !strcmp(poison_v_mode, "finite") ? sign * poison_v_value : poison_v_value;
+            }
+    }
+	printf("padding: K=%s V=%s valid-data-seed=77\n", poison_k_mode ? poison_k_mode : "off", poison_v_mode ? poison_v_mode : "off");
 	CK(cuInit(0));
 	CUdevice dev; CUcontext ctx; CUmodule mp, mm; CUfunction fp, fm;
 	CK(cuDeviceGet(&dev, 0));
@@ -64,9 +99,13 @@ int main(int argc, char **argv) {
 	CK(cuOccupancyMaxActiveBlocksPerMultiprocessor(&maxb, fp, 256, 0));
 	printf("attnpart: %d regs, %d CTAs/SM; attnmerge: %d regs\n", nregs, maxb, nregs2);
 	CUdeviceptr dQO, dKC, dVC, dPM, dPD, dPO, dGATE, dOUT;
-	CK(cuMemAlloc(&dQO, 6144 * 4)); CK(cuMemAlloc(&dKC, kcf * 4)); CK(cuMemAlloc(&dVC, vcf * 4));
-	CK(cuMemAlloc(&dPM, 24 * 8 * 4)); CK(cuMemAlloc(&dPD, 24 * 8 * 4)); CK(cuMemAlloc(&dPO, 24 * 8 * 256 * 4));
-	CK(cuMemAlloc(&dGATE, 12288 * 4)); CK(cuMemAlloc(&dOUT, 6144 * 4));
+	int host = getenv("ATTN_HOSTKV") && strcmp(getenv("ATTN_HOSTKV"), "0");
+	dQO = test_guard_alloc("QO", 6144 * 4, 0);
+	dKC = test_guard_alloc("KC", kcf * 4, host); dVC = test_guard_alloc("VC", vcf * 4, host);
+	dPM = test_guard_alloc("PM", 24 * 8 * 4, 0); dPD = test_guard_alloc("PD", 24 * 8 * 4, 0);
+	dPO = test_guard_alloc("PO", 24 * 8 * 256 * 4, 0);
+	dGATE = test_guard_alloc("GATE", 12288 * 4, 0); dOUT = test_guard_alloc("OUT", 6144 * 4, 0);
+	printf("cache: %s readable_positions=%u\n", host ? "host" : "device", npos);
 	CK(cuMemcpyHtoD(dQO, qo, 6144 * 4)); CK(cuMemcpyHtoD(dKC, kc, kcf * 4)); CK(cuMemcpyHtoD(dVC, vc, vcf * 4));
 	CK(cuMemcpyHtoD(dGATE, gate, 12288 * 4));
 	CK(cuMemsetD32(dPM, 0x7fc00000u, 24 * 8)); CK(cuMemsetD32(dPD, 0x7fc00000u, 24 * 8));
@@ -95,5 +134,7 @@ int main(int argc, char **argv) {
 		double dt = (now() - t1) / iters;
 		printf("timing: %.1f us per step, %.1f GB/s of K+V (%.1f MB)\n", dt * 1e6, (double)n * 4096 / dt / 1e9, (double)n * 4096 / 1e6);
 	}
+	bad += test_guard_check();
+	test_guard_free();
 	return bad ? 3 : 0;
 }

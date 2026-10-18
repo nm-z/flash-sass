@@ -128,6 +128,14 @@ the six-die split (`SPLIT_SHARES`) are set for the author's machine; read `kern/
 make -C kern die.cubin libengine.so flashcore flashd hold
 ```
 
+## PLE row reads
+
+With `FLASH_PLE_DISK=1 FLASH_PLE_READERS=16`, the engine reads a position's sixteen
+90-byte rows with a persistent pool of 16 readers. Serial reads remain the default;
+values from 2 through 16 bound the number of concurrent readers. The pool does not pin
+the full PLE file. See [PLE_READS.md](PLE_READS.md) for the lifecycle, configuration,
+and C correctness and file-I/O benchmarks.
+
 ## Optional PLE file-cache warm-up
 
 Set `FLASH_PLE_DISK=1 FLASH_PLE_PREWARM=1` when starting `kern/serve.sh core` or

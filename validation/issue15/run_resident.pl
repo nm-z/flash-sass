@@ -201,8 +201,10 @@ sub verify_candidate {
     my ($pair) = @_;
     my $config = parse_config(exchange('config'));
     check($config->{rev} eq $revision, 'Candidate source revision differs');
-    for my $field (qw(kv_host ple_disk layers nblk dies attn_dies split attn_map prefill_chunk)) {
-        check($config->{$field} eq $baseline->{$field}, "Candidate changed $field");
+    my %changed = map {$_=>1} qw(rev maxt img_rows two_position trace_tokens cubin cubin_fnv);
+    for my $field (grep {!$changed{$_}} keys %$baseline) {
+        check(defined($config->{$field}) && $config->{$field} eq $baseline->{$field},
+              "Candidate changed $field");
     }
     check($config->{maxt} == 512 && $config->{img_rows} == 1
         && $config->{two_position} == $pair && $config->{trace_tokens} == 4
