@@ -1,0 +1,52 @@
+compare.stderr: OK
+compare.stdout: OK
+comparison.json: OK
+flash-sass-issue11-gpu-check-20261018-10.txt: OK
+flash-sass-issue11-gpu-check-20261018-11.txt: OK
+flash-sass-issue11-gpu-check-20261018-1.txt: OK
+flash-sass-issue11-gpu-check-20261018-2.txt: OK
+flash-sass-issue11-gpu-check-20261018-3.txt: OK
+flash-sass-issue11-gpu-check-20261018-4.txt: OK
+flash-sass-issue11-gpu-check-20261018-5.txt: OK
+flash-sass-issue11-gpu-check-20261018-6.txt: OK
+flash-sass-issue11-gpu-check-20261018-7.txt: OK
+flash-sass-issue11-gpu-check-20261018-8.txt: OK
+flash-sass-issue11-gpu-check-20261018-9.txt: OK
+gguf-sha256-after.txt: OK
+gguf-stat-after.txt: OK
+input-ids.txt: OK
+logits-check.json: OK
+negative-controls.tap: OK
+README.md: OK
+reference-build.log.gz: OK
+reference-capture-info.json: OK
+reference-capture.tar.gz: OK
+reference-CMakeCache.txt: OK
+reference-configure.log: OK
+reference-end.txt: OK
+reference-exit-code.txt: OK
+reference-identity-after.txt: OK
+reference-identity-before.txt: OK
+reference-layer-diagnostics.json: OK
+reference-runtime.log.gz: OK
+reference-tensors.jsonl: OK
+replay.sh: OK
+source-sha256.txt: OK
+kern/qsa_model_reference.c: OK
+kern/qsa_model_compare.pl: OK
+kern/qsa_model_compare_test.pl: OK
+kern/qsa_logits_check.c: OK
+make: Entering directory '/home/nate/codex/flash-pr31-fullmodel-20261018/kern'
+make: 'qsa_logits_check' is up to date.
+make: Leaving directory '/home/nate/codex/flash-pr31-fullmodel-20261018/kern'
+comparison complete; numerical_limits_pass=false; original-checkpoint and per-layer comparison remain unmeasured
+NUMERICAL_FAIL: 2 rows; max_abs=0.991070747 normalized_rms=0.0622623137; provenance unverified
+ok 1 - historical capture requires an explicit diagnostic flag
+ok 2 - matching selected tokens cannot conceal a different earlier prefix
+ok 3 - incomplete native capture is rejected
+ok 4 - a consistent total count cannot conceal a missing QSA layer output
+ok 5 - truncated attention output is rejected
+ok 6 - a future position cannot enter the selection diagnostic
+ok 7 - candidate logits must match their frozen identity
+1..7
+REPLAY_CONFIRMED_NUMERICAL_FAILURE: issue #11 is not resolved by this diagnostic

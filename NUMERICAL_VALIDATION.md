@@ -236,6 +236,12 @@ directory in the runtime library search path.
 
 ## Checkpoint logits remain a separate acceptance gate
 
+[QSA_MODEL_REFERENCE.md](QSA_MODEL_REFERENCE.md) describes the complementary
+`qsa_model_selected_reference` command and complete-prefix comparator. It
+retains only requested full-vocabulary rows, explicit prefix positions,
+derived selection sets, all twelve QSA layers and all 48 block outputs.
+The existing `qsa_model_reference` command below retains every vocabulary row.
+
     make -C kern qsa_logits_check
     kern/qsa_logits_check reference_ids.u32 candidate_ids.u32 \
       reference_logits.f32 candidate_logits.f32 ROWS VOCAB result.json
@@ -364,6 +370,16 @@ conversion lineage. The required long sparse full-model matrix is still
 unmeasured. See [the independent capture record](validation/issue11/independent/README.md)
 for exact sources, retained arrays, limits, results and the failing replay.
 
+The independently developed selected-row capture is retained in
+[validation/issue11/full-model](validation/issue11/full-model/README.md).
+It saved rows at lengths 1 and 4 plus 408 native snapshots. Its per-row
+historical-target metrics exactly match the corresponding rows of the
+four-position capture above: maximum absolute error 0.9910707474 and aggregate
+NRMS 0.06226231368 over those two rows. All seven complete-prefix and capture
+rejection controls pass. Both capture tools and both evidence sets are
+preserved when merging the shared branch; these diagnostics do not establish
+current-target, original-checkpoint or long-sparse conformance.
+
 The earlier follow-up is recorded in
 [validation/issue11/resume](validation/issue11/resume/README.md): tested commit
 705f166 passed all 58 expected CPU outcomes; the new SM52 image and adapter
@@ -381,3 +397,142 @@ That run reported PASS_SYNTHETIC, but its score check enforced maximum
 absolute error relative to the largest reference score. Its reported
 normalized RMS was not the enforced gate. Preserving those captures does not
 retroactively correct the old runner or imply target/model conformance.
+
+## Full-model capture adapters (capture is not acceptance)
+
+The shared branch retains both workers' independent paths.
+`qsa_model_reference` above uses a freshly built, source-pinned runtime and
+produces a full vocabulary row for every supplied token, with selectable
+per-layer snapshots. `qsa_reference_capture` below is an additional installed-
+runtime diagnostic: it saves only the final row of an explicit prefix. They
+have different runtime pins and row layouts and must not be treated as
+interchangeable captures. `FLASH_QSA_CAPTURE` is the production candidate
+side, also saving the final row. Verify the complete prefix and select the
+matching reference row before comparing it with a candidate capture.
+
+`kern/qsa_reference_capture.c` runs an independent llama.cpp forward through
+its public **C** API. It never calls a local scalar twin, samples a generated
+continuation, or substitutes a smaller vocabulary. The input is an explicit
+little-endian uint32 token-ID prefix. It runs 48 Qwen4Exp layers, teacher-forces
+all visible positions, and saves the final position's 248,320 FP32 logits.
+The last input is decoded separately, so graph callbacks preserve that
+position's QSA tensors at every attention layer (3, 7, ..., 47). Tensor views
+are serialized in logical `ne[0]`-fastest order, not as arbitrary padded memory.
+
+The optional target requires llama.cpp's b10705-era C headers and libraries:
+
+```sh
+make -C kern qsa_reference_capture
+kern/qsa_reference_capture --self-test /tmp/qsa-reference-io-new
+kern/qsa_reference_capture "$MODEL_GGUF" "$TOKEN_IDS_U32" 1 /tmp/reference-visible-1-new 2
+```
+
+The last argument is the CPU thread count. GPU offload and flash attention are
+disabled; K/V are FP32, weights retain their GGUF dtypes, mmap/lazy loading is
+used, and no extra repacking buffers are requested. The tool writes a copied
+`prefix_ids.u32`, single-row `row_ids.u32`, `logits.f32`, a typed/strided
+`tensors.jsonl` catalog, and `capture.json`. It refuses existing destinations,
+nonfinite logits, missing vocabulary coverage, invalid IDs, oversized tensor
+views, and invalid readback layouts. Missing required per-layer score,
+selection, or gated-output observations return exit 3. A complete observation
+returns exit 0 with **CAPTURED_NOT_VALIDATED**, never a checkpoint acceptance.
+The caller must retain build/runtime hashes and verified model identities.
+Use an appropriate process memory/time limit on a shared CPU host.
+
+### Reference identity and arithmetic limitations
+
+The installed runtime used in the follow-up is package `llama.cpp-hip
+b10705-2`; its binary hashes are retained with the results. The public `b10705`
+tag resolves to commit `2578138397d7b422bb0e160efdd429976c55fb55`.
+The corresponding `src/models/qwen4exp.cpp` source SHA-256 is
+`1fe800a11543d2af7aef898f75e6ee6ffb1f27f1486b4810cb926d94fc77e148`.
+A package version and fetched source do not by themselves attest that a local
+binary is an unmodified reproducible build; the separately measured binary
+hashes distinguish those claims.
+
+That implementation is **not the pinned Transformers arithmetic contract**:
+its QSA pool is FP32 through the mean/norm boundary, its rectified-head score
+sum omits the reference's FP32 division by sqrt(128), and its top-k indices
+refer to cache cells after score expansion and masking. Its `top_k` width may
+also include masked padding cells. The capture preserves these actual arrays,
+including nonfinite masked score values in the independent tensor archive.
+Do not relabel cache-cell IDs as local block IDs, compare padded score vectors
+as if every element were visible, or claim original-checkpoint conformance
+from this quantized-GGUF runtime. The original Transformers pin and its frozen
+arithmetic fixtures remain unchanged. Original-checkpoint/tokenizer/conversion
+lineage is still a separate required gate.
+
+### Candidate production-engine observations
+
+`FLASH_QSA_CAPTURE=1` enables diagnostic-only storage in `libengine.so`.
+It requires the complete 48-layer model, the standard 512-block budget, real
+PLE data, and disabled two-position/headless-prefill modes. It accepts only
+fresh `gen 0` text requests with valid IDs, no stop IDs, sampling, images, or
+snapshot requests. It does not reuse a prefix snapshot. Aborted, incomplete,
+or short-read requests cannot be exported as complete captures.
+
+For an **owned** validation core, with the shared GPU lock held across holder
+startup, core startup, inference, and teardown, the line protocol is:
+
+```text
+gen 0 1 2 3 4
+qsa_capture /absolute/new-candidate-directory
+```
+
+The example's ID file for the independent runner must contain the exact four
+IDs `1,2,3,4`, not their tokenized decimal spelling. Actual sparse tests must
+supply the specified real prefixes at every required visible length.
+Do not connect to, reload, stop, or reuse another worker's resident core as a
+shortcut around the shared GPU gate.
+
+The production descriptor builder uses private per-layer QSA scratch while
+retaining the original sequence of operations, token masks, barriers, and
+exchanges. It preserves indexer projections, normalized queries, raw-key
+rings, pooled FP16 keys, raw scores, selections, attention queries/gates,
+partial maxima/denominators/numerators, gated outputs, gathered K/V, current
+INT8 codes/FP16 scales, and loaded normalization weights. Pool and K-cache
+tiles are explicitly converted to canonical layouts on readback. Private
+compact caches increase diagnostic VRAM usage; this is not a performance mode.
+Capturing does not prove that loaded gamma weights came from a correct
+original-checkpoint conversion.
+
+At `floor(visible/4) <= 512`, production scoring and selection kernels do
+nothing. The exporter therefore writes no `scores.f32` and labels the
+selection as an **implicit dense host enumeration**, rather than presenting
+old scratch bytes as observed device selections. At longer lengths, it saves
+actual device scores and ascending selected block IDs. The visible tail is
+recorded separately; gathered K/V includes that tail. The raw-key ring retains
+its physical `position % 4` slots, including slots not yet written by very
+short prefixes.
+
+`prefix_ids.u32` is checked byte-for-byte against the input array on **every
+die** before export. Full logits are reassembled only after proving the die
+slices cover all 248,320 entries without gaps or overlap. Nonfinite FP32
+readbacks and invalid observed selections fail export. Existing directories
+are never replaced; failed reads/writes leave no complete manifest.
+
+The CPU descriptor test checks that the only descriptor changes are the
+intended pointer replacements. It does **not** establish GPU byte parity;
+capture-enabled versus capture-disabled full-model outputs remain a required
+paired target measurement. Reports explicitly record that this parity has
+not yet been measured.
+
+```sh
+make -C kern qsa_capture_test qsa_capture_prog_test qsa_logits_check
+kern/qsa_capture_test /tmp/qsa-candidate-io-new
+kern/qsa_capture_prog_test
+# Compare the ENTIRE consumed prefix before the final logit row.
+cmp "$REFERENCE/prefix_ids.u32" "$CANDIDATE/prefix_ids.u32" &&
+  cmp "$REFERENCE/row_ids.u32" "$CANDIDATE/row_ids.u32" &&
+  kern/qsa_logits_check "$REFERENCE/row_ids.u32" "$CANDIDATE/row_ids.u32" \
+    "$REFERENCE/logits.f32" "$CANDIDATE/logits.f32" 1 248320 /tmp/new-logit-comparison.json
+```
+
+The existing logit limits (maximum absolute error 0.10 and normalized RMS
+0.01 for every row) remain unchanged. Numerical success still does not verify
+original checkpoint provenance or the independent runtime's arithmetic
+contract. Same-selection kernel/quantizer error must still be isolated from
+upstream full-model differences using the earlier oracle gates.
+
+New measurements and explicit remaining gates are recorded in
+[validation/issue11/forward](validation/issue11/forward/README.md).

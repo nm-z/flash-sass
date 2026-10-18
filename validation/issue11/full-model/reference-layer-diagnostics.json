@@ -1,0 +1,1298 @@
+[
+   {
+      "elements" : 10240,
+      "layer" : 0,
+      "max_abs" : 0.209315717220306,
+      "node" : "l_last",
+      "rms" : 0.0134248056312082,
+      "sha256" : "b91d04397d5e7199094831b41d24b72ff0c2156a28cec4f9b28dcefd93d5b10d",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 1,
+      "max_abs" : 0.258854925632477,
+      "node" : "l_last",
+      "rms" : 0.0156274820846981,
+      "sha256" : "81365089a37eeede5c419d29b5280433a9d01ff432d0abcbb8ea56ed400cf2bc",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 2,
+      "max_abs" : 0.416052639484406,
+      "node" : "l_last",
+      "rms" : 0.0188142343655331,
+      "sha256" : "40c38ffb80e6011d7d8f399789d43e41891ae15cf39d8986f3c7ffbb2580ddfe",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 6144,
+      "layer" : 3,
+      "max_abs" : 3.43674755096436,
+      "node" : "attn_pregate",
+      "rms" : 0.351828454124066,
+      "sha256" : "cc1c9ac518202aaab2150d1422ccad25cbedb12ce8ab0847a3e2d1d449c24a3a",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 2560,
+      "layer" : 3,
+      "max_abs" : 0.933668911457062,
+      "node" : "attn_output",
+      "rms" : 0.166265197650399,
+      "sha256" : "59cd37da0e40e6a3214ba0c950481f69a1c99667d824db6030d036f416c1d554",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 3,
+      "max_abs" : 0.396215081214905,
+      "node" : "l_last",
+      "rms" : 0.0191607299585355,
+      "sha256" : "b850ba90d483504dc983a68a3ca125107ba5142b4d2333fed60dcc2f02d4bb8c",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 4,
+      "max_abs" : 0.396235316991806,
+      "node" : "l_last",
+      "rms" : 0.0205847007406031,
+      "sha256" : "c97a6058da36e583442b83463e8d162731a7caf662879ec9dcb4924c8ca95bbe",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 5,
+      "max_abs" : 2.23584747314453,
+      "node" : "l_last",
+      "rms" : 0.0408373575669268,
+      "sha256" : "f3ca3f6abf07bbbe439f5a8efa53b30e62b5eb683a0fc40f3d046b2e694d0d31",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 6,
+      "max_abs" : 2.27308082580566,
+      "node" : "l_last",
+      "rms" : 0.0419558202561803,
+      "sha256" : "db8bd23d7d0acdb25ff65d7deb332a108f10bf001d099d35356617dcd706b833",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 6144,
+      "layer" : 7,
+      "max_abs" : 10.5072078704834,
+      "node" : "attn_pregate",
+      "rms" : 0.877732312741208,
+      "sha256" : "743fc12235e52fe5171ff11ec0cec4452504402027ace62901eb3f3e4b2b109d",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 2560,
+      "layer" : 7,
+      "max_abs" : 2.40337657928467,
+      "node" : "attn_output",
+      "rms" : 0.293775441471612,
+      "sha256" : "c7e5480cfdb7e45a23abbad9f1c38c996f0cd8b8174298b91324a6cbe1463d6c",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 7,
+      "max_abs" : 2.25147247314453,
+      "node" : "l_last",
+      "rms" : 0.0429126942306323,
+      "sha256" : "a38dfd6e6635c5b6881979ca3a4b40772e8c61cab8ec0c9ee98beaffa7563d4a",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 8,
+      "max_abs" : 2.28180027008057,
+      "node" : "l_last",
+      "rms" : 0.0446784558734421,
+      "sha256" : "1b046f7f8ac4ec76d6f58f21742e07fd10b67ae750238cb9319f59e2bc6900d4",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 9,
+      "max_abs" : 2.2800395488739,
+      "node" : "l_last",
+      "rms" : 0.0447435132561626,
+      "sha256" : "351a645ccf42760058c2e7439d17e17a618e97b5ec8a684a7f2bd17e3f514385",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 10,
+      "max_abs" : 2.35325360298157,
+      "node" : "l_last",
+      "rms" : 0.0468963763856266,
+      "sha256" : "2bae09c71fe56e07424f810a7d951bbd78cf0e5306df36a72f13947f962bb502",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 6144,
+      "layer" : 11,
+      "max_abs" : 16.4225578308105,
+      "node" : "attn_pregate",
+      "rms" : 0.977520408866463,
+      "sha256" : "d7a240e2a9df75465fc2ac9a700b552d70bb68560f0f830fab3f2f9a3317c5c8",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 2560,
+      "layer" : 11,
+      "max_abs" : 2.65462613105774,
+      "node" : "attn_output",
+      "rms" : 0.308748395574059,
+      "sha256" : "9d2b33bf29e457848c0e0685b1c7aab2d22809aecdcfc38585cf777e18d3c976",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 11,
+      "max_abs" : 2.25454306602478,
+      "node" : "l_last",
+      "rms" : 0.0476147544077532,
+      "sha256" : "4bf75887955501e78ed9d99d7e16ac0928b861920e5d0f0227e917d12244d238",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 12,
+      "max_abs" : 2.20593237876892,
+      "node" : "l_last",
+      "rms" : 0.0486848297900168,
+      "sha256" : "2534e59eb698d1b90572439246689d98b4ee69037317bbfce7d095ffdf8ec1db",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 13,
+      "max_abs" : 2.24930238723755,
+      "node" : "l_last",
+      "rms" : 0.0492817418228966,
+      "sha256" : "a747c23883594d0a8bb7f5300caece0456447720b2505e9ff7364966754f2d4b",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 14,
+      "max_abs" : 2.27995419502258,
+      "node" : "l_last",
+      "rms" : 0.0529007058806355,
+      "sha256" : "922c68292ba4ad628943e5eecf168731f090912f08c628cf89881ce0ca6159b0",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 6144,
+      "layer" : 15,
+      "max_abs" : 7.93058586120605,
+      "node" : "attn_pregate",
+      "rms" : 0.702744860087034,
+      "sha256" : "f2e2303e810874a57f915426915b8c5ed1739e24a70bca26599c59be86e3c44d",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 2560,
+      "layer" : 15,
+      "max_abs" : 1.26072382926941,
+      "node" : "attn_output",
+      "rms" : 0.106636411780096,
+      "sha256" : "76bcecd4eb6fa16b4f54dfdebdef2b996364e5b051e0c9a44121417ef51cd9f0",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 15,
+      "max_abs" : 2.2304310798645,
+      "node" : "l_last",
+      "rms" : 0.0534666458413089,
+      "sha256" : "1daffe432afb0e48ba9a2cf55cb97ba07a12811556e8940ed5ac07abf0985597",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 16,
+      "max_abs" : 2.09554123878479,
+      "node" : "l_last",
+      "rms" : 0.0586816309195645,
+      "sha256" : "a31e4dd11f77596f546dea432778c7a085aa5499b9c53fcded6892adcb48872c",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 17,
+      "max_abs" : 2.10975861549377,
+      "node" : "l_last",
+      "rms" : 0.0588179259464281,
+      "sha256" : "363bfdd286d58add4cfdb2dbc0366cbe96e9dbd69b8fbeb6140741c5cbb9b348",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 18,
+      "max_abs" : 2.11198163032532,
+      "node" : "l_last",
+      "rms" : 0.0588049004306771,
+      "sha256" : "c901e6e081d0ba27978cc50baae956f46848002762f3a6b3210916d2bab682f4",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 6144,
+      "layer" : 19,
+      "max_abs" : 15.2458562850952,
+      "node" : "attn_pregate",
+      "rms" : 0.974302313075665,
+      "sha256" : "5194c461bc4c992437c90a6b55dd823db54ef34fdfc3d9734cdf3bffe2d466ec",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 2560,
+      "layer" : 19,
+      "max_abs" : 1.73922336101532,
+      "node" : "attn_output",
+      "rms" : 0.212477609848414,
+      "sha256" : "28cfee877afec849ae3cefa6f81873195902c364db73f08fad5fbf0952eb5084",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 19,
+      "max_abs" : 2.14486908912659,
+      "node" : "l_last",
+      "rms" : 0.0593012196437606,
+      "sha256" : "e9c81bf67e39b90b688da7ab3d72fa2080896c91f782bde4de2aa07f89278c35",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 20,
+      "max_abs" : 2.0865523815155,
+      "node" : "l_last",
+      "rms" : 0.0656423268358442,
+      "sha256" : "95630258f4e5a73685a075c99fb5aebd3f7695f34141201187d56125f5baee1b",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 21,
+      "max_abs" : 2.10945272445679,
+      "node" : "l_last",
+      "rms" : 0.0662497833449944,
+      "sha256" : "36af05b6c1b9f2c01e06edbdacc4dde173b8fb8181ae54498f0def7bd2fe3a01",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 22,
+      "max_abs" : 2.10959815979004,
+      "node" : "l_last",
+      "rms" : 0.0680046507724823,
+      "sha256" : "541628b641576b5a5ea1a317ecad34ca00ce4508758b2e8f72c832f61fcfc841",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 6144,
+      "layer" : 23,
+      "max_abs" : 6.639817237854,
+      "node" : "attn_pregate",
+      "rms" : 0.746002497219528,
+      "sha256" : "f8df578066fe81b38ca93e3045c14eed5ea60eabd72a08514c3c4bb88425eb3d",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 2560,
+      "layer" : 23,
+      "max_abs" : 0.573834419250488,
+      "node" : "attn_output",
+      "rms" : 0.0905028632739034,
+      "sha256" : "c0da1848520036c3e9249e5f0412abbb71a603a6d643f2e45b55e21e693ae6a4",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 23,
+      "max_abs" : 2.11674857139587,
+      "node" : "l_last",
+      "rms" : 0.0681235903333007,
+      "sha256" : "84699464346d5b3a8622862da44bd14237b8e988462cf1f4856f8150a3659f82",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 24,
+      "max_abs" : 3.51444029808044,
+      "node" : "l_last",
+      "rms" : 0.0762870063179202,
+      "sha256" : "08dae6f531a04f2daadcea29c61897430ec3ad33f9217b02aad4e3a5c817adef",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 25,
+      "max_abs" : 3.54741549491882,
+      "node" : "l_last",
+      "rms" : 0.0756420156280327,
+      "sha256" : "0b44ae4e50a389fc48478317cb5d9ddb3e3542518c1123e823420e2972730cbf",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 26,
+      "max_abs" : 4.8662748336792,
+      "node" : "l_last",
+      "rms" : 0.0850293231716798,
+      "sha256" : "366ab3f561e2dc51aefbe6bdff2355309b0f47165eb461266841ca7058088a24",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 6144,
+      "layer" : 27,
+      "max_abs" : 34.2384796142578,
+      "node" : "attn_pregate",
+      "rms" : 1.93294284484369,
+      "sha256" : "fee0fa0ca30ebe4631918b01679829ed9d5c3e1fca9f284ded282a11b7886434",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 2560,
+      "layer" : 27,
+      "max_abs" : 3.59961605072021,
+      "node" : "attn_output",
+      "rms" : 0.287755474872941,
+      "sha256" : "047635fbd88f7282297ff1618d3e0c7a8ff86598f8706f53726acc8bcb1f0986",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 27,
+      "max_abs" : 4.43324327468872,
+      "node" : "l_last",
+      "rms" : 0.0861168229322836,
+      "sha256" : "d09a8f0ac3dec72bdea886dd70ccb4e04e36cd43e619ff4c5fd917fcf5e25ec6",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 28,
+      "max_abs" : 4.16165637969971,
+      "node" : "l_last",
+      "rms" : 0.0854560942664153,
+      "sha256" : "0a9fac7c860bf55e742952a5a9043f1d2470542a2e005dc35c747f276dbaf073",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 29,
+      "max_abs" : 3.85589933395386,
+      "node" : "l_last",
+      "rms" : 0.0857496943013527,
+      "sha256" : "06916d4982814740ceb2883d1972fe719baf330cfdd0ff45f9feab8d5aef6885",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 30,
+      "max_abs" : 3.84328031539917,
+      "node" : "l_last",
+      "rms" : 0.0916674589194977,
+      "sha256" : "4dea279fd3374e7703cf0f5574a57bd47c3e3af439e08ae77c5aa520fafd7772",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 6144,
+      "layer" : 31,
+      "max_abs" : 8.49253082275391,
+      "node" : "attn_pregate",
+      "rms" : 0.725466368012019,
+      "sha256" : "47b2c8019e18f76adb069e8f02f20968885d15202188eee7d70e3cd1f0be8577",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 2560,
+      "layer" : 31,
+      "max_abs" : 0.769662439823151,
+      "node" : "attn_output",
+      "rms" : 0.0774959282338104,
+      "sha256" : "614ed4dd33b054e9727428927dfeb79cdef11a9fe4d5e7949dad21bf23c1b8ec",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 31,
+      "max_abs" : 3.58765912055969,
+      "node" : "l_last",
+      "rms" : 0.0909913913539774,
+      "sha256" : "bd19bf551c3a0d4c7a50f52f783b31ee96c5019ff18f131535e98ff712a43241",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 32,
+      "max_abs" : 2.88452363014221,
+      "node" : "l_last",
+      "rms" : 0.101888794841587,
+      "sha256" : "d91cf9364b6b945a9686da9750c8f6f9536f22b85d58a8964d02b7380af5d5f8",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 33,
+      "max_abs" : 2.79966378211975,
+      "node" : "l_last",
+      "rms" : 0.101184499707522,
+      "sha256" : "98c013aaffb3da901cb54105a15dc28ef77b4c7c20719c930cb9e6dab85af361",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 34,
+      "max_abs" : 2.75497722625732,
+      "node" : "l_last",
+      "rms" : 0.101815344015684,
+      "sha256" : "c282ef5abb5a993305a1c1dad09630646c620565d4f41b0cd576514c6dcb88b6",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 6144,
+      "layer" : 35,
+      "max_abs" : 8.77158832550049,
+      "node" : "attn_pregate",
+      "rms" : 0.610385849125212,
+      "sha256" : "de39d43634068e0190f8c4dc098b246e676ccfe67183c5130ac370cd978ec759",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 2560,
+      "layer" : 35,
+      "max_abs" : 0.862184524536133,
+      "node" : "attn_output",
+      "rms" : 0.143963919979389,
+      "sha256" : "0730bc045347705b45dbfbdda4e4def68c42fbaa5cd5faf2905e76e2630784b1",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 35,
+      "max_abs" : 2.76754927635193,
+      "node" : "l_last",
+      "rms" : 0.103348537128267,
+      "sha256" : "9628ac138cb958479d079fadbf9ae1bc9b9169f6ba69f1d35c364ddc2b2270ac",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 36,
+      "max_abs" : 7.26335144042969,
+      "node" : "l_last",
+      "rms" : 0.158970355556823,
+      "sha256" : "73affa94a24eaee78f2d55dd255199a5341e001978504d959a83efbf8b7f34c6",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 37,
+      "max_abs" : 7.79962682723999,
+      "node" : "l_last",
+      "rms" : 0.168574644344684,
+      "sha256" : "0fd5eff39bda7be5508c94fb461d3054695af478b4eb27141914783388f93c3f",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 38,
+      "max_abs" : 7.76102447509766,
+      "node" : "l_last",
+      "rms" : 0.176761123962877,
+      "sha256" : "6393a496b128d088825c8fd75a1d2afd2087797932c86c0cba50a6b284207a2d",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 6144,
+      "layer" : 39,
+      "max_abs" : 1.79472661018372,
+      "node" : "attn_pregate",
+      "rms" : 0.603437641632697,
+      "sha256" : "b986a35de0e0e84b5c754a316a7d7621f2e1ee25ca3b1702bf860183a1709728",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 2560,
+      "layer" : 39,
+      "max_abs" : 0.434970259666443,
+      "node" : "attn_output",
+      "rms" : 0.0789880459008104,
+      "sha256" : "37d4da1383be77feadee45fff3b54baef6461de5b88b1e74173447e5f48fa77a",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 39,
+      "max_abs" : 7.4218225479126,
+      "node" : "l_last",
+      "rms" : 0.182224704014444,
+      "sha256" : "9e49bd04ce68bd9edc975e93c261b016369a5491aa93e727165ccbcaf8f7bebb",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 40,
+      "max_abs" : 7.42097282409668,
+      "node" : "l_last",
+      "rms" : 0.184929898787428,
+      "sha256" : "f7c7ec79b028e2f2463fa8643c52dd386eb7e192dea49a54b13cc0c066cf55a5",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 41,
+      "max_abs" : 7.3100438117981,
+      "node" : "l_last",
+      "rms" : 0.190420748832275,
+      "sha256" : "63b6b51d15670d784e04dfc4d7c00060f5a45acf60f5414e29e3afa853c2b7dd",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 42,
+      "max_abs" : 7.40320253372192,
+      "node" : "l_last",
+      "rms" : 0.202011288295396,
+      "sha256" : "56a989ca814ea85b52839f78e8398f493563f2c41991bc4c9161e2267d18d9c3",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 6144,
+      "layer" : 43,
+      "max_abs" : 2.03737664222717,
+      "node" : "attn_pregate",
+      "rms" : 0.70708722296932,
+      "sha256" : "23b69f106c3f2ec6be57dd9b5d11bf3bf5886e44611c9d16592841b93c22a7ef",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 2560,
+      "layer" : 43,
+      "max_abs" : 0.501233398914337,
+      "node" : "attn_output",
+      "rms" : 0.0725493284238806,
+      "sha256" : "cafb1c88112ba3a1bcba06fbdb3fb2542076e4b3cfa48d18cb23da987d0609ae",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 43,
+      "max_abs" : 7.46859645843506,
+      "node" : "l_last",
+      "rms" : 0.20738281431368,
+      "sha256" : "d16d302310357b05f3f9d8bebaebdef09739ca8eb077d25d48287c84e67598bf",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 44,
+      "max_abs" : 10.3273429870605,
+      "node" : "l_last",
+      "rms" : 0.276587411380251,
+      "sha256" : "6b4ecb5e4cc931a35a467ec749a25e6eefa4bf9911e238307c106c3f80940ef8",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 45,
+      "max_abs" : 10.5304546356201,
+      "node" : "l_last",
+      "rms" : 0.297944677027876,
+      "sha256" : "157bbc537d9b7e4901945364873b723c53c531afc924f0811743a34e4ed9f37d",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 46,
+      "max_abs" : 10.7852172851562,
+      "node" : "l_last",
+      "rms" : 0.32213181205259,
+      "sha256" : "be93cd89b0275046eaa4a262ac661cb414d72f28a7f5140b729f09d8b3ab488b",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 6144,
+      "layer" : 47,
+      "max_abs" : 2.8306999206543,
+      "node" : "attn_pregate",
+      "rms" : 0.918348690379443,
+      "sha256" : "a4f460aa7418160b8c505e5a21ad712ca54b1e2593da49575c9a7398a430177c",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 2560,
+      "layer" : 47,
+      "max_abs" : 3.00165319442749,
+      "node" : "attn_output",
+      "rms" : 0.279694393757207,
+      "sha256" : "aa3f70cbf8256e746017a8375a7fb0a05bae5d6e9efa7ab7b31e3fbc67dac847",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 47,
+      "max_abs" : 9.21901607513428,
+      "node" : "l_last",
+      "rms" : 0.338628535113872,
+      "sha256" : "c37b5411e24d8da9259f6d25d04c961efc9cc5d46338ba79782a49d9bfcd29be",
+      "visible_length" : 1
+   },
+   {
+      "elements" : 10240,
+      "layer" : 0,
+      "max_abs" : 0.170866727828979,
+      "node" : "l_last",
+      "rms" : 0.00935140166486451,
+      "sha256" : "7df94c756e5c09e6eb6aa72b6c5d82e2bfc7d545682553781860c1bf283d3ac8",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 1,
+      "max_abs" : 0.327271819114685,
+      "node" : "l_last",
+      "rms" : 0.0152216986233746,
+      "sha256" : "f6aced42afa4f1fdc3a004ae45c2f0a32383a33050625be3e0dc159c93381539",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 2,
+      "max_abs" : 0.296788692474365,
+      "node" : "l_last",
+      "rms" : 0.0171284608989179,
+      "sha256" : "d6a25b0dfc3247759385e4c552a0eafc13714007e08fa0ab14ff3120a19b1678",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 6144,
+      "layer" : 3,
+      "max_abs" : 3.37657260894775,
+      "node" : "attn_pregate",
+      "rms" : 0.348284226940267,
+      "sha256" : "c8cff96c9ee2675032102774815e2c8542ff0ca92529b2a5fec6133e8387d4b5",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 2560,
+      "layer" : 3,
+      "max_abs" : 0.571939468383789,
+      "node" : "attn_output",
+      "rms" : 0.0916560549289069,
+      "sha256" : "55757b1477234e09eaf47a2edd8078bee48416ae09d277272a64087056044c78",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 3,
+      "max_abs" : 0.296737641096115,
+      "node" : "l_last",
+      "rms" : 0.017861325150494,
+      "sha256" : "45339ba2df54bcaf7a89aacbc0e39b496185524a9ec78a9f0d9f2168d06af079",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 4,
+      "max_abs" : 0.297342240810394,
+      "node" : "l_last",
+      "rms" : 0.019077008439024,
+      "sha256" : "e245a98087e6dcc95a03ad066dd17561d8350ace3b4c7d8583f320edf28d03eb",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 5,
+      "max_abs" : 0.297793716192245,
+      "node" : "l_last",
+      "rms" : 0.0205639425754754,
+      "sha256" : "f2c3a72a1ba6c5a4bae5e0062cfc99635994016dcbec06fd1ae7c28f7ebdce87",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 6,
+      "max_abs" : 0.296627193689346,
+      "node" : "l_last",
+      "rms" : 0.0223254914605522,
+      "sha256" : "50e2a6e0857f7bb333d807ca903aee6e4b25b16bf32e991133e99481952915ba",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 6144,
+      "layer" : 7,
+      "max_abs" : 10.4261131286621,
+      "node" : "attn_pregate",
+      "rms" : 0.743176660093082,
+      "sha256" : "eedb3f848340b3c3cb15da4af64ab8b1114274138ad616090a45e9121ec3d6ad",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 2560,
+      "layer" : 7,
+      "max_abs" : 0.906107187271118,
+      "node" : "attn_output",
+      "rms" : 0.136036833364405,
+      "sha256" : "40daa4b0623ab0e8ca261319c2ac12c0afa9f07b00581e6d95f13ccabeebf03f",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 7,
+      "max_abs" : 0.29698246717453,
+      "node" : "l_last",
+      "rms" : 0.0238377372604129,
+      "sha256" : "d202c7c402bfae7853705f63690ec95e70b62ec013891c9d967423db4a7c9702",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 8,
+      "max_abs" : 0.297124326229095,
+      "node" : "l_last",
+      "rms" : 0.0247367165369765,
+      "sha256" : "49a94c843c7b8d9232cdef5806fdd7ee1cfd99f036d3f0be272d65faa4849dbd",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 9,
+      "max_abs" : 0.297105491161346,
+      "node" : "l_last",
+      "rms" : 0.0248366252992171,
+      "sha256" : "3011cc08d4ae197153bebe7df695874996772db406a02f017eb449f709edbc10",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 10,
+      "max_abs" : 0.297071069478989,
+      "node" : "l_last",
+      "rms" : 0.0253379215711335,
+      "sha256" : "f358bc45fd5f9b313c156808d6f069df5abfe3e64e9781839d8f9db3465ea182",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 6144,
+      "layer" : 11,
+      "max_abs" : 14.963207244873,
+      "node" : "attn_pregate",
+      "rms" : 0.706907275822751,
+      "sha256" : "c68e497d1d694711157e28b42cbf61963072bbf6c1ad23c2313edbcc2f0df16e",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 2560,
+      "layer" : 11,
+      "max_abs" : 0.689936518669128,
+      "node" : "attn_output",
+      "rms" : 0.085567267302942,
+      "sha256" : "93ec5eb1d43b644aaec1794ec7f748b29dbb9d88a4d41971855b4947f15cce9b",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 11,
+      "max_abs" : 0.29707670211792,
+      "node" : "l_last",
+      "rms" : 0.0254176383662891,
+      "sha256" : "bb4786cb96adf58f78db2d8c28e9f4d7554130e6cfe78b973c5c4829a43dcc95",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 12,
+      "max_abs" : 0.297105044126511,
+      "node" : "l_last",
+      "rms" : 0.0264766916645969,
+      "sha256" : "e40f5520460406a788c6ab01d9d952dce60b76560f164007fb8d59349b615805",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 13,
+      "max_abs" : 0.297106593847275,
+      "node" : "l_last",
+      "rms" : 0.0267064917251402,
+      "sha256" : "89378f9341f4a961b80ae95b18047a180ab32288c7e8f061660eb1bf88a6e6cf",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 14,
+      "max_abs" : 0.296280235052109,
+      "node" : "l_last",
+      "rms" : 0.0272749519210082,
+      "sha256" : "af865c4d060ee31fb9ec91694e3e6a2d63baafff0308aa90ac23051f14e81e8d",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 6144,
+      "layer" : 15,
+      "max_abs" : 7.79813766479492,
+      "node" : "attn_pregate",
+      "rms" : 0.613373659171983,
+      "sha256" : "a676ad669732a1bf8f9c96693caa14d33221b8dfc36053b1eeba778405ed2316",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 2560,
+      "layer" : 15,
+      "max_abs" : 0.48158860206604,
+      "node" : "attn_output",
+      "rms" : 0.0765951232235235,
+      "sha256" : "ef0ffe22b316cc495893afef76cbbf42d6e6a7599cb2d16442d27d2cf796213a",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 15,
+      "max_abs" : 0.296345412731171,
+      "node" : "l_last",
+      "rms" : 0.0269140503025496,
+      "sha256" : "574faea25b156f239704826b10022cd6745be64ab3b8c201cd19c6865679f35d",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 16,
+      "max_abs" : 0.296368092298508,
+      "node" : "l_last",
+      "rms" : 0.0270808644870245,
+      "sha256" : "2b8d89405b398f0b5f55ea12cdb190b819be2350f73ec90c3011483220f69045",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 17,
+      "max_abs" : 0.296379894018173,
+      "node" : "l_last",
+      "rms" : 0.0271203146088444,
+      "sha256" : "ea7bfa8ef7d63042248ee8518efd8c94da95f5a04832f41811338ac48fd95969",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 18,
+      "max_abs" : 0.296384334564209,
+      "node" : "l_last",
+      "rms" : 0.02816002108811,
+      "sha256" : "1f1093467e510adb166cdadb3433a0acbd81587aebe5e477d7632b1e581dfaae",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 6144,
+      "layer" : 19,
+      "max_abs" : 11.5448055267334,
+      "node" : "attn_pregate",
+      "rms" : 0.62031915213382,
+      "sha256" : "c79a7ffd64480f1ee1c7a5d323a45b85aaf906cb365bfbf9d4f67ba39da3e855",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 2560,
+      "layer" : 19,
+      "max_abs" : 0.530663728713989,
+      "node" : "attn_output",
+      "rms" : 0.0829588517184141,
+      "sha256" : "3aa1bbb8c36a7361e7827f317a251d81f8927f21201ffece17bae86e3eeea720",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 19,
+      "max_abs" : 0.296356916427612,
+      "node" : "l_last",
+      "rms" : 0.0279241601519588,
+      "sha256" : "6248c2411dab4a9158b861c891db66bd9614d869a82b2b6ba35ff3ad04f158a9",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 20,
+      "max_abs" : 0.296607345342636,
+      "node" : "l_last",
+      "rms" : 0.0280565685264597,
+      "sha256" : "47ffdae7473dc0b5d471ff7e02664f36991fe529e3d52ac1a1e72e9f902ba920",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 21,
+      "max_abs" : 0.296634942293167,
+      "node" : "l_last",
+      "rms" : 0.0296681547591675,
+      "sha256" : "d43134a0a92113bf26533344ee59b0950f56c401a4e960dcb042326020365b5f",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 22,
+      "max_abs" : 0.230908513069153,
+      "node" : "l_last",
+      "rms" : 0.0328399779003818,
+      "sha256" : "28e67ba3ad673f5aa62447374a38eaa53697bd59faa3c0eda2324694eed67a50",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 6144,
+      "layer" : 23,
+      "max_abs" : 6.30839538574219,
+      "node" : "attn_pregate",
+      "rms" : 0.674863690315653,
+      "sha256" : "3a91bc30f3b6c109e92211a28e80ce3eb582bcbeb87fb8b2d6185f698cff8d56",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 2560,
+      "layer" : 23,
+      "max_abs" : 0.385711431503296,
+      "node" : "attn_output",
+      "rms" : 0.0767533397671403,
+      "sha256" : "c665ac69ffbbd61c293b0526b81d68e012d0dccd06901b368f4befbccaf08877",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 23,
+      "max_abs" : 0.228916957974434,
+      "node" : "l_last",
+      "rms" : 0.0327695584360122,
+      "sha256" : "c09eb0931d2dca098ad35e8db889cf2c4d99a4525467aa1d754288f90d4808e2",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 24,
+      "max_abs" : 0.243429765105247,
+      "node" : "l_last",
+      "rms" : 0.0359146100831137,
+      "sha256" : "dc914f89d08ef48988594a686d848dd41ec93f492f4dcc495ef1ea90b786820d",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 25,
+      "max_abs" : 0.238319545984268,
+      "node" : "l_last",
+      "rms" : 0.0358470155669786,
+      "sha256" : "d2ed68e3ad32702fc1d7fd9bd75ccda81df902a2ea80a76abbf07ef2cd7d57de",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 26,
+      "max_abs" : 0.244659155607224,
+      "node" : "l_last",
+      "rms" : 0.0378291895935236,
+      "sha256" : "09eac5636606f939d8c6c8b56dd151a28a0df57d847cd4087e2ee73942bd8a9c",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 6144,
+      "layer" : 27,
+      "max_abs" : 25.314058303833,
+      "node" : "attn_pregate",
+      "rms" : 0.97241637907753,
+      "sha256" : "bbae18481b84343569d580ff7c7feb20e4861b21b8d7ece1a23699b87b4aa490",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 2560,
+      "layer" : 27,
+      "max_abs" : 0.435503214597702,
+      "node" : "attn_output",
+      "rms" : 0.0766760962688134,
+      "sha256" : "fa07a9a3fcdde4fd636276cc25ece2cfbc6641bee7e5206c34b25cf2e7739239",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 27,
+      "max_abs" : 0.235112443566322,
+      "node" : "l_last",
+      "rms" : 0.0386871378878053,
+      "sha256" : "edc050e8c12d912fb780881b6232052bff7fe84fabbd9768cb456c92511a2964",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 28,
+      "max_abs" : 0.25271862745285,
+      "node" : "l_last",
+      "rms" : 0.0410784311167455,
+      "sha256" : "4d0e0e651e2d3274b0b4043970f30d5f0669d8f6c9e5ed0db45813e992e4a3d0",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 29,
+      "max_abs" : 0.345265001058578,
+      "node" : "l_last",
+      "rms" : 0.0443213567515649,
+      "sha256" : "66a5880534ed5b8664a378365fad14f84c10fe5c593b3fad1c27c8cf9e3558b8",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 30,
+      "max_abs" : 0.452266752719879,
+      "node" : "l_last",
+      "rms" : 0.0477972131124378,
+      "sha256" : "ebe560a0374ee0fbf7f087ec59d4ed3c6765fcce5d28898cb46af1af2d00945b",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 6144,
+      "layer" : 31,
+      "max_abs" : 7.81222724914551,
+      "node" : "attn_pregate",
+      "rms" : 0.591887818161431,
+      "sha256" : "16761e82a4e6497179079a4b3d0e1e04f4f27b11f89d6c2c345fa74e24d0f626",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 2560,
+      "layer" : 31,
+      "max_abs" : 0.281925350427628,
+      "node" : "attn_output",
+      "rms" : 0.0652068871775758,
+      "sha256" : "0c846c59599e39f1858bf76d6c08358c0eac0c13fe9da476c66588e2ef190fb6",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 31,
+      "max_abs" : 0.386477559804916,
+      "node" : "l_last",
+      "rms" : 0.0480743397636152,
+      "sha256" : "f24b053cc2499e3a045acc047cf38c54cd19d8de5f4bbf76c8fe4144f24f4c94",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 32,
+      "max_abs" : 0.535338222980499,
+      "node" : "l_last",
+      "rms" : 0.0528390770426787,
+      "sha256" : "1af8b4e327b612b00806f7bdd62f6ccd0ead8d7c249b53a3b99c0ae31baf440a",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 33,
+      "max_abs" : 0.673678040504456,
+      "node" : "l_last",
+      "rms" : 0.056308135539134,
+      "sha256" : "3d57b6c61c1300214beb98886afe09cf046d0641b7277053972be3a074ecf3a4",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 34,
+      "max_abs" : 0.747660756111145,
+      "node" : "l_last",
+      "rms" : 0.0626668781143601,
+      "sha256" : "2cbf5a1c20a9f226b73cf8469878aa97182db2188105930c5d3ecae22045ef81",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 6144,
+      "layer" : 35,
+      "max_abs" : 6.30900239944458,
+      "node" : "attn_pregate",
+      "rms" : 0.487235225825388,
+      "sha256" : "2aa82bd66a2aec10b6bb83752956f095085dba6d761414ebd7aebfb792bf4bb6",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 2560,
+      "layer" : 35,
+      "max_abs" : 0.263343274593353,
+      "node" : "attn_output",
+      "rms" : 0.0609755281212969,
+      "sha256" : "4e0cbc24f794050a9c4860189b81491cf8f5552775ee1f7ce17a77494f0995f4",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 35,
+      "max_abs" : 0.787702202796936,
+      "node" : "l_last",
+      "rms" : 0.0654626466440778,
+      "sha256" : "21cc69641bb22fb9e66b3acc9a18e33653c29885fc4869d18d13a014a8b59956",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 36,
+      "max_abs" : 1.41065549850464,
+      "node" : "l_last",
+      "rms" : 0.103297857474013,
+      "sha256" : "33445a437841dbd96fd78ebb8421c1e00908e44eacab32675a4cb15d78e38539",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 37,
+      "max_abs" : 1.45711946487427,
+      "node" : "l_last",
+      "rms" : 0.11422918747055,
+      "sha256" : "8a273c17704783397acc6ba88aad93014ab6cb663508c48782c0e6e7a37c2e71",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 38,
+      "max_abs" : 1.43799197673798,
+      "node" : "l_last",
+      "rms" : 0.126867290552917,
+      "sha256" : "0ae66d0cd56dbcd8dc63c76c0bb517163ae3f6819cec1bcfb37eefe97052a7bc",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 6144,
+      "layer" : 39,
+      "max_abs" : 2.32821679115295,
+      "node" : "attn_pregate",
+      "rms" : 0.605295075856837,
+      "sha256" : "1c7e7fbd56a5f9b703d011a67183361160ff36352c4bcdee84c161896d0cb440",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 2560,
+      "layer" : 39,
+      "max_abs" : 0.431713044643402,
+      "node" : "attn_output",
+      "rms" : 0.0951053687932022,
+      "sha256" : "4ed05a37bb18ffea6a2e32802524f0fdceb6664119740d0763c18a5d81bc4d4a",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 39,
+      "max_abs" : 1.7675564289093,
+      "node" : "l_last",
+      "rms" : 0.149652452539363,
+      "sha256" : "be440cfd521bae6537a2e803f2879d52852479e00c6057eb42d1414e163fb1ab",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 40,
+      "max_abs" : 1.91540920734406,
+      "node" : "l_last",
+      "rms" : 0.162492887975527,
+      "sha256" : "f1946fe810e1659218977c847fbe68f319a741a13b971e589e9aa3c8cf192943",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 41,
+      "max_abs" : 2.33211588859558,
+      "node" : "l_last",
+      "rms" : 0.178623906073601,
+      "sha256" : "9b320b7d446cc673c08a89ea6aceff3186924344d95e38e6f32682b566bc74a3",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 42,
+      "max_abs" : 2.64586806297302,
+      "node" : "l_last",
+      "rms" : 0.205230458141411,
+      "sha256" : "a4232124d9654e48678056484e023d8e86290df4d0eb18e0202b1bed7822eb20",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 6144,
+      "layer" : 43,
+      "max_abs" : 1.94923424720764,
+      "node" : "attn_pregate",
+      "rms" : 0.633842695870781,
+      "sha256" : "23a36b653b5679c5327df9794569f37ab5d550116ff47adc2c77baf65af73429",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 2560,
+      "layer" : 43,
+      "max_abs" : 0.535038709640503,
+      "node" : "attn_output",
+      "rms" : 0.0798763840450508,
+      "sha256" : "5916cd127df307cbe30fefc8d5dd208bd0d25d5ad045bac3f497813b7b01932a",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 43,
+      "max_abs" : 2.74493455886841,
+      "node" : "l_last",
+      "rms" : 0.212276384893056,
+      "sha256" : "481b75b6fc1e96f731996542defdf7abbcb7a0748c06df94c0f84a11dacc85d3",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 44,
+      "max_abs" : 3.49518632888794,
+      "node" : "l_last",
+      "rms" : 0.282404414863083,
+      "sha256" : "49d83d05b10dfa099ef64002413625fb4ced314046019361e1c00312023b6c35",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 45,
+      "max_abs" : 4.48168230056763,
+      "node" : "l_last",
+      "rms" : 0.381538700446614,
+      "sha256" : "654f1494ab9c06f097cc119efca9eaa7a1c507d7113080e59aa8ed78b33746c9",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 46,
+      "max_abs" : 9.68021774291992,
+      "node" : "l_last",
+      "rms" : 0.481549015110514,
+      "sha256" : "26b1cd03e0398b8d49c10e775c1009bf75fa908c52380242cc56b216cf7ec99d",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 6144,
+      "layer" : 47,
+      "max_abs" : 2.63897252082825,
+      "node" : "attn_pregate",
+      "rms" : 0.890254950237209,
+      "sha256" : "418694ffea9062dc90d6f1c75a7c8826618b61b10203d4bcab1c77d8546bf8d1",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 2560,
+      "layer" : 47,
+      "max_abs" : 1.2783077955246,
+      "node" : "attn_output",
+      "rms" : 0.146662693810736,
+      "sha256" : "648d5ea95bbb6b2b6509af8c056f21c1f3aa19df3dbc11290f0e6b34fc67b4b1",
+      "visible_length" : 4
+   },
+   {
+      "elements" : 10240,
+      "layer" : 47,
+      "max_abs" : 10.6681423187256,
+      "node" : "l_last",
+      "rms" : 0.50983343631606,
+      "sha256" : "2ffa8b83c886bb5b2ec50b5aa29c327bf3663892e7db5f4d7dc563e2f90d6b18",
+      "visible_length" : 4
+   }
+]

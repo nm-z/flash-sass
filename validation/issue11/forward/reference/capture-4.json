@@ -1,0 +1,26 @@
+{
+"schema":"flash-sass.independent-forward-capture.v1",
+"status":"CAPTURED_NOT_VALIDATED",
+"source_revision":"438d2b6",
+"independent_runtime":"llama.cpp public C API",
+"system_info":"ROCm : NO_VMM = 1 | FA_ALL_QUANTS = 1 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | AVX512 = 1 | AVX512_VBMI = 1 | AVX512_VNNI = 1 | AVX512_BF16 = 1 | LLAMAFILE = 1 | OPENMP = 1 | REPACK = 1 | ",
+"visible":4,"logit_rows":1,"logit_position":3,"vocab":248320,"model_layers":48,
+"teacher_forced":true,"cpu_only":true,"kv_dtype":"f32","threads":2,
+"reference_contract":"llama.cpp runtime; NOT the pinned Transformers rounding contract",
+"original_checkpoint_lineage_verified":false,"independent_checkpoint_acceptance":false,
+"selection_index_unit":"llama.cpp cache cell; retain mask/padding semantics before comparison",
+"tensor_catalog":"tensors.jsonl","tensor_count":252,"per_layer":[
+{"layer":3,"score_tensors":1,"selection_tensors":1,"attention_output_tensors":1},
+{"layer":7,"score_tensors":1,"selection_tensors":1,"attention_output_tensors":1},
+{"layer":11,"score_tensors":1,"selection_tensors":1,"attention_output_tensors":1},
+{"layer":15,"score_tensors":1,"selection_tensors":1,"attention_output_tensors":1},
+{"layer":19,"score_tensors":1,"selection_tensors":1,"attention_output_tensors":1},
+{"layer":23,"score_tensors":1,"selection_tensors":1,"attention_output_tensors":1},
+{"layer":27,"score_tensors":1,"selection_tensors":1,"attention_output_tensors":1},
+{"layer":31,"score_tensors":1,"selection_tensors":1,"attention_output_tensors":1},
+{"layer":35,"score_tensors":1,"selection_tensors":1,"attention_output_tensors":1},
+{"layer":39,"score_tensors":1,"selection_tensors":1,"attention_output_tensors":1},
+{"layer":43,"score_tensors":1,"selection_tensors":1,"attention_output_tensors":1},
+{"layer":47,"score_tensors":1,"selection_tensors":1,"attention_output_tensors":1}
+],"required_layer_diagnostics_present":true,"complete":true
+}

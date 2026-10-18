@@ -1,0 +1,16 @@
+{
+"schema":"flash-sass.qsa-logits-numerical.v1",
+"comparison_scope":"supplied teacher-forced arrays only",
+"independent_checkpoint_evidence":false,
+"provenance_status":"not_verified",
+"byte_order":"little",
+"rows":2,"vocab":248320,
+"limits":{"max_abs":0.10,"normalized_rms":0.01,"rms_denominator_floor":1e-8,"relative_denominator_floor":1e-8,"scope":"each row and aggregate"},
+"per_row":[
+{"position":0,"input_id":10,"max_abs":0.76739954948425293,"max_relative":10839.977272727272,"rms":0.15568370651551447,"reference_rms":2.9372614627266587,"normalized_rms":0.053003012667109772,"reference_top1":18,"candidate_top1":18,"top1_equal":true,"limits_pass":false},
+{"position":1,"input_id":13,"max_abs":0.99107074737548828,"max_relative":197037.8125,"rms":0.17245158540910213,"reference_rms":2.3013693549291672,"normalized_rms":0.074934336393998754,"reference_top1":271,"candidate_top1":271,"top1_equal":true,"limits_pass":false}
+],
+"aggregate":{"max_abs":0.99107074737548828,"max_relative":197037.8125,"rms":0.16428171807069966,"reference_rms":2.6385418139785317,"normalized_rms":0.062262313676578453,"max_row_normalized_rms":0.074934336393998754,"matching_top1_rows":2,"failing_rows":2},
+"numerical_limits_pass":false,
+"complete":true
+}

@@ -1,0 +1,5 @@
+make: Entering directory '/home/nate/codex/flash-pr31-fullmodel-20261018/kern'
+cc -std=gnu11 -O2 -fno-fast-math -ffp-contract=off -frounding-math -Wall -Wextra -Werror -I/home/nate/codex/issue11-llama-fcac190/include -I/home/nate/codex/issue11-llama-fcac190/ggml/include -o qsa_model_selected_reference qsa_model_selected_reference.c -L/home/nate/codex/issue11-llama-fcac190/build/bin -lllama -lggml -lggml-base -Wl,-rpath,/home/nate/codex/issue11-llama-fcac190/build/bin -lm
+cc -std=gnu11 -O2 -fno-fast-math -ffp-contract=off -frounding-math -Wall -Wextra -Werror -DQSA_REFERENCE_REV='"fcac19079f3f2985fe74ed845f0880e7e9a8030a"' -I/home/nate/codex/issue11-llama-fcac190/include -I/home/nate/codex/issue11-llama-fcac190/ggml/include -o qsa_model_reference qsa_model_reference.c -L/home/nate/codex/issue11-llama-fcac190/build/bin -Wl,-rpath,/home/nate/codex/issue11-llama-fcac190/build/bin -lllama -lggml -lggml-base -ldl -lm
+cc -std=gnu11 -O2 -fno-fast-math -ffp-contract=off -frounding-math -Wall -Wextra -Werror -o qsa_reference_trace_test qsa_reference_trace_test.c
+make: Leaving directory '/home/nate/codex/flash-pr31-fullmodel-20261018/kern'

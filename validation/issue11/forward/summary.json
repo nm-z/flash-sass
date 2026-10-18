@@ -1,0 +1,95 @@
+{
+   "candidate_io_assertions" : 92,
+   "capture_enabled_disabled_gpu_parity_measured" : false,
+   "descriptor_cases" : 90,
+   "descriptors_compared" : 2250,
+   "expected_pointer_rewrites" : 1320,
+   "gguf_release" : {
+      "fresh_full_shard_hashes_match" : true,
+      "metadata_unchanged_after_captures" : true,
+      "original_checkpoint_lineage_verified" : false,
+      "repository" : "ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF",
+      "revision" : "ed59f92082b1e93c0e96d60a8b11aab089b52f09"
+   },
+   "gpu_gate" : {
+      "exit" : 75,
+      "gpu_command_started" : false,
+      "host" : "archy",
+      "lock_path" : "/tmp/flash-sass-engine-validation.lock",
+      "observed_final_utc" : "2026-10-18T05:56:39Z",
+      "observed_owner_pid" : 970242,
+      "resident_core_pid" : 3575268,
+      "status" : "BLOCKED_BUSY"
+   },
+   "independent_captures" : [
+      {
+         "archive" : "reference/reference-1.tar.gz",
+         "archive_sha256" : "66f04123d76fcc99d31dd9cbc5da80efe173f84a2152ebb40a6aa4fb3cedcfa5",
+         "attention_layers" : 12,
+         "exit" : 0,
+         "logit_max" : 16.2557334899902,
+         "logit_min" : -13.5153160095215,
+         "logit_rms" : 2.67089333585028,
+         "logit_rows" : 1,
+         "logits_sha256" : "c2863e535d48ac5c7a6f61428f50770395b494f500376ac1d0d5d5648b550591",
+         "model_layers" : 48,
+         "prefix_ids" : [
+            1
+         ],
+         "prefix_sha256" : "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450",
+         "source_revision" : "438d2b6",
+         "status" : "CAPTURED_NOT_VALIDATED",
+         "tensor_count" : 252,
+         "top1_id" : 198,
+         "visible" : 1,
+         "vocab" : 248320
+      },
+      {
+         "archive" : "reference/reference-4.tar.gz",
+         "archive_sha256" : "b6014216dc88545e7255f3ed612a5b70a9b45c3dfd272e7999b76085afcdde6a",
+         "attention_layers" : 12,
+         "exit" : 0,
+         "logit_max" : 13.5457124710083,
+         "logit_min" : -9.33236503601074,
+         "logit_rms" : 2.67908473134407,
+         "logit_rows" : 1,
+         "logits_sha256" : "59a02fc9d5eb480a01972a88ee61193ebacfba420a56848f5d80c096b1572a5f",
+         "model_layers" : 48,
+         "prefix_ids" : [
+            1,
+            2,
+            3,
+            4
+         ],
+         "prefix_sha256" : "cf97adeedb59e05bfd73a2b4c2a8885708c4f4f70c84c64b27120e72ab733b72",
+         "source_revision" : "438d2b6",
+         "status" : "CAPTURED_NOT_VALIDATED",
+         "tensor_count" : 252,
+         "top1_id" : 5,
+         "visible" : 4,
+         "vocab" : 248320
+      }
+   ],
+   "independent_checkpoint_conformance" : false,
+   "independent_runtime" : {
+      "local_binary_reproducible_build_attested" : false,
+      "original_transformers_contract_match" : false,
+      "package" : "llama.cpp-hip b10705-2",
+      "source_file" : "src/models/qwen4exp.cpp",
+      "source_sha256" : "1fe800a11543d2af7aef898f75e6ee6ffb1f27f1486b4810cb926d94fc77e148",
+      "upstream_commit" : "2578138397d7b422bb0e160efdd429976c55fb55",
+      "upstream_tag" : "b10705"
+   },
+   "logit_checker_failures" : 0,
+   "logit_checker_regressions" : 32,
+   "native_exit" : 0,
+   "native_expected_outcomes" : 58,
+   "production_library" : "BUILD_ONLY against CUDA stubs on engi; NOT executed on GPU",
+   "required_sparse_full_model_comparisons_measured" : false,
+   "sanitizer" : "address,undefined; leak detection enabled",
+   "sanitizer_io_assertions" : 92,
+   "schema" : "flash-sass.issue11.forward-followup.v1",
+   "scope" : "Measured real 48-layer GGUF forward on explicit short smoke prefixes; NOT real long sparse fixtures, candidate-reference agreement, original checkpoint provenance, or quality acceptance.",
+   "source_revision" : "438d2b6806de4baad627eb88c57c5ca3b9085d43c270661db2fd578a2401c1ba1fc",
+   "status" : "BLOCKED_TARGET_AND_REFERENCE_ACCEPTANCE"
+}
