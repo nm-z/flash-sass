@@ -58,11 +58,13 @@ trap 'exit 143' TERM
 jq -n --arg hostname "$(hostname)" --arg boot_id "$(cat /proc/sys/kernel/random/boot_id)" \
    --arg utc "$(date -u +%FT%TZ)" --arg revision "$revision" --arg case_name "$case_name" \
    '{hostname:$hostname,boot_id:$boot_id,started_utc:$utc,revision:$revision,case:$case_name}' > "$out/identity.json"
-sha256sum -- "$src/flashcore" "$library" "$FLASH_CUBIN" "$checker" "${manifests[@]}" > "$out/sha256.txt"
+sha256sum -- "$src/flashcore" "$library" "$FLASH_CUBIN" "$checker" "$src/sequence_validate.sh" "${manifests[@]}" > "$out/sha256.txt"
 for manifest in "${manifests[@]}"; do head -1 -- "$manifest"; done > "$out/holder-arenas.txt"
 env | LC_ALL=C sort | awk '/^(CUDA_VISIBLE_DEVICES|CUDA_DEVICE_ORDER|SPLIT_SHARES|ATTN_DIE|ATTN_MAP|FLASH_(ANCHOR_DIE|MAXT|ENGINE_MAXT|MAXIMG|PLE_DISK|PLE_OFF|SEQUENCES|QUANTUM|NBLK|KV_HOST|TWO_POSITION|PREFILL_CHUNK|TRACE|WATCHDOG_S|CUBIN|SOCK|SEQUENCE_TRACE))=/' > "$out/environment.txt"
 # All sequence workers use this lease; retain resident read-only holders/fences.
-exec 9>"${SEQUENCE_LOCK_FILE:-${TMPDIR:-/tmp}/flash-sass-engine-validation.lock}"
+# This path is shared with the other repository workers. TMPDIR must not
+# silently give this worker a different GPU lease.
+exec 9>/tmp/flash-sass-engine-validation.lock
 if ! flock -w "$wait_seconds" 9; then
     printf 'GPU validation lease is busy; no core started.\n' | tee "$out/blocked.txt"
     exit 75

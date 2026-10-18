@@ -43,7 +43,7 @@ make -C kern CUDA=/opt/cuda FLASH_REV="$revision" \
 ./kern/seqsched_test
 ```
 
-Use `sequence_validate.sh` on the same host as the six resident weight holders. Supply the model's placement explicitly. The launcher takes a shared validation lease, checks `nvidia-smi` and `ps`, waits for other GPU work or resident cores to clear, and only starts a private core when that gate passes. It never stops another process. Output directories must be new; core sockets use a generated temporary directory.
+Use `sequence_validate.sh` on the same host as the six resident weight holders. Supply the model's placement explicitly. The launcher takes `/tmp/flash-sass-engine-validation.lock`, checks `nvidia-smi` and `ps`, waits for other GPU work or resident cores to clear, and only starts a private core when that gate passes. It never stops another process. Output directories must be new; core sockets use a generated temporary directory. Build prerequisites, including the patched MaxAs checkout, are described in `README.md` and `maxas-patch/`.
 
 Example placement for the current archy holders:
 
@@ -57,12 +57,12 @@ export SEQUENCE_REVISION="$revision"
 FLASH_QUANTUM=1 FLASH_NBLK=1 FLASH_KV_HOST=0 \
     kern/sequence_validate.sh "$RESULTS/vram-q1-b1" "$PLE_SHARD" \
     "$MANIFEST0" "$MANIFEST1" "$MANIFEST2" "$MANIFEST3" "$MANIFEST4" "$MANIFEST5"
-FLASH_QUANTUM=8 FLASH_NBLK=512 FLASH_KV_HOST=1 \
+FLASH_QUANTUM=8 FLASH_NBLK=512 FLASH_KV_HOST=1 FLASH_PREFILL_CHUNK=4 \
     kern/sequence_validate.sh "$RESULTS/host-q8-b512" "$PLE_SHARD" \
     "$MANIFEST0" "$MANIFEST1" "$MANIFEST2" "$MANIFEST3" "$MANIFEST4" "$MANIFEST5"
 ```
 
-The small QSA budget exercises selection and gather within the bounded slot capacity. The second matrix preserves the production budget while varying the prefill quantum and KV placement. Results establish agreement between serial and concurrent execution of this implementation; they are not an independent model-quality oracle.
+The small QSA budget exercises selection and gather within the bounded slot capacity. The second matrix preserves the production budget while varying the prefill quantum and KV placement, and exercises the merged headless prefill path with four-position chunks. Results establish agreement between serial and concurrent execution of this implementation; they are not an independent model-quality oracle.
 
 For a core already created by the same validation job:
 
