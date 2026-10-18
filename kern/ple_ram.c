@@ -10,6 +10,7 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <unistd.h>
 static volatile sig_atomic_t stopping;
 static void stop(int sig) { (void)sig;stopping=1; }
@@ -28,8 +29,8 @@ int main(int argc,char **argv) {
     source=open(argv[1],O_RDONLY|O_CLOEXEC);
     if(source<0 || fstat(source,&st) || !S_ISREG(st.st_mode) || st.st_size<=0){perror("PLE source");goto out;}
     bytes=(size_t)st.st_size;
-    const uint64_t reserve=2ull<<30;
-    if(available()<(uint64_t)bytes+reserve){fprintf(stderr,"insufficient available RAM for PLE plus 2 GiB reserve\n");goto out;}
+    const uint64_t reserve=4ull<<30;
+    if(available()<(uint64_t)bytes+reserve){fprintf(stderr,"insufficient available RAM for PLE plus 4 GiB reserve\n");goto out;}
     cache=memfd_create("flash-ple-ram",MFD_CLOEXEC|MFD_ALLOW_SEALING);
     if(cache<0 || ftruncate(cache,(off_t)bytes)){perror("PLE RAM file");goto out;}
     data=mmap(NULL,bytes,PROT_READ|PROT_WRITE,MAP_SHARED,cache,0);
@@ -68,10 +69,12 @@ int main(int argc,char **argv) {
     if(fclose(ready))failed=1;
     if(failed){perror("write PLE ready file");goto out;}
     fprintf(stderr,"PLE RAM: ready, %zu bytes and %zu resident pages, fd /proc/%ld/fd/%d\n",bytes,pages,(long)getpid(),cache);
-    sigset_t blocked,prior;sigemptyset(&blocked);sigaddset(&blocked,SIGTERM);sigaddset(&blocked,SIGINT);
-    sigprocmask(SIG_BLOCK,&blocked,&prior);
-    while(!stopping)sigsuspend(&prior);
-    sigprocmask(SIG_SETMASK,&prior,NULL);result=0;
+    struct timespec pause={0,20000000};
+    while(!stopping) {
+        if(available()<reserve){fprintf(stderr,"PLE RAM: withdrawing cache to restore the RAM reserve\n");break;}
+        nanosleep(&pause,NULL);
+    }
+    result=0;
 out:
     if(ready_written)unlink(argv[2]);
     if(data!=MAP_FAILED){munlock(data,bytes);munmap(data,bytes);}

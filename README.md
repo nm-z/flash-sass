@@ -147,7 +147,7 @@ and C correctness and file-I/O benchmarks.
 `FLASH_PLE_FILE=/absolute/path/to/copied-shard.gguf` redirects disk-mode PLE
 row reads to a local copy. The copy must contain the entire original second
 shard, including its header; the engine keeps the core's existing table offset.
-Initialization rejects an unreadable, non-regular, or differently sized file.
+An unavailable, non-regular, or differently sized cache falls back to the core source.
 The setting does not change the GPU kernels, staging buffers, weights, context
 capacity, or image capacity.
 
@@ -168,7 +168,9 @@ reload /absolute/path/to/libengine.so FLASH_PLE_FILE=/local/cache/flash-ple.gguf
 
 The engine logs the selected file and reports `ple_file` in `config`. Reloading
 with `FLASH_PLE_FILE=` returns to the core's original file descriptor. The engine
-owns only the override descriptor and closes it after stopping its reader pool.
+opens a cache descriptor for one synchronous row batch and closes it after all
+readers finish; it never keeps a RAM file alive between batches. A short or failed
+cache read is retried from the original source before publishing the rows.
 Serial and parallel reader settings remain available for either source.
 
 ### RAM-backed PLE source
@@ -189,8 +191,9 @@ line is a readable `/proc/PID/fd/FD` path; use that path as `FLASH_PLE_FILE` in
 the reload command above. The following line records the byte and page counts
 and the source file identity.
 
-The loader requires the complete file size plus a 2 GiB available-memory reserve
-and checks the reserve while loading. The locked-memory limit must also permit
+The loader requires the complete file size plus a 4 GiB available-memory reserve
+and checks the reserve while loading and every 20 ms afterward. It withdraws
+the cache when that reserve is crossed; serving then uses the original source. The locked-memory limit must also permit
 the allocation. A failed read, memory lock, residency check, or file seal aborts
 before publishing readiness. To release the RAM, reload the original source
 with `FLASH_PLE_FILE=` and terminate the helper. SIGTERM and SIGINT remove its

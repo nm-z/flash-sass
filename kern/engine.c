@@ -117,7 +117,23 @@ static uint32_t *h_ids, *h_toks;    /* pinned: the prompt, and the tokens as die
 /* ---- FLASH_PLE_DISK: the 28.8 GB PLE table stays in its file. A token needs 16 rows of 90 B; the host reads them into the pinned compact table (16 rows per position) just
    ahead of the position that runs and then stores this response's id in a ready flag, which plerows (compact mode) waits for. ---- */
 static int ple_disk, ple_fd = -1; static off_t ple_off; static uint8_t *ple_host; static size_t ple_rdy_off;
-static int ple_owned_fd = -1;
+static char ple_cache_path[1024];
+static off_t ple_source_bytes;
+static int ple_cache_active;
+/* A cache descriptor lives for one synchronous row batch. A RAM-cache owner
+ * can then exit under pressure without this engine retaining the whole file. */
+static int ple_cache_open(void) {
+	if (!ple_cache_path[0]) return -1;
+	struct stat copy;
+	int fd=open(ple_cache_path,O_RDONLY|O_CLOEXEC);
+	if (fd<0 || fstat(fd,&copy) || !S_ISREG(copy.st_mode) || copy.st_size!=ple_source_bytes) {
+		if (fd>=0) close(fd);
+		if (ple_cache_active) fprintf(stderr,"engine: PLE cache unavailable; using the original source\n");
+		ple_cache_active=0;return -1;
+	}
+	posix_fadvise(fd,0,0,POSIX_FADV_RANDOM);
+	ple_cache_active=1;return fd;
+}
 static struct ple_read_pool ple_reads;
 static unsigned ple_readers = 1;
 static uint32_t *h_rdy;                    /* the u32 ready flag of each position (pinned) */
@@ -407,11 +423,20 @@ static void ple_pump(runctx *r, int budget) {
 		ple_rows_c(ple_seq, (size_t)q, ple_absent_id, &endid, 1, ple_multipliers, ple_head_offsets, ple_head_vocab, rows);
 		uint8_t *dst = ple_host + (size_t)q * 16 * 90;
 		off_t offsets[PLE_READ_HEADS]; struct ple_read_result results[PLE_READ_HEADS];
+		int cache_fd=ple_cache_open(), read_fd=cache_fd>=0?cache_fd:ple_fd;
 		for (int h = 0; h < PLE_READ_HEADS; h++) {
 			offsets[h] = ple_off + (off_t)(rows[h] * 90);
-			posix_fadvise(ple_fd, offsets[h], PLE_READ_ROW_BYTES, POSIX_FADV_WILLNEED);
+			posix_fadvise(read_fd, offsets[h], PLE_READ_ROW_BYTES, POSIX_FADV_WILLNEED);
 		}
-		ple_read_batch(&ple_reads, ple_fd, offsets, dst, results);
+		ple_read_batch(&ple_reads, read_fd, offsets, dst, results);
+		if (cache_fd>=0) {
+			int bad=0;for (int h=0;h<PLE_READ_HEADS;h++) bad|=results[h].error || results[h].got!=PLE_READ_ROW_BYTES;
+			close(cache_fd);
+			if (bad) {
+				ple_cache_active=0;
+				ple_read_batch(&ple_reads,ple_fd,offsets,dst,results);
+			}
+		}
 		for (int h = 0; h < 16; h++) {
 			size_t got = results[h].got;
 			if (ti >= 0) { trace_host[ti].bytes += (unsigned)got; trace_host[ti].short_reads += got < 90; }
@@ -805,18 +830,17 @@ int engine_init(core_t *c) {
 	for (int h = 0; h < 16; h++) { uint32_t o32 = (uint32_t)ple_head_offsets[h], v32 = (uint32_t)ple_head_vocab[h]; memcpy(ppc + 24 + 4 * h, &o32, 4); memcpy(ppc + 88 + 4 * h, &v32, 4); }
 	memcpy(ppc + 152, &pabsent, 4); memcpy(ppc + 156, &pend, 4);
 	ple_disk = c->ple_disk; ple_fd = c->ple_fd; ple_off = c->ple_off; ple_host = c->ple_host; ple_rdy_off = c->ple_rdy_off;
+	ple_cache_path[0]=0;ple_cache_active=0;ple_source_bytes=0;
 	const char *ple_file=getenv("FLASH_PLE_FILE");
 	if (ple_disk && ple_file && *ple_file) {
-		struct stat source,copy;
-		ple_owned_fd=open(ple_file,O_RDONLY|O_CLOEXEC);
-		if (ple_owned_fd<0 || fstat(ple_fd,&source) || fstat(ple_owned_fd,&copy)
-		    || !S_ISREG(copy.st_mode) || copy.st_size!=source.st_size) {
-			fprintf(stderr,"engine: FLASH_PLE_FILE must be a complete copy of the PLE source file\n");
-			longjmp(init_jb,1);
-		}
-		ple_fd=ple_owned_fd;
-		posix_fadvise(ple_fd,0,0,POSIX_FADV_RANDOM);
-		fprintf(stderr,"engine: PLE rows from %s (%lld bytes, offset %lld)\n",ple_file,(long long)copy.st_size,(long long)ple_off);
+		struct stat source;
+		if (fstat(ple_fd,&source)) {perror("PLE source stat");longjmp(init_jb,1);}
+		ple_source_bytes=source.st_size;
+		if (strlen(ple_file)>=sizeof ple_cache_path) {fprintf(stderr,"PLE cache path too long\n");longjmp(init_jb,1);}
+		strcpy(ple_cache_path,ple_file);
+		int fd=ple_cache_open();
+		if (fd>=0) close(fd);
+		fprintf(stderr,"engine: PLE cache %s is %s; original source remains available\n",ple_cache_path,ple_cache_active?"available":"unavailable");
 	}
 	if (ple_disk) {
 		int err = ple_read_pool_init(&ple_reads, ple_readers);
@@ -975,7 +999,7 @@ int engine_init(core_t *c) {
 
 void engine_fini(void) {
 	ple_read_pool_destroy(&ple_reads);
-	if (ple_owned_fd>=0) { close(ple_owned_fd);ple_owned_fd=-1; }
+	ple_cache_path[0]=0;ple_cache_active=0;
 	if (!core) return;
 	for (int d = 0; d < nd; d++) { if (pollst[d]) { cuCtxSetCurrent(ctx[d]); cuStreamDestroy(pollst[d]); pollst[d] = 0; } }
 	cuCtxSetCurrent(ctx[0]);
@@ -1116,7 +1140,7 @@ int engine_session(FILE *in, FILE *out) {
 			char ad[64] = ""; for (int d = 0; d < nd; d++) if (has_attn[d]) { char one[8]; snprintf(one, sizeof one, "%s%d", ad[0] ? "," : "", d); strncat(ad, one, sizeof ad - strlen(ad) - 1); }
 			const char *sh = getenv("SPLIT_SHARES"), *am = getenv("ATTN_MAP");
 			fprintf(out, "config rev=%s kv_host=%d kv_trace=%d ple_disk=%d ple_readers=%u ple_file=%s maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u rope_owner=%d trace_tokens=%u two_position=%d prefill_chunk=%d cubin=%s cubin_fnv=%016llx\n",
-			        FLASH_REV, kv_host, kv_trace, ple_disk, ple_disk ? ple_readers : 0, ple_owned_fd >= 0 ? getenv("FLASH_PLE_FILE") : "core", MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, rope_owner, trace_n, two_position, prefill_chunk, cubin_path, (unsigned long long)cubin_fnv);
+			        FLASH_REV, kv_host, kv_trace, ple_disk, ple_disk ? ple_readers : 0, ple_cache_active ? ple_cache_path : "core", MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, rope_owner, trace_n, two_position, prefill_chunk, cubin_path, (unsigned long long)cubin_fnv);
 			fflush(out); continue;
 		}
 		if (!strncmp(p, "cubin", 5)) {

@@ -71,3 +71,24 @@ its visible answer was the expected `17`. The candidate remains deployed with
 engine timing records and fresh HTTP timings. These results remain below the
 120–144 decode tokens/s objective. No graph-executor result is included in the
 serving candidate: that experimental route was slower.
+
+## Operational correction: full locked cache withdrawn
+
+The 28.8 GB RAM-source measurements above are historical performance results.
+Concurrent host memory demand later caused global OOM, killed the cache helper
+and an LFM process, and exposed a descriptor-lifetime flaw: the engine retained
+an open cache descriptor between batches, while restoration relied on a dead
+owner's `/proc` path. The original source and improved kernel were restored; the
+full locked cache is not the current reliable serving configuration.
+
+The follow-up limits cache-descriptor lifetime to a synchronous row batch,
+falls back to the core's original source when a cache disappears, retries failed
+cache reads before publishing rows, raises the loader reserve to 4 GiB, and
+monitors the reserve after loading. This prevents an expired cache path from
+turning a library reload into a serving failure. A small lifecycle exercise
+confirmed that an in-flight descriptor retains exact bytes after owner exit,
+future opens fail, and the original source stays intact.
+
+A local direct-I/O row probe measured approximately 1–4 ms for uncached batches.
+The durable local-copy experiment is being repeated with direct I/O and bounded
+dirty data; its result must be measured independently of the withdrawn RAM run.
