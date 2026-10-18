@@ -482,8 +482,10 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	if (resume) state_copy(0);
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
-		/* a fresh response: states and caches start from zero (not when resuming from the snapshot: the recurrent states
-		   were restored, the attention caches below the snapshot are intact), and so do the end flag and the abort count */
+		/* A fresh response resets recurrent state; attention rows are overwritten
+		   before becoming visible. Snapshot resume restores recurrent state and the
+		   unfinished indexer ring, preserving prefix attention rows. Reset the end
+		   flag and abort count in either case. */
 		if (!resume) {
 			for (int bb = 0; bb < NB; bb++) {
 				/* the int8 caches, the indexer pool and the ring of an attention layer need no reset: positions are written before they are read */
@@ -565,7 +567,7 @@ int engine_init(core_t *c) {
 	kcf = ATTN_KC_FLOATS(cpos); vcf = (size_t)cpos * 512;
 	unsigned maxp = ((unsigned)MAXT + 127) & ~127u;   /* positions of the int8 caches and the pool: whole groups of 32 blocks */
 	size_t kv_layer = (size_t)maxp * 1088;   /* K, V int8 [pos][2][256] and their fp16 scales [pos][2][8] */
-	if (kv_host) {   /* DEVICEMAP | PORTABLE: every die reads and writes it over PCIe; zeroed, so the unwritten tail of a block is finite */
+	if (kv_host) {   /* DEVICEMAP | PORTABLE: every die reads/writes over PCIe. Initially zeroed; reuse/rollback correctness relies on logical masks, not tail contents. */
 		CK(cuCtxSetCurrent(ctx[0])); CK(cuMemHostAlloc(&h_kv, 12 * kv_layer, CU_MEMHOSTALLOC_DEVICEMAP | CU_MEMHOSTALLOC_PORTABLE)); memset(h_kv, 0, 12 * kv_layer);
 	}
 	memset(has_attn, 0, sizeof has_attn);

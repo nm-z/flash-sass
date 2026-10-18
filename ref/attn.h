@@ -2,6 +2,7 @@
 #ifndef FLASH_ATTN_H
 #define FLASH_ATTN_H
 #include <stddef.h>
+#include <limits.h>
 /* kern/attnqk.sass: one warp per head, 8 dims per lane (lane l: dims 8l..8l+7).
  *   ss = per-lane fmaf chain over its 8 dims, xor 16..1 butterfly; m = ss * (1/256);
  *   v = m + eps; s = sqrtf(v); r = 1/s; y_d = (x_d * r) * w_d;
@@ -41,8 +42,15 @@ static inline size_t attn_kidx(unsigned pos, int kv, int d) {
  * kc is in the blocked layout above; vc is [pos][2][256]. */
 #define ATTN_NCH 8
 #define ATTN_MINIT (-1e30f)
-void attn_decode_gpu(const float *qo, const float *kc, const float *vc, unsigned n, const float *gate, float *out);
+/* Decode/partials return 1 for n==0 or n>ATTN_MAX_KEYS before touching inputs
+ * or outputs, and 0 on success. Other pointer/capacity preconditions remain
+ * caller duties. This scalar limit prevents unsigned chunk-rounding overflow.
+ * SASS address equivalence is narrower: n <= (1u<<21), because its initial
+ * tbase<<11 byte offset is 32 bits. Scalar twins read valid rows only; SASS
+ * requires readable padding. See ATTENTION_PADDING.md for both contracts. */
+#define ATTN_MAX_KEYS (UINT_MAX - 8191u)
+int attn_decode_gpu(const float *qo, const float *kc, const float *vc, unsigned n, const float *gate, float *out);
 /* the partials themselves, for debugging: pm/pd [24][8], po [24][8][256] */
-void attn_partials_gpu(const float *qo, const float *kc, const float *vc, unsigned n, float *pm, float *pd, float *po);
+int attn_partials_gpu(const float *qo, const float *kc, const float *vc, unsigned n, float *pm, float *pd, float *po);
 void attn_merge_gpu(const float *pm, const float *pd, const float *po, const float *gate, float *out);
 #endif
