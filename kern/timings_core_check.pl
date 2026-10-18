@@ -12,16 +12,28 @@ use POSIX qw(isfinite);
 use Cwd qw(abs_path);
 use File::Path qw(make_path);
 use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
+use FindBin;
+use lib "$FindBin::Bin/../validation/issue15";
+use EngineGuard qw(borrow_lock verify_peer);
 
-my ($socket_path, $out, $source_sha);
+my ($socket_path, $out, $source_sha, $resident_pid, $resident_start, $lease_fd, $lease);
 GetOptions('socket=s' => \$socket_path, 'out=s' => \$out,
-           'source-sha=s' => \$source_sha) or die "Invalid options\n";
+           'source-sha=s' => \$source_sha, 'resident-pid=i' => \$resident_pid,
+           'resident-start=s' => \$resident_start, 'lease-fd=i' => \$lease_fd)
+    or die "Invalid options\n";
 defined($_) && length($_) or die
     "Usage: $0 --socket OWNED_SOCKET --out NEW_DIRECTORY --source-sha COMMIT\n"
     for ($socket_path, $out, $source_sha);
 my $resolved = abs_path($socket_path) // $socket_path;
+if (defined($resident_pid) || defined($resident_start) || defined($lease_fd)) {
+    die "Resident mode requires PID, start tick, and inherited lease FD\n"
+        unless defined($resident_pid) && $resident_pid > 1 && defined($resident_start)
+            && $resident_start =~ /\A[0-9]+\z/ && defined($lease_fd);
+    my $error; ($lease, $error) = borrow_lock($lease_fd, '/tmp/flash-sass-engine-validation.lock');
+    die "$error\n" unless $lease;
+}
 die "Use an owned shadow core\n"
-    if $resolved eq (abs_path('/tmp/flash.sock') // '/tmp/flash.sock');
+    if !$lease && $resolved eq (abs_path('/tmp/flash.sock') // '/tmp/flash.sock');
 die "Evidence directory already exists: $out\n" if -e $out;
 make_path($out);
 $out = abs_path($out);
@@ -33,6 +45,8 @@ STDOUT->autoflush(1);
 $SIG{PIPE} = 'IGNORE';
 my $state = {status => 'RUNNING', source_sha => $source_sha,
              socket => $resolved, cases => []};
+$state->{resident} = {pid => $resident_pid, start_tick => $resident_start,
+                     shared_lock => '/tmp/flash-sass-engine-validation.lock'} if $lease;
 my ($sock, $select);
 my $buffer = '';
 my $last_receive_ns;
@@ -279,6 +293,10 @@ persist();
 my $passed = eval {
     $sock = IO::Socket::UNIX->new(Type => SOCK_STREAM, Peer => $resolved, Timeout => 10)
         or die "Connect $resolved: $!";
+    if ($lease) {
+        my ($ok, $error) = verify_peer($sock, $resident_pid, $resident_start);
+        die "$error\n" unless $ok;
+    }
     $sock->autoflush(1); $select = IO::Select->new($sock);
     $state->{config} = ask('config');
     check($state->{config} =~ /\brev=\Q$source_sha\E(?:\s|$)/,
@@ -335,7 +353,7 @@ my $passed = eval {
                                  reason => 'two_position is not enabled'};
     }
     $state->{status} = 'PASS'; $state->{current_case} = undef;
-    persist(); print "PASS real owned-core timing checks\n";
+    persist(); print $lease ? "PASS real leased-resident timing checks\n" : "PASS real owned-core timing checks\n";
     1;
 };
 my $failure = $@;

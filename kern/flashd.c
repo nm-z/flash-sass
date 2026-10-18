@@ -149,10 +149,23 @@ static void busy(int fd, const char *msg, int retry_after) {
 }
 
 /* ---- the engine socket ---- */
+/* A resident-engine validation can pin every backend connection to the
+   process covered by its external GPU lease. Ordinary serving is unchanged. */
+static int engine_peer_matches(int fd) {
+    const char *expected = getenv("FLASHD_EXPECT_CORE_PID");
+    if (!expected) return 1;
+    if (!*expected || strspn(expected, "0123456789") != strlen(expected)) return 0;
+    char *end; errno = 0; long pid = strtol(expected, &end, 10);
+    if (errno || *end || pid <= 1 || pid > INT_MAX) return 0;
+    struct ucred peer; socklen_t size = sizeof peer;
+    return getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &peer, &size) == 0
+        && size == sizeof peer && peer.pid == pid && peer.uid == getuid();
+}
 static FILE *engine_open(FILE **out) {
 	int s = socket(AF_UNIX, SOCK_STREAM, 0); struct sockaddr_un sa = { .sun_family = AF_UNIX };
 	snprintf(sa.sun_path, sizeof sa.sun_path, "%s", SOCK);
 	if (s < 0 || connect(s, (struct sockaddr *)&sa, sizeof sa)) { if (s >= 0) close(s); return NULL; }
+	if (!engine_peer_matches(s)) { close(s); errno = EPERM; return NULL; }
 	*out = fdopen(dup(s), "w"); return fdopen(s, "r");
 }
 

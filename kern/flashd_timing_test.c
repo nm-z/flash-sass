@@ -9,6 +9,18 @@ static char *read_pair(int fd) {
 }
 static int helper_tests(void) {
     int p[2];char *wire;assert(socketpair(AF_UNIX,SOCK_STREAM,0,p)==0);
+    char expected_pid[32]; snprintf(expected_pid,sizeof expected_pid,"%ld",(long)getpid());
+    assert(setenv("FLASHD_EXPECT_CORE_PID",expected_pid,1)==0);
+    assert(engine_peer_matches(p[0]));
+    snprintf(expected_pid,sizeof expected_pid,"%ld",(long)getpid()+1);
+    assert(setenv("FLASHD_EXPECT_CORE_PID",expected_pid,1)==0);
+    assert(!engine_peer_matches(p[0]));
+    assert(setenv("FLASHD_EXPECT_CORE_PID","invalid",1)==0);
+    assert(!engine_peer_matches(p[0]));
+    assert(setenv("FLASHD_EXPECT_CORE_PID","99999999999999999999999999",1)==0);
+    assert(!engine_peer_matches(p[0]));
+    assert(unsetenv("FLASHD_EXPECT_CORE_PID")==0);
+    assert(engine_peer_matches(p[0]));
     gen g={.fd=p[0],.stream=1,.created=1,.request_start_ms=http_clock_ms()};
     const char *role="data: {\"choices\":[{\"delta\":{\"role\":\"assistant\",\"content\":null}}]}\n\n";
     assert(chunk(p[0],role,strlen(role))==0);

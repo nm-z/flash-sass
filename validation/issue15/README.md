@@ -1,6 +1,27 @@
 # Issue 15 timing validation
 
-## Current status: queued target retry on 2026-10-18
+## Resident validation follow-up on 2026-10-18
+
+The real-request gate is queued for a resident-engine validation. The previous
+owned-core runner correctly rejects a second allocation while the model's
+weight holders and existing core occupy the GPUs. The new explicit
+[`run_resident.pl`](run_resident.pl) path retains those contexts and weights
+through the documented engine reload protocol. It holds the shared lock across
+baseline capture, scalar and paired CLI/HTTP measurements, owned frontend
+cleanup, and verified restoration of the baseline library and configuration.
+See [TIMINGS.md](../../TIMINGS.md) for invocation and clock boundaries.
+
+This path requires the exact inherited locked open-file description, the
+resident process's PID and start tick, and its independently captured engine
+artifact hash. [`ResidentConfig.pm`](ResidentConfig.pm) rejects configurations
+whose effective restore values are unknown. The one supported legacy library
+without `trace_tokens` is identified by its exact hash and revision; that
+revision predates the `FLASH_TRACE` implementation.
+
+The target gate is still pending at this implementation checkpoint. The
+following sections retain the earlier blocked attempts as historical evidence.
+
+## Historical queued target retry on 2026-10-18
 
 Frozen source and target build revision:
 `7f52b0886829236a833c637ea3a87777b76648fe` (host implementation `bec699c`).
@@ -205,10 +226,9 @@ observations, existing compute processes (including resident weight holders),
 or a worker found in `ps` prevent launch. Blocked runs exit 75; failed
 validation exits 1. `--preflight-only` never reports request validation PASS.
 
-This conservative policy currently blocks the recorded shared IPC layout.
-A permitted validation setup with sufficient memory and without conflicting
-processes is still needed; this PR does not unload other workers or provide a
-bypass for their resident allocations.
+This conservative owned-core policy blocks the recorded shared IPC layout.
+The separate resident runner above reuses the existing core under an explicit
+lease and verifies restoration; the owned-core launch checks remain in place.
 
 When a permitted owned setup is available, run the same driver without
 `--preflight-only`, using a new output directory. The CLI and HTTP checkers

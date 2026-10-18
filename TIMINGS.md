@@ -78,9 +78,10 @@ make -C kern timings_test flashd_timing_test flashd
 ./kern/timings_test
 perl kern/flashd_timing_test.pl
 perl validation/issue15/engine_guard_test.pl
+perl validation/issue15/resident_config_test.pl
 ```
 
-The real GPU check requires an owned core socket, this source's traced cubin, at least four traced output positions and the matching resident weight manifests. It verifies the resident engine's source revision, compares canonical integer device timestamps directly with the relevant die-0 trace rows, checks the host trace's request identity and observation/callback order, validates four-output and one-output rates, and checks snapshot resume, argument rejection and a paired prompt when enabled. For each output it retains the device start/publication, host readback observation, callback entry/return and local Unix-socket parse events.
+The real GPU check requires this source's traced cubin, at least four traced output positions and the matching resident weight manifests. By default the checkers require an owned core socket. They verify the engine's source revision, compare canonical integer device timestamps directly with the relevant die-0 trace rows, check the host trace's request identity and observation/callback order, validate four-output and one-output rates, and check snapshot resume, argument rejection and a paired prompt when enabled. For each output they retain the device start/publication, host readback observation, callback entry/return and local Unix-socket parse events.
 
 ```sh
 perl kern/timings_core_check.pl --socket /tmp/owned-shadow.sock \
@@ -90,6 +91,41 @@ perl kern/timings_http_real.pl --flashd /path/to/flashd --gguf /path/to/shard1.g
   --socket /tmp/owned-shadow.sock --out /path/to/new-http-directory \
   --source-sha FULL_SOURCE_SHA
 ```
+
+On archy's shared resident layout, `validation/issue15/run_resident.pl` uses the
+documented engine reload protocol to retain the existing CUDA contexts and IPC
+weights. Queue the runner on `/tmp/flash-sass-engine-validation.lock` and pass
+the inherited descriptor:
+
+```sh
+(
+  exec 9<> /tmp/flash-sass-engine-validation.lock
+  flock -w 2700 -E 75 9 || exit $?
+  perl validation/issue15/run_resident.pl --lease-fd 9 \
+    --source /path/to/frozen-built-source --source-sha FULL_SOURCE_SHA \
+    --resident-pid CORE_PID --resident-start PROC_START_TICK \
+    --baseline-engine-sha256 VERIFIED_RUNNING_LIBRARY_SHA256 \
+    --out /path/to/new-resident-evidence
+)
+```
+
+The runner verifies that the descriptor shares the supervisor's locked open-file
+description, checks the actual Unix peer PID/UID and process start tick, and
+captures the effective configuration and exact mapped library before mutation.
+It requires a verified baseline restore path, runs scalar and paired CLI/HTTP
+measurements through a private frontend, then verifies the restored library
+bytes and configuration before completion. Reload clears engine snapshots and
+caches. The baseline's startup environment is not used as effective readback.
+If restoration fails, the runner records the exact failure and retains its
+lease while retrying. Process termination with `SIGKILL` cannot guarantee
+restoration; the saved artifacts and restore command support recovery.
+
+The individual checkers accept resident access only with all three options
+`--resident-pid`, `--resident-start` and `--lease-fd`. The private frontend also
+sets `FLASHD_EXPECT_CORE_PID`, which rejects any backend connection whose actual
+peer PID or UID differs. Ordinary serving leaves this optional variable unset.
+The shared lock coordinates participating validators; request IDs and source
+checks detect intervening work from a client that does not use the lock.
 
 The host overhead report separates callback duration from readback-observation-to-callback-return and readback-observation-to-local-socket-parse times. The socket figure includes scheduling and the checker's parsing. The real HTTP checker captures the matching request's device/host traces and correlated post-write log. Its transport measurements use the frontend's own observation and successful-write events and separately report final-record-construction-to-write-return time, which includes serialization and logging. None of these subtracts host and device epochs. A difference between host and GPU interval lengths is a change in observation lag over the interval, not an absolute GPU-to-host latency. Tracing perturbs the measured kernel; these samples are not a claim about uninstrumented throughput.
 

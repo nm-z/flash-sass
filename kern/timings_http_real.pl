@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Real JSON/SSE timing evidence through a private frontend and an owned core.
+# Real JSON/SSE timing evidence through a private frontend and a guarded core.
 use strict;
 use warnings;
 use Getopt::Long qw(GetOptions);
@@ -16,10 +16,14 @@ use Time::HiRes qw(time sleep);
 use Cwd qw(abs_path);
 use File::Path qw(make_path);
 use Digest::SHA;
+use FindBin;
+use lib "$FindBin::Bin/../validation/issue15";
+use EngineGuard qw(borrow_lock verify_peer);
 
-my ($flashd, $gguf, $core, $out, $source_sha);
+my ($flashd, $gguf, $core, $out, $source_sha, $resident_pid, $resident_start, $lease_fd, $lease);
 GetOptions('flashd=s'=>\$flashd, 'gguf=s'=>\$gguf, 'socket=s'=>\$core, 'out=s'=>\$out,
-           'source-sha=s'=>\$source_sha)
+           'source-sha=s'=>\$source_sha, 'resident-pid=i'=>\$resident_pid,
+           'resident-start=s'=>\$resident_start, 'lease-fd=i'=>\$lease_fd)
     or die "Invalid options\n";
 defined($_) && length($_) or die
     "Usage: $0 --flashd BINARY --gguf SHARD1 --socket OWNED_SOCKET --out NEW_DIRECTORY --source-sha COMMIT\n"
@@ -29,8 +33,15 @@ $flashd = abs_path($flashd) // die "Missing flashd\n";
 $gguf = abs_path($gguf) // die "Missing GGUF\n";
 $core = abs_path($core) // die "Missing core socket\n";
 die "Invalid binary, GGUF, or socket\n" unless -x $flashd && -f $gguf && -S $core;
+if (defined($resident_pid) || defined($resident_start) || defined($lease_fd)) {
+    die "Resident mode requires PID, start tick, and inherited lease FD\n"
+        unless defined($resident_pid) && $resident_pid > 1 && defined($resident_start)
+            && $resident_start =~ /\A[0-9]+\z/ && defined($lease_fd);
+    my $error; ($lease, $error) = borrow_lock($lease_fd, '/tmp/flash-sass-engine-validation.lock');
+    die "$error\n" unless $lease;
+}
 die "Use an owned shadow core\n"
-    if $core eq (abs_path('/tmp/flash.sock') // '/tmp/flash.sock');
+    if !$lease && $core eq (abs_path('/tmp/flash.sock') // '/tmp/flash.sock');
 die "Evidence directory already exists\n" if -e $out;
 make_path($out); $out = abs_path($out);
 delete @ENV{qw(http_proxy HTTP_PROXY https_proxy HTTPS_PROXY all_proxy ALL_PROXY)};
@@ -46,6 +57,8 @@ my $state = {
     driver_sha256=>sha(abs_path($0)), flashd_sha256=>sha($flashd), cases=>[],
     capture=>'HTTP::Tiny response bodies after transfer decoding, observed status and headers'
 };
+$state->{resident} = {pid => $resident_pid, start_tick => $resident_start,
+                     shared_lock => '/tmp/flash-sass-engine-validation.lock'} if $lease;
 my ($pid, $reaped);
 STDOUT->autoflush(1);
 $SIG{PIPE} = 'IGNORE';
@@ -72,6 +85,10 @@ sub reap {
 sub core_reply {
     my ($command,$end)=@_;
     my $s=IO::Socket::UNIX->new(Type=>SOCK_STREAM,Peer=>$core) or die "Connect core: $!";
+    if ($lease) {
+        my ($ok, $error) = verify_peer($s, $resident_pid, $resident_start);
+        die "$error\n" unless $ok;
+    }
     $s->autoflush(1);print {$s} "$command\n" or die "Send core command: $!";
     my $select=IO::Select->new($s);my ($buffer,@lines)=('');
     while(1) {
@@ -167,6 +184,7 @@ my $passed = eval {
         open STDOUT, '>', "$out/flashd.log" or POSIX::_exit(126);
         open STDERR, '>&', \*STDOUT or POSIX::_exit(126);
         $ENV{FLASHD_GREEDY} = '1'; $ENV{FLASHD_THINKING} = '0';
+        $ENV{FLASHD_EXPECT_CORE_PID} = "$resident_pid" if $lease;
         exec {$flashd} $flashd, $gguf, $core, "127.0.0.1:$port"
             or do { print STDERR "exec flashd: $!\n"; POSIX::_exit(127) };
     }
