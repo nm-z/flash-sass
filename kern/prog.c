@@ -332,7 +332,7 @@ static void ph_moe_half(prog_t *P, const split_t *s, const xchg_t *x, const dn_w
 	if (s->shexp) ph_gemv_any(P, w->ffn_down_shexp_type, 640, w->ffn_down_shexp, b->hq + 10 * 640 * 2, b->hs32 + 10 * 20 * 4, b->hs16 + 10 * 40 * 4, b->part, 2560, b->has + 10 * 20 * 4, 1, b->s);
 	CUdeviceptr PARTS = ph_xchg(P, x, s->d, s->n, b->part, 2560 * 4, 2560u * 4u * (unsigned)s->d, 2560u * 4u * (unsigned)s->n);
 	/* out = the fixed-order sum of the parts (sumn's order), fused into the stream write */
-	phase_t *p = prog_add(P, OP_HCWSUM, 10);
+	phase_t *p = prog_add(P, OP_HCWSUM, 16);   /* 160 columns per CTA: all sixteen SMs */
 	ph_ptr(p, 0x140, inj); ph_ptr(p, 0x148, PARTS); ph_ptr(p, 0x150, b->S); ph_u32(p, 0x158, 2560); ph_u32(p, 0x15c, 2560 * 4); ph_u32(p, 0x164, (unsigned)s->n); ph_ptr(p, 0x168, b->out); ph_ptr(p, 0x170, SIN);
 }
 

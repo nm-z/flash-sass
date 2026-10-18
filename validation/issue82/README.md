@@ -36,3 +36,38 @@ serving helper and engine descriptors keep this RAM source alive. Recreating it
 requires enough available RAM for the complete file plus the loader's reserve.
 
 Refs #82.
+
+## Kernel and paired-prefill deployment
+
+The subsequent curated kernel build uses direct jump-table dispatch, four-row
+HC-down geometry, compact HC slice loops, fuller HC-write geometry and coalesced
+peer writes. It retains the original shared phase state and barriers. The
+register-state and single-publication experiments that regressed are absent.
+Shared RoPE tables allow paired prefill with the full capacities above.
+
+The kernel SHA-256 is
+`7aca64b21ea9904dce3c278a944785b673d150cedeeaff2b6fe1219d6043fc92`, byte-for-byte
+the image that completed two 2,048-token prompt runs. The source integration
+preserves master's optional timing instrumentation and watchdog handling.
+
+With the RAM source active in both arms:
+
+| Matched measurement | Original kernel | Candidate |
+| --- | ---: | ---: |
+| Short decode, tokens/s | 35.5898 | 37.7343 |
+| 512-token prompt, ms to first output | 14,463.8 | 10,308.8 |
+
+All output token IDs matched across both arms. The candidate improves measured
+decode by 6.03% and prompt throughput by 40.31% in this comparison.
+
+Fresh HTTP requests on the combined serving configuration measured 37.28 and
+37.29 decode tokens/s, with prompt rates 50.03 and 49.96. A 1,574-token natural
+inventory prompt completed at 47.65 prompt tokens/s and 34.59 decode tokens/s;
+its visible answer was the expected `17`. The candidate remains deployed with
+230,000-position capacity, 4,096 image rows, `rope_owner=5`, `two_position=1`, and
+`prefill_chunk=64`.
+
+`kernel-serving.json` retains the matched prompt/output IDs, arrival times,
+engine timing records and fresh HTTP timings. These results remain below the
+120–144 decode tokens/s objective. No graph-executor result is included in the
+serving candidate: that experimental route was slower.

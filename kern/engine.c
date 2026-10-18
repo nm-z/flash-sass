@@ -102,6 +102,7 @@ static CUdeviceptr d_kv_rawmax[MAXD];
 static int nlayers_run = NB;   /* FLASH_LAYERS: run only the first blocks (bisecting a failure; the answers are meaningless) */
 static unsigned nblk_qsa = QSA_NBLK;   /* blocks of 4 keys attended per layer and token (FLASH_NBLK: a small value exercises the selection on short prompts) */
 static int has_attn[MAXD];             /* the die runs at least one attention layer */
+static int rope_owner = -1;            /* optional shared table, addressed through enabled peer mappings */
 #ifndef FLASH_REV
 #define FLASH_REV "unknown"             /* the Makefile passes the commit (and -dirty) this library was built from */
 #endif
@@ -536,7 +537,7 @@ static void rope_upload(const uint32_t (*pos3)[3], int T) {
 	float *cs = malloc(4 * 32 * (size_t)T), *sn = malloc(4 * 32 * (size_t)T);
 	double theta[32]; for (int p = 0; p < 32; p++) theta[p] = pow((double)1e7f, -2.0 * p / 64.0);
 	for (int t = 0; t < T; t++) for (int p = 0; p < 32; p++) { double ang = (double)pos3[t][p % 3] * theta[p]; cs[32 * t + p] = (float)cos(ang); sn[32 * t + p] = (float)sin(ang); }
-	for (int d = 0; d < nd; d++) if (has_attn[d]) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(db[d].rope_cs, cs, 4 * 32 * (size_t)T)); CK(cuMemcpyHtoD(db[d].rope_sn, sn, 4 * 32 * (size_t)T)); }
+	for (int d = 0; d < nd; d++) if (has_attn[d] && (rope_owner < 0 || d == rope_owner)) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(db[d].rope_cs, cs, 4 * 32 * (size_t)T)); CK(cuMemcpyHtoD(db[d].rope_sn, sn, 4 * 32 * (size_t)T)); }
 	free(cs); free(sn);
 }
 static void rope_plain(int T) {
@@ -826,6 +827,28 @@ int engine_init(core_t *c) {
 	free(ple_seq); ple_seq = ple_disk ? calloc((size_t)MAXT + 2, 4) : NULL; ple_next = ple_start = 0;
 	float *rcs = malloc(4 * 32 * (size_t)MAXT), *rsn = malloc(4 * 32 * (size_t)MAXT);
 	for (int t = 0; t < MAXT; t++) rope_table_gpu((unsigned)t, 1e7f, rcs + 32 * t, rsn + 32 * t);
+	/* Each attention layer reads just 32 entries per position. A shared copy
+	 * releases two full-capacity tables on the other attention dies, allowing
+	 * paired activation scratch without reducing context or image capacity.
+	 * Keep one allocation record per pointer; engine_fini frees its owner.
+	 * flashcore enables all context-to-context peer mappings before init. */
+	rope_owner = -1;
+	CUdeviceptr shared_cs = 0, shared_sn = 0;
+	const char *rope_env = getenv("FLASH_ROPE_OWNER");
+	if (rope_env && strcmp(rope_env, "-1")) {
+		char *end;
+		long owner = strtol(rope_env, &end, 10);
+		if (!*rope_env || *end || owner < 0 || owner >= nd || !has_attn[owner]) {
+			fprintf(stderr, "FLASH_ROPE_OWNER must name an attention die or -1\n");
+			free(rcs); free(rsn); longjmp(init_jb, 1);
+		}
+		rope_owner = (int)owner;
+		CK(cuCtxSetCurrent(ctx[rope_owner]));
+		shared_cs = dalloc(4 * 32 * (size_t)MAXT);
+		shared_sn = dalloc(4 * 32 * (size_t)MAXT);
+		CK(cuMemcpyHtoD(shared_cs, rcs, 4 * 32 * (size_t)MAXT));
+		CK(cuMemcpyHtoD(shared_sn, rsn, 4 * 32 * (size_t)MAXT));
+	}
 	/* ---- the dies: weights, buffers, exchange, control ---- */
 	dw = calloc(MAXD, sizeof *dw); sp = calloc(MAXD, sizeof *sp);
 	dst_dn = calloc(MAXD, sizeof *dst_dn); dst_conv = calloc(MAXD, sizeof *dst_conv); dst_kq = calloc(MAXD, sizeof *dst_kq); dst_ks = calloc(MAXD, sizeof *dst_ks); dst_vq = calloc(MAXD, sizeof *dst_vq); dst_vs = calloc(MAXD, sizeof *dst_vs); dst_pkt = calloc(MAXD, sizeof *dst_pkt); dst_ring = calloc(MAXD, sizeof *dst_ring); snap_ring = calloc(MAXD, sizeof *snap_ring);
@@ -848,8 +871,11 @@ int engine_init(core_t *c) {
 		b->qg = dalloc(4 * 12288); b->k = dalloc(4 * 512); b->v = dalloc(4 * 512); b->qo = dalloc(4 * 6144); b->aout = dalloc(4 * 6144);
 		b->pm = dalloc(4 * 24 * 8); b->pd = dalloc(4 * 24 * 8); b->po = dalloc(4 * 24 * 8 * 256);
 		if (has_attn[d]) {   /* the attention layers of this die: RoPE tables, the indexer scratch, the compact caches of the attended keys */
-			b->rope_cs = dalloc(4 * 32 * (size_t)MAXT); b->rope_sn = dalloc(4 * 32 * (size_t)MAXT);
-			CK(cuMemcpyHtoD(b->rope_cs, rcs, 4 * 32 * (size_t)MAXT)); CK(cuMemcpyHtoD(b->rope_sn, rsn, 4 * 32 * (size_t)MAXT));
+			if (rope_owner >= 0) { b->rope_cs = shared_cs; b->rope_sn = shared_sn; }
+			else {
+				b->rope_cs = dalloc(4 * 32 * (size_t)MAXT); b->rope_sn = dalloc(4 * 32 * (size_t)MAXT);
+				CK(cuMemcpyHtoD(b->rope_cs, rcs, 4 * 32 * (size_t)MAXT)); CK(cuMemcpyHtoD(b->rope_sn, rsn, 4 * 32 * (size_t)MAXT));
+			}
 			b->iqk = dalloc(4 * 640); b->iq = dalloc(4 * 512); b->sc = dalloc(4 * ((size_t)maxp / 4 + 64)); b->hst = dalloc(4 * 1280); b->sel = dalloc(4 * ((size_t)nblk_qsa + 8));
 			b->kc = dalloc(kcf * 4); b->vc = dalloc(vcf * 4);
 		}
@@ -1089,8 +1115,8 @@ int engine_session(FILE *in, FILE *out) {
 		if (!strncmp(p, "config", 6)) {   /* what this engine is: the identity to attach to a measurement (the commit it was built from, where the KV lives, the layers it runs, the kernel image) */
 			char ad[64] = ""; for (int d = 0; d < nd; d++) if (has_attn[d]) { char one[8]; snprintf(one, sizeof one, "%s%d", ad[0] ? "," : "", d); strncat(ad, one, sizeof ad - strlen(ad) - 1); }
 			const char *sh = getenv("SPLIT_SHARES"), *am = getenv("ATTN_MAP");
-			fprintf(out, "config rev=%s kv_host=%d kv_trace=%d ple_disk=%d ple_readers=%u ple_file=%s maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u trace_tokens=%u two_position=%d prefill_chunk=%d cubin=%s cubin_fnv=%016llx\n",
-			        FLASH_REV, kv_host, kv_trace, ple_disk, ple_disk ? ple_readers : 0, ple_owned_fd >= 0 ? getenv("FLASH_PLE_FILE") : "core", MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, trace_n, two_position, prefill_chunk, cubin_path, (unsigned long long)cubin_fnv);
+			fprintf(out, "config rev=%s kv_host=%d kv_trace=%d ple_disk=%d ple_readers=%u ple_file=%s maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u rope_owner=%d trace_tokens=%u two_position=%d prefill_chunk=%d cubin=%s cubin_fnv=%016llx\n",
+			        FLASH_REV, kv_host, kv_trace, ple_disk, ple_disk ? ple_readers : 0, ple_owned_fd >= 0 ? getenv("FLASH_PLE_FILE") : "core", MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, rope_owner, trace_n, two_position, prefill_chunk, cubin_path, (unsigned long long)cubin_fnv);
 			fflush(out); continue;
 		}
 		if (!strncmp(p, "cubin", 5)) {
