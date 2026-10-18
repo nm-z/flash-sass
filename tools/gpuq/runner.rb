@@ -15,6 +15,8 @@ module GPUQ
       excluded=@o.fetch(:exclude,[])
       unknown=excluded-GROUPS
       raise "unknown optional collectors: #{unknown.join(',')}" unless unknown.empty?
+      # Install handlers before the queued row becomes visible to other clients.
+      traps=%w[INT TERM HUP].to_h { |s| [s,Signal.trap(s) { @signal=Signal.list.fetch(s) }] }
       cwd=Dir.pwd
       parent=ENV['GPUQ_JOB_ID']
       parent=nil unless parent && @db.one("SELECT id FROM jobs WHERE id=? AND status='running'",[parent])
@@ -32,7 +34,6 @@ module GPUQ
         next unless File.exist?(root)
         Find.find(root) { |p| File.directory?(p) && File.symlink?(p) ? Find.prune : @existing_paths.add(p) }
       end
-      traps=%w[INT TERM HUP].to_h { |s| [s,Signal.trap(s) { @signal=Signal.list.fetch(s) }] }
       status=nil;start_mono=nil;ended=nil;ended_mono=nil;code=70
       begin
         files=Dir[File.join(__dir__,'*.{rb,sql,json}')].sort.to_h { |p| [File.basename(p),Digest::SHA256.file(p).hexdigest] }
