@@ -1601,8 +1601,17 @@ unfinished block.
   attended (keys 4 b .. 4 b + 3 of each, ascending), everything else is dropped. With nv ≤ 512 nothing is dropped,
   so below 2,051 tokens the sparse path is the dense one.
 
-**The KV cache** is int8 in blocks of 32 values with an fp16 scale (`gmax = max(max|x|, 2^-100)`,
-`inv = rcp(gmax) · 127`, `q = rint(x inv)`, `scale = f16(gmax / 127)`), K after RoPE, V as projected:
+**The KV cache** is int8 in groups of 32 values with an fp16 scale, K after RoPE and V as projected.
+Finite components are saturated individually to `[-8319008,8319008]` (`8319008 = 65504*127`), then
+`gmax = max(max|x_clipped|,2^-100)`, `inv = rcp(gmax)*127`, `q = rint(x_clipped*inv)` and
+`scale = f16(gmax*(1.f/127.f))`, with round-to-nearest-even conversions. The multiply uses the stored
+FP32 reciprocal constant; it is not an exact real-number division. Codes and scales for finite inputs
+inside the interval are unchanged. Stored scales are finite and nonnegative but can round to zero for
+tiny groups; FP32 reconstruction remains finite. Saturation loses magnitudes beyond the cap, and no
+uniform relative-error bound applies near half underflow. Unchecked C/SASS quantizers require finite
+inputs and the C twin requires `FE_TONEAREST`; `kv_quant32_checked` rejects null pointers, nonfinite
+inputs, and other C rounding modes before modifying outputs. See [KV_SCALE_RANGE.md](KV_SCALE_RANGE.md).
+The cache layout is:
 `kq`, `vq` = int8 `[position][kv head][256]`, `ks`, `vs` = fp16 `[position][kv head][8]`, 1,088 bytes per
 position and layer (285 MB per layer at 262,144 positions, 3.4 GB for the twelve). It lives in **pinned host
 memory** mapped into every die (`FLASH_KV_HOST=0` keeps it in VRAM for small contexts): the VRAM that is left

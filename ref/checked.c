@@ -7,7 +7,7 @@ int attn_cache_sizes_checked(unsigned n,size_t*k,size_t*v){
  size_t kk,vv;if(float_count(((size_t)n+31u)/32u*32u,&kk)||float_count(n,&vv))return 1;*k=kk;*v=vv;return 0;
 }
 int attn_decode_checked(const float*q,const float*k,size_t kf,const float*v,size_t vf,unsigned n,const float*g,float*out){
- if(!q||!k||!v||!g||!out)return 1;size_t nk,nv;if(attn_cache_sizes_checked(n,&nk,&nv)||kf<nk||vf<nv)return 1;attn_decode_gpu(q,k,v,n,g,out);return 0;
+ if(!q||!k||!v||!g||!out)return 1;size_t nk,nv;if(attn_cache_sizes_checked(n,&nk,&nv)||kf<nk||vf<nv)return 1;return attn_decode_gpu(q,k,v,n,g,out);
 }
 int qsa_nkeys_checked(unsigned p,unsigned cap,unsigned b,unsigned*n){
  if(!n||!cap||p>=cap||b<1||b>4096)return 1;size_t k,v;if(attn_cache_sizes_checked(cap,&k,&v))return 1;

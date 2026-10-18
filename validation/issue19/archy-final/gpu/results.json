@@ -1,0 +1,256 @@
+{
+  "mode": "quant",
+  "started_utc": "2026-10-17T20:11:58.606642+00:00",
+  "hostname": "archy",
+  "gpu_uuid": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b",
+  "candidate_build": {
+    "source_revision": "807e91c33318f2967c06617a2340cae64abfda17",
+    "command": [
+      "make",
+      "-C",
+      "/tmp/flash-resolve-issue19-20261017/kern",
+      "CUDA=/opt/cuda",
+      "FLASH_REV=807e91c33318f2967c06617a2340cae64abfda17",
+      "quant_range_test",
+      "qsa_test",
+      "die.cubin"
+    ],
+    "exit_code": 0,
+    "seconds": 28.799814224243164,
+    "hostname": "archy",
+    "targets": {
+      "quant_range_test": {
+        "sha256": "79b60f4a5cd0a6ca32411cb3596646d829d3e0ac2b95f1d4341ebfee34e3d7e4",
+        "bytes": 21832
+      },
+      "qsa_test": {
+        "sha256": "d3763d6c184c4695b78a547140b345ba20e6d9d66458201e066b266ad019f571",
+        "bytes": 91816
+      },
+      "die.cubin": {
+        "sha256": "4bf7a1970a6c112b294ec7b8923663a59ec88cb434ed9decd7c63a931a59d59b",
+        "bytes": 445352
+      }
+    },
+    "maxas_sources_sha256": {
+      "/tmp/flash-resolve-issue19-20261017/maxas/lib/MaxAs/Cubin.pm": "0fa8cb6989248b38ee44b27f0ef6a14809b06c1f7f332df12a587412998fe3ad",
+      "/tmp/flash-resolve-issue19-20261017/maxas/lib/MaxAs/MaxAs.pm": "853d3151595462bb1a46ecd879bcb0a1a3fe3ae1dbcb772ef8d07ee8bf8cd34b",
+      "/tmp/flash-resolve-issue19-20261017/maxas/lib/MaxAs/MaxAsGrammar.pm": "b63669d7e128651c68e106976c4d9e23457156ee8338cd1b8776683bbaad1f01"
+    }
+  },
+  "parent_build": {
+    "source_revision": "7c6f34d4372567fd97f1cef9b609d3dc0c81b0d3",
+    "command": [
+      "make",
+      "-C",
+      "/tmp/flash-resolve-issue16-20261017/kern",
+      "CUDA=/opt/cuda",
+      "FLASH_REV=7c6f34d4372567fd97f1cef9b609d3dc0c81b0d3",
+      "qsa_gather_bench",
+      "qsa_test",
+      "die.cubin"
+    ],
+    "exit_code": 0,
+    "seconds": 10.775347709655762,
+    "hostname": "archy",
+    "targets": {
+      "qsa_gather_bench": {
+        "sha256": "126ba2ed56f7623a0ee1eeb5f658d719e057ef3c3f54eb1d5d2746f8776523b8",
+        "bytes": 104720
+      },
+      "qsa_test": {
+        "sha256": "c334b70007e346e6339e9f3d1edbe9fac464bc64b6a14f359ea75777c366c229",
+        "bytes": 91792
+      },
+      "die.cubin": {
+        "sha256": "0fa2a17fa41c07aac507f9bc218a777601719a8e2b6eb8b40ec93867d4768027",
+        "bytes": 444968
+      }
+    },
+    "maxas_sources_sha256": {
+      "/tmp/flash-resolve-issue16-20261017/maxas/lib/MaxAs/Cubin.pm": "0fa8cb6989248b38ee44b27f0ef6a14809b06c1f7f332df12a587412998fe3ad",
+      "/tmp/flash-resolve-issue16-20261017/maxas/lib/MaxAs/MaxAs.pm": "853d3151595462bb1a46ecd879bcb0a1a3fe3ae1dbcb772ef8d07ee8bf8cd34b",
+      "/tmp/flash-resolve-issue16-20261017/maxas/lib/MaxAs/MaxAsGrammar.pm": "b63669d7e128651c68e106976c4d9e23457156ee8338cd1b8776683bbaad1f01"
+    }
+  },
+  "script_sha256": "00278d2f2374f01a5335991d710cbf8251b213cf6302b96933c0f13fdd0c139d",
+  "results": [
+    {
+      "name": "gpu-before",
+      "command": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,memory.used,utilization.gpu,clocks.sm",
+        "--format=csv,noheader"
+      ],
+      "cwd": "/tmp/flash-resolve-issue19-20261017/kern",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b"
+      },
+      "exit_code": 0,
+      "expected_exit": null,
+      "seconds": 0.11431761900166748,
+      "passes": true,
+      "die.cubin_sha256": "4bf7a1970a6c112b294ec7b8923663a59ec88cb434ed9decd7c63a931a59d59b"
+    },
+    {
+      "name": "cpu-range",
+      "command": [
+        "/tmp/flash-resolve-issue19-20261017/kern/quant_range_test"
+      ],
+      "cwd": "/tmp/flash-resolve-issue19-20261017/kern",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b"
+      },
+      "exit_code": 0,
+      "expected_exit": 0,
+      "seconds": 0.0016413510020356625,
+      "passes": true,
+      "executable_sha256": "79b60f4a5cd0a6ca32411cb3596646d829d3e0ac2b95f1d4341ebfee34e3d7e4",
+      "die.cubin_sha256": "4bf7a1970a6c112b294ec7b8923663a59ec88cb434ed9decd7c63a931a59d59b"
+    },
+    {
+      "name": "parent-extremes-vram",
+      "command": [
+        "/tmp/flash-resolve-issue19-20261017/kern/qsa_test",
+        "kv",
+        "16",
+        "2"
+      ],
+      "cwd": "/tmp/flash-resolve-issue19-20261017/kern",
+      "env": {
+        "QSA_KV_EXTREMES": "1",
+        "DIE_CUBIN": "/tmp/flash-resolve-issue16-20261017/kern/die.cubin",
+        "CUDA_VISIBLE_DEVICES": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b"
+      },
+      "exit_code": 1,
+      "expected_exit": 1,
+      "seconds": 1.066204488997755,
+      "passes": true,
+      "executable_sha256": "d3763d6c184c4695b78a547140b345ba20e6d9d66458201e066b266ad019f571",
+      "die.cubin_sha256": "0fa2a17fa41c07aac507f9bc218a777601719a8e2b6eb8b40ec93867d4768027"
+    },
+    {
+      "name": "fixed-extremes-vram",
+      "command": [
+        "/tmp/flash-resolve-issue19-20261017/kern/qsa_test",
+        "kv",
+        "16",
+        "2"
+      ],
+      "cwd": "/tmp/flash-resolve-issue19-20261017/kern",
+      "env": {
+        "QSA_KV_EXTREMES": "1",
+        "CUDA_VISIBLE_DEVICES": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b"
+      },
+      "exit_code": 0,
+      "expected_exit": 0,
+      "seconds": 1.0161886519999825,
+      "passes": true,
+      "executable_sha256": "d3763d6c184c4695b78a547140b345ba20e6d9d66458201e066b266ad019f571",
+      "die.cubin_sha256": "4bf7a1970a6c112b294ec7b8923663a59ec88cb434ed9decd7c63a931a59d59b"
+    },
+    {
+      "name": "fixed-normal-vram",
+      "command": [
+        "/tmp/flash-resolve-issue19-20261017/kern/qsa_test",
+        "kv",
+        "16",
+        "2"
+      ],
+      "cwd": "/tmp/flash-resolve-issue19-20261017/kern",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b"
+      },
+      "exit_code": 0,
+      "expected_exit": 0,
+      "seconds": 1.0660093089973088,
+      "passes": true,
+      "executable_sha256": "d3763d6c184c4695b78a547140b345ba20e6d9d66458201e066b266ad019f571",
+      "die.cubin_sha256": "4bf7a1970a6c112b294ec7b8923663a59ec88cb434ed9decd7c63a931a59d59b"
+    },
+    {
+      "name": "parent-extremes-host",
+      "command": [
+        "/tmp/flash-resolve-issue19-20261017/kern/qsa_test",
+        "kv",
+        "16",
+        "2"
+      ],
+      "cwd": "/tmp/flash-resolve-issue19-20261017/kern",
+      "env": {
+        "QSA_HOSTKV": "1",
+        "QSA_KV_EXTREMES": "1",
+        "DIE_CUBIN": "/tmp/flash-resolve-issue16-20261017/kern/die.cubin",
+        "CUDA_VISIBLE_DEVICES": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b"
+      },
+      "exit_code": 1,
+      "expected_exit": 1,
+      "seconds": 1.0160387400028412,
+      "passes": true,
+      "executable_sha256": "d3763d6c184c4695b78a547140b345ba20e6d9d66458201e066b266ad019f571",
+      "die.cubin_sha256": "0fa2a17fa41c07aac507f9bc218a777601719a8e2b6eb8b40ec93867d4768027"
+    },
+    {
+      "name": "fixed-extremes-host",
+      "command": [
+        "/tmp/flash-resolve-issue19-20261017/kern/qsa_test",
+        "kv",
+        "16",
+        "2"
+      ],
+      "cwd": "/tmp/flash-resolve-issue19-20261017/kern",
+      "env": {
+        "QSA_HOSTKV": "1",
+        "QSA_KV_EXTREMES": "1",
+        "CUDA_VISIBLE_DEVICES": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b"
+      },
+      "exit_code": 0,
+      "expected_exit": 0,
+      "seconds": 1.0661010070034536,
+      "passes": true,
+      "executable_sha256": "d3763d6c184c4695b78a547140b345ba20e6d9d66458201e066b266ad019f571",
+      "die.cubin_sha256": "4bf7a1970a6c112b294ec7b8923663a59ec88cb434ed9decd7c63a931a59d59b"
+    },
+    {
+      "name": "fixed-normal-host",
+      "command": [
+        "/tmp/flash-resolve-issue19-20261017/kern/qsa_test",
+        "kv",
+        "16",
+        "2"
+      ],
+      "cwd": "/tmp/flash-resolve-issue19-20261017/kern",
+      "env": {
+        "QSA_HOSTKV": "1",
+        "CUDA_VISIBLE_DEVICES": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b"
+      },
+      "exit_code": 0,
+      "expected_exit": 0,
+      "seconds": 1.0660707969946088,
+      "passes": true,
+      "executable_sha256": "d3763d6c184c4695b78a547140b345ba20e6d9d66458201e066b266ad019f571",
+      "die.cubin_sha256": "4bf7a1970a6c112b294ec7b8923663a59ec88cb434ed9decd7c63a931a59d59b"
+    },
+    {
+      "name": "gpu-after",
+      "command": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,memory.used,utilization.gpu,clocks.sm",
+        "--format=csv,noheader"
+      ],
+      "cwd": "/tmp/flash-resolve-issue19-20261017/kern",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b"
+      },
+      "exit_code": 0,
+      "expected_exit": null,
+      "seconds": 0.1141445079992991,
+      "passes": true,
+      "die.cubin_sha256": "4bf7a1970a6c112b294ec7b8923663a59ec88cb434ed9decd7c63a931a59d59b"
+    }
+  ],
+  "finished_utc": "2026-10-17T20:12:05.155782+00:00",
+  "status": "PASS",
+  "cases": 9,
+  "failed": []
+}
