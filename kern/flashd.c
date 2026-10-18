@@ -486,7 +486,11 @@ static void chat(int fd, const char *body, size_t bn, double request_start_ms) {
         }
         if(!strncmp(line,"timings ",8)) {
             size_t ln=strlen(line);const char *te=NULL;
-            jv *v=ln && line[ln-1]=='\n'?json_parse(a,line+8,ln-8,&te):NULL;
+            int terminated=ln>8 && line[ln-1]=='\n';
+            /* The engine's line terminator is protocol framing. Preserve the
+               JSON bytes without leaking an unprefixed line into SSE data. */
+            if(terminated){--ln;if(ln>8 && line[ln-1]=='\r')--ln;}
+            jv *v=terminated?json_parse(a,line+8,ln-8,&te):NULL;
             sb_free(&engine_timing);engine_timing=(sbuf){0};
             if(v && v->k==J_DICT)sb_put(&engine_timing,line+8,ln-8);
             continue;

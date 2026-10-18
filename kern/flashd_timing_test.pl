@@ -55,7 +55,7 @@ sub fake_engine {
     my $resumed=($kind eq 'cold'||$kind eq 'prefillabort')?0:$prompt-1;
     my $generated=($kind eq 'one'||$kind eq 'stop')?1:($kind eq 'partial'||$kind eq 'abort')?2:($kind eq 'unknown'||$kind eq 'nooutput'||$kind eq 'prefillabort')?0:$kind=~/cap|cancel/?5:3;
     last if $kind eq 'nooutput';
-    my $canonical=fixture_json($kind eq 'legacy'?'multi':$kind eq 'frontendcap'?'abort':$kind,$prompt,$generated,$resumed);
+    my $canonical=fixture_json(($kind eq 'legacy'||$kind eq 'multi_crlf')?'multi':$kind eq 'frontendcap'?'abort':$kind,$prompt,$generated,$resumed);
     write_file("$dir/$mode->{name}.expected.json",$canonical."\n");sleep .08;
     for my $i(0..($kind eq 'cancelbusy'?99:$generated-1)){
      my $token=($kind eq 'stop'&&$i==$generated-1)?0:2+($i%26);last unless print {$connection} "tok $token\n";sleep .01;
@@ -69,7 +69,7 @@ sub fake_engine {
      print "[$mode->{name}] half-close cancellation received\n";
     }
     last if $kind=~/^cancel/;
-    print {$connection} "timings $canonical\n" if $kind ne 'legacy';
+    print {$connection} 'timings '.$canonical.($kind eq 'multi_crlf'?"\r\n":"\n") if $kind ne 'legacy';
     if($kind eq 'partial'||$kind eq 'unknown'){print {$connection} "error: device fault; the core rebuilds the contexts and the engine\n";}
     else{my $ended=$kind eq 'stop'?1:0;my $run_ms=($kind eq 'one'||$kind eq 'stop')?'12.3':'56.8';print {$connection} "done $generated $ended $prompt $run_ms 12.3 $resumed $resumed\n";}
     last;
@@ -114,7 +114,19 @@ sub http_request {
  if($headers=~/Transfer-Encoding:\s*chunked/i){$payload=dechunk($payload);}
  elsif($headers=~/Content-Length:\s*([0-9]+)/i){die "wrong HTTP content length" unless length($payload)==$1;}
  my @events;my $response;
- if($stream){for my $event(split /\n\n/,$payload){next if $event=~/\A:/;next unless $event=~/\Adata: (.*)\z/s;next if $1 eq '[DONE]';push @events,$json->decode($1);}($response)=grep {exists $_->{timings}}reverse @events;die "SSE response has no final timing record:\n$payload" unless $response;}
+ if($stream){
+  # An SSE client joins only data fields. An unprefixed protocol newline
+  # inside JSON must not be silently accepted as part of the event payload.
+  my(@data,@messages);
+  for my $line(split /\r\n|\r|\n/,$payload,-1){
+   if($line eq ''){push @messages,join("\n",@data) if @data;@data=();next;}
+   push @data,defined($1)?$1:'' if $line=~/\Adata(?:: ?(.*))?\z/;
+  }
+  die "SSE missing terminal [DONE]" unless @messages && pop(@messages) eq '[DONE]';
+  @events=map {$json->decode($_)} @messages;
+  ($response)=grep {exists $_->{timings}}reverse @events;
+  die "SSE response has no final timing record:\n$payload" unless $response;
+ }
  else{$response=$json->decode($payload);}
  return {status=>$status,headers=>$headers,payload=>$payload,response=>$response,events=>\@events,wire=>$wire};
 }
@@ -170,7 +182,7 @@ sub check_case {
  }
  if($mode eq 'one'||$mode eq 'stop'){is($expected->{generated_tokens},1,"$name one generated token");is($expected->{decode_intervals},0,"$name zero decode intervals");ok(!defined($expected->{decode_tokens_per_second}),"$name canonical rate null");ok(!defined($t->{predicted_per_second}),"$name legacy rate null");ok(!defined($h->{socket_decode_tokens_per_second}),"$name socket rate null");}
  if($mode eq 'stop'){ok($expected->{stop_token_observed},"$name stop observed");is($response->{choices}[0]{finish_reason},'stop',"$name stop finish reason");ok(!defined($h->{first_text_send_ms}),"$name hidden stop not delivery");ok(!defined($h->{ttft_ms}),"$name role not delivery");}
- if($mode eq 'multi'){is($expected->{first_observed_ms},12.3456789,"$name unrounded first");is($expected->{run_ms},56.7890123,"$name unrounded run");ok($expected->{decode_tokens_per_second}>0,"$name engine rate");ok($h->{socket_decode_tokens_per_second}>0,"$name socket rate");ok($h->{complete},"$name complete");}
+ if($mode eq 'multi'||$mode eq 'multi_crlf'){is($expected->{first_observed_ms},12.3456789,"$name unrounded first");is($expected->{run_ms},56.7890123,"$name unrounded run");ok($expected->{decode_tokens_per_second}>0,"$name engine rate");ok($h->{socket_decode_tokens_per_second}>0,"$name socket rate");ok($h->{complete},"$name complete");}
  ok($h->{first_token_observed_ms}>=60,"$name first token includes engine delay") if $mode ne 'unknown'&&$mode ne 'prefillabort';
  if($stream&&$mode ne 'stop'&&$mode ne 'unknown'&&$mode ne 'prefillabort'){
   ok(defined($h->{first_text_send_ms}),"$name first delivery measured");ok($h->{first_text_send_ms}>=60,"$name role excluded");
@@ -186,6 +198,6 @@ my $listener=IO::Socket::UNIX->new(Type=>SOCK_STREAM,Local=>$socket_path,Listen=
 my $fake_pid=fork();die "fork fake engine: $!" unless defined $fake_pid;
 if(!$fake_pid){eval{fake_engine($listener)};if($@){print STDERR $@;_exit(123);}_exit(0);}
 push @children,$fake_pid;close $listener;my $port=reserve_port();start_frontend($port);
-for my $stream(0,1){for my $mode(qw(multi cold nooutput one stop partial abort prefillabort unknown legacy frontendcap legacycap cancelstall cancelbusy cancelfragment)){subtest $mode.($stream?' streaming':' nonstreaming')=>sub{check_case($port,$mode,$stream);};}}
+for my $stream(0,1){for my $mode(qw(multi multi_crlf cold nooutput one stop partial abort prefillabort unknown legacy frontendcap legacycap cancelstall cancelbusy cancelfragment)){subtest $mode.($stream?' streaming':' nonstreaming')=>sub{check_case($port,$mode,$stream);};}}
 diag("frontend log:\n".read_file($log_path)) if !Test::More->builder->is_passing;
 done_testing;
