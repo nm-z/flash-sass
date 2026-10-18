@@ -41,6 +41,38 @@ begin
   end
   allowed = cfg.fetch('allowed_revisions')
   raise "unexpected current engine revision #{before['rev']}" unless allowed.include?(before['rev'])
+  target = selected.fetch('expected_config').transform_values(&:to_s)
+  target_count = Integer(target.fetch('trace_tokens','0'))
+  if target_count.positive?
+    # Reload frees the old engine's allocations before constructing the new
+    # one. Only credit its trace buffer when every other runtime field matches;
+    # first prepare an ordinary image with that configuration otherwise.
+    same = before.reject { |key,_| TraceValidation::IMAGE_FIELDS.include?(key) }
+    wanted = target.reject { |key,_| TraceValidation::IMAGE_FIELDS.include?(key) }
+    raise 'prepare the matching ordinary configuration before enabling tracing' unless same == wanted
+    raise 'unknown trace allocation schema' unless target.fetch('trace_schema') == '2'
+    ctas = Integer(target.fetch('trace_ctas'))
+    raise 'invalid bounded trace dimensions' unless [1,16].include?(ctas) && target_count <= 256/ctas
+    current_count = Integer(before.fetch('trace_tokens'))
+    current_bytes = current_count * 4096 * ctas * 128
+    target_bytes = target_count * 4096 * ctas * 128
+    extra_bytes = [0,target_bytes-current_bytes].max
+    reserve_bytes = Integer(cfg.fetch('trace_memory_reserve_mib',8)) * (1 << 20)
+    raise 'invalid trace memory reserve' unless reserve_bytes.positive?
+    gpu_indices = cfg.fetch('gpu_indices').map { |index| Integer(index) }
+    raise 'GPU inventory does not match die count' unless gpu_indices.uniq.length == Integer(target.fetch('dies'))
+    out,err,status = Open3.capture3('nvidia-smi','--query-gpu=index,uuid,memory.free','--format=csv,noheader,nounits')
+    raise "memory query failed: #{err}" unless status.success?
+    rows = out.lines.map { |line| line.strip.split(',').map(&:strip) }.to_h { |index,uuid,free| [Integer(index),[uuid,Integer(free)]] }
+    checks = gpu_indices.map do |index|
+      uuid,free_mib = rows.fetch(index); free_bytes = free_mib * (1 << 20)
+      {gpu: index,uuid: uuid,free_bytes: free_bytes,current_trace_bytes: current_bytes,
+       target_trace_bytes: target_bytes,additional_bytes: extra_bytes,reserve_bytes: reserve_bytes,
+       pass: free_bytes >= extra_bytes + reserve_bytes}
+    end
+    puts JSON.generate(trace_memory_preflight: checks)
+    raise 'insufficient memory headroom; reload was not sent' unless checks.all? { |row| row[:pass] }
+  end
   env = selected.fetch('environment')
   env.each do |key,value|
     raise 'unsafe reload setting' unless key.match?(/\AFLASH_[A-Z0-9_]+\z/) && value.to_s.match?(/\A[A-Za-z0-9_.,\/-]+\z/)

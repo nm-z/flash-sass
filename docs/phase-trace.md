@@ -147,11 +147,19 @@ concurrent branches rather than adding their durations.
 
 Relative clock offsets are constrained by the same send/wait relationships.
 The analyzer reports feasible offset ranges, timer tolerance and the resulting
-span/chain uncertainty. Constant timer rates over the bounded capture are an
-explicit assumption. A trace does not identify a unique last sender whenever
-publication brackets and poll granularity leave alternatives. Report the
-reconstructed chain, its bounds and residual; do not claim exact synchronized
-device clocks or erase uncertainty with an arbitrary alignment.
+span/chain uncertainty. Bounds assume constant relative timer offsets over the
+bounded capture and a 1024 ns timestamp allowance; they do not include an
+independently measured clock-drift bound. A trace does not identify a unique
+last sender whenever publication brackets and poll granularity leave
+alternatives. Report the bounded cross-die GPU critical path, its span bounds
+and their interval width separately from the exact local arithmetic residual.
+The interval width is uncertainty, not unaccounted execution time. Host timings
+remain a separate clock domain.
+
+Analyze the entire capture window to bound its span. Do not add individual
+token envelopes or bounds: one die can begin the next position while another
+finishes the current one. The all-CTA graph also joins every sampled body end
+to every phase end at an actual grid barrier, preserving same-die CTA skew.
 
 ## Validation and measured scope
 
