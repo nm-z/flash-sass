@@ -1,0 +1,123 @@
+{
+   "artifacts" : {
+      "kern/Makefile" : {
+         "bytes" : 24863,
+         "sha256" : "25314acab9c0b4b904f4d6c6add4a5b2e955ec5b339cd364f08e6448dd257fc8"
+      },
+      "kern/attnqkq.sass" : {
+         "bytes" : 11408,
+         "sha256" : "9c145c912fbbedf0ca8aa4d4e72c7d55eed295ffaed543934bf57918f7f7afe7"
+      },
+      "kern/die.cubin" : {
+         "bytes" : 485608,
+         "sha256" : "116d828f20139d144d46d7d8115a28e35313dac1f6c24ba81c1b5c0984f50e14"
+      },
+      "kern/die.sass" : {
+         "bytes" : 3068212,
+         "sha256" : "2e65b0b8e605dc2a4eff30820f3a287e6884171b50d4b580b4b8c2ac088a495f"
+      },
+      "kern/dieops.h" : {
+         "bytes" : 2807,
+         "sha256" : "5032a1e6012f19f30b922ede9fdb4662a19f17080163506b4edc5290f9f51356"
+      },
+      "kern/qsa_oracle" : {
+         "bytes" : 69880,
+         "sha256" : "37a48bf3748b479bf43fb14a56d3d6b43b1e00c296dea5a3172967cb2f3ec0ae"
+      },
+      "kern/qsa_oracle.c" : {
+         "bytes" : 50737,
+         "sha256" : "daa7feeaf8ace1e6d0829e45830e53d0700dd62dbde1e632866ce7b0e07bc0ac"
+      },
+      "kern/qsa_oracle_bridge.c" : {
+         "bytes" : 3560,
+         "sha256" : "d2120cc53a7a670ce8c8338cdb23fcf5540aeea450df8587be39fcabfeb8d784"
+      },
+      "kern/qsa_oracle_gpu" : {
+         "bytes" : 104760,
+         "sha256" : "b6d46150f580b8dca4dce1cbeca7dcfa48aa19653b0e9732d4875a5bb0f6ca3b"
+      },
+      "kern/qsa_oracle_gpu.c" : {
+         "bytes" : 20347,
+         "sha256" : "0b94376bb6134a1bf78c67c8b4dfbe00d331066919e062889c2dff700a6af9c6"
+      },
+      "kern/qsa_oracle_gpu.h" : {
+         "bytes" : 1318,
+         "sha256" : "cde328df539bc4fa43c84d1799db10f52045f57a89c46ed50aa33f1d081d5fc0"
+      }
+   },
+   "compiler" : {
+      "command" : [
+         "cc",
+         "--version"
+      ],
+      "exit_code" : 0,
+      "ok" : true,
+      "output" : "cc (GCC) 16.2.1 20260810\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
+   },
+   "cuda_stub_link_only" : true,
+   "gpu_executed" : false,
+   "host" : "engi",
+   "image_build" : {
+      "command" : [
+         "make",
+         "-C",
+         "kern",
+         "die.cubin",
+         "dieops.h",
+         "PTXAS11=/home/nate/codex/flash-pr31-evidence-20261017/toolchain/ptxas11"
+      ],
+      "compressed_log_sha256" : "8b975ee33452934f21c669d165837f31a00cf68a21a79765ccf9b61a4a1a0cc8",
+      "exit_code" : 0,
+      "full_log_sha256" : "80ea1a939a716166b502562e9725968e34e30ec39f8d0722d1f31addc25b00a8",
+      "relevant_kernel_sources_unchanged_at_tested_commit" : true,
+      "source_commit" : "b2002a713d1ae74ff75765604e7e60706ffd8482",
+      "source_kernel_tree" : "1c3692b5fc88b9b8544e9507be16fdf342fb68dd"
+   },
+   "maxas" : {
+      "commit" : "54eda7af086a46c9dae1688b691968235d560164",
+      "source_sha256" : {
+         "bin/maxas.pl" : "1cc7af34a9d9363c58fba0a823a3820986babbe00eb50bb081719ea217f3dd95",
+         "lib/MaxAs/Cubin.pm" : "0fa8cb6989248b38ee44b27f0ef6a14809b06c1f7f332df12a587412998fe3ad",
+         "lib/MaxAs/MaxAs.pm" : "853d3151595462bb1a46ecd879bcb0a1a3fe3ae1dbcb772ef8d07ee8bf8cd34b",
+         "lib/MaxAs/MaxAsGrammar.pm" : "b63669d7e128651c68e106976c4d9e23457156ee8338cd1b8776683bbaad1f01"
+      },
+      "working_diff_sha256" : "b34d3f663cb1778eefd0feb0734c28e67c1f73c1bfed6ed6a368ebc59bab162e"
+   },
+   "oracle_build" : {
+      "command" : [
+         "make",
+         "-C",
+         "kern",
+         "qsa_oracle",
+         "qsa_oracle_gpu",
+         "qsa_logits_check",
+         "CUDA_LIBDIR=/opt/cuda/lib64/stubs"
+      ],
+      "exit_code" : 0,
+      "log_sha256" : "7e9d62a4f722771d6c8eecc4726e1edcf67c8a34cd9d2eb5b2e8f6e3f28a8662",
+      "note" : "The logit checker was unchanged and Make reported it up to date. No new model-logit execution is claimed."
+   },
+   "ptxas" : {
+      "sha256" : "6180efbc0877b5cf127bc99c5d51be6a779d98a03811cc1c24ef61621dc20976",
+      "version" : "ptxas11: NVIDIA (R) Ptx optimizing assembler\nCopyright (c) 2005-2021 NVIDIA Corporation\nBuilt on Mon_Oct_11_21:26:15_PDT_2021\nCuda compilation tools, release 11.4, V11.4.152\nBuild cuda_11.4.r11.4/compiler.30521435_0"
+   },
+   "recorded_utc" : "2026-10-18T03:40:22Z",
+   "schema" : "flash-sass.issue11-build.v1",
+   "source_commit" : "705f16640e499c1ffc3a7f3fd1015471b64e221f",
+   "source_hashes" : {
+      "kern/Makefile" : "25314acab9c0b4b904f4d6c6add4a5b2e955ec5b339cd364f08e6448dd257fc8",
+      "kern/qsa_oracle.c" : "daa7feeaf8ace1e6d0829e45830e53d0700dd62dbde1e632866ce7b0e07bc0ac",
+      "kern/qsa_oracle.pl" : "da6eab3f965e0c5d19f813d39095563346f14fd5c878a5b77b9a31f8e8c56b24",
+      "kern/qsa_oracle_bridge.c" : "d2120cc53a7a670ce8c8338cdb23fcf5540aeea450df8587be39fcabfeb8d784",
+      "kern/qsa_oracle_gpu.c" : "0b94376bb6134a1bf78c67c8b4dfbe00d331066919e062889c2dff700a6af9c6",
+      "kern/qsa_oracle_gpu.h" : "cde328df539bc4fa43c84d1799db10f52045f57a89c46ed50aa33f1d081d5fc0",
+      "kern/qsa_oracle_gpu_gate.sh" : "3e7a2f6f9e65d9596af96ca0bbaed2188154aee0e29f1d80c155a4f4fc69a949",
+      "ref/attn.c" : "b2827140a4be2cc38280876b5f505db764ad15b6791144143bb26c309f3c42ef",
+      "ref/attn.h" : "291f54b8d1ed3406828571956240295591b6da9b26d3b457f97733b0daaf2833",
+      "ref/fmath.c" : "69bbf4dbb4201dd24056f29183d289910ac7067722c3214a79b3de3ffdf8f462",
+      "ref/fmath.h" : "f07f7d50aae33575834b447a96ce503745a3719059f4027998b81ef3155c7412",
+      "ref/qsa.c" : "68a83b9abe0855af32485414af825baa99deba72c7b9746c618125f5b68f3f78",
+      "ref/qsa.h" : "c3e31e5420f513faae716993b665628132c4f9181e582e94bcda921c0b5f8b5e"
+   },
+   "status" : "BUILD_ONLY"
+}

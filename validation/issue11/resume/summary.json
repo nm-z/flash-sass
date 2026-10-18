@@ -1,0 +1,40 @@
+{
+   "base_master_commit" : "3d57d734d63aa74f167a6b5a02c616ddc018d2ff",
+   "cpu" : {
+      "artifacts_manifest_sha256" : "afd46d302aea0a521de43ee405672bb3f58dbbdc867734ac385556689787dbb0",
+      "elapsed_seconds" : 61.3607330322266,
+      "highest_enforced_positive_score_nrms" : {
+         "enforced" : true,
+         "label" : "generated/index-and-sparse-2048",
+         "max_abs" : 0.00138020515441895,
+         "max_relative" : 0.0107776548929121,
+         "name" : "scaled_score_error",
+         "normalized_rms" : 0.000157283398165829,
+         "pass" : true,
+         "rms" : 0.000317482914650657
+      },
+      "invocations" : 58,
+      "provenance_consistent" : true,
+      "report_sha256" : "97302428e7c7fe8c0a57788109d66f75106ed80c0715894b55c880efa9c81676",
+      "retained_quantizer_archive_sha256" : "0e5d1575d6062c943c0393866cebbe76033aece21f8b59969d045ebbc1743be5",
+      "status" : "PASS_NATIVE_SYNTHETIC"
+   },
+   "gguf_identity" : "gguf-identity.json",
+   "gpu" : {
+      "check" : "gpu-gate/check.json",
+      "exit_code" : 75,
+      "gpu_executed" : false,
+      "status" : "BLOCKED_BUSY",
+      "target_adapter_build" : "BUILD_ONLY"
+   },
+   "independent_checkpoint_conformance" : false,
+   "published_gguf_identity_verified" : true,
+   "ready_for_review" : false,
+   "schema" : "flash-sass.issue11-resume.v1",
+   "tested_source_commit" : "705f16640e499c1ffc3a7f3fd1015471b64e221f",
+   "unresolved_acceptance" : [
+      "Execute the current SM52 image and target adapter under the shared lock; compilation is not target evidence.",
+      "Verify original checkpoint/tokenizer and exact conversion source revision/configuration, including normalization-weight convention.",
+      "Measure independent full-checkpoint teacher-forced logits and per-layer QSA selections/outputs at the required sparse lengths."
+   ]
+}

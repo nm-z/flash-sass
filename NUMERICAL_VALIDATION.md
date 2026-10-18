@@ -243,7 +243,13 @@ Same-implementation placement comparisons and isolated block-3 captures from
 
 ## Recorded evidence
 
-Current native reports, logs, manifests, build identity and sanitized archy
+The latest follow-up is recorded in
+[validation/issue11/resume](validation/issue11/resume/README.md): tested commit
+705f166 passed all 58 expected CPU outcomes; the new SM52 image and adapter
+compiled, but the shared GPU gate returned busy and checkpoint conformance
+remains unmeasured. Both installed GGUF shard hashes match the pinned release.
+
+Earlier native reports, logs, manifests, build identity and sanitized archy
 idle checks are under validation/issue11/native. The portable frozen data and
 its provenance are under validation/issue11/goldens. Generated large buffers
 are represented by measured hashes and can be regenerated with the command
