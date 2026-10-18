@@ -50,7 +50,7 @@ my @OPS = (
     [ 'hcmix',      'hcops.sass',       'cta',  { HC_OP => 'mix' } ],
     [ 'hcmixx',     'hcops.sass',       'cta',  { HC_OP => 'mix', HC_XOUT => 1 } ],
     [ 'hcwrite',    'hcops.sass',       'cta',  { HC_OP => 'write' } ],
-    [ 'hcwsum',     'hcops.sass',       'cta',  { HC_OP => 'write', HC_SUMN => 1 } ],   # the MoE partials' fixed-order sum fused into the write
+    [ 'hcwsum',     'hcops.sass',       'cta',  { HC_OP => 'write', HC_SUMN => 1, HC_COLS => 160 } ],   # the MoE partials' fixed-order sum fused into the write; all 16 SMs participate
     [ 'conv1d',     'conv1d.sass',      'cta',  {} ],
     [ 'dnstep',     'dnstep.sass',      'cta',  { DN_TILED => 1 } ],   # local value head j reads local key head j % 16 (value head h pairs with key head h % 16)
     [ 'dnnorm',     'dnnorm.sass',      'warp', {} ],
@@ -216,6 +216,8 @@ require './trace.pl';
 my $maps = '';
 my $body = '';
 my $dispatch = '';
+my $dispatch_mode = $ENV{DIE_DISPATCH} // 'linear';
+die "DIE_DISPATCH must be linear, tree, or jump\n" unless $dispatch_mode =~ /\A(?:linear|tree|jump)\z/;
 for my $k (0 .. $#OPS) {
     my ($tag, $file, $kind, $env) = @{$OPS[$k]};
     my $op = load_op($tag, $file, $env);
@@ -259,6 +261,43 @@ for my $k (0 .. $#OPS) {
 }
 
 my @trace = map { trace_code($_, $TOK_OFF, $STEP_OFF) } 0..7;
+# All lanes see the same descriptor opcode. A range tree bounds dispatch by
+# ceil(log2(OP_COUNT)) comparisons instead of scanning every preceding opcode.
+# Keep the linear emitter available for matched measurements. Invalid opcodes
+# retain the existing skip behavior, rather than falling into the last leaf.
+if ($dispatch_mode eq 'tree') {
+    my $tree;
+    $tree = sub {
+        my ($lo, $hi) = @_;
+        return "--:-:-:-:6      BRA $OPS[$lo][0]_SETUP;\n" if $lo == $hi;
+        my $mid = int(($lo + $hi + 1) / 2);
+        my $label = "DISPATCH_RANGE_${lo}_${mid}";
+        my $code = sprintf "--:-:-:-:6      ISETP.LT.U32.AND P6, PT, op, 0x%x, PT;\n", $mid;
+        $code .= "--:-:-:-:6      NOP;\n" x 3;
+        $code .= "--:-:-:-:6  \@P6 BRA $label;\n";
+        return $code . $tree->($mid, $hi) . "$label:\n" . $tree->($lo, $mid - 1);
+    };
+    $dispatch = sprintf "--:-:-:-:6      ISETP.GE.U32.AND P6, PT, op, 0x%x, PT;\n", scalar @OPS;
+    $dispatch .= "--:-:-:-:6      NOP;\n" x 3;
+    $dispatch .= "--:-:-:-:6  \@P6 BRA POSITION_END;\n";
+    $dispatch .= $tree->(0, $#OPS);
+}
+elsif ($dispatch_mode eq 'jump') {
+    # Three instructions occupy one 32-byte Maxwell control bundle. Every
+    # entry therefore has the same alignment and can be indexed by op << 5.
+    # fw0 is dead dispatcher scratch. BRX preserves the descriptor opcode.
+    $dispatch = sprintf "--:-:-:-:6      ISETP.GE.U32.AND P6, PT, op, 0x%x, PT;\n", scalar @OPS;
+    $dispatch .= "--:-:-:-:6      SHL fw0, op, 0x5;\n";
+    $dispatch .= "--:-:-:-:6      NOP;\n" x 2;
+    $dispatch .= "--:-:-:-:6  \@P6 BRA POSITION_END;\n";
+    $dispatch .= "--:-:-:-:6      BRX fw0 DISPATCH_TABLE;\n";
+    $dispatch .= "DISPATCH_TABLE:\n";
+    for my $op (@OPS) {
+        $dispatch .= "--:-:-:-:6      BRA $op->[0]_SETUP;\n";
+        $dispatch .= "--:-:-:-:6      NOP;\n" x 2;
+    }
+}
+
 print <<"EOF";
 # Kernel: die
 #
