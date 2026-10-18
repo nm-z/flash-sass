@@ -4,6 +4,8 @@
 
 The runner requires committed sources and records the exact revision, runner hash, tool versions, assembler source hashes, build flags, binary/cubin hashes, commands, exit statuses, raw stdout/stderr, and elapsed times. Build outputs are isolated `git archive` copies under the chosen output directory. A build from a different revision or an altered artifact is rejected.
 
+The [2026-10-18 evidence](20261018/README.md) records the completed CPU/build/M60 measurements at `6da421bccb68e613ecbdc8142104935deecccb29` and identifies the remaining checkpoint work. The [older evidence](archy-final/README.md) is retained with its original measured revision.
+
 ## Commands
 
 Run from any directory. Choose a new output directory for a fresh build. All checkout, dependency, evidence, device and socket paths are arguments; the script contains no temporary-worktree paths.
