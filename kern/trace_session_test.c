@@ -1,8 +1,65 @@
 #define _GNU_SOURCE
+#include <cuda.h>
+static CUresult test_context_entry(CUcontext context);
+static CUresult unexpected_cuda_call(void);
+#define cuCtxSetCurrent(context) test_context_entry(context)
+#define cuInit(...) unexpected_cuda_call()
+#define cuLaunchKernel(fn,gx,gy,gz,bx,by,bz,shared,stream,params,extra) ((void)(params), unexpected_cuda_call())
+#undef cuMemcpyHtoDAsync
+#define cuMemcpyHtoDAsync(...) unexpected_cuda_call()
+#define cuStreamSynchronize(...) unexpected_cuda_call()
 #include "engine.c"
+#undef cuCtxSetCurrent
+#undef cuInit
+#undef cuLaunchKernel
+#undef cuMemcpyHtoDAsync
+#undef cuStreamSynchronize
 #undef nd
 #include <assert.h>
 #include <sys/socket.h>
+
+static int abort_driver_entries;
+static CUresult unexpected_cuda_call(void) {
+    fputs("trace_session_test: unexpected CUDA operation\n", stderr);
+    abort();
+}
+static CUresult test_context_entry(CUcontext context) {
+    (void)context;
+    /* A callback-return timestamp must exist before abort_run enters CUDA. */
+    assert(trace_host[0].callback_start != 0);
+    assert(trace_host[0].callback_end >= trace_host[0].callback_start);
+    abort_driver_entries++;
+    return CUDA_SUCCESS;
+}
+static int request_cancel(void *arg, int position, uint32_t token) {
+    assert(position == 4 && token == 123);
+    assert(!trace_host[0].callback_end);
+    (*(int *)arg)++;
+    return 1;
+}
+static void callback_return_before_cancel(void) {
+    int calls = 0;
+    engine_cb cb = { .arg = &calls, .token = request_cancel };
+    runctx r = { .count = 5, .ntok = 6, .cb = &cb };
+    uint32_t abort_count = 0;
+    h_abort = &abort_count;
+    trace_first = 4; trace_n = 1;
+    memset(trace_host, 0, sizeof trace_host);
+    abort_driver_entries = 0;
+    deliver_token(&r, 4, 123);
+    assert(calls == 1 && r.aborted && abort_count == 13);
+    assert(abort_driver_entries == 1);
+
+    /* A subsequent cancellation must retain the existing termination state. */
+    memset(trace_host, 0, sizeof trace_host);
+    deliver_token(&r, 4, 123);
+    assert(calls == 2 && abort_driver_entries == 1);
+    r.aborted = 0; r.ended = 1;
+    memset(trace_host, 0, sizeof trace_host);
+    deliver_token(&r, 4, 123);
+    assert(calls == 3 && !r.aborted && abort_driver_entries == 1);
+    h_abort = NULL; trace_n = 0;
+}
 
 static void session_options(void) {
     char input[]="timings on\nchat nonsense\ntimings off\nchat nonsense\ntimings\ncancel_on_eof 1\ncancel_on_eof 0\nquit\n";
@@ -88,7 +145,8 @@ int main(void) {
     reject_case("gen 2147483648");
     reject_case("chat 999999999999999999999999999999999999999999");
     session_options();half_close_options();
+    callback_return_before_cancel();
     free(s_ids); free(s_toks); s_ids = s_toks = NULL;
-    puts("trace_session_test: malformed request identity, timing options, and opt-in half-close cancellation PASS");
+    puts("trace_session_test: request identity, timing options, half-close, and callback-before-cancellation PASS");
     return 0;
 }

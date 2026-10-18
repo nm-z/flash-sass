@@ -65,12 +65,15 @@ If an admitted error occurs after queue-wait SSE headers have been sent, the fro
 
 ## Verification
 
+Host callback spans end immediately after the callback returns, before any cancellation propagation to the devices. They include the optional callback dispatch; when no callback is installed, the empty dispatch still has paired start/end markers. Cancellation synchronization remains part of engine run/completion time. The CPU session fixture traps CUDA work and checks that the callback-return marker exists before cancellation enters the driver.
+
 The deterministic C fixtures cover count derivation, snapshot resume, no output, one output, multiple outputs, stop, abort, partial/failed observations, invalid requests, overflow-safe bounds, aliases and integer device timing. The HTTP fixture runs the actual frontend/tokenizer with a tiny generated tokenizer GGUF and a controlled Unix protocol engine. Fifteen scenarios are exercised through both JSON and SSE, for 30 transport cases, including cancellation during prompt processing, final-count draining after a frontend cap, older engines and deadlines for silent, continuously producing and fragmented canceled output. Helper checks also cover role/keepalive exclusion, successful text writes and errors after SSE admission. `trace_session_test` exercises the actual session parser and half-close callback without initializing a GPU, including timing opt-out and preservation of ordinary CLI input EOF.
 
 ```sh
 make -C kern timings_test flashd_timing_test flashd
 ./kern/timings_test
 perl kern/flashd_timing_test.pl
+perl validation/issue15/engine_guard_test.pl
 ```
 
 The real GPU check requires an owned core socket, this source's traced cubin, at least four traced output positions and the matching resident weight manifests. It verifies the resident engine's source revision, compares canonical integer device timestamps directly with the relevant die-0 trace rows, checks the host trace's request identity and observation/callback order, validates four-output and one-output rates, and checks snapshot resume, argument rejection and a paired prompt when enabled. For each output it retains the device start/publication, host readback observation, callback entry/return and local Unix-socket parse events.

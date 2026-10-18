@@ -299,6 +299,16 @@ static void abort_run(runctx *r) {
 	CK(cuCtxSetCurrent(ctx[0]));
 }
 
+/* The callback span ends at its return. Cancellation propagation can synchronize
+   several device streams, so it belongs to run/completion time, not delivery. */
+static void deliver_token(runctx *r, int position, uint32_t token) {
+	int ti = trace_slot(position);
+	if (ti >= 0) trace_host[ti].callback_start = host_ns();
+	int cancel = r->cb && r->cb->token ? r->cb->token(r->cb->arg, position, token) : 0;
+	if (ti >= 0) trace_host[ti].callback_end = host_ns();
+	if (cancel && !r->aborted && !r->ended) abort_run(r);
+}
+
 /* stage the PLE rows of the positions that are known and close ([ple_next, min(known, finished + PLE_AHEAD)), at most `budget` of them): position q is known when
    q < nprompt or the token q - 1 has arrived (q <= count); its 16 row numbers are the hash of ids[q-2..q], the rows are read from the file (the misses side by side: the
    WILLNEED hints go out first) and the flag is stored last */
@@ -361,9 +371,8 @@ static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 			uint64_t observed = trace_n ? host_ns() : 0;
 			for (; r->sent < r->count; r->sent++) {
 				int ti = trace_slot(r->sent);
-				if (ti >= 0) { trace_host[ti].observed = observed; trace_host[ti].callback_start = host_ns(); }
-				if (r->cb && r->cb->token && r->cb->token(r->cb->arg, r->sent, h_toks[r->sent]) && !r->aborted && !r->ended) abort_run(r);
-				if (ti >= 0) trace_host[ti].callback_end = host_ns();
+				if (ti >= 0) trace_host[ti].observed = observed;
+				deliver_token(r, r->sent, h_toks[r->sent]);
 			}
 		}
 		if (!fin) ple_pump(r, 8);
