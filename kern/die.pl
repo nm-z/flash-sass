@@ -219,7 +219,7 @@ require './trace.pl';
 my $maps = '';
 my $body = '';
 my $dispatch = '';
-my $dispatch_mode = $ENV{DIE_DISPATCH} // 'linear';
+my $dispatch_mode = $ENV{DIE_DISPATCH} // 'jump';
 die "DIE_DISPATCH must be linear, tree, or jump\n" unless $dispatch_mode =~ /\A(?:linear|tree|jump)\z/;
 for my $k (0 .. $#OPS) {
     my ($tag, $file, $kind, $env) = @{$OPS[$k]};

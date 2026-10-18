@@ -122,13 +122,13 @@
     my $xout = $ENV{GEMV_XOUT} ? 1 : 0;   # y rows go to every die's inbox: TAB (at the Y param) + XOFF + 4 row, and the phase is a send
     my $xcoal = $xout && $K == 2560 && $NS == 4;   # HC down: transpose warp results into contiguous peer writes
     if ($xcoal) {
-        my $rows = $ENV{GEMV_HC_ROWS} // 8;
+        my $rows = $ENV{GEMV_HC_ROWS} // 4;
         die "GEMV_HC_ROWS must be 4 or 8" unless $rows =~ /\A[48]\z/;
         $R = $rows;
     }
     my $hc_spread = $xcoal && $R == 4;
     my $active = $hc_spread ? 'P6' : 'PT';
-    my $slice_option = $ENV{GEMV_HC_SLICE_LOOP} // 0;
+    my $slice_option = $ENV{GEMV_HC_SLICE_LOOP} // 1;
     die "GEMV_HC_SLICE_LOOP must be 0 or 1" unless $slice_option =~ /\A[01]\z/;
     my $slice_loop = $slice_option && $xcoal && !$acc && !$bias;
     my $rms = $ENV{GEMV_RMS} ? 1 : 0;     # x = RMSNorm(S) (4 lanes of 2560) built in shared memory by every CTA (bf16hcrx)
