@@ -351,6 +351,7 @@ static void ph_attn_qsa(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, un
 	ph_ptr(p, 0x140, b->qg); ph_ptr(p, 0x148, b->k); ph_ptr(p, 0x150, b->v); ph_ptr(p, 0x158, w->attn_q_norm); ph_ptr(p, 0x160, w->attn_k_norm);
 	ph_ptr(p, 0x168, b->rope_cs); ph_ptr(p, 0x170, b->rope_sn); ph_ptr(p, 0x178, b->qo); ph_ptr(p, 0x180, b->kq); ph_ptr(p, 0x188, b->vq);
 	ph_tokv(P, p, 0x190, 0, t); ph_f32(p, 0x194, eps); ph_ptr(p, 0x198, b->ks); ph_ptr(p, 0x1a0, b->vs);
+	ph_ptr(p, 0x1a8, b->kv_rawmax);
 	prog_nobar(P);   /* the indexer does not read what the cache append writes */
 	p = prog_add(P, OP_IDXQK, 6);
 	ph_ptr(p, 0x140, b->iqk); ph_ptr(p, 0x148, w->indexer_qn); ph_ptr(p, 0x150, w->indexer_kn); ph_ptr(p, 0x158, b->rope_cs); ph_ptr(p, 0x160, b->rope_sn); ph_ptr(p, 0x168, b->iq);

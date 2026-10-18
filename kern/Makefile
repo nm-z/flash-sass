@@ -501,7 +501,7 @@ sample_test: sample_test.c dieops.h ../ref/sample.c ../ref/sample.h ../ref/fmath
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ sample_test.c ../ref/sample.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
 
 # ---- QSA: int8 KV cache, indexer, selection, gather through the persistent kernel vs ref/qsa.c ----
-qsa_test: qsa_test.c test_guards.h qsa_padding_test.h dieops.h ../ref/qsa.c ../ref/qsa.h ../ref/attn.c ../ref/attn.h ../ref/fmath.c ../ref/quant.c ../ref/gguf.c ../ref/checked.h
+qsa_test: qsa_test.c quant_range_cases.h test_guards.h qsa_padding_test.h dieops.h ../ref/qsa.c ../ref/qsa.h ../ref/attn.c ../ref/attn.h ../ref/fmath.c ../ref/quant.c ../ref/gguf.c ../ref/checked.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ qsa_test.c ../ref/qsa.c ../ref/attn.c ../ref/fmath.c ../ref/quant.c ../ref/gguf.c -I../ref -I$(CUDA)/include -lcuda -lm
 
 attnpartn_unitmap: attnpartn_unitmap.c
@@ -518,6 +518,15 @@ memtest: memtest.c
 fence: fence.c
 	$(CC) -std=gnu99 -O2 -Wall -o $@ fence.c -I$(CUDA)/include -lcuda
 
+quant_range_test: quant_range_test.c quant_range_cases.h ../ref/qsa.c ../ref/qsa.h ../ref/fmath.c ../ref/fmath.h
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -UNDEBUG -Wall -Wextra -o $@ quant_range_test.c ../ref/qsa.c ../ref/fmath.c -I../ref -lm
+.PHONY: test-quant-range
+quant_bench: quant_bench.c dieops.h
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -Wextra -DFLASH_REV='"$(FLASH_REV)"' -o $@ quant_bench.c -I$(CUDA)/include -lcuda -lm
+
+test-quant-range: quant_range_test
+	./quant_range_test
+
 # Disk PLE readers and read-only file I/O measurements.
 ple_read_test: ple_read_test.c ple_read_pool.h ple_read_reload.h
 	$(CC) -std=gnu99 -O2 -Wall -Wextra -pthread -o $@ $<
@@ -528,7 +537,7 @@ ple_read_bench: ple_read_bench.c ple_read_pool.h
 ple_read_audit: ple_read_bench.c ple_read_pool.h
 	$(CC) -std=gnu99 -O2 -Wall -Wextra -pthread -DPLE_READ_AUDIT -DFLASH_REV='"$(FLASH_REV)"' -o $@ $<
 
-qsa_direct_test: qsa_direct_test.c qsa_direct_projection.h qsa_direct_fixtures.h qsa_test.c test_guards.h qsa_padding_test.h prog.c prog.h dieops.h ../ref/qsa.c ../ref/qsa.h ../ref/block.c ../ref/block.h ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c
+qsa_direct_test: qsa_direct_test.c qsa_direct_projection.h qsa_direct_fixtures.h qsa_test.c quant_range_cases.h test_guards.h qsa_padding_test.h prog.c prog.h dieops.h ../ref/qsa.c ../ref/qsa.h ../ref/block.c ../ref/block.h ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c ../ref/checked.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -DFLASH_REV='"$(FLASH_REV)"' -o $@ qsa_direct_test.c prog.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I$(CUDA)/include -lcuda -lm
 
 # Two-position descriptor and state equivalence tests.
