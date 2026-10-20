@@ -2129,6 +2129,15 @@ int main(int argc, char **argv) {
         setenv("ATTN_MAP", "1,1,1,1,4,4,4,4,5,5,5,5", 1)) {
         perror("set production topology environment"); goto done;
     }
+    /* Lock before opening the shared receipt or checkpoint. Append mode also
+     * preserves an existing stream when no checkpoint has been published. */
+    records = fopen(argv[14], "a+b");
+    if (!records) { perror(argv[14]); goto done; }
+    struct flock writer_lock = { .l_type = F_WRLCK, .l_whence = SEEK_SET };
+    if (fcntl(fileno(records), F_SETLK, &writer_lock) < 0) {
+        status = cli_fail("record stream is already in use or cannot be locked", strerror(errno));
+        goto done;
+    }
     receipt = fopen(argv[16], "a+b");
     if (!receipt) { perror(argv[16]); goto done; }
     if (model_oracle_verify_inputs(&cfg, receipt, &identity, &full_hash, error, sizeof error) < 0) {
@@ -2136,8 +2145,6 @@ int main(int argc, char **argv) {
     }
     if (stat(argv[15], &st) == 0) checkpoint_exists = 1;
     else if (errno != ENOENT) { perror(argv[15]); goto done; }
-    records = fopen(argv[14], checkpoint_exists ? "a+b" : "w+b");
-    if (!records) { perror(argv[14]); goto done; }
     if (checkpoint_exists) {
         checkpoint_in = fopen(argv[15], "rb");
         if (!checkpoint_in) { perror(argv[15]); goto done; }

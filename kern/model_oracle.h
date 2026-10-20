@@ -165,7 +165,9 @@ int model_oracle_verify_inputs_from_receipt(const model_oracle_config_t *config,
  * it starts at position 0 and writes a new record header; otherwise record_stream
  * must reference the existing record file (opened for read/append) and the
  * matching checkpoint restores scalar state. Caller owns the persistent record,
- * receipt, and checkpoint files (for example, under a DSH-owned NFS folder). */
+ * receipt, and checkpoint files (for example, under a DSH-owned folder), and
+ * must ensure exclusive writer access. The standalone CLI locks its record
+ * stream before input verification or checkpoint operations. */
 int model_oracle_open(model_oracle_t **out, const model_oracle_config_t *config,
                       const model_oracle_identity_t *identity,
                       FILE *record_stream, FILE *checkpoint_in,

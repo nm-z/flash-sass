@@ -20,7 +20,7 @@ MANIFESTS := /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /
 ORACLE_SOURCES := $(ROOT)/kern/model_oracle.c $(addprefix $(ROOT)/ref/,qsa.c block.c attn.c ple.c quant.c gguf.c fmath.c hc.c deltanet.c router.c split.c)
 ORACLE_HEADERS := $(ROOT)/kern/model_oracle.h $(wildcard $(ROOT)/ref/*.h)
 ORACLE_CFLAGS := -std=c11 -D_XOPEN_SOURCE=700 -O2 -ffp-contract=off -Wall -Wextra -Werror
-ORACLE_SOURCE_FILES := kern/model_oracle.c kern/model_oracle.h kern/model_oracle_gpu.h kern/model_test.c kern/model_qsa_test.h kern/qsa_state.h kern/prog.c kern/prog.h kern/holdc.c kern/hold.h $(patsubst $(ROOT)/%,%,$(wildcard $(ROOT)/ref/*.c $(ROOT)/ref/*.h))
+ORACLE_SOURCE_FILES := kern/model_oracle.c kern/model_oracle.h kern/model_oracle_gpu.h kern/model_test.c kern/model_qsa_test.h kern/qsa_state.h kern/prog.c kern/prog.h kern/holdc.c kern/hold.h kern/dieops.h $(patsubst $(ROOT)/%,%,$(wildcard $(ROOT)/ref/*.c $(ROOT)/ref/*.h))
 ORACLE_SOURCE_MANIFEST ?= $(OUT_DIR)/oracle-source.sha256
 ORACLE_REVISION ?= $(shell git -C $(ROOT) rev-parse HEAD)
 ORACLE_DATA ?= /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/b$(BLOCKS)-t$(TOKENS)
@@ -29,8 +29,16 @@ ORACLE_CHUNK ?= 32
 ORACLE_DIES ?= 0,1,2,3,4,5
 CACHE_SECOND_ROOT ?= /home/nate/work/fs9-sol-cache-tail
 .NOTPARALLEL:
+ifneq ($(GPUQ_JOB_ID),)
+ifeq ($(strip $(MAKECMDGOALS)),)
+$(error Default target builds CPU code; invoke a GPU execution target explicitly)
+endif
+ifneq ($(filter all cpu-check oracle-build oracle-check oracle-chunk cache-export cache-export-two-volumes kernel-build,$(MAKECMDGOALS)),)
+$(error Run CPU builds/reference work through dsh build outside gpuq)
+endif
+endif
 
-.PHONY: all cpu-check oracle-build oracle-check oracle-source-identity oracle-chunk model-oracle assembler-check kernel-build cache-export cache-export-two-volumes cache-identity identity model direct-identity direct-matrix
+.PHONY: all cpu-check oracle-header oracle-build oracle-check oracle-source-identity oracle-chunk model-oracle assembler-check kernel-build cache-export cache-export-two-volumes cache-identity identity model direct-identity direct-matrix
 all:
 	$(MAKE) -C $(ROOT)/kern model_test hold_cache libengine.so flashcore
 
@@ -58,10 +66,13 @@ $(OUT_DIR)/model_oracle: $(ORACLE_SOURCES) $(ORACLE_HEADERS) | $(OUT_DIR)
 $(OUT_DIR)/oracle_test: $(SOURCE_DIR)/oracle_test.c $(ORACLE_SOURCES) $(ORACLE_HEADERS) | $(OUT_DIR)
 	$(CC) $(ORACLE_CFLAGS) -o $@ $< $(ORACLE_SOURCES) -lcrypto -lm
 
-oracle-build: $(OUT_DIR)/model_oracle $(OUT_DIR)/oracle_test
+oracle-header:
+	$(MAKE) -B -C $(ROOT)/kern dieops.h
+
+oracle-build: oracle-header $(OUT_DIR)/model_oracle $(OUT_DIR)/oracle_test
 
 oracle-check: oracle-build
-	$(OUT_DIR)/oracle_test
+	$(OUT_DIR)/oracle_test $(OUT_DIR)/model_oracle
 	sha256sum $(OUT_DIR)/model_oracle $(OUT_DIR)/oracle_test
 
 oracle-source-identity: | $(OUT_DIR)
@@ -75,7 +86,6 @@ $(ORACLE_IDS):
 # CPU execution uses persistent storage outside GPUQ; every invocation commits
 # at most 32 positions, and resumes with the same content/geometry seal.
 oracle-chunk: oracle-build oracle-source-identity $(ORACLE_IDS)
-	$(if $(GPUQ_JOB_ID),$(error Run CPU oracle through dsh build outside gpuq),)
 	ldd $(OUT_DIR)/model_oracle
 	sha256sum $(OUT_DIR)/model_oracle $(ORACLE_IDS)
 	env SPLIT_SHARES=$(SHARES) ATTN_MAP=$(ATTENTION_MAP) $(OUT_DIR)/model_oracle $(ROOT) $(ORACLE_SOURCE_MANIFEST) $(ORACLE_REVISION) $(MODEL_CACHE) $(CACHE_ROOT)/manifest.new $(CACHE_ROOT)/tensors.sha256 $(CACHE_ROOT)/checkpoints.sha256 $(GGUF) $(PLE_GGUF) 192 $(ORACLE_IDS) $(BLOCKS) $(ORACLE_DIES) $(ORACLE_DATA)/records.bin $(ORACLE_DATA)/checkpoint.bin $(ORACLE_DATA)/receipt.bin $(ORACLE_CHUNK)

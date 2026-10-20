@@ -89,6 +89,11 @@ static int oracle_gpu_open(const uint32_t *ids, unsigned tokens, float epsilon,
     if (verified) { fprintf(stderr, "GPU oracle receipt: %s\n", error); return -1; }
     oracle_gpu_file = fopen(records, "rb");
     if (!oracle_gpu_file) { perror(records); return -1; }
+    struct flock reader_lock = { .l_type = F_RDLCK, .l_whence = SEEK_SET };
+    if (fcntl(fileno(oracle_gpu_file), F_SETLK, &reader_lock) < 0) {
+        snprintf(error, sizeof error, "record stream is being written or cannot be locked: %s", strerror(errno));
+        goto invalid;
+    }
     if (model_oracle_reader_open(&oracle_gpu_reader, oracle_gpu_file, &identity, error, sizeof error)) goto invalid;
     oracle_gpu_predictions = calloc(tokens, sizeof *oracle_gpu_predictions);
     if (!oracle_gpu_predictions) { snprintf(error, sizeof error, "prediction allocation failed"); goto invalid; }

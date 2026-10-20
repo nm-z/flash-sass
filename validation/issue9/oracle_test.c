@@ -1,10 +1,18 @@
+#define _POSIX_C_SOURCE 200809L
 #include "../../kern/model_oracle.h"
 
+#include <errno.h>
+#include <fcntl.h>
 #include <openssl/evp.h>
+#include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <time.h>
+#include <unistd.h>
 
 static int digest_bytes(const void *bytes, size_t byte_count, uint8_t digest[MODEL_ORACLE_SHA256_BYTES]) {
     unsigned int digest_len = 0;
@@ -29,7 +37,7 @@ static int compare_case(const char *name, const model_oracle_record_t *record,
     size_t got = fread(output, 1, sizeof output - 1, result);
     output[got] = '\0';
     if (expected_result < 0) {
-        if (actual >= 0 || strstr(output, "scalar_match:true")) ok = 0;
+        if (actual >= 0 || strstr(output, "\"scalar_match\":true")) ok = 0;
     } else {
         if (actual != expected_result || !strstr(output, expected_json)) ok = 0;
     }
@@ -71,7 +79,82 @@ static void initialize_observation(model_oracle_observation_t *observation,
     observation->byte_count = byte_count;
 }
 
-int main(void) {
+static int cli_lock_checks(const char *binary) {
+    char directory[] = "/tmp/flash-oracle-cli.XXXXXX";
+    char records[128], ids[128], checkpoint[128], receipt[128], error_path[128], missing[128];
+    const char sentinel[] = "uncommitted bytes must be preserved";
+    int failed = 0, record_fd = -1;
+    FILE *id_file = NULL;
+    if (!mkdtemp(directory)) { perror("oracle CLI scratch"); return -1; }
+    snprintf(records, sizeof records, "%s/records", directory);
+    snprintf(ids, sizeof ids, "%s/ids", directory);
+    snprintf(checkpoint, sizeof checkpoint, "%s/checkpoint", directory);
+    snprintf(receipt, sizeof receipt, "%s/receipt", directory);
+    snprintf(error_path, sizeof error_path, "%s/stderr", directory);
+    snprintf(missing, sizeof missing, "%s/missing-input", directory);
+    record_fd = open(records, O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC, 0600);
+    id_file = fopen(ids, "w");
+    if (record_fd < 0 || !id_file || write(record_fd, sentinel, sizeof sentinel) != sizeof sentinel) {
+        perror("oracle CLI fixtures"); failed = -1; goto done;
+    }
+    if (fputs("10\n", id_file) == EOF || fclose(id_file)) {
+        id_file = NULL; failed = -1; goto done;
+    }
+    id_file = NULL;
+    struct flock lock = { .l_type = F_WRLCK, .l_whence = SEEK_SET };
+    if (fcntl(record_fd, F_SETLK, &lock) < 0) { perror("oracle CLI parent lock"); failed = -1; goto done; }
+    for (int locked = 1; locked >= 0; locked--) {
+        if (!locked) {
+            lock.l_type = F_UNLCK;
+            if (fcntl(record_fd, F_SETLK, &lock) < 0) { failed = -1; break; }
+        }
+        pid_t child = fork();
+        if (child < 0) { perror("oracle CLI fork"); failed = -1; break; }
+        if (!child) {
+            int err = open(error_path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+            int out = open("/dev/null", O_WRONLY);
+            if (err < 0 || out < 0 || dup2(err, STDERR_FILENO) < 0 || dup2(out, STDOUT_FILENO) < 0) _Exit(125);
+            close(err); close(out);
+            char *arguments[] = {(char *)binary, directory, missing, "cli-test", directory,
+                missing, missing, missing, missing, missing, "192", ids, "1", "0,1,2,3,4,5",
+                records, checkpoint, receipt, "1", NULL};
+            execv(binary, arguments);
+            _Exit(127);
+        }
+        int status = 0, finished = 0;
+        struct timespec interval = { .tv_nsec = 10000000 };
+        for (int attempt = 0; attempt < 500; attempt++) {
+            pid_t result = waitpid(child, &status, WNOHANG);
+            if (result == child) { finished = 1; break; }
+            if (result < 0 && errno != EINTR) break;
+            nanosleep(&interval, NULL);
+        }
+        if (!finished) {
+            kill(child, SIGKILL);
+            while (waitpid(child, &status, 0) < 0 && errno == EINTR) {}
+        }
+        char error[1024] = {0}, actual[sizeof sentinel + 1] = {0};
+        FILE *err_file = fopen(error_path, "r");
+        if (err_file) { (void)fread(error, 1, sizeof error - 1, err_file); fclose(err_file); }
+        ssize_t bytes = pread(record_fd, actual, sizeof actual, 0);
+        int ok = finished && WIFEXITED(status) && WEXITSTATUS(status) == 1 &&
+            bytes == sizeof sentinel && !memcmp(actual, sentinel, sizeof sentinel);
+        if (locked) ok = ok && strstr(error, "record stream is already in use") && access(receipt, F_OK) != 0;
+        else ok = ok && strstr(error, "input verification failed");
+        const char *name = locked ? "CLI excludes concurrent writers before input verification" :
+            "failed CLI verification preserves existing record bytes";
+        if (ok) printf("PASS %s\n", name);
+        else { fprintf(stderr, "FAIL %s: status=%d error=%s\n", name, status, error); failed = -1; }
+    }
+done:
+    if (id_file) fclose(id_file);
+    if (record_fd >= 0) close(record_fd);
+    unlink(records); unlink(ids); unlink(checkpoint); unlink(receipt); unlink(error_path);
+    rmdir(directory);
+    return failed;
+}
+
+int main(int argc, char **argv) {
     static const uint8_t selected_bytes[8] = {1, 0, 0, 0, 2, 0, 0, 0};
     static const uint8_t scalar_bytes[4] = {0, 0, 128, 63};
     static const uint8_t changed_scalar_bytes[4] = {0, 0, 129, 63};
@@ -140,6 +223,9 @@ int main(void) {
     empty.item_count = 0;
     empty.items = NULL;
     failed += compare_case("empty record rejected", &empty, NULL, 0, -1, NULL);
+
+    if (argc == 2) failed += cli_lock_checks(argv[1]);
+    else if (argc != 1) { fprintf(stderr, "usage: %s [MODEL_ORACLE_BINARY]\n", argv[0]); return 2; }
 
     if (failed) return 1;
     puts("oracle API checks passed");

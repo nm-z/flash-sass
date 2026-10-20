@@ -41,7 +41,8 @@ actual exclusion. A budget of 512 first excludes at visible length 2052.
 
 ## Input identity and persistence
 
-The input seal covers sorted relative source keys and contents, tile metadata
+The input seal covers sorted relative source keys and contents (including the
+generated opcode header consumed by the model), tile metadata
 and contents, both GGUF checkpoint contents, teacher IDs, PLE offset, budget,
 epsilon and topology. The initial CPU verification hashes large inputs. Later
 CPU chunks and the GPU consumer reuse that receipt, rehash the small source
@@ -61,6 +62,10 @@ published with an atomic rename. The CLI synchronizes the containing
 directories. On resume, an incomplete suffix beyond the committed record
 offset is truncated; a record stream shorter than that offset is rejected.
 CPU records and checkpoints live outside GPUQ's captured output directory.
+The CLI acquires an exclusive nonblocking record-file lock before opening the
+shared receipt or checkpoint. The GPU consumer holds a shared record lock.
+An existing uncheckpointed record stream is preserved and rejected, rather
+than truncated by the CLI's initial file open.
 
 ## Remote commands
 
@@ -81,8 +86,12 @@ dsh build --host archy --admission-timeout 60 --require-tool cargo --require-too
 ssh archy gpuq run -- make -f /home/nate/work/fs9-sol/validation/issue9/Makefile TOKENS=9 BLOCKS=1 HOST_KV=1 model-oracle
 ```
 
-Invoke the same CPU chunk target until its structured completion field is true.
+Give the first CPU invocation enough DSH time for the complete large-file hash
+pass as well as its scalar chunk. Invoke the same CPU chunk target until its
+structured completion field is true.
 All chunks for one record stream must use the same identities and geometry.
+Keep `ORACLE_REVISION` fixed to the chosen implementation revision across later
+documentation or request-runner commits.
 Copy returned executables into the isolated Archy checkout before queueing GPU
 work. The GPU targets compile nothing. Existing serving holders and services
 stay under their owners' control.
@@ -93,6 +102,7 @@ stay under their owners' control.
 | --- | --- | --- |
 | DSH `build-2688266-1792494343255683276` on Archy | 9 public API cases passed; producer and consumer built | Valid raw/digest comparison; one-bit, size, type and shape mismatch; missing, duplicate and extra labels; empty-record rejection. No CUDA execution. |
 | Same routed build | 46 boundary checks passed | Argument/capture/oracle scope and empty/missing receipt rejection before CUDA; positive controls intercepted `cuInit`. No numerical model validation. |
+| DSH `build-2802738-1792494998585080917` on Archy | 11 API/CLI checks and 46 boundary checks passed | Adds concurrent-writer exclusion before verification and preservation of existing record bytes after failed verification. Builds the consumer with shared reader locking. No CUDA execution. |
 | GPUQ `796ebc95-d3cc-45dd-ad6b-b25710a895c0` | Failed at the first direct case with illegal instruction | Built with a stale external MaxAs lacking the repository's BRX encoding/relocation patches. This is retained as a failed attempt. |
 | DSH `build-1864214-1792491727574313292` | Patched cubin rebuilt with input receipt | Private MaxAs files match `maxas-patch`; cubin SHA-256 `aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423`. This build result alone is not GPU validation. |
 
