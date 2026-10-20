@@ -1,0 +1,10 @@
+523110f37d2aa27e4af29ea8c831f084fd6c8a36
+M	kern/qsa_test.c
+diff --git a/kern/qsa_test.c b/kern/qsa_test.c
+index 810f674..176bf89 100644
+--- a/kern/qsa_test.c
++++ b/kern/qsa_test.c
+@@ -204 +204 @@ static int test_idxscore(unsigned nv, unsigned NBLK) {
+-	if (nv == 0) t = 0;
++	if (nv == 0) t = 0; else if (t > 262143) t = 262143;   /* last supported zero-based position; the RNG draw above is kept */
+PASS: all remaining kern/ref inputs are unchanged from the measured model/engine revision.
