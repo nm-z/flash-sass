@@ -1636,7 +1636,11 @@ count with predicated lanes); a `PRMT` must be read ≥ 6 cycles after it was is
 `mmproj-BF16.gguf` (ViT 1152 × 27 layers, patch 16, merge 2; `clip.vision.is_deepstack_layers` is all false, so an
 image is just rows of 2560 that replace placeholder embeddings). The initial CPU-only encoder took 6 s for
 640 × 480 (300 tokens, a 20 × 15 grid). `flashvis` now selects the available GPU with the most free memory,
-with CPU fallback if no GPU backend is available or projector initialization fails. `FLASHVIS_DEVICE=cpu`
+with CPU fallback if no GPU backend is available or projector initialization fails. Standard attention avoids
+the non-finite output observed with M60 CUDA Flash Attention. Reported GPU encoding/allocation errors or
+non-finite embeddings trigger a fresh CPU context and one retry of the original image, with CPU retained
+until restart. Output is checked before publication. See [issue #96 validation](validation/issue96/README.md).
+`FLASHVIS_DEVICE=cpu`
 forces CPU; a ggml device name selects a specific GPU. Build against matching GPU-enabled llama.cpp headers
 and libraries using `LLAMA_CPP` and `LLAMA_BUILD`. The ready log reports the selected backend, and encode
 timing excludes sending the resulting embeddings to the client. `flashd` decodes the request's `image_url`
