@@ -1,0 +1,729 @@
+{
+  "schema": "flash-sass-die-balance-v1",
+  "label": "baseline-20261018T0528Z",
+  "created_at": "2026-10-18T05:32:00.850787Z",
+  "hostname": "archy",
+  "request": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "What is the capital of France? Answer in one word."
+      }
+    ],
+    "max_tokens": 40,
+    "temperature": 0
+  },
+  "warmup_requests": 1,
+  "manifest": {
+    "config_before": "config rev=edc66d9 kv_host=0 ple_disk=1 maxt=230000 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=4096 two_position=0 prefill_chunk=0 cubin=/home/nate/claude/flash-sass-live/kern/die.cubin cubin_fnv=669dbb2e43186b1a\n",
+    "config_after": "config rev=edc66d9 kv_host=0 ple_disk=1 maxt=230000 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=4096 two_position=0 prefill_chunk=0 cubin=/home/nate/claude/flash-sass-live/kern/die.cubin cubin_fnv=669dbb2e43186b1a\n",
+    "frontend_sha256": "96b8266f325f0a2aa77f6c0814fdf0d0ef8eb0d4701bea9e60ba6cf644b3154a",
+    "frontend_env": {
+      "FLASHVIS_SOCK": "/tmp/flashvis.sock",
+      "FLASHD_NAME": "Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass"
+    },
+    "core_exe_sha256": "0257e1fbf4a6505bc54ed230b93abe22d5f21ed66daa22345a85b73f6a673d06",
+    "engine_sha256": "e0ce409d7f23f8ee924cf312c77eac4fbce89bfca6d180c6328f55b12e771eb2",
+    "model": {
+      "identity_kind": "stat",
+      "path": "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf",
+      "realpath": "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf",
+      "device": 63,
+      "inode": 49855818,
+      "size": 37623740192,
+      "mtime_ns": 1791944014788160106
+    },
+    "hardware": {
+      "identity": "GPU 0: Tesla M60 (UUID: GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f)\nGPU 1: Tesla M60 (UUID: GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28)\nGPU 2: Tesla M60 (UUID: GPU-c767d250-4454-d181-d648-8706b5f2fb64)\nGPU 3: Tesla M60 (UUID: GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6)\nGPU 4: Tesla M60 (UUID: GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d)\nGPU 5: Tesla M60 (UUID: GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4)\nGPU 6: Tesla M60 (UUID: GPU-431371bd-b482-96b2-4b70-04f83c6d075b)\nGPU 7: Tesla M60 (UUID: GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4)\n",
+      "pci_link_snapshot": "00:01.0 Speed 8GT/s Width x8\n00:02.0 Speed 8GT/s Width x16\n00:03.0 Speed 5GT/s Width x16\n"
+    },
+    "source_revision": "08c741228d03addb222f290e4f233147d8f34779",
+    "source_status": " M kern/die_balance_capture.rb\n"
+  },
+  "runs": [
+    {
+      "input_tokens": [
+        248045,
+        8678,
+        198,
+        24342,
+        286,
+        4879,
+        369,
+        716,
+        310,
+        830,
+        11553,
+        13,
+        5044,
+        1683,
+        15060,
+        1472,
+        279,
+        3274,
+        11,
+        9307,
+        1328,
+        30800,
+        11,
+        2814,
+        47675,
+        25605,
+        11,
+        321,
+        60445,
+        55404,
+        11,
+        27224,
+        11,
+        321,
+        30246,
+        303,
+        279,
+        1534,
+        4087,
+        13,
+        248046,
+        198,
+        248045,
+        846,
+        198,
+        3710,
+        369,
+        279,
+        6511,
+        314,
+        9338,
+        30,
+        21134,
+        303,
+        799,
+        3299,
+        13,
+        248046,
+        198,
+        248045,
+        74455,
+        198,
+        248068,
+        198
+      ],
+      "output_tokens": [
+        1596,
+        1144,
+        4087,
+        1156,
+        579,
+        4145,
+        3296,
+        25,
+        328,
+        3710,
+        369,
+        279,
+        6511,
+        314,
+        9338,
+        30,
+        21134,
+        303,
+        799,
+        3299,
+        1149,
+        14235,
+        1534,
+        799,
+        3299,
+        13,
+        28320,
+        1132,
+        799,
+        3299,
+        13,
+        11751,
+        13,
+        198,
+        248069,
+        271,
+        57590,
+        248046
+      ],
+      "done": "done 38 1 64 9749.8 6593.2 0 63\n",
+      "config": "config rev=edc66d9 kv_host=0 ple_disk=1 maxt=230000 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=4096 two_position=0 prefill_chunk=0 cubin=/home/nate/claude/flash-sass-live/kern/die.cubin cubin_fnv=669dbb2e43186b1a\n",
+      "profiles": [
+        {
+          "die": 0,
+          "raw": "prof: 1154 phases, 135.94 ms between the first and last timestamp\n  plerows       1 phases  107896.8 us (107896.8 us each)\n  actq256     146 phases    5052.4 us (  34.6 us each)\n  hcwsum       48 phases    2416.6 us (  50.3 us each)\n  bf16hcup     97 phases    2412.5 us (  24.9 us each)\n  bf16hcrwx    48 phases    1855.5 us (  38.7 us each)\n  q2moegn      96 phases    1738.8 us (  18.1 us each)\n  q3kk2560     48 phases    1618.9 us (  33.7 us each)\n  bf16hcrx     49 phases    1551.4 us (  31.7 us each)\n  xsend       112 phases    1389.6 us (  12.4 us each)\n  bf16k2560    49 phases    1353.7 us (  27.6 us each)\n  router       48 phases    1162.2 us (  24.2 us each)\n  q2moedn      48 phases    1003.5 us (  20.9 us each)\n  iq4k2560     20 phases     776.2 us (  38.8 us each)\n  q5kk2560      2 phases     690.2 us ( 345.1 us each)\n  ffnact       48 phases     640.0 us (  13.3 us each)\n  dnstep       36 phases     619.5 us (  17.2 us each)\n  dnnormx      36 phases     587.8 us (  16.3 us each)\n  iq4k6144     17 phases     566.3 us (  33.3 us each)\n  q4kk6144     15 phases     431.1 us (  28.7 us each)\n  moesel       48 phases     295.9 us (   6.2 us each)\n  q5kk6144      7 phases     289.8 us (  41.4 us each)\n  q4kk2560     10 phases     288.8 us (  28.9 us each)\n  q6kk1536acc   18 phases     244.7 us (  13.6 us each)\n  bf16bias     36 phases     239.6 us (   6.7 us each)\n  conv1d       36 phases     230.4 us (   6.4 us each)\n  q2k2560      10 phases     148.5 us (  14.8 us each)\n  q6kk1536      6 phases     112.6 us (  18.8 us each)\n  q3kk6144      3 phases     106.5 us (  35.5 us each)\n  q2acc640      4 phases      61.4 us (  15.4 us each)\n  b32q50acc     2 phases      54.3 us (  27.1 us each)\n  b32q40acc     2 phases      38.9 us (  19.5 us each)\n  rms2560       3 phases      21.5 us (   7.2 us each)\n  amax          1 phases      15.4 us (  15.4 us each)\n  argmax        1 phases      11.3 us (  11.3 us each)\n  pleconv       1 phases      10.2 us (  10.2 us each)\n  plegate       1 phases       6.1 us (   6.1 us each)\n  longest: #29 plerows 107897 us; #1150 q5kk2560 666 us; #1132 actq256 370 us; #941 actq256 368 us; #750 actq256 366 us; #1035 actq256 358 us; #374 actq256 357 us; #468 actq256 356 us;\n"
+        },
+        {
+          "die": 1,
+          "raw": "prof: 1214 phases, 135.94 ms between the first and last timestamp\n  plerows       1 phases  107897.9 us (107897.9 us each)\n  actq256     146 phases    3723.3 us (  25.5 us each)\n  hcwsum       48 phases    2866.2 us (  59.7 us each)\n  bf16hcup     97 phases    2529.3 us (  26.1 us each)\n  bf16hcrwx    48 phases    1903.6 us (  39.7 us each)\n  q3kk2560     49 phases    1745.9 us (  35.6 us each)\n  bf16hcrx     49 phases    1514.5 us (  30.9 us each)\n  bf16k2560    53 phases    1484.8 us (  28.0 us each)\n  q2moegn      96 phases    1469.4 us (  15.3 us each)\n  xsend       111 phases    1413.1 us (  12.7 us each)\n  router       48 phases    1165.3 us (  24.3 us each)\n  iq4k2560     22 phases     923.6 us (  42.0 us each)\n  q2moedn      48 phases     847.9 us (  17.7 us each)\n  ffnact       48 phases     641.0 us (  13.4 us each)\n  q5kk2560      4 phases     631.8 us ( 158.0 us each)\n  dnstep       36 phases     613.4 us (  17.0 us each)\n  dnnormx      36 phases     555.0 us (  15.4 us each)\n  iq4k6144     17 phases     541.7 us (  31.9 us each)\n  q4kk6144     15 phases     418.8 us (  27.9 us each)\n  q2k2560      16 phases     371.7 us (  23.2 us each)\n  q4kk2560     11 phases     310.3 us (  28.2 us each)\n  moesel       48 phases     291.8 us (   6.1 us each)\n  q5kk6144      7 phases     281.6 us (  40.2 us each)\n  bf16bias     36 phases     263.2 us (   7.3 us each)\n  attnpartn     4 phases     238.6 us (  59.6 us each)\n  q6kk1536acc   18 phases     237.6 us (  13.2 us each)\n  conv1d       36 phases     232.4 us (   6.5 us each)\n  q6kk1536      6 phases     108.5 us (  18.1 us each)\n  amax          1 phases     105.5 us ( 105.5 us each)\n  q3kk6144      3 phases     104.4 us (  34.8 us each)\n  idxsel       20 phases      87.0 us (   4.4 us each)\n  kvgather      4 phases      82.9 us (  20.7 us each)\n  q2acc640      4 phases      63.5 us (  15.9 us each)\n  b32q40acc     2 phases      41.0 us (  20.5 us each)\n  xcopy         1 phases      34.8 us (  34.8 us each)\n  attnmerge     4 phases      32.8 us (   8.2 us each)\n  attnqkq       4 phases      27.6 us (   6.9 us each)\n  b32q50acc     1 phases      26.6 us (  26.6 us each)\n  b32iq4nlacc    1 phases      23.6 us (  23.6 us each)\n  idxqk         4 phases      22.5 us (   5.6 us each)\n  rms2560       3 phases      22.5 us (   7.5 us each)\n  idxscore      4 phases      17.4 us (   4.4 us each)\n  argmax        1 phases      10.2 us (  10.2 us each)\n  pleconv       1 phases       9.2 us (   9.2 us each)\n  plegate       1 phases       5.1 us (   5.1 us each)\n  longest: #26 plerows 107898 us; #1210 q5kk2560 579 us; #1192 actq256 370 us; #1001 actq256 368 us; #807 actq256 366 us; #1092 actq256 358 us; #525 actq256 355 us; #713 actq256 355 us;\n"
+        },
+        {
+          "die": 2,
+          "raw": "prof: 1154 phases, 135.94 ms between the first and last timestamp\n  plerows       1 phases  107894.8 us (107894.8 us each)\n  actq256     146 phases    5942.3 us (  40.7 us each)\n  hcwsum       48 phases    3184.6 us (  66.3 us each)\n  bf16hcup     97 phases    2220.0 us (  22.9 us each)\n  bf16hcrwx    48 phases    2188.3 us (  45.6 us each)\n  q3kk2560     50 phases    1507.3 us (  30.1 us each)\n  bf16hcrx     49 phases    1476.6 us (  30.1 us each)\n  bf16k2560    49 phases    1356.8 us (  27.7 us each)\n  q2moegn      96 phases    1306.6 us (  13.6 us each)\n  router       48 phases    1146.9 us (  23.9 us each)\n  xsend       111 phases    1132.5 us (  10.2 us each)\n  q2moedn      48 phases     743.4 us (  15.5 us each)\n  iq4k2560     19 phases     705.5 us (  37.1 us each)\n  ffnact       48 phases     639.0 us (  13.3 us each)\n  dnstep       36 phases     596.0 us (  16.6 us each)\n  q5kk2560      1 phases     482.3 us ( 482.3 us each)\n  iq4k6144     17 phases     474.1 us (  27.9 us each)\n  q4kk6144     15 phases     370.7 us (  24.7 us each)\n  dnnormx      36 phases     295.9 us (   8.2 us each)\n  moesel       48 phases     290.8 us (   6.1 us each)\n  q5kk6144      7 phases     247.8 us (  35.4 us each)\n  q4kk2560      8 phases     245.8 us (  30.7 us each)\n  bf16bias     36 phases     229.4 us (   6.4 us each)\n  q6kk1536acc   18 phases     226.3 us (  12.6 us each)\n  conv1d       36 phases     208.9 us (   5.8 us each)\n  amax          1 phases     202.8 us ( 202.8 us each)\n  q2k2560      12 phases     158.7 us (  13.2 us each)\n  q6kk1536      6 phases     105.5 us (  17.6 us each)\n  q3kk6144      3 phases      89.1 us (  29.7 us each)\n  b32q40acc     3 phases      58.4 us (  19.5 us each)\n  b32iq4nlacc    2 phases      47.1 us (  23.6 us each)\n  xcopy         1 phases      34.8 us (  34.8 us each)\n  rms2560       3 phases      26.6 us (   8.9 us each)\n  b32q50acc     1 phases      26.6 us (  26.6 us each)\n  b32q80acc     1 phases      25.6 us (  25.6 us each)\n  q2acc640      1 phases      16.4 us (  16.4 us each)\n  plegate       1 phases      14.3 us (  14.3 us each)\n  pleconv       1 phases      10.2 us (  10.2 us each)\n  argmax        1 phases       9.2 us (   9.2 us each)\n  longest: #26 plerows 107895 us; #1150 q5kk2560 482 us; #1132 actq256 371 us; #747 actq256 367 us; #941 actq256 367 us; #1032 actq256 358 us; #374 actq256 357 us; #465 actq256 355 us;\n"
+        },
+        {
+          "die": 3,
+          "raw": "prof: 1154 phases, 135.94 ms between the first and last timestamp\n  plerows       1 phases  107895.8 us (107895.8 us each)\n  actq256     146 phases    4960.3 us (  34.0 us each)\n  bf16hcup     97 phases    2482.2 us (  25.6 us each)\n  hcwsum       48 phases    2452.5 us (  51.1 us each)\n  bf16hcrwx    48 phases    1879.0 us (  39.1 us each)\n  q2moegn      96 phases    1798.1 us (  18.7 us each)\n  q3kk2560     50 phases    1785.9 us (  35.7 us each)\n  bf16hcrx     49 phases    1531.9 us (  31.3 us each)\n  bf16k2560    49 phases    1348.6 us (  27.5 us each)\n  xsend       111 phases    1261.6 us (  11.4 us each)\n  router       48 phases    1141.8 us (  23.8 us each)\n  q2moedn      48 phases    1033.2 us (  21.5 us each)\n  iq4k2560     19 phases     811.0 us (  42.7 us each)\n  q5kk2560      1 phases     675.8 us ( 675.8 us each)\n  ffnact       48 phases     638.0 us (  13.3 us each)\n  dnstep       36 phases     630.8 us (  17.5 us each)\n  iq4k6144     17 phases     562.2 us (  33.1 us each)\n  q4kk6144     15 phases     433.2 us (  28.9 us each)\n  dnnormx      36 phases     429.1 us (  11.9 us each)\n  q5kk6144      7 phases     289.8 us (  41.4 us each)\n  moesel       48 phases     286.7 us (   6.0 us each)\n  q4kk2560      8 phases     279.6 us (  34.9 us each)\n  q6kk1536acc   18 phases     245.8 us (  13.7 us each)\n  bf16bias     36 phases     220.2 us (   6.1 us each)\n  conv1d       36 phases     215.0 us (   6.0 us each)\n  q2k2560      12 phases     179.2 us (  14.9 us each)\n  q6kk1536      6 phases     111.6 us (  18.6 us each)\n  q3kk6144      3 phases     105.5 us (  35.2 us each)\n  b32q50acc     2 phases      53.2 us (  26.6 us each)\n  q2acc640      3 phases      49.2 us (  16.4 us each)\n  b32q40acc     2 phases      37.9 us (  18.9 us each)\n  xcopy         1 phases      34.8 us (  34.8 us each)\n  b32iq4nlacc    1 phases      22.5 us (  22.5 us each)\n  rms2560       3 phases      21.5 us (   7.2 us each)\n  argmax        1 phases      10.2 us (  10.2 us each)\n  pleconv       1 phases      10.2 us (  10.2 us each)\n  plegate       1 phases       7.2 us (   7.2 us each)\n  amax          1 phases       6.1 us (   6.1 us each)\n  longest: #26 plerows 107896 us; #1150 q5kk2560 676 us; #1132 actq256 370 us; #938 actq256 368 us; #747 actq256 366 us; #371 actq256 357 us; #1032 actq256 357 us; #465 actq256 355 us;\n"
+        },
+        {
+          "die": 4,
+          "raw": "prof: 1214 phases, 135.94 ms between the first and last timestamp\n  plerows       1 phases  107895.8 us (107895.8 us each)\n  actq256     146 phases    3625.0 us (  24.8 us each)\n  hcwsum       48 phases    2609.2 us (  54.4 us each)\n  bf16hcup     97 phases    2480.1 us (  25.6 us each)\n  q3kk2560     53 phases    2069.5 us (  39.0 us each)\n  bf16hcrwx    48 phases    1891.3 us (  39.4 us each)\n  q2moegn      96 phases    1640.4 us (  17.1 us each)\n  bf16hcrx     49 phases    1520.6 us (  31.0 us each)\n  bf16k2560    53 phases    1496.1 us (  28.2 us each)\n  xsend       111 phases    1372.2 us (  12.4 us each)\n  router       48 phases    1154.0 us (  24.0 us each)\n  q2moedn      48 phases     952.3 us (  19.8 us each)\n  iq4k2560     22 phases     910.3 us (  41.4 us each)\n  ffnact       48 phases     638.0 us (  13.3 us each)\n  dnstep       36 phases     618.5 us (  17.2 us each)\n  q5kk2560      2 phases     590.8 us ( 295.4 us each)\n  dnnormx      36 phases     587.8 us (  16.3 us each)\n  iq4k6144     17 phases     541.7 us (  31.9 us each)\n  q4kk6144     15 phases     413.7 us (  27.6 us each)\n  q4kk2560     12 phases     312.3 us (  26.0 us each)\n  moesel       48 phases     293.9 us (   6.1 us each)\n  q5kk6144      7 phases     281.6 us (  40.2 us each)\n  bf16bias     36 phases     280.6 us (   7.8 us each)\n  attnpartn     4 phases     237.6 us (  59.4 us each)\n  q6kk1536acc   18 phases     236.5 us (  13.1 us each)\n  conv1d       36 phases     235.5 us (   6.5 us each)\n  q2k2560      11 phases     160.8 us (  14.6 us each)\n  amax          1 phases     111.6 us ( 111.6 us each)\n  q6kk1536      6 phases     107.5 us (  17.9 us each)\n  q3kk6144      3 phases     103.4 us (  34.5 us each)\n  idxsel       20 phases      89.1 us (   4.5 us each)\n  kvgather      4 phases      81.9 us (  20.5 us each)\n  b32q40acc     4 phases      79.9 us (  20.0 us each)\n  q6kk2560      2 phases      55.3 us (  27.6 us each)\n  b32iq4nlacc    2 phases      47.1 us (  23.6 us each)\n  xcopy         1 phases      34.8 us (  34.8 us each)\n  attnmerge     4 phases      32.8 us (   8.2 us each)\n  q2acc640      2 phases      31.7 us (  15.9 us each)\n  attnqkq       4 phases      25.6 us (   6.4 us each)\n  idxqk         4 phases      24.6 us (   6.1 us each)\n  rms2560       3 phases      22.5 us (   7.5 us each)\n  idxscore      4 phases      16.4 us (   4.1 us each)\n  argmax        1 phases      10.2 us (  10.2 us each)\n  pleconv       1 phases      10.2 us (  10.2 us each)\n  plegate       1 phases       7.2 us (   7.2 us each)\n  longest: #26 plerows 107896 us; #1210 q5kk2560 571 us; #1192 actq256 369 us; #998 actq256 367 us; #371 actq256 358 us; #1092 actq256 357 us; #904 actq256 352 us; #277 actq256 349 us;\n"
+        },
+        {
+          "die": 5,
+          "raw": "prof: 1214 phases, 135.94 ms between the first and last timestamp\n  plerows       1 phases  107894.8 us (107894.8 us each)\n  actq256     146 phases    3605.5 us (  24.7 us each)\n  bf16hcup     97 phases    2496.5 us (  25.7 us each)\n  hcwsum       48 phases    2365.4 us (  49.3 us each)\n  bf16hcrwx    48 phases    1901.6 us (  39.6 us each)\n  q3kk2560     52 phases    1885.2 us (  36.3 us each)\n  q2moegn      96 phases    1801.2 us (  18.8 us each)\n  bf16hcrx     49 phases    1522.7 us (  31.1 us each)\n  bf16k2560    53 phases    1482.8 us (  28.0 us each)\n  xsend       111 phases    1367.0 us (  12.3 us each)\n  router       48 phases    1148.9 us (  23.9 us each)\n  q2moedn      48 phases    1061.9 us (  22.1 us each)\n  iq4k2560     22 phases    1054.7 us (  47.9 us each)\n  ffnact       48 phases     645.1 us (  13.4 us each)\n  q5kk2560      4 phases     630.8 us ( 157.7 us each)\n  dnstep       36 phases     619.5 us (  17.2 us each)\n  dnnormx      36 phases     584.7 us (  16.2 us each)\n  iq4k6144     17 phases     535.6 us (  31.5 us each)\n  q4kk6144     15 phases     416.8 us (  27.8 us each)\n  moesel       48 phases     288.8 us (   6.0 us each)\n  q4kk2560      9 phases     280.6 us (  31.2 us each)\n  q5kk6144      7 phases     279.6 us (  39.9 us each)\n  bf16bias     36 phases     265.2 us (   7.4 us each)\n  q6kk1536acc   18 phases     238.6 us (  13.3 us each)\n  attnpartn     4 phases     237.6 us (  59.4 us each)\n  conv1d       36 phases     229.4 us (   6.4 us each)\n  q2k2560      11 phases     163.8 us (  14.9 us each)\n  amax          1 phases     112.6 us ( 112.6 us each)\n  q6kk1536      6 phases     107.5 us (  17.9 us each)\n  q3kk6144      3 phases     103.4 us (  34.5 us each)\n  q6kk2560      4 phases      91.1 us (  22.8 us each)\n  idxsel       20 phases      89.1 us (   4.5 us each)\n  kvgather      4 phases      81.9 us (  20.5 us each)\n  b32q40acc     3 phases      58.4 us (  19.5 us each)\n  xcopy         1 phases      34.8 us (  34.8 us each)\n  attnmerge     4 phases      32.8 us (   8.2 us each)\n  q2acc640      2 phases      29.7 us (  14.8 us each)\n  attnqkq       4 phases      27.6 us (   6.9 us each)\n  b32q50acc     1 phases      26.6 us (  26.6 us each)\n  b32q80acc     1 phases      24.6 us (  24.6 us each)\n  b32iq4nlacc    1 phases      23.6 us (  23.6 us each)\n  idxqk         4 phases      23.6 us (   5.9 us each)\n  rms2560       3 phases      21.5 us (   7.2 us each)\n  idxscore      4 phases      16.4 us (   4.1 us each)\n  argmax        1 phases      10.2 us (  10.2 us each)\n  pleconv       1 phases      10.2 us (  10.2 us each)\n  plegate       1 phases       7.2 us (   7.2 us each)\n  longest: #26 plerows 107895 us; #1210 q5kk2560 571 us; #747 actq256 366 us; #371 actq256 358 us; #465 actq256 355 us; #650 actq256 355 us; #556 actq256 352 us; #274 actq256 348 us;\n"
+        }
+      ],
+      "index": 0,
+      "warmup": true,
+      "response": {
+        "choices": [
+          {
+            "index": 0,
+            "finish_reason": "stop",
+            "message": {
+              "role": "assistant",
+              "content": "Paris",
+              "reasoning_content": "We need answer user's simple question: \"What is the capital of France? Answer in one word.\" Need final one word. Ensure only one word. Paris.\n"
+            }
+          }
+        ],
+        "created": 1792301522,
+        "id": "chatcmpl-flash",
+        "model": "Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 38,
+          "prompt_tokens": 64,
+          "total_tokens": 102
+        },
+        "timings": {
+          "prompt_n": 64,
+          "cache_n": 0,
+          "prompt_ms": 6593.2,
+          "prompt_per_second": 9.71,
+          "predicted_n": 38,
+          "predicted_ms": 3156.6,
+          "predicted_per_second": 11.72,
+          "decode_intervals": 37,
+          "decode_ms": 3156.6
+        }
+      }
+    },
+    {
+      "input_tokens": [
+        248045,
+        8678,
+        198,
+        24342,
+        286,
+        4879,
+        369,
+        716,
+        310,
+        830,
+        11553,
+        13,
+        5044,
+        1683,
+        15060,
+        1472,
+        279,
+        3274,
+        11,
+        9307,
+        1328,
+        30800,
+        11,
+        2814,
+        47675,
+        25605,
+        11,
+        321,
+        60445,
+        55404,
+        11,
+        27224,
+        11,
+        321,
+        30246,
+        303,
+        279,
+        1534,
+        4087,
+        13,
+        248046,
+        198,
+        248045,
+        846,
+        198,
+        3710,
+        369,
+        279,
+        6511,
+        314,
+        9338,
+        30,
+        21134,
+        303,
+        799,
+        3299,
+        13,
+        248046,
+        198,
+        248045,
+        74455,
+        198,
+        248068,
+        198
+      ],
+      "output_tokens": [
+        1596,
+        1144,
+        4087,
+        1156,
+        579,
+        4145,
+        3296,
+        25,
+        328,
+        3710,
+        369,
+        279,
+        6511,
+        314,
+        9338,
+        30,
+        21134,
+        303,
+        799,
+        3299,
+        1149,
+        14235,
+        1534,
+        799,
+        3299,
+        13,
+        28320,
+        1132,
+        799,
+        3299,
+        13,
+        11751,
+        13,
+        198,
+        248069,
+        271,
+        57590,
+        248046
+      ],
+      "done": "done 38 1 64 1062.9 28.4 63 0\n",
+      "config": "config rev=edc66d9 kv_host=0 ple_disk=1 maxt=230000 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=4096 two_position=0 prefill_chunk=0 cubin=/home/nate/claude/flash-sass-live/kern/die.cubin cubin_fnv=669dbb2e43186b1a\n",
+      "profiles": [
+        {
+          "die": 0,
+          "raw": "prof: 1154 phases, 28.10 ms between the first and last timestamp\n  actq256     146 phases    5097.5 us (  34.9 us each)\n  hcwsum       48 phases    2413.6 us (  50.3 us each)\n  bf16hcup     97 phases    2406.4 us (  24.8 us each)\n  bf16hcrwx    48 phases    1861.6 us (  38.8 us each)\n  q2moegn      96 phases    1735.7 us (  18.1 us each)\n  q3kk2560     48 phases    1618.9 us (  33.7 us each)\n  bf16hcrx     49 phases    1548.3 us (  31.6 us each)\n  xsend       112 phases    1394.7 us (  12.5 us each)\n  bf16k2560    49 phases    1349.6 us (  27.5 us each)\n  router       48 phases    1158.1 us (  24.1 us each)\n  q2moedn      48 phases     996.4 us (  20.8 us each)\n  iq4k2560     20 phases     776.2 us (  38.8 us each)\n  q5kk2560      2 phases     683.0 us ( 341.5 us each)\n  ffnact       48 phases     651.3 us (  13.6 us each)\n  dnstep       36 phases     614.4 us (  17.1 us each)\n  dnnormx      36 phases     569.3 us (  15.8 us each)\n  iq4k6144     17 phases     558.1 us (  32.8 us each)\n  q4kk6144     15 phases     432.1 us (  28.8 us each)\n  moesel       48 phases     294.9 us (   6.1 us each)\n  q4kk2560     10 phases     291.8 us (  29.2 us each)\n  q5kk6144      7 phases     290.8 us (  41.5 us each)\n  q6kk1536acc   18 phases     246.8 us (  13.7 us each)\n  bf16bias     36 phases     228.4 us (   6.3 us each)\n  conv1d       36 phases     227.3 us (   6.3 us each)\n  q2k2560      10 phases     150.5 us (  15.1 us each)\n  q6kk1536      6 phases     110.6 us (  18.4 us each)\n  q3kk6144      3 phases     106.5 us (  35.5 us each)\n  q2acc640      4 phases      62.5 us (  15.6 us each)\n  plerows       1 phases      59.4 us (  59.4 us each)\n  b32q50acc     2 phases      53.2 us (  26.6 us each)\n  b32q40acc     2 phases      38.9 us (  19.5 us each)\n  amax          1 phases      27.6 us (  27.6 us each)\n  rms2560       3 phases      21.5 us (   7.2 us each)\n  argmax        1 phases      10.2 us (  10.2 us each)\n  pleconv       1 phases      10.2 us (  10.2 us each)\n  plegate       1 phases       6.1 us (   6.1 us each)\n  longest: #1150 q5kk2560 659 us; #941 actq256 372 us; #1132 actq256 371 us; #750 actq256 370 us; #653 actq256 360 us; #1035 actq256 360 us; #468 actq256 359 us; #374 actq256 356 us;\n"
+        },
+        {
+          "die": 1,
+          "raw": "prof: 1214 phases, 28.10 ms between the first and last timestamp\n  actq256     146 phases    3747.8 us (  25.7 us each)\n  hcwsum       48 phases    2881.5 us (  60.0 us each)\n  bf16hcup     97 phases    2518.0 us (  26.0 us each)\n  bf16hcrwx    48 phases    1902.6 us (  39.6 us each)\n  q3kk2560     49 phases    1783.8 us (  36.4 us each)\n  bf16hcrx     49 phases    1508.4 us (  30.8 us each)\n  bf16k2560    53 phases    1483.8 us (  28.0 us each)\n  q2moegn      96 phases    1477.6 us (  15.4 us each)\n  xsend       111 phases    1408.0 us (  12.7 us each)\n  router       48 phases    1148.9 us (  23.9 us each)\n  iq4k2560     22 phases     918.5 us (  41.8 us each)\n  q2moedn      48 phases     846.8 us (  17.6 us each)\n  ffnact       48 phases     642.0 us (  13.4 us each)\n  q5kk2560      4 phases     627.7 us ( 156.9 us each)\n  dnstep       36 phases     609.3 us (  16.9 us each)\n  dnnormx      36 phases     551.9 us (  15.3 us each)\n  iq4k6144     17 phases     541.7 us (  31.9 us each)\n  q4kk6144     15 phases     418.8 us (  27.9 us each)\n  q2k2560      16 phases     367.6 us (  23.0 us each)\n  q4kk2560     11 phases     309.2 us (  28.1 us each)\n  moesel       48 phases     289.8 us (   6.0 us each)\n  q5kk6144      7 phases     283.6 us (  40.5 us each)\n  q6kk1536acc   18 phases     236.5 us (  13.1 us each)\n  attnpartn     4 phases     236.5 us (  59.1 us each)\n  conv1d       36 phases     235.5 us (   6.5 us each)\n  bf16bias     36 phases     229.4 us (   6.4 us each)\n  amax          1 phases     114.7 us ( 114.7 us each)\n  q6kk1536      6 phases     109.6 us (  18.3 us each)\n  q3kk6144      3 phases     102.4 us (  34.1 us each)\n  idxsel       20 phases      88.1 us (   4.4 us each)\n  kvgather      4 phases      84.0 us (  21.0 us each)\n  q2acc640      4 phases      62.5 us (  15.6 us each)\n  plerows       1 phases      58.4 us (  58.4 us each)\n  b32q40acc     2 phases      41.0 us (  20.5 us each)\n  xcopy         1 phases      33.8 us (  33.8 us each)\n  attnmerge     4 phases      32.8 us (   8.2 us each)\n  b32q50acc     1 phases      27.6 us (  27.6 us each)\n  attnqkq       4 phases      26.6 us (   6.7 us each)\n  idxqk         4 phases      24.6 us (   6.1 us each)\n  b32iq4nlacc    1 phases      23.6 us (  23.6 us each)\n  rms2560       3 phases      21.5 us (   7.2 us each)\n  idxscore      4 phases      16.4 us (   4.1 us each)\n  argmax        1 phases      10.2 us (  10.2 us each)\n  pleconv       1 phases      10.2 us (  10.2 us each)\n  plegate       1 phases       7.2 us (   7.2 us each)\n  longest: #1210 q5kk2560 572 us; #1001 actq256 371 us; #1192 actq256 370 us; #807 actq256 368 us; #525 actq256 360 us; #713 actq256 360 us; #1092 actq256 359 us; #619 actq256 357 us;\n"
+        },
+        {
+          "die": 2,
+          "raw": "prof: 1154 phases, 28.10 ms between the first and last timestamp\n  actq256     146 phases    5835.8 us (  40.0 us each)\n  hcwsum       48 phases    3175.4 us (  66.2 us each)\n  bf16hcup     97 phases    2200.6 us (  22.7 us each)\n  bf16hcrwx    48 phases    2185.2 us (  45.5 us each)\n  q3kk2560     50 phases    1571.8 us (  31.4 us each)\n  bf16hcrx     49 phases    1464.3 us (  29.9 us each)\n  bf16k2560    49 phases    1354.8 us (  27.6 us each)\n  q2moegn      96 phases    1309.7 us (  13.6 us each)\n  router       48 phases    1146.9 us (  23.9 us each)\n  xsend       111 phases    1143.8 us (  10.3 us each)\n  q2moedn      48 phases     742.4 us (  15.5 us each)\n  iq4k2560     19 phases     701.4 us (  36.9 us each)\n  ffnact       48 phases     641.0 us (  13.4 us each)\n  dnstep       36 phases     594.9 us (  16.5 us each)\n  iq4k6144     17 phases     484.4 us (  28.5 us each)\n  q5kk2560      1 phases     480.3 us ( 480.3 us each)\n  q4kk6144     15 phases     370.7 us (  24.7 us each)\n  dnnormx      36 phases     364.5 us (  10.1 us each)\n  moesel       48 phases     293.9 us (   6.1 us each)\n  q5kk6144      7 phases     245.8 us (  35.1 us each)\n  q4kk2560      8 phases     245.8 us (  30.7 us each)\n  q6kk1536acc   18 phases     234.5 us (  13.0 us each)\n  bf16bias     36 phases     222.2 us (   6.2 us each)\n  amax          1 phases     206.8 us ( 206.8 us each)\n  conv1d       36 phases     203.8 us (   5.7 us each)\n  q2k2560      12 phases     158.7 us (  13.2 us each)\n  q6kk1536      6 phases     105.5 us (  17.6 us each)\n  q3kk6144      3 phases      90.1 us (  30.0 us each)\n  b32q40acc     3 phases      59.4 us (  19.8 us each)\n  plerows       1 phases      58.4 us (  58.4 us each)\n  b32iq4nlacc    2 phases      48.1 us (  24.1 us each)\n  xcopy         1 phases      34.8 us (  34.8 us each)\n  b32q50acc     1 phases      26.6 us (  26.6 us each)\n  b32q80acc     1 phases      25.6 us (  25.6 us each)\n  rms2560       3 phases      23.6 us (   7.9 us each)\n  q2acc640      1 phases      15.4 us (  15.4 us each)\n  plegate       1 phases      13.3 us (  13.3 us each)\n  pleconv       1 phases      10.2 us (  10.2 us each)\n  argmax        1 phases       9.2 us (   9.2 us each)\n  longest: #1150 q5kk2560 480 us; #941 actq256 371 us; #1132 actq256 371 us; #747 actq256 369 us; #653 actq256 360 us; #1032 actq256 360 us; #465 actq256 359 us; #559 actq256 357 us;\n"
+        },
+        {
+          "die": 3,
+          "raw": "prof: 1154 phases, 28.10 ms between the first and last timestamp\n  actq256     146 phases    4980.7 us (  34.1 us each)\n  bf16hcup     97 phases    2476.0 us (  25.5 us each)\n  hcwsum       48 phases    2423.8 us (  50.5 us each)\n  bf16hcrwx    48 phases    1880.1 us (  39.2 us each)\n  q2moegn      96 phases    1803.3 us (  18.8 us each)\n  q3kk2560     50 phases    1802.2 us (  36.0 us each)\n  bf16hcrx     49 phases    1534.0 us (  31.3 us each)\n  bf16k2560    49 phases    1341.4 us (  27.4 us each)\n  xsend       111 phases    1259.5 us (  11.3 us each)\n  router       48 phases    1140.7 us (  23.8 us each)\n  q2moedn      48 phases    1033.2 us (  21.5 us each)\n  iq4k2560     19 phases     803.8 us (  42.3 us each)\n  q5kk2560      1 phases     679.9 us ( 679.9 us each)\n  ffnact       48 phases     645.1 us (  13.4 us each)\n  dnstep       36 phases     642.0 us (  17.8 us each)\n  iq4k6144     17 phases     561.2 us (  33.0 us each)\n  q4kk6144     15 phases     437.2 us (  29.1 us each)\n  dnnormx      36 phases     402.4 us (  11.2 us each)\n  q5kk6144      7 phases     290.8 us (  41.5 us each)\n  moesel       48 phases     286.7 us (   6.0 us each)\n  q4kk2560      8 phases     278.5 us (  34.8 us each)\n  q6kk1536acc   18 phases     249.9 us (  13.9 us each)\n  bf16bias     36 phases     226.3 us (   6.3 us each)\n  conv1d       36 phases     215.0 us (   6.0 us each)\n  q2k2560      12 phases     175.1 us (  14.6 us each)\n  q6kk1536      6 phases     113.7 us (  18.9 us each)\n  q3kk6144      3 phases     105.5 us (  35.2 us each)\n  plerows       1 phases      59.4 us (  59.4 us each)\n  b32q50acc     2 phases      54.3 us (  27.1 us each)\n  q2acc640      3 phases      47.1 us (  15.7 us each)\n  b32q40acc     2 phases      37.9 us (  18.9 us each)\n  xcopy         1 phases      34.8 us (  34.8 us each)\n  rms2560       3 phases      22.5 us (   7.5 us each)\n  b32iq4nlacc    1 phases      22.5 us (  22.5 us each)\n  argmax        1 phases      11.3 us (  11.3 us each)\n  pleconv       1 phases      10.2 us (  10.2 us each)\n  plegate       1 phases       6.1 us (   6.1 us each)\n  amax          1 phases       6.1 us (   6.1 us each)\n  longest: #1150 q5kk2560 680 us; #938 actq256 372 us; #1132 actq256 371 us; #747 actq256 369 us; #1032 actq256 360 us; #465 actq256 359 us; #650 actq256 359 us; #371 actq256 356 us;\n"
+        },
+        {
+          "die": 4,
+          "raw": "prof: 1214 phases, 28.10 ms between the first and last timestamp\n  actq256     146 phases    3628.0 us (  24.8 us each)\n  hcwsum       48 phases    2597.9 us (  54.1 us each)\n  bf16hcup     97 phases    2467.8 us (  25.4 us each)\n  q3kk2560     53 phases    2151.4 us (  40.6 us each)\n  bf16hcrwx    48 phases    1901.6 us (  39.6 us each)\n  q2moegn      96 phases    1646.6 us (  17.2 us each)\n  bf16hcrx     49 phases    1530.9 us (  31.2 us each)\n  bf16k2560    53 phases    1487.9 us (  28.1 us each)\n  xsend       111 phases    1365.0 us (  12.3 us each)\n  router       48 phases    1146.9 us (  23.9 us each)\n  q2moedn      48 phases     954.4 us (  19.9 us each)\n  iq4k2560     22 phases     927.7 us (  42.2 us each)\n  ffnact       48 phases     634.9 us (  13.2 us each)\n  dnstep       36 phases     617.5 us (  17.2 us each)\n  q5kk2560      2 phases     590.8 us ( 295.4 us each)\n  dnnormx      36 phases     563.2 us (  15.6 us each)\n  iq4k6144     17 phases     544.8 us (  32.0 us each)\n  q4kk6144     15 phases     417.8 us (  27.9 us each)\n  q4kk2560     12 phases     309.2 us (  25.8 us each)\n  moesel       48 phases     289.8 us (   6.0 us each)\n  q5kk6144      7 phases     279.6 us (  39.9 us each)\n  q6kk1536acc   18 phases     241.7 us (  13.4 us each)\n  attnpartn     4 phases     237.6 us (  59.4 us each)\n  bf16bias     36 phases     232.4 us (   6.5 us each)\n  conv1d       36 phases     228.4 us (   6.3 us each)\n  q2k2560      11 phases     157.7 us (  14.3 us each)\n  amax          1 phases     114.7 us ( 114.7 us each)\n  q6kk1536      6 phases     106.5 us (  17.7 us each)\n  q3kk6144      3 phases     102.4 us (  34.1 us each)\n  idxsel       20 phases      88.1 us (   4.4 us each)\n  kvgather      4 phases      82.9 us (  20.7 us each)\n  b32q40acc     4 phases      77.8 us (  19.5 us each)\n  plerows       1 phases      59.4 us (  59.4 us each)\n  q6kk2560      2 phases      56.3 us (  28.2 us each)\n  b32iq4nlacc    2 phases      48.1 us (  24.1 us each)\n  xcopy         1 phases      33.8 us (  33.8 us each)\n  q2acc640      2 phases      31.7 us (  15.9 us each)\n  attnmerge     4 phases      30.7 us (   7.7 us each)\n  attnqkq       4 phases      25.6 us (   6.4 us each)\n  idxqk         4 phases      22.5 us (   5.6 us each)\n  rms2560       3 phases      22.5 us (   7.5 us each)\n  idxscore      4 phases      18.4 us (   4.6 us each)\n  argmax        1 phases      10.2 us (  10.2 us each)\n  pleconv       1 phases      10.2 us (  10.2 us each)\n  plegate       1 phases       6.1 us (   6.1 us each)\n  longest: #1210 q5kk2560 571 us; #998 actq256 372 us; #1192 actq256 371 us; #1092 actq256 360 us; #371 actq256 355 us; #277 actq256 353 us; #904 actq256 346 us; #89 actq256 308 us;\n"
+        },
+        {
+          "die": 5,
+          "raw": "prof: 1214 phases, 28.10 ms between the first and last timestamp\n  actq256     146 phases    3650.6 us (  25.0 us each)\n  bf16hcup     97 phases    2474.0 us (  25.5 us each)\n  hcwsum       48 phases    2347.0 us (  48.9 us each)\n  bf16hcrwx    48 phases    1910.8 us (  39.8 us each)\n  q3kk2560     52 phases    1894.4 us (  36.4 us each)\n  q2moegn      96 phases    1802.2 us (  18.8 us each)\n  bf16hcrx     49 phases    1527.8 us (  31.2 us each)\n  bf16k2560    53 phases    1478.7 us (  27.9 us each)\n  xsend       111 phases    1370.1 us (  12.3 us each)\n  router       48 phases    1152.0 us (  24.0 us each)\n  q2moedn      48 phases    1059.8 us (  22.1 us each)\n  iq4k2560     22 phases    1057.8 us (  48.1 us each)\n  ffnact       48 phases     638.0 us (  13.3 us each)\n  q5kk2560      4 phases     631.8 us ( 158.0 us each)\n  dnstep       36 phases     619.5 us (  17.2 us each)\n  dnnormx      36 phases     559.1 us (  15.5 us each)\n  iq4k6144     17 phases     537.6 us (  31.6 us each)\n  q4kk6144     15 phases     417.8 us (  27.9 us each)\n  moesel       48 phases     291.8 us (   6.1 us each)\n  q5kk6144      7 phases     279.6 us (  39.9 us each)\n  q4kk2560      9 phases     272.4 us (  30.3 us each)\n  bf16bias     36 phases     260.1 us (   7.2 us each)\n  q6kk1536acc   18 phases     238.6 us (  13.3 us each)\n  attnpartn     4 phases     238.6 us (  59.6 us each)\n  conv1d       36 phases     227.3 us (   6.3 us each)\n  q2k2560      11 phases     157.7 us (  14.3 us each)\n  amax          1 phases     114.7 us ( 114.7 us each)\n  q6kk1536      6 phases     107.5 us (  17.9 us each)\n  q3kk6144      3 phases     104.4 us (  34.8 us each)\n  q6kk2560      4 phases     100.4 us (  25.1 us each)\n  idxsel       20 phases      88.1 us (   4.4 us each)\n  kvgather      4 phases      81.9 us (  20.5 us each)\n  plerows       1 phases      58.4 us (  58.4 us each)\n  b32q40acc     3 phases      58.4 us (  19.5 us each)\n  xcopy         1 phases      34.8 us (  34.8 us each)\n  attnmerge     4 phases      31.7 us (   7.9 us each)\n  q2acc640      2 phases      31.7 us (  15.9 us each)\n  b32q50acc     1 phases      26.6 us (  26.6 us each)\n  b32q80acc     1 phases      25.6 us (  25.6 us each)\n  attnqkq       4 phases      25.6 us (   6.4 us each)\n  rms2560       3 phases      23.6 us (   7.9 us each)\n  b32iq4nlacc    1 phases      23.6 us (  23.6 us each)\n  idxqk         4 phases      23.6 us (   5.9 us each)\n  idxscore      4 phases      17.4 us (   4.4 us each)\n  argmax        1 phases      10.2 us (  10.2 us each)\n  pleconv       1 phases      10.2 us (  10.2 us each)\n  plegate       1 phases       6.1 us (   6.1 us each)\n  longest: #1210 q5kk2560 572 us; #747 actq256 369 us; #465 actq256 359 us; #650 actq256 359 us; #371 actq256 356 us; #556 actq256 356 us; #274 actq256 352 us; #89 actq256 307 us;\n"
+        }
+      ],
+      "index": 1,
+      "warmup": false,
+      "response": {
+        "choices": [
+          {
+            "index": 0,
+            "finish_reason": "stop",
+            "message": {
+              "role": "assistant",
+              "content": "Paris",
+              "reasoning_content": "We need answer user's simple question: \"What is the capital of France? Answer in one word.\" Need final one word. Ensure only one word. Paris.\n"
+            }
+          }
+        ],
+        "created": 1792301532,
+        "id": "chatcmpl-flash",
+        "model": "Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 38,
+          "prompt_tokens": 64,
+          "total_tokens": 102
+        },
+        "timings": {
+          "prompt_n": 64,
+          "cache_n": 63,
+          "prompt_ms": 28.4,
+          "prompt_per_second": 35.21,
+          "predicted_n": 38,
+          "predicted_ms": 1034.5,
+          "predicted_per_second": 35.77,
+          "decode_intervals": 37,
+          "decode_ms": 1034.5
+        }
+      }
+    },
+    {
+      "input_tokens": [
+        248045,
+        8678,
+        198,
+        24342,
+        286,
+        4879,
+        369,
+        716,
+        310,
+        830,
+        11553,
+        13,
+        5044,
+        1683,
+        15060,
+        1472,
+        279,
+        3274,
+        11,
+        9307,
+        1328,
+        30800,
+        11,
+        2814,
+        47675,
+        25605,
+        11,
+        321,
+        60445,
+        55404,
+        11,
+        27224,
+        11,
+        321,
+        30246,
+        303,
+        279,
+        1534,
+        4087,
+        13,
+        248046,
+        198,
+        248045,
+        846,
+        198,
+        3710,
+        369,
+        279,
+        6511,
+        314,
+        9338,
+        30,
+        21134,
+        303,
+        799,
+        3299,
+        13,
+        248046,
+        198,
+        248045,
+        74455,
+        198,
+        248068,
+        198
+      ],
+      "output_tokens": [
+        1596,
+        1144,
+        4087,
+        1156,
+        579,
+        4145,
+        3296,
+        25,
+        328,
+        3710,
+        369,
+        279,
+        6511,
+        314,
+        9338,
+        30,
+        21134,
+        303,
+        799,
+        3299,
+        1149,
+        14235,
+        1534,
+        799,
+        3299,
+        13,
+        28320,
+        1132,
+        799,
+        3299,
+        13,
+        11751,
+        13,
+        198,
+        248069,
+        271,
+        57590,
+        248046
+      ],
+      "done": "done 38 1 64 1062.8 28.4 63 0\n",
+      "config": "config rev=edc66d9 kv_host=0 ple_disk=1 maxt=230000 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=4096 two_position=0 prefill_chunk=0 cubin=/home/nate/claude/flash-sass-live/kern/die.cubin cubin_fnv=669dbb2e43186b1a\n",
+      "profiles": [
+        {
+          "die": 0,
+          "raw": "prof: 1154 phases, 28.09 ms between the first and last timestamp\n  actq256     146 phases    5060.6 us (  34.7 us each)\n  bf16hcup     97 phases    2416.6 us (  24.9 us each)\n  hcwsum       48 phases    2406.4 us (  50.1 us each)\n  bf16hcrwx    48 phases    1837.1 us (  38.3 us each)\n  q2moegn      96 phases    1746.9 us (  18.2 us each)\n  q3kk2560     48 phases    1636.4 us (  34.1 us each)\n  bf16hcrx     49 phases    1556.5 us (  31.8 us each)\n  xsend       112 phases    1390.6 us (  12.4 us each)\n  bf16k2560    49 phases    1356.8 us (  27.7 us each)\n  router       48 phases    1160.2 us (  24.2 us each)\n  q2moedn      48 phases     999.4 us (  20.8 us each)\n  iq4k2560     20 phases     778.2 us (  38.9 us each)\n  q5kk2560      2 phases     685.1 us ( 342.5 us each)\n  ffnact       48 phases     638.0 us (  13.3 us each)\n  dnstep       36 phases     617.5 us (  17.2 us each)\n  dnnormx      36 phases     575.5 us (  16.0 us each)\n  iq4k6144     17 phases     560.1 us (  32.9 us each)\n  q4kk6144     15 phases     436.2 us (  29.1 us each)\n  moesel       48 phases     295.9 us (   6.2 us each)\n  q5kk6144      7 phases     291.8 us (  41.7 us each)\n  q4kk2560     10 phases     289.8 us (  29.0 us each)\n  q6kk1536acc   18 phases     246.8 us (  13.7 us each)\n  conv1d       36 phases     229.4 us (   6.4 us each)\n  bf16bias     36 phases     228.4 us (   6.3 us each)\n  q2k2560      10 phases     143.4 us (  14.3 us each)\n  q6kk1536      6 phases     111.6 us (  18.6 us each)\n  q3kk6144      3 phases     105.5 us (  35.2 us each)\n  q2acc640      4 phases      64.5 us (  16.1 us each)\n  plerows       1 phases      59.4 us (  59.4 us each)\n  b32q50acc     2 phases      54.3 us (  27.1 us each)\n  b32q40acc     2 phases      38.9 us (  19.5 us each)\n  amax          1 phases      26.6 us (  26.6 us each)\n  rms2560       3 phases      23.6 us (   7.9 us each)\n  argmax        1 phases      11.3 us (  11.3 us each)\n  pleconv       1 phases      10.2 us (  10.2 us each)\n  plegate       1 phases       5.1 us (   5.1 us each)\n  longest: #1150 q5kk2560 662 us; #1132 actq256 369 us; #750 actq256 367 us; #559 actq256 365 us; #653 actq256 361 us; #941 actq256 358 us; #1035 actq256 357 us; #374 actq256 356 us;\n"
+        },
+        {
+          "die": 1,
+          "raw": "prof: 1214 phases, 28.09 ms between the first and last timestamp\n  actq256     146 phases    3745.8 us (  25.7 us each)\n  hcwsum       48 phases    2867.2 us (  59.7 us each)\n  bf16hcup     97 phases    2499.6 us (  25.8 us each)\n  bf16hcrwx    48 phases    1892.4 us (  39.4 us each)\n  q3kk2560     49 phases    1702.9 us (  34.8 us each)\n  bf16k2560    53 phases    1506.3 us (  28.4 us each)\n  bf16hcrx     49 phases    1505.3 us (  30.7 us each)\n  q2moegn      96 phases    1473.5 us (  15.3 us each)\n  xsend       111 phases    1398.8 us (  12.6 us each)\n  router       48 phases    1155.1 us (  24.1 us each)\n  iq4k2560     22 phases     930.8 us (  42.3 us each)\n  q2moedn      48 phases     852.0 us (  17.7 us each)\n  ffnact       48 phases     641.0 us (  13.4 us each)\n  q5kk2560      4 phases     640.0 us ( 160.0 us each)\n  dnstep       36 phases     612.4 us (  17.0 us each)\n  dnnormx      36 phases     562.2 us (  15.6 us each)\n  iq4k6144     17 phases     540.7 us (  31.8 us each)\n  q4kk6144     15 phases     419.8 us (  28.0 us each)\n  q2k2560      16 phases     371.7 us (  23.2 us each)\n  q4kk2560     11 phases     314.4 us (  28.6 us each)\n  moesel       48 phases     293.9 us (   6.1 us each)\n  bf16bias     36 phases     288.8 us (   8.0 us each)\n  q5kk6144      7 phases     278.5 us (  39.8 us each)\n  q6kk1536acc   18 phases     239.6 us (  13.3 us each)\n  attnpartn     4 phases     239.6 us (  59.9 us each)\n  conv1d       36 phases     238.6 us (   6.6 us each)\n  amax          1 phases     109.6 us ( 109.6 us each)\n  q6kk1536      6 phases     108.5 us (  18.1 us each)\n  q3kk6144      3 phases     102.4 us (  34.1 us each)\n  idxsel       20 phases      89.1 us (   4.5 us each)\n  kvgather      4 phases      78.8 us (  19.7 us each)\n  q2acc640      4 phases      61.4 us (  15.4 us each)\n  plerows       1 phases      59.4 us (  59.4 us each)\n  b32q40acc     2 phases      42.0 us (  21.0 us each)\n  xcopy         1 phases      32.8 us (  32.8 us each)\n  attnmerge     4 phases      31.7 us (   7.9 us each)\n  b32q50acc     1 phases      26.6 us (  26.6 us each)\n  attnqkq       4 phases      25.6 us (   6.4 us each)\n  idxqk         4 phases      24.6 us (   6.1 us each)\n  b32iq4nlacc    1 phases      23.6 us (  23.6 us each)\n  rms2560       3 phases      21.5 us (   7.2 us each)\n  idxscore      4 phases      16.4 us (   4.1 us each)\n  argmax        1 phases      10.2 us (  10.2 us each)\n  pleconv       1 phases      10.2 us (  10.2 us each)\n  plegate       1 phases       7.2 us (   7.2 us each)\n  longest: #1210 q5kk2560 580 us; #1192 actq256 369 us; #807 actq256 367 us; #619 actq256 365 us; #713 actq256 360 us; #1001 actq256 358 us; #1092 actq256 357 us; #525 actq256 354 us;\n"
+        },
+        {
+          "die": 2,
+          "raw": "prof: 1154 phases, 28.09 ms between the first and last timestamp\n  actq256     146 phases    5888.0 us (  40.3 us each)\n  hcwsum       48 phases    3189.8 us (  66.5 us each)\n  bf16hcup     97 phases    2214.9 us (  22.8 us each)\n  bf16hcrwx    48 phases    2190.3 us (  45.6 us each)\n  q3kk2560     50 phases    1555.5 us (  31.1 us each)\n  bf16hcrx     49 phases    1463.3 us (  29.9 us each)\n  bf16k2560    49 phases    1365.0 us (  27.9 us each)\n  q2moegn      96 phases    1296.4 us (  13.5 us each)\n  router       48 phases    1142.8 us (  23.8 us each)\n  xsend       111 phases    1136.6 us (  10.2 us each)\n  q2moedn      48 phases     741.4 us (  15.4 us each)\n  iq4k2560     19 phases     706.6 us (  37.2 us each)\n  ffnact       48 phases     645.1 us (  13.4 us each)\n  dnstep       36 phases     597.0 us (  16.6 us each)\n  iq4k6144     17 phases     481.3 us (  28.3 us each)\n  q5kk2560      1 phases     479.2 us ( 479.2 us each)\n  q4kk6144     15 phases     371.7 us (  24.8 us each)\n  dnnormx      36 phases     306.2 us (   8.5 us each)\n  moesel       48 phases     286.7 us (   6.0 us each)\n  q5kk6144      7 phases     246.8 us (  35.3 us each)\n  q4kk2560      8 phases     241.7 us (  30.2 us each)\n  q6kk1536acc   18 phases     232.4 us (  12.9 us each)\n  bf16bias     36 phases     218.1 us (   6.1 us each)\n  amax          1 phases     209.9 us ( 209.9 us each)\n  conv1d       36 phases     200.7 us (   5.6 us each)\n  q2k2560      12 phases     162.8 us (  13.6 us each)\n  q6kk1536      6 phases     106.5 us (  17.7 us each)\n  q3kk6144      3 phases      90.1 us (  30.0 us each)\n  plerows       1 phases      59.4 us (  59.4 us each)\n  b32q40acc     3 phases      58.4 us (  19.5 us each)\n  b32iq4nlacc    2 phases      47.1 us (  23.6 us each)\n  xcopy         1 phases      33.8 us (  33.8 us each)\n  b32q50acc     1 phases      26.6 us (  26.6 us each)\n  b32q80acc     1 phases      26.6 us (  26.6 us each)\n  rms2560       3 phases      24.6 us (   8.2 us each)\n  q2acc640      1 phases      16.4 us (  16.4 us each)\n  plegate       1 phases      14.3 us (  14.3 us each)\n  argmax        1 phases       9.2 us (   9.2 us each)\n  pleconv       1 phases       9.2 us (   9.2 us each)\n  longest: #1150 q5kk2560 479 us; #1132 actq256 370 us; #747 actq256 367 us; #559 actq256 364 us; #653 actq256 360 us; #941 actq256 359 us; #1032 actq256 357 us; #374 actq256 356 us;\n"
+        },
+        {
+          "die": 3,
+          "raw": "prof: 1154 phases, 28.09 ms between the first and last timestamp\n  actq256     146 phases    4971.5 us (  34.1 us each)\n  bf16hcup     97 phases    2478.1 us (  25.5 us each)\n  hcwsum       48 phases    2454.5 us (  51.1 us each)\n  bf16hcrwx    48 phases    1877.0 us (  39.1 us each)\n  q2moegn      96 phases    1788.9 us (  18.6 us each)\n  q3kk2560     50 phases    1697.8 us (  34.0 us each)\n  bf16hcrx     49 phases    1530.9 us (  31.2 us each)\n  bf16k2560    49 phases    1340.4 us (  27.4 us each)\n  xsend       111 phases    1252.4 us (  11.3 us each)\n  router       48 phases    1147.9 us (  23.9 us each)\n  q2moedn      48 phases    1036.3 us (  21.6 us each)\n  iq4k2560     19 phases     816.1 us (  43.0 us each)\n  q5kk2560      1 phases     682.0 us ( 682.0 us each)\n  ffnact       48 phases     645.1 us (  13.4 us each)\n  dnstep       36 phases     639.0 us (  17.7 us each)\n  iq4k6144     17 phases     556.0 us (  32.7 us each)\n  q4kk6144     15 phases     432.1 us (  28.8 us each)\n  dnnormx      36 phases     429.1 us (  11.9 us each)\n  bf16bias     36 phases     288.8 us (   8.0 us each)\n  q5kk6144      7 phases     288.8 us (  41.3 us each)\n  moesel       48 phases     287.7 us (   6.0 us each)\n  q4kk2560      8 phases     279.6 us (  34.9 us each)\n  q6kk1536acc   18 phases     244.7 us (  13.6 us each)\n  conv1d       36 phases     218.1 us (   6.1 us each)\n  q2k2560      12 phases     178.2 us (  14.8 us each)\n  q6kk1536      6 phases     113.7 us (  18.9 us each)\n  q3kk6144      3 phases     103.4 us (  34.5 us each)\n  plerows       1 phases      59.4 us (  59.4 us each)\n  b32q50acc     2 phases      54.3 us (  27.1 us each)\n  q2acc640      3 phases      48.1 us (  16.0 us each)\n  b32q40acc     2 phases      38.9 us (  19.5 us each)\n  xcopy         1 phases      33.8 us (  33.8 us each)\n  rms2560       3 phases      22.5 us (   7.5 us each)\n  b32iq4nlacc    1 phases      22.5 us (  22.5 us each)\n  argmax        1 phases      10.2 us (  10.2 us each)\n  pleconv       1 phases      10.2 us (  10.2 us each)\n  plegate       1 phases       7.2 us (   7.2 us each)\n  amax          1 phases       7.2 us (   7.2 us each)\n  longest: #1150 q5kk2560 682 us; #1132 actq256 369 us; #747 actq256 367 us; #559 actq256 364 us; #650 actq256 360 us; #938 actq256 358 us; #1032 actq256 358 us; #371 actq256 356 us;\n"
+        },
+        {
+          "die": 4,
+          "raw": "prof: 1214 phases, 28.09 ms between the first and last timestamp\n  actq256     146 phases    3595.3 us (  24.6 us each)\n  hcwsum       48 phases    2604.0 us (  54.3 us each)\n  bf16hcup     97 phases    2481.2 us (  25.6 us each)\n  q3kk2560     53 phases    2150.4 us (  40.6 us each)\n  bf16hcrwx    48 phases    1893.4 us (  39.4 us each)\n  q2moegn      96 phases    1644.5 us (  17.1 us each)\n  bf16hcrx     49 phases    1524.7 us (  31.1 us each)\n  bf16k2560    53 phases    1476.6 us (  27.9 us each)\n  xsend       111 phases    1361.9 us (  12.3 us each)\n  router       48 phases    1151.0 us (  24.0 us each)\n  q2moedn      48 phases     958.5 us (  20.0 us each)\n  iq4k2560     22 phases     926.7 us (  42.1 us each)\n  ffnact       48 phases     640.0 us (  13.3 us each)\n  dnstep       36 phases     618.5 us (  17.2 us each)\n  q5kk2560      2 phases     591.9 us ( 295.9 us each)\n  dnnormx      36 phases     573.4 us (  15.9 us each)\n  iq4k6144     17 phases     548.9 us (  32.3 us each)\n  q4kk6144     15 phases     417.8 us (  27.9 us each)\n  q4kk2560     12 phases     309.2 us (  25.8 us each)\n  moesel       48 phases     287.7 us (   6.0 us each)\n  q5kk6144      7 phases     282.6 us (  40.4 us each)\n  q6kk1536acc   18 phases     238.6 us (  13.3 us each)\n  attnpartn     4 phases     235.5 us (  58.9 us each)\n  conv1d       36 phases     234.5 us (   6.5 us each)\n  bf16bias     36 phases     226.3 us (   6.3 us each)\n  q2k2560      11 phases     159.7 us (  14.5 us each)\n  amax          1 phases     116.7 us ( 116.7 us each)\n  q6kk1536      6 phases     108.5 us (  18.1 us each)\n  q3kk6144      3 phases     104.4 us (  34.8 us each)\n  idxsel       20 phases      88.1 us (   4.4 us each)\n  kvgather      4 phases      85.0 us (  21.2 us each)\n  b32q40acc     4 phases      77.8 us (  19.5 us each)\n  plerows       1 phases      59.4 us (  59.4 us each)\n  q6kk2560      2 phases      55.3 us (  27.6 us each)\n  b32iq4nlacc    2 phases      47.1 us (  23.6 us each)\n  attnmerge     4 phases      33.8 us (   8.4 us each)\n  xcopy         1 phases      33.8 us (  33.8 us each)\n  q2acc640      2 phases      30.7 us (  15.4 us each)\n  attnqkq       4 phases      27.6 us (   6.9 us each)\n  rms2560       3 phases      23.6 us (   7.9 us each)\n  idxqk         4 phases      23.6 us (   5.9 us each)\n  idxscore      4 phases      16.4 us (   4.1 us each)\n  argmax        1 phases      10.2 us (  10.2 us each)\n  pleconv       1 phases      10.2 us (  10.2 us each)\n  plegate       1 phases       7.2 us (   7.2 us each)\n  longest: #1210 q5kk2560 571 us; #1192 actq256 369 us; #998 actq256 357 us; #1092 actq256 357 us; #371 actq256 356 us; #277 actq256 351 us; #904 actq256 349 us; #89 actq256 306 us;\n"
+        },
+        {
+          "die": 5,
+          "raw": "prof: 1214 phases, 28.09 ms between the first and last timestamp\n  actq256     146 phases    3628.0 us (  24.8 us each)\n  bf16hcup     97 phases    2486.3 us (  25.6 us each)\n  hcwsum       48 phases    2333.7 us (  48.6 us each)\n  q3kk2560     52 phases    1957.9 us (  37.7 us each)\n  bf16hcrwx    48 phases    1892.4 us (  39.4 us each)\n  q2moegn      96 phases    1809.4 us (  18.8 us each)\n  bf16hcrx     49 phases    1527.8 us (  31.2 us each)\n  bf16k2560    53 phases    1473.5 us (  27.8 us each)\n  xsend       111 phases    1391.6 us (  12.5 us each)\n  router       48 phases    1143.8 us (  23.8 us each)\n  q2moedn      48 phases    1059.8 us (  22.1 us each)\n  iq4k2560     22 phases    1057.8 us (  48.1 us each)\n  ffnact       48 phases     642.0 us (  13.4 us each)\n  q5kk2560      4 phases     633.9 us ( 158.5 us each)\n  dnstep       36 phases     621.6 us (  17.3 us each)\n  dnnormx      36 phases     575.5 us (  16.0 us each)\n  iq4k6144     17 phases     538.6 us (  31.7 us each)\n  q4kk6144     15 phases     417.8 us (  27.9 us each)\n  moesel       48 phases     288.8 us (   6.0 us each)\n  q5kk6144      7 phases     282.6 us (  40.4 us each)\n  q4kk2560      9 phases     272.4 us (  30.3 us each)\n  q6kk1536acc   18 phases     236.5 us (  13.1 us each)\n  attnpartn     4 phases     236.5 us (  59.1 us each)\n  bf16bias     36 phases     225.3 us (   6.3 us each)\n  conv1d       36 phases     225.3 us (   6.3 us each)\n  q2k2560      11 phases     154.6 us (  14.1 us each)\n  amax          1 phases     112.6 us ( 112.6 us each)\n  q6kk1536      6 phases     104.4 us (  17.4 us each)\n  q3kk6144      3 phases     103.4 us (  34.5 us each)\n  idxsel       20 phases      87.0 us (   4.4 us each)\n  kvgather      4 phases      85.0 us (  21.2 us each)\n  q6kk2560      4 phases      79.9 us (  20.0 us each)\n  plerows       1 phases      58.4 us (  58.4 us each)\n  b32q40acc     3 phases      56.3 us (  18.8 us each)\n  attnmerge     4 phases      32.8 us (   8.2 us each)\n  xcopy         1 phases      32.8 us (  32.8 us each)\n  q2acc640      2 phases      30.7 us (  15.4 us each)\n  attnqkq       4 phases      26.6 us (   6.7 us each)\n  b32q50acc     1 phases      26.6 us (  26.6 us each)\n  b32q80acc     1 phases      25.6 us (  25.6 us each)\n  rms2560       3 phases      24.6 us (   8.2 us each)\n  b32iq4nlacc    1 phases      23.6 us (  23.6 us each)\n  idxqk         4 phases      22.5 us (   5.6 us each)\n  idxscore      4 phases      18.4 us (   4.6 us each)\n  argmax        1 phases      10.2 us (  10.2 us each)\n  pleconv       1 phases      10.2 us (  10.2 us each)\n  plegate       1 phases       6.1 us (   6.1 us each)\n  longest: #1210 q5kk2560 578 us; #747 actq256 368 us; #556 actq256 362 us; #650 actq256 360 us; #371 actq256 356 us; #465 actq256 353 us; #274 actq256 351 us; #89 actq256 306 us;\n"
+        }
+      ],
+      "index": 2,
+      "warmup": false,
+      "response": {
+        "choices": [
+          {
+            "index": 0,
+            "finish_reason": "stop",
+            "message": {
+              "role": "assistant",
+              "content": "Paris",
+              "reasoning_content": "We need answer user's simple question: \"What is the capital of France? Answer in one word.\" Need final one word. Ensure only one word. Paris.\n"
+            }
+          }
+        ],
+        "created": 1792301533,
+        "id": "chatcmpl-flash",
+        "model": "Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 38,
+          "prompt_tokens": 64,
+          "total_tokens": 102
+        },
+        "timings": {
+          "prompt_n": 64,
+          "cache_n": 63,
+          "prompt_ms": 28.4,
+          "prompt_per_second": 35.21,
+          "predicted_n": 38,
+          "predicted_ms": 1034.4,
+          "predicted_per_second": 35.77,
+          "decode_intervals": 37,
+          "decode_ms": 1034.4
+        }
+      }
+    },
+    {
+      "input_tokens": [
+        248045,
+        8678,
+        198,
+        24342,
+        286,
+        4879,
+        369,
+        716,
+        310,
+        830,
+        11553,
+        13,
+        5044,
+        1683,
+        15060,
+        1472,
+        279,
+        3274,
+        11,
+        9307,
+        1328,
+        30800,
+        11,
+        2814,
+        47675,
+        25605,
+        11,
+        321,
+        60445,
+        55404,
+        11,
+        27224,
+        11,
+        321,
+        30246,
+        303,
+        279,
+        1534,
+        4087,
+        13,
+        248046,
+        198,
+        248045,
+        846,
+        198,
+        3710,
+        369,
+        279,
+        6511,
+        314,
+        9338,
+        30,
+        21134,
+        303,
+        799,
+        3299,
+        13,
+        248046,
+        198,
+        248045,
+        74455,
+        198,
+        248068,
+        198
+      ],
+      "output_tokens": [
+        1596,
+        1144,
+        4087,
+        1156,
+        579,
+        4145,
+        3296,
+        25,
+        328,
+        3710,
+        369,
+        279,
+        6511,
+        314,
+        9338,
+        30,
+        21134,
+        303,
+        799,
+        3299,
+        1149,
+        14235,
+        1534,
+        799,
+        3299,
+        13,
+        28320,
+        1132,
+        799,
+        3299,
+        13,
+        11751,
+        13,
+        198,
+        248069,
+        271,
+        57590,
+        248046
+      ],
+      "done": "done 38 1 64 1062.4 28.5 63 0\n",
+      "config": "config rev=edc66d9 kv_host=0 ple_disk=1 maxt=230000 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=4096 two_position=0 prefill_chunk=0 cubin=/home/nate/claude/flash-sass-live/kern/die.cubin cubin_fnv=669dbb2e43186b1a\n",
+      "profiles": [
+        {
+          "die": 0,
+          "raw": "prof: 1154 phases, 28.08 ms between the first and last timestamp\n  actq256     146 phases    5069.8 us (  34.7 us each)\n  hcwsum       48 phases    2419.7 us (  50.4 us each)\n  bf16hcup     97 phases    2381.8 us (  24.6 us each)\n  bf16hcrwx    48 phases    1863.7 us (  38.8 us each)\n  q2moegn      96 phases    1738.8 us (  18.1 us each)\n  q3kk2560     48 phases    1588.2 us (  33.1 us each)\n  bf16hcrx     49 phases    1557.5 us (  31.8 us each)\n  xsend       112 phases    1391.6 us (  12.4 us each)\n  bf16k2560    49 phases    1358.8 us (  27.7 us each)\n  router       48 phases    1160.2 us (  24.2 us each)\n  q2moedn      48 phases    1001.5 us (  20.9 us each)\n  iq4k2560     20 phases     773.1 us (  38.7 us each)\n  q5kk2560      2 phases     691.2 us ( 345.6 us each)\n  ffnact       48 phases     644.1 us (  13.4 us each)\n  dnstep       36 phases     616.4 us (  17.1 us each)\n  dnnormx      36 phases     583.7 us (  16.2 us each)\n  iq4k6144     17 phases     550.9 us (  32.4 us each)\n  q4kk6144     15 phases     430.1 us (  28.7 us each)\n  moesel       48 phases     291.8 us (   6.1 us each)\n  q4kk2560     10 phases     291.8 us (  29.2 us each)\n  q5kk6144      7 phases     289.8 us (  41.4 us each)\n  bf16bias     36 phases     260.1 us (   7.2 us each)\n  q6kk1536acc   18 phases     243.7 us (  13.5 us each)\n  conv1d       36 phases     231.4 us (   6.4 us each)\n  q2k2560      10 phases     149.5 us (  15.0 us each)\n  q6kk1536      6 phases     111.6 us (  18.6 us each)\n  q3kk6144      3 phases     106.5 us (  35.5 us each)\n  q2acc640      4 phases      62.5 us (  15.6 us each)\n  plerows       1 phases      60.4 us (  60.4 us each)\n  b32q50acc     2 phases      53.2 us (  26.6 us each)\n  b32q40acc     2 phases      38.9 us (  19.5 us each)\n  rms2560       3 phases      22.5 us (   7.5 us each)\n  amax          1 phases      19.5 us (  19.5 us each)\n  argmax        1 phases      11.3 us (  11.3 us each)\n  pleconv       1 phases       9.2 us (   9.2 us each)\n  plegate       1 phases       5.1 us (   5.1 us each)\n  longest: #1150 q5kk2560 666 us; #1132 actq256 372 us; #750 actq256 369 us; #941 actq256 366 us; #277 actq256 358 us; #374 actq256 357 us; #1035 actq256 357 us; #559 actq256 354 us;\n"
+        },
+        {
+          "die": 1,
+          "raw": "prof: 1214 phases, 28.08 ms between the first and last timestamp\n  actq256     146 phases    3708.9 us (  25.4 us each)\n  hcwsum       48 phases    2865.2 us (  59.7 us each)\n  bf16hcup     97 phases    2511.9 us (  25.9 us each)\n  bf16hcrwx    48 phases    1872.9 us (  39.0 us each)\n  q3kk2560     49 phases    1806.3 us (  36.9 us each)\n  bf16hcrx     49 phases    1514.5 us (  30.9 us each)\n  bf16k2560    53 phases    1486.8 us (  28.1 us each)\n  q2moegn      96 phases    1477.6 us (  15.4 us each)\n  xsend       111 phases    1413.1 us (  12.7 us each)\n  router       48 phases    1154.0 us (  24.0 us each)\n  iq4k2560     22 phases     930.8 us (  42.3 us each)\n  q2moedn      48 phases     853.0 us (  17.8 us each)\n  ffnact       48 phases     642.0 us (  13.4 us each)\n  q5kk2560      4 phases     628.7 us ( 157.2 us each)\n  dnstep       36 phases     616.4 us (  17.1 us each)\n  dnnormx      36 phases     551.9 us (  15.3 us each)\n  iq4k6144     17 phases     545.8 us (  32.1 us each)\n  q4kk6144     15 phases     421.9 us (  28.1 us each)\n  q2k2560      16 phases     368.6 us (  23.0 us each)\n  q4kk2560     11 phases     305.2 us (  27.7 us each)\n  moesel       48 phases     293.9 us (   6.1 us each)\n  q5kk6144      7 phases     279.6 us (  39.9 us each)\n  q6kk1536acc   18 phases     242.7 us (  13.5 us each)\n  attnpartn     4 phases     237.6 us (  59.4 us each)\n  bf16bias     36 phases     232.4 us (   6.5 us each)\n  conv1d       36 phases     231.4 us (   6.4 us each)\n  amax          1 phases     110.6 us ( 110.6 us each)\n  q6kk1536      6 phases     105.5 us (  17.6 us each)\n  q3kk6144      3 phases     103.4 us (  34.5 us each)\n  idxsel       20 phases      89.1 us (   4.5 us each)\n  kvgather      4 phases      82.9 us (  20.7 us each)\n  q2acc640      4 phases      64.5 us (  16.1 us each)\n  plerows       1 phases      58.4 us (  58.4 us each)\n  b32q40acc     2 phases      39.9 us (  20.0 us each)\n  xcopy         1 phases      33.8 us (  33.8 us each)\n  attnmerge     4 phases      30.7 us (   7.7 us each)\n  b32q50acc     1 phases      27.6 us (  27.6 us each)\n  attnqkq       4 phases      24.6 us (   6.1 us each)\n  idxqk         4 phases      24.6 us (   6.1 us each)\n  b32iq4nlacc    1 phases      23.6 us (  23.6 us each)\n  rms2560       3 phases      22.5 us (   7.5 us each)\n  idxscore      4 phases      17.4 us (   4.4 us each)\n  argmax        1 phases      10.2 us (  10.2 us each)\n  pleconv       1 phases       9.2 us (   9.2 us each)\n  plegate       1 phases       6.1 us (   6.1 us each)\n  longest: #1210 q5kk2560 575 us; #1192 actq256 372 us; #807 actq256 369 us; #1001 actq256 366 us; #1092 actq256 357 us; #619 actq256 353 us; #713 actq256 351 us; #525 actq256 347 us;\n"
+        },
+        {
+          "die": 2,
+          "raw": "prof: 1154 phases, 28.08 ms between the first and last timestamp\n  actq256     146 phases    5888.0 us (  40.3 us each)\n  hcwsum       48 phases    3170.3 us (  66.0 us each)\n  bf16hcup     97 phases    2207.7 us (  22.8 us each)\n  bf16hcrwx    48 phases    2178.0 us (  45.4 us each)\n  q3kk2560     50 phases    1498.1 us (  30.0 us each)\n  bf16hcrx     49 phases    1486.8 us (  30.3 us each)\n  bf16k2560    49 phases    1355.8 us (  27.7 us each)\n  q2moegn      96 phases    1313.8 us (  13.7 us each)\n  router       48 phases    1146.9 us (  23.9 us each)\n  xsend       111 phases    1145.9 us (  10.3 us each)\n  q2moedn      48 phases     747.5 us (  15.6 us each)\n  iq4k2560     19 phases     715.8 us (  37.7 us each)\n  ffnact       48 phases     638.0 us (  13.3 us each)\n  dnstep       36 phases     597.0 us (  16.6 us each)\n  q5kk2560      1 phases     481.3 us ( 481.3 us each)\n  iq4k6144     17 phases     478.2 us (  28.1 us each)\n  q4kk6144     15 phases     370.7 us (  24.7 us each)\n  dnnormx      36 phases     308.2 us (   8.6 us each)\n  moesel       48 phases     284.7 us (   5.9 us each)\n  q4kk2560      8 phases     250.9 us (  31.4 us each)\n  q5kk6144      7 phases     245.8 us (  35.1 us each)\n  bf16bias     36 phases     238.6 us (   6.6 us each)\n  q6kk1536acc   18 phases     232.4 us (  12.9 us each)\n  conv1d       36 phases     210.9 us (   5.9 us each)\n  amax          1 phases     204.8 us ( 204.8 us each)\n  q2k2560      12 phases     169.0 us (  14.1 us each)\n  q6kk1536      6 phases     105.5 us (  17.6 us each)\n  q3kk6144      3 phases      87.0 us (  29.0 us each)\n  plerows       1 phases      58.4 us (  58.4 us each)\n  b32q40acc     3 phases      58.4 us (  19.5 us each)\n  b32iq4nlacc    2 phases      46.1 us (  23.0 us each)\n  xcopy         1 phases      33.8 us (  33.8 us each)\n  b32q50acc     1 phases      26.6 us (  26.6 us each)\n  b32q80acc     1 phases      25.6 us (  25.6 us each)\n  rms2560       3 phases      22.5 us (   7.5 us each)\n  q2acc640      1 phases      15.4 us (  15.4 us each)\n  plegate       1 phases      13.3 us (  13.3 us each)\n  argmax        1 phases      10.2 us (  10.2 us each)\n  pleconv       1 phases      10.2 us (  10.2 us each)\n  longest: #1150 q5kk2560 481 us; #1132 actq256 372 us; #747 actq256 369 us; #941 actq256 366 us; #277 actq256 358 us; #374 actq256 357 us; #1032 actq256 357 us; #559 actq256 353 us;\n"
+        },
+        {
+          "die": 3,
+          "raw": "prof: 1154 phases, 28.08 ms between the first and last timestamp\n  actq256     146 phases    4953.1 us (  33.9 us each)\n  bf16hcup     97 phases    2473.0 us (  25.5 us each)\n  hcwsum       48 phases    2446.3 us (  51.0 us each)\n  bf16hcrwx    48 phases    1865.7 us (  38.9 us each)\n  q2moegn      96 phases    1792.0 us (  18.7 us each)\n  q3kk2560     50 phases    1713.2 us (  34.3 us each)\n  bf16hcrx     49 phases    1536.0 us (  31.3 us each)\n  bf16k2560    49 phases    1346.6 us (  27.5 us each)\n  xsend       111 phases    1253.4 us (  11.3 us each)\n  router       48 phases    1141.8 us (  23.8 us each)\n  q2moedn      48 phases    1039.4 us (  21.7 us each)\n  iq4k2560     19 phases     816.1 us (  43.0 us each)\n  q5kk2560      1 phases     678.9 us ( 678.9 us each)\n  ffnact       48 phases     635.9 us (  13.2 us each)\n  dnstep       36 phases     629.8 us (  17.5 us each)\n  iq4k6144     17 phases     557.1 us (  32.8 us each)\n  dnnormx      36 phases     440.3 us (  12.2 us each)\n  q4kk6144     15 phases     438.3 us (  29.2 us each)\n  q5kk6144      7 phases     291.8 us (  41.7 us each)\n  moesel       48 phases     290.8 us (   6.1 us each)\n  q4kk2560      8 phases     287.7 us (  36.0 us each)\n  bf16bias     36 phases     281.6 us (   7.8 us each)\n  q6kk1536acc   18 phases     243.7 us (  13.5 us each)\n  conv1d       36 phases     215.0 us (   6.0 us each)\n  q2k2560      12 phases     181.2 us (  15.1 us each)\n  q6kk1536      6 phases     112.6 us (  18.8 us each)\n  q3kk6144      3 phases     103.4 us (  34.5 us each)\n  plerows       1 phases      59.4 us (  59.4 us each)\n  b32q50acc     2 phases      53.2 us (  26.6 us each)\n  q2acc640      3 phases      48.1 us (  16.0 us each)\n  b32q40acc     2 phases      38.9 us (  19.5 us each)\n  xcopy         1 phases      34.8 us (  34.8 us each)\n  rms2560       3 phases      23.6 us (   7.9 us each)\n  b32iq4nlacc    1 phases      22.5 us (  22.5 us each)\n  argmax        1 phases      11.3 us (  11.3 us each)\n  pleconv       1 phases       9.2 us (   9.2 us each)\n  amax          1 phases       7.2 us (   7.2 us each)\n  plegate       1 phases       6.1 us (   6.1 us each)\n  longest: #1150 q5kk2560 679 us; #1132 actq256 372 us; #747 actq256 370 us; #938 actq256 367 us; #277 actq256 358 us; #371 actq256 357 us; #1032 actq256 357 us; #559 actq256 353 us;\n"
+        },
+        {
+          "die": 4,
+          "raw": "prof: 1214 phases, 28.08 ms between the first and last timestamp\n  actq256     146 phases    3607.6 us (  24.7 us each)\n  hcwsum       48 phases    2601.0 us (  54.2 us each)\n  bf16hcup     97 phases    2473.0 us (  25.5 us each)\n  q3kk2560     53 phases    2018.3 us (  38.1 us each)\n  bf16hcrwx    48 phases    1897.5 us (  39.5 us each)\n  q2moegn      96 phases    1639.4 us (  17.1 us each)\n  bf16hcrx     49 phases    1540.1 us (  31.4 us each)\n  bf16k2560    53 phases    1488.9 us (  28.1 us each)\n  xsend       111 phases    1374.2 us (  12.4 us each)\n  router       48 phases    1161.2 us (  24.2 us each)\n  q2moedn      48 phases     948.2 us (  19.8 us each)\n  iq4k2560     22 phases     912.4 us (  41.5 us each)\n  ffnact       48 phases     641.0 us (  13.4 us each)\n  dnstep       36 phases     615.4 us (  17.1 us each)\n  dnnormx      36 phases     609.3 us (  16.9 us each)\n  q5kk2560      2 phases     604.2 us ( 302.1 us each)\n  iq4k6144     17 phases     537.6 us (  31.6 us each)\n  q4kk6144     15 phases     416.8 us (  27.8 us each)\n  q4kk2560     12 phases     318.5 us (  26.5 us each)\n  bf16bias     36 phases     291.8 us (   8.1 us each)\n  moesel       48 phases     288.8 us (   6.0 us each)\n  q5kk6144      7 phases     280.6 us (  40.1 us each)\n  attnpartn     4 phases     236.5 us (  59.1 us each)\n  q6kk1536acc   18 phases     234.5 us (  13.0 us each)\n  conv1d       36 phases     230.4 us (   6.4 us each)\n  q2k2560      11 phases     163.8 us (  14.9 us each)\n  q6kk1536      6 phases     108.5 us (  18.1 us each)\n  q3kk6144      3 phases     104.4 us (  34.8 us each)\n  amax          1 phases     102.4 us ( 102.4 us each)\n  idxsel       20 phases      89.1 us (   4.5 us each)\n  kvgather      4 phases      82.9 us (  20.7 us each)\n  b32q40acc     4 phases      76.8 us (  19.2 us each)\n  plerows       1 phases      60.4 us (  60.4 us each)\n  q6kk2560      2 phases      57.3 us (  28.7 us each)\n  b32iq4nlacc    2 phases      48.1 us (  24.1 us each)\n  xcopy         1 phases      34.8 us (  34.8 us each)\n  attnmerge     4 phases      33.8 us (   8.4 us each)\n  q2acc640      2 phases      31.7 us (  15.9 us each)\n  attnqkq       4 phases      28.7 us (   7.2 us each)\n  rms2560       3 phases      23.6 us (   7.9 us each)\n  idxqk         4 phases      22.5 us (   5.6 us each)\n  idxscore      4 phases      16.4 us (   4.1 us each)\n  argmax        1 phases      10.2 us (  10.2 us each)\n  pleconv       1 phases       9.2 us (   9.2 us each)\n  plegate       1 phases       6.1 us (   6.1 us each)\n  longest: #1210 q5kk2560 583 us; #1192 actq256 371 us; #998 actq256 366 us; #277 actq256 358 us; #1092 actq256 357 us; #371 actq256 356 us; #904 actq256 347 us; #89 actq256 307 us;\n"
+        },
+        {
+          "die": 5,
+          "raw": "prof: 1214 phases, 28.08 ms between the first and last timestamp\n  actq256     146 phases    3600.4 us (  24.7 us each)\n  bf16hcup     97 phases    2481.2 us (  25.6 us each)\n  hcwsum       48 phases    2350.1 us (  49.0 us each)\n  q3kk2560     52 phases    1889.3 us (  36.3 us each)\n  bf16hcrwx    48 phases    1885.2 us (  39.3 us each)\n  q2moegn      96 phases    1804.3 us (  18.8 us each)\n  bf16hcrx     49 phases    1538.0 us (  31.4 us each)\n  bf16k2560    53 phases    1482.8 us (  28.0 us each)\n  xsend       111 phases    1391.6 us (  12.5 us each)\n  router       48 phases    1151.0 us (  24.0 us each)\n  q2moedn      48 phases    1062.9 us (  22.1 us each)\n  iq4k2560     22 phases    1049.6 us (  47.7 us each)\n  q5kk2560      4 phases     632.8 us ( 158.2 us each)\n  ffnact       48 phases     628.7 us (  13.1 us each)\n  dnstep       36 phases     614.4 us (  17.1 us each)\n  dnnormx      36 phases     610.3 us (  17.0 us each)\n  iq4k6144     17 phases     535.6 us (  31.5 us each)\n  q4kk6144     15 phases     415.7 us (  27.7 us each)\n  moesel       48 phases     290.8 us (   6.1 us each)\n  q5kk6144      7 phases     279.6 us (  39.9 us each)\n  q4kk2560      9 phases     277.5 us (  30.8 us each)\n  bf16bias     36 phases     241.7 us (   6.7 us each)\n  q6kk1536acc   18 phases     237.6 us (  13.2 us each)\n  attnpartn     4 phases     235.5 us (  58.9 us each)\n  conv1d       36 phases     232.4 us (   6.5 us each)\n  q2k2560      11 phases     160.8 us (  14.6 us each)\n  amax          1 phases     114.7 us ( 114.7 us each)\n  q6kk1536      6 phases     105.5 us (  17.6 us each)\n  q3kk6144      3 phases     104.4 us (  34.8 us each)\n  q6kk2560      4 phases      99.3 us (  24.8 us each)\n  idxsel       20 phases      89.1 us (   4.5 us each)\n  kvgather      4 phases      81.9 us (  20.5 us each)\n  plerows       1 phases      59.4 us (  59.4 us each)\n  b32q40acc     3 phases      56.3 us (  18.8 us each)\n  xcopy         1 phases      33.8 us (  33.8 us each)\n  attnmerge     4 phases      32.8 us (   8.2 us each)\n  q2acc640      2 phases      30.7 us (  15.4 us each)\n  attnqkq       4 phases      26.6 us (   6.7 us each)\n  b32q50acc     1 phases      26.6 us (  26.6 us each)\n  b32q80acc     1 phases      25.6 us (  25.6 us each)\n  rms2560       3 phases      23.6 us (   7.9 us each)\n  b32iq4nlacc    1 phases      23.6 us (  23.6 us each)\n  idxqk         4 phases      22.5 us (   5.6 us each)\n  idxscore      4 phases      16.4 us (   4.1 us each)\n  argmax        1 phases       9.2 us (   9.2 us each)\n  pleconv       1 phases       9.2 us (   9.2 us each)\n  plegate       1 phases       6.1 us (   6.1 us each)\n  longest: #1210 q5kk2560 572 us; #747 actq256 368 us; #274 actq256 358 us; #371 actq256 356 us; #556 actq256 353 us; #650 actq256 350 us; #465 actq256 346 us; #89 actq256 307 us;\n"
+        }
+      ],
+      "index": 3,
+      "warmup": false,
+      "response": {
+        "choices": [
+          {
+            "index": 0,
+            "finish_reason": "stop",
+            "message": {
+              "role": "assistant",
+              "content": "Paris",
+              "reasoning_content": "We need answer user's simple question: \"What is the capital of France? Answer in one word.\" Need final one word. Ensure only one word. Paris.\n"
+            }
+          }
+        ],
+        "created": 1792301534,
+        "id": "chatcmpl-flash",
+        "model": "Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": 38,
+          "prompt_tokens": 64,
+          "total_tokens": 102
+        },
+        "timings": {
+          "prompt_n": 64,
+          "cache_n": 63,
+          "prompt_ms": 28.5,
+          "prompt_per_second": 35.09,
+          "predicted_n": 38,
+          "predicted_ms": 1033.9,
+          "predicted_per_second": 35.79,
+          "decode_intervals": 37,
+          "decode_ms": 1033.9
+        }
+      }
+    }
+  ]
+}

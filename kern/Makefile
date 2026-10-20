@@ -628,3 +628,9 @@ test-ple: ple_read_test ple_read_bench_test ple_read_audit_test
 	bash ./ple_prewarm_test.sh
 	bash ./ple_io_run_test.sh
 	bash ./ple_io_validate_test.sh
+
+# Offline checks for the six-die balance experiment; no CUDA or model required.
+.PHONY: die_balance_test
+die_balance_test:
+	ruby ../validation/issue54/test_die_balance.rb
+	ruby ../validation/issue54/test_die_balance_capture.rb

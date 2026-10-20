@@ -1,0 +1,47 @@
+{
+  "schema": "flash-sass-die-balance-analysis-v1",
+  "status": "pending",
+  "objective": "minimize max_run(max_die(profile header total_ms)); measured requests only",
+  "limits": [
+    "The last-token profiler omits phase 0; parallel die spans are never added.",
+    "Model identity uses path/stat metadata, not a complete content hash."
+  ],
+  "baseline": {
+    "path": "validation/issue54/baseline-20261018T053200Z/capture.json",
+    "label": "baseline-20261018T0528Z",
+    "config": {
+      "rev": "edc66d9",
+      "kv_host": "0",
+      "ple_disk": "1",
+      "maxt": "230000",
+      "layers": "48/48",
+      "nblk": "512",
+      "dies": "6",
+      "attn_dies": "1,4,5",
+      "split": "112,97,81,116,97,97",
+      "attn_map": "1,1,1,1,4,4,4,4,5,5,5,5",
+      "img_rows": "4096",
+      "two_position": "0",
+      "prefill_chunk": "0",
+      "cubin": "/home/nate/claude/flash-sass-live/kern/die.cubin",
+      "cubin_fnv": "669dbb2e43186b1a"
+    },
+    "repetitions": 3,
+    "objective_ms": 28.1,
+    "worst_spread_ms": 2.2927,
+    "mean_decode_tok_s": 35.77666666666667,
+    "per_die_max_total_ms": [
+      28.1,
+      28.1,
+      28.1,
+      28.1,
+      28.1,
+      28.1
+    ],
+    "failures": [],
+    "valid": true,
+    "role": "baseline"
+  },
+  "candidates": [],
+  "selected": null
+}
