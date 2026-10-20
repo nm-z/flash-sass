@@ -79,6 +79,7 @@ typedef struct {
     char *snapshots_csv;
     int modes_scalar;
     int modes_chunk3;
+    int capture_stages;
     char *ld_library_path;
     char *cuda_device_order;
 } options_t;
@@ -280,7 +281,7 @@ static void usage(FILE *f, const char *program) {
         "--manifest FILE x6 --holder-pid PID x6 --cuda-visible CSV "
         "--split-shares CSV --attn-map CSV --tokens N [--snapshots CSV] "
         "--nblk N --lock-fd FD [--ple-off N] [--timeout SEC] "
-        "[--weight-manifest FILE ...] [--self-test]\n", program);
+        "[--weight-manifest FILE ...] [--capture-stages] [--self-test]\n", program);
 }
 
 static int add_arg_string(char **slot, const char *value, const char *name) {
@@ -318,7 +319,7 @@ static int parse_options(int argc, char **argv, options_t *o) {
         OPT_REPO = 1000, OPT_OUT, OPT_PLE, OPT_REVISION, OPT_MANIFEST, OPT_PID,
         OPT_WEIGHT_MANIFEST, OPT_VISIBLE, OPT_SHARES, OPT_ATTN, OPT_TOKENS,
         OPT_SNAPSHOTS, OPT_NBLK, OPT_LOCK, OPT_PLE_OFF, OPT_TIMEOUT, OPT_KV,
-        OPT_MIN_FREE, OPT_MIN_HOST
+        OPT_MIN_FREE, OPT_MIN_HOST, OPT_CAPTURE_STAGES
     };
     static const struct option opts[] = {
         {"repo", required_argument, NULL, OPT_REPO},
@@ -340,6 +341,7 @@ static int parse_options(int argc, char **argv, options_t *o) {
         {"kv-hosts", required_argument, NULL, OPT_KV},
         {"min-free-mib", required_argument, NULL, OPT_MIN_FREE},
         {"min-host-mib", required_argument, NULL, OPT_MIN_HOST},
+        {"capture-stages", no_argument, NULL, OPT_CAPTURE_STAGES},
         {NULL, 0, NULL, 0}
     };
     unsigned tmp;
@@ -393,6 +395,10 @@ static int parse_options(int argc, char **argv, options_t *o) {
         case OPT_MIN_HOST:
             if (parse_uint(optarg, UINT32_MAX, &o->min_host_mib) < 0 || !o->min_host_mib) return ec_fail("invalid --min-host-mib");
             break;
+        case OPT_CAPTURE_STAGES:
+            if (o->capture_stages) return ec_fail("duplicate --capture-stages");
+            o->capture_stages = 1;
+            break;
         default: return ec_fail("unknown command-line option");
         }
     }
@@ -405,6 +411,8 @@ static int parse_options(int argc, char **argv, options_t *o) {
         return ec_fail("missing required paths, topology, holders, or request scope");
     if (o->tokens < 6 || o->tokens > EC_TOKEN_LIMIT || !o->budget || !revision_valid(o->revision))
         return ec_fail("invalid full-model scope");
+    if (o->capture_stages && o->tokens > 15)
+        return ec_fail("--capture-stages supports at most 15 prompt tokens plus one generated position");
     if (o->tokens > UINT32_MAX - 129u) return ec_fail("token count is too large for engine capacity");
     o->maxt = 128u * ((o->tokens + 2u + 127u) / 128u);
     if (parse_csv(o->visible_csv, o->visible, EC_DIES, 255, "CUDA visibility") < 0 ||
@@ -956,7 +964,7 @@ static int write_report(const options_t *o, const run_result_t *runs, size_t nru
         write_all_json_string(f, status) < 0 ||
         fprintf(f, ",\n  \"scope\":\"full48-six-die GPU-vs-GPU request fingerprints\",\n  \"revision\":") < 0 ||
         write_all_json_string(f, o->revision) < 0 ||
-        fprintf(f, ",\n  \"ple_path\":") < 0 || write_all_json_string(f, o->ple) < 0 ||
+        fprintf(f, ",\n  \"engine_stage_capture\":%s,\n  \"ple_path\":", o->capture_stages ? "true" : "false") < 0 || write_all_json_string(f, o->ple) < 0 ||
         fprintf(f, ",\n  \"ple_offset\":%u,\n  \"ple_hash_provenance\":\"declared from offline checkpoints.sha256; live shard not rehashed\",\n  \"ple_receipt_manifest\":",
                 o->ple_off) < 0 || write_all_json_string(f, o->ple_receipt_path) < 0 ||
         fprintf(f, ",\n  \"ple_receipt_identity_sha256\":") < 0 ||
@@ -1097,6 +1105,7 @@ static int run_private_core(const options_t *o, const char *mode, unsigned kv_ho
         if (out_fd != STDOUT_FILENO) close(out_fd);
         if (err_fd != STDERR_FILENO) close(err_fd);
         if (remove_inherited_engine_overrides() < 0) _exit(126);
+        if (setenv("FLASH_ENGINE_CAPTURE", o->capture_stages ? "1" : "0", 1)) _exit(126);
         if ((o->ld_library_path && setenv("LD_LIBRARY_PATH", o->ld_library_path, 1)) ||
             (o->cuda_device_order && setenv("CUDA_DEVICE_ORDER", o->cuda_device_order, 1)) ||
             setenv("CUDA_VISIBLE_DEVICES", o->visible_csv, 1) ||
@@ -1353,6 +1362,7 @@ static int config_matches(const options_t *o, const char *mode, unsigned kv, con
     int found_rev = 0, found_kv = 0, found_disk = 0, found_maxt = 0;
     int found_layers = 0, found_nblk = 0, found_dies = 0, found_split = 0;
     int found_map = 0, found_attn = 0, found_pair = 0, found_chunk = 0;
+    int found_capture = !o->capture_stages;
     unsigned active[EC_DIES] = {0};
     char attn_dies[64] = {0};
     size_t used = 0;
@@ -1388,11 +1398,12 @@ static int config_matches(const options_t *o, const char *mode, unsigned kv, con
         else if (!strcmp(field, "attn_dies")) found_attn = !strcmp(eq, attn_dies);
         else if (!strcmp(field, "two_position")) { char expected[8]; snprintf(expected, sizeof expected, "%d", !strcmp(mode, "chunk3")); found_pair = !strcmp(eq, expected); }
         else if (!strcmp(field, "prefill_chunk")) { char expected[8]; snprintf(expected, sizeof expected, "%d", !strcmp(mode, "chunk3") ? 3 : 0); found_chunk = !strcmp(eq, expected); }
+        else if (!strcmp(field, "engine_capture")) found_capture = !strcmp(eq, o->capture_stages ? "1" : "0");
         else continue;
     }
     free(copy);
     if (!(found_rev && found_kv && found_disk && found_maxt && found_layers && found_nblk &&
-          found_dies && found_split && found_map && found_attn && found_pair && found_chunk))
+          found_dies && found_split && found_map && found_attn && found_pair && found_chunk && found_capture))
         return ec_fail("effective engine config differs from required full48/six-die request scope");
     return 0;
 }
@@ -1521,6 +1532,17 @@ static int engine_check_self_test(void) {
     FIXTURE("rev=0123456789abcdef0123456789abcdef01234567", "kv_host=0", "layers=48/48", "dies=6",
             "attn_dies=1,4,5", shares, attn, "two_position=1", "prefill_chunk=2");
     failed += config_fixture_check(&fixture, "chunk3 chunk-size mismatch rejected", "chunk3", 0, line, 0) < 0; checks++;
+    FIXTURE(revision_field, "kv_host=0", "layers=48/48", "dies=6",
+            "attn_dies=1,4,5", shares, attn, "two_position=0", "prefill_chunk=0");
+    fixture.capture_stages = 1;
+    failed += config_fixture_check(&fixture, "capture missing effective flag rejected", "scalar", 0, line, 0) < 0; checks++;
+    size_t capture_at = strlen(line);
+    snprintf(line + capture_at, sizeof line - capture_at, " engine_capture=0");
+    failed += config_fixture_check(&fixture, "capture disabled effective flag rejected", "scalar", 0, line, 0) < 0; checks++;
+    snprintf(line + capture_at, sizeof line - capture_at, " engine_capture=1");
+    failed += config_fixture_check(&fixture, "capture enabled effective flag accepted", "scalar", 0, line, 1) < 0; checks++;
+    fixture.capture_stages = 0;
+    failed += config_fixture_check(&fixture, "unexpected enabled capture rejected", "scalar", 0, line, 0) < 0; checks++;
 #undef CHECK
 #undef FIXTURE
     if (failed) {

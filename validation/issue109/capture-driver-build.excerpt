@@ -1,0 +1,29 @@
+cc -std=c11 -O2 -Wall -Wextra -Werror -o /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-1802363-1792520674422733008.rJWPnq/source/validation/issue9//bin/engine_check /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-1802363-1792520674422733008.rJWPnq/source/validation/issue9//engine_check.c -lcrypto
+PASS full 40-hex revision accepted
+PASS scalar pair/chunk flags accepted
+PASS contradictory duplicate revision, good first
+PASS contradictory duplicate revision, bad first
+PASS duplicate identical revision key rejected
+PASS missing layers rejected
+PASS mismatched layers rejected
+PASS missing dies rejected
+PASS mismatched die count rejected
+PASS missing split topology rejected
+PASS mismatched split topology rejected
+PASS missing attention map rejected
+PASS mismatched attention map rejected
+PASS mismatched attention die set rejected
+PASS mismatched KV host rejected
+PASS scalar paired flag mismatch rejected
+PASS scalar chunk flag mismatch rejected
+PASS chunk3 paired/chunk flags accepted
+PASS chunk3 paired flag mismatch rejected
+PASS chunk3 chunk-size mismatch rejected
+PASS capture missing effective flag rejected
+PASS capture disabled effective flag rejected
+PASS capture enabled effective flag accepted
+PASS unexpected enabled capture rejected
+ENGINE_CHECK_SELF_TEST_PASSED checks=24 scope=config-parser-only gpu=not-run numerical=not-claimed
+7cb31da4878bcab4e1b8a8869957bcfd2a2946c63705ba6cdbef411d55b85c3c  /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-1802363-1792520674422733008.rJWPnq/source/validation/issue9//bin/engine_check
+dsh build: remote command finished build-1802363-1792520674422733008 status=0
+dsh build: phase: complete; phase elapsed 0s, total elapsed 23s

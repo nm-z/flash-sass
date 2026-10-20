@@ -13,7 +13,7 @@ $(error Run pair diagnostic builds/checks through dsh build outside gpuq)
 endif
 endif
 
-.PHONY: pair-build pair-check pair-matrix ple-build capture-build capture-check capture-gpu
+.PHONY: pair-build pair-check pair-matrix ple-build capture-build capture-check capture-gpu capture-matrix
 $(PAIR_OUT):
 	mkdir -p $@
 
@@ -90,4 +90,8 @@ capture-build: kernel-build $(PAIR_OUT)/xcopy_trace_gpu | $(PAIR_OUT)
 
 capture-gpu: identity
 	env --chdir=$(ROOT)/kern CUDA_VISIBLE_DEVICES=6 $(PAIR_OUT)/xcopy_trace_gpu $(ROOT)/kern/die.cubin
-	FLASH_ENGINE_CAPTURE=1 $(MAKE) -f $(ISSUE109_DIR)/Makefile ENGINE_REVISION=$(ENGINE_REVISION) pair-matrix
+	$(MAKE) -f $(ISSUE109_DIR)/Makefile ENGINE_REVISION=$(ENGINE_REVISION) capture-matrix
+
+capture-matrix: identity
+	$(if $(filter 6,$(words $(HOLDER_PIDS))),,$(error Supply the six verified live holder PIDs in logical-die order))
+	$(OUT_DIR)/engine_check --capture-stages --repo $(ROOT) --out $(GPUQ_RUN_DIR)/engine-matrix --ple $(PLE_GGUF) --revision $(ENGINE_REVISION) $(foreach path,$(MANIFESTS),--manifest $(path)) $(foreach pid,$(HOLDER_PIDS),--holder-pid $(pid)) --cuda-visible 0,1,2,3,4,5 --split-shares $(SHARES) --attn-map $(ATTENTION_MAP) --tokens $(TOKENS) --snapshots $(SNAPSHOTS) --nblk $(BLOCKS) --lock-fd $(GPUQ_LOCK_FD) --timeout $(ENGINE_TIMEOUT) --weight-manifest $(CACHE_ROOT)/checkpoints.sha256

@@ -137,3 +137,63 @@ are 2253, 2803 and 2894, respectively. These artifacts contain startup messages
 and no reported PLE short read, CUDA error or watchdog event. The absence of
 such a diagnostic does not establish correct input bytes or numerical output;
 the fingerprint failures above remain the measured result.
+
+## Position-specific stage capture
+
+The next diagnostic records eight 40,960-byte buffers at each executed
+position, independently on all six dies: embedding `S`, block-0 `S`, PLE
+`kn`, `qn`, `pG`, `px`, post-PLE `S`, and block-1 `S`. PLE's four intermediate
+buffers are sampled after the PLE prefix, when those values remain available.
+The trace therefore identifies the first differing sampled buffer, rather than
+claiming the first differing instruction. In particular, matching normalized
+`px` does not establish matching `pG` magnitude or matching block-0 `S`.
+
+The plain Assembly replacement `xcopy_trace.sass` adds an optional position
+parameter to the existing copy op. A zero parameter keeps ordinary embedding
+copies at their original destination; a token-relative parameter writes a
+distinct 40,960-byte slice. The diagnostic bounds requests to sixteen positions,
+including generation, and uses about 5 MiB of additional device memory per die.
+It adds copy phases and synchronization. An instrumented pass cannot clear the
+unmodified paired-request failure.
+
+`FLASH_ENGINE_CAPTURE=1` requires a GPUQ job and stores FNV64 fingerprints plus
+nonfinite counts in managed TSV artifacts. Resume records cover executed
+positions only. Missing writes, incomplete requests and publication failures
+are rejected. Complete files are published without replacing existing files;
+a post-link failure attempts to remove the new final file. Distinct engine
+errors identify rejection before execution and capture failure after execution
+may have advanced state. Neither path replays a request.
+
+Routed build `build-1755939-1792520354044917772` passes the strict C checks and
+assembles the diagnostic cubin. CPU fixtures cover descriptor masks, scope and
+resume coverage, incomplete-count rejection, missing writes, collision
+preservation and an injected directory-fsync failure after publication.
+The excerpt is `capture-build.excerpt`. The numerical source in PR #105 is
+unchanged.
+
+GPUQ `8fc580c5-2010-4840-bf9c-16c318ac0077` passes the actual GPU copy tests:
+legacy destination zero and distinct paired slots 0/1, 7/8 and 14/15, with byte
+comparisons over all destination slots and guards. Its ordinary request matrix
+also passes all 64 checks. However, that first integration attempt leaves
+capture disabled: the private runner clears inherited `FLASH_*` overrides.
+It produces no stage artifacts and supplies no captured-stage comparison.
+Its report and complete export are retained as `capture-8fc5.*`.
+
+The runner now requires an explicit `--capture-stages` option. It sets the
+capture value after clearing inherited overrides and requires the effective
+engine config to report `engine_capture=1`. The JSON report records whether
+capture was requested. A 24-case configuration suite passes in
+`build-1802363-1792520674422733008`, including missing, disabled, enabled and
+unexpected capture settings; `capture-driver-build.excerpt` retains it.
+The `capture-matrix` target uses this option. Its captured runtime outcome is
+pending.
+
+The cubin SHA-256 is
+`3234e6cf75e49e0782538120d034da60fedc585a8f6d6d5dd22ee76c8abd8b2b`;
+the engine SHA-256 is
+`86ff465d822e9242b61c5e6852dc5fb04f282b0a38e452c9649f01c10277c8e0`,
+built from engine revision `20e0e581e6f10147778e88597d679c822e1da682`.
+The updated runner SHA-256 is
+`7cb31da4878bcab4e1b8a8869957bcfd2a2946c63705ba6cdbef411d55b85c3c`.
+The library and cubin are reused for the explicit-option rerun; the changed
+runner is built remotely, and the source/receipt is checked after installation.
