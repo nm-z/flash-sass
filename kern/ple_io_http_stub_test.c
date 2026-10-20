@@ -52,7 +52,9 @@ static void *test_core(void *unused) {
     if (!in || !out) test_fail("opening simulated core streams");
     char *line = NULL; size_t capacity = 0;
     while (getline(&line, &capacity, in) >= 0) {
-        if (!strncmp(line, "stop ", 5)) fputs("ok: stop 999 4294967295\n", out);
+        if (!strcmp(line, "timings 1\n")) fputs("ok: timings 1\n", out);
+        else if (!strcmp(line, "cancel_on_eof 1\n")) fputs("ok: cancel_on_eof 1\n", out);
+        else if (!strncmp(line, "stop ", 5)) fputs("ok: stop 999 4294967295\n", out);
         else if (!strncmp(line, "sample ", 7)) fputs("ok: sample\n", out);
         else if (!strncmp(line, "snap ", 5)) fputs("ok: snap 31\n", out);
         else if (!strncmp(line, "chat ", 5)) {
@@ -180,7 +182,8 @@ static void test_case(const char *name, int streaming, int tokens,
         REQUIRE(strstr(response, "Content-Type: application/json"), "JSON content type");
         REQUIRE(occurrences(body, "\"error\"") == 1, "one JSON error");
         REQUIRE(!strstr(body, "\"choices\"") && !strstr(body, "\"usage\"")
-                && !strstr(body, "\"timings\""), "no success JSON fields");
+                && !strstr(body, "\"finish_reason\""), "no success JSON fields");
+        REQUIRE(strstr(body, "\"complete\":false"), "error timings must be incomplete");
         if (detail) REQUIRE(strstr(body, detail), "JSON lost core metadata");
     }
     free(response); alarm(0);
