@@ -1576,7 +1576,7 @@ int engine_session(FILE *in, FILE *out) {
             fflush(out); snap_req = npend = 0; continue;
         }
 		run_stats st;
-		engine_cb cb = { .token = chat ? put_token : NULL, .alive = client_gone, .arg = out, .all_tokens = chat ? NULL : toks };
+		engine_cb cb = { .token = chat ? put_token : NULL, .alive = client_gone, .arg = &client, .all_tokens = chat ? NULL : toks };
 		int rc = n_new > MAXT ? -1 : engine_run_slot(wanted, ids, nprompt, (int)n_new, stop, &smp, snap_req, pend, npend, &cb, &st);
 		if (emit_timing && last_timing_valid) {
 			char json[4096];
