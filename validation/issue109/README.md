@@ -33,4 +33,19 @@ unchanged baseline controls and record passing and failing runs. A bounded
 series of passing repeats would provide evidence about this discriminator;
 it would not establish the original failure's instruction-level cause.
 
-Build and GPU results are pending.
+## Measured build checks
+
+| Routed Archy build | Result |
+| --- | --- |
+| `build-660111-1792511465775211408` | Original baseline hash matched; transformed SASS assembled with 249 registers. Engine/client builds completed. The final structural-test compilation then rejected an unused test constant under `-Werror`, so the overall request exited 2. |
+| `build-674345-1792511587574712206` | After removing that unused test constant, strict C builds and the real generated-source structural checks passed, including malformed/missing/duplicate anchor rejection, already patched input, existing output and alias preservation. Exit 0. |
+
+The transformed cubin SHA-256 is
+`c2d8fe082adf54dfb35fcd6ef522baa20cf32f9660026ef7a98e40eab6f7e0e8`.
+The engine SHA-256 is
+`aa9ebd387020f1382e5805e4fc8d790807d0067b941b9af15c26f25a447d7cfd`;
+it reports source revision `11ac712913234331088808284524a11effca7208`.
+The test-only constant removal does not change either production artifact.
+The final receipt also passed verification after copying the artifacts into the
+separate Archy checkout. Build excerpts retain both the initial failure and
+the corrected successful check. GPU results remain pending.

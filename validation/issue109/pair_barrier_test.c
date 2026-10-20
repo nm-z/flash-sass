@@ -14,7 +14,6 @@
 #define TEST_PATH_CAP 4096u
 
 static const char pair_branch[] = "@!P5 BRA PHASE_END;";
-static const char pair_mode_test[] = "ISETP.EQ.U32.AND P5, PT, bar_g, 0x8, PT;";
 static const char pair_fence[] = "MEMBAR.GL.IVALLD;";
 static const char patch_begin[] = "ISSUE109_PAIR_BODY_GRID_BARRIER_BEGIN";
 static const char patch_end[] = "ISSUE109_PAIR_BODY_GRID_BARRIER_END";

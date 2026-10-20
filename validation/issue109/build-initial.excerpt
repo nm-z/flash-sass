@@ -1,0 +1,30 @@
+Modified die RegCnt: 2 => 249
+Modified die EIATTR_REGCOUNT: 2 => 249
+Modified die CTAID Offsets: '' => '0010'
+Modified die Exit Offsets: '0098' => '71190,711c8'
+Modified die ParamSecSize: 108 => 120
+Modified die KernelSize: 192 => 463360
+Kernel: die, Instructions: 0, Register Count: 249, Bank Conflicts: 6908, Reuse: 20.3% (13262/65243)
+cc -std=c11 -O2 -Wall -Wextra -Werror -o /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-660111-1792511465775211408.Zfd5Jd/source/validation/issue109//bin/pair_barrier_patch /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-660111-1792511465775211408.Zfd5Jd/source/validation/issue109//pair_barrier_patch.c
+kern/die.cubin: OK
+PAIR_BARRIER_PATCHED mode=generic-pair anchor_count=1 output=/mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-660111-1792511465775211408.Zfd5Jd/source/validation/issue109//bin/die-pair-grid.sass
+Modified die RegCnt: 2 => 249
+Modified die EIATTR_REGCOUNT: 2 => 249
+Modified die CTAID Offsets: '' => '0010'
+Modified die Exit Offsets: '0098' => '713e8,71418'
+Modified die ParamSecSize: 108 => 120
+Modified die KernelSize: 192 => 463936
+Kernel: die, Instructions: 0, Register Count: 249, Bank Conflicts: 6908, Reuse: 20.3% (13266/65266)
+cc -std=c11 -O2 -Wall -Wextra -Werror -o /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-660111-1792511465775211408.Zfd5Jd/source/validation/issue9//bin/engine_check /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-660111-1792511465775211408.Zfd5Jd/source/validation/issue9//engine_check.c -lcrypto
+cc -std=gnu99 -O2 -Wall -o flashcore flashcore.c holdc.c ../ref/gguf.c -I../ref -I/opt/cuda/include -lcuda -ldl -lm
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -pthread -DFLASH_REV='"11ac712913234331088808284524a11effca7208"' -DFLASH_BF16_PAIR_FUSE=1 -o libengine.so.new engine.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm && mv -f libengine.so.new libengine.so
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -o model_test model_test.c model_oracle.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lcrypto -lm
+c2d8fe082adf54dfb35fcd6ef522baa20cf32f9660026ef7a98e40eab6f7e0e8  /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-660111-1792511465775211408.Zfd5Jd/source/kern/die.cubin
+aa9ebd387020f1382e5805e4fc8d790807d0067b941b9af15c26f25a447d7cfd  /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-660111-1792511465775211408.Zfd5Jd/source/kern/libengine.so
+0257e1fbf4a6505bc54ed230b93abe22d5f21ed66daa22345a85b73f6a673d06  /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-660111-1792511465775211408.Zfd5Jd/source/kern/flashcore
+594c55c9716a52462ef0f908b6ff769f89ce0fc9083f0a31c34dce7e23104554  /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-660111-1792511465775211408.Zfd5Jd/source/validation/issue9//bin/engine_check
+e843cd819b1cf23c5d1d46295281390548781bb9472e557bfe3057d00368efa5  /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-660111-1792511465775211408.Zfd5Jd/source/validation/issue109//bin/pair_barrier_patch
+cc -std=c11 -O2 -Wall -Wextra -Werror -o /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-660111-1792511465775211408.Zfd5Jd/source/validation/issue109//bin/pair_barrier_test /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-660111-1792511465775211408.Zfd5Jd/source/validation/issue109//pair_barrier_test.c
+/mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-660111-1792511465775211408.Zfd5Jd/source/validation/issue109//pair_barrier_test.c:17:19: error: 'pair_mode_test' defined but not used [-Werror=unused-const-variable=]
+make: *** [validation/issue109/Makefile:21: /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-660111-1792511465775211408.Zfd5Jd/source/validation/issue109//bin/pair_barrier_test] Error 1
+dsh build: remote command finished build-660111-1792511465775211408 status=2

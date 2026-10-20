@@ -1,0 +1,14 @@
+cc -std=c11 -O2 -Wall -Wextra -Werror -o /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-674345-1792511587574712206.YueBod/source/validation/issue109//bin/pair_barrier_patch /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-674345-1792511587574712206.YueBod/source/validation/issue109//pair_barrier_patch.c
+cc -std=c11 -O2 -Wall -Wextra -Werror -o /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-674345-1792511587574712206.YueBod/source/validation/issue109//bin/pair_barrier_test /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-674345-1792511587574712206.YueBod/source/validation/issue109//pair_barrier_test.c
+PAIR_BARRIER_PATCHED mode=generic-pair anchor_count=1 output=/tmp/issue109-pair-barrier-OvpV1p/positive.sass
+input already contains the issue109 patch marker
+/tmp/issue109-pair-barrier-OvpV1p/positive.sass: File exists
+expected exactly one generic-pair branch anchor; found 0
+pair branch is not followed by the expected grid-barrier fence
+pair branch anchor does not match the expected SASS instruction line
+expected exactly one generic-pair branch anchor; found 2
+/tmp/issue109-pair-barrier-OvpV1p/existing-output.sass: File exists
+input and output paths must differ
+input and output refer to the same file
+PAIR_BARRIER_TEST_PASS generated_positive=1 reject_cases=5 alias_preservation=1
+dsh build: remote command finished build-674345-1792511587574712206 status=0
