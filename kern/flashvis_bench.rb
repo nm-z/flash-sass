@@ -45,7 +45,8 @@ results = {}
 reference = nil
 default_reference = nil
 %w[cpu cpu-standard auto].each do |backend|
-  socket_path = File.join(work, "#{backend}.sock")
+  # Leave room for the queue's staging prefix within Linux's Unix-socket limit.
+  socket_path = File.join(work, backend == 'cpu-standard' ? 'ref.sock' : "#{backend}.sock")
   ready = Queue.new
   timings = Queue.new
   reader, writer = IO.pipe
