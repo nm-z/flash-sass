@@ -1,10 +1,14 @@
 /* Actual-kernel test for the issue110 dispatch probe. */
 #include <cuda.h>
+#include <errno.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include "phase_probe.h"
 
@@ -21,6 +25,55 @@ CUresult cuCtxCreate_v2(CUcontext *, unsigned int, CUdevice);
 #define BF16_GUARD 16u
 
 static unsigned failures;
+static int failure_mode;
+
+static void launch_failure(CUresult result, const char *expression, int line) {
+    if (failure_mode == 1) {
+        /* A launch/configuration failure is not evidence for this check. The
+         * child must have executed the dispatch store, then faulted on its
+         * deliberately unmapped XCOPY source. No CUDA calls follow the error. */
+        if (result != CUDA_ERROR_ILLEGAL_ADDRESS) {
+            fprintf(stderr, "FAULT_FIXTURE unexpected_cuda_error=%d\n", (int)result);
+            fflush(NULL); _Exit(73);
+        }
+        unsigned observed = 0;
+        const uint64_t expected = ((uint64_t)PHASE_PROBE_TOKEN_FIRST << 32) | 32u;
+        for (unsigned cta = 0; cta < PHASE_PROBE_CTAS; cta++)
+            observed += phase_probe_observe(0, cta) == expected;
+        if (!observed) {
+            fprintf(stderr, "FAULT_FIXTURE no_expected_host_observation\n");
+            fflush(NULL); _Exit(74);
+        }
+        fprintf(stderr, "FAULT_FIXTURE deliberate_invalid_read=1 error=%d host_observations=%u cuda_calls_after_error=0\n",
+                (int)result, observed);
+    }
+    phase_probe_fault(result, expression, line);
+}
+
+static int failure_children(const char *executable, const char *cubin) {
+    const char *modes[] = {"--fault-child", "--limit-child"};
+    const int expected[] = {70, 72};
+    for (unsigned i = 0; i < 2; i++) {
+        fflush(NULL);
+        pid_t child = fork();
+        if (child < 0) { perror("fork failure fixture"); return 1; }
+        if (!child) {
+            execlp(executable, executable, modes[i], cubin, (char *)NULL);
+            perror("exec failure fixture"); _Exit(127);
+        }
+        int status;
+        pid_t result;
+        do { result = waitpid(child, &status, 0); } while (result < 0 && errno == EINTR);
+        if (result != child || !WIFEXITED(status) || WEXITSTATUS(status) != expected[i]) {
+            fprintf(stderr, "failure fixture mode=%s unexpected_child_result=%d status=%d\n",
+                    modes[i], (int)result, result == child ? status : -1);
+            return 1;
+        }
+        printf("phase_probe_failure case=%s exit=%d PASS\n", modes[i], expected[i]);
+    }
+    printf("phase_probe_failure: deliberate-CUDA-error and synthetic-host-limit paths passed\n");
+    return 0;
+}
 
 static int cu_ok(CUresult result, const char *expression) {
     if (result == CUDA_SUCCESS) return 1;
@@ -119,15 +172,23 @@ static int launch_program(CUfunction function, CUdeviceptr device_program,
     CUresult result = cuLaunchKernel(function, 16, 1, 1, 256, 1, 1,
                                      0, 0, arguments, NULL);
     if (result != CUDA_SUCCESS) {
-        phase_probe_fault(result, "cuLaunchKernel", __LINE__);
+        launch_failure(result, "cuLaunchKernel", __LINE__);
         (void)cu_ok(result, "cuLaunchKernel");
         return 0;
     }
     result = cuCtxSynchronize();
     if (result != CUDA_SUCCESS) {
-        phase_probe_fault(result, "cuCtxSynchronize", __LINE__);
+        launch_failure(result, "cuCtxSynchronize", __LINE__);
         (void)cu_ok(result, "cuCtxSynchronize");
         return 0;
+    }
+    if (failure_mode == 1) {
+        fprintf(stderr, "FAULT_FIXTURE invalid read unexpectedly succeeded\n");
+        fflush(NULL); _Exit(75);
+    }
+    if (failure_mode == 2) {
+        fprintf(stderr, "LIMIT_FIXTURE synthetic_host_limit_call=1 actual_kernel_expiry=not-tested\n");
+        phase_probe_limit(__LINE__);
     }
     phase_probe_done();
     return 1;
@@ -330,18 +391,48 @@ int main(int argc, char **argv) {
     CUdeviceptr device_program = 0, device_control = 0;
     int rc = 1;
 
-    if (argc != 2) {
-        fprintf(stderr, "usage: %s INSTRUMENTED_DIE_CUBIN\n", argv[0]);
+    const char *cubin = argc == 2 ? argv[1] : argc == 3 ? argv[2] : NULL;
+    if (argc == 3 && !strcmp(argv[1], "--failure-paths"))
+        return failure_children(argv[0], cubin);
+    if (argc == 3 && !strcmp(argv[1], "--fault-child")) failure_mode = 1;
+    if (argc == 3 && !strcmp(argv[1], "--limit-child")) failure_mode = 2;
+    if (!cubin || (argc != 2 && !failure_mode)) {
+        fprintf(stderr, "usage: %s [--failure-paths] INSTRUMENTED_DIE_CUBIN\n", argv[0]);
         return 2;
     }
     if (!CU_OK(cuInit(0)) || !CU_OK(cuDeviceGet(&device, 0)) ||
         !CU_OK(cuCtxCreate_v2(&context, CU_CTX_SCHED_SPIN, device)))
         goto done;
-    if (!CU_OK(cuModuleLoad(&module, argv[1])) ||
+    if (!CU_OK(cuModuleLoad(&module, cubin)) ||
         !CU_OK(cuModuleGetFunction(&function, module, "die")) ||
         !CU_OK(cuMemAlloc(&device_program, 128u * PHASE_PROBE_PHASES)) ||
         !CU_OK(cuMemAlloc(&device_control, CONTROL_BYTES)))
         goto done;
+
+    if (failure_mode) {
+        if (phase_probe_create(&context, 1) != CUDA_SUCCESS) {
+            fprintf(stderr, "failure fixture: phase_probe_create failed\n");
+            goto done;
+        }
+        if (failure_mode == 1) {
+            CUdeviceptr destination = 0;
+            prog_t invalid;
+            prog_init(&invalid);
+            if (!CU_OK(cuMemAlloc(&destination, XCOPY_BYTES))) goto done;
+            phase_t *phase = prog_add(&invalid, OP_XCOPY, XCOPY_UNITS);
+            if (!phase) goto done;
+            ph_ptr(phase, 0x140, 0); /* Intentionally unmapped read; no invalid write. */
+            ph_ptr(phase, 0x148, destination);
+            (void)launch_program(function, device_program, device_control, &invalid,
+                                 PHASE_PROBE_TOKEN_FIRST, PHASE_PROBE_TOKEN_FIRST + 1, 90);
+            fprintf(stderr, "failure fixture: CUDA fault path returned\n");
+            fflush(NULL); _Exit(76);
+        }
+        (void)copy_case(function, device_program, device_control, 1, PHASE_PROBE_TOKEN_FIRST,
+                        1, 0, PHASE_PROBE_TOKEN_FIRST, 0, "host_limit", 91);
+        fprintf(stderr, "failure fixture: host limit path returned\n");
+        fflush(NULL); _Exit(77);
+    }
 
     if (!copy_case(function, device_program, device_control, 1, PHASE_PROBE_TOKEN_FIRST,
                    0, 0, 0, 0, "null_pointer_copy", 1))

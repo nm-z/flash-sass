@@ -6,17 +6,17 @@ PHASE_MAXAS := env PATH=/opt/cuda/bin:/usr/bin:/bin perl -I$(MAXAS_ROOT)/lib $(M
 HOLDER_PIDS ?= $(shell ps -C hold -o pid=,args= | gawk -v gguf='$(GGUF)' -f $(ISSUE110_DIR)/holders.awk)
 
 ifneq ($(GPUQ_JOB_ID),)
-ifneq ($(filter phase-check phase-engine-build phase-build,$(MAKECMDGOALS)),)
+ifneq ($(filter phase-check phase-fixture-build phase-engine-build phase-build,$(MAKECMDGOALS)),)
 $(error Run phase probe builds/checks through dsh build outside gpuq)
 endif
 endif
 
-.PHONY: phase-check phase-engine-build phase-build phase-gpu phase-canary phase-matrix
+.PHONY: phase-check phase-fixture-build phase-engine-build phase-build phase-gpu phase-canary phase-matrix phase-failure-gpu
 $(PHASE_OUT):
 	mkdir -p $@
 
-$(PHASE_OUT)/phase_probe_test: $(ROOT)/kern/phase_probe_test.c $(ROOT)/kern/phase_probe.c $(ROOT)/kern/phase_probe.h | $(PHASE_OUT) oracle-header
-	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -I$(ROOT)/kern -I/opt/cuda/include -o $@ $(ROOT)/kern/phase_probe_test.c $(ROOT)/kern/phase_probe.c -lcuda
+$(PHASE_OUT)/phase_probe_test: $(ROOT)/kern/phase_probe_test.c $(ROOT)/kern/phase_probe.c $(ROOT)/kern/phase_probe.h $(ISSUE110_DIR)/dieops.h | $(PHASE_OUT)
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -I$(ROOT)/kern -I$(ISSUE110_DIR) -I/opt/cuda/include -o $@ $(ROOT)/kern/phase_probe_test.c $(ROOT)/kern/phase_probe.c -lcuda
 
 phase-check: $(PHASE_OUT)/phase_probe_test
 	$(PHASE_OUT)/phase_probe_test
@@ -25,8 +25,10 @@ phase-check: $(PHASE_OUT)/phase_probe_test
 phase-engine-build:
 	$(MAKE) -B -C $(ROOT)/kern FLASH_REV=$(ENGINE_REVISION) libengine.so flashcore
 
-$(PHASE_OUT)/phase_probe_gpu: $(ISSUE110_DIR)/phase_probe_gpu.c $(ROOT)/kern/phase_probe.c $(ROOT)/kern/phase_probe.h $(ROOT)/kern/prog.c | $(PHASE_OUT) oracle-header
-	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -Wextra -Werror -I$(ROOT)/kern -I$(ROOT)/ref -I/opt/cuda/include -o $@ $< $(ROOT)/kern/phase_probe.c $(ROOT)/kern/prog.c $(ROOT)/ref/quant.c $(ROOT)/ref/gguf.c $(ROOT)/ref/split.c -lcuda -lm
+$(PHASE_OUT)/phase_probe_gpu: $(ISSUE110_DIR)/phase_probe_gpu.c $(ROOT)/kern/phase_probe.c $(ROOT)/kern/phase_probe.h $(ROOT)/kern/prog.c $(ISSUE110_DIR)/dieops.h | $(PHASE_OUT)
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -Wextra -Werror -I$(ROOT)/kern -I$(ISSUE110_DIR) -I$(ROOT)/ref -I/opt/cuda/include -o $@ $< $(ROOT)/kern/phase_probe.c $(ROOT)/kern/prog.c $(ROOT)/ref/quant.c $(ROOT)/ref/gguf.c $(ROOT)/ref/split.c -lcuda -lm
+
+phase-fixture-build: $(PHASE_OUT)/phase_probe_gpu
 
 phase-build: kernel-build $(PHASE_OUT)/phase_probe_gpu | $(PHASE_OUT)
 	env --chdir=$(ROOT) sha256sum -c validation/issue110/baseline.sha256
@@ -41,6 +43,11 @@ phase-build: kernel-build $(PHASE_OUT)/phase_probe_gpu | $(PHASE_OUT)
 
 phase-gpu: identity
 	env --chdir=$(ROOT)/kern CUDA_VISIBLE_DEVICES=6 $(PHASE_OUT)/phase_probe_gpu $(ROOT)/kern/die.cubin
+
+# Deliberate invalid read on otherwise unused GPU6; each expected exit occurs
+# in a fresh child. The parent never initializes CUDA. Not a model fault repro.
+phase-failure-gpu: identity
+	env --chdir=$(ROOT)/kern CUDA_VISIBLE_DEVICES=6 $(PHASE_OUT)/phase_probe_gpu --failure-paths $(ROOT)/kern/die.cubin
 
 # The framework hook touches dispatch scratch/predicate state for every op.
 # Check one complete short scalar-oracle case before the long diagnostic.
