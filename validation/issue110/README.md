@@ -200,7 +200,7 @@ time-limit event.
 
 The fixture and CPU decoder check build on Benji as
 `build-3444639-1792529270056721202` (exit 0); no Perl/Ruby/Bash source or build
-step is used. The fixture binary SHA-256 is
+step is used. The initial fixture binary SHA-256 was
 `d5062d8013b6b8f9591927cf2025b15aea44d1e08e3c9fe12e0ea4e8adff2f99`; the
 copied opcode header SHA-256 is
 `5032a1e6012f19f30b922ede9fdb4662a19f17080163506b4edc5290f9f51356`. GPUQ
@@ -219,8 +219,12 @@ header, terminator and all 16 exact CTA records. The limit child now completes
 `copy_case`, verifies the copy, tags and guards, and calls exit 72 afterwards.
 Benji build `build-3971517-1792530780129130442` passes the strict build and 21
 CPU decoder checks. The rebuilt fixture SHA-256 is
-`1b46db65b8c21694d4db2dc8b94a252ff97f3be422e6f32dd0f6186ac12ea6f2`. One GPUQ
-rerun of the corrected assertions on GPU6 is pending.
+`1b46db65b8c21694d4db2dc8b94a252ff97f3be422e6f32dd0f6186ac12ea6f2`. Corrected
+GPUQ `542de01c-c88e-451f-a95d-741d9f637aca` exits 0: the parent captures both
+child stderr streams and checks exit 70 / error 700 with all 16 expected tags
+and the no-post-error-CUDA marker; the limit child's copy bytes, tags and
+destination guards pass before exit 72. Full captured streams are
+`failure-handler-capture.*`.
 
 The first deliberate fault-handler GPUQ run's pre/post telemetry
 for NVML index 6 (documents 66610 and 66650 in that GPUQ job) maps it to BDF
@@ -228,8 +232,8 @@ for NVML index 6 (documents 66610 and 66650 in that GPUQ job) maps it to BDF
 with 7,547 MiB free, no active compute process and zero utilization. Its
 volatile and aggregate ECC totals were zero before and after; retired-page
 counts were zero before and after, with no pending retirement or blacklist.
-The bounded kernel journal shows the expected Xid 31 at address zero on this
-GPU and no Xid 79 or fallen-off-bus message. No reset was required.
+The first bounded kernel journal shows Xid 31 at address zero on this GPU and
+no Xid 79 or fallen-off-bus message. No reset was required.
 
 ## Canonical fault's kernel journal
 
@@ -249,4 +253,9 @@ BDF `0000:12:00.0`, address zero, PID `3667902`. Its bounded log is
 and UUID `GPU-431371bd-b482-96b2-4b70-04f83c6d075b`; post-run sampling showed
 zero utilization and no compute process. The PIDs differ; the GPUQ evidence does
 not join the fixture Xid PID to the child process. The events are separate and
-neither identifies the other’s source or cause.
+neither identifies the other’s source or cause. On the corrected run, NVML
+documents 68226 and 68293 give the same zero ECC and zero retired-page counts
+pre/post. Its bounded journal contains the second fixture Xid on BDF `12:00.0`
+for PID 3867373 at address zero; GPUQ does not bind that PID to its fixture
+child. The corrected run's post-check found no Xid 79 or fallen-off-bus entry,
+GPU6 still listed at 7,547 MiB free with 0% utilization, and no compute process.
