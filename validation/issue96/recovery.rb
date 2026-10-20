@@ -33,9 +33,10 @@ def request(path, bytes)
   end
 end
 
-%w[malformed oversized error nan].each do |mode|
+%w[malformed oversized error nan native-abort].each do |mode|
   path = "/tmp/fs96-recovery-#{Process.pid}.sock"
-  env = {'FLASHVIS_DEVICE' => 'auto', 'LD_PRELOAD' => %w[malformed oversized].include?(mode) ? nil : fault, 'FLASHVIS_TEST_FAULT' => mode}
+  env = {'FLASHVIS_DEVICE' => 'auto', 'LD_PRELOAD' => %w[malformed oversized].include?(mode) ? nil : fault,
+         'FLASHVIS_TEST_FAULT' => mode, 'FLASHVIS_TEST_FAULT_ONCE' => File.join(ENV.fetch('GPUQ_RUN_DIR'), "#{mode}.once")}
   reader, writer = IO.pipe
   reader.binmode
   diagnostics = +''.b
@@ -50,14 +51,28 @@ end
       end
     end
     input = mode == 'malformed' ? 'not an image' : payload
+    following = payload
     if mode == 'oversized'
       w, h = 4097, 4096
       size = (w * 3 + 3) / 4 * 4 * h
       input = 'BM'.b + [54 + size, 0, 54, 40, w, h].pack('V6') + [1, 24].pack('v2') + [0, size, 0, 0, 0, 0].pack('V6') + ("\x80".b * size)
     end
+    if mode == 'native-abort'
+      w = h = 256
+      size = w * h * 3
+      input = 'BM'.b + [54 + size, 0, 54, 40, w, h].pack('V6') + [1, 24].pack('v2') + [0, size, 0, 0, 0, 0].pack('V6') + ("\x80".b * size)
+      following = input
+    end
     rejected = request(path, input)
     raise "#{mode} was accepted: #{rejected.inspect}" unless rejected.is_a?(String) && rejected.start_with?('err ')
-    accepted = request(path, payload)
+    expected = {'malformed' => 'cannot decode the image', 'oversized' => 'image exceeds the model limit of 16777216 pixels',
+                'error' => 'required GPU Flash Attention did not execute', 'nan' => 'encoder returned invalid embeddings',
+                'native-abort' => 'GPU encoder worker terminated'}
+    raise "wrong #{mode} error: #{rejected.inspect}" unless rejected.strip == "err #{expected.fetch(mode)}"
+    if mode == 'native-abort'
+      raise 'native dispatch interposer did not fire' unless File.file?(env.fetch('FLASHVIS_TEST_FAULT_ONCE'))
+    end
+    accepted = request(path, following)
     raise "subsequent GPU request failed: #{accepted.inspect}" unless accepted.is_a?(Array)
     raise 'backend changed to CPU' if diagnostics.match?(/flashvis:.*(?:switching to CPU|backend CPU)/)
     raise 'GPU FA not observed after failure' unless diagnostics.include?('observed_gpu=27') && diagnostics.include?('backend=CUDA')

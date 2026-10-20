@@ -16,11 +16,13 @@
 #define _GNU_SOURCE
 #include "vision.h"
 #include "vis_ggml.h"
+#include "vis_supervisor.h"
 #include "ggml-backend.h"
 #include "gguf.h"
 #include "llama.h"
 #include "mtmd.h"
 #include "mtmd-helper.h"
+#include <cuda.h>
 #include <errno.h>
 #include <math.h>
 #include <signal.h>
@@ -129,7 +131,10 @@ done:
 }
 
 int main(int argc, char **argv) {
+	/* Fork+exec supervision starts before the parent initializes CUDA. */
+	int fd = vis_supervisor_worker_fd(&argc, argv);
 	if (argc < 4) { fprintf(stderr, "usage: flashvis <mmproj.gguf> <text.gguf> <socket> [threads]\n"); return 2; }
+	if (fd < 0) return vis_supervisor_main(argc, argv);
 	signal(SIGPIPE, SIG_IGN);
 	int threads = argc > 4 ? atoi(argv[4]) : 8;
 	/* The driver FA launch synchronizes its context. Keep graph execution
@@ -161,15 +166,9 @@ int main(int argc, char **argv) {
 	if (!mtmd_support_vision(ctx)) { fprintf(stderr, "flashvis: %s has no vision encoder\n", argv[1]); return 1; }
 	int dim = (int)llama_model_n_embd_inp(model); if (dim <= 0) dim = 2560;   /* a vocab-only model does not know it: the projector writes the text embedding width (clip.vision.projection_dim) */
 	fprintf(stderr, "flashvis: ready, backend %s, embedding width %d, %d threads, mrope %d\n", ggml_backend_dev_name(device), dim, threads, (int)mtmd_decode_use_mrope(ctx));
-	int ls = socket(AF_UNIX, SOCK_STREAM, 0);
-	struct sockaddr_un sa = { .sun_family = AF_UNIX }; snprintf(sa.sun_path, sizeof sa.sun_path, "%s", argv[3]);
-	unlink(argv[3]);
-	if (bind(ls, (struct sockaddr *)&sa, sizeof sa) || listen(ls, 4)) { perror(argv[3]); return 1; }
-	for (;;) {
-		int fd = accept(ls, NULL, NULL);
-		if (fd < 0) { if (errno == EINTR) continue; perror("accept"); return 1; }
-		char line[256];
-		while (read_line(fd, line, sizeof line) == 0) {
+	if (write_full(fd, "ready\n", 6)) return 1;
+	char line[256];
+	while (read_line(fd, line, sizeof line) == 0) {
 			size_t nbytes = 0;
 			if (sscanf(line, "enc %zu", &nbytes) != 1 || nbytes == 0 || nbytes > ((size_t)64 << 20)) { err(fd, "bad request"); break; }
 			uint8_t *buf = malloc(nbytes);
@@ -179,7 +178,12 @@ int main(int argc, char **argv) {
 			free(buf);
 			if (rc < 0) break;
 			if (rc) err(fd, message);
-		}
-		close(fd);
+			/* A poisoned CUDA context is discarded after returning this
+			 * error. The supervisor starts a new GPU worker for the next
+			 * request; this image is not retried. */
+			if (rc == 2 && cuCtxSynchronize() != CUDA_SUCCESS) return 1;
 	}
+	close(fd);
+	mtmd_free(ctx); llama_model_free(model); llama_backend_free();
+	return 0;
 }

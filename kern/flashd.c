@@ -247,7 +247,7 @@ static void on_token(gen *g, uint32_t id) {
 }
 
 /* ---- images: the vision encoder daemon (flashvis) and its cache ----
-   A request's image parts (data: URLs) are decoded, run through flashvis (GPU with CPU fallback) and the embeddings are kept in files
+   A request's image parts (data: URLs) are decoded, run through flashvis (GPU Flash Attention) and the embeddings are kept in files
    under IMGDIR keyed by a hash of the image bytes, so the images of earlier turns, which the page sends again with every question, cost nothing the
    second time. The engine reads those files (the `img` command). */
 static const char *VIS_SOCK;               /* FLASHVIS_SOCK: the encoder; NULL: no images */
