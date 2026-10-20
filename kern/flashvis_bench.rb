@@ -7,11 +7,12 @@ require 'digest'
 require 'timeout'
 require 'fileutils'
 
-abort 'usage: flashvis_bench.rb BINARY MMPROJ TEXT_GGUF IMAGE [MEASURED_RUNS]' unless (4..5).cover?(ARGV.length)
+abort 'usage: flashvis_bench.rb BINARY MMPROJ TEXT_GGUF IMAGE [MEASURED_RUNS] [TEST_SHIM]' unless (4..6).cover?(ARGV.length)
 abort 'run this comparison through gpuq run' unless ENV['GPUQ_JOB_ID'] && ENV['GPUQ_RUN_DIR']
 binary, projector, text_model, image = ARGV.first(4).map { |p| File.realpath(p) }
 runs = Integer(ARGV[4] || '3')
 abort 'MEASURED_RUNS must be between 1 and 10' unless (1..10).cover?(runs)
+shim = File.realpath(ARGV[5] || File.join(File.dirname(binary), 'flashvis_fault.so'))
 payload = File.binread(image)
 image_sha = Digest::SHA256.hexdigest(payload)
 work = File.join(ENV.fetch('GPUQ_RUN_DIR'), 'flashvis-comparison')
@@ -21,6 +22,8 @@ inputs = [projector, text_model, image].to_h { |p| [p, [File.size(p), File.mtime
 puts JSON.generate(event: 'workload', hostname: Socket.gethostname, image: image,
                    image_sha256: image_sha, image_bytes: payload.bytesize, inputs: inputs,
                    threads: 10, warmups_per_backend: 1, measured_runs: runs,
+                   numerical_reference: 'CPU with standard attention via test-only interposer',
+                   test_shim_sha256: Digest::SHA256.file(shim).hexdigest,
                    binary_sha256: Digest::SHA256.file(binary).hexdigest)
 $stdout.sync = true
 
@@ -40,19 +43,28 @@ end
 
 results = {}
 reference = nil
-%w[cpu auto].each do |backend|
+default_reference = nil
+%w[cpu cpu-standard auto].each do |backend|
   socket_path = File.join(work, "#{backend}.sock")
   ready = Queue.new
   timings = Queue.new
   reader, writer = IO.pipe
   reader.binmode  # model metadata can contain UTF-8 even under the queue's C locale
   startup = clock.call
-  pid = Process.spawn({ 'FLASHVIS_DEVICE' => backend }, binary, projector, text_model, socket_path, '10',
+  env = { 'FLASHVIS_DEVICE' => backend == 'auto' ? 'auto' : 'cpu',
+          'FLASHVIS_TEST_CPU_STANDARD' => nil, 'FLASHVIS_TEST_FAULT' => nil }
+  if backend == 'cpu-standard'
+    env['FLASHVIS_TEST_CPU_STANDARD'] = '1'
+    env['LD_PRELOAD'] = [shim, ENV['LD_PRELOAD']].compact.reject(&:empty?).join(':')
+  end
+  standard_reference_enabled = false
+  pid = Process.spawn(env, binary, projector, text_model, socket_path, '10',
                       out: $stdout, err: writer, pgroup: true)
   writer.close
   diagnostics = Thread.new do
     reader.each_line do |line|
       $stderr.write(line)
+      standard_reference_enabled = true if line.include?('issue96-test: standard-attention CPU reference')
       ready << Regexp.last_match(1) if line.match(/\Aflashvis: ready, backend ([^,]+),/)
       if line.match(/preprocess ([0-9.]+) ms, encode ([0-9.]+) s, backend ([^\s]+)/)
         timings << [Regexp.last_match(1).to_f, Regexp.last_match(2).to_f, Regexp.last_match(3)]
@@ -69,14 +81,15 @@ reference = nil
     end
     selected = Timeout.timeout(5) { ready.pop }
     raise 'auto mode fell back to CPU; GPU comparison was not performed' if backend == 'auto' && selected == 'CPU'
-    raise 'forced CPU mode selected a GPU' if backend == 'cpu' && selected != 'CPU'
+    raise 'forced CPU mode selected a GPU' if backend != 'auto' && selected != 'CPU'
+    raise 'standard-attention reference interposer was not active' if backend == 'cpu-standard' && !standard_reference_enabled
     metric('vision.startup.host_seconds', clock.call - startup, 's', backend: backend, device: selected)
     UNIXSocket.open(socket_path) do |socket|
       socket.write("enc 4\njunk")
       raise 'malformed image was not rejected' unless Timeout.timeout(5) { socket.gets } == "err cannot decode the image\n"
     end
     samples = []
-    (0..runs).each do |iteration|
+    (0..(backend == 'cpu-standard' ? 0 : runs)).each do |iteration|
       response = Timeout.timeout(180) do
         UNIXSocket.open(socket_path) do |socket|
           started = clock.call
@@ -107,8 +120,11 @@ reference = nil
              warmup: iteration.zero?, image_sha256: image_sha)
       samples << elapsed unless iteration.zero?
       if backend == 'cpu' && iteration.zero?
+        default_reference = [dims, values, rope]
+      elsif backend == 'cpu-standard'
         reference = [dims, values, rope]
       elsif backend == 'auto' && iteration.zero?
+        { 'cpu-default-attention' => default_reference, 'cpu-standard-attention' => reference }.each do |reference_name, reference|
         raise 'GPU changed token dimensions or M-RoPE positions' unless reference[0] == dims && reference[2] == rope
         norm_cpu = 0.0
         norm_gpu = 0.0
@@ -137,14 +153,20 @@ reference = nil
         raise 'zero-norm embedding' unless norm_cpu.positive? && norm_gpu.positive?
         cosine = dot / Math.sqrt(norm_cpu * norm_gpu)
         relative_l2 = Math.sqrt(error / norm_cpu)
-        puts JSON.generate(event: 'embedding_comparison', exact_dimensions: true, exact_mrope_positions: true,
+        puts JSON.generate(event: 'embedding_comparison', reference: reference_name,
+                           exact_dimensions: true, exact_mrope_positions: true,
                            cosine_similarity: cosine, relative_l2: relative_l2, values: values.length,
                            min_token_cosine: min_token_cosine, max_token_relative_l2: max_token_relative_l2)
-        unless cosine >= 0.99 && relative_l2 <= 0.1 && min_token_cosine >= 0.99 && max_token_relative_l2 <= 0.1
+        unless cosine >= 0.99 && relative_l2 <= 0.1
+          raise 'GPU/CPU global embedding comparison failed'
+        end
+        if reference_name == 'cpu-standard-attention' && !(min_token_cosine >= 0.99 && max_token_relative_l2 <= 0.1)
           raise 'GPU/CPU embedding comparison failed (cosine >= 0.99, relative L2 <= 0.1 required globally and per token)'
+        end
         end
       end
     end
+    next if backend == 'cpu-standard'  # numerical reference only; production CPU is the latency baseline
     sorted = samples.sort
     results[backend] = (sorted[(sorted.length - 1) / 2] + sorted[sorted.length / 2]) / 2.0
     metric('vision.image_roundtrip.median_host_seconds', results[backend], 's',
