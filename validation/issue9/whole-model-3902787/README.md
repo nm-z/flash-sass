@@ -2,8 +2,9 @@
 
 Refs [issue #9](https://github.com/nm-z/flash-sass/issues/9) and
 [PR #105](https://github.com/nm-z/flash-sass/pull/105).
-Numerical/GPU acceptance is pending. These files first preserve the completed
-input export; they do not establish model correctness.
+Complete issue acceptance is pending. These files preserve the input export,
+completed direct-component checks, a one-token actual-model result, and the
+failed multi-position oracle preflight. Each result has a limited scope below.
 
 ## Input export
 
@@ -29,10 +30,12 @@ and I/O pressure. Its replacement is the successful Archy export above.
 
 ## Implementation and builds
 
-The numerical/reference and engine revision is fixed to
-`39027871256e578fa8339681a661f59de53233c4`. Later documentation and validation
-tooling commits may advance the PR head; each scalar input seal also verifies
-the actual numerical source contents, including the generated opcode header.
+The completed direct/coupled runs and private engine use revision
+`39027871256e578fa8339681a661f59de53233c4`. The CPU record serializer changed in
+`36a8246b98df4beb1046f467cb66f9d6225d4d6f` after its reader rejected the old
+ring byte count. New oracle runs require a fresh source seal/reference.
+Documentation/Make changes may advance the PR head independently; each seal
+also verifies numerical source contents, including the generated opcode header.
 
 | Artifact | SHA-256 | Routed build |
 | --- | --- | --- |
@@ -45,17 +48,76 @@ the actual numerical source contents, including the generated opcode header.
 
 Native producer flags add `-march=native` to C11, `-O2`, and
 `-ffp-contract=off`; the build host is Archy's E5-2620 v3. This architecture
-variant's 12 API/CLI checks passed. Actual-weight record equality against the
-portable baseline is still required before using it for the deep reference.
+variant's 12 API/CLI checks passed. Old-format actual-weight record/checkpoint
+equality was measured as described below; fresh corrected-format equality is
+still required before the deep reference.
+
+## Completed GPU checks
+
+The issue9 jobs use `/home/nate/.local/state/gpuq/issue9-history.sqlite3` on
+Archy and share the global FIFO/reservation with the default database. The
+compressed `.logs.json.gz` files are exports of durable database documents,
+not output redirected during execution. Derived `.stdout` files are provided
+for reading the two positive runs.
+
+| GPUQ job | Result and scope | Retained export |
+| --- | --- | --- |
+| `ef56e0c2-ad05-488d-9cdc-e3992ba72f9e` | Exit 0, 14 direct cases / 56 positions, both KV placements, budget 512, starts 1/2048/2052/3100/8000/65000/262000 plus three tails. Synthetic history, deterministic FP32 inputs and BF16 projection fixtures; no checkpoint weight provenance. | `direct-ef56.logs.json.gz`, `direct-ef56.stdout` |
+| `8f441d80-bace-4a50-a156-cdf6e40e30ba` | Exit 0, full 48 blocks + embedding/PLE/head, all six production dies, 1202 phases, one teacher-forced ID 10, prediction 18, host KV / budget 1. Exact compared stages, states and logits. No exclusion at one token. | `model-t1-8f44.logs.json.gz`, `model-t1-8f44.stdout` |
+| `c8289d09-b214-4acf-bf09-7ead03cc9add` | Expected exit 3, selected-ID perturbation, VRAM KV | `negative-kv0-selection.logs.json.gz` |
+| `23f81eb9-78f7-4fd1-a5b5-5bbf93a31dc0` | Expected exit 3, compact-gather perturbation, VRAM KV | `negative-kv0-gather.logs.json.gz` |
+| `56a37b5f-83c0-4425-a489-4269ea60d6e1` | Expected exit 3, attention-output perturbation, VRAM KV | `negative-kv0-output.logs.json.gz` |
+| `c3d745e8-c5b8-4da7-88e0-67ca15b85c5a` | Expected exit 3, selected-ID perturbation, host KV | `negative-kv1-selection.logs.json.gz` |
+| `bc5e6bf2-3e8e-4dfb-b6eb-74922b95102f` | Expected exit 3, compact-gather perturbation, host KV | `negative-kv1-gather.logs.json.gz` |
+| `4a01410d-4fb2-4e7d-9539-4fd19145cb8d` | Expected exit 3, attention-output perturbation, host KV | `negative-kv1-output.logs.json.gz` |
+| `16737acb-6900-46fa-8021-e1fa9e6424d9` | Exit 2 before CUDA: invalid ring dimensions versus byte count in old CPU records. This is a failed gate, not GPU numerical evidence. | `oracle-preflight-1673.logs.json.gz` |
+
+All six negative cases use visible length 2052, budget 512 and seed 4242. Each
+reports its intended specific mismatch. Queue status `failed` is expected for
+these deliberately rejected cases. Initial parallel-admission attempts that
+were lost or exited before execution are retained in the database and are not
+counted as numerical results; serial reruns above supplied the evidence.
+
+Optional resident trace collection was unavailable: the collector reported no
+enabled resident trace producer. Device timing, CPU reference wall time and
+client/build time are different clock domains. No speedup is inferred here.
+
+## CPU reference attempts and fresh run
+
+The old native/chunked stream used DSH builds
+`build-3257364-1792497853067902053` (four positions),
+`build-3588582-1792500249730496407` (four resumed positions), and
+`build-3636801-1792500664399514576` (final position).
+An independent portable/uninterrupted nine-position run completed in
+`build-3600061-1792500347151099419`. DSH parity check
+`build-3659594-1792500856648284611` compared both complete files exactly:
+
+- Records SHA-256 `fe424adb48dbe81c97050086550c456e7001adb590f795b74cd0f696704ab1cb`.
+- Checkpoint SHA-256 `394355fd52f6004ce6e4ab27cb3cc3387b3ce2cc68777a1b505dca03f9ef42de`.
+
+These streams have the same malformed serializer, so their equality does not
+establish a valid oracle or GPU agreement. They remain compiler/resume evidence.
+An experimental two-thread loop compiler variant also matched those bytes in
+`build-3745644-1792501584558826668`; no speedup is claimed. An O3/LTO experiment
+was rejected by strict compiler diagnostics and was not used.
+
+The fresh serializer validates shape/type/byte products before hashing any
+source tensor. It corrects ring lengths and resets final-stream dimensions for
+each die. CPU `oracle-validate` parses the complete stream using the production
+reader before GPU submission. Fresh native reference generation started with
+`build-3770830-1792501786926561393`, using full revision `36a8246...` in a new
+data directory. A preceding invocation with an incorrectly typed short revision
+annotation was cancelled by its owner before use; its partial artifacts are
+not acceptance evidence.
 
 ## Pending execution
 
-- Native nine-position, budget-1 scalar reference: first four-position chunk
-  started through DSH `build-3257364-1792497853067902053`, outside GPUQ.
-- Independent portable/uninterrupted record parity, checkpoint continuation,
-  GPU comparisons and full request/snapshot matrices remain pending.
-- Patched direct component matrix is queued as
-  `ef56e0c2-ad05-488d-9cdc-e3992ba72f9e` in the issue9 GPUQ history database.
+Corrected-format CPU parity/continuation, multi-position GPU comparisons, both
+KV placements/launch modes, actual production-budget exclusion, and private
+full-model request/snapshot matrices remain pending. The engine request gate
+`06cb459e-0a40-4810-a87b-6bbab40758b4` is queued with the six verified holders;
+an earlier queued invocation with incorrect SSH argument grouping was cancelled
+by its owner before execution.
 
 The first direct attempt failed; its record is retained in the database and
 described in [the oracle notes](../ORACLE.md). No GPU job or resident holder

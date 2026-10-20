@@ -37,12 +37,12 @@ ifneq ($(GPUQ_JOB_ID),)
 ifeq ($(strip $(MAKECMDGOALS)),)
 $(error Default target builds CPU code; invoke a GPU execution target explicitly)
 endif
-ifneq ($(filter all cpu-check engine-build engine-check oracle-header oracle-build oracle-check oracle-chunk oracle-validate oracle-parity cache-export cache-export-two-volumes cache-identity kernel-build,$(MAKECMDGOALS)),)
+ifneq ($(filter all cpu-check engine-build engine-check oracle-header oracle-build oracle-check oracle-chunk oracle-batch oracle-validate oracle-parity cache-export cache-export-two-volumes cache-identity kernel-build oracle-step-%,$(MAKECMDGOALS)),)
 $(error Run CPU builds/reference work through dsh build outside gpuq)
 endif
 endif
 
-.PHONY: all cpu-check engine-build engine-check engine-matrix oracle-header oracle-build oracle-check oracle-source-identity oracle-chunk oracle-validate oracle-parity model-oracle assembler-check kernel-build cache-export cache-export-two-volumes cache-identity identity model direct-identity direct-matrix
+.PHONY: all cpu-check engine-build engine-check engine-matrix oracle-header oracle-build oracle-check oracle-source-identity oracle-chunk oracle-batch oracle-validate oracle-parity model-oracle assembler-check kernel-build cache-export cache-export-two-volumes cache-identity identity model direct-identity direct-matrix
 all:
 	$(MAKE) -C $(ROOT)/kern FLASH_REV=$(ENGINE_REVISION) model_test hold_cache libengine.so flashcore
 
@@ -103,6 +103,17 @@ oracle-chunk: oracle-build oracle-source-identity $(ORACLE_IDS)
 	ldd $(OUT_DIR)/model_oracle
 	sha256sum $(OUT_DIR)/model_oracle $(ORACLE_IDS)
 	env SPLIT_SHARES=$(SHARES) ATTN_MAP=$(ATTENTION_MAP) $(OUT_DIR)/model_oracle $(ROOT) $(ORACLE_SOURCE_MANIFEST) $(ORACLE_REVISION) $(MODEL_CACHE) $(CACHE_ROOT)/manifest.new $(CACHE_ROOT)/tensors.sha256 $(CACHE_ROOT)/checkpoints.sha256 $(GGUF) $(PLE_GGUF) 192 $(ORACLE_IDS) $(BLOCKS) $(ORACLE_DIES) $(ORACLE_DATA)/records.bin $(ORACLE_DATA)/checkpoint.bin $(ORACLE_DATA)/receipt.bin $(ORACLE_CHUNK)
+
+# Eight serialized, individually checkpointed chunks per routed CPU job.
+# The deep reference can resume this bounded batch after an interruption.
+ORACLE_BATCH_STEPS := 1 2 3 4 5 6 7 8
+define ORACLE_BATCH_STEP
+.PHONY: oracle-step-$(1)
+oracle-step-$(1):
+	$$(MAKE) -f $$(SOURCE_DIR)/Makefile oracle-chunk
+endef
+$(foreach step,$(ORACLE_BATCH_STEPS),$(eval $(call ORACLE_BATCH_STEP,$(step))))
+oracle-batch: $(addprefix oracle-step-,$(ORACLE_BATCH_STEPS))
 
 # Parse the complete produced stream on CPU before submitting GPU work.
 oracle-validate: oracle-build oracle-source-identity

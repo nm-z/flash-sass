@@ -2,9 +2,10 @@
 
 This follow-up addresses [issue #9](https://github.com/nm-z/flash-sass/issues/9).
 It extends the actual-weight model harness with a CUDA-free, resumable scalar
-producer and a GPU consumer. The full-model numerical and request matrices are
-still pending. The CPU API and argument checks below establish their stated
-scope; they do not establish GPU agreement.
+producer and a GPU consumer. The full 48-layer, six-die coupled test passed
+at one token; multi-position oracle comparison and request matrices remain
+pending. The evidence below distinguishes actual-model, synthetic-component
+and CPU format checks.
 
 ## Execution and comparison
 
@@ -16,7 +17,8 @@ It uses six logical dies, explicit physical die IDs, production split shares
 Dense-baseline and free-running measurements remain separate harness modes.
 
 The producer writes one record per position and checkpoints at most 32 positions
-per invocation. Records contain labelled tensor dimensions, data types, byte
+per invocation. It validates tensor layouts before hashing source bytes.
+Records contain labelled tensor dimensions, data types, byte
 counts and SHA-256 digests. Selected block IDs and prediction tuples also have
 raw payloads. The comparison contract is exact bytes, including F32 and F16
 representations, with contraction disabled during compilation. It is the
@@ -83,12 +85,17 @@ directory on the HDD build volume.
 ```console
 dsh build --host archy --admission-timeout 60 --require-tool cargo --require-tool cc -- make -f validation/issue9/Makefile oracle-check cpu-check
 dsh build --host archy --admission-timeout 60 --require-tool cargo --require-tool cc -- make -f validation/issue9/Makefile TOKENS=9 BLOCKS=1 ORACLE_CHUNK=4 oracle-chunk
+dsh build --host archy --admission-timeout 60 --require-tool cargo --require-tool cc -- make -f validation/issue9/Makefile TOKENS=9 BLOCKS=1 oracle-validate
 ssh archy gpuq run -- make -f /home/nate/work/fs9-sol/validation/issue9/Makefile TOKENS=9 BLOCKS=1 HOST_KV=1 model-oracle
 ```
 
 Give the first CPU invocation enough DSH time for the complete large-file hash
 pass as well as its scalar chunk. Invoke the same CPU chunk target until its
 structured completion field is true.
+`oracle-batch` serializes eight independently checkpointed chunk invocations
+within one routed job. It is CPU work and is rejected inside GPUQ.
+Before submitting the GPU consumer, `oracle-validate` uses the production reader
+to check the complete stream, shapes, teacher IDs and EOF on CPU.
 All chunks for one record stream must use the same identities and geometry.
 Keep `ORACLE_REVISION` fixed to the chosen implementation revision across later
 documentation or request-runner commits.
@@ -111,13 +118,24 @@ stay under their owners' control.
 | DSH `build-2802738-1792494998585080917` on Archy | 11 API/CLI checks and 46 boundary checks passed | Adds concurrent-writer exclusion before verification and preservation of existing record bytes after failed verification. Builds the consumer with shared reader locking. No CUDA execution. |
 | DSH `build-2853303-1792495224803651691` on Archy | 12 API/CLI checks passed | Adds the shared-reader/exclusive-writer conflict case. No CUDA execution; the earlier 46 boundary checks were not repeated for this test-only extension. |
 | DSH `build-3053937-1792496534261548369` on Archy | 20 engine config-parser fixtures passed | Full 40-hex revision, duplicate/missing/mismatched scope and pair/chunk flag checks. No private core, CUDA or numerical model execution. |
-| DSH `build-3160844-1792497271142504447` on Archy | 12 API/CLI cases passed with `-march=native` | Compiler/ISA variant built successfully; actual-weight record parity remains pending. No CUDA or numerical model execution. |
+| DSH `build-3160844-1792497271142504447` on Archy | 12 API/CLI cases passed with `-march=native` | Compiler/ISA variant built successfully. No CUDA execution. |
 | GPUQ `796ebc95-d3cc-45dd-ad6b-b25710a895c0` | Failed at the first direct case with illegal instruction | Built with a stale external MaxAs lacking the repository's BRX encoding/relocation patches. This is retained as a failed attempt. |
 | DSH `build-1864214-1792491727574313292` | Patched cubin rebuilt with input receipt | Private MaxAs files match `maxas-patch`; cubin SHA-256 `aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423`. This build result alone is not GPU validation. |
+| GPUQ `ef56e0c2-ad05-488d-9cdc-e3992ba72f9e` | 14 direct cases / 56 positions passed | Synthetic history and deterministic FP32 inputs through BF16 projection fixtures; budget 512, both host/VRAM placements, all modulo-four tails at the requested depths through 262003. Not actual-weight whole-model evidence. |
+| GPUQ `8f441d80-bace-4a50-a156-cdf6e40e30ba` | Full model passed, 1202 phases | Actual weights, embedding, all 48 blocks, PLE and full head on six production dies; one teacher-forced token, host KV, budget 1. Exact compared stages/states/logits/prediction; no selection exclusion at this depth. |
+| Six direct negative controls | Each exited 3 with its specific mismatch | Selection, compact gather and attention-output perturbations, both KV placements, visible length 2052 / budget 512. IDs in the retained run record. These are successful rejection checks, not positive model runs. |
+| DSH `build-3659594-1792500856648284611` | Native/chunked and portable/uninterrupted nine-position files matched | Both record and checkpoint bytes equal. This comparison used the old malformed serializer and is retained as compiler/resume evidence, not valid oracle or GPU acceptance. |
+| DSH `build-3745644-1792501584558826668` | Two-thread compiler variant matched the same old record/checkpoint bytes | No performance claim: build conditions/timing domains differ. This experimental variant is not needed for the fresh reference. |
+| GPUQ `16737acb-6900-46fa-8021-e1fa9e6424d9` | Failed before CUDA | Reader rejected `b3.ring` dimensions versus byte count. The producer multiplied the ring size twice by four; the same inspection found reused final-stream dimensions after token tuples. Both are fixed in `36a8246`; fresh records are required. |
+| DSH `build-3758806-1792501690605794907` | 13 API/CLI cases passed | Includes malformed ring-size rejection. The later final-stream dimension fix is exercised by the fresh actual-model producer and full-stream validation. |
 
-The patched direct matrix, full-model reference/consumer parity, negative
-controls, both KV placements and launch modes, deep production-budget exclusion,
-and full-model request/snapshot reuse remain required before closing #9.
+Compressed durable database log exports and scope details are in
+[the full-model run record](whole-model-3902787/README.md).
+Queue trace collection was unavailable for the completed GPU runs because the
+resident engine had no enabled trace producer; it is not reported as zero.
+Multi-position actual-model GPU parity, both KV placements and launch modes,
+deep production-budget exclusion, and full request/snapshot reuse remain
+required before closing #9.
 
 ## Private engine request validation
 

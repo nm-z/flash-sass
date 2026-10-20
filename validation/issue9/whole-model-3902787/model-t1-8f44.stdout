@@ -1,0 +1,134 @@
+cmp /home/nate/work/fs9-sol/maxas-patch/MaxAsGrammar.pm /home/nate/work/fs9-maxas/lib/MaxAs/MaxAsGrammar.pm
+cmp /home/nate/work/fs9-sol/maxas-patch/MaxAs.pm /home/nate/work/fs9-maxas/lib/MaxAs/MaxAs.pm
+cmp /home/nate/work/fs9-sol/maxas-patch/Cubin.pm /home/nate/work/fs9-maxas/lib/MaxAs/Cubin.pm
+env --chdir=/home/nate/work/fs9-sol sha256sum -c /home/nate/work/fs9-sol/kern/issue9-kernel.sha256
+kern/die.cubin: OK
+kern/actq.sass: OK
+kern/allgather.sass: OK
+kern/amax.sass: OK
+kern/argmax.sass: OK
+kern/attnmerge.sass: OK
+kern/attnpart.sass: OK
+kern/attnpartn.sass: OK
+kern/attnqk.sass: OK
+kern/attnqkq.sass: OK
+kern/bartest.sass: OK
+kern/conv1d.sass: OK
+kern/dnnorm.sass: OK
+kern/dnstep.sass: OK
+kern/embrow.sass: OK
+kern/ffnact.sass: OK
+kern/fmath.sass: OK
+kern/gemv_b32.sass: OK
+kern/gemv_bf16.sass: OK
+kern/gemv_bf16_pair.sass: OK
+kern/gemv_iq4_xs.sass: OK
+kern/gemv_q2_0.sass: OK
+kern/gemv_q3_k.sass: OK
+kern/gemv_q4_k.sass: OK
+kern/gemv_q6_k.sass: OK
+kern/gridbar.sass: OK
+kern/hcops.sass: OK
+kern/idxqk.sass: OK
+kern/idxscore.sass: OK
+kern/idxsel.sass: OK
+kern/kvgather.sass: OK
+kern/mailbox.sass: OK
+kern/moesel.sass: OK
+kern/normq.sass: OK
+kern/pleconv.sass: OK
+kern/plegate.sass: OK
+kern/plerows.sass: OK
+kern/rmsnorm.sass: OK
+kern/router.sass: OK
+kern/sample.sass: OK
+kern/semtest.sass: OK
+kern/semtest2.sass: OK
+kern/semtest3.sass: OK
+kern/semtest4.sass: OK
+kern/sumn.sass: OK
+kern/topk.sass: OK
+kern/xchg.sass: OK
+kern/xcopy.sass: OK
+kern/xmadbench.sass: OK
+kern/die.pl: OK
+kern/trace.pl: OK
+kern/actq.pl: OK
+kern/fmath.pl: OK
+kern/die.ptx: OK
+maxas-patch/Cubin.pm: OK
+maxas-patch/MaxAs.pm: OK
+maxas-patch/MaxAsGrammar.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/MaxAsGrammar.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/MaxAs.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/Cubin.pm: OK
+git -C /home/nate/work/fs9-sol rev-parse HEAD
+7cd4d7eda35e887df69effe6ddab5ae7dd054939
+git -C /home/nate/work/fs9-sol status --short
+cc --version
+cc (GCC) 16.2.1 20260810
+Copyright (C) 2026 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+ldd /home/nate/work/fs9-sol/kern/model_test
+	linux-vdso.so.1 (0x00007f16e2295000)
+	libcuda.so.1 => /usr/lib/libcuda.so.1 (0x00007f16e0a00000)
+	libcrypto.so.3 => /usr/lib/libcrypto.so.3 (0x00007f16e0400000)
+	libm.so.6 => /usr/lib/libm.so.6 (0x00007f16e02c9000)
+	libc.so.6 => /usr/lib/libc.so.6 (0x00007f16e0000000)
+	libdl.so.2 => /usr/lib/libdl.so.2 (0x00007f16e21dd000)
+	libpthread.so.0 => /usr/lib/libpthread.so.0 (0x00007f16e21d8000)
+	librt.so.1 => /usr/lib/librt.so.1 (0x00007f16e21d3000)
+	libz.so.1 => /usr/lib/libz.so.1 (0x00007f16e21b8000)
+	libbrotlienc.so.1 => /usr/lib/libbrotlienc.so.1 (0x00007f16dff40000)
+	libbrotlidec.so.1 => /usr/lib/libbrotlidec.so.1 (0x00007f16e21a9000)
+	libzstd.so.1 => /usr/lib/libzstd.so.1 (0x00007f16dfe5a000)
+	/lib64/ld-linux-x86-64.so.2 => /usr/lib64/ld-linux-x86-64.so.2 (0x00007f16e2297000)
+	libbrotlicommon.so.1 => /usr/lib/libbrotlicommon.so.1 (0x00007f16e2184000)
+sha256sum /usr/lib/libcuda.so.470.256.02
+6f379857a042713f8c4c28e689006b9143889c7a465044074d99a614a64e2fa2  /usr/lib/libcuda.so.470.256.02
+sha256sum /home/nate/work/fs9-sol/kern/model_test /home/nate/work/fs9-sol/kern/die.cubin /home/nate/work/fs9-sol/kern/libengine.so
+da1ef219748ec35d2354d6ea2eaa8840f1ded98397fb39fd3efcdd0b10745c10  /home/nate/work/fs9-sol/kern/model_test
+aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423  /home/nate/work/fs9-sol/kern/die.cubin
+882195eb79be5ca52f731a949bfbef749e23f23679c2e97909a1c59ba5b829a1  /home/nate/work/fs9-sol/kern/libengine.so
+sha256sum /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256 /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+4d05f248b11edfe20155cc92f86bf870d28fb6d884e4403e5d02db9b359faf53  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new
+011a28a8823fe2d93e1c5d3185f4089e17ca91a690bf3d4776a2ba35bf09f90b  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256
+95d11c1ddf9376f1fa9c979aa8321e01c938e87d398bff462659bb683b1fb48f  /tmp/hold-h0.manifest
+2abd2c5538a3af6a13dcc847c1290e0182dbc72f644695164fabc0bbc22a601e  /tmp/hold-h1.manifest
+c904a81325dd7a2439ed179748525b994226899245ac4d43173d777564e9cca0  /tmp/hold-h2.manifest
+82db709473dfb5989c8f7ff6d719b5e7df837438d09de748637449bf3f50616c  /tmp/hold-h3.manifest
+73c15e710ebd9a3879d52667f07f86d0c410b05c1710d3cf9d4c4173c576a564  /tmp/hold-h4.manifest
+aff9e8426bb2129b25ad6b07fc35435c65656c069d348509a8da6e3766895d5e  /tmp/hold-h5.manifest
+cat /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/checkpoints.sha256
+69820c02ec7d0b45ef2ebb19d6620299db749fe2aded7f39f93c6b88b199b720  /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+316b46f3a2dbd68c900f43136ab9449f9dcc3725dfd8c794847c204bc161e113  /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf
+nvidia-smi --query-gpu=index,uuid,name,driver_version,memory.free --format=csv
+index, uuid, name, driver_version, memory.free [MiB]
+0, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, Tesla M60, 470.256.02, 266 MiB
+1, GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, Tesla M60, 470.256.02, 248 MiB
+2, GPU-c767d250-4454-d181-d648-8706b5f2fb64, Tesla M60, 470.256.02, 220 MiB
+3, GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, Tesla M60, 470.256.02, 187 MiB
+4, GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, Tesla M60, 470.256.02, 238 MiB
+5, GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, Tesla M60, 470.256.02, 175 MiB
+6, GPU-431371bd-b482-96b2-4b70-04f83c6d075b, Tesla M60, 470.256.02, 7547 MiB
+7, GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4, Tesla M60, 470.256.02, 4626 MiB
+gawk -v count=1 'BEGIN { for (i = 0; i < count; ++i) print (10 + i) % 248320 }' > /home/nate/.local/state/gpuq/staging/8f441d80-bace-4a50-a156-cdf6e40e30ba/ids.txt
+sha256sum /home/nate/.local/state/gpuq/staging/8f441d80-bace-4a50-a156-cdf6e40e30ba/ids.txt
+917df3320d778ddbaa5c5c7742bc4046bf803c36ed2b050f30844ed206783469  /home/nate/.local/state/gpuq/staging/8f441d80-bace-4a50-a156-cdf6e40e30ba/ids.txt
+env --chdir=/home/nate/work/fs9-sol/kern -u MODEL_NOTWIN -u MODEL_ORACLE_RECORDS -u MODEL_NPH -u MODEL_INJECT -u MODEL_DUMP_S -u MODEL_DUMP_DIR -u MODEL_DUMP_TWIN MODEL_ATTN=qsa MODEL_IDS=/home/nate/.local/state/gpuq/staging/8f441d80-bace-4a50-a156-cdf6e40e30ba/ids.txt MODEL_PLE=/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf MODEL_PLE_OFF=192 MODEL_CAPTURE_QSA=0 FLASH_NBLK=1 FLASH_KV_HOST=1 SPLIT_SHARES=112,97,81,116,97,97 ATTN_MAP=1,1,1,1,4,4,4,4,5,5,5,5 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5  ./model_test /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors 0 48 1 eh /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+attention mode: qsa (production INT8 QSA; instruction-order twin)
+FLASH_NBLK=1 FLASH_KV_HOST=1; cache positions=128 compact positions=2080
+PLE table /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf mapped for the twin; 1 prompt positions x 16 rows staged for the GPU
+production embedding owner: die 0
+6 die(s), blocks [0, 48), embed, head, 1 tokens (1 prompt)
+  die 0 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 1 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+  die 2 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 3 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 4 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+  die 5 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+token   0: id     10 ->     18 1202 phases; twin 214.18 s, dies 26.052 ms  exact
+OK: 1 of 1 tokens exact; mean 26.052 ms per token
+
