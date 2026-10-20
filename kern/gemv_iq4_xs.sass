@@ -8,7 +8,10 @@
 # Element value = d * (ls - 32) * kvalues[q], kvalues = the IQ4_NL table.
 #
 # Lane l = (q = l >> 3, jj = l & 7) owns sub-block jj of block Q i + q and keeps
-# those 32 activations (int16) in registers. The table lookup is done with PRMT:
+# those 32 activations (int16) in registers. By default PRMT decodes unsigned
+# bytes kv+128. The dot starts at -128*S32[sub-block], yielding the original
+# signed integer dot exactly; its floating-point scale and reduction are unchanged.
+# IQ4_BIASED_DOT=0 retains the original lookup for comparisons, described below:
 # a nibble word is its own PRMT selector (4 nibbles per PRMT; the upper four after
 # SHR 16). With selector bit 3 set PRMT replicates the sign of the selected byte,
 # so lo = PRMT(kv[0..7], w) is kv[q] for q < 8 and 0xFF otherwise (kv[0..7] < 0),
@@ -23,7 +26,7 @@
 # Barriers: 1 = row loads, 2 = store reads and prologue loads, 3 = I2F, 4 = F2F,
 # 5 = SHFL, 6 = S2R.
 #
-# Params: 0:0x140:8 W  1:0x148:8 X16  2:0x150:8 (unused)  3:0x158:8 Y
+# Params: 0:0x140:8 W  1:0x148:8 X16  2:0x150:8 S32  3:0x158:8 Y
 #         4:0x160:4 rows  5:0x164:4 xs  6:0x168:8 dbg
 
 <CONSTANT_MAPPING>
@@ -32,6 +35,8 @@
     param_W1   : c[0x0][0x144]
     param_X0   : c[0x0][0x148]
     param_X1   : c[0x0][0x14c]
+    param_S0   : c[0x0][0x150]
+    param_S1   : c[0x0][0x154]
     param_Y0   : c[0x0][0x158]
     param_Y1   : c[0x0][0x15c]
     param_rows : c[0x0][0x160]
@@ -72,6 +77,9 @@
     $r += $r & 1;
     $o .= sprintf "    %d,%d : pp<0-1>\n    %d,%d : np<0-1>\n    %d,%d : sp<0-1>\n    %d,%d : yp<0-1>\n",
         $r, $r+1, $r+2, $r+3, $r+4, $r+5, $r+6, $r+7;
+    my $biased_dot = $ENV{IQ4_BIASED_DOT} // 1;
+    die "IQ4_BIASED_DOT must be 0 or 1" unless $biased_dot =~ /\A[01]\z/;
+    $o .= sprintf "    %d-%d : sbias<0-%d>\n", $r+8, $r+7+$n, $n-1 if $biased_dot;
     # prologue temporaries alias the nibble registers (dead before the loop)
     $o .= sprintf "    %d,%d : xp<0-1>\n", $nb, $nb + 1;
     $o .= sprintf "    %d,%d : ap<0-1>\n", $nb + 12, $nb + 13;
@@ -93,6 +101,12 @@
     my $lgR = int(log($R)/log(2) + 0.5);
     my $wrows = 32 / $L;
     my @kv = (-127, -104, -83, -65, -49, -35, -22, -10, 1, 13, 25, 38, 53, 69, 89, 113);
+    my $biased_dot = $ENV{IQ4_BIASED_DOT} // 1;
+    my $add_lookup = $biased_dot;
+    # PRMT yields ff in lo for an upper-half selector, zero in hi for a
+    # lower-half selector. Bias positive entries by one, then compute
+    # ((lo & 7f) + hi) ^ 80 per byte. Max sum 127+114=241 prevents carries.
+    $kv[$_]++ for $add_lookup ? (8..15) : ();
     my $tw = sub { my $k = shift; my $w = 0; $w |= ($kv[4*$k + $_] & 0xff) << (8*$_) for 0..3; return $w; };
     my $mulc = sub {
         my ($d, $rr, $cst) = @_;
@@ -149,6 +163,16 @@
     $o .= "--:-:-:-:6      IADD ap0.CC, t1p, param_AS0;\n";
     $o .= "--:-:-:-:6      IADD.X ap1, RZ, param_AS1;\n";
     for my $i (0..$n-1) { $o .= sprintf "--:-:2:-:1      LDG.E.CI as%d, [ap+0x%x];\n", $i, 4*$L*$i; }
+    if ($biased_dot) {
+        # Unsigned byte weights are kv+128. Seed the integer dot with
+        # -128*sum(activation) once per sub-block, retaining the exact signed
+        # dot without XORing all eight decoded byte words on every row.
+        $o .= "02:-:-:-:6      IADD ap0.CC, t1p, param_S0;\n";
+        $o .= "--:-:-:-:6      IADD.X ap1, RZ, param_S1;\n";
+        $o .= sprintf "--:-:2:-:%d      LDG.E.CI sbias%d, [ap+0x%x];\n", $_ == $n-1 ? 2 : 1, $_, 4*$L*$_ for 0..$n-1;
+        $o .= sprintf "%s:-:-:-:%d      SHL sbias%d, sbias%d, 0x7;\n", $_ ? '--' : '02', $_ == $n-1 ? 2 : 1, $_, $_ for 0..$n-1;
+        $o .= sprintf "--:-:-:-:1      IADD sbias%d, RZ, -sbias%d;\n", $_, $_ for 0..$n-1;
+    }
     # activations: xp = X + 512 q + 64 jj ; step i at + 512 Q i
     $o .= "--:-:-:-:6      SHL t1p, q, 0x9;\n";
     $o .= "--:-:-:-:6      ISCADD t1p, jj, t1p, 0x6;\n";
@@ -182,13 +206,19 @@
         for my $k (0..3) {
             $o .= sprintf "--:-:-:-:1      PRMT lo%d, tl0, %s, tl1;\n", $k, $w[$k];
             $o .= sprintf "--:-:-:-:1      PRMT hi%d, th0, x0%d, th1;\n", $k, $k;
-            $o .= sprintf "--:-:-:-:1      PRMT mk%d, t7f, %s, t7f;\n", $k, $w[$k];
+            $o .= sprintf "--:-:-:-:1      PRMT mk%d, t7f, %s, t7f;\n", $k, $w[$k] unless $add_lookup;
         }
         for my $k (0..3) {
             $o .= sprintf "--:-:-:-:1      PRMT lo2%d, tl0, tt%d, tl1;\n", $k, $k;
             $o .= sprintf "--:-:-:-:1      PRMT hi2%d, th0, x1%d, th1;\n", $k, $k;
-            $o .= sprintf "--:-:-:-:1      PRMT mk2%d, t7f, tt%d, t7f;\n", $k, $k;
+            $o .= sprintf "--:-:-:-:1      PRMT mk2%d, t7f, tt%d, t7f;\n", $k, $k unless $add_lookup;
         }
+        if ($add_lookup) {
+            $o .= sprintf "--:-:-:-:1      LOP32I.AND lo%d, lo%d, 0x7f7f7f7f;\n", $_, $_ for 0..3;
+            $o .= sprintf "--:-:-:-:1      LOP32I.AND lo2%d, lo2%d, 0x7f7f7f7f;\n", $_, $_ for 0..3;
+            $o .= sprintf "--:-:-:-:1      IADD R%d, lo%d, hi%d;\n", $_, $_, $_ for 0..3;
+            $o .= sprintf "--:-:-:-:1      IADD R%d, lo2%d, hi2%d;\n", 4 + $_, $_, $_ for 0..3;
+        } else {
         # byte select masks 0x7F -> 0xFF
         $o .= sprintf "--:-:-:-:1      SHL mb%d, mk%d, 0x1;\n", $_, $_ for 0..3;
         $o .= sprintf "--:-:-:-:1      SHL mb%d, mk2%d, 0x1;\n", 4 + $_, $_ for 0..3;
@@ -197,12 +227,14 @@
         # R = mask ? lo : hi
         $o .= sprintf "--:-:-:-:1      LOP3.LUT R%d, lo%d, mk%d, hi%d, 0xe2;\n", $_, $_, $_, $_ for 0..3;
         $o .= sprintf "--:-:-:-:1      LOP3.LUT R%d, lo2%d, mk2%d, hi2%d, 0xe2;\n", 4 + $_, $_, $_, $_ for 0..3;
+        }
         # int16 pairs: p[4w+k] = elements 8w+2k, 8w+2k+1
         for my $k (0..3) {
-            $o .= sprintf "--:-:-:-:1      PRMT p%02d, R%d, 0x9180, RZ;\n", 4*$k, $k;
-            $o .= sprintf "--:-:-:-:1      PRMT p%02d, R%d, 0xb3a2, RZ;\n", 4*$k + 1, $k;
-            $o .= sprintf "--:-:-:-:1      PRMT p%02d, R%d, 0x9180, RZ;\n", 4*$k + 2, 4 + $k;
-            $o .= sprintf "--:-:-:-:1      PRMT p%02d, R%d, 0xb3a2, RZ;\n", 4*$k + 3, 4 + $k;
+            my ($low, $high) = $biased_dot ? ('4140', '4342') : ('9180', 'b3a2');
+            $o .= sprintf "--:-:-:-:1      PRMT p%02d, R%d, 0x%s, RZ;\n", 4*$k, $k, $low;
+            $o .= sprintf "--:-:-:-:1      PRMT p%02d, R%d, 0x%s, RZ;\n", 4*$k + 1, $k, $high;
+            $o .= sprintf "--:-:-:-:1      PRMT p%02d, R%d, 0x%s, RZ;\n", 4*$k + 2, 4 + $k, $low;
+            $o .= sprintf "--:-:-:-:1      PRMT p%02d, R%d, 0x%s, RZ;\n", 4*$k + 3, 4 + $k, $high;
         }
         # 32 MACs, accumulator = element & 7
         my $j = 0;
@@ -211,7 +243,7 @@
                 for my $hh (0, 1) {
                     my $acc = sprintf "acc%d", $j & 7;
                     $o .= sprintf "--:-:-:-:1      XMAD.S16.S16 %s, p%02d.%s, act%02d.%s, %s;\n",
-                        $acc, 4*$k + $kk, $hh ? 'H1' : 'H0', 16*$i + 4*$k + $kk, $hh ? 'H1' : 'H0', $j < 8 ? 'RZ' : $acc;
+                        $acc, 4*$k + $kk, $hh ? 'H1' : 'H0', 16*$i + 4*$k + $kk, $hh ? 'H1' : 'H0', $j == 0 && $biased_dot ? "sbias$i" : $j < 8 ? 'RZ' : $acc;
                     $j++;
                 }
             }

@@ -1,0 +1,66 @@
+# source_revision=6da421bccb68e613ecbdc8142104935deecccb29
+# device=Tesla M60,compute_capability=5.2,driver_api=11040
+# kv_location=host_mapped,trace_location=host_mapped
+# bounded=/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern/die.cubin
+# unbounded=/home/nate/codex/flash-pr44-evidence-20261018/build/unbounded/kern/die.cubin
+# trace=/home/nate/codex/flash-pr44-evidence-20261018/build/trace/kern/die.cubin
+# operation=complete_OP_ATTNQKQ_including_dispatch_and_sync
+# fixed_position=0,ctas=16,threads_per_cta=256,work_units=26,descriptors=1,operations_per_launch=10000
+# warmup_rounds=2,warmup_operations_per_variant_per_round=1000
+# independent_ordinary_KV_check=PASS,preflight_bitwise_agreement=PASS,raw_maxima_check=PASS
+sample,order,variant,host,iterations,total_ms,us_per_operation
+0,0,bounded,1,10000,83.8807068,8.38807068
+0,1,unbounded,1,10000,84.1872635,8.41872635
+0,2,trace,1,10000,87.3049927,8.73049927
+1,0,trace,1,10000,89.383873,8.9383873
+1,1,unbounded,1,10000,84.1877747,8.41877747
+1,2,bounded,1,10000,83.9666901,8.39666901
+2,0,unbounded,1,10000,84.1462708,8.41462708
+2,1,trace,1,10000,89.3810883,8.93810883
+2,2,bounded,1,10000,83.8714905,8.38714905
+3,0,bounded,1,10000,83.9702682,8.39702682
+3,1,trace,1,10000,87.2871017,8.72871017
+3,2,unbounded,1,10000,84.0939178,8.40939178
+4,0,trace,1,10000,87.0871964,8.70871964
+4,1,bounded,1,10000,83.9571533,8.39571533
+4,2,unbounded,1,10000,84.1477127,8.41477127
+5,0,unbounded,1,10000,84.1308517,8.41308517
+5,1,bounded,1,10000,83.8852158,8.38852158
+5,2,trace,1,10000,89.3284454,8.93284454
+6,0,bounded,1,10000,83.8144989,8.38144989
+6,1,unbounded,1,10000,84.7961578,8.47961578
+6,2,trace,1,10000,87.1019516,8.71019516
+7,0,trace,1,10000,89.3323822,8.93323822
+7,1,unbounded,1,10000,84.1382751,8.41382751
+7,2,bounded,1,10000,83.9450531,8.39450531
+8,0,unbounded,1,10000,84.2092514,8.42092514
+8,1,trace,1,10000,89.3323822,8.93323822
+8,2,bounded,1,10000,83.8013153,8.38013153
+9,0,bounded,1,10000,83.9652786,8.39652786
+9,1,trace,1,10000,87.0853119,8.70853119
+9,2,unbounded,1,10000,84.1676788,8.41676788
+10,0,trace,1,10000,87.2714844,8.72714844
+10,1,bounded,1,10000,83.919426,8.3919426
+10,2,unbounded,1,10000,84.1950378,8.41950378
+11,0,unbounded,1,10000,84.1727066,8.41727066
+11,1,bounded,1,10000,84.5213089,8.45213089
+11,2,trace,1,10000,89.3247681,8.93247681
+# pair=0,clamp_delta_us=-0.0306556702,clamp_delta_percent=-0.364136675,trace_delta_us=0.342428589,trace_delta_percent=4.08232837
+# pair=1,clamp_delta_us=-0.0221084595,clamp_delta_percent=-0.262608907,trace_delta_us=0.541718292,trace_delta_percent=6.45158564
+# pair=2,clamp_delta_us=-0.0274780273,clamp_delta_percent=-0.326550744,trace_delta_us=0.550959778,trace_delta_percent=6.56909487
+# pair=3,clamp_delta_us=-0.0123649597,clamp_delta_percent=-0.147037503,trace_delta_us=0.33168335,trace_delta_percent=3.95000941
+# pair=4,clamp_delta_us=-0.0190559387,clamp_delta_percent=-0.22645819,trace_delta_us=0.313004303,trace_delta_percent=3.72814335
+# pair=5,clamp_delta_us=-0.0245635986,clamp_delta_percent=-0.291968976,trace_delta_us=0.544322968,trace_delta_percent=6.48890228
+# pair=6,clamp_delta_us=-0.0981658936,clamp_delta_percent=-1.15766912,trace_delta_us=0.32874527,trace_delta_percent=3.92229595
+# pair=7,clamp_delta_us=-0.0193222046,clamp_delta_percent=-0.229648214,trace_delta_us=0.53873291,trace_delta_percent=6.41768502
+# pair=8,clamp_delta_us=-0.0407936096,clamp_delta_percent=-0.484431448,trace_delta_us=0.553106689,trace_delta_percent=6.60021489
+# pair=9,clamp_delta_us=-0.0202400208,clamp_delta_percent=-0.240472602,trace_delta_us=0.312003326,trace_delta_percent=3.71586126
+# pair=10,clamp_delta_us=-0.0275611877,clamp_delta_percent=-0.327349312,trace_delta_us=0.335205841,trace_delta_percent=3.99437719
+# pair=11,clamp_delta_us=0.0348602295,clamp_delta_percent=0.414151224,trace_delta_us=0.480345917,trace_delta_percent=5.68313391
+# median_us_per_operation,bounded,8.39322395
+# median_us_per_operation,unbounded,8.41701927
+# median_us_per_operation,trace,8.83148804
+# median_paired_clamp_delta_us=-0.0233360291,median_paired_clamp_delta_percent=-0.277288941
+# median_paired_trace_delta_us=0.411387253,median_paired_trace_delta_percent=4.88273114
+# measured_launch_output_checks=36,all_bitwise_agreement=PASS
+# note=negative_deltas_retained;no_claim_of_statistical_significance

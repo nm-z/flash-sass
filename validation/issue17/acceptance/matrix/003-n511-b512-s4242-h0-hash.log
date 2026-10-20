@@ -1,0 +1,12 @@
+projection_mode=synthetic_fixed_BF16_weights types=30,30,30 indexer=BF16 original_input=deterministic_FP32_Z checkpoint_provenance=not_supplied_cache_fingerprints_only
+direct QSA: SYNTHETIC HISTORY source=cdc3118e9d1d641fd8fc2433f93bad6510c01216 compiler=16.2.1 20260810 driver=11040 gpu=Tesla M60 CUDA_VISIBLE_DEVICES=GPU-431371bd-b482-96b2-4b70-04f83c6d075b cubin=/home/nate/codex/flash-issue17-acceptance-20261017/kern/die.cubin fnv1a64=669dbb2e43186b1a
+visible=511 steps=8 budget=512 hostKV=0 seed=4242 prefix_seeded_once=yes future_sentinels=yes current_mode=ORIGINAL_INPUT_PROJECTIONS projected_fnv=0000000000000000
+visible=511 complete=127 tail=3 selected=127 keys=511 guarded_allocations=36 exclusion=no EXACT
+visible=512 complete=128 tail=0 selected=128 keys=512 guarded_allocations=36 exclusion=no EXACT
+visible=513 complete=128 tail=1 selected=128 keys=513 guarded_allocations=36 exclusion=no EXACT
+visible=514 complete=128 tail=2 selected=128 keys=514 guarded_allocations=36 exclusion=no EXACT
+visible=515 complete=128 tail=3 selected=128 keys=515 guarded_allocations=36 exclusion=no EXACT
+visible=516 complete=129 tail=0 selected=129 keys=516 guarded_allocations=36 exclusion=no EXACT
+visible=517 complete=129 tail=1 selected=129 keys=517 guarded_allocations=36 exclusion=no EXACT
+visible=518 complete=129 tail=2 selected=129 keys=518 guarded_allocations=36 exclusion=no EXACT
+direct QSA PASS: 8 steps, 0 mismatching steps; synthetic cache fixture

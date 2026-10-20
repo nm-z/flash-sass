@@ -193,6 +193,18 @@ $o .= "--:-:-:-:6      NOP;\n" x 3;
 $o .= "--:-:-:-:6      \@P5 BRA PLE_IO_FAILURE;\n";
     $o .= "10:-:-:-:6      ISETP.NE.U32.AND P3, PT, t2, t3, P0;\n";                   # P3: a stager is running and the flag is not there yet
     $o .= "--:-:-:-:6      NOP;\n" x 3;
+    if ($ENV{DIE_T0_OFF}) {   # inside the die kernel: stop waiting 300 s after launch (the framework then ends the kernel)
+        $o .= "--:-:6:-:2      S2R t, SR_GLOBALTIMERHI;\n";
+        $o .= sprintf "--:-:6:-:2      LDS p0, [RZ+0x%x];\n", $ENV{DIE_T0_OFF};
+        $o .= "20:-:-:-:6      IADD t, t, -p0;\n";
+        $o .= "--:-:-:-:6      ISETP.GE.U32.AND P5, PT, t, 0x46, P3;\n";
+        $o .= "--:-:-:-:6      NOP;\n" x 3;
+        $o .= "--:-:-:-:6      VOTE.ANY P5, P5;\n";
+        $o .= "--:-:-:-:6      NOP;\n" x 3;
+        $o .= "--:-:-:-:6      MOV32I t, 0x1;\n";
+        $o .= sprintf "--:2:-:-:6  \@P5 STS [RZ+0x%x], t;\n", $ENV{DIE_EXP_OFF};
+        $o .= "02:-:-:-:6  \@P5 PSETP.AND.AND P3, PT, PT, !PT, PT;\n";
+    }
     $o .= "--:-:-:-:6  \@P3 BRA WAITRDY;\n";
     # tp = TAB + 90 row (64-bit)
     $o .= "--:-:-:-:1      XMAD p0, off, 0x5a, RZ;\n";

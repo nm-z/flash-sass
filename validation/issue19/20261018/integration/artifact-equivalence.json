@@ -1,0 +1,62 @@
+{
+  "status": "PASS",
+  "measured_revision": "6da421bccb68e613ecbdc8142104935deecccb29",
+  "merged_revision": "d46d188a435c5d959993f16dc1f78c837cc9f70d",
+  "artifact_checks": [
+    {
+      "variant": "bounded",
+      "file": "die.cubin",
+      "identical": true,
+      "sha256": "6d5bbe4c5eedf0d47cf31804e1e0befe2a953db0d5acd0e2ab9d585c067f1367"
+    },
+    {
+      "variant": "bounded",
+      "file": "die.sass",
+      "identical": true,
+      "sha256": "e7ef6efeb21acc5332d4dbfb9b8f783bfe89556d6bc0e10e9d0ade6a881ddc3e"
+    },
+    {
+      "variant": "bounded",
+      "file": "dieops.h",
+      "identical": true,
+      "sha256": "5032a1e6012f19f30b922ede9fdb4662a19f17080163506b4edc5290f9f51356"
+    },
+    {
+      "variant": "unbounded",
+      "file": "die.cubin",
+      "identical": true,
+      "sha256": "116d828f20139d144d46d7d8115a28e35313dac1f6c24ba81c1b5c0984f50e14"
+    },
+    {
+      "variant": "unbounded",
+      "file": "die.sass",
+      "identical": true,
+      "sha256": "2e65b0b8e605dc2a4eff30820f3a287e6884171b50d4b580b4b8c2ac088a495f"
+    },
+    {
+      "variant": "unbounded",
+      "file": "dieops.h",
+      "identical": true,
+      "sha256": "5032a1e6012f19f30b922ede9fdb4662a19f17080163506b4edc5290f9f51356"
+    },
+    {
+      "variant": "trace",
+      "file": "die.cubin",
+      "identical": true,
+      "sha256": "a2b5b013f3e99fed1e29f415c4805a68c49ac02cd5e658a09020303c7c5b62b8"
+    },
+    {
+      "variant": "trace",
+      "file": "die.sass",
+      "identical": true,
+      "sha256": "423ca9b3dce4f805952691931a77203c5988817fb4fe76fb88f173ac7998a46d"
+    },
+    {
+      "variant": "trace",
+      "file": "dieops.h",
+      "identical": true,
+      "sha256": "5032a1e6012f19f30b922ede9fdb4662a19f17080163506b4edc5290f9f51356"
+    }
+  ],
+  "assembler_copy_checks": 12
+}

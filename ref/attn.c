@@ -49,7 +49,8 @@ static float warp_sum(const float *v32) {
 	return v[0];
 }
 
-void attn_partials_gpu(const float *qo, const float *kc, const float *vc, unsigned n, float *pm, float *pd, float *po) {
+int attn_partials_gpu(const float *qo, const float *kc, const float *vc, unsigned n, float *pm, float *pd, float *po) {
+	if (!n || n > ATTN_MAX_KEYS) return 1;
 	unsigned ck = (n + 8191) / 8192 * 1024;    /* keys per chunk */
 	float *s = malloc(sizeof(float) * 1024 * 12), *p = malloc(sizeof(float) * 1024 * 12);
 	float (*acc)[12][256] = malloc(sizeof(float) * 4 * 12 * 256);
@@ -114,6 +115,7 @@ void attn_partials_gpu(const float *qo, const float *kc, const float *vc, unsign
 		}
 	}
 	free(s); free(p); free(acc);
+	return 0;
 }
 
 void attn_merge_gpu(const float *pm, const float *pd, const float *po, const float *gate, float *out) {
@@ -135,10 +137,12 @@ void attn_merge_gpu(const float *pm, const float *pd, const float *po, const flo
 	}
 }
 
-void attn_decode_gpu(const float *qo, const float *kc, const float *vc, unsigned n, const float *gate, float *out) {
+int attn_decode_gpu(const float *qo, const float *kc, const float *vc, unsigned n, const float *gate, float *out) {
+	if (!n || n > ATTN_MAX_KEYS) return 1;
 	float *pm = malloc(sizeof(float) * 24 * ATTN_NCH), *pd = malloc(sizeof(float) * 24 * ATTN_NCH);
 	float *po = malloc(sizeof(float) * 24 * ATTN_NCH * 256);
 	attn_partials_gpu(qo, kc, vc, n, pm, pd, po);
 	attn_merge_gpu(pm, pd, po, gate, out);
 	free(pm); free(pd); free(po);
+	return 0;
 }

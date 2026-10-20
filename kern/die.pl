@@ -31,6 +31,9 @@ my $PAIR_DESC_OFF = 0xbe80; # second position's unchanged 128-byte descriptor
 my $STEP_OFF = 0xbf50;     # physical descriptors consumed by this phase (1 or 2)
 my $PAIR_MODE_OFF = 0xbf54; # word 30 bits 3/4: generic paired / fused paired body
 my $FLAGS_OFF = 0xbf58;    # primary descriptor's exchange / barrier flags
+my $T0_OFF = 0xbf5c;      # %globaltimer.hi at launch (u32), per CTA; a phase that starts 70 units (4.29 s each, 300 s) later ends the kernel
+my $EXP_OFF = 0xbf60;     # set by thread 0 when the 300 s are up
+$ENV{DIE_T0_OFF} = $T0_OFF; $ENV{DIE_EXP_OFF} = $EXP_OFF;   # the op bodies' waits (xchg.sass) check the same limit
 
 # opcode = index. tag, file, unit kind, environment for the generator
 my @OPS = (
@@ -50,7 +53,7 @@ my @OPS = (
     [ 'hcmix',      'hcops.sass',       'cta',  { HC_OP => 'mix' } ],
     [ 'hcmixx',     'hcops.sass',       'cta',  { HC_OP => 'mix', HC_XOUT => 1 } ],
     [ 'hcwrite',    'hcops.sass',       'cta',  { HC_OP => 'write' } ],
-    [ 'hcwsum',     'hcops.sass',       'cta',  { HC_OP => 'write', HC_SUMN => 1 } ],   # the MoE partials' fixed-order sum fused into the write
+    [ 'hcwsum',     'hcops.sass',       'cta',  { HC_OP => 'write', HC_SUMN => 1, HC_COLS => 160 } ],   # the MoE partials' fixed-order sum fused into the write; all 16 SMs participate
     [ 'conv1d',     'conv1d.sass',      'cta',  {} ],
     [ 'dnstep',     'dnstep.sass',      'cta',  { DN_TILED => 1 } ],   # local value head j reads local key head j % 16 (value head h pairs with key head h % 16)
     [ 'dnnorm',     'dnnorm.sass',      'warp', {} ],
@@ -212,12 +215,23 @@ if (@ARGV && $ARGV[0] eq 'header') {
     print "static const char *const die_opname[] __attribute__((unused)) = { ", join(', ', map { "\"$_->[0]\"" } @OPS), " };\n#endif\n";
     exit 0;
 }
+require './trace.pl';
 my $maps = '';
 my $body = '';
 my $dispatch = '';
+my $dispatch_mode = $ENV{DIE_DISPATCH} // 'jump';
+die "DIE_DISPATCH must be linear, tree, or jump\n" unless $dispatch_mode =~ /\A(?:linear|tree|jump)\z/;
 for my $k (0 .. $#OPS) {
     my ($tag, $file, $kind, $env) = @{$OPS[$k]};
     my $op = load_op($tag, $file, $env);
+    if ($tag eq 'plerows' && $ENV{DIE_TRACE}) {
+        # Hash inputs in R18..R25 are dead here; the wait's live pointers and
+        # predicates use other registers. Keep the standalone op unchanged.
+        my $begin = trace_code(5, $TOK_OFF);
+        my $end = trace_code(6, $TOK_OFF);
+        $op->{code} =~ s/(plerows_WAITRDY:)/$begin$1/ or die 'PLE wait label missing';
+        $op->{code} =~ s/([^\n]*BRA plerows_WAITRDY;\n)/$1$end/ or die 'PLE wait branch missing';
+    }
     $maps .= $op->{map};
     $dispatch .= sprintf "--:-:-:-:6      ISETP.EQ.U32.AND P6, PT, op, 0x%x, PT;\n", $k;
     $dispatch .= "--:-:-:-:6      NOP;\n" x 3;
@@ -247,6 +261,44 @@ for my $k (0 .. $#OPS) {
     $body .= "--:-:-:-:6      NOP;\n" x 3;
     $body .= "--:-:-:-:6  \@P6 BRA ${tag}_BEGIN;\n";
     $body .= "--:-:-:-:6      BRA POSITION_END;\n";
+}
+
+my @trace = map { trace_code($_, $TOK_OFF, $STEP_OFF) } 0..7;
+# All lanes see the same descriptor opcode. A range tree bounds dispatch by
+# ceil(log2(OP_COUNT)) comparisons instead of scanning every preceding opcode.
+# Keep the linear emitter available for matched measurements. Invalid opcodes
+# retain the existing skip behavior, rather than falling into the last leaf.
+if ($dispatch_mode eq 'tree') {
+    my $tree;
+    $tree = sub {
+        my ($lo, $hi) = @_;
+        return "--:-:-:-:6      BRA $OPS[$lo][0]_SETUP;\n" if $lo == $hi;
+        my $mid = int(($lo + $hi + 1) / 2);
+        my $label = "DISPATCH_RANGE_${lo}_${mid}";
+        my $code = sprintf "--:-:-:-:6      ISETP.LT.U32.AND P6, PT, op, 0x%x, PT;\n", $mid;
+        $code .= "--:-:-:-:6      NOP;\n" x 3;
+        $code .= "--:-:-:-:6  \@P6 BRA $label;\n";
+        return $code . $tree->($mid, $hi) . "$label:\n" . $tree->($lo, $mid - 1);
+    };
+    $dispatch = sprintf "--:-:-:-:6      ISETP.GE.U32.AND P6, PT, op, 0x%x, PT;\n", scalar @OPS;
+    $dispatch .= "--:-:-:-:6      NOP;\n" x 3;
+    $dispatch .= "--:-:-:-:6  \@P6 BRA POSITION_END;\n";
+    $dispatch .= $tree->(0, $#OPS);
+}
+elsif ($dispatch_mode eq 'jump') {
+    # Three instructions occupy one 32-byte Maxwell control bundle. Every
+    # entry therefore has the same alignment and can be indexed by op << 5.
+    # fw0 is dead dispatcher scratch. BRX preserves the descriptor opcode.
+    $dispatch = sprintf "--:-:-:-:6      ISETP.GE.U32.AND P6, PT, op, 0x%x, PT;\n", scalar @OPS;
+    $dispatch .= "--:-:-:-:6      SHL fw0, op, 0x5;\n";
+    $dispatch .= "--:-:-:-:6      NOP;\n" x 2;
+    $dispatch .= "--:-:-:-:6  \@P6 BRA POSITION_END;\n";
+    $dispatch .= "--:-:-:-:6      BRX fw0 DISPATCH_TABLE;\n";
+    $dispatch .= "DISPATCH_TABLE:\n";
+    for my $op (@OPS) {
+        $dispatch .= "--:-:-:-:6      BRA $op->[0]_SETUP;\n";
+        $dispatch .= "--:-:-:-:6      NOP;\n" x 2;
+    }
 }
 
 print <<"EOF";
@@ -279,6 +331,7 @@ print <<"EOF";
     13    : op
     14,15 : fw<0-1>
     16,17 : dsp<0-1>
+    18,19 : traceclock<0-1>
     18    : bar_g
     19    : bar_g2
     20    : bar_old
@@ -318,6 +371,15 @@ $maps</REGISTER_MAPPING>
 # and the grid barrier generation (GEN), seeded from ctl[1]
 02:-:1:-:2      LDG.E op, [fw+0x4];
 01:2:-:-:6      STS [RZ+0x@{[sprintf '%x', $GEN_OFF]}], op;
+# the 300 s limit: thread 0 of every CTA keeps the launch %globaltimer.hi
+--:-:-:-:6      ISETP.EQ.U32.AND P5, PT, tid, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:6:-:2  \@P5 S2R op, SR_GLOBALTIMERHI;
+20:2:-:-:6  \@P5 STS [RZ+0x@{[sprintf q{%x}, $T0_OFF]}], op;
+02:2:-:-:6  \@P5 STS [RZ+0x@{[sprintf q{%x}, $EXP_OFF]}], RZ;
+02:-:-:-:6      NOP;
 # launch timestamp -> ctl[15]
 02:-:-:-:6      IADD op, cta, tid;
 --:-:-:-:6      ISETP.EQ.U32.AND P4, PT, op, RZ, PT;
@@ -337,6 +399,21 @@ $maps</REGISTER_MAPPING>
 --:-:4:-:2 \@!P6 LDG.E vid, [dsp+0x7c];
 
 PHASE:
+$trace[0]# descriptor -> smem (warp 0, lane = word; the words were prefetched); word 31 is a
+# 300 s since launch: thread 0 flags it; every thread reads the flag after the descriptor barrier and exits
+--:-:-:-:6      ISETP.EQ.U32.AND P5, PT, tid, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:6:-:2  \@P5 S2R bar_g2, SR_GLOBALTIMERHI;
+--:-:6:-:2  \@P5 LDS bar_old, [RZ+0x@{[sprintf q{%x}, $T0_OFF]}];
+20:-:-:-:6  \@P5 IADD bar_g2, bar_g2, -bar_old;
+--:-:-:-:6      ISETP.GE.U32.AND P5, PT, bar_g2, 0x46, P5;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P5 MOV32I bar_old, 0x1;
+--:2:-:-:6  \@P5 STS [RZ+0x@{[sprintf q{%x}, $EXP_OFF]}], bar_old;
 # descriptor -> smem (warp 0, lane = word; the words were prefetched); word 31 is a
 # mask of the parameter words that get the token counter added
 01:-:-:-:6      ISETP.LT.U32.AND P6, PT, tid, 0x20, PT;
@@ -352,6 +429,12 @@ PHASE:
 --:-:-:-:6  \@P5 IADD vtid, vtid, bar_t;
 --:2:-:-:6  \@P6 STS [units], vtid;
 02:-:-:-:6      BAR.SYNC 0x1;
+--:-:1:-:2      LDS bar_old, [RZ+0x@{[sprintf q{%x}, $EXP_OFF]}];
+01:-:-:-:6      ISETP.NE.U32.AND P5, PT, bar_old, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P5 BRA EXPIRED;
 --:-:1:-:1      LDS op, [RZ+0x@{[sprintf '%x', $DESC_OFF]}];
 --:-:1:-:2      LDS units, [RZ+0x@{[sprintf '%x', $DESC_OFF + 4]}];
 01:-:-:-:6      NOP;
@@ -397,7 +480,7 @@ PAIR_LOADED:
 --:-:1:-:1      LDS op, [RZ+0x@{[sprintf '%x', $DESC_OFF]}];
 --:-:1:-:2      LDS units, [RZ+0x@{[sprintf '%x', $DESC_OFF + 4]}];
 01:-:-:-:6      NOP;
-# ---- exchange wait (descriptor word 30 bit 1): warp 0 of every CTA polls this die's
+$trace[1]# ---- exchange wait (descriptor word 30 bit 1): warp 0 of every CTA polls this die's
 # flags (ctl[28..29] -> u32[6][16], one per sending die and CTA; absent dies hold ~0;
 # lane l reads words l, l + 32, l + 64) until all 96 read >= the exchange count (XG
 # in shared memory), invalidates L1, and the CTA syncs ----
@@ -428,12 +511,36 @@ XWSPIN:
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
+# 300 s since launch: leave the wait (VOTE.ANY keeps the warp together)
+02:-:6:-:2      S2R bar_t, SR_GLOBALTIMERHI;
+--:-:6:-:2      LDS bar_old, [RZ+0x@{[sprintf q{%x}, $T0_OFF]}];
+20:-:-:-:6      IADD bar_t, bar_t, -bar_old;
+--:-:-:-:6      ISETP.GE.U32.AND P5, PT, bar_t, 0x46, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      VOTE.ANY P5, P5;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P5 BRA XWEXP;
 --:-:-:-:6 \@!P4 BRA XWSPIN;
 --:-:-:-:6      MEMBAR.GL.IVALLD;
+--:-:-:-:6      BRA XWBAR;
+XWEXP:
+--:-:-:-:6      MOV32I bar_old, 0x1;
+--:2:-:-:6      STS [RZ+0x@{[sprintf q{%x}, $EXP_OFF]}], bar_old;
+02:-:-:-:6      NOP;
 XWBAR:
 --:-:-:-:6      BAR.SYNC 0x1;
+--:-:1:-:2      LDS bar_old, [RZ+0x@{[sprintf q{%x}, $EXP_OFF]}];
+01:-:-:-:6      ISETP.NE.U32.AND P5, PT, bar_old, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P5 BRA EXPIRED;
 XWDONE:
-OP_DISPATCH:
+$trace[2]OP_DISPATCH:
 $dispatch--:-:-:-:6      BRA POSITION_END;
 $body
 POSITION_END:
@@ -467,7 +574,7 @@ POSITION_END:
 01:-:-:-:6      BRA OP_DISPATCH;
 
 PHASE_END:
-# ---- grid barrier (warp 0 counts in; everyone waits at BAR 1) ----
+$trace[3]# ---- grid barrier (warp 0 counts in; everyone waits at BAR 1) ----
 --:-:-:-:6      BAR.SYNC 0x1;
 --:-:-:-:6      ISETP.GE.U32.AND P6, PT, tid, 0x20, PT;
 --:-:-:-:6      ISETP.NE.U32.AND P5, PT, tid, RZ, PT;
@@ -568,6 +675,19 @@ BSPIN:
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
+# 300 s since launch: leave the wait (VOTE.ANY keeps the warp together)
+02:-:6:-:2      S2R bar_t, SR_GLOBALTIMERHI;
+--:-:6:-:2      LDS bar_old, [RZ+0x@{[sprintf q{%x}, $T0_OFF]}];
+20:-:-:-:6      IADD bar_t, bar_t, -bar_old;
+--:-:-:-:6      ISETP.GE.U32.AND P5, PT, bar_t, 0x46, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      VOTE.ANY P5, P5;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P5 BRA BEXP;
 --:-:-:-:6 \@!P4 BRA BSPIN;
 --:-:-:-:6      MEMBAR.GL.IVALLD;
 02:-:-:-:6      IADD bar_t, cta, tid;
@@ -576,6 +696,10 @@ BSPIN:
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
 --:2:-:-:6  \@P4 STG.E [bar_cp+0x4], bar_g;
+--:-:-:-:6      BRA BDONE;
+BEXP:
+--:-:-:-:6      MOV32I bar_old, 0x1;
+--:2:-:-:6      STS [RZ+0x@{[sprintf q{%x}, $EXP_OFF]}], bar_old;
 BDONE:
 02:-:-:-:6      BAR.SYNC 0x1;
 # ---- coordinated disk-PLE failure after the mandatory grid barrier ----
@@ -599,7 +723,7 @@ BDONE:
 --:-:-:-:6      IADD.X bar_cp1, bar_cp1, RZ;
 --:-:6:-:2  \@P4 S2R bar_g2, SR_GLOBALTIMERLO;
 20:-:-:-:6  \@P4 STG.E [bar_cp+0x100], bar_g2;
-# ---- next phase ----
+$trace[4]# ---- next phase ----
 --:-:1:-:2      LDS bar_t, [RZ+0x@{[sprintf '%x', $STEP_OFF]}];
 01:-:-:-:6      IADD pidx, pidx, bar_t;
 --:-:-:-:6      ISETP.LT.U32.AND P6, PT, pidx, nph, PT;
@@ -643,6 +767,7 @@ BDONE:
 --:2:-:-:6 \@!P5 STS [RZ+0x@{[sprintf '%x', $TOK_OFF]}], bar_t;
 --:2:-:-:6  \@P4 STG.E [bar_cp+0x8], bar_t;
 02:-:-:-:6      BAR.SYNC 0x1;
+$trace[7]# publication sample uses the completed position and last phase slot
 --:-:1:-:2      LDS bar_t, [RZ+0x@{[sprintf '%x', $TOK_OFF]}];
 --:-:-:-:6      MOV pidx, RZ;
 01:-:-:-:6      ISETP.LT.U32.AND P6, PT, bar_t, param_ntok, PT;
@@ -651,4 +776,11 @@ BDONE:
 --:-:-:-:6      NOP;
 --:-:-:-:6  \@P6 BRA PHASE;
 --:-:-:-:f      EXIT;
+EXPIRED:
+# ctl[11] = 1 tells the host the kernel hit its 300 s limit
+--:-:-:-:6      MOV bar_cp0, ctl0;
+--:-:-:-:6      MOV bar_cp1, ctl1;
+--:-:-:-:6      MOV32I bar_old, 0x1;
+--:2:-:-:6      STG.E [bar_cp+0x2c], bar_old;
+02:-:-:-:f      EXIT;
 EOF
