@@ -162,6 +162,8 @@ reservation. Six per-token cases perturb layer output, logits, selected IDs,
 recurrent state, convolution state and PLE state; a VRAM single-launch case
 perturbs final-position logits. The fixed workload is nine teacher-forced
 positions with budget 1 and the existing complete scalar reference.
+Each case flips one bit in a host copy of the selected GPU readback before
+comparison.
 
 The C runner requires the specific injection label, one failed comparison at
 the intended position, the complete expected comparison count and the model's
