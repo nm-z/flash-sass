@@ -54,7 +54,9 @@ reference = nil
     reader.each_line do |line|
       $stderr.write(line)
       ready << Regexp.last_match(1) if line.match(/\Aflashvis: ready, backend ([^,]+),/)
-      timings << [Regexp.last_match(1).to_f, Regexp.last_match(2).to_f] if line.match(/preprocess ([0-9.]+) ms, encode ([0-9.]+) s/)
+      if line.match(/preprocess ([0-9.]+) ms, encode ([0-9.]+) s, backend ([^\s]+)/)
+        timings << [Regexp.last_match(1).to_f, Regexp.last_match(2).to_f, Regexp.last_match(3)]
+      end
     end
   end
   begin
@@ -69,6 +71,10 @@ reference = nil
     raise 'auto mode fell back to CPU; GPU comparison was not performed' if backend == 'auto' && selected == 'CPU'
     raise 'forced CPU mode selected a GPU' if backend == 'cpu' && selected != 'CPU'
     metric('vision.startup.host_seconds', clock.call - startup, 's', backend: backend, device: selected)
+    UNIXSocket.open(socket_path) do |socket|
+      socket.write("enc 4\njunk")
+      raise 'malformed image was not rejected' unless Timeout.timeout(5) { socket.gets } == "err cannot decode the image\n"
+    end
     samples = []
     (0..runs).each do |iteration|
       response = Timeout.timeout(180) do
@@ -88,7 +94,8 @@ reference = nil
         end
       end
       dims, embeddings, rope, elapsed = response
-      preprocess_ms, encode_s = Timeout.timeout(5) { timings.pop }
+      preprocess_ms, encode_s, actual_device = Timeout.timeout(5) { timings.pop }
+      raise "encoder changed from #{selected} to #{actual_device}; comparison requires the selected backend" unless actual_device == selected
       values = embeddings.unpack('e*')
       raise 'non-finite embedding' unless values.all?(&:finite?)
       metric('vision.image_roundtrip.host_seconds', elapsed, 's',
@@ -107,22 +114,39 @@ reference = nil
         norm_gpu = 0.0
         dot = 0.0
         error = 0.0
+        min_token_cosine = 1.0
+        max_token_relative_l2 = 0.0
+        row_cpu = row_gpu = row_dot = row_error = 0.0
         reference[1].each_with_index do |a, i|
           b = values[i]
           norm_cpu += a * a
           norm_gpu += b * b
           dot += a * b
           error += (a - b)**2
+          row_cpu += a * a
+          row_gpu += b * b
+          row_dot += a * b
+          row_error += (a - b)**2
+          if (i + 1) % dims[4] == 0
+            raise 'zero-norm image token' unless row_cpu.positive? && row_gpu.positive?
+            min_token_cosine = [min_token_cosine, row_dot / Math.sqrt(row_cpu * row_gpu)].min
+            max_token_relative_l2 = [max_token_relative_l2, Math.sqrt(row_error / row_cpu)].max
+            row_cpu = row_gpu = row_dot = row_error = 0.0
+          end
         end
         raise 'zero-norm embedding' unless norm_cpu.positive? && norm_gpu.positive?
         cosine = dot / Math.sqrt(norm_cpu * norm_gpu)
         relative_l2 = Math.sqrt(error / norm_cpu)
         puts JSON.generate(event: 'embedding_comparison', exact_dimensions: true, exact_mrope_positions: true,
-                           cosine_similarity: cosine, relative_l2: relative_l2, values: values.length)
-        raise 'GPU/CPU embedding comparison failed (cosine >= 0.99, relative L2 <= 0.1 required)' unless cosine >= 0.99 && relative_l2 <= 0.1
+                           cosine_similarity: cosine, relative_l2: relative_l2, values: values.length,
+                           min_token_cosine: min_token_cosine, max_token_relative_l2: max_token_relative_l2)
+        unless cosine >= 0.99 && relative_l2 <= 0.1 && min_token_cosine >= 0.99 && max_token_relative_l2 <= 0.1
+          raise 'GPU/CPU embedding comparison failed (cosine >= 0.99, relative L2 <= 0.1 required globally and per token)'
+        end
       end
     end
-    results[backend] = samples.sort[samples.length / 2]
+    sorted = samples.sort
+    results[backend] = (sorted[(sorted.length - 1) / 2] + sorted[sorted.length / 2]) / 2.0
     metric('vision.image_roundtrip.median_host_seconds', results[backend], 's',
            backend: backend, image_sha256: image_sha, measured_runs: runs)
   ensure

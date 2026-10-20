@@ -1,7 +1,7 @@
 #!/bin/bash
 # serve.sh <all|holders|core|prewarm|vis|flashd|reload [lib]|status|stop|unload>: run the Flash-Next engine on archy.
 #   holders   the six weight holders (dies 0-5; ~40 min from NFS; restart only when the split changes)
-#   vis       flashvis: the vision encoder (libmtmd on the CPU; the projector is loaded once, seconds per image)
+#   vis       flashvis: the vision encoder (libmtmd on a GPU with CPU fallback; FLASHVIS_DEVICE selects the backend)
 #   core      flashcore: contexts, arenas and the 28.8 GB PLE table (~7 min), then the engine library
 #   prewarm   read GGUF2 into the reclaimable file cache without starting any service
 # FLASH_PLE_DISK=1 FLASH_PLE_PREWARM=1 warms GGUF2 before core startup (off by default).

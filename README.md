@@ -142,8 +142,18 @@ automatically putting the projector on a device already filled by the text model
 It falls back to CPU when no GPU is available or GPU projector initialization
 fails. Its startup log names the selected backend and any fallback.
 
+GPU encoding uses standard attention: the M60 CUDA Flash Attention path returned
+non-finite embeddings during validation. If the backend reports an encoding or
+allocation failure, or returns non-finite embeddings, `flashvis` frees the GPU
+context and retries the original image with a fresh CPU context. It stays on CPU
+until restarted and logs that transition. Invalid image files do not trigger this
+switch. This recovery covers reported errors; a backend process abort still
+requires a daemon restart. Successful responses contain only finite embeddings.
+
 Build against a GPU-enabled llama.cpp build, using headers and libraries from
-the same checkout. `LLAMA_BUILD` selects the build directory independently of
+the same checkout. The default prefers `~/claude/llama.cpp-cuda` when its CUDA
+library is installed, otherwise it uses `~/claude/llama.cpp-up`. `LLAMA_BUILD`
+selects the build directory independently of
 the source tree; `-B` also rebuilds an existing binary when switching builds:
 
 ```sh
@@ -169,8 +179,12 @@ token count nor the embedding/M-RoPE socket protocol is changed.
 To compare CPU and automatic GPU encoding on the same uncached image, use
 `kern/flashvis_bench.rb` under `gpuq run`. It records a warmup and three measured
 encodes per backend, checks finite embeddings, identical token dimensions and
-M-RoPE positions, and compares CPU/GPU embeddings. The comparison fails if auto
-mode selected CPU. Timings and diagnostics are retained in the queue database.
+M-RoPE positions, and compares CPU/GPU embeddings globally and per image token.
+It also checks malformed-image rejection. The comparison fails if auto mode
+selected CPU or fell back during a request. Timings and diagnostics are retained
+in the queue database. See [the issue #96 validation](validation/issue96/README.md).
+
+### Text engine
 
 Refresh the files from `maxas-patch/` in an existing MaxAs checkout before building
 the direct-dispatch kernel; its BRX encoding and label relocation support are
