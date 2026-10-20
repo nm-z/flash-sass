@@ -179,6 +179,11 @@ capture disabled: the private runner clears inherited `FLASH_*` overrides.
 It produces no stage artifacts and supplies no captured-stage comparison.
 Its report and complete export are retained as `capture-8fc5.*`.
 
+The earlier CPU source-text/simulated-copy fixture was removed after the real
+GPU addressing test passed. It did not exercise the assembled copy. The
+remaining `capture-check` target exercises publication, request bounds and
+resume coverage with host memory in place of CUDA.
+
 The runner now requires an explicit `--capture-stages` option. It sets the
 capture value after clearing inherited overrides and requires the effective
 engine config to report `engine_capture=1`. The JSON report records whether

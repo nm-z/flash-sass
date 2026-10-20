@@ -58,17 +58,13 @@ pair-matrix: engine-matrix
 CAPTURE_PROG := $(ROOT)/kern/prog.c $(ROOT)/ref/quant.c $(ROOT)/ref/gguf.c $(ROOT)/ref/split.c
 CAPTURE_FLAGS := -std=gnu99 -O2 -ffp-contract=off -Wall -Wextra -Werror -I$(ROOT)/kern -I$(ROOT)/ref -I/opt/cuda/include
 
-$(PAIR_OUT)/xcopy_trace_test: $(ISSUE109_DIR)/xcopy_trace_test.c $(CAPTURE_PROG) | $(PAIR_OUT) oracle-header
-	$(CC) $(CAPTURE_FLAGS) -o $@ $< $(CAPTURE_PROG) -lm
-
 $(PAIR_OUT)/engine_capture_test: $(ISSUE109_DIR)/engine_capture_test.c $(ISSUE109_DIR)/engine_capture.h $(CAPTURE_PROG) | $(PAIR_OUT) oracle-header
 	$(CC) $(CAPTURE_FLAGS) -o $@ $< $(CAPTURE_PROG) -lm
 
 $(PAIR_OUT)/xcopy_trace_gpu: $(ISSUE109_DIR)/xcopy_trace_gpu.c $(CAPTURE_PROG) | $(PAIR_OUT) oracle-header
 	$(CC) $(CAPTURE_FLAGS) -o $@ $< $(CAPTURE_PROG) -lcuda -lm
 
-capture-check: $(PAIR_OUT)/xcopy_trace_test $(PAIR_OUT)/engine_capture_test
-	$(PAIR_OUT)/xcopy_trace_test $(ISSUE109_DIR)/xcopy_trace.sass
+capture-check: $(PAIR_OUT)/engine_capture_test
 	$(PAIR_OUT)/engine_capture_test
 
 # Only the fresh routed build workspace temporarily substitutes the plain
