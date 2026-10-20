@@ -147,3 +147,10 @@ and subsequent bounded-window diagnostics are isolated in
 fixture and nine-position scalar-oracle canary pass their declared scopes;
 its long request matrix remains pending. This PR retains the canonical cubin
 and does not adopt that instrumentation as a runtime fix.
+
+The bounded-window instrumented B512 run `ff6ae989` completes its full request
+transcript without a CUDA error. Its verifier accepts two state fingerprints
+then rejects `save-2048-A` against `fresh-A`; the queue job exits 2. The
+instrumented matrix is not accepted and this outcome does not reproduce the
+original device error. Complete records and limits remain isolated in draft
+PR #112.
