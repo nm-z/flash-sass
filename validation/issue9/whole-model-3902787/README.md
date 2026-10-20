@@ -148,6 +148,14 @@ the interphase grid barriers normally omitted by `prog_nobar`. It leaves the
 generic pair-body synchronization unchanged. This is a diagnostic workload,
 not a measured fix.
 
+The barrier probe `3351a730-1b39-458a-8dec-c003077f7734` passed 64 requests.
+Its unchanged replay `b953fe49-a32f-440b-a3cb-3729953ac824` then failed
+VRAM/paired `final-A` after 14 checks; scalar mode passed 16. The bounded
+repeat stopped on that first failure. Both results and durable queue logs
+are retained as `engine-gridbar-*`. Adding these interphase barriers did not
+eliminate the observed failure. The reviewed synchronization between generic
+pair bodies is still a CTA barrier; no root cause or kernel fix is claimed.
+
 The corrected nine-token CPU reference and the 2055-token/budget-512 reference
 are running outside GPUQ with source revision `36a8246...`. The latter uses
 DSH `build-3876709-1792502680873688844`, an eight-chunk bounded batch with
