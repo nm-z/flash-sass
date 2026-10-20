@@ -190,8 +190,28 @@ engine config to report `engine_capture=1`. The JSON report records whether
 capture was requested. A 24-case configuration suite passes in
 `build-1802363-1792520674422733008`, including missing, disabled, enabled and
 unexpected capture settings; `capture-driver-build.excerpt` retains it.
-The `capture-matrix` target uses this option. Its captured runtime outcome is
-pending.
+The `capture-matrix` target uses this option. GPUQ
+`37edc0a8-7b1b-4a2e-baad-736e681e5be5` exits 0, with explicit capture enabled
+and all 64 request checks passing. It retains 64 per-request TSV files. Each
+exported file matches its GPUQ document SHA-256. The complete stream export and
+report are `capture-enabled-37ed.logs.json.gz` and
+`capture-enabled-37ed.results.json`; the TSVs and raw-document receipts are
+retained in `capture-enabled-37ed.tar.gz`.
+
+Routed DSH comparison `build-2052350-1792522470429531199` verifies all 64 raw
+SHA receipts and the complete 25,728-row position/stage/die coverage. The
+checker pins revision and cubin identity, binds one process to each mode,
+compares FNV strings without numeric coercion, and excludes 1,344 reference rows
+from its comparison count. All 24,384 remaining fingerprints match their
+scalar-mode A/B/generation reference, with zero nonfinite counts or invalid
+records. `capture-comparison.excerpt` retains the result. The extra copy phases
+can alter scheduling; #109 remains unresolved.
+
+Reproduce this offline comparison through DSH:
+
+```console
+dsh build --host archy --require-tool cargo --require-tool gawk -- make -f validation/issue109/Makefile capture-compare
+```
 
 The cubin SHA-256 is
 `3234e6cf75e49e0782538120d034da60fedc585a8f6d6d5dd22ee76c8abd8b2b`;
@@ -202,3 +222,27 @@ The updated runner SHA-256 is
 `7cb31da4878bcab4e1b8a8869957bcfd2a2946c63705ba6cdbef411d55b85c3c`.
 The library and cubin are reused for the explicit-option rerun; the changed
 runner is built remotely, and the source/receipt is checked after installation.
+
+## Independent production-budget scalar fault
+
+The canonical engine's 2055-position, budget-512 request matrix is independent
+of the unfinished scalar oracle and the instrumented capture. GPUQ
+`fe513a53-f621-4dff-946c-61d2f5a73351` fails in VRAM scalar mode with a CUDA
+illegal memory access on die 4. This is tracked in
+[issue #110](https://github.com/nm-z/flash-sass/issues/110); no common cause with
+the paired fingerprint mismatch is established.
+
+Seven request transcripts end at position 2055, including snapshot/resume at
+2048 and 2051. The next reset-B request reports `completed=1057 requested=2055`,
+followed by failed context recovery. The private core exits 1 without a signal,
+timeout or interruption. The runner rejects that exit before accepting request
+checks, so its structured accepted count is zero. All six original holder PIDs
+were still alive in the post-run observation; their elapsed lifetimes spanned
+the test. No fault injection was enabled.
+
+This run uses stock cubin `aecc7ae6...` and engine `aa9ebd38...`, revision
+`11ac712913234331088808284524a11effca7208`. An empty git diff confirms the
+engine/program/QSA descriptor sources match PR #105's current numerical source.
+The failed report, complete export and child stdout/stderr are retained as
+`production-b512-fe51.*`. The stage-capture pass above supplies no scalar-mode
+fix for this separate failed gate.

@@ -8,12 +8,12 @@ PAIR_MAXAS := env PATH=/opt/cuda/bin:/usr/bin:/bin perl -I$(MAXAS_ROOT)/lib $(MA
 HOLDER_PIDS ?= $(shell ps -C hold -o pid=,args= | gawk -v gguf='$(GGUF)' -f $(ISSUE109_DIR)/holders.awk)
 
 ifneq ($(GPUQ_JOB_ID),)
-ifneq ($(filter pair-build pair-check ple-build capture-build capture-check,$(MAKECMDGOALS)),)
+ifneq ($(filter pair-build pair-check ple-build capture-build capture-check capture-compare,$(MAKECMDGOALS)),)
 $(error Run pair diagnostic builds/checks through dsh build outside gpuq)
 endif
 endif
 
-.PHONY: pair-build pair-check pair-matrix ple-build capture-build capture-check capture-gpu capture-matrix
+.PHONY: pair-build pair-check pair-matrix ple-build capture-build capture-check capture-gpu capture-matrix capture-compare
 $(PAIR_OUT):
 	mkdir -p $@
 
@@ -91,3 +91,10 @@ capture-gpu: identity
 capture-matrix: identity
 	$(if $(filter 6,$(words $(HOLDER_PIDS))),,$(error Supply the six verified live holder PIDs in logical-die order))
 	$(OUT_DIR)/engine_check --capture-stages --repo $(ROOT) --out $(GPUQ_RUN_DIR)/engine-matrix --ple $(PLE_GGUF) --revision $(ENGINE_REVISION) $(foreach path,$(MANIFESTS),--manifest $(path)) $(foreach pid,$(HOLDER_PIDS),--holder-pid $(pid)) --cuda-visible 0,1,2,3,4,5 --split-shares $(SHARES) --attn-map $(ATTENTION_MAP) --tokens $(TOKENS) --snapshots $(SNAPSHOTS) --nblk $(BLOCKS) --lock-fd $(GPUQ_LOCK_FD) --timeout $(ENGINE_TIMEOUT) --weight-manifest $(CACHE_ROOT)/checkpoints.sha256
+
+capture-compare: | $(PAIR_OUT)
+	mkdir -p $(PAIR_OUT)/capture-enabled-37ed
+	tar -xzf $(ISSUE109_DIR)/capture-enabled-37ed.tar.gz -C $(PAIR_OUT)/capture-enabled-37ed
+	env --chdir=$(PAIR_OUT)/capture-enabled-37ed sha256sum -c documents.sha256
+	gawk -v expected_revision=20e0e581e6f10147778e88597d679c822e1da682 -v expected_cubin=0c4c2a72b076127e -f $(ISSUE109_DIR)/capture_compare.awk $(PAIR_OUT)/capture-enabled-37ed/engine-capture.*.tsv
+	sha256sum $(ISSUE109_DIR)/capture-enabled-37ed.tar.gz $(ISSUE109_DIR)/capture_compare.awk
