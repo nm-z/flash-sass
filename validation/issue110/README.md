@@ -144,3 +144,37 @@ window, a pair straddling its lower boundary, both scalar endpoints, generic
 second-body decoding, null-pointer dispatch inside the window and fused BF16.
 These changes require a fresh routed build and GPU checks; no successful fault
 reproduction or runtime fix is claimed.
+
+## Bounded-window build and GPU gate
+
+Source `0f60a77cc4dec4ab307a86d0fd44dcd36cdffd4c` is built by DSH
+`build-2738671-1792527179092277722` (exit 0), including all 21 decoder and
+24 engine configuration fixtures. The build excerpt is `window-build.excerpt`.
+The diagnostic engine reports revision `0f60a77`; its content is bound by
+the full source revision and binary SHA-256 below.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Diagnostic cubin | `f0e9bde32056612cc1f91e16cc38928a07d99c43a57bb3e2f8c41024589c2d8d` |
+| Engine | `45b0e9e2ea5d413cd9d24cd3671c40f01230f10955a416b41c7baa4ef0c2a576` |
+| Core | `0257e1fbf4a6505bc54ed230b93abe22d5f21ed66daa22345a85b73f6a673d06` |
+| GPU fixture | `5070f4a2482f71a598fe78d06b8c9423f97f52ee5d467ceb771395177f29241e` |
+
+GPUQ `bbe8d096-8f94-4893-8c27-94208f546af2` exits 0. The actual GPU fixture
+passes the filtered, null-pointer, scalar endpoint, generic pair and fused
+BF16 cases above. All expected sixteen-CTA tag sets, copies and output guards
+match. The following host-KV/B1/per-token model canary matches all nine
+complete scalar records and predictions. The unchanged GPU consumer's hash
+remains `3c0dafd512307c58091202472a0285e7f5a997bb58706eb39938fd032584832c`.
+The queue export and output are `window-canary-bbe8.*`.
+
+The unchanged bounded-window binaries are now running the full 2055-position,
+B512 request/snapshot matrix in GPUQ
+`ff6ae989-f1d8-42f2-9b41-8ea92d4914ee`. No result is claimed for that job yet.
+
+## Canonical fault's kernel journal
+
+`xid31-kernel-journal.log` retains a bounded read-only Archy kernel journal
+excerpt around the canonical `fe513a53...` job. At epoch `1792522477.212058`,
+Xid 31 identifies an MMU PDE read fault on BDF `0000:0b:00`, PID `3003319`.
+It does not identify the source instruction or underlying code cause.
