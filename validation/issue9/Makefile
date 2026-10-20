@@ -20,6 +20,9 @@ MANIFESTS := /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /
 ORACLE_SOURCES := $(ROOT)/kern/model_oracle.c $(addprefix $(ROOT)/ref/,qsa.c block.c attn.c ple.c quant.c gguf.c fmath.c hc.c deltanet.c router.c split.c)
 ORACLE_HEADERS := $(ROOT)/kern/model_oracle.h $(wildcard $(ROOT)/ref/*.h)
 ORACLE_CFLAGS := -std=c11 -D_XOPEN_SOURCE=700 -O2 -ffp-contract=off -Wall -Wextra -Werror
+# Canonical reference/graph math; profiling overrides are separate workloads.
+ORACLE_CLEAR_ENV := -u GEMV_NOMIN -u ATTN_DIE
+MODEL_CLEAR_ENV := $(ORACLE_CLEAR_ENV) -u FAKE_Q6K -u PROG_DUP -u PROG_NOHCUP -u PROG_NONOBAR -u PROG_NORMSFUSE -u PROG_NORMSW
 ORACLE_ARCH_FLAGS ?=
 ORACLE_SOURCE_FILES := kern/model_oracle.c kern/model_oracle.h kern/model_oracle_gpu.h kern/model_test.c kern/model_qsa_test.h kern/qsa_state.h kern/prog.c kern/prog.h kern/holdc.c kern/hold.h kern/dieops.h $(patsubst $(ROOT)/%,%,$(wildcard $(ROOT)/ref/*.c $(ROOT)/ref/*.h))
 ORACLE_SOURCE_MANIFEST ?= $(OUT_DIR)/oracle-source.sha256
@@ -104,7 +107,7 @@ $(ORACLE_IDS):
 oracle-chunk: oracle-build oracle-source-identity $(ORACLE_IDS)
 	ldd $(OUT_DIR)/model_oracle
 	sha256sum $(OUT_DIR)/model_oracle $(ORACLE_IDS)
-	env SPLIT_SHARES=$(SHARES) ATTN_MAP=$(ATTENTION_MAP) $(if $(ORACLE_REUSE_RECEIPT),MODEL_ORACLE_REUSE_RECEIPT=$(ORACLE_REUSE_RECEIPT)) $(OUT_DIR)/model_oracle $(ROOT) $(ORACLE_SOURCE_MANIFEST) $(ORACLE_REVISION) $(MODEL_CACHE) $(CACHE_ROOT)/manifest.new $(CACHE_ROOT)/tensors.sha256 $(CACHE_ROOT)/checkpoints.sha256 $(GGUF) $(PLE_GGUF) 192 $(ORACLE_IDS) $(BLOCKS) $(ORACLE_DIES) $(ORACLE_DATA)/records.bin $(ORACLE_DATA)/checkpoint.bin $(ORACLE_DATA)/receipt.bin $(ORACLE_CHUNK)
+	env $(ORACLE_CLEAR_ENV) SPLIT_SHARES=$(SHARES) ATTN_MAP=$(ATTENTION_MAP) $(if $(ORACLE_REUSE_RECEIPT),MODEL_ORACLE_REUSE_RECEIPT=$(ORACLE_REUSE_RECEIPT)) $(OUT_DIR)/model_oracle $(ROOT) $(ORACLE_SOURCE_MANIFEST) $(ORACLE_REVISION) $(MODEL_CACHE) $(CACHE_ROOT)/manifest.new $(CACHE_ROOT)/tensors.sha256 $(CACHE_ROOT)/checkpoints.sha256 $(GGUF) $(PLE_GGUF) 192 $(ORACLE_IDS) $(BLOCKS) $(ORACLE_DIES) $(ORACLE_DATA)/records.bin $(ORACLE_DATA)/checkpoint.bin $(ORACLE_DATA)/receipt.bin $(ORACLE_CHUNK)
 
 # Eight serialized, individually checkpointed chunks per routed CPU job.
 # The deep reference can resume this bounded batch after an interruption.
@@ -172,11 +175,11 @@ identity: assembler-check
 model: identity
 	gawk -v count=$(TOKENS) 'BEGIN { for (i = 0; i < count; ++i) print (10 + i) % 248320 }' > $(GPUQ_RUN_DIR)/ids.txt
 	sha256sum $(GPUQ_RUN_DIR)/ids.txt
-	env --chdir=$(ROOT)/kern -u MODEL_NOTWIN -u MODEL_ORACLE_RECORDS -u MODEL_NPH -u MODEL_INJECT -u MODEL_DUMP_S -u MODEL_DUMP_DIR -u MODEL_DUMP_TWIN MODEL_ATTN=qsa MODEL_IDS=$(GPUQ_RUN_DIR)/ids.txt MODEL_PLE=$(PLE_GGUF) MODEL_PLE_OFF=192 MODEL_CAPTURE_QSA=$(CAPTURE) FLASH_NBLK=$(BLOCKS) FLASH_KV_HOST=$(HOST_KV) SPLIT_SHARES=$(SHARES) ATTN_MAP=$(ATTENTION_MAP) CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 $(if $(INJECT),MODEL_INJECT=$(INJECT)) ./model_test $(MODEL_CACHE) 0 48 $(TOKENS) $(FLAGS) $(MANIFESTS)
+	env --chdir=$(ROOT)/kern $(MODEL_CLEAR_ENV) -u MODEL_NOTWIN -u MODEL_ORACLE_RECORDS -u MODEL_NPH -u MODEL_INJECT -u MODEL_DUMP_S -u MODEL_DUMP_DIR -u MODEL_DUMP_TWIN MODEL_ATTN=qsa MODEL_IDS=$(GPUQ_RUN_DIR)/ids.txt MODEL_PLE=$(PLE_GGUF) MODEL_PLE_OFF=192 MODEL_CAPTURE_QSA=$(CAPTURE) FLASH_NBLK=$(BLOCKS) FLASH_KV_HOST=$(HOST_KV) SPLIT_SHARES=$(SHARES) ATTN_MAP=$(ATTENTION_MAP) CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 $(if $(INJECT),MODEL_INJECT=$(INJECT)) ./model_test $(MODEL_CACHE) 0 48 $(TOKENS) $(FLAGS) $(MANIFESTS)
 
 model-oracle: identity oracle-source-identity
 	sha256sum $(ORACLE_IDS) $(ORACLE_DATA)/records.bin $(ORACLE_DATA)/receipt.bin
-	env --chdir=$(ROOT)/kern -u MODEL_NOTWIN -u MODEL_NPH -u MODEL_INJECT -u MODEL_DUMP_S -u MODEL_DUMP_DIR -u MODEL_DUMP_TWIN MODEL_ATTN=qsa MODEL_IDS=$(ORACLE_IDS) MODEL_PLE=$(PLE_GGUF) MODEL_PLE_OFF=192 MODEL_CAPTURE_QSA=$(CAPTURE) FLASH_NBLK=$(BLOCKS) FLASH_KV_HOST=$(HOST_KV) SPLIT_SHARES=$(SHARES) ATTN_MAP=$(ATTENTION_MAP) CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 MODEL_ORACLE_RECORDS=$(ORACLE_DATA)/records.bin MODEL_ORACLE_RECEIPT=$(ORACLE_DATA)/receipt.bin MODEL_ORACLE_SOURCE_ROOT=$(ROOT) MODEL_ORACLE_SOURCE_MANIFEST=$(ORACLE_SOURCE_MANIFEST) MODEL_ORACLE_SOURCE_REVISION=$(ORACLE_REVISION) MODEL_ORACLE_TILE_MANIFEST=$(CACHE_ROOT)/manifest.new MODEL_ORACLE_TILE_HASHES=$(CACHE_ROOT)/tensors.sha256 MODEL_ORACLE_CHECKPOINT_HASHES=$(CACHE_ROOT)/checkpoints.sha256 MODEL_ORACLE_PRIMARY=$(GGUF) $(if $(INJECT),MODEL_INJECT=$(INJECT)) ./model_test $(MODEL_CACHE) 0 48 $(TOKENS) $(FLAGS) $(MANIFESTS)
+	env --chdir=$(ROOT)/kern $(MODEL_CLEAR_ENV) -u MODEL_NOTWIN -u MODEL_NPH -u MODEL_INJECT -u MODEL_DUMP_S -u MODEL_DUMP_DIR -u MODEL_DUMP_TWIN MODEL_ATTN=qsa MODEL_IDS=$(ORACLE_IDS) MODEL_PLE=$(PLE_GGUF) MODEL_PLE_OFF=192 MODEL_CAPTURE_QSA=$(CAPTURE) FLASH_NBLK=$(BLOCKS) FLASH_KV_HOST=$(HOST_KV) SPLIT_SHARES=$(SHARES) ATTN_MAP=$(ATTENTION_MAP) CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 MODEL_ORACLE_RECORDS=$(ORACLE_DATA)/records.bin MODEL_ORACLE_RECEIPT=$(ORACLE_DATA)/receipt.bin MODEL_ORACLE_SOURCE_ROOT=$(ROOT) MODEL_ORACLE_SOURCE_MANIFEST=$(ORACLE_SOURCE_MANIFEST) MODEL_ORACLE_SOURCE_REVISION=$(ORACLE_REVISION) MODEL_ORACLE_TILE_MANIFEST=$(CACHE_ROOT)/manifest.new MODEL_ORACLE_TILE_HASHES=$(CACHE_ROOT)/tensors.sha256 MODEL_ORACLE_CHECKPOINT_HASHES=$(CACHE_ROOT)/checkpoints.sha256 MODEL_ORACLE_PRIMARY=$(GGUF) $(if $(INJECT),MODEL_INJECT=$(INJECT)) ./model_test $(MODEL_CACHE) 0 48 $(TOKENS) $(FLAGS) $(MANIFESTS)
 
 engine-matrix: identity
 	$(if $(filter 6,$(words $(HOLDER_PIDS))),,$(error Supply the six verified live holder PIDs in logical-die order))
