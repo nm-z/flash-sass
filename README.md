@@ -150,6 +150,13 @@ until restarted and logs that transition. Invalid image files do not trigger thi
 switch. This recovery covers reported errors; a backend process abort still
 requires a daemon restart. Successful responses contain only finite embeddings.
 
+For Qwen3-VL projectors, a conservative memory check also sends oversized images
+to CPU before attempting a dense GPU attention allocation. It reads the head
+count and spatial merge size from the projector GGUF and reserves half the
+currently free GPU memory for other buffers. This handles the maximum-size
+image tested on Archy without reducing its 4096 image tokens. It does not predict
+every allocation or protect against another process consuming memory afterward.
+
 Build against a GPU-enabled llama.cpp build, using headers and libraries from
 the same checkout. The default prefers `~/claude/llama.cpp-cuda` when its CUDA
 library is installed, otherwise it uses `~/claude/llama.cpp-up`. `LLAMA_BUILD`
@@ -179,8 +186,14 @@ token count nor the embedding/M-RoPE socket protocol is changed.
 To compare CPU and automatic GPU encoding on the same uncached image, use
 `kern/flashvis_bench.rb` under `gpuq run`. It records a warmup and three measured
 encodes per backend, checks finite embeddings, identical token dimensions and
-M-RoPE positions, and compares CPU/GPU embeddings globally and per image token.
-It also checks malformed-image rejection. The comparison fails if auto mode
+M-RoPE positions, and checks malformed-image rejection. The latency baseline
+keeps the original CPU attention defaults. A separate CPU encode with standard
+attention supplies the numerical reference for the GPU's standard attention;
+the global and per-token checks use that matching mode. This override lives in
+the test-only `validation/issue96/fault.c` interposer, which must be compiled as
+`kern/flashvis_fault.so` (or supplied as the benchmark's sixth argument).
+Differences from the original CPU attention mode are also recorded.
+The comparison fails if auto mode
 selected CPU or fell back during a request. Timings and diagnostics are retained
 in the queue database. See [the issue #96 validation](validation/issue96/README.md).
 
