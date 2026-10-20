@@ -407,7 +407,7 @@ our %grammar =
                 { type => $x32T, code => 0xe24000000000000f, rule => qr"^$pred?BRA(?<U>\.U)? $i20w24;"o,         },
                 { type => $x32T, code => 0xe240000000000002, rule => qr"^$pred?BRA(?<U>\.U)? CC\.EQ, $i20w24;"o, },
               ],
-    BRX    => [ { type => $x32T, code => 0x0000000000000000, rule => qr"^$pred?BRX[^;]*;"o,                      } ], #TODO
+    BRX    => [ { type => $x32T, code => 0xe25000000000000f, rule => qr"^$pred?BRX $r8 $i20w24;"o,                } ],
     JMP    => [ { type => $x32T, code => 0x0000000000000000, rule => qr"^$pred?JMP[^;]*;"o,                      } ], #TODO
     JMX    => [ { type => $x32T, code => 0x0000000000000000, rule => qr"^$pred?JMX[^;]*;"o,                      } ], #TODO
     SSY    => [ { type => $x32T, code => 0xe290000000000000, rule => qr"^$noPred?SSY $i20w24;"o,                 } ],
