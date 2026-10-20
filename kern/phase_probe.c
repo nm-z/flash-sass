@@ -110,8 +110,9 @@ uint64_t phase_probe_observe(unsigned die, unsigned cta) {
 }
 
 static void dump(CUresult error, const char *expression, int line) {
-    fprintf(stderr, "PHASE_PROBE_BEGIN request=%" PRIu64 " active=%d segment_first=%u segment_end=%u error=%d expression=%s line=%d last_observation_only=1\n",
+    fprintf(stderr, "PHASE_PROBE_BEGIN request=%" PRIu64 " active=%d segment_first=%u segment_end=%u window_first=%u window_end=%u error=%d expression=%s line=%d last_observation_only=1\n",
             request_id, segment_active, segment_first, segment_end,
+            PHASE_PROBE_TOKEN_FIRST, PHASE_PROBE_TOKEN_END,
             (int)error, expression, line);
     for (unsigned die = 0; die < die_count; die++) {
         for (unsigned cta = 0; cta < PHASE_PROBE_CTAS; cta++) {
@@ -119,6 +120,8 @@ static void dump(CUresult error, const char *expression, int line) {
             phase_probe_record record;
             int valid = segment_active && !phase_probe_decode(tag, descriptors[die],
                              descriptor_count[die], segment_first, segment_end, &record);
+            valid = valid && record.base_token >= PHASE_PROBE_TOKEN_FIRST &&
+                             record.base_token < PHASE_PROBE_TOKEN_END;
             if (!valid) {
                 fprintf(stderr, "PHASE_PROBE die=%u cta=%u raw=%016" PRIx64 " valid=0\n", die, cta, tag);
                 continue;
@@ -136,19 +139,36 @@ static void dump(CUresult error, const char *expression, int line) {
 
 void phase_probe_done(void) {
     if (!observations) return;
-    unsigned valid = 0;
-    for (unsigned die = 0; die < die_count; die++)
+    unsigned valid = 0, observed = 0;
+    unsigned expected = 0;
+    for (unsigned die = 0; die < die_count; die++) {
+        int paired = 0;
+        for (size_t phase = 0; phase < descriptor_count[die]; phase++)
+            paired |= (descriptors[die][phase].flags & 8u) != 0;
+        uint64_t first = segment_first > PHASE_PROBE_TOKEN_FIRST
+                       ? segment_first : PHASE_PROBE_TOKEN_FIRST;
+        /* A paired launch advances its kernel base by two, so a one-token
+         * overlap at the lower boundary may still contain no recorded base. */
+        if (paired && ((first - segment_first) & 1u)) first++;
+        int in_window = first < segment_end && first < PHASE_PROBE_TOKEN_END;
+        expected += in_window ? PHASE_PROBE_CTAS : 0;
         for (unsigned cta = 0; cta < PHASE_PROBE_CTAS; cta++) {
             phase_probe_record record;
-            valid += !phase_probe_decode(phase_probe_observe(die, cta), descriptors[die],
-                        descriptor_count[die], segment_first, segment_end, &record);
+            uint64_t tag = phase_probe_observe(die, cta);
+            observed += tag != 0;
+            valid += !phase_probe_decode(tag, descriptors[die],
+                        descriptor_count[die], segment_first, segment_end, &record) &&
+                     record.base_token >= PHASE_PROBE_TOKEN_FIRST &&
+                     record.base_token < PHASE_PROBE_TOKEN_END;
         }
-    if (valid != die_count * PHASE_PROBE_CTAS) {
+    }
+    if (valid != expected || observed != expected) {
         dump(CUDA_SUCCESS, "missing_or_invalid_probe_records", 0);
         fflush(NULL); _Exit(71);
     }
-    fprintf(stderr, "PHASE_PROBE_SEGMENT request=%" PRIu64 " first=%u end=%u valid=%u expected=%u last_observation_only=1\n",
-            request_id, segment_first, segment_end, valid, die_count * PHASE_PROBE_CTAS);
+    fprintf(stderr, "PHASE_PROBE_SEGMENT request=%" PRIu64 " first=%u end=%u window_first=%u window_end=%u valid=%u expected=%u last_observation_only=1\n",
+            request_id, segment_first, segment_end, PHASE_PROBE_TOKEN_FIRST,
+            PHASE_PROBE_TOKEN_END, valid, expected);
     segment_active = 0;
 }
 
@@ -158,4 +178,11 @@ void phase_probe_fault(CUresult error, const char *expression, int line) {
      * this process. Host snapshots may be stale; report that limit explicitly. */
     dump(error, expression, line);
     fflush(NULL); _Exit(70);
+}
+
+void phase_probe_limit(int line) {
+    if (!observations) return;
+    /* This is the kernel's self-limit, not a CUDA API error code. */
+    dump(CUDA_SUCCESS, "persistent_kernel_time_limit", line);
+    fflush(NULL); _Exit(72);
 }

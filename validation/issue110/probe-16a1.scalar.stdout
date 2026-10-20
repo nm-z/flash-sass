@@ -1,0 +1,5 @@
+ready
+config rev=222ed2e9683cf6631dc24abf16e310e90ae4ef3d kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=core ple_cache=core maxt=2176 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=0 rope_owner=-1 trace_tokens=0 two_position=0 bf16_pair_fuse=1 prefill_chunk=0 attn_q_split=0 attn_q_mask=0 cubin=die.cubin cubin_fnv=04ea4f32dda7db70 phase_probe=1
+error: 0 prompt ids + 0 new > 2176 positions
+error: device fault; the core rebuilds the contexts and the engine; request=2 status=device_error aborted=0 ended=0 completed=1358 requested=2055
+ok: contexts rebuilt, engine reloaded

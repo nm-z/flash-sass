@@ -191,6 +191,13 @@ static int copy_case(CUfunction function, CUdeviceptr device_program,
                                      decoded_token, physical_phase, OP_XCOPY,
                                      XCOPY_UNITS, label))
         goto done;
+    if (!expect_probe)
+        for (unsigned cta = 0; cta < PHASE_PROBE_CTAS; cta++)
+            if (phase_probe_observe(0, cta)) {
+                fprintf(stderr, "%s: filtered CTA%u was recorded\n", label, cta);
+                failures++;
+                goto done;
+            }
 
     for (unsigned position = 0; position < positions; position++) {
         if (!CU_OK(cuMemcpyDtoH(output_host[position], output_device[position], total)))
@@ -336,7 +343,7 @@ int main(int argc, char **argv) {
         !CU_OK(cuMemAlloc(&device_control, CONTROL_BYTES)))
         goto done;
 
-    if (!copy_case(function, device_program, device_control, 1, 7,
+    if (!copy_case(function, device_program, device_control, 1, PHASE_PROBE_TOKEN_FIRST,
                    0, 0, 0, 0, "null_pointer_copy", 1))
         goto done;
     if (phase_probe_create(&context, 1) != CUDA_SUCCESS) {
@@ -344,13 +351,21 @@ int main(int argc, char **argv) {
         goto done;
     }
     if (!copy_case(function, device_program, device_control, 1, 7,
-                   1, 0, 7, 0, "scalar", 2) ||
-        !copy_case(function, device_program, device_control, 2, 7,
-                   1, 0, 8, 1, "generic_pair_B", 3) ||
-        !fused_bf16_case(function, device_program, device_control, 7, 4))
+                   0, 0, 0, 0, "filtered_before_window", 2) ||
+        !copy_case(function, device_program, device_control, 1, PHASE_PROBE_TOKEN_END,
+                   0, 0, 0, 0, "filtered_after_window", 3) ||
+        !copy_case(function, device_program, device_control, 2, PHASE_PROBE_TOKEN_FIRST - 1,
+                   0, 0, 0, 0, "filtered_pair_base", 7) ||
+        !copy_case(function, device_program, device_control, 1, PHASE_PROBE_TOKEN_FIRST,
+                   1, 0, PHASE_PROBE_TOKEN_FIRST, 0, "scalar", 4) ||
+        !copy_case(function, device_program, device_control, 1, PHASE_PROBE_TOKEN_END - 1,
+                   1, 0, PHASE_PROBE_TOKEN_END - 1, 0, "scalar_window_last", 8) ||
+        !copy_case(function, device_program, device_control, 2, PHASE_PROBE_TOKEN_FIRST,
+                   1, 0, PHASE_PROBE_TOKEN_FIRST + 1, 1, "generic_pair_B", 5) ||
+        !fused_bf16_case(function, device_program, device_control, PHASE_PROBE_TOKEN_FIRST, 6))
         goto done;
 
-    printf("phase_probe_gpu: null-pointer/scalar/generic-pair/fused-BF16 checks passed\n");
+    printf("phase_probe_gpu: null-pointer/filtered/scalar/generic-pair/fused-BF16 checks passed\n");
     rc = 0;
 
 done:

@@ -1,7 +1,7 @@
 # Fail-closed transformer for the generated die kernel. All input is buffered;
 # a missing/ambiguous anchor or a changed framework ABI produces no SASS output.
 BEGIN {
-    marker = "PHASE_PROBE_DISPATCH_V1"
+    marker = "PHASE_PROBE_DISPATCH_V2"
     bad = 0
 }
 
@@ -78,10 +78,21 @@ END {
             print "--:-:-:-:6      NOP;"
             print "--:-:-:-:6      NOP;"
             print "--:-:-:-:6  @P4 BRA PHASE_PROBE_DONE;"
+            print "# Fixed kernel-base-token window [1024,1280); model positions are unchanged."
+            print "--:-:2:-:2      LDS bar_t, [RZ+0xbf70];"
+            print "02:-:-:-:6      ISETP.LT.U32.AND P4, PT, bar_t, 0x400, PT;"
+            print "--:-:-:-:6      NOP;"
+            print "--:-:-:-:6      NOP;"
+            print "--:-:-:-:6      NOP;"
+            print "--:-:-:-:6  @P4 BRA PHASE_PROBE_DONE;"
+            print "--:-:-:-:6      ISETP.GE.U32.AND P4, PT, bar_t, 0x500, PT;"
+            print "--:-:-:-:6      NOP;"
+            print "--:-:-:-:6      NOP;"
+            print "--:-:-:-:6      NOP;"
+            print "--:-:-:-:6  @P4 BRA PHASE_PROBE_DONE;"
             print "--:-:-:-:6      MOV fw0, ctl0;"
             print "--:-:-:-:6      MOV fw1, ctl1;"
             print "--:-:1:-:2      LDG.E.64 bar_cp0, [fw+0xe8];"
-            print "--:-:2:-:2      LDS bar_t, [RZ+0xbf70];"
             print "--:-:2:-:2      LDS bar_g2, [RZ+0xbf54];"
             print "# The dependent wait fields above drain probe loads before normal dispatch."
             print "03:-:-:-:6      LOP.OR bar_old, bar_cp0, bar_cp1;"

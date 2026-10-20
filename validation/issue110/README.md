@@ -32,6 +32,12 @@ the uploaded primary descriptor flags distinguish. The host retains opcode,
 unit count and flags for every uploaded descriptor and rejects tags that do
 not fit the segment, descriptor range or pair layout.
 
+Recording is restricted to kernel token bases `[1024,1280)`. Both bodies of a
+pair share its base, so the second body's decoded token can be 1280 when its
+base is 1279. The request still executes all 2055 model positions. Segments
+outside the recording window require zero tags; paired launches account for
+the parity of their first base at the window boundary.
+
 The dispatch transform preserves the model's live registers and saves/restores
 the incoming per-thread P4 predicate. Pointer and shared-memory loads use
 separate dependency slots, both waited before use. It adds no model descriptor, grid barrier or
@@ -47,11 +53,14 @@ its JSON report.
 
 Before a launch, the host records the request and segment bounds and clears
 the progress slots. Uploading another program marks the old segment inactive.
-After a successful synchronization, the helper checks all expected CTA slots.
+After successful synchronization and the kernel-limit check, the helper checks
+all expected CTA slots for segments that execute a base inside the window.
 Missing or invalid records exit 71. On a CUDA error, the enabled helper reports
 the host observations and exits 70 before a CUDA error-string query or context
 recovery. It does not replay the request. Active mapped storage is not freed
 through the ordinary cleanup path.
+The persistent kernel's own five-minute limit reports the still-active host
+observations and exits 72. That reason is distinct from a CUDA API error.
 
 [CUDA 11.4's error table](https://docs.nvidia.com/cuda/archive/11.4.0/cuda-driver-api/group__CUDA__TYPES.html)
 describes illegal-address errors as leaving the process unusable for further
@@ -76,8 +85,62 @@ and final Assembly integration still require the combined build.
 dsh build --host archy --require-tool cargo --require-tool cc -- make -f validation/issue110/Makefile phase-check
 ```
 
-The planned GPU gate checks exact per-CTA progress words and copy/pair outputs,
-then compares one complete nine-position model case against the existing CPU
-oracle to check the changed dispatch path. A subsequent production-budget
-reproduction will use separate source and binary identities. No GPU execution
-or successful reproduction is claimed for this diagnostic yet.
+## Combined build and initial GPU unit gate
+
+Routed build `build-2435895-1792525343874000357` passes the complete Assembly,
+engine/client/fixture build plus 21 decoder and 24 configuration checks. The
+source revision is `222ed2e9683cf6631dc24abf16e310e90ae4ef3d`; the excerpt is
+`combined-build.excerpt`. The diagnostic cubin SHA-256 is
+`582e02f224838a468264ba688869b9723fb7065263683cef69db8688c9051334`,
+the engine SHA-256 is
+`2fdcd14bca0915412c896a76763299621bf66b3cb543a39870cfcb98943573c7`,
+and the GPU fixture SHA-256 is
+`34c1db37cfd4140b73dcb95571649ce82febf843c41cd46d742a903deea36ea0`.
+
+GPUQ `09d4da30-632a-4724-b305-7f1e674d8d9a` passes the actual GPU fixture:
+null-pointer copy, scalar tag/copy, generic second-body tag/copies, and fused
+BF16 tag/results. All sixteen CTA words match their expected value; destination
+guards are intact, and each fused BF16 output equals 160. The test context uses
+the engine's `CU_CTX_SCHED_SPIN` flags. The overall job then exits 2 before the
+model canary executes, because the deployment omitted generated `kern/dieops.h`
+from the artifact copy. Its complete stream is retained as `canary-09d4.*`.
+
+Repair build `build-2490356-1792525674895186565` generates that header through
+DSH. Its SHA-256,
+`5032a1e6012f19f30b922ede9fdb4662a19f17080163506b4edc5290f9f51356`,
+matches the frozen reference checkout's header. The successful GPU unit gate
+is not repeated. Model-only GPUQ
+`73c3fb17-f733-4508-949d-6c101ca895da` then exits 0: all nine complete frames
+report scalar agreement and all nine tokens match. The case uses host KV,
+budget 1, per-token launches and numerical source epoch `e2ff58f...`; actual-ID
+JSON capture is disabled. The kernel's null-pointer dispatch path is exercised
+with the unchanged consumer SHA-256
+`3c0dafd512307c58091202472a0285e7f5a997bb58706eb39938fd032584832c`.
+Its complete export and output are `oracle9-73c3.*`.
+
+The deployment must copy the generated opcode header as well as the cubin,
+engine/client, receipt, transformed SASS and GPU fixture. The build recipe now
+includes that header in the receipt. Example routed artifact list:
+
+```console
+dsh build --host archy --require-tool cargo --require-tool cc --require-tool gawk -- make -f validation/issue110/Makefile ENGINE_REVISION=222ed2e9683cf6631dc24abf16e310e90ae4ef3d phase-build phase-check --artifact kern/die.cubin --artifact kern/die.sass --artifact kern/dieops.h --artifact kern/issue9-kernel.sha256 --artifact kern/libengine.so --artifact kern/flashcore --artifact kern/model_test --artifact validation/issue9/bin/engine_check --artifact validation/issue110/bin
+```
+
+The first instrumented production-budget reproduction is GPUQ
+`16a16fe1-38b0-40f7-b3eb-2392b41bc6c4`: 2055-position requests, block budget
+512, snapshots 2048/2051/2052/2053/2054 and explicit `--phase-probe`. It uses
+the same pinned binaries and has passed its receipt check, including the
+added generated-header entry. It exits 2 after the first request reaches the
+kernel's five-minute limit. The protocol reports completion count 1358; no
+illegal-address error is recorded. The driver accepts zero matrix checks.
+The full-segment recorder calls its successful-segment helper before checking
+the limit, so that version does not dump individual CTA words on this exit.
+The retained scalar stdout/stderr and JSON report are `probe-16a1.*`.
+
+The subsequent source limits recording to `[1024,1280)` and moves the successful
+segment check after the limit check, with the host-only exit-72 dump described
+above. The GPU fixture now covers enabled but filtered copies before/after the
+window, a pair straddling its lower boundary, both scalar endpoints, generic
+second-body decoding, null-pointer dispatch inside the window and fused BF16.
+These changes require a fresh routed build and GPU checks; no successful fault
+reproduction or runtime fix is claimed.

@@ -34,7 +34,7 @@ phase-build: kernel-build $(PHASE_OUT)/phase_probe_gpu | $(PHASE_OUT)
 	gawk -f $(ISSUE110_DIR)/phase_probe.awk $(ROOT)/kern/die.sass > $(PHASE_OUT)/die-phase-probe.sass
 	cp $(ROOT)/kern/skel_die.cubin $(ROOT)/kern/die.cubin
 	$(PHASE_MAXAS) -i $(PHASE_OUT)/die-phase-probe.sass $(ROOT)/kern/die.cubin
-	env --chdir=$(ROOT) sha256sum kern/die.cubin kern/die.sass kern/phase_probe.c kern/phase_probe.h validation/issue110/phase_probe.awk validation/issue110/bin/die-phase-probe.sass $(patsubst $(ROOT)/%,%,$(KERNEL_INPUTS)) $(MAXAS_ROOT)/lib/MaxAs/MaxAsGrammar.pm $(MAXAS_ROOT)/lib/MaxAs/MaxAs.pm $(MAXAS_ROOT)/lib/MaxAs/Cubin.pm > $(KERNEL_RECEIPT)
+	env --chdir=$(ROOT) sha256sum kern/die.cubin kern/die.sass kern/dieops.h kern/phase_probe.c kern/phase_probe.h validation/issue110/phase_probe.awk validation/issue110/bin/die-phase-probe.sass $(patsubst $(ROOT)/%,%,$(KERNEL_INPUTS)) $(MAXAS_ROOT)/lib/MaxAs/MaxAsGrammar.pm $(MAXAS_ROOT)/lib/MaxAs/MaxAs.pm $(MAXAS_ROOT)/lib/MaxAs/Cubin.pm > $(KERNEL_RECEIPT)
 	$(MAKE) -f $(ISSUE110_DIR)/../issue9/Makefile ENGINE_REVISION=$(ENGINE_REVISION) engine-build engine-check
 	$(MAKE) -C $(ROOT)/kern model_test
 	sha256sum $(ROOT)/kern/die.cubin $(ROOT)/kern/libengine.so $(ROOT)/kern/flashcore $(OUT_DIR)/engine_check $(PHASE_OUT)/phase_probe_gpu

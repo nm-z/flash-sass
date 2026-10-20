@@ -512,11 +512,11 @@ static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 		if (!fin) nanosleep(&nap, NULL);
 	}
 	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuCtxSynchronize()); }
-	phase_probe_done();
 	for (int d=0;d<nd;d++) {
 		uint32_t limit=0;CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoH(&limit,dCTL[d]+0x2c,4));
-		if (limit) {fprintf(stderr,"engine: die %d reached the kernel time limit\n",d);longjmp(run_jb,1);}
+		if (limit) {fprintf(stderr,"engine: die %d reached the kernel time limit\n",d);phase_probe_limit(__LINE__);longjmp(run_jb,1);}
 	}
+	phase_probe_done();
 }
 
 /* The paired program may only consume known ids. Stop before the last prompt

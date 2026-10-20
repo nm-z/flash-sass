@@ -11,6 +11,10 @@
 #define PHASE_PROBE_CTAS 16u
 #define PHASE_PROBE_DIES 6u
 #define PHASE_PROBE_PHASES 4096u
+/* Recording filters kernel token bases, including both bodies of a pair whose
+ * base is inside this interval. It does not shorten the model request. */
+#define PHASE_PROBE_TOKEN_FIRST 1024u
+#define PHASE_PROBE_TOKEN_END 1280u
 
 typedef struct {
     uint32_t opcode, units, flags;
@@ -31,7 +35,8 @@ int phase_probe_decode(uint64_t tag, const phase_probe_descriptor *program,
 
 /* These functions are for one engine host thread and its selected contexts.
  * create makes the diagnostic active; a library built without the probe flag
- * simply never calls it. Fault reporting reads host memory only and exits 70. */
+ * simply never calls it. Fault reporting reads host memory only and exits 70;
+ * the persistent kernel's own time-limit report exits 72. */
 CUresult phase_probe_create(const CUcontext *contexts, unsigned count);
 void phase_probe_destroy(void);
 int phase_probe_enabled(void);
@@ -43,4 +48,6 @@ int phase_probe_program(unsigned die, const prog_t *program);
 void phase_probe_launch(uint64_t request, uint32_t first, uint32_t end);
 void phase_probe_done(void);
 void phase_probe_fault(CUresult error, const char *expression, int line);
+/* Host-only dump for the persistent kernel's own five-minute stop; exits 72. */
+void phase_probe_limit(int line);
 #endif
