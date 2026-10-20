@@ -1,0 +1,8 @@
+cmp /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/serial-e2ff-b1-t9/records.bin
+cmp /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/checkpoint.bin /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/serial-e2ff-b1-t9/checkpoint.bin
+e3b6821bf962b5850471bf16db182ed06fee97af639ebbceb31b0a3b26a52ca9  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin
+e3b6821bf962b5850471bf16db182ed06fee97af639ebbceb31b0a3b26a52ca9  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/serial-e2ff-b1-t9/records.bin
+3f8479481248520bbf1d15e50bb3967440383f684894ba3c9444ae8713bd699d  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/checkpoint.bin
+3f8479481248520bbf1d15e50bb3967440383f684894ba3c9444ae8713bd699d  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/serial-e2ff-b1-t9/checkpoint.bin
+dsh build: remote command finished build-245925-1792507667079498618 status=0
+dsh build: phase: complete; phase elapsed 0s, total elapsed 11s

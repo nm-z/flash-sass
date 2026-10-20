@@ -2,8 +2,10 @@
 
 Refs [issue #9](https://github.com/nm-z/flash-sass/issues/9).
 The trial numerical source is
-`e2ff58ff1b0e956d61a1c93830c5f66210d27788`. This experiment remains separate
-from the verified `36a8246` GPU evidence until the new consumer canary passes.
+`e2ff58ff1b0e956d61a1c93830c5f66210d27788`. The new consumer canary passed
+all nine complete scalar records and 12 actual selected-ID captures in GPUQ
+`78df6e22-1a73-40f4-9ced-37c57a50d84c`. The tested code is adopted into
+PR #105; the numerical files match that source epoch exactly.
 
 ## Row execution
 
@@ -26,6 +28,8 @@ The serial comparison adds `-march=native -O3 -fno-math-errno`.
 Use a fresh routed source/build or distinct `OUT_DIR` for each compiler variant;
 ordinary Make file timestamps do not track changes to command-line flags.
 Binary hashes and exact compiler commands are retained with the run evidence.
+Canonical Make recipes explicitly clear `GEMV_NOMIN`, the legacy attention-owner
+override and the graph profiling overrides before inference.
 No speedup is claimed from the concurrent runs' wall times or the short CPU
 sample; they have different cache/I/O conditions.
 
@@ -69,5 +73,8 @@ their checkpoint SHA-256 is
 `3f8479481248520bbf1d15e50bb3967440383f684894ba3c9444ae8713bd699d`.
 The four-worker producer SHA-256 is
 `423cf9c5dad8efbda0dbb39fc1eca0eb79b8a5341b199188813bb8a05a77c2b3`.
-These are CPU results; the queued new-consumer GPU canary supplies its separate
-numerical evidence before adoption. Deep reference completion is pending.
+CPU excerpts and the successful GPU canary are retained in
+[the source-epoch run record](whole-model-e2ff58f/README.md).
+The canary compares all nine complete layer/QSA/recurrent/PLE/logit records and
+predictions against the parallel reference on six real GPUs, with budget-1
+exclusion active. Deep production-budget reference completion is pending.

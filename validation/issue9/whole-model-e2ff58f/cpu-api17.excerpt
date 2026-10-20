@@ -1,0 +1,24 @@
+cc -std=c11 -D_XOPEN_SOURCE=700 -O2 -ffp-contract=off -Wall -Wextra -Werror -march=native -O3 -fno-math-errno -fopenmp -DORACLE_PARALLEL_ROWS=1 -DMODEL_ORACLE_STANDALONE -o /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/validation/issue9//bin/model_oracle /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/kern/model_oracle.c /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/ref/qsa.c /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/ref/block.c /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/ref/attn.c /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/ref/ple.c /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/ref/quant.c /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/ref/gguf.c /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/ref/fmath.c /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/ref/hc.c /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/ref/deltanet.c /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/ref/router.c /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/ref/split.c -lcrypto -lm
+cc -std=c11 -D_XOPEN_SOURCE=700 -O2 -ffp-contract=off -Wall -Wextra -Werror -march=native -O3 -fno-math-errno -fopenmp -DORACLE_PARALLEL_ROWS=1 -o /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/validation/issue9//bin/oracle_test /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/validation/issue9//oracle_test.c /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/kern/model_oracle.c /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/ref/qsa.c /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/ref/block.c /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/ref/attn.c /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/ref/ple.c /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/ref/quant.c /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/ref/gguf.c /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/ref/fmath.c /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/ref/hc.c /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/ref/deltanet.c /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/ref/router.c /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/ref/split.c -lcrypto -lm
+PASS valid raw and digest comparison
+PASS one-bit mismatch
+PASS size mismatch
+PASS type mismatch
+PASS shape mismatch
+PASS missing label
+PASS duplicate label
+PASS extra label
+PASS empty record rejected
+PASS oversized ring byte count rejected
+PASS derived receipt rejects aliased output
+PASS derived receipt rejects empty prior seal before input traversal
+PASS derived receipt preserves nonempty target
+PASS CLI excludes concurrent writers before input verification
+PASS shared reader excludes CLI writer before input verification
+PASS failed CLI verification preserves existing record bytes
+PASS CLI rejects record/receipt alias before writing
+oracle API checks passed
+423cf9c5dad8efbda0dbb39fc1eca0eb79b8a5341b199188813bb8a05a77c2b3  /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/validation/issue9//bin/model_oracle
+f7713a31865ab24950ac4979e827f6f39bee31cfeb0056b6a91005ca888649f1  /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-130547-1792506606733982340.ft4E9C/source/validation/issue9//bin/oracle_test
+dsh build: remote command finished build-130547-1792506606733982340 status=0
+dsh build: phase: complete; phase elapsed 0s, total elapsed 36s
