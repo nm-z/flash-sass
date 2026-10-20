@@ -696,7 +696,7 @@ int engine_run_slot(int wanted, const uint32_t *ids, int nprompt, int n_new, con
     seqtrace_emit(&observation, "queued");
     int slot = seqsched_claim(&schedule, wanted, cb ? cb->alive : NULL, cb ? cb->arg : NULL);
     if (slot < 0) {
-        observation.rc = __atomic_load_n(&schedule.broken, __ATOMIC_ACQUIRE) ? -2 : -4;
+        observation.rc = __atomic_load_n(&schedule.broken, __ATOMIC_ACQUIRE) ? -2 : -5;
         observation.aborted = 1; seqtrace_emit(&observation, "cancel_wait");
         trace_status = "cancelled_waiting";
         last_timing.error_code = observation.rc;
@@ -780,9 +780,9 @@ int engine_run_slot(int wanted, const uint32_t *ids, int nprompt, int n_new, con
         observation.rc = -1; seqtrace_emit(&observation, "done");
         free(P); free(pair); free(prefix); in_run = 0;
         seqsched_leave(&schedule); seqsched_release(&schedule, slot);
-        last_timing.error_code = -1; last_timing.counts_known = last_timing.counts_final = 0;
+        last_timing.error_code = -4; last_timing.counts_known = last_timing.counts_final = 0;
         last_timing.build_ms = (now() - timing_request_start) * 1e3; trace_status = "allocation_error";
-        return -1;
+        return -4;
     }
 
 	if (resume) state_copy(0);
@@ -1585,7 +1585,8 @@ int engine_session(FILE *in, FILE *out) {
 		snap_req = 0; npend = 0;
 		if (rc == -3) { fprintf(out, "error: bad image data (a file, a position or too many image tokens)\n"); fflush(out); continue; }
 		if (rc == -2) { fprintf(out, "error: device fault; the core rebuilds the contexts and the engine\n"); fflush(out); free(ids); free(toks); free(line); return 3; }
-		if (rc == -4) { fprintf(out, "error: request cancelled while waiting for a sequence slot\n"); fflush(out); continue; }
+		if (rc == -4) { fprintf(out, "error: host program allocation failed\n"); fflush(out); continue; }
+		if (rc == -5) { fprintf(out, "error: request cancelled while waiting for a sequence slot\n"); fflush(out); continue; }
 		if (rc) { fprintf(out, "error: %d prompt ids + %ld new > %d positions\n", nprompt, n_new, MAXT); fflush(out); continue; }
 		if (chat) {
 			fprintf(out, "done %d %d %d %.1f %.1f %d %d %d\n", st.ntok - (nprompt - 1), st.ended, nprompt, st.run_ms, st.first_ms, st.resumed, st.snapshot, st.slot);
