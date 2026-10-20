@@ -1,0 +1,120 @@
+cmp /home/nate/work/fs109-baseline/maxas-patch/MaxAsGrammar.pm /home/nate/work/fs9-maxas/lib/MaxAs/MaxAsGrammar.pm
+cmp /home/nate/work/fs109-baseline/maxas-patch/MaxAs.pm /home/nate/work/fs9-maxas/lib/MaxAs/MaxAs.pm
+cmp /home/nate/work/fs109-baseline/maxas-patch/Cubin.pm /home/nate/work/fs9-maxas/lib/MaxAs/Cubin.pm
+env --chdir=/home/nate/work/fs109-baseline sha256sum -c /home/nate/work/fs109-baseline/kern/issue9-kernel.sha256
+kern/die.cubin: OK
+kern/die.sass: OK
+validation/issue109/pair_barrier_patch.c: OK
+validation/issue109/bin/die-pair-grid.sass: OK
+kern/actq.sass: OK
+kern/allgather.sass: OK
+kern/amax.sass: OK
+kern/argmax.sass: OK
+kern/attnmerge.sass: OK
+kern/attnpart.sass: OK
+kern/attnpartn.sass: OK
+kern/attnqk.sass: OK
+kern/attnqkq.sass: OK
+kern/bartest.sass: OK
+kern/conv1d.sass: OK
+kern/dnnorm.sass: OK
+kern/dnstep.sass: OK
+kern/embrow.sass: OK
+kern/ffnact.sass: OK
+kern/fmath.sass: OK
+kern/gemv_b32.sass: OK
+kern/gemv_bf16.sass: OK
+kern/gemv_bf16_pair.sass: OK
+kern/gemv_iq4_xs.sass: OK
+kern/gemv_q2_0.sass: OK
+kern/gemv_q3_k.sass: OK
+kern/gemv_q4_k.sass: OK
+kern/gemv_q6_k.sass: OK
+kern/gridbar.sass: OK
+kern/hcops.sass: OK
+kern/idxqk.sass: OK
+kern/idxscore.sass: OK
+kern/idxsel.sass: OK
+kern/kvgather.sass: OK
+kern/mailbox.sass: OK
+kern/moesel.sass: OK
+kern/normq.sass: OK
+kern/pleconv.sass: OK
+kern/plegate.sass: OK
+kern/plerows.sass: OK
+kern/rmsnorm.sass: OK
+kern/router.sass: OK
+kern/sample.sass: OK
+kern/semtest.sass: OK
+kern/semtest2.sass: OK
+kern/semtest3.sass: OK
+kern/semtest4.sass: OK
+kern/sumn.sass: OK
+kern/topk.sass: OK
+kern/xchg.sass: OK
+kern/xcopy.sass: OK
+kern/xmadbench.sass: OK
+kern/die.pl: OK
+kern/trace.pl: OK
+kern/actq.pl: OK
+kern/fmath.pl: OK
+kern/die.ptx: OK
+maxas-patch/Cubin.pm: OK
+maxas-patch/MaxAs.pm: OK
+maxas-patch/MaxAsGrammar.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/MaxAsGrammar.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/MaxAs.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/Cubin.pm: OK
+git -C /home/nate/work/fs109-baseline rev-parse HEAD
+b3798473e4257241a621321bfcfe09b96e2745d6
+git -C /home/nate/work/fs109-baseline status --short
+cc --version
+cc (GCC) 16.2.1 20260810
+Copyright (C) 2026 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+ldd /home/nate/work/fs109-baseline/kern/model_test
+	linux-vdso.so.1 (0x00007f97e4e27000)
+	libcuda.so.1 => /usr/lib/libcuda.so.1 (0x00007f97e3600000)
+	libcrypto.so.3 => /usr/lib/libcrypto.so.3 (0x00007f97e3000000)
+	libm.so.6 => /usr/lib/libm.so.6 (0x00007f97e2ec9000)
+	libc.so.6 => /usr/lib/libc.so.6 (0x00007f97e2c00000)
+	libdl.so.2 => /usr/lib/libdl.so.2 (0x00007f97e4d6e000)
+	libpthread.so.0 => /usr/lib/libpthread.so.0 (0x00007f97e4d69000)
+	librt.so.1 => /usr/lib/librt.so.1 (0x00007f97e4d64000)
+	libz.so.1 => /usr/lib/libz.so.1 (0x00007f97e4d49000)
+	libbrotlienc.so.1 => /usr/lib/libbrotlienc.so.1 (0x00007f97e2b40000)
+	libbrotlidec.so.1 => /usr/lib/libbrotlidec.so.1 (0x00007f97e4d3a000)
+	libzstd.so.1 => /usr/lib/libzstd.so.1 (0x00007f97e2a5a000)
+	/lib64/ld-linux-x86-64.so.2 => /usr/lib64/ld-linux-x86-64.so.2 (0x00007f97e4e29000)
+	libbrotlicommon.so.1 => /usr/lib/libbrotlicommon.so.1 (0x00007f97e35dd000)
+sha256sum /usr/lib/libcuda.so.470.256.02
+6f379857a042713f8c4c28e689006b9143889c7a465044074d99a614a64e2fa2  /usr/lib/libcuda.so.470.256.02
+sha256sum /home/nate/work/fs109-baseline/kern/model_test /home/nate/work/fs109-baseline/kern/die.cubin /home/nate/work/fs109-baseline/kern/libengine.so
+3c0dafd512307c58091202472a0285e7f5a997bb58706eb39938fd032584832c  /home/nate/work/fs109-baseline/kern/model_test
+aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423  /home/nate/work/fs109-baseline/kern/die.cubin
+aa9ebd387020f1382e5805e4fc8d790807d0067b941b9af15c26f25a447d7cfd  /home/nate/work/fs109-baseline/kern/libengine.so
+sha256sum /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256 /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+4d05f248b11edfe20155cc92f86bf870d28fb6d884e4403e5d02db9b359faf53  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new
+011a28a8823fe2d93e1c5d3185f4089e17ca91a690bf3d4776a2ba35bf09f90b  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256
+07bfa6e49c1a5c66d529b43b8ced6cc4acccb5a05a7e29e7c564061bb41b5d28  /tmp/hold-h0.manifest
+91c5e97296ddf737e7a85184ae6ab56b2340d51ab1ef24c6c15a4dc9915d222d  /tmp/hold-h1.manifest
+d71d80e44658cb13a65d90bd55430ab065acefc031e0ced86c776f5bc2020854  /tmp/hold-h2.manifest
+7a3327d3ac7450209b6c38dcc78aa308ff65c04b38a7eeb5c358e7e8daccadf0  /tmp/hold-h3.manifest
+472977b5d8b364c46034ed2b74f31ea5abfb7409e5e38b8496e33bfa66a8e15c  /tmp/hold-h4.manifest
+310f71227e8939d3bbb62589c3af758a72c87fe9f675e428645326bf285487be  /tmp/hold-h5.manifest
+cat /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/checkpoints.sha256
+69820c02ec7d0b45ef2ebb19d6620299db749fe2aded7f39f93c6b88b199b720  /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+316b46f3a2dbd68c900f43136ab9449f9dcc3725dfd8c794847c204bc161e113  /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf
+nvidia-smi --query-gpu=index,uuid,name,driver_version,memory.free --format=csv
+index, uuid, name, driver_version, memory.free [MiB]
+0, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, Tesla M60, 470.256.02, 266 MiB
+1, GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, Tesla M60, 470.256.02, 248 MiB
+2, GPU-c767d250-4454-d181-d648-8706b5f2fb64, Tesla M60, 470.256.02, 220 MiB
+3, GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, Tesla M60, 470.256.02, 187 MiB
+4, GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, Tesla M60, 470.256.02, 238 MiB
+5, GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, Tesla M60, 470.256.02, 175 MiB
+6, GPU-431371bd-b482-96b2-4b70-04f83c6d075b, Tesla M60, 470.256.02, 7547 MiB
+7, GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4, Tesla M60, 470.256.02, 4626 MiB
+/home/nate/work/fs109-baseline/validation/issue9//bin/engine_check --repo /home/nate/work/fs109-baseline --out /home/nate/.local/state/gpuq/staging/fe513a53-f621-4dff-946c-61d2f5a73351/engine-matrix --ple /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf --revision 11ac712913234331088808284524a11effca7208 --manifest /tmp/hold-h0.manifest --manifest /tmp/hold-h1.manifest --manifest /tmp/hold-h2.manifest --manifest /tmp/hold-h3.manifest --manifest /tmp/hold-h4.manifest --manifest /tmp/hold-h5.manifest --holder-pid 2946899 --holder-pid 2946901 --holder-pid 2946902 --holder-pid 2946905 --holder-pid 2946906 --holder-pid 2946907 --cuda-visible 0,1,2,3,4,5 --split-shares 112,97,81,116,97,97 --attn-map 1,1,1,1,4,4,4,4,5,5,5,5 --tokens 2055 --snapshots 2048,2051,2052,2053,2054 --nblk 512 --lock-fd 9 --timeout 3600 --weight-manifest /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/checkpoints.sha256

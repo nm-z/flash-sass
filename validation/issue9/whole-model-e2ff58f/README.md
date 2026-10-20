@@ -101,3 +101,38 @@ comparisons `build-227440-1792507498960444325` and
 The separate intermittent paired engine failure is tracked in
 [issue #109](https://github.com/nm-z/flash-sass/issues/109). Passing and failing
 request controls remain in [the earlier record](../whole-model-3902787/README.md).
+
+## Production-budget request matrix: failed scalar gate
+
+GPUQ `fe513a53-f621-4dff-946c-61d2f5a73351` exercises the canonical production
+engine independently of the unfinished CPU reference: 2055-position requests,
+budget 512, snapshots at 2048, 2051, 2052, 2053 and 2054, both KV placements and
+scalar/paired modes planned. It fails in the first VRAM scalar mode; later
+modes are not reached.
+
+The raw transcript has seven requests ending at position 2055, including
+resumed suffixes from snapshots 2048 and 2051. Reset-B request 9 then reports
+`completed=1057 requested=2055`. Stderr reports a CUDA illegal memory access on
+die 4 and a failed attempt to rebuild the contexts. The private core exits 1
+without a signal, timeout or interruption. The matrix rejects that exit before
+accepting request comparisons, so the report's accepted-check count is zero.
+This is a failed gate, with no scalar-oracle agreement claimed. It is tracked
+separately in [issue #110](https://github.com/nm-z/flash-sass/issues/110).
+
+The engine revision is `11ac712913234331088808284524a11effca7208`; an empty git
+diff confirms `engine.c`, `prog.c`, `prog.h` and `qsa_state.h` match this PR's
+current files. Its binary SHA-256 is
+`aa9ebd387020f1382e5805e4fc8d790807d0067b941b9af15c26f25a447d7cfd`,
+and it loads canonical cubin
+`aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423`.
+The runner SHA-256 is
+`594c55c9716a52462ef0f908b6ff769f89ce0fc9083f0a31c34dce7e23104554`.
+Math/profiling overrides were cleared and no fault injection was enabled.
+All six original holder PIDs remained alive in the post-run observation, with
+lifetimes spanning the test; they were not replaced during that observation.
+
+The complete GPUQ export, report and child stdout/stderr are retained as
+`production-b512-fe51.*`. Document 3656 supplies stderr, 3658 supplies stdout
+and 3659 supplies the JSON report. These records retain the distinct request
+timing observations and do not establish a performance comparison or the
+offending instruction's identity.
