@@ -55,6 +55,7 @@ holder manifests, checkpoint identities and runtime arguments.
 | --- | --- | --- |
 | `78df6e22-1a73-40f4-9ced-37c57a50d84c` | Host KV, per-token, all 48 layers/six dies, budget 1 | Exit 0; all nine complete scalar records and predictions match. Twelve actual selected-ID captures at visible length 9, one for every attention layer, all match. Exclusion is active at lengths 8 and 9. |
 | `59f2ef9f-7b5c-4db7-90f4-a6a6ddcbca58` | VRAM KV, per-token, same model scope and budget | Exit 0; nine complete records and predictions match, with twelve matching actual selected-ID captures at visible length 9. |
+| `ee9b79e4-f01a-4738-a835-3eaa278ba88a` | Host KV, one persistent launch, same model scope and budget | Exit 0; all nine predictions on all six dies match, plus the final token's complete stage record. Twelve actual selected-ID captures match at visible length 9. Earlier tokens' stage buffers are not retained by this launch mode. |
 
 `.logs.json.gz` is a durable queue database export; `.stdout` is its readable
 derived output. Optional resident trace collection was unavailable, not zero.
