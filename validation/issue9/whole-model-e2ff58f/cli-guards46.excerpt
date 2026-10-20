@@ -1,0 +1,54 @@
+cc -std=c11 -O2 -Wall -Wextra -Werror -o /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-517679-1792510180423953110.KNOE2L/source/validation/issue9//bin/model_cli_test /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-517679-1792510180423953110.KNOE2L/source/validation/issue9//model_cli_test.c
+cc -std=c11 -O2 -Wall -Wextra -Werror -fPIC -shared -o /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-517679-1792510180423953110.KNOE2L/source/validation/issue9//bin/cuinit_probe.so /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-517679-1792510180423953110.KNOE2L/source/validation/issue9//cuinit_probe.c
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -o model_test model_test.c model_oracle.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lcrypto -lm
+PASS positive-control exit=99
+PASS zero-length exit=2
+PASS negative-length exit=2
+PASS beyond-capacity exit=2
+PASS malformed-length exit=2
+PASS malformed-block exit=2
+PASS invalid-flags exit=2
+PASS empty-flags exit=2
+PASS invalid-budget exit=2
+PASS zero-budget exit=2
+PASS invalid-placement exit=2
+PASS missing-teacher-ids exit=2
+PASS out-of-vocabulary-id exit=2
+PASS malformed-id exit=2
+PASS valid-id-prefix exit=99
+PASS no-attention-block exit=2
+PASS unreachable-selection exit=2
+PASS reachable-selection exit=99
+PASS unreachable-logits exit=2
+PASS unreachable-dn exit=2
+PASS unreachable-conv exit=2
+PASS unreachable-ple exit=2
+PASS unknown-injection exit=2
+PASS timing-injection exit=2
+PASS truncated-program exit=2
+PASS absent-attention-owner exit=2
+PASS capture-partial-block-scope exit=2
+PASS capture-one-die-scope exit=2
+PASS capture-synthetic-ids exit=2
+PASS capture-short-teacher-ids exit=2
+PASS capture-missing-head exit=2
+PASS capture-missing-embedding exit=2
+PASS capture-free-running exit=2
+PASS capture-injected exit=2
+PASS capture-under-exclusion exit=2
+PASS capture-invalid-flag exit=2
+PASS duplicate-physical-manifest exit=2
+PASS full-capture-positive-control exit=99
+PASS oracle-partial-blocks exit=2
+PASS oracle-one-die exit=2
+PASS oracle-missing-head exit=2
+PASS oracle-missing-embedding exit=2
+PASS oracle-no-comparison exit=2
+PASS oracle-synthetic-ids exit=2
+PASS oracle-missing-receipt exit=2
+PASS oracle-empty-receipt exit=2
+3c0dafd512307c58091202472a0285e7f5a997bb58706eb39938fd032584832c  /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-517679-1792510180423953110.KNOE2L/source/kern/model_test
+4d8c34d8886a8f969aef450f6948a10f986475235be95b65db7c8b2f3e558190  /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-517679-1792510180423953110.KNOE2L/source/validation/issue9//bin/model_cli_test
+c2009433f6ebe8059b186dacc4d6fc231233f54d89e4ed00a930d77cbe9d7f93  /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-517679-1792510180423953110.KNOE2L/source/validation/issue9//bin/cuinit_probe.so
+dsh build: remote command finished build-517679-1792510180423953110 status=0
+dsh build: phase: complete; phase elapsed 0s, total elapsed 30s

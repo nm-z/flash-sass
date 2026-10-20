@@ -16,6 +16,7 @@ IDs 10 through 18 and budget 1. The C comparison contract is exact bytes.
 | DSH build | Result | Evidence |
 | --- | --- | --- |
 | `build-130547-1792506606733982340` | 17 API/CLI checks passed | `cpu-api17.excerpt` |
+| `build-517679-1792510180423953110` | 46 pre-CUDA command-line boundary checks passed against the current GPU consumer | `cli-guards46.excerpt` |
 | `build-154782-1792506822173131858` | Four-worker row build completed nine positions; reader verified 9 positions / 8280 items | `cpu-parallel9.excerpt` |
 | `build-154783-1792506822176279513` | Independent serial run completed and verified 9 / 8280 | `cpu-serial9.excerpt` |
 | `build-245925-1792507667079498618` | Complete records and checkpoints compare byte for byte | `cpu-parity9.excerpt` |
@@ -53,14 +54,15 @@ holder manifests, checkpoint identities and runtime arguments.
 | GPUQ job | Workload | Result |
 | --- | --- | --- |
 | `78df6e22-1a73-40f4-9ced-37c57a50d84c` | Host KV, per-token, all 48 layers/six dies, budget 1 | Exit 0; all nine complete scalar records and predictions match. Twelve actual selected-ID captures at visible length 9, one for every attention layer, all match. Exclusion is active at lengths 8 and 9. |
+| `59f2ef9f-7b5c-4db7-90f4-a6a6ddcbca58` | VRAM KV, per-token, same model scope and budget | Exit 0; nine complete records and predictions match, with twelve matching actual selected-ID captures at visible length 9. |
 
 `.logs.json.gz` is a durable queue database export; `.stdout` is its readable
 derived output. Optional resident trace collection was unavailable, not zero.
 CPU/build wall time and device intervals are separate clock domains. No speedup
 is inferred from concurrent CPU runs or from comparing these domains.
 
-The new epoch's remaining KV/launch placements and fault gates are queued
-serially. The uniform four-worker deep reference starts from position zero in
+The new epoch's single-launch placements and fault gates are queued serially.
+The uniform four-worker deep reference starts from position zero in
 `par-e2ff-b512-t2055`, with 32-position durable checkpoints and source epoch
 held fixed. Its initial eight-chunk routed job is
 `build-352749-1792508656328957494`. Completion is pending. The older source-36a
