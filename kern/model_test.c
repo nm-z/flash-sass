@@ -116,6 +116,7 @@ static int decimal_arg(const char *s, unsigned max, const char *label) {
 }
 
 int main(int argc, char **argv) {
+	setvbuf(stdout, NULL, _IOLBF, 0);
 	if (argc < 7) { fprintf(stderr, "usage: model_test <fullcache> <b0> <b1> <T> <flags: e h -> <manifest0> [manifest1 ...]\n"); return 2; }
 	fullcache = argv[1]; int b0 = decimal_arg(argv[2], MAXB - 1, "first block"), b1 = decimal_arg(argv[3], MAXB, "end block"), T = decimal_arg(argv[4], 262144, "token count"); const char *flags = argv[5]; nd = argc - 6; float eps = 1e-6f;
 	int do_embed = strchr(flags, 'e') != NULL, do_head = strchr(flags, 'h') != NULL, do_loop = strchr(flags, 'l') != NULL;   /* l: one launch for all T tokens */
@@ -186,6 +187,31 @@ int main(int argc, char **argv) {
 	} else for (int i = 0; i < T; i++) { ids[i] = (uint32_t)((rs >> 8) % 248000u); frand(); }
 	if (model_qsa && !notwin && nprompt != T) {
 		fprintf(stderr, "QSA comparison needs identical teacher-forced IDs at all %d positions; MODEL_IDS supplied %d. Use MODEL_NOTWIN for separate free-running smoke/timing.\n", T, nprompt); return 2;
+	}
+	model_capture_last = (unsigned)T - 1;
+	model_capture_full_scope = model_qsa && !notwin && !model_inject &&
+		b0 == 0 && b1 == MAXB && do_embed && do_head && nd == MAXD &&
+		getenv("MODEL_IDS") && *getenv("MODEL_IDS");
+	if (model_qsa_capture_enabled() && !model_capture_full_scope) {
+		fprintf(stderr, "MODEL_CAPTURE_QSA requires all 48 blocks, embedding, full head, six dies, teacher-forced comparison and no injection\n");
+		return 2;
+	}
+	if (model_qsa_capture_enabled() && (unsigned)T < 4u * (model_budget + 1u)) {
+		fprintf(stderr, "MODEL_CAPTURE_QSA requires actual selection exclusion at the final token\n");
+		return 2;
+	}
+	int physical_dies[MAXD];
+	for (int d = 0; d < nd; d++) {
+		FILE *f = fopen(argv[6 + d], "r"); size_t bytes = 0;
+		if (!f) { fprintf(stderr, "cannot read manifest %s\n", argv[6 + d]); return 2; }
+		int fields = fscanf(f, "arena %zu die %d", &bytes, &physical_dies[d]);
+		fclose(f);
+		if (fields != 2 || !bytes || physical_dies[d] < 0) {
+			fprintf(stderr, "bad manifest %s\n", argv[6 + d]); return 2;
+		}
+		for (int previous = 0; previous < d; previous++) if (physical_dies[previous] == physical_dies[d]) {
+			fprintf(stderr, "duplicate physical die %d in model manifests\n", physical_dies[d]); return 2;
+		}
 	}
 	CK(cuInit(0));
 	CUmodule mod[MAXD]; CUfunction fn[MAXD];
