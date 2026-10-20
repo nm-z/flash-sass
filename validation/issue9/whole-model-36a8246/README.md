@@ -53,6 +53,8 @@ all six holder manifests, both checkpoint hashes and runtime arguments.
 | --- | --- | --- |
 | `ffde89d3-b9bb-4f2f-b08c-4d7844bbbd7f` | Host KV / per-token | Exit 0, nine complete scalar records match, 9/9 teacher-forced predictions exact. Twelve actual GPU selected-ID captures, one for each attention layer at visible length 9, all match the scalar reference. Budget-1 exclusion is active at visible lengths 8 and 9. |
 | `bb7c5913-8f77-4c55-b154-74df7c047aef` | VRAM KV / per-token | Exit 0, all nine complete records and predictions match. Twelve actual selected-ID captures at visible length 9, all attention layers, all match. |
+| `769fccd6-8cd6-4f4a-bb31-aafae233f6dd` | Host KV / single launch | Exit 0, every prediction matches; final position's complete layer/QSA/recurrent/PLE/logit record matches. Twelve actual selected-ID captures at visible length 9, all match. |
+| `75880d0a-557a-476a-b5fe-b226759ac563` | VRAM KV / single launch | Exit 0 with the same prediction/final-record scope as the host single-launch case. Twelve actual selected-ID captures, all match. |
 
 Compressed `.logs.json.gz` files are exports of durable database documents.
 The derived `.stdout` preserves readable positive output. The issue9 history
@@ -61,8 +63,21 @@ global FIFO/reservation with default-database jobs. Optional resident trace
 collection is unavailable, not zero. Clock domains remain separate; no
 performance claim is made from CPU/GPU timing differences.
 
-Remaining gates include both single-launch placements, whole-model injected
-errors, and the deep production-budget reference/GPU
+Single-launch trace slots retain final-position stages; they do not retain all
+earlier intermediate buffers. The per-token cases supply the all-position
+stage comparisons. All four positive cases use actual weights and six dies.
+
+## Whole-model fault controls
+
+Job `87b4615a-fc93-45cd-8c13-dcd08258cb3e` deliberately flips one readback bit
+at `b0.S.d0`. It reports `MODEL_INJECT=layer reached`, scalar mismatch at
+position 0, eight other positions exact, program exit 3 / Make exit 2. The
+failed queue status is the expected rejection result. Capture is disabled for
+fault controls. Further stage controls are pending; the retained compressed log
+is `inject-layer.logs.json.gz`.
+
+Remaining gates include the additional whole-model injected errors and the
+deep production-budget reference/GPU
 comparison. The independent paired engine reuse failure remains tracked in
 [issue #109](https://github.com/nm-z/flash-sass/issues/109); its passing and
 failing controls remain in the earlier run record.
