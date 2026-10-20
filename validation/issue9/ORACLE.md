@@ -92,6 +92,12 @@ structured completion field is true.
 All chunks for one record stream must use the same identities and geometry.
 Keep `ORACLE_REVISION` fixed to the chosen implementation revision across later
 documentation or request-runner commits.
+`ORACLE_ARCH_FLAGS=-march=native` selects the build host's CPU ISA while retaining
+`-ffp-contract=off`. Before using it for the deep reference, compare a complete
+native/chunked record stream with an independent baseline/uninterrupted stream
+using `oracle-parity`. Copying an input receipt between streams with identical
+source, IDs and geometry reuses its content verification. Keep the architecture
+flags fixed across chunks and retain each routed build's flags/binary identity.
 Copy returned executables into the isolated Archy checkout before queueing GPU
 work. The GPU targets compile nothing. Existing serving holders and services
 stay under their owners' control.
@@ -105,6 +111,7 @@ stay under their owners' control.
 | DSH `build-2802738-1792494998585080917` on Archy | 11 API/CLI checks and 46 boundary checks passed | Adds concurrent-writer exclusion before verification and preservation of existing record bytes after failed verification. Builds the consumer with shared reader locking. No CUDA execution. |
 | DSH `build-2853303-1792495224803651691` on Archy | 12 API/CLI checks passed | Adds the shared-reader/exclusive-writer conflict case. No CUDA execution; the earlier 46 boundary checks were not repeated for this test-only extension. |
 | DSH `build-3053937-1792496534261548369` on Archy | 20 engine config-parser fixtures passed | Full 40-hex revision, duplicate/missing/mismatched scope and pair/chunk flag checks. No private core, CUDA or numerical model execution. |
+| DSH `build-3160844-1792497271142504447` on Archy | 12 API/CLI cases passed with `-march=native` | Compiler/ISA variant built successfully; actual-weight record parity remains pending. No CUDA or numerical model execution. |
 | GPUQ `796ebc95-d3cc-45dd-ad6b-b25710a895c0` | Failed at the first direct case with illegal instruction | Built with a stale external MaxAs lacking the repository's BRX encoding/relocation patches. This is retained as a failed attempt. |
 | DSH `build-1864214-1792491727574313292` | Patched cubin rebuilt with input receipt | Private MaxAs files match `maxas-patch`; cubin SHA-256 `aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423`. This build result alone is not GPU validation. |
 
