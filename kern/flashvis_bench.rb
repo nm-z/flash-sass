@@ -45,6 +45,7 @@ reference = nil
   ready = Queue.new
   timings = Queue.new
   reader, writer = IO.pipe
+  reader.binmode  # model metadata can contain UTF-8 even under the queue's C locale
   startup = clock.call
   pid = Process.spawn({ 'FLASHVIS_DEVICE' => backend }, binary, projector, text_model, socket_path, '10',
                       out: $stdout, err: writer, pgroup: true)
