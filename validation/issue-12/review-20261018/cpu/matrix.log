@@ -1,0 +1,16 @@
+ok 1 - idle inventory accepted
+ok 2 - failed smi query rejects
+ok 3 - failed ps query rejects
+ok 4 - malformed smi query rejects
+ok 5 - resident hold process blocks
+ok 6 - runner harness argument does not block itself
+ok 7 - busy host waits then releases
+ok 8 - busy host ends BLOCKED_BUSY
+ok 9 - untraced complete result accepted
+ok 10 - missing canaries rejects
+ok 11 - missing requested trace rejects
+ok 12 - unexpected traced timing rejects
+ok 13 - verified traced result accepted
+ok 14 - child stdout and failure retained
+ok 15 - only own child is timed out
+{"gpu_executed":false,"status":"PASS","tests":15}

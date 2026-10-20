@@ -1,0 +1,19 @@
+attention mode: qsa (production INT8 QSA; instruction-order twin)
+FLASH_NBLK=1 FLASH_KV_HOST=0; cache positions=128 compact positions=2080
+6 die(s), blocks [3, 4), 9 tokens (9 prompt)
+  die 0 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 1 asserted QSA opcodes and FLASH_NBLK=1 for 1 layer(s)
+  die 2 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 3 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 4 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 5 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+token   0: id     10 ->      0 (no head) 20 phases; twin 0.31 s, dies 0.754 ms  exact
+token   1: id     11 ->      0 (no head) 20 phases; twin 0.30 s, dies 0.768 ms  exact
+token   2: id     12 ->      0 (no head) 20 phases; twin 0.30 s, dies 0.750 ms  exact
+token   3: id     13 ->      0 (no head) 20 phases; twin 0.30 s, dies 0.753 ms  exact
+token   4: id     14 ->      0 (no head) 20 phases; twin 0.30 s, dies 0.757 ms  exact
+token   5: id     15 ->      0 (no head) 20 phases; twin 0.30 s, dies 0.751 ms  exact
+token   6: id     16 ->      0 (no head) 20 phases; twin 0.30 s, dies 0.754 ms  exact
+token   7: id     17 ->      0 (no head) 20 phases; twin 0.30 s, dies 0.771 ms  exact
+token   8: id     18 ->      0 (no head) 20 phases; twin 0.30 s, dies 0.765 ms  exact
+OK: 9 of 9 tokens exact; mean 0.758 ms per token
