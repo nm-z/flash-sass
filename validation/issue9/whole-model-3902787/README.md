@@ -129,6 +129,30 @@ placement/launch modes. The earlier mismatch is intermittent and remains
 under investigation in [issue #109](https://github.com/nm-z/flash-sass/issues/109);
 the passing repeat does not erase that failure or establish a root cause.
 
+The compile-time discriminator in `e35c084` keeps fusion enabled by default
+and reports `bf16_pair_fuse` in `config`. DSH
+`build-3869453-1792502622233145996` compiled it with
+`FLASH_BF16_PAIR_FUSE=0`; library SHA-256 is
+`c6bcb9fbf267d2b5b5bda2597460ff042ec3278ef8251d32cf621c00c5538790`.
+Job `8f608b4d-d44d-46a0-af42-910679b077bc` confirms flag 0 in all four
+captured configs. VRAM/scalar, VRAM/paired and host/scalar each passed 16
+requests; host/paired failed `reset-3-B` after 10 checks. Reports/streams are
+retained in `engine-nofuse-8f60/`. A mismatch can therefore occur with this
+fusion disabled; this does not establish a single shared root cause.
+
+DSH `build-3905439-1792502928224421788` built the matching default-fused
+variant from the same source, library SHA-256
+`ad3b5654ca61739c3e509d5cc6622353f9093e6299bf0231eedb0c18360453e6`.
+The next probe supplies `PROG_NONOBAR=1` explicitly in its queue argv, adding
+the interphase grid barriers normally omitted by `prog_nobar`. It leaves the
+generic pair-body synchronization unchanged. This is a diagnostic workload,
+not a measured fix.
+
+The corrected nine-token CPU reference and the 2055-token/budget-512 reference
+are running outside GPUQ with source revision `36a8246...`. The latter uses
+DSH `build-3876709-1792502680873688844`, an eight-chunk bounded batch with
+32-position durable checkpoints. Completion is not yet claimed.
+
 The first direct attempt failed; its record is retained in the database and
 described in [the oracle notes](../ORACLE.md). No GPU job or resident holder
 has been interrupted to advance this validation.
