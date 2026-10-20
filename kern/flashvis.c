@@ -88,6 +88,7 @@ int main(int argc, char **argv) {
 	if (!model) { fprintf(stderr, "flashvis: cannot load %s (vocab only)\n", argv[2]); return 1; }
 	struct mtmd_context_params cp = mtmd_context_params_default();
 	cp.use_gpu = device != NULL; cp.device = device;
+	if (device) cp.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_DISABLED;
 	cp.n_threads = threads; cp.print_timings = false; cp.warmup = false;
 	mtmd_context *ctx = mtmd_init_from_file(argv[1], model, cp);
 	if (!ctx && cp.use_gpu) {
