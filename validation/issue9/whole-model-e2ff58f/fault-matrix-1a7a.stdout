@@ -1,0 +1,1139 @@
+sha256sum /home/nate/work/fs9-par/validation/issue9//bin/oracle_fault_matrix /home/nate/work/fs9-par/validation/issue9//oracle_fault_matrix.c
+1293d4c93e4852459a6d3a0f3619517c568144cbe80d0827dd2ae2a22b70ff83  /home/nate/work/fs9-par/validation/issue9//bin/oracle_fault_matrix
+c7a55cfdeaf61531d263f58d4c2eebb35229a68515f2fc7846f96f248bf960e4  /home/nate/work/fs9-par/validation/issue9//oracle_fault_matrix.c
+/home/nate/work/fs9-par/validation/issue9//bin/oracle_fault_matrix /home/nate/work/fs9-par/validation/issue9//Makefile /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9 e2ff58ff1b0e956d61a1c93830c5f66210d27788
+ORACLE_FAULT_CASE_BEGIN {"name":"layer","inject":"layer","tokens":9,"blocks":1,"host_kv":1,"flags":"eh","capture":0}
+make[1]: Entering directory '/home/nate/work/fs9-par/kern'
+cmp /home/nate/work/fs9-par/maxas-patch/MaxAsGrammar.pm /home/nate/work/fs9-maxas/lib/MaxAs/MaxAsGrammar.pm
+cmp /home/nate/work/fs9-par/maxas-patch/MaxAs.pm /home/nate/work/fs9-maxas/lib/MaxAs/MaxAs.pm
+cmp /home/nate/work/fs9-par/maxas-patch/Cubin.pm /home/nate/work/fs9-maxas/lib/MaxAs/Cubin.pm
+env --chdir=/home/nate/work/fs9-par sha256sum -c /home/nate/work/fs9-par/kern/issue9-kernel.sha256
+kern/die.cubin: OK
+kern/actq.sass: OK
+kern/allgather.sass: OK
+kern/amax.sass: OK
+kern/argmax.sass: OK
+kern/attnmerge.sass: OK
+kern/attnpart.sass: OK
+kern/attnpartn.sass: OK
+kern/attnqk.sass: OK
+kern/attnqkq.sass: OK
+kern/bartest.sass: OK
+kern/conv1d.sass: OK
+kern/dnnorm.sass: OK
+kern/dnstep.sass: OK
+kern/embrow.sass: OK
+kern/ffnact.sass: OK
+kern/fmath.sass: OK
+kern/gemv_b32.sass: OK
+kern/gemv_bf16.sass: OK
+kern/gemv_bf16_pair.sass: OK
+kern/gemv_iq4_xs.sass: OK
+kern/gemv_q2_0.sass: OK
+kern/gemv_q3_k.sass: OK
+kern/gemv_q4_k.sass: OK
+kern/gemv_q6_k.sass: OK
+kern/gridbar.sass: OK
+kern/hcops.sass: OK
+kern/idxqk.sass: OK
+kern/idxscore.sass: OK
+kern/idxsel.sass: OK
+kern/kvgather.sass: OK
+kern/mailbox.sass: OK
+kern/moesel.sass: OK
+kern/normq.sass: OK
+kern/pleconv.sass: OK
+kern/plegate.sass: OK
+kern/plerows.sass: OK
+kern/rmsnorm.sass: OK
+kern/router.sass: OK
+kern/sample.sass: OK
+kern/semtest.sass: OK
+kern/semtest2.sass: OK
+kern/semtest3.sass: OK
+kern/semtest4.sass: OK
+kern/sumn.sass: OK
+kern/topk.sass: OK
+kern/xchg.sass: OK
+kern/xcopy.sass: OK
+kern/xmadbench.sass: OK
+kern/die.pl: OK
+kern/trace.pl: OK
+kern/actq.pl: OK
+kern/fmath.pl: OK
+kern/die.ptx: OK
+maxas-patch/Cubin.pm: OK
+maxas-patch/MaxAs.pm: OK
+maxas-patch/MaxAsGrammar.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/MaxAsGrammar.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/MaxAs.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/Cubin.pm: OK
+git -C /home/nate/work/fs9-par rev-parse HEAD
+4628b7e34f6937cfa2c16d924cc4d44c81a83330
+git -C /home/nate/work/fs9-par status --short
+cc --version
+cc (GCC) 16.2.1 20260810
+Copyright (C) 2026 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+ldd /home/nate/work/fs9-par/kern/model_test
+	linux-vdso.so.1 (0x00007fb947e71000)
+	libcuda.so.1 => /usr/lib/libcuda.so.1 (0x00007fb946600000)
+	libcrypto.so.3 => /usr/lib/libcrypto.so.3 (0x00007fb946000000)
+	libm.so.6 => /usr/lib/libm.so.6 (0x00007fb945ec9000)
+	libc.so.6 => /usr/lib/libc.so.6 (0x00007fb945c00000)
+	libdl.so.2 => /usr/lib/libdl.so.2 (0x00007fb947db8000)
+	libpthread.so.0 => /usr/lib/libpthread.so.0 (0x00007fb947db3000)
+	librt.so.1 => /usr/lib/librt.so.1 (0x00007fb947dae000)
+	libz.so.1 => /usr/lib/libz.so.1 (0x00007fb947d93000)
+	libbrotlienc.so.1 => /usr/lib/libbrotlienc.so.1 (0x00007fb945b40000)
+	libbrotlidec.so.1 => /usr/lib/libbrotlidec.so.1 (0x00007fb947d84000)
+	libzstd.so.1 => /usr/lib/libzstd.so.1 (0x00007fb945a5a000)
+	/lib64/ld-linux-x86-64.so.2 => /usr/lib64/ld-linux-x86-64.so.2 (0x00007fb947e73000)
+	libbrotlicommon.so.1 => /usr/lib/libbrotlicommon.so.1 (0x00007fb947d5f000)
+sha256sum /usr/lib/libcuda.so.470.256.02
+6f379857a042713f8c4c28e689006b9143889c7a465044074d99a614a64e2fa2  /usr/lib/libcuda.so.470.256.02
+sha256sum /home/nate/work/fs9-par/kern/model_test /home/nate/work/fs9-par/kern/die.cubin /home/nate/work/fs9-par/kern/libengine.so
+3c0dafd512307c58091202472a0285e7f5a997bb58706eb39938fd032584832c  /home/nate/work/fs9-par/kern/model_test
+aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423  /home/nate/work/fs9-par/kern/die.cubin
+ad3b5654ca61739c3e509d5cc6622353f9093e6299bf0231eedb0c18360453e6  /home/nate/work/fs9-par/kern/libengine.so
+sha256sum /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256 /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+4d05f248b11edfe20155cc92f86bf870d28fb6d884e4403e5d02db9b359faf53  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new
+011a28a8823fe2d93e1c5d3185f4089e17ca91a690bf3d4776a2ba35bf09f90b  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256
+028919ad749d1d914270c70c52aac7ed3eb532ac0b1199d9ab807a768be065be  /tmp/hold-h0.manifest
+2be77b9b3031a0c5a67d6a50242d4f4d57e81926a704d49528b13ca21fbfb5ed  /tmp/hold-h1.manifest
+a2a74d87bcf40288a8fb376974f72ec286d0a4d398e4a585151b21e88b30ec92  /tmp/hold-h2.manifest
+037381c31cbbdb6b312667af075f7cca1e23def46d106f2ce93f6f2a0138aefb  /tmp/hold-h3.manifest
+b642f9c8c45fc7a4ddb2f0326f61e4c973a4c392e84b1a7926f65f1f6a974548  /tmp/hold-h4.manifest
+cc2cc7163e9e5ec8c61c126060a5192776bd6818d77e8e666949930969d15a65  /tmp/hold-h5.manifest
+cat /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/checkpoints.sha256
+69820c02ec7d0b45ef2ebb19d6620299db749fe2aded7f39f93c6b88b199b720  /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+316b46f3a2dbd68c900f43136ab9449f9dcc3725dfd8c794847c204bc161e113  /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf
+nvidia-smi --query-gpu=index,uuid,name,driver_version,memory.free --format=csv
+index, uuid, name, driver_version, memory.free [MiB]
+0, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, Tesla M60, 470.256.02, 266 MiB
+1, GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, Tesla M60, 470.256.02, 248 MiB
+2, GPU-c767d250-4454-d181-d648-8706b5f2fb64, Tesla M60, 470.256.02, 220 MiB
+3, GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, Tesla M60, 470.256.02, 187 MiB
+4, GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, Tesla M60, 470.256.02, 238 MiB
+5, GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, Tesla M60, 470.256.02, 175 MiB
+6, GPU-431371bd-b482-96b2-4b70-04f83c6d075b, Tesla M60, 470.256.02, 7547 MiB
+7, GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4, Tesla M60, 470.256.02, 4626 MiB
+env --chdir=/home/nate/work/fs9-par sha256sum kern/model_oracle.c kern/model_oracle.h kern/model_oracle_gpu.h kern/model_test.c kern/model_qsa_test.h kern/qsa_state.h kern/prog.c kern/prog.h kern/holdc.c kern/hold.h kern/dieops.h ref/attn.c ref/attn_contract_test.c ref/block.c ref/checked.c ref/deltanet.c ref/deqcheck.c ref/fmath.c ref/gguf.c ref/ggufhdr.c ref/hc.c ref/ple.c ref/qsa.c ref/quant.c ref/ref_test.c ref/router.c ref/sample.c ref/split.c ref/attn.h ref/block.h ref/checked.h ref/deltanet.h ref/fmath.h ref/gguf.h ref/hc.h ref/ple.h ref/qsa.h ref/quant.h ref/router.h ref/sample.h ref/split.h > /home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256
+sha256sum /home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256
+d9974e7d2b9d542ce3d13658c8660cf283930d7f6aa6ae67eb10a67f45a76f2b  /home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256
+sha256sum /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/ids.txt /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/receipt.bin
+a35a7a3114a37c2077d13a1ecdd9560c3edf324fa6be81cf1a1a95f9ecf9aa7e  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/ids.txt
+e3b6821bf962b5850471bf16db182ed06fee97af639ebbceb31b0a3b26a52ca9  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin
+1975b064107d9c80feea9e1d132e49720a41a7506583e6e9ad686f8438be1019  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/receipt.bin
+env --chdir=/home/nate/work/fs9-par/kern -u GEMV_NOMIN -u ATTN_DIE -u FAKE_Q6K -u PROG_DUP -u PROG_NOHCUP -u PROG_NONOBAR -u PROG_NORMSFUSE -u PROG_NORMSW -u MODEL_NOTWIN -u MODEL_NPH -u MODEL_INJECT -u MODEL_DUMP_S -u MODEL_DUMP_DIR -u MODEL_DUMP_TWIN MODEL_ATTN=qsa MODEL_IDS=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/ids.txt MODEL_PLE=/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf MODEL_PLE_OFF=192 MODEL_CAPTURE_QSA=0 FLASH_NBLK=1 FLASH_KV_HOST=1 SPLIT_SHARES=112,97,81,116,97,97 ATTN_MAP=1,1,1,1,4,4,4,4,5,5,5,5 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 MODEL_ORACLE_RECORDS=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin MODEL_ORACLE_RECEIPT=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/receipt.bin MODEL_ORACLE_SOURCE_ROOT=/home/nate/work/fs9-par MODEL_ORACLE_SOURCE_MANIFEST=/home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256 MODEL_ORACLE_SOURCE_REVISION=e2ff58ff1b0e956d61a1c93830c5f66210d27788 MODEL_ORACLE_TILE_MANIFEST=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new MODEL_ORACLE_TILE_HASHES=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256 MODEL_ORACLE_CHECKPOINT_HASHES=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/checkpoints.sha256 MODEL_ORACLE_PRIMARY=/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf MODEL_INJECT=layer ./model_test /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors 0 48 9 eh /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+attention mode: qsa (production INT8 QSA; instruction-order twin)
+FLASH_NBLK=1 FLASH_KV_HOST=1; cache positions=128 compact positions=2080
+CPU oracle: 9 complete teacher-forced records; input seal checked without large-file hashing
+PLE table /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf mapped for the twin; 9 prompt positions x 16 rows staged for the GPU
+production embedding owner: die 0
+6 die(s), blocks [0, 48), embed, head, 9 tokens (9 prompt)
+  die 0 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 1 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+  die 2 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 3 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 4 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+  die 5 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+MODEL_INJECT=layer reached at b0.S.d0
+{"position":0,"visible_length":1,"scalar_match":false}
+oracle comparison at position 0: 
+token   0: id     10 ->     18 1202 phases; oracle read 0.00 s, dies 26.070 ms  MISMATCH
+{"position":1,"visible_length":2,"scalar_match":true}
+token   1: id     11 ->    220 1202 phases; oracle read 0.00 s, dies 25.976 ms  exact
+{"position":2,"visible_length":3,"scalar_match":true}
+token   2: id     12 ->    198 1202 phases; oracle read 0.00 s, dies 25.952 ms  exact
+{"position":3,"visible_length":4,"scalar_match":true}
+token   3: id     13 ->    271 1202 phases; oracle read 0.00 s, dies 26.135 ms  exact
+{"position":4,"visible_length":5,"scalar_match":true}
+token   4: id     14 ->     15 1202 phases; oracle read 0.00 s, dies 26.108 ms  exact
+{"position":5,"visible_length":6,"scalar_match":true}
+token   5: id     15 ->     16 1202 phases; oracle read 0.00 s, dies 26.055 ms  exact
+{"position":6,"visible_length":7,"scalar_match":true}
+token   6: id     16 ->     17 1202 phases; oracle read 0.00 s, dies 26.120 ms  exact
+{"position":7,"visible_length":8,"scalar_match":true}
+token   7: id     17 ->     18 1202 phases; oracle read 0.00 s, dies 26.418 ms  exact
+{"position":8,"visible_length":9,"scalar_match":true}
+token   8: id     18 ->     19 1202 phases; oracle read 0.00 s, dies 26.494 ms  exact
+FAIL: 8 of 9 tokens exact; mean 26.147 ms per token
+make[1]: *** [/home/nate/work/fs9-par/validation/issue9//Makefile:201: model-oracle] Error 3
+make[1]: Leaving directory '/home/nate/work/fs9-par/kern'
+ORACLE_FAULT_CASE_RESULT {"name":"layer","accepted":true,"make_exit":2,"signal":0,"make_error":3,"marker_lines":1,"marker_exact":1,"comparisons":9,"matches":8,"mismatches":1,"mismatch_position":0,"capture_seen":false,"output_bytes":11556,"output_limit_exceeded":false,"timed_out":false,"interrupted":0,"pipe_eof":true,"group_live_after_cleanup":false}
+ORACLE_FAULT_CASE_END {"name":"layer","inject":"layer","tokens":9,"blocks":1,"host_kv":1,"flags":"eh","capture":0}
+ORACLE_FAULT_CASE_BEGIN {"name":"logits","inject":"logits","tokens":9,"blocks":1,"host_kv":1,"flags":"eh","capture":0}
+make[1]: Entering directory '/home/nate/work/fs9-par/kern'
+cmp /home/nate/work/fs9-par/maxas-patch/MaxAsGrammar.pm /home/nate/work/fs9-maxas/lib/MaxAs/MaxAsGrammar.pm
+cmp /home/nate/work/fs9-par/maxas-patch/MaxAs.pm /home/nate/work/fs9-maxas/lib/MaxAs/MaxAs.pm
+cmp /home/nate/work/fs9-par/maxas-patch/Cubin.pm /home/nate/work/fs9-maxas/lib/MaxAs/Cubin.pm
+env --chdir=/home/nate/work/fs9-par sha256sum -c /home/nate/work/fs9-par/kern/issue9-kernel.sha256
+kern/die.cubin: OK
+kern/actq.sass: OK
+kern/allgather.sass: OK
+kern/amax.sass: OK
+kern/argmax.sass: OK
+kern/attnmerge.sass: OK
+kern/attnpart.sass: OK
+kern/attnpartn.sass: OK
+kern/attnqk.sass: OK
+kern/attnqkq.sass: OK
+kern/bartest.sass: OK
+kern/conv1d.sass: OK
+kern/dnnorm.sass: OK
+kern/dnstep.sass: OK
+kern/embrow.sass: OK
+kern/ffnact.sass: OK
+kern/fmath.sass: OK
+kern/gemv_b32.sass: OK
+kern/gemv_bf16.sass: OK
+kern/gemv_bf16_pair.sass: OK
+kern/gemv_iq4_xs.sass: OK
+kern/gemv_q2_0.sass: OK
+kern/gemv_q3_k.sass: OK
+kern/gemv_q4_k.sass: OK
+kern/gemv_q6_k.sass: OK
+kern/gridbar.sass: OK
+kern/hcops.sass: OK
+kern/idxqk.sass: OK
+kern/idxscore.sass: OK
+kern/idxsel.sass: OK
+kern/kvgather.sass: OK
+kern/mailbox.sass: OK
+kern/moesel.sass: OK
+kern/normq.sass: OK
+kern/pleconv.sass: OK
+kern/plegate.sass: OK
+kern/plerows.sass: OK
+kern/rmsnorm.sass: OK
+kern/router.sass: OK
+kern/sample.sass: OK
+kern/semtest.sass: OK
+kern/semtest2.sass: OK
+kern/semtest3.sass: OK
+kern/semtest4.sass: OK
+kern/sumn.sass: OK
+kern/topk.sass: OK
+kern/xchg.sass: OK
+kern/xcopy.sass: OK
+kern/xmadbench.sass: OK
+kern/die.pl: OK
+kern/trace.pl: OK
+kern/actq.pl: OK
+kern/fmath.pl: OK
+kern/die.ptx: OK
+maxas-patch/Cubin.pm: OK
+maxas-patch/MaxAs.pm: OK
+maxas-patch/MaxAsGrammar.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/MaxAsGrammar.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/MaxAs.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/Cubin.pm: OK
+git -C /home/nate/work/fs9-par rev-parse HEAD
+4628b7e34f6937cfa2c16d924cc4d44c81a83330
+git -C /home/nate/work/fs9-par status --short
+cc --version
+cc (GCC) 16.2.1 20260810
+Copyright (C) 2026 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+ldd /home/nate/work/fs9-par/kern/model_test
+	linux-vdso.so.1 (0x00007fec484f0000)
+	libcuda.so.1 => /usr/lib/libcuda.so.1 (0x00007fec46c00000)
+	libcrypto.so.3 => /usr/lib/libcrypto.so.3 (0x00007fec46600000)
+	libm.so.6 => /usr/lib/libm.so.6 (0x00007fec464c9000)
+	libc.so.6 => /usr/lib/libc.so.6 (0x00007fec46200000)
+	libdl.so.2 => /usr/lib/libdl.so.2 (0x00007fec48437000)
+	libpthread.so.0 => /usr/lib/libpthread.so.0 (0x00007fec48432000)
+	librt.so.1 => /usr/lib/librt.so.1 (0x00007fec4842d000)
+	libz.so.1 => /usr/lib/libz.so.1 (0x00007fec48412000)
+	libbrotlienc.so.1 => /usr/lib/libbrotlienc.so.1 (0x00007fec48352000)
+	libbrotlidec.so.1 => /usr/lib/libbrotlidec.so.1 (0x00007fec48343000)
+	libzstd.so.1 => /usr/lib/libzstd.so.1 (0x00007fec4611a000)
+	/lib64/ld-linux-x86-64.so.2 => /usr/lib64/ld-linux-x86-64.so.2 (0x00007fec484f2000)
+	libbrotlicommon.so.1 => /usr/lib/libbrotlicommon.so.1 (0x00007fec46bdd000)
+sha256sum /usr/lib/libcuda.so.470.256.02
+6f379857a042713f8c4c28e689006b9143889c7a465044074d99a614a64e2fa2  /usr/lib/libcuda.so.470.256.02
+sha256sum /home/nate/work/fs9-par/kern/model_test /home/nate/work/fs9-par/kern/die.cubin /home/nate/work/fs9-par/kern/libengine.so
+3c0dafd512307c58091202472a0285e7f5a997bb58706eb39938fd032584832c  /home/nate/work/fs9-par/kern/model_test
+aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423  /home/nate/work/fs9-par/kern/die.cubin
+ad3b5654ca61739c3e509d5cc6622353f9093e6299bf0231eedb0c18360453e6  /home/nate/work/fs9-par/kern/libengine.so
+sha256sum /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256 /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+4d05f248b11edfe20155cc92f86bf870d28fb6d884e4403e5d02db9b359faf53  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new
+011a28a8823fe2d93e1c5d3185f4089e17ca91a690bf3d4776a2ba35bf09f90b  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256
+028919ad749d1d914270c70c52aac7ed3eb532ac0b1199d9ab807a768be065be  /tmp/hold-h0.manifest
+2be77b9b3031a0c5a67d6a50242d4f4d57e81926a704d49528b13ca21fbfb5ed  /tmp/hold-h1.manifest
+a2a74d87bcf40288a8fb376974f72ec286d0a4d398e4a585151b21e88b30ec92  /tmp/hold-h2.manifest
+037381c31cbbdb6b312667af075f7cca1e23def46d106f2ce93f6f2a0138aefb  /tmp/hold-h3.manifest
+b642f9c8c45fc7a4ddb2f0326f61e4c973a4c392e84b1a7926f65f1f6a974548  /tmp/hold-h4.manifest
+cc2cc7163e9e5ec8c61c126060a5192776bd6818d77e8e666949930969d15a65  /tmp/hold-h5.manifest
+cat /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/checkpoints.sha256
+69820c02ec7d0b45ef2ebb19d6620299db749fe2aded7f39f93c6b88b199b720  /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+316b46f3a2dbd68c900f43136ab9449f9dcc3725dfd8c794847c204bc161e113  /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf
+nvidia-smi --query-gpu=index,uuid,name,driver_version,memory.free --format=csv
+index, uuid, name, driver_version, memory.free [MiB]
+0, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, Tesla M60, 470.256.02, 266 MiB
+1, GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, Tesla M60, 470.256.02, 248 MiB
+2, GPU-c767d250-4454-d181-d648-8706b5f2fb64, Tesla M60, 470.256.02, 220 MiB
+3, GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, Tesla M60, 470.256.02, 187 MiB
+4, GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, Tesla M60, 470.256.02, 238 MiB
+5, GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, Tesla M60, 470.256.02, 175 MiB
+6, GPU-431371bd-b482-96b2-4b70-04f83c6d075b, Tesla M60, 470.256.02, 7547 MiB
+7, GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4, Tesla M60, 470.256.02, 4626 MiB
+env --chdir=/home/nate/work/fs9-par sha256sum kern/model_oracle.c kern/model_oracle.h kern/model_oracle_gpu.h kern/model_test.c kern/model_qsa_test.h kern/qsa_state.h kern/prog.c kern/prog.h kern/holdc.c kern/hold.h kern/dieops.h ref/attn.c ref/attn_contract_test.c ref/block.c ref/checked.c ref/deltanet.c ref/deqcheck.c ref/fmath.c ref/gguf.c ref/ggufhdr.c ref/hc.c ref/ple.c ref/qsa.c ref/quant.c ref/ref_test.c ref/router.c ref/sample.c ref/split.c ref/attn.h ref/block.h ref/checked.h ref/deltanet.h ref/fmath.h ref/gguf.h ref/hc.h ref/ple.h ref/qsa.h ref/quant.h ref/router.h ref/sample.h ref/split.h > /home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256
+sha256sum /home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256
+d9974e7d2b9d542ce3d13658c8660cf283930d7f6aa6ae67eb10a67f45a76f2b  /home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256
+sha256sum /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/ids.txt /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/receipt.bin
+a35a7a3114a37c2077d13a1ecdd9560c3edf324fa6be81cf1a1a95f9ecf9aa7e  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/ids.txt
+e3b6821bf962b5850471bf16db182ed06fee97af639ebbceb31b0a3b26a52ca9  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin
+1975b064107d9c80feea9e1d132e49720a41a7506583e6e9ad686f8438be1019  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/receipt.bin
+env --chdir=/home/nate/work/fs9-par/kern -u GEMV_NOMIN -u ATTN_DIE -u FAKE_Q6K -u PROG_DUP -u PROG_NOHCUP -u PROG_NONOBAR -u PROG_NORMSFUSE -u PROG_NORMSW -u MODEL_NOTWIN -u MODEL_NPH -u MODEL_INJECT -u MODEL_DUMP_S -u MODEL_DUMP_DIR -u MODEL_DUMP_TWIN MODEL_ATTN=qsa MODEL_IDS=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/ids.txt MODEL_PLE=/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf MODEL_PLE_OFF=192 MODEL_CAPTURE_QSA=0 FLASH_NBLK=1 FLASH_KV_HOST=1 SPLIT_SHARES=112,97,81,116,97,97 ATTN_MAP=1,1,1,1,4,4,4,4,5,5,5,5 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 MODEL_ORACLE_RECORDS=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin MODEL_ORACLE_RECEIPT=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/receipt.bin MODEL_ORACLE_SOURCE_ROOT=/home/nate/work/fs9-par MODEL_ORACLE_SOURCE_MANIFEST=/home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256 MODEL_ORACLE_SOURCE_REVISION=e2ff58ff1b0e956d61a1c93830c5f66210d27788 MODEL_ORACLE_TILE_MANIFEST=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new MODEL_ORACLE_TILE_HASHES=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256 MODEL_ORACLE_CHECKPOINT_HASHES=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/checkpoints.sha256 MODEL_ORACLE_PRIMARY=/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf MODEL_INJECT=logits ./model_test /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors 0 48 9 eh /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+attention mode: qsa (production INT8 QSA; instruction-order twin)
+FLASH_NBLK=1 FLASH_KV_HOST=1; cache positions=128 compact positions=2080
+CPU oracle: 9 complete teacher-forced records; input seal checked without large-file hashing
+PLE table /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf mapped for the twin; 9 prompt positions x 16 rows staged for the GPU
+production embedding owner: die 0
+6 die(s), blocks [0, 48), embed, head, 9 tokens (9 prompt)
+  die 0 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 1 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+  die 2 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 3 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 4 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+  die 5 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+MODEL_INJECT=logits reached at logits.d0
+{"position":0,"visible_length":1,"scalar_match":false}
+oracle comparison at position 0: 
+token   0: id     10 ->     18 1202 phases; oracle read 0.00 s, dies 26.077 ms  MISMATCH
+{"position":1,"visible_length":2,"scalar_match":true}
+token   1: id     11 ->    220 1202 phases; oracle read 0.00 s, dies 25.982 ms  exact
+{"position":2,"visible_length":3,"scalar_match":true}
+token   2: id     12 ->    198 1202 phases; oracle read 0.00 s, dies 25.950 ms  exact
+{"position":3,"visible_length":4,"scalar_match":true}
+token   3: id     13 ->    271 1202 phases; oracle read 0.00 s, dies 26.102 ms  exact
+{"position":4,"visible_length":5,"scalar_match":true}
+token   4: id     14 ->     15 1202 phases; oracle read 0.00 s, dies 26.066 ms  exact
+{"position":5,"visible_length":6,"scalar_match":true}
+token   5: id     15 ->     16 1202 phases; oracle read 0.00 s, dies 26.046 ms  exact
+{"position":6,"visible_length":7,"scalar_match":true}
+token   6: id     16 ->     17 1202 phases; oracle read 0.00 s, dies 26.102 ms  exact
+{"position":7,"visible_length":8,"scalar_match":true}
+token   7: id     17 ->     18 1202 phases; oracle read 0.00 s, dies 26.439 ms  exact
+{"position":8,"visible_length":9,"scalar_match":true}
+token   8: id     18 ->     19 1202 phases; oracle read 0.00 s, dies 26.509 ms  exact
+FAIL: 8 of 9 tokens exact; mean 26.141 ms per token
+make[1]: *** [/home/nate/work/fs9-par/validation/issue9//Makefile:201: model-oracle] Error 3
+make[1]: Leaving directory '/home/nate/work/fs9-par/kern'
+ORACLE_FAULT_CASE_RESULT {"name":"logits","accepted":true,"make_exit":2,"signal":0,"make_error":3,"marker_lines":1,"marker_exact":1,"comparisons":9,"matches":8,"mismatches":1,"mismatch_position":0,"capture_seen":false,"output_bytes":11560,"output_limit_exceeded":false,"timed_out":false,"interrupted":0,"pipe_eof":true,"group_live_after_cleanup":false}
+ORACLE_FAULT_CASE_END {"name":"logits","inject":"logits","tokens":9,"blocks":1,"host_kv":1,"flags":"eh","capture":0}
+ORACLE_FAULT_CASE_BEGIN {"name":"selection","inject":"selection","tokens":9,"blocks":1,"host_kv":1,"flags":"eh","capture":0}
+make[1]: Entering directory '/home/nate/work/fs9-par/kern'
+cmp /home/nate/work/fs9-par/maxas-patch/MaxAsGrammar.pm /home/nate/work/fs9-maxas/lib/MaxAs/MaxAsGrammar.pm
+cmp /home/nate/work/fs9-par/maxas-patch/MaxAs.pm /home/nate/work/fs9-maxas/lib/MaxAs/MaxAs.pm
+cmp /home/nate/work/fs9-par/maxas-patch/Cubin.pm /home/nate/work/fs9-maxas/lib/MaxAs/Cubin.pm
+env --chdir=/home/nate/work/fs9-par sha256sum -c /home/nate/work/fs9-par/kern/issue9-kernel.sha256
+kern/die.cubin: OK
+kern/actq.sass: OK
+kern/allgather.sass: OK
+kern/amax.sass: OK
+kern/argmax.sass: OK
+kern/attnmerge.sass: OK
+kern/attnpart.sass: OK
+kern/attnpartn.sass: OK
+kern/attnqk.sass: OK
+kern/attnqkq.sass: OK
+kern/bartest.sass: OK
+kern/conv1d.sass: OK
+kern/dnnorm.sass: OK
+kern/dnstep.sass: OK
+kern/embrow.sass: OK
+kern/ffnact.sass: OK
+kern/fmath.sass: OK
+kern/gemv_b32.sass: OK
+kern/gemv_bf16.sass: OK
+kern/gemv_bf16_pair.sass: OK
+kern/gemv_iq4_xs.sass: OK
+kern/gemv_q2_0.sass: OK
+kern/gemv_q3_k.sass: OK
+kern/gemv_q4_k.sass: OK
+kern/gemv_q6_k.sass: OK
+kern/gridbar.sass: OK
+kern/hcops.sass: OK
+kern/idxqk.sass: OK
+kern/idxscore.sass: OK
+kern/idxsel.sass: OK
+kern/kvgather.sass: OK
+kern/mailbox.sass: OK
+kern/moesel.sass: OK
+kern/normq.sass: OK
+kern/pleconv.sass: OK
+kern/plegate.sass: OK
+kern/plerows.sass: OK
+kern/rmsnorm.sass: OK
+kern/router.sass: OK
+kern/sample.sass: OK
+kern/semtest.sass: OK
+kern/semtest2.sass: OK
+kern/semtest3.sass: OK
+kern/semtest4.sass: OK
+kern/sumn.sass: OK
+kern/topk.sass: OK
+kern/xchg.sass: OK
+kern/xcopy.sass: OK
+kern/xmadbench.sass: OK
+kern/die.pl: OK
+kern/trace.pl: OK
+kern/actq.pl: OK
+kern/fmath.pl: OK
+kern/die.ptx: OK
+maxas-patch/Cubin.pm: OK
+maxas-patch/MaxAs.pm: OK
+maxas-patch/MaxAsGrammar.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/MaxAsGrammar.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/MaxAs.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/Cubin.pm: OK
+git -C /home/nate/work/fs9-par rev-parse HEAD
+4628b7e34f6937cfa2c16d924cc4d44c81a83330
+git -C /home/nate/work/fs9-par status --short
+cc --version
+cc (GCC) 16.2.1 20260810
+Copyright (C) 2026 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+ldd /home/nate/work/fs9-par/kern/model_test
+	linux-vdso.so.1 (0x00007f5b022bc000)
+	libcuda.so.1 => /usr/lib/libcuda.so.1 (0x00007f5b00a00000)
+	libcrypto.so.3 => /usr/lib/libcrypto.so.3 (0x00007f5b00400000)
+	libm.so.6 => /usr/lib/libm.so.6 (0x00007f5b002c9000)
+	libc.so.6 => /usr/lib/libc.so.6 (0x00007f5b00000000)
+	libdl.so.2 => /usr/lib/libdl.so.2 (0x00007f5b02203000)
+	libpthread.so.0 => /usr/lib/libpthread.so.0 (0x00007f5b021fe000)
+	librt.so.1 => /usr/lib/librt.so.1 (0x00007f5b021f9000)
+	libz.so.1 => /usr/lib/libz.so.1 (0x00007f5b021de000)
+	libbrotlienc.so.1 => /usr/lib/libbrotlienc.so.1 (0x00007f5afff40000)
+	libbrotlidec.so.1 => /usr/lib/libbrotlidec.so.1 (0x00007f5b021cf000)
+	libzstd.so.1 => /usr/lib/libzstd.so.1 (0x00007f5affe5a000)
+	/lib64/ld-linux-x86-64.so.2 => /usr/lib64/ld-linux-x86-64.so.2 (0x00007f5b022be000)
+	libbrotlicommon.so.1 => /usr/lib/libbrotlicommon.so.1 (0x00007f5b021aa000)
+sha256sum /usr/lib/libcuda.so.470.256.02
+6f379857a042713f8c4c28e689006b9143889c7a465044074d99a614a64e2fa2  /usr/lib/libcuda.so.470.256.02
+sha256sum /home/nate/work/fs9-par/kern/model_test /home/nate/work/fs9-par/kern/die.cubin /home/nate/work/fs9-par/kern/libengine.so
+3c0dafd512307c58091202472a0285e7f5a997bb58706eb39938fd032584832c  /home/nate/work/fs9-par/kern/model_test
+aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423  /home/nate/work/fs9-par/kern/die.cubin
+ad3b5654ca61739c3e509d5cc6622353f9093e6299bf0231eedb0c18360453e6  /home/nate/work/fs9-par/kern/libengine.so
+sha256sum /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256 /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+4d05f248b11edfe20155cc92f86bf870d28fb6d884e4403e5d02db9b359faf53  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new
+011a28a8823fe2d93e1c5d3185f4089e17ca91a690bf3d4776a2ba35bf09f90b  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256
+028919ad749d1d914270c70c52aac7ed3eb532ac0b1199d9ab807a768be065be  /tmp/hold-h0.manifest
+2be77b9b3031a0c5a67d6a50242d4f4d57e81926a704d49528b13ca21fbfb5ed  /tmp/hold-h1.manifest
+a2a74d87bcf40288a8fb376974f72ec286d0a4d398e4a585151b21e88b30ec92  /tmp/hold-h2.manifest
+037381c31cbbdb6b312667af075f7cca1e23def46d106f2ce93f6f2a0138aefb  /tmp/hold-h3.manifest
+b642f9c8c45fc7a4ddb2f0326f61e4c973a4c392e84b1a7926f65f1f6a974548  /tmp/hold-h4.manifest
+cc2cc7163e9e5ec8c61c126060a5192776bd6818d77e8e666949930969d15a65  /tmp/hold-h5.manifest
+cat /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/checkpoints.sha256
+69820c02ec7d0b45ef2ebb19d6620299db749fe2aded7f39f93c6b88b199b720  /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+316b46f3a2dbd68c900f43136ab9449f9dcc3725dfd8c794847c204bc161e113  /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf
+nvidia-smi --query-gpu=index,uuid,name,driver_version,memory.free --format=csv
+index, uuid, name, driver_version, memory.free [MiB]
+0, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, Tesla M60, 470.256.02, 266 MiB
+1, GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, Tesla M60, 470.256.02, 248 MiB
+2, GPU-c767d250-4454-d181-d648-8706b5f2fb64, Tesla M60, 470.256.02, 220 MiB
+3, GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, Tesla M60, 470.256.02, 187 MiB
+4, GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, Tesla M60, 470.256.02, 238 MiB
+5, GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, Tesla M60, 470.256.02, 175 MiB
+6, GPU-431371bd-b482-96b2-4b70-04f83c6d075b, Tesla M60, 470.256.02, 7547 MiB
+7, GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4, Tesla M60, 470.256.02, 4626 MiB
+env --chdir=/home/nate/work/fs9-par sha256sum kern/model_oracle.c kern/model_oracle.h kern/model_oracle_gpu.h kern/model_test.c kern/model_qsa_test.h kern/qsa_state.h kern/prog.c kern/prog.h kern/holdc.c kern/hold.h kern/dieops.h ref/attn.c ref/attn_contract_test.c ref/block.c ref/checked.c ref/deltanet.c ref/deqcheck.c ref/fmath.c ref/gguf.c ref/ggufhdr.c ref/hc.c ref/ple.c ref/qsa.c ref/quant.c ref/ref_test.c ref/router.c ref/sample.c ref/split.c ref/attn.h ref/block.h ref/checked.h ref/deltanet.h ref/fmath.h ref/gguf.h ref/hc.h ref/ple.h ref/qsa.h ref/quant.h ref/router.h ref/sample.h ref/split.h > /home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256
+sha256sum /home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256
+d9974e7d2b9d542ce3d13658c8660cf283930d7f6aa6ae67eb10a67f45a76f2b  /home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256
+sha256sum /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/ids.txt /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/receipt.bin
+a35a7a3114a37c2077d13a1ecdd9560c3edf324fa6be81cf1a1a95f9ecf9aa7e  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/ids.txt
+e3b6821bf962b5850471bf16db182ed06fee97af639ebbceb31b0a3b26a52ca9  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin
+1975b064107d9c80feea9e1d132e49720a41a7506583e6e9ad686f8438be1019  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/receipt.bin
+env --chdir=/home/nate/work/fs9-par/kern -u GEMV_NOMIN -u ATTN_DIE -u FAKE_Q6K -u PROG_DUP -u PROG_NOHCUP -u PROG_NONOBAR -u PROG_NORMSFUSE -u PROG_NORMSW -u MODEL_NOTWIN -u MODEL_NPH -u MODEL_INJECT -u MODEL_DUMP_S -u MODEL_DUMP_DIR -u MODEL_DUMP_TWIN MODEL_ATTN=qsa MODEL_IDS=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/ids.txt MODEL_PLE=/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf MODEL_PLE_OFF=192 MODEL_CAPTURE_QSA=0 FLASH_NBLK=1 FLASH_KV_HOST=1 SPLIT_SHARES=112,97,81,116,97,97 ATTN_MAP=1,1,1,1,4,4,4,4,5,5,5,5 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 MODEL_ORACLE_RECORDS=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin MODEL_ORACLE_RECEIPT=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/receipt.bin MODEL_ORACLE_SOURCE_ROOT=/home/nate/work/fs9-par MODEL_ORACLE_SOURCE_MANIFEST=/home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256 MODEL_ORACLE_SOURCE_REVISION=e2ff58ff1b0e956d61a1c93830c5f66210d27788 MODEL_ORACLE_TILE_MANIFEST=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new MODEL_ORACLE_TILE_HASHES=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256 MODEL_ORACLE_CHECKPOINT_HASHES=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/checkpoints.sha256 MODEL_ORACLE_PRIMARY=/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf MODEL_INJECT=selection ./model_test /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors 0 48 9 eh /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+attention mode: qsa (production INT8 QSA; instruction-order twin)
+FLASH_NBLK=1 FLASH_KV_HOST=1; cache positions=128 compact positions=2080
+CPU oracle: 9 complete teacher-forced records; input seal checked without large-file hashing
+PLE table /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf mapped for the twin; 9 prompt positions x 16 rows staged for the GPU
+production embedding owner: die 0
+6 die(s), blocks [0, 48), embed, head, 9 tokens (9 prompt)
+  die 0 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 1 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+  die 2 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 3 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 4 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+  die 5 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+{"position":0,"visible_length":1,"scalar_match":true}
+token   0: id     10 ->     18 1202 phases; oracle read 0.00 s, dies 26.045 ms  exact
+{"position":1,"visible_length":2,"scalar_match":true}
+token   1: id     11 ->    220 1202 phases; oracle read 0.00 s, dies 25.988 ms  exact
+{"position":2,"visible_length":3,"scalar_match":true}
+token   2: id     12 ->    198 1202 phases; oracle read 0.00 s, dies 25.966 ms  exact
+{"position":3,"visible_length":4,"scalar_match":true}
+token   3: id     13 ->    271 1202 phases; oracle read 0.00 s, dies 26.065 ms  exact
+{"position":4,"visible_length":5,"scalar_match":true}
+token   4: id     14 ->     15 1202 phases; oracle read 0.00 s, dies 26.045 ms  exact
+{"position":5,"visible_length":6,"scalar_match":true}
+token   5: id     15 ->     16 1202 phases; oracle read 0.00 s, dies 26.031 ms  exact
+{"position":6,"visible_length":7,"scalar_match":true}
+token   6: id     16 ->     17 1202 phases; oracle read 0.00 s, dies 26.036 ms  exact
+MODEL_INJECT=selection reached at b3.selected_ids
+{"position":7,"visible_length":8,"scalar_match":false}
+oracle comparison at position 7: 
+token   7: id     17 ->     18 1202 phases; oracle read 0.00 s, dies 26.404 ms  MISMATCH
+{"position":8,"visible_length":9,"scalar_match":true}
+token   8: id     18 ->     19 1202 phases; oracle read 0.00 s, dies 26.524 ms  exact
+FAIL: 8 of 9 tokens exact; mean 26.123 ms per token
+make[1]: *** [/home/nate/work/fs9-par/validation/issue9//Makefile:201: model-oracle] Error 3
+make[1]: Leaving directory '/home/nate/work/fs9-par/kern'
+ORACLE_FAULT_CASE_RESULT {"name":"selection","accepted":true,"make_exit":2,"signal":0,"make_error":3,"marker_lines":1,"marker_exact":1,"comparisons":9,"matches":8,"mismatches":1,"mismatch_position":7,"capture_seen":false,"output_bytes":11572,"output_limit_exceeded":false,"timed_out":false,"interrupted":0,"pipe_eof":true,"group_live_after_cleanup":false}
+ORACLE_FAULT_CASE_END {"name":"selection","inject":"selection","tokens":9,"blocks":1,"host_kv":1,"flags":"eh","capture":0}
+ORACLE_FAULT_CASE_BEGIN {"name":"dn","inject":"dn","tokens":9,"blocks":1,"host_kv":1,"flags":"eh","capture":0}
+make[1]: Entering directory '/home/nate/work/fs9-par/kern'
+cmp /home/nate/work/fs9-par/maxas-patch/MaxAsGrammar.pm /home/nate/work/fs9-maxas/lib/MaxAs/MaxAsGrammar.pm
+cmp /home/nate/work/fs9-par/maxas-patch/MaxAs.pm /home/nate/work/fs9-maxas/lib/MaxAs/MaxAs.pm
+cmp /home/nate/work/fs9-par/maxas-patch/Cubin.pm /home/nate/work/fs9-maxas/lib/MaxAs/Cubin.pm
+env --chdir=/home/nate/work/fs9-par sha256sum -c /home/nate/work/fs9-par/kern/issue9-kernel.sha256
+kern/die.cubin: OK
+kern/actq.sass: OK
+kern/allgather.sass: OK
+kern/amax.sass: OK
+kern/argmax.sass: OK
+kern/attnmerge.sass: OK
+kern/attnpart.sass: OK
+kern/attnpartn.sass: OK
+kern/attnqk.sass: OK
+kern/attnqkq.sass: OK
+kern/bartest.sass: OK
+kern/conv1d.sass: OK
+kern/dnnorm.sass: OK
+kern/dnstep.sass: OK
+kern/embrow.sass: OK
+kern/ffnact.sass: OK
+kern/fmath.sass: OK
+kern/gemv_b32.sass: OK
+kern/gemv_bf16.sass: OK
+kern/gemv_bf16_pair.sass: OK
+kern/gemv_iq4_xs.sass: OK
+kern/gemv_q2_0.sass: OK
+kern/gemv_q3_k.sass: OK
+kern/gemv_q4_k.sass: OK
+kern/gemv_q6_k.sass: OK
+kern/gridbar.sass: OK
+kern/hcops.sass: OK
+kern/idxqk.sass: OK
+kern/idxscore.sass: OK
+kern/idxsel.sass: OK
+kern/kvgather.sass: OK
+kern/mailbox.sass: OK
+kern/moesel.sass: OK
+kern/normq.sass: OK
+kern/pleconv.sass: OK
+kern/plegate.sass: OK
+kern/plerows.sass: OK
+kern/rmsnorm.sass: OK
+kern/router.sass: OK
+kern/sample.sass: OK
+kern/semtest.sass: OK
+kern/semtest2.sass: OK
+kern/semtest3.sass: OK
+kern/semtest4.sass: OK
+kern/sumn.sass: OK
+kern/topk.sass: OK
+kern/xchg.sass: OK
+kern/xcopy.sass: OK
+kern/xmadbench.sass: OK
+kern/die.pl: OK
+kern/trace.pl: OK
+kern/actq.pl: OK
+kern/fmath.pl: OK
+kern/die.ptx: OK
+maxas-patch/Cubin.pm: OK
+maxas-patch/MaxAs.pm: OK
+maxas-patch/MaxAsGrammar.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/MaxAsGrammar.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/MaxAs.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/Cubin.pm: OK
+git -C /home/nate/work/fs9-par rev-parse HEAD
+4628b7e34f6937cfa2c16d924cc4d44c81a83330
+git -C /home/nate/work/fs9-par status --short
+cc --version
+cc (GCC) 16.2.1 20260810
+Copyright (C) 2026 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+ldd /home/nate/work/fs9-par/kern/model_test
+	linux-vdso.so.1 (0x00007f760718d000)
+	libcuda.so.1 => /usr/lib/libcuda.so.1 (0x00007f7605800000)
+	libcrypto.so.3 => /usr/lib/libcrypto.so.3 (0x00007f7605200000)
+	libm.so.6 => /usr/lib/libm.so.6 (0x00007f7606fa4000)
+	libc.so.6 => /usr/lib/libc.so.6 (0x00007f7604e00000)
+	libdl.so.2 => /usr/lib/libdl.so.2 (0x00007f7606f9d000)
+	libpthread.so.0 => /usr/lib/libpthread.so.0 (0x00007f7606f98000)
+	librt.so.1 => /usr/lib/librt.so.1 (0x00007f7606f93000)
+	libz.so.1 => /usr/lib/libz.so.1 (0x00007f7606f78000)
+	libbrotlienc.so.1 => /usr/lib/libbrotlienc.so.1 (0x00007f7605140000)
+	libbrotlidec.so.1 => /usr/lib/libbrotlidec.so.1 (0x00007f7606f69000)
+	libzstd.so.1 => /usr/lib/libzstd.so.1 (0x00007f760505a000)
+	/lib64/ld-linux-x86-64.so.2 => /usr/lib64/ld-linux-x86-64.so.2 (0x00007f760718f000)
+	libbrotlicommon.so.1 => /usr/lib/libbrotlicommon.so.1 (0x00007f7606f44000)
+sha256sum /usr/lib/libcuda.so.470.256.02
+6f379857a042713f8c4c28e689006b9143889c7a465044074d99a614a64e2fa2  /usr/lib/libcuda.so.470.256.02
+sha256sum /home/nate/work/fs9-par/kern/model_test /home/nate/work/fs9-par/kern/die.cubin /home/nate/work/fs9-par/kern/libengine.so
+3c0dafd512307c58091202472a0285e7f5a997bb58706eb39938fd032584832c  /home/nate/work/fs9-par/kern/model_test
+aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423  /home/nate/work/fs9-par/kern/die.cubin
+ad3b5654ca61739c3e509d5cc6622353f9093e6299bf0231eedb0c18360453e6  /home/nate/work/fs9-par/kern/libengine.so
+sha256sum /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256 /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+4d05f248b11edfe20155cc92f86bf870d28fb6d884e4403e5d02db9b359faf53  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new
+011a28a8823fe2d93e1c5d3185f4089e17ca91a690bf3d4776a2ba35bf09f90b  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256
+028919ad749d1d914270c70c52aac7ed3eb532ac0b1199d9ab807a768be065be  /tmp/hold-h0.manifest
+2be77b9b3031a0c5a67d6a50242d4f4d57e81926a704d49528b13ca21fbfb5ed  /tmp/hold-h1.manifest
+a2a74d87bcf40288a8fb376974f72ec286d0a4d398e4a585151b21e88b30ec92  /tmp/hold-h2.manifest
+037381c31cbbdb6b312667af075f7cca1e23def46d106f2ce93f6f2a0138aefb  /tmp/hold-h3.manifest
+b642f9c8c45fc7a4ddb2f0326f61e4c973a4c392e84b1a7926f65f1f6a974548  /tmp/hold-h4.manifest
+cc2cc7163e9e5ec8c61c126060a5192776bd6818d77e8e666949930969d15a65  /tmp/hold-h5.manifest
+cat /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/checkpoints.sha256
+69820c02ec7d0b45ef2ebb19d6620299db749fe2aded7f39f93c6b88b199b720  /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+316b46f3a2dbd68c900f43136ab9449f9dcc3725dfd8c794847c204bc161e113  /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf
+nvidia-smi --query-gpu=index,uuid,name,driver_version,memory.free --format=csv
+index, uuid, name, driver_version, memory.free [MiB]
+0, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, Tesla M60, 470.256.02, 266 MiB
+1, GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, Tesla M60, 470.256.02, 248 MiB
+2, GPU-c767d250-4454-d181-d648-8706b5f2fb64, Tesla M60, 470.256.02, 220 MiB
+3, GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, Tesla M60, 470.256.02, 187 MiB
+4, GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, Tesla M60, 470.256.02, 238 MiB
+5, GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, Tesla M60, 470.256.02, 175 MiB
+6, GPU-431371bd-b482-96b2-4b70-04f83c6d075b, Tesla M60, 470.256.02, 7547 MiB
+7, GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4, Tesla M60, 470.256.02, 4626 MiB
+env --chdir=/home/nate/work/fs9-par sha256sum kern/model_oracle.c kern/model_oracle.h kern/model_oracle_gpu.h kern/model_test.c kern/model_qsa_test.h kern/qsa_state.h kern/prog.c kern/prog.h kern/holdc.c kern/hold.h kern/dieops.h ref/attn.c ref/attn_contract_test.c ref/block.c ref/checked.c ref/deltanet.c ref/deqcheck.c ref/fmath.c ref/gguf.c ref/ggufhdr.c ref/hc.c ref/ple.c ref/qsa.c ref/quant.c ref/ref_test.c ref/router.c ref/sample.c ref/split.c ref/attn.h ref/block.h ref/checked.h ref/deltanet.h ref/fmath.h ref/gguf.h ref/hc.h ref/ple.h ref/qsa.h ref/quant.h ref/router.h ref/sample.h ref/split.h > /home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256
+sha256sum /home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256
+d9974e7d2b9d542ce3d13658c8660cf283930d7f6aa6ae67eb10a67f45a76f2b  /home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256
+sha256sum /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/ids.txt /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/receipt.bin
+a35a7a3114a37c2077d13a1ecdd9560c3edf324fa6be81cf1a1a95f9ecf9aa7e  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/ids.txt
+e3b6821bf962b5850471bf16db182ed06fee97af639ebbceb31b0a3b26a52ca9  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin
+1975b064107d9c80feea9e1d132e49720a41a7506583e6e9ad686f8438be1019  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/receipt.bin
+env --chdir=/home/nate/work/fs9-par/kern -u GEMV_NOMIN -u ATTN_DIE -u FAKE_Q6K -u PROG_DUP -u PROG_NOHCUP -u PROG_NONOBAR -u PROG_NORMSFUSE -u PROG_NORMSW -u MODEL_NOTWIN -u MODEL_NPH -u MODEL_INJECT -u MODEL_DUMP_S -u MODEL_DUMP_DIR -u MODEL_DUMP_TWIN MODEL_ATTN=qsa MODEL_IDS=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/ids.txt MODEL_PLE=/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf MODEL_PLE_OFF=192 MODEL_CAPTURE_QSA=0 FLASH_NBLK=1 FLASH_KV_HOST=1 SPLIT_SHARES=112,97,81,116,97,97 ATTN_MAP=1,1,1,1,4,4,4,4,5,5,5,5 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 MODEL_ORACLE_RECORDS=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin MODEL_ORACLE_RECEIPT=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/receipt.bin MODEL_ORACLE_SOURCE_ROOT=/home/nate/work/fs9-par MODEL_ORACLE_SOURCE_MANIFEST=/home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256 MODEL_ORACLE_SOURCE_REVISION=e2ff58ff1b0e956d61a1c93830c5f66210d27788 MODEL_ORACLE_TILE_MANIFEST=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new MODEL_ORACLE_TILE_HASHES=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256 MODEL_ORACLE_CHECKPOINT_HASHES=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/checkpoints.sha256 MODEL_ORACLE_PRIMARY=/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf MODEL_INJECT=dn ./model_test /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors 0 48 9 eh /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+attention mode: qsa (production INT8 QSA; instruction-order twin)
+FLASH_NBLK=1 FLASH_KV_HOST=1; cache positions=128 compact positions=2080
+CPU oracle: 9 complete teacher-forced records; input seal checked without large-file hashing
+PLE table /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf mapped for the twin; 9 prompt positions x 16 rows staged for the GPU
+production embedding owner: die 0
+6 die(s), blocks [0, 48), embed, head, 9 tokens (9 prompt)
+  die 0 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 1 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+  die 2 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 3 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 4 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+  die 5 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+MODEL_INJECT=dn reached at b0.dn_state.d0
+{"position":0,"visible_length":1,"scalar_match":false}
+oracle comparison at position 0: 
+token   0: id     10 ->     18 1202 phases; oracle read 0.00 s, dies 26.031 ms  MISMATCH
+{"position":1,"visible_length":2,"scalar_match":true}
+token   1: id     11 ->    220 1202 phases; oracle read 0.00 s, dies 26.034 ms  exact
+{"position":2,"visible_length":3,"scalar_match":true}
+token   2: id     12 ->    198 1202 phases; oracle read 0.00 s, dies 25.934 ms  exact
+{"position":3,"visible_length":4,"scalar_match":true}
+token   3: id     13 ->    271 1202 phases; oracle read 0.00 s, dies 26.143 ms  exact
+{"position":4,"visible_length":5,"scalar_match":true}
+token   4: id     14 ->     15 1202 phases; oracle read 0.00 s, dies 26.028 ms  exact
+{"position":5,"visible_length":6,"scalar_match":true}
+token   5: id     15 ->     16 1202 phases; oracle read 0.00 s, dies 26.054 ms  exact
+{"position":6,"visible_length":7,"scalar_match":true}
+token   6: id     16 ->     17 1202 phases; oracle read 0.00 s, dies 26.072 ms  exact
+{"position":7,"visible_length":8,"scalar_match":true}
+token   7: id     17 ->     18 1202 phases; oracle read 0.00 s, dies 26.439 ms  exact
+{"position":8,"visible_length":9,"scalar_match":true}
+token   8: id     18 ->     19 1202 phases; oracle read 0.00 s, dies 26.513 ms  exact
+FAIL: 8 of 9 tokens exact; mean 26.139 ms per token
+make[1]: *** [/home/nate/work/fs9-par/validation/issue9//Makefile:201: model-oracle] Error 3
+make[1]: Leaving directory '/home/nate/work/fs9-par/kern'
+ORACLE_FAULT_CASE_RESULT {"name":"dn","accepted":true,"make_exit":2,"signal":0,"make_error":3,"marker_lines":1,"marker_exact":1,"comparisons":9,"matches":8,"mismatches":1,"mismatch_position":0,"capture_seen":false,"output_bytes":11557,"output_limit_exceeded":false,"timed_out":false,"interrupted":0,"pipe_eof":true,"group_live_after_cleanup":false}
+ORACLE_FAULT_CASE_END {"name":"dn","inject":"dn","tokens":9,"blocks":1,"host_kv":1,"flags":"eh","capture":0}
+ORACLE_FAULT_CASE_BEGIN {"name":"conv","inject":"conv","tokens":9,"blocks":1,"host_kv":1,"flags":"eh","capture":0}
+make[1]: Entering directory '/home/nate/work/fs9-par/kern'
+cmp /home/nate/work/fs9-par/maxas-patch/MaxAsGrammar.pm /home/nate/work/fs9-maxas/lib/MaxAs/MaxAsGrammar.pm
+cmp /home/nate/work/fs9-par/maxas-patch/MaxAs.pm /home/nate/work/fs9-maxas/lib/MaxAs/MaxAs.pm
+cmp /home/nate/work/fs9-par/maxas-patch/Cubin.pm /home/nate/work/fs9-maxas/lib/MaxAs/Cubin.pm
+env --chdir=/home/nate/work/fs9-par sha256sum -c /home/nate/work/fs9-par/kern/issue9-kernel.sha256
+kern/die.cubin: OK
+kern/actq.sass: OK
+kern/allgather.sass: OK
+kern/amax.sass: OK
+kern/argmax.sass: OK
+kern/attnmerge.sass: OK
+kern/attnpart.sass: OK
+kern/attnpartn.sass: OK
+kern/attnqk.sass: OK
+kern/attnqkq.sass: OK
+kern/bartest.sass: OK
+kern/conv1d.sass: OK
+kern/dnnorm.sass: OK
+kern/dnstep.sass: OK
+kern/embrow.sass: OK
+kern/ffnact.sass: OK
+kern/fmath.sass: OK
+kern/gemv_b32.sass: OK
+kern/gemv_bf16.sass: OK
+kern/gemv_bf16_pair.sass: OK
+kern/gemv_iq4_xs.sass: OK
+kern/gemv_q2_0.sass: OK
+kern/gemv_q3_k.sass: OK
+kern/gemv_q4_k.sass: OK
+kern/gemv_q6_k.sass: OK
+kern/gridbar.sass: OK
+kern/hcops.sass: OK
+kern/idxqk.sass: OK
+kern/idxscore.sass: OK
+kern/idxsel.sass: OK
+kern/kvgather.sass: OK
+kern/mailbox.sass: OK
+kern/moesel.sass: OK
+kern/normq.sass: OK
+kern/pleconv.sass: OK
+kern/plegate.sass: OK
+kern/plerows.sass: OK
+kern/rmsnorm.sass: OK
+kern/router.sass: OK
+kern/sample.sass: OK
+kern/semtest.sass: OK
+kern/semtest2.sass: OK
+kern/semtest3.sass: OK
+kern/semtest4.sass: OK
+kern/sumn.sass: OK
+kern/topk.sass: OK
+kern/xchg.sass: OK
+kern/xcopy.sass: OK
+kern/xmadbench.sass: OK
+kern/die.pl: OK
+kern/trace.pl: OK
+kern/actq.pl: OK
+kern/fmath.pl: OK
+kern/die.ptx: OK
+maxas-patch/Cubin.pm: OK
+maxas-patch/MaxAs.pm: OK
+maxas-patch/MaxAsGrammar.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/MaxAsGrammar.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/MaxAs.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/Cubin.pm: OK
+git -C /home/nate/work/fs9-par rev-parse HEAD
+4628b7e34f6937cfa2c16d924cc4d44c81a83330
+git -C /home/nate/work/fs9-par status --short
+cc --version
+cc (GCC) 16.2.1 20260810
+Copyright (C) 2026 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+ldd /home/nate/work/fs9-par/kern/model_test
+	linux-vdso.so.1 (0x00007f418ac42000)
+	libcuda.so.1 => /usr/lib/libcuda.so.1 (0x00007f4189400000)
+	libcrypto.so.3 => /usr/lib/libcrypto.so.3 (0x00007f4188e00000)
+	libm.so.6 => /usr/lib/libm.so.6 (0x00007f4188cc9000)
+	libc.so.6 => /usr/lib/libc.so.6 (0x00007f4188a00000)
+	libdl.so.2 => /usr/lib/libdl.so.2 (0x00007f418ab89000)
+	libpthread.so.0 => /usr/lib/libpthread.so.0 (0x00007f418ab84000)
+	librt.so.1 => /usr/lib/librt.so.1 (0x00007f418ab7f000)
+	libz.so.1 => /usr/lib/libz.so.1 (0x00007f418ab64000)
+	libbrotlienc.so.1 => /usr/lib/libbrotlienc.so.1 (0x00007f4188940000)
+	libbrotlidec.so.1 => /usr/lib/libbrotlidec.so.1 (0x00007f418ab55000)
+	libzstd.so.1 => /usr/lib/libzstd.so.1 (0x00007f418885a000)
+	/lib64/ld-linux-x86-64.so.2 => /usr/lib64/ld-linux-x86-64.so.2 (0x00007f418ac44000)
+	libbrotlicommon.so.1 => /usr/lib/libbrotlicommon.so.1 (0x00007f418ab30000)
+sha256sum /usr/lib/libcuda.so.470.256.02
+6f379857a042713f8c4c28e689006b9143889c7a465044074d99a614a64e2fa2  /usr/lib/libcuda.so.470.256.02
+sha256sum /home/nate/work/fs9-par/kern/model_test /home/nate/work/fs9-par/kern/die.cubin /home/nate/work/fs9-par/kern/libengine.so
+3c0dafd512307c58091202472a0285e7f5a997bb58706eb39938fd032584832c  /home/nate/work/fs9-par/kern/model_test
+aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423  /home/nate/work/fs9-par/kern/die.cubin
+ad3b5654ca61739c3e509d5cc6622353f9093e6299bf0231eedb0c18360453e6  /home/nate/work/fs9-par/kern/libengine.so
+sha256sum /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256 /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+4d05f248b11edfe20155cc92f86bf870d28fb6d884e4403e5d02db9b359faf53  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new
+011a28a8823fe2d93e1c5d3185f4089e17ca91a690bf3d4776a2ba35bf09f90b  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256
+028919ad749d1d914270c70c52aac7ed3eb532ac0b1199d9ab807a768be065be  /tmp/hold-h0.manifest
+2be77b9b3031a0c5a67d6a50242d4f4d57e81926a704d49528b13ca21fbfb5ed  /tmp/hold-h1.manifest
+a2a74d87bcf40288a8fb376974f72ec286d0a4d398e4a585151b21e88b30ec92  /tmp/hold-h2.manifest
+037381c31cbbdb6b312667af075f7cca1e23def46d106f2ce93f6f2a0138aefb  /tmp/hold-h3.manifest
+b642f9c8c45fc7a4ddb2f0326f61e4c973a4c392e84b1a7926f65f1f6a974548  /tmp/hold-h4.manifest
+cc2cc7163e9e5ec8c61c126060a5192776bd6818d77e8e666949930969d15a65  /tmp/hold-h5.manifest
+cat /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/checkpoints.sha256
+69820c02ec7d0b45ef2ebb19d6620299db749fe2aded7f39f93c6b88b199b720  /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+316b46f3a2dbd68c900f43136ab9449f9dcc3725dfd8c794847c204bc161e113  /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf
+nvidia-smi --query-gpu=index,uuid,name,driver_version,memory.free --format=csv
+index, uuid, name, driver_version, memory.free [MiB]
+0, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, Tesla M60, 470.256.02, 266 MiB
+1, GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, Tesla M60, 470.256.02, 248 MiB
+2, GPU-c767d250-4454-d181-d648-8706b5f2fb64, Tesla M60, 470.256.02, 220 MiB
+3, GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, Tesla M60, 470.256.02, 187 MiB
+4, GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, Tesla M60, 470.256.02, 238 MiB
+5, GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, Tesla M60, 470.256.02, 175 MiB
+6, GPU-431371bd-b482-96b2-4b70-04f83c6d075b, Tesla M60, 470.256.02, 7547 MiB
+7, GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4, Tesla M60, 470.256.02, 4626 MiB
+env --chdir=/home/nate/work/fs9-par sha256sum kern/model_oracle.c kern/model_oracle.h kern/model_oracle_gpu.h kern/model_test.c kern/model_qsa_test.h kern/qsa_state.h kern/prog.c kern/prog.h kern/holdc.c kern/hold.h kern/dieops.h ref/attn.c ref/attn_contract_test.c ref/block.c ref/checked.c ref/deltanet.c ref/deqcheck.c ref/fmath.c ref/gguf.c ref/ggufhdr.c ref/hc.c ref/ple.c ref/qsa.c ref/quant.c ref/ref_test.c ref/router.c ref/sample.c ref/split.c ref/attn.h ref/block.h ref/checked.h ref/deltanet.h ref/fmath.h ref/gguf.h ref/hc.h ref/ple.h ref/qsa.h ref/quant.h ref/router.h ref/sample.h ref/split.h > /home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256
+sha256sum /home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256
+d9974e7d2b9d542ce3d13658c8660cf283930d7f6aa6ae67eb10a67f45a76f2b  /home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256
+sha256sum /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/ids.txt /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/receipt.bin
+a35a7a3114a37c2077d13a1ecdd9560c3edf324fa6be81cf1a1a95f9ecf9aa7e  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/ids.txt
+e3b6821bf962b5850471bf16db182ed06fee97af639ebbceb31b0a3b26a52ca9  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin
+1975b064107d9c80feea9e1d132e49720a41a7506583e6e9ad686f8438be1019  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/receipt.bin
+env --chdir=/home/nate/work/fs9-par/kern -u GEMV_NOMIN -u ATTN_DIE -u FAKE_Q6K -u PROG_DUP -u PROG_NOHCUP -u PROG_NONOBAR -u PROG_NORMSFUSE -u PROG_NORMSW -u MODEL_NOTWIN -u MODEL_NPH -u MODEL_INJECT -u MODEL_DUMP_S -u MODEL_DUMP_DIR -u MODEL_DUMP_TWIN MODEL_ATTN=qsa MODEL_IDS=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/ids.txt MODEL_PLE=/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf MODEL_PLE_OFF=192 MODEL_CAPTURE_QSA=0 FLASH_NBLK=1 FLASH_KV_HOST=1 SPLIT_SHARES=112,97,81,116,97,97 ATTN_MAP=1,1,1,1,4,4,4,4,5,5,5,5 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 MODEL_ORACLE_RECORDS=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin MODEL_ORACLE_RECEIPT=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/receipt.bin MODEL_ORACLE_SOURCE_ROOT=/home/nate/work/fs9-par MODEL_ORACLE_SOURCE_MANIFEST=/home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256 MODEL_ORACLE_SOURCE_REVISION=e2ff58ff1b0e956d61a1c93830c5f66210d27788 MODEL_ORACLE_TILE_MANIFEST=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new MODEL_ORACLE_TILE_HASHES=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256 MODEL_ORACLE_CHECKPOINT_HASHES=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/checkpoints.sha256 MODEL_ORACLE_PRIMARY=/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf MODEL_INJECT=conv ./model_test /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors 0 48 9 eh /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+attention mode: qsa (production INT8 QSA; instruction-order twin)
+FLASH_NBLK=1 FLASH_KV_HOST=1; cache positions=128 compact positions=2080
+CPU oracle: 9 complete teacher-forced records; input seal checked without large-file hashing
+PLE table /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf mapped for the twin; 9 prompt positions x 16 rows staged for the GPU
+production embedding owner: die 0
+6 die(s), blocks [0, 48), embed, head, 9 tokens (9 prompt)
+  die 0 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 1 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+  die 2 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 3 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 4 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+  die 5 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+MODEL_INJECT=conv reached at b0.conv_state.d0
+{"position":0,"visible_length":1,"scalar_match":false}
+oracle comparison at position 0: 
+token   0: id     10 ->     18 1202 phases; oracle read 0.00 s, dies 26.043 ms  MISMATCH
+{"position":1,"visible_length":2,"scalar_match":true}
+token   1: id     11 ->    220 1202 phases; oracle read 0.00 s, dies 25.988 ms  exact
+{"position":2,"visible_length":3,"scalar_match":true}
+token   2: id     12 ->    198 1202 phases; oracle read 0.00 s, dies 25.934 ms  exact
+{"position":3,"visible_length":4,"scalar_match":true}
+token   3: id     13 ->    271 1202 phases; oracle read 0.00 s, dies 26.130 ms  exact
+{"position":4,"visible_length":5,"scalar_match":true}
+token   4: id     14 ->     15 1202 phases; oracle read 0.00 s, dies 26.054 ms  exact
+{"position":5,"visible_length":6,"scalar_match":true}
+token   5: id     15 ->     16 1202 phases; oracle read 0.00 s, dies 26.032 ms  exact
+{"position":6,"visible_length":7,"scalar_match":true}
+token   6: id     16 ->     17 1202 phases; oracle read 0.00 s, dies 26.110 ms  exact
+{"position":7,"visible_length":8,"scalar_match":true}
+token   7: id     17 ->     18 1202 phases; oracle read 0.00 s, dies 26.430 ms  exact
+{"position":8,"visible_length":9,"scalar_match":true}
+token   8: id     18 ->     19 1202 phases; oracle read 0.00 s, dies 26.487 ms  exact
+FAIL: 8 of 9 tokens exact; mean 26.134 ms per token
+make[1]: *** [/home/nate/work/fs9-par/validation/issue9//Makefile:201: model-oracle] Error 3
+make[1]: Leaving directory '/home/nate/work/fs9-par/kern'
+ORACLE_FAULT_CASE_RESULT {"name":"conv","accepted":true,"make_exit":2,"signal":0,"make_error":3,"marker_lines":1,"marker_exact":1,"comparisons":9,"matches":8,"mismatches":1,"mismatch_position":0,"capture_seen":false,"output_bytes":11563,"output_limit_exceeded":false,"timed_out":false,"interrupted":0,"pipe_eof":true,"group_live_after_cleanup":false}
+ORACLE_FAULT_CASE_END {"name":"conv","inject":"conv","tokens":9,"blocks":1,"host_kv":1,"flags":"eh","capture":0}
+ORACLE_FAULT_CASE_BEGIN {"name":"ple","inject":"ple","tokens":9,"blocks":1,"host_kv":1,"flags":"eh","capture":0}
+make[1]: Entering directory '/home/nate/work/fs9-par/kern'
+cmp /home/nate/work/fs9-par/maxas-patch/MaxAsGrammar.pm /home/nate/work/fs9-maxas/lib/MaxAs/MaxAsGrammar.pm
+cmp /home/nate/work/fs9-par/maxas-patch/MaxAs.pm /home/nate/work/fs9-maxas/lib/MaxAs/MaxAs.pm
+cmp /home/nate/work/fs9-par/maxas-patch/Cubin.pm /home/nate/work/fs9-maxas/lib/MaxAs/Cubin.pm
+env --chdir=/home/nate/work/fs9-par sha256sum -c /home/nate/work/fs9-par/kern/issue9-kernel.sha256
+kern/die.cubin: OK
+kern/actq.sass: OK
+kern/allgather.sass: OK
+kern/amax.sass: OK
+kern/argmax.sass: OK
+kern/attnmerge.sass: OK
+kern/attnpart.sass: OK
+kern/attnpartn.sass: OK
+kern/attnqk.sass: OK
+kern/attnqkq.sass: OK
+kern/bartest.sass: OK
+kern/conv1d.sass: OK
+kern/dnnorm.sass: OK
+kern/dnstep.sass: OK
+kern/embrow.sass: OK
+kern/ffnact.sass: OK
+kern/fmath.sass: OK
+kern/gemv_b32.sass: OK
+kern/gemv_bf16.sass: OK
+kern/gemv_bf16_pair.sass: OK
+kern/gemv_iq4_xs.sass: OK
+kern/gemv_q2_0.sass: OK
+kern/gemv_q3_k.sass: OK
+kern/gemv_q4_k.sass: OK
+kern/gemv_q6_k.sass: OK
+kern/gridbar.sass: OK
+kern/hcops.sass: OK
+kern/idxqk.sass: OK
+kern/idxscore.sass: OK
+kern/idxsel.sass: OK
+kern/kvgather.sass: OK
+kern/mailbox.sass: OK
+kern/moesel.sass: OK
+kern/normq.sass: OK
+kern/pleconv.sass: OK
+kern/plegate.sass: OK
+kern/plerows.sass: OK
+kern/rmsnorm.sass: OK
+kern/router.sass: OK
+kern/sample.sass: OK
+kern/semtest.sass: OK
+kern/semtest2.sass: OK
+kern/semtest3.sass: OK
+kern/semtest4.sass: OK
+kern/sumn.sass: OK
+kern/topk.sass: OK
+kern/xchg.sass: OK
+kern/xcopy.sass: OK
+kern/xmadbench.sass: OK
+kern/die.pl: OK
+kern/trace.pl: OK
+kern/actq.pl: OK
+kern/fmath.pl: OK
+kern/die.ptx: OK
+maxas-patch/Cubin.pm: OK
+maxas-patch/MaxAs.pm: OK
+maxas-patch/MaxAsGrammar.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/MaxAsGrammar.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/MaxAs.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/Cubin.pm: OK
+git -C /home/nate/work/fs9-par rev-parse HEAD
+4628b7e34f6937cfa2c16d924cc4d44c81a83330
+git -C /home/nate/work/fs9-par status --short
+cc --version
+cc (GCC) 16.2.1 20260810
+Copyright (C) 2026 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+ldd /home/nate/work/fs9-par/kern/model_test
+	linux-vdso.so.1 (0x00007f297ca1f000)
+	libcuda.so.1 => /usr/lib/libcuda.so.1 (0x00007f297b200000)
+	libcrypto.so.3 => /usr/lib/libcrypto.so.3 (0x00007f297ac00000)
+	libm.so.6 => /usr/lib/libm.so.6 (0x00007f297aac9000)
+	libc.so.6 => /usr/lib/libc.so.6 (0x00007f297a800000)
+	libdl.so.2 => /usr/lib/libdl.so.2 (0x00007f297c966000)
+	libpthread.so.0 => /usr/lib/libpthread.so.0 (0x00007f297c961000)
+	librt.so.1 => /usr/lib/librt.so.1 (0x00007f297c95c000)
+	libz.so.1 => /usr/lib/libz.so.1 (0x00007f297c941000)
+	libbrotlienc.so.1 => /usr/lib/libbrotlienc.so.1 (0x00007f297a740000)
+	libbrotlidec.so.1 => /usr/lib/libbrotlidec.so.1 (0x00007f297c932000)
+	libzstd.so.1 => /usr/lib/libzstd.so.1 (0x00007f297a65a000)
+	/lib64/ld-linux-x86-64.so.2 => /usr/lib64/ld-linux-x86-64.so.2 (0x00007f297ca21000)
+	libbrotlicommon.so.1 => /usr/lib/libbrotlicommon.so.1 (0x00007f297b1dd000)
+sha256sum /usr/lib/libcuda.so.470.256.02
+6f379857a042713f8c4c28e689006b9143889c7a465044074d99a614a64e2fa2  /usr/lib/libcuda.so.470.256.02
+sha256sum /home/nate/work/fs9-par/kern/model_test /home/nate/work/fs9-par/kern/die.cubin /home/nate/work/fs9-par/kern/libengine.so
+3c0dafd512307c58091202472a0285e7f5a997bb58706eb39938fd032584832c  /home/nate/work/fs9-par/kern/model_test
+aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423  /home/nate/work/fs9-par/kern/die.cubin
+ad3b5654ca61739c3e509d5cc6622353f9093e6299bf0231eedb0c18360453e6  /home/nate/work/fs9-par/kern/libengine.so
+sha256sum /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256 /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+4d05f248b11edfe20155cc92f86bf870d28fb6d884e4403e5d02db9b359faf53  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new
+011a28a8823fe2d93e1c5d3185f4089e17ca91a690bf3d4776a2ba35bf09f90b  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256
+028919ad749d1d914270c70c52aac7ed3eb532ac0b1199d9ab807a768be065be  /tmp/hold-h0.manifest
+2be77b9b3031a0c5a67d6a50242d4f4d57e81926a704d49528b13ca21fbfb5ed  /tmp/hold-h1.manifest
+a2a74d87bcf40288a8fb376974f72ec286d0a4d398e4a585151b21e88b30ec92  /tmp/hold-h2.manifest
+037381c31cbbdb6b312667af075f7cca1e23def46d106f2ce93f6f2a0138aefb  /tmp/hold-h3.manifest
+b642f9c8c45fc7a4ddb2f0326f61e4c973a4c392e84b1a7926f65f1f6a974548  /tmp/hold-h4.manifest
+cc2cc7163e9e5ec8c61c126060a5192776bd6818d77e8e666949930969d15a65  /tmp/hold-h5.manifest
+cat /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/checkpoints.sha256
+69820c02ec7d0b45ef2ebb19d6620299db749fe2aded7f39f93c6b88b199b720  /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+316b46f3a2dbd68c900f43136ab9449f9dcc3725dfd8c794847c204bc161e113  /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf
+nvidia-smi --query-gpu=index,uuid,name,driver_version,memory.free --format=csv
+index, uuid, name, driver_version, memory.free [MiB]
+0, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, Tesla M60, 470.256.02, 266 MiB
+1, GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, Tesla M60, 470.256.02, 248 MiB
+2, GPU-c767d250-4454-d181-d648-8706b5f2fb64, Tesla M60, 470.256.02, 220 MiB
+3, GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, Tesla M60, 470.256.02, 187 MiB
+4, GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, Tesla M60, 470.256.02, 238 MiB
+5, GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, Tesla M60, 470.256.02, 175 MiB
+6, GPU-431371bd-b482-96b2-4b70-04f83c6d075b, Tesla M60, 470.256.02, 7547 MiB
+7, GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4, Tesla M60, 470.256.02, 4626 MiB
+env --chdir=/home/nate/work/fs9-par sha256sum kern/model_oracle.c kern/model_oracle.h kern/model_oracle_gpu.h kern/model_test.c kern/model_qsa_test.h kern/qsa_state.h kern/prog.c kern/prog.h kern/holdc.c kern/hold.h kern/dieops.h ref/attn.c ref/attn_contract_test.c ref/block.c ref/checked.c ref/deltanet.c ref/deqcheck.c ref/fmath.c ref/gguf.c ref/ggufhdr.c ref/hc.c ref/ple.c ref/qsa.c ref/quant.c ref/ref_test.c ref/router.c ref/sample.c ref/split.c ref/attn.h ref/block.h ref/checked.h ref/deltanet.h ref/fmath.h ref/gguf.h ref/hc.h ref/ple.h ref/qsa.h ref/quant.h ref/router.h ref/sample.h ref/split.h > /home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256
+sha256sum /home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256
+d9974e7d2b9d542ce3d13658c8660cf283930d7f6aa6ae67eb10a67f45a76f2b  /home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256
+sha256sum /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/ids.txt /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/receipt.bin
+a35a7a3114a37c2077d13a1ecdd9560c3edf324fa6be81cf1a1a95f9ecf9aa7e  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/ids.txt
+e3b6821bf962b5850471bf16db182ed06fee97af639ebbceb31b0a3b26a52ca9  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin
+1975b064107d9c80feea9e1d132e49720a41a7506583e6e9ad686f8438be1019  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/receipt.bin
+env --chdir=/home/nate/work/fs9-par/kern -u GEMV_NOMIN -u ATTN_DIE -u FAKE_Q6K -u PROG_DUP -u PROG_NOHCUP -u PROG_NONOBAR -u PROG_NORMSFUSE -u PROG_NORMSW -u MODEL_NOTWIN -u MODEL_NPH -u MODEL_INJECT -u MODEL_DUMP_S -u MODEL_DUMP_DIR -u MODEL_DUMP_TWIN MODEL_ATTN=qsa MODEL_IDS=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/ids.txt MODEL_PLE=/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf MODEL_PLE_OFF=192 MODEL_CAPTURE_QSA=0 FLASH_NBLK=1 FLASH_KV_HOST=1 SPLIT_SHARES=112,97,81,116,97,97 ATTN_MAP=1,1,1,1,4,4,4,4,5,5,5,5 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 MODEL_ORACLE_RECORDS=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin MODEL_ORACLE_RECEIPT=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/receipt.bin MODEL_ORACLE_SOURCE_ROOT=/home/nate/work/fs9-par MODEL_ORACLE_SOURCE_MANIFEST=/home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256 MODEL_ORACLE_SOURCE_REVISION=e2ff58ff1b0e956d61a1c93830c5f66210d27788 MODEL_ORACLE_TILE_MANIFEST=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new MODEL_ORACLE_TILE_HASHES=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256 MODEL_ORACLE_CHECKPOINT_HASHES=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/checkpoints.sha256 MODEL_ORACLE_PRIMARY=/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf MODEL_INJECT=ple ./model_test /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors 0 48 9 eh /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+attention mode: qsa (production INT8 QSA; instruction-order twin)
+FLASH_NBLK=1 FLASH_KV_HOST=1; cache positions=128 compact positions=2080
+CPU oracle: 9 complete teacher-forced records; input seal checked without large-file hashing
+PLE table /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf mapped for the twin; 9 prompt positions x 16 rows staged for the GPU
+production embedding owner: die 0
+6 die(s), blocks [0, 48), embed, head, 9 tokens (9 prompt)
+  die 0 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 1 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+  die 2 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 3 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 4 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+  die 5 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+MODEL_INJECT=ple reached at b1.ple_state.d0
+{"position":0,"visible_length":1,"scalar_match":false}
+oracle comparison at position 0: 
+token   0: id     10 ->     18 1202 phases; oracle read 0.00 s, dies 26.044 ms  MISMATCH
+{"position":1,"visible_length":2,"scalar_match":true}
+token   1: id     11 ->    220 1202 phases; oracle read 0.00 s, dies 26.037 ms  exact
+{"position":2,"visible_length":3,"scalar_match":true}
+token   2: id     12 ->    198 1202 phases; oracle read 0.00 s, dies 25.972 ms  exact
+{"position":3,"visible_length":4,"scalar_match":true}
+token   3: id     13 ->    271 1202 phases; oracle read 0.00 s, dies 26.157 ms  exact
+{"position":4,"visible_length":5,"scalar_match":true}
+token   4: id     14 ->     15 1202 phases; oracle read 0.00 s, dies 26.110 ms  exact
+{"position":5,"visible_length":6,"scalar_match":true}
+token   5: id     15 ->     16 1202 phases; oracle read 0.00 s, dies 26.056 ms  exact
+{"position":6,"visible_length":7,"scalar_match":true}
+token   6: id     16 ->     17 1202 phases; oracle read 0.00 s, dies 26.068 ms  exact
+{"position":7,"visible_length":8,"scalar_match":true}
+token   7: id     17 ->     18 1202 phases; oracle read 0.00 s, dies 26.458 ms  exact
+{"position":8,"visible_length":9,"scalar_match":true}
+token   8: id     18 ->     19 1202 phases; oracle read 0.00 s, dies 26.533 ms  exact
+FAIL: 8 of 9 tokens exact; mean 26.159 ms per token
+make[1]: *** [/home/nate/work/fs9-par/validation/issue9//Makefile:201: model-oracle] Error 3
+make[1]: Leaving directory '/home/nate/work/fs9-par/kern'
+ORACLE_FAULT_CASE_RESULT {"name":"ple","accepted":true,"make_exit":2,"signal":0,"make_error":3,"marker_lines":1,"marker_exact":1,"comparisons":9,"matches":8,"mismatches":1,"mismatch_position":0,"capture_seen":false,"output_bytes":11560,"output_limit_exceeded":false,"timed_out":false,"interrupted":0,"pipe_eof":true,"group_live_after_cleanup":false}
+ORACLE_FAULT_CASE_END {"name":"ple","inject":"ple","tokens":9,"blocks":1,"host_kv":1,"flags":"eh","capture":0}
+ORACLE_FAULT_CASE_BEGIN {"name":"singlelaunch","inject":"logits","tokens":9,"blocks":1,"host_kv":0,"flags":"ehl","capture":0}
+make[1]: Entering directory '/home/nate/work/fs9-par/kern'
+cmp /home/nate/work/fs9-par/maxas-patch/MaxAsGrammar.pm /home/nate/work/fs9-maxas/lib/MaxAs/MaxAsGrammar.pm
+cmp /home/nate/work/fs9-par/maxas-patch/MaxAs.pm /home/nate/work/fs9-maxas/lib/MaxAs/MaxAs.pm
+cmp /home/nate/work/fs9-par/maxas-patch/Cubin.pm /home/nate/work/fs9-maxas/lib/MaxAs/Cubin.pm
+env --chdir=/home/nate/work/fs9-par sha256sum -c /home/nate/work/fs9-par/kern/issue9-kernel.sha256
+kern/die.cubin: OK
+kern/actq.sass: OK
+kern/allgather.sass: OK
+kern/amax.sass: OK
+kern/argmax.sass: OK
+kern/attnmerge.sass: OK
+kern/attnpart.sass: OK
+kern/attnpartn.sass: OK
+kern/attnqk.sass: OK
+kern/attnqkq.sass: OK
+kern/bartest.sass: OK
+kern/conv1d.sass: OK
+kern/dnnorm.sass: OK
+kern/dnstep.sass: OK
+kern/embrow.sass: OK
+kern/ffnact.sass: OK
+kern/fmath.sass: OK
+kern/gemv_b32.sass: OK
+kern/gemv_bf16.sass: OK
+kern/gemv_bf16_pair.sass: OK
+kern/gemv_iq4_xs.sass: OK
+kern/gemv_q2_0.sass: OK
+kern/gemv_q3_k.sass: OK
+kern/gemv_q4_k.sass: OK
+kern/gemv_q6_k.sass: OK
+kern/gridbar.sass: OK
+kern/hcops.sass: OK
+kern/idxqk.sass: OK
+kern/idxscore.sass: OK
+kern/idxsel.sass: OK
+kern/kvgather.sass: OK
+kern/mailbox.sass: OK
+kern/moesel.sass: OK
+kern/normq.sass: OK
+kern/pleconv.sass: OK
+kern/plegate.sass: OK
+kern/plerows.sass: OK
+kern/rmsnorm.sass: OK
+kern/router.sass: OK
+kern/sample.sass: OK
+kern/semtest.sass: OK
+kern/semtest2.sass: OK
+kern/semtest3.sass: OK
+kern/semtest4.sass: OK
+kern/sumn.sass: OK
+kern/topk.sass: OK
+kern/xchg.sass: OK
+kern/xcopy.sass: OK
+kern/xmadbench.sass: OK
+kern/die.pl: OK
+kern/trace.pl: OK
+kern/actq.pl: OK
+kern/fmath.pl: OK
+kern/die.ptx: OK
+maxas-patch/Cubin.pm: OK
+maxas-patch/MaxAs.pm: OK
+maxas-patch/MaxAsGrammar.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/MaxAsGrammar.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/MaxAs.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/Cubin.pm: OK
+git -C /home/nate/work/fs9-par rev-parse HEAD
+4628b7e34f6937cfa2c16d924cc4d44c81a83330
+git -C /home/nate/work/fs9-par status --short
+cc --version
+cc (GCC) 16.2.1 20260810
+Copyright (C) 2026 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+ldd /home/nate/work/fs9-par/kern/model_test
+	linux-vdso.so.1 (0x00007fbaadc6a000)
+	libcuda.so.1 => /usr/lib/libcuda.so.1 (0x00007fbaac400000)
+	libcrypto.so.3 => /usr/lib/libcrypto.so.3 (0x00007fbaabe00000)
+	libm.so.6 => /usr/lib/libm.so.6 (0x00007fbaabcc9000)
+	libc.so.6 => /usr/lib/libc.so.6 (0x00007fbaaba00000)
+	libdl.so.2 => /usr/lib/libdl.so.2 (0x00007fbaadbb1000)
+	libpthread.so.0 => /usr/lib/libpthread.so.0 (0x00007fbaadbac000)
+	librt.so.1 => /usr/lib/librt.so.1 (0x00007fbaadba7000)
+	libz.so.1 => /usr/lib/libz.so.1 (0x00007fbaadb8c000)
+	libbrotlienc.so.1 => /usr/lib/libbrotlienc.so.1 (0x00007fbaab940000)
+	libbrotlidec.so.1 => /usr/lib/libbrotlidec.so.1 (0x00007fbaadb7d000)
+	libzstd.so.1 => /usr/lib/libzstd.so.1 (0x00007fbaab85a000)
+	/lib64/ld-linux-x86-64.so.2 => /usr/lib64/ld-linux-x86-64.so.2 (0x00007fbaadc6c000)
+	libbrotlicommon.so.1 => /usr/lib/libbrotlicommon.so.1 (0x00007fbaadb58000)
+sha256sum /usr/lib/libcuda.so.470.256.02
+6f379857a042713f8c4c28e689006b9143889c7a465044074d99a614a64e2fa2  /usr/lib/libcuda.so.470.256.02
+sha256sum /home/nate/work/fs9-par/kern/model_test /home/nate/work/fs9-par/kern/die.cubin /home/nate/work/fs9-par/kern/libengine.so
+3c0dafd512307c58091202472a0285e7f5a997bb58706eb39938fd032584832c  /home/nate/work/fs9-par/kern/model_test
+aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423  /home/nate/work/fs9-par/kern/die.cubin
+ad3b5654ca61739c3e509d5cc6622353f9093e6299bf0231eedb0c18360453e6  /home/nate/work/fs9-par/kern/libengine.so
+sha256sum /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256 /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+4d05f248b11edfe20155cc92f86bf870d28fb6d884e4403e5d02db9b359faf53  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new
+011a28a8823fe2d93e1c5d3185f4089e17ca91a690bf3d4776a2ba35bf09f90b  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256
+028919ad749d1d914270c70c52aac7ed3eb532ac0b1199d9ab807a768be065be  /tmp/hold-h0.manifest
+2be77b9b3031a0c5a67d6a50242d4f4d57e81926a704d49528b13ca21fbfb5ed  /tmp/hold-h1.manifest
+a2a74d87bcf40288a8fb376974f72ec286d0a4d398e4a585151b21e88b30ec92  /tmp/hold-h2.manifest
+037381c31cbbdb6b312667af075f7cca1e23def46d106f2ce93f6f2a0138aefb  /tmp/hold-h3.manifest
+b642f9c8c45fc7a4ddb2f0326f61e4c973a4c392e84b1a7926f65f1f6a974548  /tmp/hold-h4.manifest
+cc2cc7163e9e5ec8c61c126060a5192776bd6818d77e8e666949930969d15a65  /tmp/hold-h5.manifest
+cat /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/checkpoints.sha256
+69820c02ec7d0b45ef2ebb19d6620299db749fe2aded7f39f93c6b88b199b720  /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+316b46f3a2dbd68c900f43136ab9449f9dcc3725dfd8c794847c204bc161e113  /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf
+nvidia-smi --query-gpu=index,uuid,name,driver_version,memory.free --format=csv
+index, uuid, name, driver_version, memory.free [MiB]
+0, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, Tesla M60, 470.256.02, 266 MiB
+1, GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, Tesla M60, 470.256.02, 248 MiB
+2, GPU-c767d250-4454-d181-d648-8706b5f2fb64, Tesla M60, 470.256.02, 220 MiB
+3, GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, Tesla M60, 470.256.02, 187 MiB
+4, GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, Tesla M60, 470.256.02, 238 MiB
+5, GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, Tesla M60, 470.256.02, 175 MiB
+6, GPU-431371bd-b482-96b2-4b70-04f83c6d075b, Tesla M60, 470.256.02, 7547 MiB
+7, GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4, Tesla M60, 470.256.02, 4626 MiB
+env --chdir=/home/nate/work/fs9-par sha256sum kern/model_oracle.c kern/model_oracle.h kern/model_oracle_gpu.h kern/model_test.c kern/model_qsa_test.h kern/qsa_state.h kern/prog.c kern/prog.h kern/holdc.c kern/hold.h kern/dieops.h ref/attn.c ref/attn_contract_test.c ref/block.c ref/checked.c ref/deltanet.c ref/deqcheck.c ref/fmath.c ref/gguf.c ref/ggufhdr.c ref/hc.c ref/ple.c ref/qsa.c ref/quant.c ref/ref_test.c ref/router.c ref/sample.c ref/split.c ref/attn.h ref/block.h ref/checked.h ref/deltanet.h ref/fmath.h ref/gguf.h ref/hc.h ref/ple.h ref/qsa.h ref/quant.h ref/router.h ref/sample.h ref/split.h > /home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256
+sha256sum /home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256
+d9974e7d2b9d542ce3d13658c8660cf283930d7f6aa6ae67eb10a67f45a76f2b  /home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256
+sha256sum /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/ids.txt /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/receipt.bin
+a35a7a3114a37c2077d13a1ecdd9560c3edf324fa6be81cf1a1a95f9ecf9aa7e  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/ids.txt
+e3b6821bf962b5850471bf16db182ed06fee97af639ebbceb31b0a3b26a52ca9  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin
+1975b064107d9c80feea9e1d132e49720a41a7506583e6e9ad686f8438be1019  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/receipt.bin
+env --chdir=/home/nate/work/fs9-par/kern -u GEMV_NOMIN -u ATTN_DIE -u FAKE_Q6K -u PROG_DUP -u PROG_NOHCUP -u PROG_NONOBAR -u PROG_NORMSFUSE -u PROG_NORMSW -u MODEL_NOTWIN -u MODEL_NPH -u MODEL_INJECT -u MODEL_DUMP_S -u MODEL_DUMP_DIR -u MODEL_DUMP_TWIN MODEL_ATTN=qsa MODEL_IDS=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/ids.txt MODEL_PLE=/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf MODEL_PLE_OFF=192 MODEL_CAPTURE_QSA=0 FLASH_NBLK=1 FLASH_KV_HOST=0 SPLIT_SHARES=112,97,81,116,97,97 ATTN_MAP=1,1,1,1,4,4,4,4,5,5,5,5 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 MODEL_ORACLE_RECORDS=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin MODEL_ORACLE_RECEIPT=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/receipt.bin MODEL_ORACLE_SOURCE_ROOT=/home/nate/work/fs9-par MODEL_ORACLE_SOURCE_MANIFEST=/home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256 MODEL_ORACLE_SOURCE_REVISION=e2ff58ff1b0e956d61a1c93830c5f66210d27788 MODEL_ORACLE_TILE_MANIFEST=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new MODEL_ORACLE_TILE_HASHES=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256 MODEL_ORACLE_CHECKPOINT_HASHES=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/checkpoints.sha256 MODEL_ORACLE_PRIMARY=/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf MODEL_INJECT=logits ./model_test /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors 0 48 9 ehl /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+attention mode: qsa (production INT8 QSA; instruction-order twin)
+FLASH_NBLK=1 FLASH_KV_HOST=0; cache positions=128 compact positions=2080
+CPU oracle: 9 complete teacher-forced records; input seal checked without large-file hashing
+PLE table /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf mapped for the twin; 9 prompt positions x 16 rows staged for the GPU
+production embedding owner: die 0
+6 die(s), blocks [0, 48), embed, head, one launch, 9 tokens (9 prompt)
+  die 0 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 1 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+  die 2 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 3 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 4 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+  die 5 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+1202 phases per token; oracle read 0.02 s for 9 tokens; dies 234.152 ms total = 26.017 ms per token
+MODEL_INJECT=logits reached at logits.d0
+{"position":8,"visible_length":9,"scalar_match":false}
+oracle comparison at position 8: 
+  die 0 tokens: all 9 exact
+  die 1 tokens: all 9 exact
+  die 2 tokens: all 9 exact
+  die 3 tokens: all 9 exact
+  die 4 tokens: all 9 exact
+  die 5 tokens: all 9 exact
+  tokens: 18 220 198 271 15 16 17 18 19
+  teacher-forced: 4 of 8 next-token predictions match the given ids; first difference at 0 (gpu 18 given 11)
+FAIL
+make[1]: *** [/home/nate/work/fs9-par/validation/issue9//Makefile:201: model-oracle] Error 3
+make[1]: Leaving directory '/home/nate/work/fs9-par/kern'
+ORACLE_FAULT_CASE_RESULT {"name":"singlelaunch","accepted":true,"make_exit":2,"signal":0,"make_error":3,"marker_lines":1,"marker_exact":1,"comparisons":1,"matches":0,"mismatches":1,"mismatch_position":8,"capture_seen":false,"output_bytes":10734,"output_limit_exceeded":false,"timed_out":false,"interrupted":0,"pipe_eof":true,"group_live_after_cleanup":false}
+ORACLE_FAULT_CASE_END {"name":"singlelaunch","inject":"logits","tokens":9,"blocks":1,"host_kv":0,"flags":"ehl","capture":0}
+ORACLE_FAULT_MATRIX_RESULT {"cases":7,"expected_cases":7,"passed":7,"failed":0,"revision":"e2ff58ff1b0e956d61a1c93830c5f66210d27788"}
+

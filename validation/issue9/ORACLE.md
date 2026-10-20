@@ -4,8 +4,9 @@ This follow-up addresses [issue #9](https://github.com/nm-z/flash-sass/issues/9)
 It extends the actual-weight model harness with a CUDA-free, resumable scalar
 producer and a GPU consumer. The full 48-layer, six-die actual model matches
 all nine scalar records in both host and VRAM KV per-token runs. Both single-launch
-placements also match every prediction and final-position stages. Additional fault
-controls and deep production-budget gates remain pending. The evidence below distinguishes
+placements also match every prediction and final-position stages. Seven current-source
+whole-model fault controls reject their intended mismatches. Deep production-budget
+gates remain pending. The evidence below distinguishes
 actual-model, synthetic-component and CPU format checks, including the separate
 intermittent paired engine failure.
 
@@ -150,8 +151,9 @@ The corrected source's CPU excerpts, byte identities and GPU logs are in
 [the corrected oracle run record](whole-model-36a8246/README.md).
 Queue trace collection was unavailable for the completed GPU runs because the
 resident engine had no enabled trace producer; it is not reported as zero.
-Additional whole-model injected errors and deep production-budget exclusion
-remain required before closing #9. Both KV placements and launch modes passed
+The current source's seven whole-model injected-error controls pass their
+expected-rejection contract. Deep production-budget exclusion remains required
+before closing #9. Both KV placements and launch modes passed
 their declared comparison scopes. Full request/snapshot reuse has the
 separate intermittent paired failure described below.
 
@@ -175,11 +177,12 @@ suite checks the acceptance logic before queued GPU execution.
 Build/check through DSH with `oracle-fault-check`, then execute the prebuilt
 runner through GPUQ with `TOKENS=9 BLOCKS=1`, the pinned `ORACLE_REVISION` and
 matching `ORACLE_DATA`. The runner does not produce a CPU reference inside the
-GPU reservation. Its own CPU/GPU results are pending until recorded in the
-source-epoch run record. Routed build `build-893011-1792513509803091078`
+GPU reservation. Its CPU/GPU results are recorded in the source-epoch run
+record. Routed build `build-893011-1792513509803091078`
 passed the strict C build and twelve CPU fixtures, including malformed JSON
-rejection and cleanup through the production timeout wrapper. Queued GPU
-fault results remain pending.
+rejection and cleanup through the production timeout wrapper. GPUQ
+`1a7a5f7c-cf8d-47d7-90ad-bed1bd2904c0` then passes all seven expected-rejection
+cases; complete output and per-case status are in the current source record.
 
 ## Private engine request validation
 

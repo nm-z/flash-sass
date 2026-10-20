@@ -68,7 +68,17 @@ is inferred from concurrent CPU runs or from comparing these domains.
 
 All four KV/launch placements pass their stated nine-position scopes. The
 prebuilt C fault runner groups seven expected mismatch cases into one queued
-reservation; its GPU results remain pending. Its binary SHA-256 is
+reservation. GPUQ `1a7a5f7c-cf8d-47d7-90ad-bed1bd2904c0` exits 0 with all seven
+expected rejections accepted: layer/logit/recurrent/convolution/PLE copies fail
+at position 0; selected IDs fail at position 7; the VRAM single-launch logit
+copy fails at final position 8. Each per-token case has eight matching frames
+and one mismatch; the single-launch case has one mismatching final frame.
+Every case reports the intended label, Make exit 2 / model exit 3, no
+successful selected-ID capture, pipe EOF and no remaining live child-group
+member. This is comparison rejection coverage using a one-bit perturbation of
+a host readback copy. Complete durable logs (401 stdout documents starting at
+ordinal zero) and readable output are retained in `fault-matrix-1a7a.*`.
+The runner's binary SHA-256 is
 `1293d4c93e4852459a6d3a0f3619517c568144cbe80d0827dd2ae2a22b70ff83`;
 its C source SHA-256 is
 `c7a55cfdeaf61531d263f58d4c2eebb35229a68515f2fc7846f96f248bf960e4`.

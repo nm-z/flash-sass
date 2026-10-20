@@ -3,7 +3,7 @@
 Refs [issue #9](https://github.com/nm-z/flash-sass/issues/9) and
 [PR #105](https://github.com/nm-z/flash-sass/pull/105), stacked on
 [PR #35](https://github.com/nm-z/flash-sass/pull/35).
-The PR remains draft while the production-budget reference and GPU fault gates
+The PR remains draft while the production-budget reference and comparisons
 finish. This page maps each requirement to its implementation and measured
 scope; the run records retain exact identities and unsuccessful attempts.
 
@@ -16,7 +16,7 @@ scope; the run records retain exact identities and unsuccessful attempts.
 | Actual selection under a small budget | Budget 1, explicit teacher IDs, successful capture requires full scope and scalar agreement. | Twelve actual selected-ID captures per current-source run, one for every attention layer at visible length 9. Selection exclusion is active at visible lengths 8 and 9. |
 | Requested cache depths and modulo-four tails | Direct-at-position harness constructs deterministic inputs, synthetic history and projection fixtures. | [GPUQ `ef56e0c2`](whole-model-3902787/README.md) passes 14 cases / 56 positions, both KV placements, budget 512, starts 1, 2048, 2052, 3100, 8000, 65000 and 262000, each with four tails. The 2048 case includes 2051. This is component coverage. |
 | Actual-weight production-budget exclusion | Uniform four-worker scalar replay from position zero, 2055 teacher-forced positions, budget 512, durable chunks of 32. | In progress outside GPUQ. [The retained prefix](whole-model-e2ff58f/cpu-deep-progress128.excerpt) documents 128 committed positions; completion and subsequent GPU comparisons are pending. |
-| Deliberate mismatch detection | Direct selection/gather/output controls; complete-model controls flip one bit in a host copy of a GPU readback. The C matrix requires the intended label, exact comparison count, mismatch position and program exit. | Six direct controls reject their intended errors. Three earlier-source whole-model controls reject layer/logit/selection errors. The current seven-case runner passes twelve CPU fixtures; its GPU results are pending. |
+| Deliberate mismatch detection | Direct selection/gather/output controls; complete-model controls flip one bit in a host copy of a GPU readback. The C matrix requires the intended label, exact comparison count, mismatch position and program exit. | Six direct controls reject their intended errors. Current-source GPUQ `1a7a5f7c` passes all seven whole-model expected-rejection cases; the runner also passes twelve CPU fixtures. Complete per-case evidence is in the current source record. |
 | API boundary and input integrity | Full-model/capture/ID/geometry guards, sealed source and model identities, locked records, layout checks before hashing and on reading. | Current consumer passes 46 pre-CUDA boundary checks; current oracle passes 17 API/CLI cases. Three real input-rejection cases leave empty record/receipt files. |
 | Consecutive requests, snapshot/resume and free-running generation | Private C runner starts four independent cores and checks complete state/logit fingerprints, predictions and resume/pair/chunk counters. Teacher-forced comparison and generation requests are separate. | One complete nine-position matrix passes all 64 requests. Other paired runs expose an intermittent mismatch, tracked in [issue #109](https://github.com/nm-z/flash-sass/issues/109). Passing and failing controls are retained. |
 | Source, library, cubin, weights, flags and device/driver identities | GPUQ validates the kernel receipt and records binary/source/checkpoint/holder identities and arguments. CPU excerpts retain compiler flags and binary hashes. | Durable compressed GPUQ exports and DSH excerpts are linked from the source-epoch records. Optional resident traces were unavailable; they are not recorded as zero. |
@@ -30,5 +30,8 @@ and version-2 input-receipt derivation are described in
 
 The separate GEN-between-pair-bodies experiment for #109 uses isolated
 checkouts and its own cubin. PR #105 retains the canonical cubin whose direct
-and full-model results are listed above. The experiment's source/build checks
-do not establish a runtime fix.
+and full-model results are listed above. Matched stock and transformed request
+controls both fail a fingerprint check; the experiment does not supply a
+runtime fix. Its separate
+[run record](https://github.com/nm-z/flash-sass/tree/test/issue109-pair-grid/validation/issue109)
+retains both outcomes.
