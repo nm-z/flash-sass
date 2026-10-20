@@ -72,6 +72,79 @@ static CUdeviceptr dptr(int d, int blk, const char *suffix) { return dptr_raw(d,
 static uint32_t ttype(int blk, const char *suffix) { const hold_tensor *t = hold_find(&ar[0], tn(blk, suffix)); if (!t) { fprintf(stderr, "no %s\n", tname); exit(1); } return t->type; }
 static CUdeviceptr dalloc(size_t bytes) { CUdeviceptr p; CK(cuMemAlloc(&p, bytes)); CK(cuMemsetD8(p, 0, bytes)); return p; }
 
+static int model_tensor_layout(int die, const char *name, int rows, int columns, int experts) {
+	const hold_tensor *tensor = hold_find(&ar[die], name);
+	if (!tensor || tensor->rows != rows || tensor->K != columns || tensor->experts != experts ||
+	    ((rows && experts) ? tensor->bytes == 0 : tensor->bytes != 0) ||
+	    tensor->off > ar[die].bytes || tensor->bytes > ar[die].bytes - tensor->off) {
+		fprintf(stderr, "model holder layout mismatch: die %d tensor %s requires rows=%d K=%d experts=%d\n",
+		        die, name, rows, columns, experts);
+		return 1;
+	}
+	return 0;
+}
+
+static int model_projection_layout(int die, const char *name, int rows) {
+	const hold_tensor *tensor = hold_find(&ar[die], name);
+	int sliced = tensor && tensor->type == GG_Q6_K;
+	return model_tensor_layout(die, name, sliced ? 4 * rows : rows, sliced ? 1536 : 6144, 1);
+}
+
+/* A live holder may have been restored with a different split while this job
+ * waited in the FIFO. Check its metadata before allocating test state. */
+static int model_holder_layout(int die, int b0, int b1, int head, int qsa) {
+	split_t split;
+	split_of(&split, die, nd, b0);
+	if (head && (model_tensor_layout(die, "output.weight", split.on, 2560, 1) ||
+	             model_tensor_layout(die, "output_hc_down.weight", split.hdn, 10240, 1) ||
+	             model_tensor_layout(die, "output_hc_up.weight", 4 * 32 * split.cbn, 320, 1) ||
+	             model_tensor_layout(die, "output_hc_norm.weight", 1, 10240, 1))) return 1;
+	for (int block = b0; block < b1; block++) {
+		split_of(&split, die, nd, block);
+#define ML(suffix, rows, columns, experts) model_tensor_layout(die, tn(block, suffix), rows, columns, experts)
+		if (ML("ffn_gate_exps.weight", 640, 2560, split.en) ||
+		    ML("ffn_up_exps.weight", 640, 2560, split.en) ||
+		    ML("ffn_down_exps.weight", 2560, 640, split.en) ||
+		    ML("ffn_gate_shexp.weight", split.shexp ? 640 : 0, 2560, 1) ||
+		    ML("ffn_up_shexp.weight", split.shexp ? 640 : 0, 2560, 1) ||
+		    ML("ffn_down_shexp.weight", split.shexp ? 2560 : 0, 640, 1) ||
+		    ML("ffn_gate_inp_x.weight", 513, 2560, 1) ||
+		    ML("hc_attn_dj.weight", split.djn, 10240, 1) ||
+		    ML("hc_ffn_dj.weight", split.djn, 10240, 1) ||
+		    ML("hc_attn_up.weight", 4 * 32 * split.cbn, 320, 1) ||
+		    ML("hc_ffn_up.weight", 4 * 32 * split.cbn, 320, 1) ||
+		    ML("hc_attn_norm.weight", 1, 10240, 1) ||
+		    ML("hc_ffn_norm.weight", 1, 10240, 1)) return 1;
+		if (BLK_IS_ATTN(block)) {
+			int owner = die == attn_die_of(block);
+			if (ML("attn_q.weight", owner ? 12288 : 0, 2560, 1) ||
+			    ML("attn_k.weight", owner ? 512 : 0, 2560, 1) ||
+			    ML("attn_v.weight", owner ? 512 : 0, 2560, 1) ||
+			    ML("attn_q_norm.weight", 1, 256, 1) ||
+			    ML("attn_k_norm.weight", 1, 256, 1) ||
+			    model_projection_layout(die, tn(block, "attn_output.weight"), split.yn) ||
+			    (qsa && (ML("indexer_x.weight", owner ? 640 : 0, 2560, 1) ||
+			             ML("indexer.q_norm.weight", owner ? 1 : 0, 128, 1) ||
+			             ML("indexer.k_norm.weight", owner ? 1 : 0, 128, 1)))) return 1;
+		} else if (ML("attn_qkv.weight", 128 * (2 * split.nk + split.hn), 2560, 1) ||
+		           ML("attn_gate.weight", 128 * split.hn, 2560, 1) ||
+		           ML("ssm_conv1d.weight", 128 * (2 * split.nk + split.hn), 4, 1) ||
+		           ML("ssm_ab.weight", 2 * split.hn, 2560, 1) ||
+		           ML("ssm_ab.bias", 2 * split.hn, 48, 1) ||
+		           ML("ssm_a", split.hn, 48, 1) ||
+		           ML("ssm_norm.weight", 1, 128, 1) ||
+		           model_projection_layout(die, tn(block, "ssm_out.weight"), split.yn)) return 1;
+		if (block == 1 && (ML("ple_key.weight", split.pkn, 2560, 1) ||
+		                   ML("ple_value.weight", split.yn, 2560, 1) ||
+		                   ML("ple_conv1d.weight", 10240, 4, 1) ||
+		                   ML("ple_norm_key.weight", 1, 10240, 1) ||
+		                   ML("ple_norm_query.weight", 1, 10240, 1) ||
+		                   ML("ple_norm_conv.weight", 1, 10240, 1))) return 1;
+#undef ML
+	}
+	return 0;
+}
+
 static const char *model_inject;
 static int model_inject_reached;
 static int cmpbuf_control(const char *what, const void *ref, CUdeviceptr dev, size_t bytes, int elemsz, const char *control) {
@@ -115,6 +188,17 @@ static int decimal_arg(const char *s, unsigned max, const char *label) {
 	return (int)v;
 }
 
+#include "model_oracle_gpu.h"
+
+static void oracle_gpu_capture(unsigned position, int bad) {
+	if (bad || !model_capture_full_scope || position != model_capture_last || !model_qsa_capture_enabled()) return;
+	for (int layer = 0; layer < MAXB; layer++) if (BLK_IS_ATTN(layer)) {
+		int owner = attn_die_of(layer);
+		CK(cuCtxSetCurrent(ctx[owner]));
+		model_qsa_capture_emit(owner, layer, position, model_qdev[owner][layer].sel);
+	}
+}
+
 int main(int argc, char **argv) {
 	setvbuf(stdout, NULL, _IOLBF, 0);
 	if (argc < 7) { fprintf(stderr, "usage: model_test <fullcache> <b0> <b1> <T> <flags: e h -> <manifest0> [manifest1 ...]\n"); return 2; }
@@ -125,6 +209,8 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "flags must contain e, h, l, or be -\n"); return 2;
 	}
 	int notwin = getenv("MODEL_NOTWIN") != NULL;
+	int oracle_mode = getenv("MODEL_ORACLE_RECORDS") != NULL;
+	int compute_twin = !notwin && !oracle_mode;
 	const char *attn_mode = getenv("MODEL_ATTN") ? getenv("MODEL_ATTN") : "dense";
 	if (strcmp(attn_mode, "dense") && strcmp(attn_mode, "qsa")) {
 		fprintf(stderr, "MODEL_ATTN must be dense or qsa\n"); return 2;
@@ -189,6 +275,13 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "QSA comparison needs identical teacher-forced IDs at all %d positions; MODEL_IDS supplied %d. Use MODEL_NOTWIN for separate free-running smoke/timing.\n", T, nprompt); return 2;
 	}
 	model_capture_last = (unsigned)T - 1;
+	int oracle_full_scope = model_qsa && !notwin && b0 == 0 && b1 == MAXB &&
+		do_embed && do_head && nd == MAXD && nprompt == T &&
+		getenv("MODEL_IDS") && *getenv("MODEL_IDS");
+	if (oracle_mode && !oracle_full_scope) {
+		fprintf(stderr, "MODEL_ORACLE_RECORDS requires all 48 blocks, embedding, full head, six dies and explicit teacher-forced IDs\n");
+		return 2;
+	}
 	model_capture_full_scope = model_qsa && !notwin && !model_inject &&
 		b0 == 0 && b1 == MAXB && do_embed && do_head && nd == MAXD &&
 		getenv("MODEL_IDS") && *getenv("MODEL_IDS");
@@ -213,6 +306,7 @@ int main(int argc, char **argv) {
 			fprintf(stderr, "duplicate physical die %d in model manifests\n", physical_dies[d]); return 2;
 		}
 	}
+	if (oracle_mode && oracle_gpu_open(ids, (unsigned)T, eps, physical_dies)) return 2;
 	CK(cuInit(0));
 	CUmodule mod[MAXD]; CUfunction fn[MAXD];
 	for (int d = 0; d < nd; d++) {
@@ -222,6 +316,7 @@ int main(int argc, char **argv) {
 		CUdevice dev; if (hold_ordinal(die) < 0) { fprintf(stderr, "die %d is not in CUDA_VISIBLE_DEVICES\n", die); return 1; } CK(cuDeviceGet(&dev, hold_ordinal(die)));
 		CK(cuCtxCreate_v2(&ctx[d], CU_CTX_SCHED_SPIN, dev));
 		if (hold_open(&ar[d], argv[6 + d])) return 1;
+		if (model_holder_layout(d, b0, b1, do_head, model_qsa)) return 2;
 		CK(cuModuleLoad(&mod[d], "die.cubin")); CK(cuModuleGetFunction(&fn[d], mod[d], "die"));
 	}
 	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); for (int e = 0; e < nd; e++) if (e != d) CK(cuCtxEnablePeerAccess(ctx[e], 0)); }
@@ -271,7 +366,7 @@ int main(int argc, char **argv) {
 	dn_hweights_t *hwb = calloc(MAXB, sizeof *hwb); hstate_t hs[MAXB]; memset(hs, 0, sizeof hs);
 	dn_hbufs_t *hb = calloc(1, sizeof *hb);
 	hb->logits = malloc(4 * 248320); hb->ids = ids;
-	if (!notwin) {
+	if (compute_twin) {
 		for (int b = b0; b < b1; b++) {
 			dn_hweights_t *w = &hwb[b]; int is_attn = BLK_IS_ATTN(b);
 			if (model_qsa) model_href[b] = calloc(10240, 4);
@@ -428,7 +523,11 @@ int main(int argc, char **argv) {
 		/* the twin runs every token first (its own greedy sequence) */
 		unsigned *tw = calloc((size_t)T + 1, 4);
 		double t0 = now();
-		if (!notwin) for (int t = 0; t < T; t++) {
+		if (oracle_mode) for (int t = 0; t < T; t++) {
+			if (oracle_gpu_next((unsigned)t, ids[t])) return 2;
+			tw[t] = oracle_gpu_predictions[t];
+		}
+		if (compute_twin) for (int t = 0; t < T; t++) {
 			unsigned idt = t < nprompt ? ids[t] : tok_twin;
 			if (do_embed) embed_gpu(&hwb[0], hb, idt);
 			for (int b = b0; b < b1; b++) {
@@ -465,6 +564,7 @@ int main(int argc, char **argv) {
 			prog_token_end(&P[d], &xc[d], d, nd, db[d].S);
 			if (model_qsa) model_assert_program(&P[d], d, b0, b1);
 			nph[d] = (unsigned)P[d].n;
+			if (nph[d] > 4096) { fprintf(stderr, "program too long (%u phases)\n", nph[d]); return 1; }
 			CK(cuCtxSetCurrent(ctx[d]));
 			CK(cuMemcpyHtoD(dPROG[d], P[d].p, sizeof(phase_t) * P[d].n));
 		}
@@ -476,7 +576,7 @@ int main(int argc, char **argv) {
 		}
 		for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuCtxSynchronize()); }
 		double t3 = now();
-		printf("%u phases per token; twin %.2f s for %d tokens; dies %.3f ms total = %.3f ms per token\n", nph[0], t1 - t0, T, (t3 - t2) * 1e3, (t3 - t2) * 1e3 / T);
+		printf("%u phases per token; %s %.2f s for %d tokens; dies %.3f ms total = %.3f ms per token\n", nph[0], oracle_mode ? "oracle read" : "twin", t1 - t0, T, (t3 - t2) * 1e3, (t3 - t2) * 1e3 / T);
 		if (getenv("MODEL_PROF")) {   /* die 0, the last token */
 			CK(cuCtxSetCurrent(ctx[0]));
 			uint32_t *ts = malloc(4 * (64 + nph[0])); CK(cuMemcpyDtoH(ts, dCTL[0], 4 * (64 + nph[0])));
@@ -490,7 +590,8 @@ int main(int argc, char **argv) {
 			free(ts);
 		}
 		unsigned *tg = calloc((size_t)T + 1, 4); int bad = 0;
-		if (model_qsa && !notwin) bad += model_compare_layers(b0, b1, (unsigned)T - 1, do_head, hb, db, sp, hs, dst_dn, dst_conv, dst_ple);
+		if (model_qsa && compute_twin) bad += model_compare_layers(b0, b1, (unsigned)T - 1, do_head, hb, db, sp, hs, dst_dn, dst_conv, dst_ple);
+		if (oracle_mode) bad += model_oracle_gpu_compare(&oracle_gpu_record, oracle_full_scope, db, sp, dst_dn, dst_conv, dst_ple) != 0;
 		for (int d = 0; d < nd; d++) {
 			CK(cuCtxSetCurrent(ctx[d]));
 			if (do_head) {
@@ -500,7 +601,12 @@ int main(int argc, char **argv) {
 				if (!notwin) { if (nb) printf("  die %d tokens: %d of %d differ, first at %d (gpu %u twin %u)\n", d, nb, T, first, tg[first], tw[first]); else printf("  die %d tokens: all %d exact\n", d, T); }
 				bad += nb;
 			}
-			if (!notwin) { char nm[16]; snprintf(nm, sizeof nm, "S.%d", d); if (!cmpbuf(nm, hb->S, db[d].S, 4 * 10240, 4)) printf("  %s exact\n", nm); else bad++; }
+			if (compute_twin) { char nm[16]; snprintf(nm, sizeof nm, "S.%d", d); if (!cmpbuf(nm, hb->S, db[d].S, 4 * 10240, 4)) printf("  %s exact\n", nm); else bad++; }
+		}
+		if (oracle_mode) {
+			oracle_gpu_capture((unsigned)T - 1, bad);
+			if (oracle_gpu_finished()) bad++;
+			oracle_gpu_close();
 		}
 		if (do_head) { printf("  tokens:"); for (int t = 0; t < T && t < 40; t++) printf(" %u", tg[t]); printf("%s\n", T > 40 ? " ..." : ""); }
 		if (do_head && nprompt == T && getenv("MODEL_IDS")) {   /* teacher-forced: the prediction at t against the given id at t + 1 */
@@ -523,7 +629,8 @@ int main(int argc, char **argv) {
 		if (t >= nprompt) ids[t] = tok_gpu;   /* the PLE's context sees the generated token */
 		if (pcompact && t >= nprompt) PLE_STAGE(t);   /* and its real PLE rows get staged */
 		double t0 = now();
-		if (!notwin) {
+		if (oracle_mode && oracle_gpu_next((unsigned)t, id)) return 2;
+		if (compute_twin) {
 			unsigned idt = t < nprompt ? ids[t] : tok_twin;
 			if (do_embed) embed_gpu(&hwb[0], hb, idt);
 			for (int b = b0; b < b1; b++) {
@@ -595,8 +702,12 @@ int main(int argc, char **argv) {
 			printf("\n");
 		}
 		int bad = 0;
-		if (model_qsa && !notwin) bad += model_compare_layers(b0, b1, (unsigned)t, do_head, hb, db, sp, hs, dst_dn, dst_conv, dst_ple);
-		if (!notwin) {
+		if (model_qsa && compute_twin) bad += model_compare_layers(b0, b1, (unsigned)t, do_head, hb, db, sp, hs, dst_dn, dst_conv, dst_ple);
+		if (oracle_mode) {
+			bad += model_oracle_gpu_compare(&oracle_gpu_record, oracle_full_scope, db, sp, dst_dn, dst_conv, dst_ple) != 0;
+			oracle_gpu_capture((unsigned)t, bad || fails);
+		}
+		if (compute_twin) {
 			for (int d = 0; d < nd; d++) {
 				CK(cuCtxSetCurrent(ctx[d]));
 				char nm[16]; snprintf(nm, sizeof nm, "S.%d", d);
@@ -604,7 +715,7 @@ int main(int argc, char **argv) {
 				if (do_head) { uint32_t tk[2] = { hb->tok, 0 }; memcpy(&tk[1], &hb->tokmax, 4); snprintf(nm, sizeof nm, "tok.%d", d); bad += cmpbuf(nm, tk, db[d].tokout, 8, 4); }
 			}
 		}
-		printf("token %3d: id %6u -> %6u%s %u phases; twin %.2f s, dies %.3f ms%s\n", t, id, tok_gpu, do_head ? "" : " (no head)", nph[0], t1 - t0, (t3 - t2) * 1e3, bad ? "  MISMATCH" : notwin ? "" : "  exact");
+		printf("token %3d: id %6u -> %6u%s %u phases; %s %.2f s, dies %.3f ms%s\n", t, id, tok_gpu, do_head ? "" : " (no head)", nph[0], oracle_mode ? "oracle read" : "twin", t1 - t0, (t3 - t2) * 1e3, bad ? "  MISMATCH" : notwin ? "" : "  exact");
 		if (bad) fails++;
 		if (t == T - 1 && getenv("MODEL_PROF")) {
 			CK(cuCtxSetCurrent(ctx[0]));
@@ -648,6 +759,10 @@ int main(int argc, char **argv) {
 		free(S);
 	}
 	if (model_inject && !model_inject_reached) { fprintf(stderr, "requested injection was not reached\n"); fails++; }
+	if (oracle_mode) {
+		if (oracle_gpu_finished()) fails++;
+		oracle_gpu_close();
+	}
 	printf("%s: %d of %d tokens %s; mean %.3f ms per token\n", fails ? "FAIL" : "OK", T - fails, T, notwin ? "run" : "exact", tsum / T * 1e3);
 	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); hold_close(&ar[d]); }
 	return fails ? 3 : 0;

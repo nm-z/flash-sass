@@ -1,0 +1,101 @@
+# Offline CPU reference for whole-model QSA
+
+This follow-up addresses [issue #9](https://github.com/nm-z/flash-sass/issues/9).
+It extends the actual-weight model harness with a CUDA-free, resumable scalar
+producer and a GPU consumer. The full-model numerical and request matrices are
+still pending. The CPU API and argument checks below establish their stated
+scope; they do not establish GPU agreement.
+
+## Execution and comparison
+
+`kern/model_oracle.c` executes the existing instruction-order C reference:
+embedding, blocks 0 through 47, block 1's PLE, and the complete output head.
+It uses six logical dies, explicit physical die IDs, production split shares
+`112,97,81,116,97,97`, and attention map
+`1,1,1,1,4,4,4,4,5,5,5,5`. Every position consumes an explicit teacher-forced ID.
+Dense-baseline and free-running measurements remain separate harness modes.
+
+The producer writes one record per position and checkpoints at most 32 positions
+per invocation. Records contain labelled tensor dimensions, data types, byte
+counts and SHA-256 digests. Selected block IDs and prediction tuples also have
+raw payloads. The comparison contract is exact bytes, including F32 and F16
+representations, with contraction disabled during compilation. It is the
+instruction-order reference contract, rather than a tolerance comparison.
+
+The GPU consumer validates the input seal, all record positions, teacher IDs,
+prediction tuples and complete-stream EOF before `cuInit`. It then executes
+the GPU model without executing the scalar model on that path. Per-token
+launches compare each position's complete record. A single launch compares
+every prediction and the final position's stage buffers, because the GPU trace
+slots retain the final position. The consumer rejects nonfinite stream and
+logit outputs even if their bytes would otherwise match.
+
+Coverage includes all die/layer stream outputs, each attention owner's INT8
+KV rows and F16 scales, indexer output/query/ring/pool, scores and selected IDs
+when exclusion is active, canonical compact K/V, softmax partials/output,
+DeltaNet and convolution state, PLE state, all logit slices, and final streams
+and prediction tuples. Missing, duplicate, extra, malformed or differently
+shaped observations fail comparison. Capture of real GPU selected block IDs
+requires the full model, six distinct dies, explicit IDs, no injection and
+actual exclusion. A budget of 512 first excludes at visible length 2052.
+
+## Input identity and persistence
+
+The input seal covers sorted relative source keys and contents, tile metadata
+and contents, both GGUF checkpoint contents, teacher IDs, PLE offset, budget,
+epsilon and topology. The initial CPU verification hashes large inputs. Later
+CPU chunks and the GPU consumer reuse that receipt, rehash the small source
+files, and require the large inputs' recorded sizes and modification times.
+A replacement that preserves those metadata is outside the cached receipt's
+verification contract. The GPU entry point requires an existing nonempty
+receipt and rejects attempts to perform initial large-file hashing there.
+
+`source_revision` is an annotation supplied by the runner. The relative source
+content digest, routed DSH source snapshot/build log, compiler/link flags and
+binary hashes provide the implementation evidence. Queue identity also checks
+the cubin receipt against its SASS/generator inputs and the checked-in MaxAs
+patches. It records CUDA driver, device, holder manifests and model hashes.
+
+Records are flushed and synchronized before a checkpoint is synchronized and
+published with an atomic rename. The CLI synchronizes the containing
+directories. On resume, an incomplete suffix beyond the committed record
+offset is truncated; a record stream shorter than that offset is rejected.
+CPU records and checkpoints live outside GPUQ's captured output directory.
+
+## Remote commands
+
+Use a fresh full-model tile export with all 48 blocks plus embedding and head.
+The existing eight-block export is insufficient. The export and its hashes
+must finish before the producer starts. On Archy the model files are read from
+the existing Sentry NFS model mount. The active export uses two task-owned
+volumes: blocks 0 through 35 plus embedding/head on the HDD build volume, and
+blocks 36 through 47 in the isolated root-filesystem cache. The CPU tensor
+directory links the second part's files and combines their catalogs. Each
+tensor remains a separate file; arena offsets are catalog metadata and do not
+address a shared CPU arena. CPU oracle output defaults to the task's own
+directory on the HDD build volume.
+
+```console
+dsh build --host archy --admission-timeout 60 --require-tool cargo --require-tool cc -- make -f validation/issue9/Makefile oracle-check cpu-check
+dsh build --host archy --admission-timeout 60 --require-tool cargo --require-tool cc -- make -f validation/issue9/Makefile TOKENS=9 BLOCKS=1 ORACLE_CHUNK=4 oracle-chunk
+ssh archy gpuq run -- make -f /home/nate/work/fs9-sol/validation/issue9/Makefile TOKENS=9 BLOCKS=1 HOST_KV=1 model-oracle
+```
+
+Invoke the same CPU chunk target until its structured completion field is true.
+All chunks for one record stream must use the same identities and geometry.
+Copy returned executables into the isolated Archy checkout before queueing GPU
+work. The GPU targets compile nothing. Existing serving holders and services
+stay under their owners' control.
+
+## Measured checks so far
+
+| Evidence | Observed result | Scope |
+| --- | --- | --- |
+| DSH `build-2688266-1792494343255683276` on Archy | 9 public API cases passed; producer and consumer built | Valid raw/digest comparison; one-bit, size, type and shape mismatch; missing, duplicate and extra labels; empty-record rejection. No CUDA execution. |
+| Same routed build | 46 boundary checks passed | Argument/capture/oracle scope and empty/missing receipt rejection before CUDA; positive controls intercepted `cuInit`. No numerical model validation. |
+| GPUQ `796ebc95-d3cc-45dd-ad6b-b25710a895c0` | Failed at the first direct case with illegal instruction | Built with a stale external MaxAs lacking the repository's BRX encoding/relocation patches. This is retained as a failed attempt. |
+| DSH `build-1864214-1792491727574313292` | Patched cubin rebuilt with input receipt | Private MaxAs files match `maxas-patch`; cubin SHA-256 `aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423`. This build result alone is not GPU validation. |
+
+The patched direct matrix, full-model reference/consumer parity, negative
+controls, both KV placements and launch modes, deep production-budget exclusion,
+and full-model request/snapshot reuse remain required before closing #9.

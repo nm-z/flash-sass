@@ -24,6 +24,8 @@ typedef struct {
     const char *nph;
     const char *attn_map;
     const char *capture;
+    const char *oracle_records;
+    const char *oracle_receipt;
     int clear_ids;
 } test_env_t;
 
@@ -97,8 +99,22 @@ static int prepare_environment(const harness_t *h, const test_env_t *overrides) 
         set_or_unset("MODEL_NOTWIN", overrides ? overrides->notwin : NULL) ||
         set_or_unset("MODEL_NPH", overrides ? overrides->nph : NULL) ||
         set_or_unset("MODEL_CAPTURE_QSA", overrides ? overrides->capture : NULL) ||
+        set_or_unset("MODEL_ORACLE_RECORDS", overrides ? overrides->oracle_records : NULL) ||
+        set_or_unset("MODEL_ORACLE_RECEIPT", overrides ? overrides->oracle_receipt : NULL) ||
         setenv("LD_PRELOAD", h->probe_library, 1) ||
         setenv("LD_LIBRARY_PATH", h->loader_path, 1)) return -1;
+    if (overrides && overrides->oracle_records) {
+        static const char *const unused_paths[] = {
+            "MODEL_ORACLE_SOURCE_ROOT", "MODEL_ORACLE_SOURCE_MANIFEST",
+            "MODEL_ORACLE_TILE_MANIFEST", "MODEL_ORACLE_TILE_HASHES",
+            "MODEL_ORACLE_CHECKPOINT_HASHES", "MODEL_ORACLE_PRIMARY", "MODEL_PLE"
+        };
+        for (size_t i = 0; i < sizeof unused_paths / sizeof *unused_paths; i++)
+            if (setenv(unused_paths[i], "/unused-oracle-input", 1)) return -1;
+        if (setenv("MODEL_ORACLE_SOURCE_REVISION", "cpu-boundary-fixture", 1) ||
+            setenv("MODEL_PLE_OFF", "192", 1) ||
+            setenv("SPLIT_SHARES", "112,97,81,116,97,97", 1)) return -1;
+    }
     return 0;
 }
 
@@ -333,6 +349,22 @@ int main(int argc, char **argv) {
     run_case(&h, "capture-invalid-flag", 2, "0", "48", "9", "eh", &capture_invalid_flag, 6, dies012345);
     run_case(&h, "duplicate-physical-manifest", 2, "0", "8", "9", "eh", &no_overrides, 2, die00);
     run_case(&h, "full-capture-positive-control", 99, "0", "48", "9", "eh", &capture_on, 6, dies012345);
+
+    test_env_t oracle = { .oracle_records = "/unused-records", .oracle_receipt = "/dev/null" };
+    run_case(&h, "oracle-partial-blocks", 2, "0", "8", "9", "eh", &oracle, 6, dies012345);
+    run_case(&h, "oracle-one-die", 2, "0", "48", "9", "eh", &oracle, 1, die0);
+    run_case(&h, "oracle-missing-head", 2, "0", "48", "9", "e", &oracle, 6, dies012345);
+    run_case(&h, "oracle-missing-embedding", 2, "0", "48", "9", "h", &oracle, 6, dies012345);
+    oracle.notwin = "1";
+    run_case(&h, "oracle-no-comparison", 2, "0", "48", "9", "eh", &oracle, 6, dies012345);
+    oracle.notwin = NULL;
+    oracle.clear_ids = 1;
+    run_case(&h, "oracle-synthetic-ids", 2, "0", "48", "9", "eh", &oracle, 6, dies012345);
+    oracle.clear_ids = 0;
+    oracle.oracle_receipt = NULL;
+    run_case(&h, "oracle-missing-receipt", 2, "0", "48", "9", "eh", &oracle, 6, dies012345);
+    oracle.oracle_receipt = "/dev/null";
+    run_case(&h, "oracle-empty-receipt", 2, "0", "48", "9", "eh", &oracle, 6, dies012345);
 
     free((void *)h.model_binary);
     free((void *)h.probe_library);
