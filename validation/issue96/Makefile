@@ -52,13 +52,13 @@ cpu-check: $(OUT_DIR)/supervisor_fixture $(OUT_DIR)/supervisor_runner $(OUT_DIR)
 	$(OUT_DIR)/vision_check fixture 4096x4096
 
 # Build first via dsh build. These targets perform no compilation.
-gpu-check:
+gpu-check: identity
 	$(OUT_DIR)/vision_check recover $(ROOT)/kern/flashvis $(MMPROJ) $(TEXT_GGUF) $(IMAGE) $(OUT_DIR)/flashvis_fault.so
 	$(OUT_DIR)/gpu_reference $(MMPROJ) $(TEXT_GGUF) $(IMAGE) $(GPUQ_RUN_DIR)/reference.bin $(LLAMA_BUILD)/bin
 	$(OUT_DIR)/vision_check encode $(ROOT)/kern/flashvis $(MMPROJ) $(TEXT_GGUF) $(IMAGE) 256x256
 	$(OUT_DIR)/vision_check compare $(GPUQ_RUN_DIR)/reference.bin $(GPUQ_RUN_DIR)/embeddings-0.bin
 
-full:
+full: identity
 	$(OUT_DIR)/vision_check encode $(ROOT)/kern/flashvis $(MMPROJ) $(TEXT_GGUF) $(IMAGE) 2048x2048 4096x4096
 
 retained-check:
@@ -70,4 +70,5 @@ identity:
 	$(CC) --version
 	/opt/cuda-11.4/bin/ptxas --version
 	sha256sum $(ROOT)/kern/flashvis $(ROOT)/kern/vis_fa.cubin $(ROOT)/kern/vis_fa.ptx
+	sha256sum $(OUT_DIR)/vision_check $(OUT_DIR)/gpu_reference $(OUT_DIR)/flashvis_fault.so
 	sha256sum $(LLAMA_BUILD)/bin/libmtmd.so $(LLAMA_BUILD)/bin/libllama.so $(LLAMA_BUILD)/bin/libggml-cuda.so
