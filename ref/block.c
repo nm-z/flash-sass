@@ -15,7 +15,12 @@
 
 void gemv_ref_any(uint32_t type, const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *s32, const int32_t *s16, const float *as, float *y) {
 	switch (type) {
-	case GG_Q2_0: gemv_q2_0_ref(tile, rows, K, xq, s32, as, y); break;
+	case GG_Q2_0:
+		if (gemv_q2_0_ref(tile, rows, K, xq, s32, as, y)) {
+			fprintf(stderr, "gemv_ref_any: unsupported Q2_0 shape rows=%d K=%d\n", rows, K);
+			exit(1);
+		}
+		break;
 	case GG_Q4_K: gemv_q4_k_ref(tile, rows, K, xq, s32, as, y); break;
 	case GG_Q5_K: gemv_q5_k_ref(tile, rows, K, xq, s32, as, y); break;
 	case GG_Q3_K: gemv_q3_k_ref(tile, rows, K, xq, as, y); break;
