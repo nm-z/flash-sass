@@ -173,6 +173,7 @@ static uint64_t trace_request;
 static const char *trace_status = "none";
 static uint64_t trace_requested;
 static unsigned trace_completed, trace_aborted, trace_ended;
+#include "../validation/issue109/engine_capture.h"
 /* A malformed run command must replace the preceding trace identity even
  * though it never reaches engine_run. Valid runs advance their own identity. */
 static void trace_reject_arguments(void) {
@@ -355,6 +356,7 @@ static void model_program(prog_t *P, int d, unsigned position, unsigned nprompt,
 	P->stop[0] = stop[0]; P->stop[1] = stop[1]; P->end = dCTL[d] + 0x14;
 	P->samp_k = samp_k; P->samp_topp = topp; P->samp_invT = invT;
 	prog_embed_bcast(P, x, d, nd, embed_die, &dw[d][0], b, 0);
+	capture_tap(P, d, CAP_EMBED, b->S);
 	for (int bb = 0; bb < nlayers_run; bb++) {
 		int phase_first = P->n;
 		dn_bufs_t layer = *b;
@@ -362,9 +364,18 @@ static void model_program(prog_t *P, int d, unsigned position, unsigned nprompt,
 		qsa_bind_layer(&layer, nblk_qsa, dst_kq[d][bb], dst_ks[d][bb], dst_vq[d][bb], dst_vs[d][bb], dst_pkt[d][bb], dst_ring[d][bb]);
 		layer.kv_rawmax = kv_trace && layer.kq
 		    ? d_kv_rawmax[d] + (size_t)((bb - 3) / 4) * (size_t)MAXT * KV_TRACE_WORDS * sizeof(uint32_t) : 0;
-		if (bb == 1) prog_ple_prefix(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
+		if (bb == 1) {
+			prog_ple_prefix(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
+			capture_tap(P, d, CAP_PLE_KN, b->kn);
+			capture_tap(P, d, CAP_PLE_QN, b->qn);
+			capture_tap(P, d, CAP_PLE_G, b->pG);
+			capture_tap(P, d, CAP_PLE_X, b->px);
+			capture_tap(P, d, CAP_PLE_STREAM, b->S);
+		}
 		if (BLK_IS_ATTN(bb)) prog_attn_block(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
 		else prog_deltanet_block(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
+		if (bb == 0) capture_tap(P, d, CAP_BLOCK0, b->S);
+		if (bb == 1) capture_tap(P, d, CAP_BLOCK1, b->S);
 		if (!position) for (int p = phase_first; p < P->n && p < 4096; p++) prof_layer[d][p] = bb;
 	}
 	if (include_head) prog_head(P, &sp[d][0], x, &dw[d][0], b, eps, 0, nprompt);
@@ -663,6 +674,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	for (int i = 0; i < nimg; i++) if (snap_at > imgs[i].s) snap_at = imgs[i].s;   /* the snapshot would not know the image */
 	if (snap_at <= resume) snap_at = 0;
 	if (!resume) snap_s = 0;   /* this response rewrites the attention caches from position 0 */
+	if (capture_begin(T, resume)) { in_run = 0; trace_status = "capture_scope_error"; last_timing.error_code = -5; return -5; }
 	if (ple_disk) {   /* a new id for this response (never 0); the rows of the positions it runs are staged from `resume` on */
 		ple_rid = ple_rid + 1 ? ple_rid + 1 : 1; ple_start = ple_next = resume; ple_short_reads = 0;
 		memcpy(ple_seq, ids, 4 * (size_t)nprompt);
@@ -750,6 +762,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	trace_completed = (unsigned)r.count; trace_aborted = r.aborted != 0; trace_ended = r.ended != 0;
 	trace_status = r.aborted ? "aborted" : "completed";
 	last_positions = r.count; last_paired_positions = r.paired_positions; last_prefill_chunks = r.prefill_chunks;
+	int capture_status = capture_finish(r.count);
 	kv_trace_complete = !r.aborted && r.count == T && resume == 0;
 	if (trace_n && r.count > (int)trace_first) { trace_valid = (unsigned)r.count - trace_first; if (trace_valid > trace_n) trace_valid = trace_n; }
 	if (st) { st->ntok = r.count; st->ended = r.ended; st->nph = nph[0]; st->resumed = resume; st->snapshot = snap_at; st->build_ms = (t1 - timing_request_start) * 1e3; st->run_ms = (t2 - t1) * 1e3; st->first_ms = r.tfirst ? (r.tfirst - t1) * 1e3 : 0; st->paired_positions = r.paired_positions; st->prefill_chunks = r.prefill_chunks; }
@@ -778,6 +791,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	if (prefix) { for (int d = 0; d < nd; d++) prog_free(&prefix[d]); free(prefix); }
 	free(P);
 	in_run = 0;
+	if (capture_status) { trace_status = "capture_error"; last_timing.error_code = -6; return -6; }
 	return 0;
 }
 
@@ -1077,12 +1091,14 @@ int engine_init(core_t *c) {
 	CK(cuCtxSetCurrent(ctx[0]));
 	CK(cuMemAllocHost((void **)&h_ids, 4 * ((size_t)MAXT + 2))); CK(cuMemAllocHost((void **)&h_toks, 4 * ((size_t)MAXT + 2))); CK(cuMemAllocHost((void **)&h_rnd, 4 * ((size_t)MAXT + 2)));
 	CK(cuMemAllocHost((void **)&h_tok, 64)); CK(cuMemHostAlloc((void **)&h_abort, 64, CU_MEMHOSTALLOC_PORTABLE));
+	capture_init();
 	in_init = 0;
 	fprintf(stderr, "engine: %d dies, %d/%d blocks, up to %d positions, %.0f MB of buffers per die, ready in %.1f s\n", nd, nlayers_run, NB, MAXT, (double)alloc_bytes / nd / 1e6, now() - ts0);
 	return 0;
 }
 
 void engine_fini(void) {
+	capture_fini();
 	ple_read_pool_destroy(&ple_reads);
 	ple_cache_path[0]=0;ple_cache_active=0;
 	if (!core) return;
@@ -1224,8 +1240,8 @@ int engine_session(FILE *in, FILE *out) {
 		if (!strncmp(p, "config", 6)) {   /* what this engine is: the identity to attach to a measurement (the commit it was built from, where the KV lives, the layers it runs, the kernel image) */
 			char ad[64] = ""; for (int d = 0; d < nd; d++) if (has_attn[d]) { char one[8]; snprintf(one, sizeof one, "%s%d", ad[0] ? "," : "", d); strncat(ad, one, sizeof ad - strlen(ad) - 1); }
 			const char *sh = getenv("SPLIT_SHARES"), *am = getenv("ATTN_MAP");
-			fprintf(out, "config rev=%s kv_host=%d kv_trace=%d ple_disk=%d ple_readers=%u ple_file=%s ple_cache=%s maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u rope_owner=%d trace_tokens=%u two_position=%d bf16_pair_fuse=%d prefill_chunk=%d attn_q_split=%u attn_q_mask=%x cubin=%s cubin_fnv=%016llx\n",
-			        FLASH_REV, kv_host, kv_trace, ple_disk, ple_disk ? ple_readers : 0, ple_cache_active ? ple_cache_path : "core", ple_cache_path[0] ? ple_cache_path : "core", MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, rope_owner, trace_n, two_position, FLASH_BF16_PAIR_FUSE, prefill_chunk, attn_q_split_mode, attn_q_split_mask, cubin_path, (unsigned long long)cubin_fnv);
+			fprintf(out, "config rev=%s kv_host=%d kv_trace=%d ple_disk=%d ple_readers=%u ple_file=%s ple_cache=%s maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u rope_owner=%d trace_tokens=%u two_position=%d bf16_pair_fuse=%d prefill_chunk=%d attn_q_split=%u attn_q_mask=%x cubin=%s cubin_fnv=%016llx engine_capture=%d\n",
+			        FLASH_REV, kv_host, kv_trace, ple_disk, ple_disk ? ple_readers : 0, ple_cache_active ? ple_cache_path : "core", ple_cache_path[0] ? ple_cache_path : "core", MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, rope_owner, trace_n, two_position, FLASH_BF16_PAIR_FUSE, prefill_chunk, attn_q_split_mode, attn_q_split_mask, cubin_path, (unsigned long long)cubin_fnv, capture_dir >= 0);
 			fflush(out); continue;
 		}
 		if (!strncmp(p, "cubin", 5)) {
@@ -1277,6 +1293,8 @@ int engine_session(FILE *in, FILE *out) {
 		snap_req = 0; npend = 0;
 		if (rc == -3) { fprintf(out, "error: bad image data (a file, a position or too many image tokens)\n"); fflush(out); continue; }
 		if (rc == -4) { fprintf(out, "error: host program allocation failed\n"); fflush(out); continue; }
+		if (rc == -5) { fprintf(out, "error: diagnostic capture scope invalid; model was not run\n"); fflush(out); continue; }
+		if (rc == -6) { fprintf(out, "error: model completed but diagnostic capture failed; request was not replayed\n"); fflush(out); continue; }
 		if (rc == -2) {
 		fprintf(out, "error: device fault; the core rebuilds the contexts and the engine; request=%llu", (unsigned long long)trace_request);
 		trace_status_fields(out); fputc('\n', out); fflush(out); free(line); return 3;

@@ -8,12 +8,12 @@ PAIR_MAXAS := env PATH=/opt/cuda/bin:/usr/bin:/bin perl -I$(MAXAS_ROOT)/lib $(MA
 HOLDER_PIDS ?= $(shell ps -C hold -o pid=,args= | gawk -v gguf='$(GGUF)' -f $(ISSUE109_DIR)/holders.awk)
 
 ifneq ($(GPUQ_JOB_ID),)
-ifneq ($(filter pair-build pair-check ple-build,$(MAKECMDGOALS)),)
+ifneq ($(filter pair-build pair-check ple-build capture-build capture-check,$(MAKECMDGOALS)),)
 $(error Run pair diagnostic builds/checks through dsh build outside gpuq)
 endif
 endif
 
-.PHONY: pair-build pair-check pair-matrix ple-build
+.PHONY: pair-build pair-check pair-matrix ple-build capture-build capture-check capture-gpu
 $(PAIR_OUT):
 	mkdir -p $@
 
@@ -54,3 +54,40 @@ ple-build: kernel-build | $(PAIR_OUT)
 	sha256sum $(ROOT)/kern/die.cubin $(PAIR_OUT)/die-ple-visibility.sass $(ISSUE109_DIR)/ple_visibility.awk
 
 pair-matrix: engine-matrix
+
+CAPTURE_PROG := $(ROOT)/kern/prog.c $(ROOT)/ref/quant.c $(ROOT)/ref/gguf.c $(ROOT)/ref/split.c
+CAPTURE_FLAGS := -std=gnu99 -O2 -ffp-contract=off -Wall -Wextra -Werror -I$(ROOT)/kern -I$(ROOT)/ref -I/opt/cuda/include
+
+$(PAIR_OUT)/xcopy_trace_test: $(ISSUE109_DIR)/xcopy_trace_test.c $(CAPTURE_PROG) | $(PAIR_OUT) oracle-header
+	$(CC) $(CAPTURE_FLAGS) -o $@ $< $(CAPTURE_PROG) -lm
+
+$(PAIR_OUT)/engine_capture_test: $(ISSUE109_DIR)/engine_capture_test.c $(ISSUE109_DIR)/engine_capture.h $(CAPTURE_PROG) | $(PAIR_OUT) oracle-header
+	$(CC) $(CAPTURE_FLAGS) -o $@ $< $(CAPTURE_PROG) -lm
+
+$(PAIR_OUT)/xcopy_trace_gpu: $(ISSUE109_DIR)/xcopy_trace_gpu.c $(CAPTURE_PROG) | $(PAIR_OUT) oracle-header
+	$(CC) $(CAPTURE_FLAGS) -o $@ $< $(CAPTURE_PROG) -lcuda -lm
+
+capture-check: $(PAIR_OUT)/xcopy_trace_test $(PAIR_OUT)/engine_capture_test
+	$(PAIR_OUT)/xcopy_trace_test $(ISSUE109_DIR)/xcopy_trace.sass
+	$(PAIR_OUT)/engine_capture_test
+
+# Only the fresh routed build workspace temporarily substitutes the plain
+# Assembly copy. The original source is restored before receipts are written.
+capture-build: kernel-build $(PAIR_OUT)/xcopy_trace_gpu | $(PAIR_OUT)
+	env --chdir=$(ROOT) sha256sum -c validation/issue109/baseline.sha256
+	cp $(ROOT)/kern/die.cubin $(PAIR_OUT)/baseline.cubin
+	cp $(ROOT)/kern/xcopy.sass $(PAIR_OUT)/xcopy-original.sass
+	cp $(ISSUE109_DIR)/xcopy_trace.sass $(ROOT)/kern/xcopy.sass
+	$(MAKE) -B -C $(ROOT)/kern die.sass
+	cp $(ROOT)/kern/die.sass $(PAIR_OUT)/die-capture.sass
+	cp $(PAIR_OUT)/xcopy-original.sass $(ROOT)/kern/xcopy.sass
+	cp $(ROOT)/kern/skel_die.cubin $(ROOT)/kern/die.cubin
+	$(PAIR_MAXAS) -i $(PAIR_OUT)/die-capture.sass $(ROOT)/kern/die.cubin
+	env --chdir=$(ROOT) sha256sum kern/die.cubin kern/die.sass validation/issue109/xcopy_trace.sass validation/issue109/engine_capture.h validation/issue109/bin/die-capture.sass $(patsubst $(ROOT)/%,%,$(KERNEL_INPUTS)) $(MAXAS_ROOT)/lib/MaxAs/MaxAsGrammar.pm $(MAXAS_ROOT)/lib/MaxAs/MaxAs.pm $(MAXAS_ROOT)/lib/MaxAs/Cubin.pm > $(KERNEL_RECEIPT)
+	$(MAKE) -f $(ISSUE109_DIR)/../issue9/Makefile ENGINE_REVISION=$(ENGINE_REVISION) engine-build
+	$(MAKE) -C $(ROOT)/kern model_test
+	sha256sum $(ROOT)/kern/die.cubin $(ROOT)/kern/libengine.so $(ROOT)/kern/flashcore $(OUT_DIR)/engine_check $(PAIR_OUT)/xcopy_trace_gpu
+
+capture-gpu: identity
+	env --chdir=$(ROOT)/kern CUDA_VISIBLE_DEVICES=6 $(PAIR_OUT)/xcopy_trace_gpu $(ROOT)/kern/die.cubin
+	FLASH_ENGINE_CAPTURE=1 $(MAKE) -f $(ISSUE109_DIR)/Makefile ENGINE_REVISION=$(ENGINE_REVISION) pair-matrix

@@ -1,0 +1,49 @@
+# Kernel: xcopy
+#
+# Diagnostic replacement for kern/xcopy.sass. This is plain SASS source: the
+# only change from the serving copy is an optional position parameter. A zero
+# position preserves the old 40,960-byte copy; nonzero positions select a
+# disjoint trace slice at DST + position * 40,960.
+#
+# Each CTA unit owns 256 threads and each thread copies one 16-byte vector.
+# The diagnostic trace caller bounds positions to 0..15. The byte offset is
+# formed as position * (8192 + 32768), then combined with the original thread
+# offset. Source addressing and LDG.E.CV behavior are unchanged.
+#
+# Params: 0:0x140 SRC  1:0x148 DST  2:0x150 POSITION (optional; zero by default)
+
+<CONSTANT_MAPPING>
+    param_SRC0 : c[0x0][0x140]
+    param_SRC1 : c[0x0][0x144]
+    param_DST0 : c[0x0][0x148]
+    param_DST1 : c[0x0][0x14c]
+    param_POS  : c[0x0][0x150]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0-3   : x<0-3>
+    4     : tid
+    5     : cta
+    6     : off
+    7     : doff
+    8,9   : sp<0-1>
+    10,11 : dp<0-1>
+    12    : pbytes0
+    13    : pbytes1
+</REGISTER_MAPPING>
+
+--:-:6:-:1      S2R tid, SR_TID.X;
+--:-:6:-:1      S2R cta, SR_CTAID.X;
+20:-:-:-:6      ISCADD off, cta, tid, 0x8;
+--:-:-:-:6      SHL off, off, 0x4;
+--:-:-:-:6      IADD sp0.CC, off, param_SRC0;
+--:-:-:-:6      IADD.X sp1, RZ, param_SRC1;
+--:-:2:-:2      LDG.E.CV.128 x0, [sp];
+--:-:-:-:6      SHL pbytes0, param_POS, 0xd;
+--:-:-:-:6      SHL pbytes1, param_POS, 0xf;
+--:-:-:-:6      IADD doff, pbytes0, pbytes1;
+--:-:-:-:6      IADD doff, off, doff;
+--:-:-:-:6      IADD dp0.CC, doff, param_DST0;
+--:-:-:-:6      IADD.X dp1, RZ, param_DST1;
+02:1:-:-:6      STG.E.128 [dp], x0;
+01:-:-:-:f      EXIT;

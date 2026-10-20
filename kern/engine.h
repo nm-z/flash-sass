@@ -19,6 +19,9 @@ typedef struct { int s; char path[240]; } engine_img;
  * many positions (the response then runs as two launches; snap_at <= nprompt - 1), and a later response whose prompt
  * starts with the same tokens resumes from it. Returns -1 on bad sizes, -2 after a CUDA error (the contexts need
  * rebuilding), -3 on bad image data, and -4 if host program allocation fails.
+ * The isolated issue109 capture build also returns -5 for capture scope rejected
+ * before model execution and -6 if the model completed but capture publication
+ * failed. A -6 response has advanced model state and must not be replayed.
  * Images: snapshots stop before the first one. */
 int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], const sampling *sm, int snap_at, const engine_img *imgs, int nimg, const engine_cb *cb, run_stats *st);
 int engine_positions(void);          /* FLASH_MAXT: prompt + reply positions per response */
