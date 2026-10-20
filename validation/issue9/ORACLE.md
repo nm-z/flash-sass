@@ -2,10 +2,11 @@
 
 This follow-up addresses [issue #9](https://github.com/nm-z/flash-sass/issues/9).
 It extends the actual-weight model harness with a CUDA-free, resumable scalar
-producer and a GPU consumer. The full 48-layer, six-die coupled test passed
-at one token; multi-position oracle comparison and request matrices remain
-pending. The evidence below distinguishes actual-model, synthetic-component
-and CPU format checks.
+producer and a GPU consumer. The full 48-layer, six-die actual model matches
+all nine scalar records in both host and VRAM KV per-token runs. Single-launch
+and deep production-budget gates remain pending. The evidence below distinguishes
+actual-model, synthetic-component and CPU format checks, including the separate
+intermittent paired engine failure.
 
 ## Execution and comparison
 
@@ -128,14 +129,19 @@ stay under their owners' control.
 | DSH `build-3745644-1792501584558826668` | Two-thread compiler variant matched the same old record/checkpoint bytes | No performance claim: build conditions/timing domains differ. This experimental variant is not needed for the fresh reference. |
 | GPUQ `16737acb-6900-46fa-8021-e1fa9e6424d9` | Failed before CUDA | Reader rejected `b3.ring` dimensions versus byte count. The producer multiplied the ring size twice by four; the same inspection found reused final-stream dimensions after token tuples. Both are fixed in `36a8246`; fresh records are required. |
 | DSH `build-3758806-1792501690605794907` | 13 API/CLI cases passed | Includes malformed ring-size rejection. The later final-stream dimension fix is exercised by the fresh actual-model producer and full-stream validation. |
+| DSH `build-4061563-1792504281619723007` | Corrected native/chunked and portable/uninterrupted nine-position records and checkpoints match exactly | Each complete stream first passed the production reader on CPU: 9 positions / 8280 items. Source `36a8246`; all actual weights and six-die topology. |
+| GPUQ `ffde89d3-b9bb-4f2f-b08c-4d7844bbbd7f` and `bb7c5913-8f77-4c55-b154-74df7c047aef` | Host and VRAM per-token oracle runs passed | All nine complete records, layer/QSA/recurrent/PLE/logit state and predictions match exactly. Budget-1 exclusion active at 8/9; each run captures real selected IDs from all 12 attention layers at visible length 9. |
 
 Compressed durable database log exports and scope details are in
 [the full-model run record](whole-model-3902787/README.md).
+The corrected source's CPU excerpts, byte identities and GPU logs are in
+[the corrected oracle run record](whole-model-36a8246/README.md).
 Queue trace collection was unavailable for the completed GPU runs because the
 resident engine had no enabled trace producer; it is not reported as zero.
-Multi-position actual-model GPU parity, both KV placements and launch modes,
-deep production-budget exclusion, and full request/snapshot reuse remain
-required before closing #9.
+Single-launch actual-model GPU parity, whole-model injected errors and deep
+production-budget exclusion remain required before closing #9. Both KV
+placements passed per-token comparison. Full request/snapshot reuse has the
+separate intermittent paired failure described below.
 
 ## Private engine request validation
 
