@@ -73,6 +73,7 @@ which adds guarded output and request-time CPU recovery.
 | `78e47aee-d8ca-41b9-924c-3acde3e547a2` | Default CUDA build; one warmup and three measured encodes per backend; malformed image rejection; global and per-token numeric comparison | Queued |
 | `6f761b7b-8c5a-4066-99f0-84cce5a4a8bc` | Invalid device, no visible GPU, reported encode failure, injected NaN, exact CPU recovery output, subsequent CPU request | Queued |
 | `f5151846-89bd-48b2-9458-4b411a67fdb7` | 2048 × 2048 synthetic BMP: real allocation failure and CPU recovery retaining all 4096 image tokens | Queued |
+| `9f9a8d51-2e68-49dd-8227-8a1620b65c0d` | Image question through a private HTTP frontend and image cache, using the existing shared text core | Queued |
 
 The fault interposer is test-only. It is never linked into or loaded by the
 normal daemon. The maximum-size fixture is generated deterministically by the
@@ -89,7 +90,7 @@ gpuq run --name issue96-gpu-image-final -- bash -c '
 '
 ```
 
-Set the three input variables to the paths above (the image is downloaded from
+Export the three input variables to the paths above (the image is downloaded from
 the issue). The recorded job arguments contain the exact paths used.
 `LLAMA_CPP` and `LLAMA_BUILD` can explicitly select another matching build.
 
@@ -98,6 +99,12 @@ llama.cpp headers, then run `validation/issue96/recovery.rb` under `gpuq`
 with arguments `BINARY MMPROJ TEXT_GGUF IMAGE FAULT_SO`. Add `large` to
 exercise the maximum-size image. Exact build/run arguments are retained with
 the recovery jobs.
+
+`validation/issue96/http.sh MMPROJ TEXT_GGUF IMAGE` builds a private HTTP frontend
+and starts a private encoder, with a new image cache and the existing shared
+text core. It reuses `kern/vision_test.sh`, requires a nonempty image answer and
+a CUDA encode, and bounds the request to 300 seconds. The script stops only its
+own encoder/frontend processes on exit.
 
 ```sh
 gpuq logs JOB_ID
