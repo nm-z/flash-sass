@@ -83,6 +83,8 @@ than attributed to the image encoder.
 | `78285269-a28f-4378-ae00-566d918c0fce` | Invalid/absent GPU, malformed input, injected error and NaN | Explicit errors; subsequent GPU FA requests succeed |
 | `b1c3a80a-0caa-482c-8ce1-4466da720162` | Final production build, fault checks and full-size encodes | Inference checks pass; recorder postprocessing fails, as detailed below |
 | `5f77f1c1-a8e5-4177-8ed9-4dc9347cae74` | Changed marker, native abort/error checks, sticky GPU reference and retained tensors | Pass, exit 0 |
+| `162c3cbc-b217-4c62-adca-a9f8ee6d7065` | C-only client migration gate | Interrupted by recorder SQLite lock; capture_failed / exit 70 |
+| `56050c63-1232-49db-8270-a9c5d78f497f` (separate issue96 history) | C-only recovery, dense GPU oracle, screenshot and minimum-size encodes | Pass, succeeded / exit 0 |
 
 The first raw-kernel reference test (`f869d89f-3c9f-47d9-8414-ae3ac2dc75b8`)
 exposed an out-of-range test sample when Nq=1. The corrected test passes. No
@@ -229,9 +231,40 @@ and 4096 fixtures. The production encoder and cubin retain the hashes above.
 The image timings above were collected with the earlier client; migrating the
 checker does not constitute a new full-resolution latency measurement.
 
-The C-only GPU gate is queued as `162c3cbc-b217-4c62-adca-a9f8ee6d7065`.
-It exercises actual GPU error recovery, the independent dense GPU reference,
-and direct screenshot/minimum-size encoding through the new C client.
+The first C-only GPU gate, `162c3cbc-b217-4c62-adca-a9f8ee6d7065`, recorded
+the expected encoder/client identities and the three unavailable-GPU startup
+checks, then GPUQ interrupted the command with SIGTERM. Its storage/capture
+document `48518` reports `SQLite3::BusyException: database is locked`; the job
+is `capture_failed`, exit 70. This is tracked in [issue #102](https://github.com/nm-z/flash-sass/issues/102).
+The client's signal cleanup left no encoder process from that interrupted run.
+
+The replay attempt `bd702439-1f10-43d8-8efb-51ab4f2e4720` and fresh submission
+`b2ac6979-4443-4f3c-a054-91976a721f12` exited before command startup and were
+reconciled to `lost`, tracked in [issue #103](https://github.com/nm-z/flash-sass/issues/103).
+None of these interrupted attempts is counted as a pass.
+
+The unchanged gate **succeeded with exit 0** as
+`56050c63-1232-49db-8270-a9c5d78f497f`, using
+the documented `--db /home/nate/.local/state/gpuq/issue96-history.sqlite3`
+option. Source inspection verifies that this changes history storage while
+retaining the shared `/tmp/gpuq` FIFO tickets and
+`/tmp/flash-sass-engine-validation.lock` GPU mutex. All collectors remain enabled.
+It passed all three unavailable-GPU startup cases and exact malformed,
+over-limit, reported-error, NaN and native-abort rejections. Each image error
+was followed by a successful GPU FA response. The new C client encoded the
+screenshot in 3.555015250 s of host round-trip time and the 256 × 256 fixture
+in 0.196587219 s. Both responses recorded 617 GPU compute operations and 27
+GPU FA dispatches, with finite tensors and verified positions. The screenshot
+tensor and independent dense GPU reference hashes exactly match the earlier
+accepted results, and the unchanged per-token numerical limits pass.
+
+The C client SHA-256 was
+`6472628217029f210f16ccc3f43baa617824c9b040f17a6f1c7a325e03be4ba2`.
+The source revision was `313916b`; the production encoder/cubin identities
+were unchanged. Optional resident-engine/trace collection was unavailable,
+and a process-tree sample missed command exit; waited resource usage and the
+command's output remained recorded. No private encoder process remained after
+the successful gate.
 
 ## Reproduce
 
@@ -245,8 +278,8 @@ The CPU checks below use retained queue artifacts at the recorded paths; set
 ```console
 dsh build --host archy --require-tool cargo --require-tool cc -- make -f /home/nate/work/fs96-sol/validation/issue96/Makefile all cpu-check --artifact vision-artifacts
 scp -r vision-artifacts archy:/home/nate/work/fs96-sol/
-ssh archy gpuq run --name vision-checks-c -- make -f /home/nate/work/fs96-sol/validation/issue96/Makefile OUT_DIR=/home/nate/work/fs96-sol/vision-artifacts gpu-check
-ssh archy gpuq run --name vision-full-c -- make -f /home/nate/work/fs96-sol/validation/issue96/Makefile OUT_DIR=/home/nate/work/fs96-sol/vision-artifacts full
+ssh archy gpuq --db /home/nate/.local/state/gpuq/issue96-history.sqlite3 run --name vision-checks-c -- make -f /home/nate/work/fs96-sol/validation/issue96/Makefile OUT_DIR=/home/nate/work/fs96-sol/vision-artifacts gpu-check
+ssh archy gpuq --db /home/nate/.local/state/gpuq/issue96-history.sqlite3 run --name vision-full-c -- make -f /home/nate/work/fs96-sol/validation/issue96/Makefile OUT_DIR=/home/nate/work/fs96-sol/vision-artifacts full
 ```
 
 The C-only `vision_check encode` command generates deterministic full-size BMPs, checks exact dimensions,
@@ -263,3 +296,4 @@ perform numerical and retained-output checks. The C supervisor runner uses a
 separately compiled mock worker; it invokes no shell or interpreter.
 Retrieve results using `gpuq logs JOB_ID`,
 `gpuq document ID --raw`, `gpuq metrics JOB_ID`, and read-only `gpuq query`.
+Use the same `--db` option for records stored in the separate history file.
