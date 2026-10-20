@@ -9,6 +9,15 @@ controls and deep production-budget gates remain pending. The evidence below dis
 actual-model, synthetic-component and CPU format checks, including the separate
 intermittent paired engine failure.
 
+The current numerical source epoch is `e2ff58f`. Its optional four-worker CPU
+rows match the serial nine-position stream and checkpoint exactly, with 17
+API/CLI checks plus three actual input-rejection controls. The new consumer's
+host/per-token GPU canary also passes all nine complete records. Its remaining
+placements are queued. The complete four-mode matrix at `36a8246` remains
+separately identified evidence. See
+[the current source-epoch record](whole-model-e2ff58f/README.md) and
+[the parallel-row/input-root contract](PARALLEL_ORACLE.md).
+
 ## Execution and comparison
 
 `kern/model_oracle.c` executes the existing instruction-order C reference:
