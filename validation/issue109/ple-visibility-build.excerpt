@@ -1,0 +1,20 @@
+Modified die RegCnt: 2 => 249
+Modified die EIATTR_REGCOUNT: 2 => 249
+Modified die CTAID Offsets: '' => '0010'
+Modified die Exit Offsets: '0098' => '71190,711c8'
+Modified die ParamSecSize: 108 => 120
+Modified die KernelSize: 192 => 463360
+Kernel: die, Instructions: 0, Register Count: 249, Bank Conflicts: 6908, Reuse: 20.3% (13262/65243)
+Modified die RegCnt: 2 => 249
+Modified die EIATTR_REGCOUNT: 2 => 249
+Modified die CTAID Offsets: '' => '0010'
+Modified die Exit Offsets: '0098' => '71198,711d0'
+Modified die ParamSecSize: 108 => 120
+Modified die KernelSize: 192 => 463360
+Kernel: die, Instructions: 0, Register Count: 249, Bank Conflicts: 6908, Reuse: 20.3% (13262/65243)
+PLE_VISIBILITY_STATIC cv_u16_loads=45 expected=45
+a57514187a81a017d7b08da31355182019468514a0e3b6cf0400dd491eca56b9  /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-1215643-1792516366759787392.bXPglf/source/kern/die.cubin
+7f5ee2e841d8985b421ec4762b354b99a37be5643e69af10d6df6e18c45ee925  /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-1215643-1792516366759787392.bXPglf/source/validation/issue109//bin/die-ple-visibility.sass
+744b19ed917f970b8cc214bdfeb622f7fab60bdd31293780f952aadb14b55485  /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-1215643-1792516366759787392.bXPglf/source/validation/issue109//ple_visibility.awk
+dsh build: remote command finished build-1215643-1792516366759787392 status=0
+dsh build: phase: complete; phase elapsed 0s, total elapsed 29s

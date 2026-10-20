@@ -88,3 +88,36 @@ experimental discriminator. Its durable export and report are
 `genbar-8f6d.logs.json.gz` and `genbar-8f6d.results.json`; scalar and failing
 paired child outputs are retained beside both run records. PR #105 retains
 the canonical kernel and continues its independent scalar-oracle work.
+
+## PLE mapped-row visibility discriminator
+
+The next isolated variant addresses a different hypothesis. The CPU stager
+primes one position before launch, then writes mapped-host row payloads and
+release-publishes a per-position ready value while the kernel runs. The PLE
+loader polls ready with `LDG.E.CV`, then reads the payload with ordinary
+`LDG.E.U16` loads. The rows occupy 1440 bytes per position.
+
+The GNU gawk transform validates the unique PLE block, all 45 ordered payload
+loads and their halfword offsets before emitting changed Assembly. It makes
+those payload loads `LDG.E.CV.U16` and adds `MEMBAR.SYS` after the ready wait.
+The Perl generators are unchanged. NVIDIA describes `.cv` as refetching
+system-memory cache lines and states that cache operators do not change memory
+consistency; see the [CUDA 11.4 PTX cache rules](https://docs.nvidia.com/cuda/archive/11.4.4/parallel-thread-execution/index.html#cache-operators).
+The GPU fence and cache change are an experimental discriminator. They do not
+by themselves prove a host/device synchronization contract or the cause of
+the observed request mismatch.
+
+The first routed build request, `build-1194327-1792516174768826308`, was refused
+during staging admission before compilation. The fsync deadline/reporting
+feedback is [DSH #2114](https://github.com/nm-z/nates-dsh/issues/2114).
+Retry `build-1215643-1792516366759787392` exits 0: the stock baseline hash
+matches, the transformed kernel assembles with 249 registers, and disassembly
+contains exactly 45 `LDG.E.CV.U16` loads. The excerpt is retained as
+`ple-visibility-build.excerpt`.
+
+The variant cubin SHA-256 is
+`a57514187a81a017d7b08da31355182019468514a0e3b6cf0400dd491eca56b9`;
+the transform's SHA-256 is
+`744b19ed917f970b8cc214bdfeb622f7fab60bdd31293780f952aadb14b55485`.
+Its queued request control will reuse the matched engine/client binaries and
+explicit engine revision above. GPU results are pending.

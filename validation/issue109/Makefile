@@ -8,12 +8,12 @@ PAIR_MAXAS := env PATH=/opt/cuda/bin:/usr/bin:/bin perl -I$(MAXAS_ROOT)/lib $(MA
 HOLDER_PIDS ?= $(shell ps -C hold -o pid=,args= | gawk -v gguf='$(GGUF)' -f $(ISSUE109_DIR)/holders.awk)
 
 ifneq ($(GPUQ_JOB_ID),)
-ifneq ($(filter pair-build pair-check,$(MAKECMDGOALS)),)
+ifneq ($(filter pair-build pair-check ple-build,$(MAKECMDGOALS)),)
 $(error Run pair diagnostic builds/checks through dsh build outside gpuq)
 endif
 endif
 
-.PHONY: pair-build pair-check pair-matrix
+.PHONY: pair-build pair-check pair-matrix ple-build
 $(PAIR_OUT):
 	mkdir -p $@
 
@@ -39,5 +39,18 @@ pair-build: kernel-build $(PAIR_OUT)/pair_barrier_patch
 pair-check: $(PAIR_OUT)/pair_barrier_patch $(PAIR_OUT)/pair_barrier_test
 	$(MAKE) -B -C $(ROOT)/kern die.sass
 	$(PAIR_OUT)/pair_barrier_test $(PAIR_OUT)/pair_barrier_patch $(ROOT)/kern/die.sass
+
+# Separate PLE visibility experiment; the engine/client artifacts are reused
+# from the matched controls so this variant changes the loaded cubin alone.
+ple-build: kernel-build | $(PAIR_OUT)
+	env --chdir=$(ROOT) sha256sum -c validation/issue109/baseline.sha256
+	cp $(ROOT)/kern/die.cubin $(PAIR_OUT)/baseline.cubin
+	gawk -f $(ISSUE109_DIR)/ple_visibility.awk $(ROOT)/kern/die.sass > $(PAIR_OUT)/die-ple-visibility.sass
+	cp $(ROOT)/kern/skel_die.cubin $(ROOT)/kern/die.cubin
+	$(PAIR_MAXAS) -i $(PAIR_OUT)/die-ple-visibility.sass $(ROOT)/kern/die.cubin
+	/opt/cuda/bin/cuobjdump --dump-sass $(ROOT)/kern/die.cubin > $(PAIR_OUT)/die-ple-visibility.dis
+	gawk '/LDG\.E\.CV\.U16/ {count++} END {printf "PLE_VISIBILITY_STATIC cv_u16_loads=%d expected=45\n", count; if (count != 45) exit 1}' $(PAIR_OUT)/die-ple-visibility.dis
+	env --chdir=$(ROOT) sha256sum kern/die.cubin kern/die.sass validation/issue109/ple_visibility.awk validation/issue109/bin/die-ple-visibility.sass $(patsubst $(ROOT)/%,%,$(KERNEL_INPUTS)) $(MAXAS_ROOT)/lib/MaxAs/MaxAsGrammar.pm $(MAXAS_ROOT)/lib/MaxAs/MaxAs.pm $(MAXAS_ROOT)/lib/MaxAs/Cubin.pm > $(KERNEL_RECEIPT)
+	sha256sum $(ROOT)/kern/die.cubin $(PAIR_OUT)/die-ple-visibility.sass $(ISSUE109_DIR)/ple_visibility.awk
 
 pair-matrix: engine-matrix
