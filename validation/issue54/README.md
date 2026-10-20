@@ -4,7 +4,32 @@ This directory contains the CPU tests and a real six-die resident baseline. It d
 
 ## Validation
 
-`make -C kern die_balance_test` runs the analyzer's synthetic acceptance fixtures and the collector's fake UNIX-socket engine tests. The fake engine exercises pipelined commands/tokens, same-connection profile collection before `done`, error/EOF handling, peer-PID verification, and refusal of a busy lock. Regression tests cover Ruby 3.4 without the optional CSV gem and recognition of flashcore's mapped engine generation. These tests use no CUDA calls or model inference.
+`make -C kern die_balance_test` runs the analyzer's synthetic acceptance fixtures and the collector's fake UNIX-socket engine tests. The fake engine exercises pipelined commands/tokens, same-connection profile collection before `done`, error/EOF handling, peer-PID verification, and waiting for a busy lock. Regression tests cover Ruby 3.4 without the optional CSV gem and recognition of flashcore's mapped engine generation. These tests use no CUDA calls or model inference.
+
+### Queue lease repair, 2026-10-20
+
+The collector now validates and duplicates `gpuq`'s inherited lock descriptor.
+This avoids failing with a busy lock against its own parent reservation. Closing
+the collector's duplicate preserves the parent lease; direct callers wait for
+another owner. Wrong-file descriptors, independent descriptors while another
+owner holds the lock, and incomplete queue environments are rejected.
+
+On engi, `make -C kern die_balance_test` passed **34 tests, 229 assertions**, with
+zero failures, errors, or skips. This includes a separate child process with
+descriptor 9 inherited from a parent holding the lock, plus verification that
+the parent remains locked after child cleanup. `ruby -c
+kern/die_balance_capture.rb` and `git diff --check` also passed.
+
+A real `gpuq run` on engi executed the repaired lease function and verified the
+parent still excluded a separately opened descriptor after collector cleanup:
+job `26ff8777-cbae-4d40-8688-445cad27ac55`, status `succeeded`, exit **0**,
+metric `validation.inherited_lease=true`. The database is
+`/home/nate/codex/flash-drafts-20261020/pr79-queue.sqlite3`; its stdout document
+is **2**. Optional collectors were excluded for this CPU-only lock integration
+check. This does not add or replace any GPU performance measurement below.
+
+The live capture invocation is documented with `gpuq run` and output under
+`$GPUQ_RUN_DIR` in [the experiment procedure](../../docs/die-balance.md).
 
 The original test transcript and source hashes are in `offline-validation.txt`; the continuation is in `offline-validation-resume.txt`. The initial busy-lock observation remains in `shared-host-preflight.txt` as historical evidence.
 

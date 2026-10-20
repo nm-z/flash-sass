@@ -26,6 +26,38 @@ module DieBalanceCapture
     Process.clock_gettime(Process::CLOCK_MONOTONIC)
   end
 
+  # gpuq passes its already-held lease through an inherited descriptor. Duping
+  # that descriptor preserves flock ownership; opening the same path again does
+  # not. Close our duplicate on exit, never explicitly unlock the parent's lease.
+  def validation_lock(path, environment = ENV)
+    job = environment["GPUQ_JOB_ID"]
+    descriptor = environment["GPUQ_LOCK_FD"]
+    if job || descriptor
+      raise CaptureError, "incomplete inherited gpuq lease" if !job || job.empty? || !descriptor
+      raise CaptureError, "invalid gpuq lock descriptor" unless descriptor.match?(/\A\d+\z/)
+      inherited = File.for_fd(Integer(descriptor, 10), autoclose: false)
+      expected = File.stat(path)
+      actual = inherited.stat
+      unless actual.file? && actual.dev == expected.dev && actual.ino == expected.ino
+        raise CaptureError, "inherited gpuq lease does not match #{path}"
+      end
+      lease = inherited.dup
+      unless lease.flock(File::LOCK_EX | File::LOCK_NB)
+        raise CaptureError, "inherited gpuq descriptor does not own the validation lock"
+      end
+      return lease
+    end
+
+    # Direct callers also wait for an existing owner. The documented GPU entry
+    # point is gpuq, which supplies FIFO ordering and durable result capture.
+    lease = File.open(path, File::RDWR | File::CREAT, 0o600)
+    lease.flock(File::LOCK_EX)
+    lease
+  rescue StandardError => error
+    lease&.close
+    raise CaptureError, "cannot acquire validation lease: #{error.message}"
+  end
+
   def line(io, eof_ok: false)
     value = Timeout.timeout(IO_TIMEOUT) { io.gets(MAX_LINE) }
     return nil if !value && eof_ok
@@ -390,8 +422,7 @@ module DieBalanceCapture
     raise CaptureError, "label must not be empty" if options[:label].strip.empty?
     raise CaptureError, "at least three requests are required" unless options[:requests] >= 3
     raise CaptureError, "invalid resident PIDs" unless options[:core_pid] > 1 && options[:flashd_pid] > 1 && options[:core_pid] != options[:flashd_pid]
-    lock = File.open(options[:lock], File::RDWR | File::CREAT, 0o600)
-    raise CaptureError, "validation lock is busy: #{options[:lock]}" unless lock.flock(File::LOCK_EX | File::LOCK_NB)
+    lock = validation_lock(options[:lock])
 
     out = File.expand_path(options[:out])
     Dir.mkdir(out, 0o700)

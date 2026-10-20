@@ -8,18 +8,30 @@ The [2026-10-18 resident baseline](../validation/issue54/baseline-20261018T05320
 
 ## Capture one loaded configuration
 
-Run the collector on the GPU host, with the existing core and front-end PIDs:
+Run the collector through `gpuq` on the GPU host, with the existing core and
+front-end PIDs. Query `gpuq search` for reusable captures before a new run:
 
 ```bash
-ruby kern/die_balance_capture.rb \
-  --out /path/to/new/baseline \
+gpuq run --name die-balance-baseline -- sh -c '
+exec ruby kern/die_balance_capture.rb \
+  --out "$GPUQ_RUN_DIR/baseline" \
   --label baseline \
   --core-pid CORE_PID \
   --flashd-pid FLASHD_PID \
-  --socket /tmp/flash.sock
+  --socket /tmp/flash.sock'
 ```
 
-Use a fresh output directory for every capture. The default shared lock is `/tmp/flash-sass-engine-validation.lock`. A busy lock is a failed capture, not permission to remove the lock file or stop its owner. The collector checks GPU/process state before inference and retains the preflight output.
+Use a fresh output directory for every capture. The default shared lock is
+`/tmp/flash-sass-engine-validation.lock`. The queue waits for its current owner,
+then passes its lease to the collector through `GPUQ_LOCK_FD`. The collector
+validates the descriptor against the requested lock and duplicates it, so it
+does not contend with its own queue reservation or unlock the parent on exit.
+Direct callers also wait, but GPU measurements must use the queue for FIFO
+ordering and retained evidence. Never remove the lock file or stop its owner.
+The collector checks GPU/process state before inference and retains the
+preflight output. Retrieve records with `gpuq logs JOB_ID`, `gpuq metrics JOB_ID`,
+and `gpuq document DOCUMENT_ID`. Text under `$GPUQ_RUN_DIR` is ingested into the
+database; it is not a persistent filesystem capture directory.
 
 The request body is the one in `kern/linkmatrix_test.sh`:
 

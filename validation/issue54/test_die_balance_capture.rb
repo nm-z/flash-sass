@@ -4,6 +4,8 @@ require "minitest/autorun"
 require "tmpdir"
 require "fileutils"
 require "timeout"
+require "open3"
+require "rbconfig"
 require_relative "../../kern/die_balance_capture"
 require_relative "fixtures"
 
@@ -142,19 +144,85 @@ class TestDieBalanceCapture < Minitest::Test
     end
   end
 
-  def test_busy_lock_fails_before_output_or_external_commands
+  def test_busy_standalone_lock_waits_for_its_owner
     lock_path = File.join(@directory, "engine.lock")
-    out = File.join(@directory, "not-created")
+    worker = nil
     File.open(lock_path, "w") do |lock|
       assert lock.flock(File::LOCK_EX | File::LOCK_NB)
-      _stdout, stderr = capture_io do
-        assert_equal 1, DieBalanceCapture.run(["--out", out, "--label", "synthetic",
-          "--core-pid", "123", "--flashd-pid", "124", "--lock", lock_path])
+      entered = Queue.new
+      acquired = Queue.new
+      worker = Thread.new do
+        entered << true
+        lease = DieBalanceCapture.validation_lock(lock_path, {})
+        acquired << true
+      ensure
+        lease&.close
       end
-      assert_includes stderr, "validation lock is busy"
-      refute File.exist?(out)
-      assert lock.flock(File::LOCK_EX | File::LOCK_NB)
+      Timeout.timeout(2) { entered.pop }
+      refute worker.join(0.05), "another owner must retain exclusive access"
+      assert acquired.empty?
+      lock.close
+      Timeout.timeout(2) { worker.value }
+      assert acquired.pop
     end
+  ensure
+    worker&.kill&.join if worker&.alive?
+  end
+
+  def test_queued_collector_reuses_and_preserves_the_inherited_lease
+    lock_path = File.join(@directory, "engine.lock")
+    script = <<~RUBY
+      require #{File.expand_path('../../kern/die_balance_capture', __dir__).inspect}
+      lease = DieBalanceCapture.validation_lock(ARGV.fetch(0))
+      lease.close
+      puts "inherited lease accepted"
+    RUBY
+    File.open(lock_path, "w") do |parent|
+      assert parent.flock(File::LOCK_EX | File::LOCK_NB)
+      out, err, status = Open3.capture3({"GPUQ_JOB_ID" => "synthetic-parent", "GPUQ_LOCK_FD" => "9"},
+        RbConfig.ruby, "-e", script, lock_path, 9 => parent)
+      assert status.success?, err
+      assert_equal "inherited lease accepted\n", out
+      File.open(lock_path, "r+") do |probe|
+        refute probe.flock(File::LOCK_EX | File::LOCK_NB), "collector cleanup must not unlock its parent"
+      end
+    end
+  end
+
+  def test_inherited_descriptor_must_refer_to_the_requested_lock
+    path = File.join(@directory, "engine.lock")
+    wrong = File.join(@directory, "wrong.lock")
+    File.write(path, "")
+    File.open(wrong, "w") do |file|
+      error = assert_raises(DieBalanceCapture::CaptureError) do
+        DieBalanceCapture.validation_lock(path, {"GPUQ_JOB_ID" => "synthetic", "GPUQ_LOCK_FD" => file.fileno.to_s})
+      end
+      assert_match(/does not match/, error.message)
+      refute file.closed?
+    end
+  end
+
+  def test_independent_descriptor_cannot_impersonate_the_owners_lease
+    path = File.join(@directory, "engine.lock")
+    File.open(path, "w") do |owner|
+      assert owner.flock(File::LOCK_EX | File::LOCK_NB)
+      File.open(path, "r+") do |other|
+        assert_raises(DieBalanceCapture::CaptureError) do
+          DieBalanceCapture.validation_lock(path, {"GPUQ_JOB_ID" => "synthetic", "GPUQ_LOCK_FD" => other.fileno.to_s})
+        end
+        refute other.closed?
+      end
+    end
+  end
+
+  def test_incomplete_queue_environment_is_rejected
+    [{"GPUQ_JOB_ID" => "synthetic"}, {"GPUQ_LOCK_FD" => "9"},
+     {"GPUQ_JOB_ID" => "synthetic", "GPUQ_LOCK_FD" => "invalid"}].each do |environment|
+      assert_raises(DieBalanceCapture::CaptureError) do
+        DieBalanceCapture.validation_lock(File.join(@directory, "uncreated.lock"), environment)
+      end
+    end
+    refute File.exist?(File.join(@directory, "uncreated.lock"))
   end
 
   def test_existing_evidence_is_never_overwritten_on_error
