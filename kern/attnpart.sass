@@ -13,8 +13,10 @@
 #   V phase: p for the tile sits in smem [1024][6]; thread (dg = t >> 2, r = t & 3)
 #     accumulates dims 4 dg..4 dg+3 over keys tb + 4 k + r (k in order); the 4 streams
 #     are combined (r0 + r1) + (r2 + r3) at the end of the chunk.
-# Bit-exact twin: ref/attn.c attn_partials_gpu. K/V caches must be zero-filled at
-# allocation and hold >= n + 8192 + 64 positions (the loops' stray prefetches).
+# Bit-exact twin: ref/attn.c attn_partials_gpu. K/V padding may contain arbitrary
+# bits. Readable extents: K round_up(n,1024)+32 blocked positions; V
+# round_up(n,8)+4 positions. n+8192+64 is a sufficient conservative bound.
+# n means the logical key count (computed nn in attnpartn); see ATTENTION_PADDING.md.
 #
 # Params: 0:0x140 QO  1:0x148 KC  2:0x150 VC  3:0x158 PM  4:0x160 PD  5:0x168 PO  6:0x170 n (u32)
 # smem: q 0x0000 (6 KB), p 0x1800 (24 KB), red_max 0x7800 (8 x 32 B), red_den 0x7900
@@ -200,7 +202,7 @@
         for my $i (0..3) { for my $s (0..3) { for my $h (0..5) {
             my $wait = $first ? sprintf("%02x", hex($cw) | 0x08) : '--';
             $first = 0;
-            $o .= sprintf "%s:-:-:-:1      FFMA sacc%02d, q%02d, %s%02d, sacc%02d;\n", $wait, 6 * $s + $h, 4 * $h + (($i + 2) & 3), $cur, 4 * $s + $i, 6 * $s + $h;
+            $o .= sprintf "%s:-:-:-:1  \@P$s FFMA sacc%02d, q%02d, %s%02d, sacc%02d;\n", $wait, 6 * $s + $h, 4 * $h + (($i + 2) & 3), $cur, 4 * $s + $i, 6 * $s + $h;
         } } }
     }
     $o .= "--:-:-:-:6      IADD cnt, cnt, -0x1;\n";
@@ -307,20 +309,23 @@
     $o .= "--:-:-:-:6      SHL t3, t3, 0x3;\n";
     $o .= "--:-:-:-:6      IADD ps, ps, t3;\n";
     $o .= "--:-:-:-:6      IADD ps, ps, 0x1800;\n";
+$o .= "--:-:-:-:6      LOP32I.AND t3, tid, 0x3;\n--:-:-:-:6      IADD t3, t3, tbase;\n";
     $o .= "--:-:-:-:6  \@P4 BRA VDONE;\n";
     # key 0 of each stream -> A (p registers were just stored: wait for the STS reads)
     $o .= "02:3:1:-:1      LDG.E.CI.128 va0, [vp];\n";
     $o .= "--:5:4:-:1      LDS.64 pa0, [ps];\n";
     $o .= "--:5:4:-:1      LDS.64 pa2, [ps+0x8];\n";
     $o .= "--:5:4:-:6      LDS.64 pa4, [ps+0x10];\n";
+    # P0 needs >=18 scheduled cycles before its first FFMA; do not rely on cache misses.
     $o .= "\nVLOOP:\n";
+$o .= "--:-:-:-:6      IADD t2, t3, 4;\n--:-:-:-:6      ISETP.LT.U32.AND P0, PT, t3, param_n, PT;\n--:-:-:-:6      ISETP.LT.U32.AND P1, PT, t2, param_n, PT;\n";
     $o .= "--:3:2:-:1      LDG.E.CI.128 vb0, [vp+0x2000];\n";
     $o .= "--:5:6:-:1      LDS.64 pb0, [ps+0x60];\n";
     $o .= "--:5:6:-:1      LDS.64 pb2, [ps+0x68];\n";
-    $o .= "--:5:6:-:1      LDS.64 pb4, [ps+0x70];\n";
+    $o .= "--:5:6:-:6      LDS.64 pb4, [ps+0x70];\n";
     my $first = 1;
     for my $h (0..5) { for my $i (0..3) {
-        $o .= sprintf "%s:-:-:-:1      FFMA %s, pa%d, va%d, %s;\n", $first ? '09' : '--', $vreg->($h, $i), $h, $i, $vreg->($h, $i);
+        $o .= sprintf "%s:-:-:-:1      \@P0 FFMA %s, pa%d, va%d, %s;\n", $first ? '09' : '--', $vreg->($h, $i), $h, $i, $vreg->($h, $i);
         $first = 0;
     } }
     $o .= "--:3:1:-:1      LDG.E.CI.128 va0, [vp+0x4000];\n";
@@ -329,7 +334,7 @@
     $o .= "--:5:4:-:1      LDS.64 pa4, [ps+0xd0];\n";
     $first = 1;
     for my $h (0..5) { for my $i (0..3) {
-        $o .= sprintf "%s:-:-:-:1      FFMA %s, pb%d, vb%d, %s;\n", $first ? '22' : '--', $vreg->($h, $i), $h, $i, $vreg->($h, $i);
+        $o .= sprintf "%s:-:-:-:1      \@P1 FFMA %s, pb%d, vb%d, %s;\n", $first ? '22' : '--', $vreg->($h, $i), $h, $i, $vreg->($h, $i);
         $first = 0;
     } }
     $o .= "--:-:-:-:6      IADD itc, itc, -0x1;\n";
@@ -337,6 +342,7 @@
     $o .= "04:-:-:-:6      IADD vp0.CC, vp0, 0x4000;\n";
     $o .= "--:-:-:-:6      IADD.X vp1, vp1, RZ;\n";
     $o .= "10:-:-:-:6      IADD ps, ps, 0xc0;\n";
+$o .= "--:-:-:-:6      IADD t3, t3, 8;\n";
     $o .= "--:-:-:-:6  \@P4 BRA VLOOP;\n";
     $o .= "\nVDONE:\n";
     # next tile: kcb advanced 32 KB in the loop, a tile is 2 MB
