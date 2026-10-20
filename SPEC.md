@@ -1634,8 +1634,13 @@ count with predicated lanes); a `PRMT` must be read ≥ 6 cycles after it was is
 
 **Image input.** `flashvis` (`kern/flashvis.c`) keeps libmtmd (a llama.cpp build) and the projector
 `mmproj-BF16.gguf` (ViT 1152 × 27 layers, patch 16, merge 2; `clip.vision.is_deepstack_layers` is all false, so an
-image is just rows of 2560 that replace placeholder embeddings) on the CPU: 6 s for 640 × 480 (300 tokens, a 20 × 15
-grid). `flashd` decodes the request's `image_url` data URLs, caches each image's embeddings under `/var/tmp/flash-img`
+image is just rows of 2560 that replace placeholder embeddings). The initial CPU-only encoder took 6 s for
+640 × 480 (300 tokens, a 20 × 15 grid). `flashvis` now selects the available GPU with the most free memory,
+with CPU fallback if no GPU backend is available or projector initialization fails. `FLASHVIS_DEVICE=cpu`
+forces CPU; a ggml device name selects a specific GPU. Build against matching GPU-enabled llama.cpp headers
+and libraries using `LLAMA_CPP` and `LLAMA_BUILD`. The ready log reports the selected backend, and encode
+timing excludes sending the resulting embeddings to the client. `flashd` decodes the request's `image_url`
+data URLs, caches each image's embeddings under `/var/tmp/flash-img`
 by content hash (the page sends the earlier turns' images again with every question), expands each
 `<|image_pad|>` of the rendered template to one token per row and sends `img <file> <first token>` before `chat`.
 The engine (`prepare_images`) converts the rows to fp16 into `img` on every die, sets `imap[position]`, and

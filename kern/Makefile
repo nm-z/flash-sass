@@ -515,8 +515,9 @@ attnpartn_unitmap: attnpartn_unitmap.c
 
 # ---- the vision encoder daemon (libmtmd from a llama.cpp build; LLAMA_CPP names its tree) ----
 LLAMA_CPP ?= $(HOME)/claude/llama.cpp-up
+LLAMA_BUILD ?= $(LLAMA_CPP)/build
 flashvis: flashvis.c
-	$(CC) -std=gnu99 -O2 -Wall -o $@ flashvis.c -I$(LLAMA_CPP)/include -I$(LLAMA_CPP)/ggml/include -I$(LLAMA_CPP)/tools/mtmd -L$(LLAMA_CPP)/build/bin -lmtmd -lllama -lggml -lggml-base -Wl,-rpath,$(LLAMA_CPP)/build/bin
+	$(CC) -std=gnu99 -O2 -Wall -o $@ flashvis.c -DFLASHVIS_BACKEND_DIR='"$(abspath $(LLAMA_BUILD))/bin"' -I$(LLAMA_CPP)/include -I$(LLAMA_CPP)/ggml/include -I$(LLAMA_CPP)/tools/mtmd -L$(LLAMA_BUILD)/bin -lmtmd -lllama -lggml -lggml-base -Wl,-rpath,$(abspath $(LLAMA_BUILD))/bin
 
 memtest: memtest.c
 	$(CC) -std=gnu99 -O2 -Wall -o $@ memtest.c -I$(CUDA)/include -lcuda

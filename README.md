@@ -134,6 +134,44 @@ MaxAs checkout with `maxas-patch/` applied, Perl, a C compiler, and the model fi
 the six-die split (`SPLIT_SHARES`) are set for the author's machine; read `kern/Makefile`,
 `kern/serve.sh` and `SPEC.md` before expecting it to run elsewhere.
 
+### Image encoder
+
+`flashvis` uses the available GPU with the most free memory by default. This
+keeps image encoding off the CPU when a GPU backend is available, and avoids
+automatically putting the projector on a device already filled by the text model.
+It falls back to CPU when no GPU is available or GPU projector initialization
+fails. Its startup log names the selected backend and any fallback.
+
+Build against a GPU-enabled llama.cpp build, using headers and libraries from
+the same checkout. `LLAMA_BUILD` selects the build directory independently of
+the source tree; `-B` also rebuilds an existing binary when switching builds:
+
+```sh
+make -B -C kern flashvis LLAMA_CPP=/path/to/llama.cpp LLAMA_BUILD=/path/to/llama.cpp/build-cuda
+FLASHVIS_DEVICE=auto ./kern/flashvis /path/to/mmproj.gguf /path/to/text.gguf /tmp/flashvis.sock 10
+```
+
+| `FLASHVIS_DEVICE` | Behavior |
+|---|---|
+| Unset, empty, or `auto` | Select the visible GPU with the most free memory; CPU fallback is available. |
+| `cpu` | Keep the projector and encoding on CPU. |
+| A ggml GPU name, such as `CUDA6` | Select that device; an unavailable name is a startup error. Projector initialization failure retries on CPU. |
+
+CUDA device names reflect `CUDA_VISIBLE_DEVICES` when it is set. The linked
+llama.cpp build must contain a compatible CUDA backend; the old CPU-only build
+continues to work through the CPU fallback. Dynamic backends are discovered in
+the selected build's `bin` directory.
+
+Image decoding/resizing still uses the model's preprocessing. The projector's
+neural-network computation uses the selected backend. Neither image resolution,
+token count nor the embedding/M-RoPE socket protocol is changed.
+
+To compare CPU and automatic GPU encoding on the same uncached image, use
+`kern/flashvis_bench.rb` under `gpuq run`. It records a warmup and three measured
+encodes per backend, checks finite embeddings, identical token dimensions and
+M-RoPE positions, and compares CPU/GPU embeddings. The comparison fails if auto
+mode selected CPU. Timings and diagnostics are retained in the queue database.
+
 Refresh the files from `maxas-patch/` in an existing MaxAs checkout before building
 the direct-dispatch kernel; its BRX encoding and label relocation support are
 required. The default build uses `DIE_DISPATCH=jump`, `GEMV_HC_ROWS=4`, and
