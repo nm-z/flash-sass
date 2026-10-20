@@ -1,178 +1,236 @@
-# Issue #96: GPU image encoding
+# Issue #96: mandatory GPU Flash Attention and full resolution images
 
-Issue: https://github.com/nm-z/flash-sass/issues/96
+[Issue #96](https://github.com/nm-z/flash-sass/issues/96),
+[PR #98](https://github.com/nm-z/flash-sass/pull/98), and the
+[required GPU/FA review](https://github.com/nm-z/flash-sass/pull/98#issuecomment-6285100011).
 
-## Change
+## Implementation
 
-The old daemon forced `cp.use_gpu = false` and its default build linked the
-CPU-only llama.cpp tree. The new default prefers the installed CUDA tree,
-loads its backends explicitly, and selects the visible GPU with the most free
-memory. `FLASHVIS_DEVICE=cpu` and explicit ggml GPU names remain available.
+The service requires a GPU and GPU Flash Attention. CPU mode, CPU retry,
+standard attention and memory-based resolution reduction are removed. Errors
+are reported before publishing or caching a successful embedding response.
+Every actual compute node's buffer is checked against the selected GPU, and
+every FA node must match an observed GPU dispatch.
 
-GPU encoding uses standard attention. The M60 CUDA Flash Attention path produced
-non-finite embeddings in the initial experiment. Disabling that path produced
-finite output; this does not isolate a particular kernel instruction or prove
-FP16 overflow.
+The parent starts before CUDA initialization and fork+execs a persistent GPU
+worker. It buffers complete bounded responses before publishing success. Native
+CUDA aborts, worker EOF, malformed headers and incomplete bodies return an
+explicit worker-termination error. In-band errors are forwarded exactly. The
+worker is retired after any error; a later request creates a new GPU worker.
+There is no automatic resubmission of the failed image. CPU-only protocol
+regressions cover startup exit 2, partial/invalid responses, errors, worker
+replacement and no-replay behavior. The GPU fault test also aborts the native
+FA dispatch once and requires an explicit error followed by a successful new
+GPU request.
 
-Every embedding is checked before the successful response header is sent.
-Reported GPU allocation/encoding errors and non-finite output cause one retry
-from the original image bytes with a fresh CPU context and the original CPU
-attention defaults. The daemon remains on CPU until restarted. Malformed images
-do not cause this transition.
+The installed M60 FA tile kernel fails for a partial KV tile. A finite-input
+operator probe and separate Q/K lengths isolate that failure from preprocessing,
+query tails and upstream model overflow. We have not identified the exact faulty
+instruction in the installed kernel. The service uses its validated GPU FA path
+for KV lengths divisible by 256 and a C/PTX online-softmax GPU FlashAttention
+kernel for the remaining lengths. The choice is made before execution; a runtime
+failure does not trigger another kernel or backend.
 
-For the Qwen3-VL projector, a memory preflight also avoids oversized dense
-attention allocations. It reads the head count and spatial merge size from the
-GGUF, estimates one FP32 attention-score tensor, and keeps half the currently
-free GPU memory for other buffers. This is a conservative heuristic, not a full
-graph-memory bound. Unknown projector families do not use this preflight.
-Backend aborts, including memory races or allocations this estimate misses,
-remain outside the in-process recovery path and require a daemon restart.
+The PTX kernel visits every key using a 16-query × 32-key tile, predicated tails,
+FP32 scores/probabilities/maxima/sums/PV, and online softmax. It allocates no global
+attention matrix or workspace. The tested sm_52 cubin uses 25,376 bytes of shared
+memory per CTA and 86 registers per thread, with zero spills. The installed FA
+kernel manages its own scratch; its workspace/shared/register counts are not
+measured by this adapter.
 
-## Workload and provenance
+The model's published [processor configuration](https://huggingface.co/nopmobiel/Qwen3.8-Flash-Next-MLX-4bit/blob/main/processor_config.json)
+and checked-in `kern/vision/preprocessor_config.json` specify 65,536–16,777,216
+pixels, patch 16 and merge 2. We set 64–16,384 tokens explicitly, raise the
+engine/launcher image capacity, and version the cache namespace. A 4096 × 4096
+input retains 16,384 output tokens and a 128 × 128 M-RoPE grid. Inputs above the
+pixel cap are rejected instead of being downscaled. Normal model patch alignment
+still applies to dimensions that are not multiples of 32.
 
-All runtime checks use Archy through Engi and `gpuq`. The queue database retains
-source snapshots, executable hashes, stdout/stderr and hardware observations.
+## Build and measurement identity
 
-- Archy boot ID: `bfba2bdc-c2d5-4bff-af28-edf8f2bbbedf`.
-- Tesla M60, CUDA device `CUDA6`; CUDA 11.8 runtime, driver 470.256.02.
-- Matching llama.cpp CUDA source/build:
-  `fcac19079f3f2985fe74ed845f0880e7e9a8030a`,
-  `/home/nate/claude/llama.cpp-cuda`.
+- Production code: `7cc72a6` (GPU FA implementation from `8059465`, followed by supervised GPU error handling).
+- Isolated source/build on Archy: `/home/nate/work/fs96-sol`.
+- Installed CUDA llama.cpp source: `fcac19079f3f2985fe74ed845f0880e7e9a8030a`,
+  `/home/nate/claude/llama.cpp-cuda`. Existing CMake changes and binary hashes are
+  recorded by `identity.sh`; the prebuilt C++ libraries are reused.
+- New authored/built code is C11 and PTX assembly. CUDA 11.4 `ptxas` assembles sm_52.
+- GPU: Tesla M60, `CUDA6`, CUDA 11.8 runtime, driver 470.256.02.
 - Projector: `/home/nate/models-hdd-backup/Qwen3.8-Flash-Next-GGUF/mmproj-BF16.gguf`.
 - Text model opened vocab-only:
   `/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf`.
-- Image: issue #96's attachment, 1387 × 452 pixels,
-  SHA-256 `007bb34ed767f38fbd703883af7be07422a84d81db2297cb4489e5a65b8bc013`.
-- Output: 602 image tokens, 43 × 14 grid, 43 sequence positions, width 2560.
+- Issue screenshot: 1387 × 452, SHA-256
+  `007bb34ed767f38fbd703883af7be07422a84d81db2297cb4489e5a65b8bc013`.
+- Direct, private encoder sockets and original file bytes; no image cache.
+- Ten host threads. File decoding and model image preprocessing are host work;
+  all observed projector compute operations and FA operations run on the GPU.
 
-Both production backends use the same binary, library build, projector, image
-bytes and ten CPU threads. The CPU keeps its original Flash Attention default;
-the GPU uses standard attention. The benchmark talks directly to a private
-encoder socket, so an image cache cannot skip encoding.
+The queue database on Archy is the primary record of source snapshots, hashes,
+GPU observations, command output, numerical records and timing records. All
+collectors remain enabled. The unrelated resident text engine is unavailable
+in these runs, and its trace collector errors are recorded as unavailable rather
+than attributed to the image encoder.
 
-## Final latency comparison
+## Current validation records
 
-One warmup and three measured encodes per production backend:
-
-| Host observation | Original CPU configuration | Automatic GPU (`CUDA6`) |
-|---|---:|---:|
-| Warmup encode | 14.075 s | 2.264 s |
-| Median measured encode | 14.038 s | 1.871 s |
-| Median measured image round trip | 14.073923 s | 1.910781 s |
-
-The median image round trip was **7.3655× faster**. Startup, warmup,
-measured encode and socket round trip are separate records. Encode time excludes
-transferring embeddings to the client. This small, shared-host comparison covers
-the image encoder; it does not establish an equivalent improvement in complete
-model TTFT or text generation throughput.
-
-## Numerical checks
-
-The original CPU and GPU configurations use different attention modes. The
-initial per-token comparison exposed that mismatch; forcing cuBLAS FP32 did not
-change the result. The final harness therefore retains the original CPU mode as
-the latency baseline and adds one CPU standard-attention encode as a matching
-numerical reference. Only that reference subprocess uses the test interposer.
-The production CPU fallback retains its original memory-efficient attention.
-
-| GPU comparison against | Global cosine | Global relative L2 | Minimum token cosine | Maximum token relative L2 |
-|---|---:|---:|---:|---:|
-| Original CPU attention | 0.9999651133 | 0.0083736331 | 0.9903172918 | 0.1396311655 |
-| CPU standard attention | 0.9999460855 | 0.0103874508 | 0.9952528243 | 0.0995611796 |
-
-All 1,541,120 output values are finite. Dimensions and M-RoPE positions match
-exactly. Both comparisons require global cosine ≥ 0.99 and relative L2 ≤ 0.1.
-The matching standard-attention comparison additionally applies the unchanged
-cosine ≥ 0.99 and relative L2 ≤ 0.1 limits to every image token. This controls the
-attention-mode difference; it does not establish either backend as mathematical
-ground truth or promise identical downstream answers.
-
-## Recovery and HTTP checks
-
-| Check | Observed result |
-|---|---|
-| Invalid GPU name | Exit status 2 with a clear device error |
-| No visible CUDA GPU | CPU response exactly matches the forced-CPU baseline |
-| One reported GPU encode error | One CPU transition; complete response exactly matches CPU; next request stays on CPU |
-| One injected NaN | No invalid success response; one CPU transition; exact CPU response; next request stays on CPU |
-| Malformed image followed by valid image | Bad input rejected; valid image retains the selected backend |
-| 2048 × 2048 image | Preflight detects a 16,384 MiB score tensor versus 6,560 MiB available; returns all 4,096 image tokens on CPU |
-| Subsequent 64 × 64 image after large-image fallback | Finite CPU response; no second transition |
-| HTTP image question with empty private cache | CUDA6 encode and correct description of the screenshot's CPU/GPU resource monitors |
-
-The maximum-size CPU encode took 259.729 seconds; the complete retry took
-261.808 seconds. Its output shape was `[4096, 64, 64, 64, 2560]`. The guard avoids
-the previously observed 16,936.25 MiB CUDA graph allocation failure without
-reducing image resolution or token count. Large CPU fallback is substantially
-slower than the ordinary-image GPU path.
-
-The final HTTP check used a private encoder/frontend/cache and the existing
-shared text core. It returned 86 completion tokens from 628 prompt tokens, with
-no cached prompt positions. Image encoding took **2.254 seconds** on CUDA6.
-Text-engine prefill took **15.376 seconds (40.84 tokens/s)** and decode measured
-**38.94 tokens/s**. These separate phases explain why removing CPU image
-encoding does not remove the text engine's prefill cost. The serving encoder and
-frontend binaries were not replaced by this check.
-
-The interposer is test-only and is never loaded by the normal service. Its fault
-modes inject one reported error or one NaN; its reference mode changes only CPU
-attention. The maximum-size fixture is a deterministic synthetic BMP, not a
-resized version of the issue attachment.
-
-## Recorded jobs
-
-Final encoder C source is `63a23450ade72531edbc6a0a36629f22eec864ec`.
-The reference interposer and HTTP capture changes are in
-`c84a0448ea3dd56ebdd3a9bf26c93f88587b5fbc`. Benchmark socket names are shortened
-in `de99472` to fit the Unix-socket path limit. Both leave the encoder C source
-unchanged; the final comparison runs on `de99472`.
-
-| Job | Purpose | Result |
+| Queue job | Purpose | Result |
 |---|---|---|
-| `beb622a7-0454-4841-b509-dd31a5f3037f` | Three measured encodes per production backend plus matching-attention numerical reference | Pass |
-| `c516cf32-1584-4740-b92a-ae2197e4a36f` | Invalid device, no GPU, reported error, NaN and subsequent CPU requests | Pass |
-| `5d87781a-b336-409e-aa35-89c5284da0e1` | Real maximum-size image with memory preflight and all 4,096 tokens retained | Pass |
-| `dc105c22-dc3d-499e-9255-31525ea63a55` | HTTP image request through the private frontend and existing core | Pass |
-| `a7002f1f-7a49-4c8f-acd6-9d20420fb76b` | Diagnostic matching-attention CPU/GPU comparison | Pass |
+| `146d9c41-9269-41be-a6b8-639b50208e3f` | First installed GPU FA layer with finite Q/K/V | Reproduces non-finite FA output |
+| `c111c4bd-d403-42de-86d3-093d7a0c9dce` | Installed FA lengths 1024/2048/2304/2408/2432/4096 | Only 2408 fails |
+| `db24b57e-9340-4ef3-93f1-fc7170c7a6d2` | Q=2408/K=2560 versus Q=2432/K=2408 | Isolates the KV tail |
+| `67b8b74f-023a-4c8d-97a7-baae1c53a2b5` | C/PTX FA versus sampled float64 reference, every head, output guards | Pass |
+| `0f0f2d20-d3f7-4020-9156-6fd8a76161f7` | Installed aligned GPU FA versus sampled float64 reference | Pass |
+| `63fbc0f0-901d-4feb-ada5-a55d6b4c1d9e` | Actual placement of all screenshot compute nodes | 617 GPU compute operations, including 27 GPU FA operations |
+| `78285269-a28f-4378-ae00-566d918c0fce` | Invalid/absent GPU, malformed input, injected error and NaN | Explicit errors; subsequent GPU FA requests succeed |
 
-Useful earlier diagnostics remain in the database: `67be441d-7e94-4511-9b8b-77e5fe5da58c`
-exposed non-finite GPU Flash Attention output; `78e47aee-d8ca-41b9-924c-3acde3e547a2`
-exposed the mixed-attention per-token difference; `f5151846-89bd-48b2-9458-4b411a67fdb7`
-exposed the unguarded maximum-size allocation failure. The final benchmark's
-first attempt, `56c31482-c27b-413d-a06a-f50353c582e7`, was interrupted by a recorder
-SQLite lock and is not used for the performance result. The subsequent
-`f33c7d38-dd68-4f67-919f-6cf60c13ac29` attempt exposed a too-long reference socket
-path in the harness; the final run uses the corrected short path.
+The first raw-kernel reference test (`f869d89f-3c9f-47d9-8414-ae3ac2dc75b8`)
+exposed an out-of-range test sample when Nq=1. The corrected test passes. No
+kernel change or tolerance relaxation was needed.
+
+The initial CPU whole-model reference (`acebab20-c7f7-475b-a109-709a6656949f`)
+and comparison (`944ef1d2-b3a6-4509-af15-9b1fa4348cce`) failed the strict per-token
+limits. A CPU F16→F32 K/V promotion experiment (`20e67e2b-b25d-49f7-8823-426b8e908477`)
+produced byte-identical CPU embeddings and also failed. These results do not
+isolate the CPU/GPU numerical difference. They are retained as failed diagnostics
+and are not an acceptance baseline. The separate `gpu_reference.c` executable
+uses independent GPU F32 matrix products and softmax with the same rounded F16
+K/V inputs. It verifies both reference attention matrix products execute on GPU
+in every layer. The production service has no dense-attention mode or fallback.
+Per-token acceptance limits remain cosine ≥ 0.999 and relative L2 ≤ 0.02.
+
+### Kernel numerical checks
+
+`fa_kernel_test.c` tests Q/K lengths 1/1, 13/35, 64/64, 2408/2408 and 13/65536,
+with strided Q/output, finite random F16 K/V, a query scaled by 1024 to exercise
+stable softmax, finite output checks and output allocation guards. Four sampled
+queries in every one of 16 heads are compared with a double-precision softmax
+reference over every key. Maximum observed absolute error: **1.5316 × 10⁻⁶**.
+Acceptance limit: 2 × 10⁻⁴. Guard bytes remain intact.
+
+`fa_native_test.c` tests aligned K lengths with Q/K 13/256, 512/512, 4096/4096,
+16384/16384 and 13/65536 against the same style of double-precision reference.
+Every output is finite. Maximum observed absolute error: **8.56692 × 10⁻⁸**.
+At 16384/16384 the native test measured 1305.010 ms using the host monotonic
+clock around graph execution and synchronization. The earlier C/PTX full-image
+run measured about 3380 ms per layer using CUDA events. These are different
+clock domains and exclude the rest of the projector and socket transfer. The
+adapter's `ms` and `kernel_ms` fields are CUDA event intervals around dispatch;
+they can include host launch gaps and native scratch-allocation delays. They
+measure a dispatch interval, rather than isolated GPU busy time.
+
+## Final image measurements
+
+Final inference used source `7cc72a61511b3ff5ec1e07d438556046de85ed46` on Archy.
+The encoder/client checks completed for every image:
+
+| Input | Output tokens / grid | Encoder encode, host clock | Client + verification, host clock |
+|---|---|---:|---:|
+| Issue screenshot, 1387 × 452 | 602 / 43 × 14 | 3.272 s | 3.526162 s |
+| 2048 × 2048 | 4,096 / 64 × 64 | 42.256 s | 43.837886 s |
+| 4096 × 4096 | 16,384 / 128 × 128 | 595.711 s | 601.261089 s |
+
+For each image the observer recorded **617 GPU compute operations**, including
+**27 GPU FA dispatches**. Every output float was finite and every M-RoPE tuple
+was checked. Encoder encode timing excludes image preprocessing and response
+transfer. Client timing includes transfer, finite/position checks, SHA-256 and
+writing the retained tensor. These measurements follow the fault checks, with
+host/driver caches warm and the image cache bypassed. The first valid screenshot
+encode in an earlier fresh-worker fault case took **56.861 s**; the cause of that
+cold observation was not isolated. Startup/cold behavior remains distinct from
+the measured image sequence above.
+
+The independent GPU dense reference (`b5ad6bf1-031b-4c87-bdae-5a59423aaa5b`)
+verified 779 GPU compute operations, including 27 KQ and 27 PV matrix products.
+Comparison of all 602 output rows passed the unchanged limits:
+
+- Global cosine: **0.999999947215**.
+- Global relative L2: **0.000326004**.
+- Minimum per-token cosine: **0.999994852832** (limit ≥ 0.999).
+- Maximum per-token relative L2: **0.004566204** (limit ≤ 0.02).
+- Maximum absolute component difference: **0.000391201**.
+
+This whole-model reference covers the screenshot. Large-key operator references
+cover every head and up to 65,536 keys; full-size image checks cover all output
+values and positions. We have not run a whole-model float64 reference for the
+4096 × 4096 image.
+
+### VRAM and build identity
+
+GPU6 (`GPU-431371bd-b482-96b2-4b70-04f83c6d075b`) had **3646 MiB** maximum
+observed total device memory use in 637 NVML samples at the recorder's default
+one-second interval; its minimum observed use was 71 MiB. This includes the
+existing small text-core context on that GPU. The adapter's maximum post-FA
+`total-free` sample was **3,823,632,384 bytes** (3646.5 MiB). These are sampled
+device totals, with their sampling scope stated, rather than an isolated-process
+or transient-allocation high-water mark. Other device samples include unrelated
+resident holders and services.
+
+| Artifact | SHA-256 |
+|---|---|
+| `kern/flashvis` | `ca18fb8e9bdfcd0a338b2cb299782495f3d0b4207c4213d975f8a1aa135e9905` |
+| `kern/vis_fa.cubin` | `0d37f7fe72853ecd43862c8b65e383998241955bfaeb38518b090ddcb2027e54` |
+| Installed `libmtmd.so` | `78a1ab2a4aaf235819b3537113709e0ad454b53fdc94814aa77aadcbca7b43e8` |
+| Installed `libllama.so` | `bae4635cff4a280d77ac2a750335fd122ab25ea2560c8f7d1f20d804e0755601` |
+| Installed `libggml-cuda.so` | `58716b3345fcbfa6cc4363a186524c5f752c7c0aa7e992f49d2d8dbe088eb741` |
+
+Compiler: GCC 16.2.1 (20260810), GNU C11. Assembler: CUDA 11.4.152 `ptxas`,
+sm_52. Remote DSH build `build-3488588-1792482507039570892` passed the CPU IPC
+suite and returned artifacts from Archy. The changed test-only oracle and marker
+were built by `build-3588364-1792482907253145470`. Both retain the same production
+encoder/cubin hashes. No local compilation is needed on engi.
+
+### Recorder postprocessing and retained output
+
+The inference/fault command in `b1c3a80a-0caa-482c-8ce1-4466da720162` completed
+all checks and recorded the successful image events above. Its final artifact
+import then failed on an empty O_EXCL fault marker, so the **recorder reports
+exit 70 / failed**. This is retained as a failed recorder job; it is not relabeled
+as a successful queue run. The bug is tracked in [issue #101](https://github.com/nm-z/flash-sass/issues/101).
+The test shim now writes a nonempty marker. A follow-up gate verifies those
+errors with the changed marker, the sticky GPU-reference observer, and the
+retained tensor byte counts, SHA-256 identities and all float values.
+
+| Image | Retained embedding SHA-256 |
+|---|---|
+| Screenshot | `d9b7be627eb9828045805efc651e373127d29850acb11152a7d4c188f1beebab` |
+| 2048 × 2048 | `eb0a3449d67a8265c93ccea9b4206f2af4a2b0c9098e961ac908b8fc6d0c188f` |
+| 4096 × 4096 | `807b537caf63c6e4e9c898e544e36b199f332814e435070f411cc31eb91ba93a` |
+
+Earlier CPU/standard-attention measurements are preserved in
+[HISTORICAL.md](HISTORICAL.md); they do not validate this implementation.
 
 ## Reproduce
 
-From this checkout on Archy, export `LLAMA_CPP`, `MMPROJ`, `TEXT_GGUF` and `IMAGE`
-to the matching CUDA tree and input paths above. Build only the C daemon and C
-test interposer; the existing CUDA llama.cpp libraries are reused:
+Use the pinned installed CUDA libraries. `make -B -C kern flashvis` compiles C
+and assembles the PTX; it does not rebuild llama.cpp. `LLAMA_CPP`/`LLAMA_BUILD`
+select the matching source/build trees.
 
 ```sh
-gpuq run --name issue96-compare -- bash -c '
-  make -B -C kern flashvis &&
-  cc -std=gnu99 -Wall -shared -fPIC \
-    -I"$LLAMA_CPP/include" -I"$LLAMA_CPP/ggml/include" \
-    -I"$LLAMA_CPP/tools/mtmd" validation/issue96/fault.c \
-    -ldl -o kern/flashvis_fault.so &&
-  ruby kern/flashvis_bench.rb kern/flashvis "$MMPROJ" "$TEXT_GGUF" "$IMAGE" 3
+# Route builds and CPU protocol tests to the existing Archy checkout.
+dsh build --host archy --require-tool cargo --require-tool cc -- bash -lc '
+  cd /home/nate/work/fs96-sol &&
+  bash validation/issue96/check.sh --build
 '
 
-gpuq run --name issue96-recovery -- ruby validation/issue96/recovery.rb \
-  kern/flashvis "$MMPROJ" "$TEXT_GGUF" "$IMAGE" kern/flashvis_fault.so
+ssh archy gpuq run --name vision-checks -- bash -c '
+  cd /home/nate/work/fs96-sol &&
+  bash validation/issue96/check.sh "$MMPROJ" "$TEXT_GGUF" issue96.png
+'
 
-gpuq run --name issue96-large -- ruby validation/issue96/recovery.rb \
-  kern/flashvis "$MMPROJ" "$TEXT_GGUF" "$IMAGE" kern/flashvis_fault.so large
-
-gpuq run --name issue96-http -- bash validation/issue96/http.sh \
-  "$MMPROJ" "$TEXT_GGUF" "$IMAGE"
+ssh archy gpuq run --name vision-full -- bash -c '
+  cd /home/nate/work/fs96-sol &&
+  ruby validation/issue96/encode.rb kern/flashvis "$MMPROJ" "$TEXT_GGUF" \
+    issue96.png 2048x2048 4096x4096
+'
 ```
 
-`LLAMA_BUILD` can select another build directory from the same source tree.
-Retrieve evidence with `gpuq logs JOB_ID`, `gpuq metrics JOB_ID` and `gpuq query`.
-Collectors remain enabled. The resident engine has no enabled raw trace producer;
-the recorder marks that trace unavailable, and shared-engine observations are
-not attributed to the encoder workload. The daemon's timing records and the
-harness's socket measurements provide the latency comparison.
+`encode.rb` generates deterministic full-size BMPs, checks exact dimensions,
+checks every output embedding for finiteness, verifies every M-RoPE tuple,
+and records input/output SHA-256 and round-trip time. It stores binary output
+under `$GPUQ_RUN_DIR`. `recovery.rb` verifies rejection of unsupported devices,
+malformed/oversized inputs, a reported encode failure, native GPU abort and a non-finite output,
+then requires another successful GPU FA response on the same daemon.
+The fault interposer is test-only and is not linked into the service.
+
+`identity.sh` records source/dependency commits, compiler versions and executable,
+cubin and installed-library hashes. Retrieve results using `gpuq logs JOB_ID`,
+`gpuq document ID --raw`, `gpuq metrics JOB_ID`, and read-only `gpuq query`.

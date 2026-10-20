@@ -1636,15 +1636,17 @@ count with predicated lanes); a `PRMT` must be read ≥ 6 cycles after it was is
 `mmproj-BF16.gguf` (ViT 1152 × 27 layers, patch 16, merge 2; `clip.vision.is_deepstack_layers` is all false, so an
 image is just rows of 2560 that replace placeholder embeddings). The initial CPU-only encoder took 6 s for
 640 × 480 (300 tokens, a 20 × 15 grid). `flashvis` now selects the available GPU with the most free memory,
-with CPU fallback if no GPU backend is available or projector initialization fails. Standard attention avoids
-the non-finite output observed with M60 CUDA Flash Attention. Reported GPU encoding/allocation errors or
-non-finite embeddings trigger a fresh CPU context and one retry of the original image, with CPU retained
-until restart. Output is checked before publication. See [issue #96 validation](validation/issue96/README.md).
-`FLASHVIS_DEVICE=cpu`
-forces CPU; a ggml device name selects a specific GPU. Build against matching GPU-enabled llama.cpp headers
-and libraries using `LLAMA_CPP` and `LLAMA_BUILD`. The ready log reports the selected backend, and encode
-timing excludes sending the resulting embeddings to the client. `flashd` decodes the request's `image_url`
-data URLs, caches each image's embeddings under `/var/tmp/flash-img`
+with mandatory GPU Flash Attention. A C/PTX online-softmax FA kernel handles partial KV tiles that fail in
+the installed M60 tile kernel; aligned KV lengths use the validated installed GPU FA implementation.
+There is no CPU mode, CPU retry, standard-attention path, or runtime-error kernel retry. Every compute
+node's GPU placement and every actual FA dispatch are checked, and embeddings are checked for finite
+values before publication. The image policy is explicitly 64–16,384 tokens (65,536–16,777,216 pixels),
+preserving the full 4096 × 4096 case. Inputs above the model's pixel limit are errors rather than downscaled.
+`FLASHVIS_DEVICE` selects a GPU; no available GPU is a startup error. Build against matching installed CUDA
+llama.cpp headers/libraries using `LLAMA_CPP` and `LLAMA_BUILD`; see [issue #96 validation](validation/issue96/README.md).
+The ready log reports the GPU, and encode timing excludes transferring embeddings to the client.
+`flashd` decodes the request's `image_url`
+data URLs, caches each image's embeddings under `/var/tmp/flash-img` with a `16mp-` filename prefix
 by content hash (the page sends the earlier turns' images again with every question), expands each
 `<|image_pad|>` of the rendered template to one token per row and sends `img <file> <first token>` before `chat`.
 The engine (`prepare_images`) converts the rows to fp16 into `img` on every die, sets `imap[position]`, and
@@ -1653,7 +1655,7 @@ its logical position, an image token (L, L + row, L + col) with L the image's fi
 image continues max(nx, ny) positions after it (interleaved M-RoPE: rope pair p takes axis p mod 3 of (t, y, x),
 `rope.dimension_sections` = [11, 11, 10, 0]; the same table row serves the indexer's query and pooled keys). `embrow`
 takes the image row when `imap` says so. Snapshots of the prefix cache stop before the first image. Capacity:
-`FLASH_MAXIMG` image tokens per response (2,048). The video preprocessor config of the model repo is in
+`FLASH_MAXIMG` image tokens per response (default 16,384, bounded by context capacity for the engine default). The video preprocessor config of the model repo is in
 `kern/vision/`; video frames are not wired in.
 
 **Hardware (2026-10-16).** Die 2 took another uncorrectable ECC error (Xid 48) in its failing band when the first

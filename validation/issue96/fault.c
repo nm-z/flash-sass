@@ -15,6 +15,8 @@ static int claim_fault(void) {
     if (!marker) return 1;
     int fd = open(marker, O_WRONLY | O_CREAT | O_EXCL, 0600);
     if (fd < 0) return 0;
+    /* The recorder's empty-file import bug is tracked separately. */
+    if (write(fd, "claimed\n", 8) != 8) { close(fd); abort(); }
     close(fd);
     return 1;
 }

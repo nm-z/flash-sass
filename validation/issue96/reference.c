@@ -11,10 +11,9 @@
 #include <stdlib.h>
 #include <time.h>
 
-/* The CPU's F16 FA implementation rounds Q and its PV accumulator to F16.
- * Promote the already rounded K/V inputs back to F32 so this oracle matches
- * the GPU path's F32 Q, logits and PV accumulation, with exactly the same
- * F16 K/V values. This changes only the separate test executable. */
+/* Diagnostic CPU promotion experiment. It did not remove the observed
+ * whole-model CPU/GPU difference and is not the GPU FA acceptance oracle.
+ * gpu_reference.c supplies the matched GPU numerical reference. */
 struct ggml_tensor *ggml_flash_attn_ext(struct ggml_context *ctx,
         struct ggml_tensor *q, struct ggml_tensor *k, struct ggml_tensor *v,
         struct ggml_tensor *mask, float scale, float bias, float softcap) {

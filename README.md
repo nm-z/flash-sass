@@ -136,66 +136,65 @@ the six-die split (`SPLIT_SHARES`) are set for the author's machine; read `kern/
 
 ### Image encoder
 
-`flashvis` uses the available GPU with the most free memory by default. This
-keeps image encoding off the CPU when a GPU backend is available, and avoids
-automatically putting the projector on a device already filled by the text model.
-It falls back to CPU when no GPU is available or GPU projector initialization
-fails. Its startup log names the selected backend and any fallback.
+`flashvis` requires a CUDA GPU and GPU Flash Attention. It selects the visible
+GPU with the most free memory, or the ggml GPU name in `FLASHVIS_DEVICE` (for
+example, `CUDA6`). `auto` selects a GPU; it does not select a CPU or disable FA.
+A missing GPU, invalid device, unsupported attention shape, failed GPU encode,
+or non-finite embedding produces an explicit error. There is no CPU mode,
+CPU retry, or standard-attention path in the service.
 
-GPU encoding uses standard attention: the M60 CUDA Flash Attention path returned
-non-finite embeddings during validation. If the backend reports an encoding or
-allocation failure, or returns non-finite embeddings, `flashvis` frees the GPU
-context and retries the original image with a fresh CPU context. It stays on CPU
-until restarted and logs that transition. Invalid image files do not trigger this
-switch. This recovery covers reported errors; a backend process abort still
-requires a daemon restart. Successful responses contain only finite embeddings.
+A parent process starts before CUDA initialization and supervises a persistent
+fork+exec GPU worker. It buffers the complete successful response before
+publishing it. A native CUDA abort, truncated response or worker EOF returns
+`err GPU encoder worker terminated` for that image. The image is not resubmitted.
+After an error, the next request starts a fresh GPU worker.
 
-For Qwen3-VL projectors, a conservative memory check also sends oversized images
-to CPU before attempting a dense GPU attention allocation. It reads the head
-count and spatial merge size from the projector GGUF and reserves half the
-currently free GPU memory for other buffers. This handles the maximum-size
-image tested on Archy without reducing its 4096 image tokens. It does not predict
-every allocation or protect against another process consuming memory afterward.
+The M60's installed FA tile kernel fails with a partial KV tile. The encoder
+uses a C/PTX online-softmax FlashAttention kernel for those lengths and the
+validated installed GPU FA kernel for KV lengths divisible by 256. This is a
+fixed choice by tensor shape; execution errors do not change kernels. Both
+paths visit every key and use GPU Flash Attention. The PTX path keeps tile
+scores, probabilities, maxima, sums and PV accumulators in FP32 and does not
+allocate a global attention matrix. A graph callback checks every compute
+operation's actual GPU buffer and verifies that each FA operation reached the
+required dispatch. Output is checked for finite values before publication.
 
-Build against a GPU-enabled llama.cpp build, using headers and libraries from
-the same checkout. The default prefers `~/claude/llama.cpp-cuda` when its CUDA
-library is installed, otherwise it uses `~/claude/llama.cpp-up`. `LLAMA_BUILD`
-selects the build directory independently of
-the source tree; `-B` also rebuilds an existing binary when switching builds:
+The encoder uses the model's 65,536–16,777,216 pixel preprocessing policy:
+64–16,384 image tokens with patch size 16 and spatial merge size 2. A
+4096 × 4096 image produces all 16,384 tokens and a 128 × 128 M-RoPE grid.
+The model's patch alignment still applies. Inputs above 16,777,216 pixels are
+rejected explicitly. Image resolution and token counts are not reduced to fit
+GPU memory. `FLASH_MAXIMG` defaults to 16,384 tokens per response (bounded by
+context capacity in the engine's default); this is an aggregate limit across
+images. Cached embeddings use a new `16mp-` filename prefix so entries produced
+with the previous resolution limit are not reused.
+
+The C adapter targets the installed llama.cpp CUDA ABI at
+`fcac19079f3f2985fe74ed845f0880e7e9a8030a`. Build using headers and libraries
+from that checkout; the prebuilt libraries are reused. The default tree is
+`~/claude/llama.cpp-cuda`; `LLAMA_CPP` and `LLAMA_BUILD` select another matching
+source/build directory. A CUDA 11.4 `ptxas` assembles `vis_fa.cubin` for sm_52.
+The binary records its build's absolute module/backend paths, so rebuild it
+when moving the checkout. A changed dependency ABI fails the FA dispatch check.
 
 ```sh
 make -B -C kern flashvis LLAMA_CPP=/path/to/llama.cpp LLAMA_BUILD=/path/to/llama.cpp/build-cuda
-FLASHVIS_DEVICE=auto ./kern/flashvis /path/to/mmproj.gguf /path/to/text.gguf /tmp/flashvis.sock 10
+FLASHVIS_DEVICE=CUDA6 ./kern/flashvis /path/to/mmproj.gguf /path/to/text.gguf /tmp/flashvis.sock 10
 ```
 
-| `FLASHVIS_DEVICE` | Behavior |
-|---|---|
-| Unset, empty, or `auto` | Select the visible GPU with the most free memory; CPU fallback is available. |
-| `cpu` | Keep the projector and encoding on CPU. |
-| A ggml GPU name, such as `CUDA6` | Select that device; an unavailable name is a startup error. Projector initialization failure retries on CPU. |
+`CUDA_VISIBLE_DEVICES` affects the ggml GPU names. Image file decoding and the
+model's image preprocessing run on the host; projector computation and attention
+run on the selected GPU. CUDA graph capture is disabled for the synchronous
+C driver adapter. No setting disables GPU FA or enables CPU execution.
 
-CUDA device names reflect `CUDA_VISIBLE_DEVICES` when it is set. The linked
-llama.cpp build must contain a compatible CUDA backend; the old CPU-only build
-continues to work through the CPU fallback. Dynamic backends are discovered in
-the selected build's `bin` directory.
-
-Image decoding/resizing still uses the model's preprocessing. The projector's
-neural-network computation uses the selected backend. Neither image resolution,
-token count nor the embedding/M-RoPE socket protocol is changed.
-
-To compare CPU and automatic GPU encoding on the same uncached image, use
-`kern/flashvis_bench.rb` under `gpuq run`. It records a warmup and three measured
-encodes per backend, checks finite embeddings, identical token dimensions and
-M-RoPE positions, and checks malformed-image rejection. The latency baseline
-keeps the original CPU attention defaults. A separate CPU encode with standard
-attention supplies the numerical reference for the GPU's standard attention;
-the global and per-token checks use that matching mode. This override lives in
-the test-only `validation/issue96/fault.c` interposer, which must be compiled as
-`kern/flashvis_fault.so` (or supplied as the benchmark's sixth argument).
-Differences from the original CPU attention mode are also recorded.
-The comparison fails if auto mode
-selected CPU or fell back during a request. Timings and diagnostics are retained
-in the queue database. See [the issue #96 validation](validation/issue96/README.md).
+The daemon logs the FA implementation, actual GPU, shape, GPU event interval,
+observed compute/FA counts, and sampled device memory usage. Those device memory
+samples include other allocations on that GPU; they are not an isolated process
+peak. The installed FA kernel's scratch/shared/register counts are unmeasured;
+the C/PTX kernel uses zero global workspace, 25,376 shared bytes and 86 registers
+per thread in the tested build. See [issue #96 validation](validation/issue96/README.md)
+for uncached image timings, numerical references, failure checks, and exact
+queue/build identities. The CPU numerical oracle is a separate test executable.
 
 ### Text engine
 
