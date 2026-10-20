@@ -781,6 +781,8 @@ static void builder_destroy(record_builder_t *b) {
     builder_clear(b); free(b->items); memset(b, 0, sizeof *b);
 }
 
+static int validate_item_layout(const model_oracle_item_t *item, char *err, size_t errcap);
+
 static int builder_add(record_builder_t *b, const char *label, uint32_t layer,
                        uint32_t logical_die, uint32_t physical_die, uint32_t value_type,
                        uint32_t rank, const uint64_t dims[4], const void *bytes,
@@ -801,6 +803,13 @@ static int builder_add(record_builder_t *b, const char *label, uint32_t layer,
     owned->item.layer = layer; owned->item.logical_die = logical_die; owned->item.physical_die = physical_die;
     owned->item.value_type = value_type; owned->item.rank = rank; owned->item.byte_count = byte_count;
     if (dims) memcpy(owned->item.dimensions, dims, sizeof owned->item.dimensions);
+    /* Validate before hashing: an erroneous length must not read beyond the
+     * source tensor or publish a record the consumer cannot accept. */
+    if (keep_raw) {
+        owned->item.raw_bytes = bytes;
+        owned->item.raw_byte_count = byte_count;
+    }
+    if (validate_item_layout(&owned->item, err, errcap) < 0) return -1;
     if (sha256_memory(bytes, (size_t)byte_count, owned->item.sha256, err, errcap) < 0) return -1;
     if (keep_raw && byte_count) {
         owned->raw = malloc((size_t)byte_count);
@@ -1814,7 +1823,7 @@ static int add_qsa_items(model_oracle_t *o, record_builder_t *b, int layer, unsi
     unsigned nkeys = qsa_nkeys(t, o->config.flash_nblk);
     uint64_t d1[4], d2[4];
     int die = attn_die_of(layer);
-    size_t ring_bytes = (size_t)4 * 128 * ((t & 3u) + 1u) * sizeof(float);
+    size_t ring_bytes = (size_t)128 * ((t & 3u) + 1u) * sizeof(float);
     set_dims(d1, 512, 0, 0, 0);
     if (add_formatted_item(o, b, "b%d.kq", layer, die, MODEL_ORACLE_I8, 1, d1,
                            q->kq + (size_t)t * 512, 512, 0, err, errcap) < 0 ||
@@ -1972,10 +1981,10 @@ int model_oracle_run_chunk(model_oracle_t *o, uint32_t max_positions, uint32_t *
         }
         {
             uint64_t dims[4];
-            set_dims(dims, 10240, 0, 0, 0);
             for (unsigned d = 0; d < MODEL_ORACLE_DIES; d++) {
                 int die = (int)d;
                 char label[MODEL_ORACLE_LABEL_BYTES];
+                set_dims(dims, 10240, 0, 0, 0);
                 int n = snprintf(label, sizeof label, "S.%d", die);
                 if (n < 0 || (size_t)n >= sizeof label ||
                     add_layer_item(o, &all, label, -1, die, MODEL_ORACLE_F32, 1,
@@ -2103,18 +2112,21 @@ int main(int argc, char **argv) {
     model_oracle_t *oracle = NULL;
     uint32_t *ids = NULL, processed = 0, physical[MODEL_ORACLE_DIES];
     uint64_t ple_offset, budget, chunk;
-    int full_hash = 0, checkpoint_exists = 0, status = 1;
+    int full_hash = 0, checkpoint_exists = 0, status = 1, validate_only;
     FILE *records = NULL, *receipt = NULL, *checkpoint_in = NULL, *checkpoint_tmp = NULL;
     char error[512] = {0};
     char *checkpoint_next = NULL;
     struct stat st;
     if (argc != 18) {
-        fprintf(stderr, "usage: %s SOURCE_ROOT SOURCE_SHA256_LIST SOURCE_REV TILE_DIR TILE_MANIFEST TILE_SHA256_LIST CHECKPOINT_SHA256_LIST PRIMARY_GGUF PLE_GGUF PLE_OFFSET IDS_FILE FLASH_NBLK PHYSICAL_DIES_CSV RECORDS CHECKPOINT RECEIPT CHUNK_POSITIONS\n", argv[0]);
+        fprintf(stderr, "usage: %s SOURCE_ROOT SOURCE_SHA256_LIST SOURCE_REV TILE_DIR TILE_MANIFEST TILE_SHA256_LIST CHECKPOINT_SHA256_LIST PRIMARY_GGUF PLE_GGUF PLE_OFFSET IDS_FILE FLASH_NBLK PHYSICAL_DIES_CSV RECORDS CHECKPOINT RECEIPT CHUNK_POSITIONS|verify\n", argv[0]);
         return 2;
     }
     memset(&cfg, 0, sizeof cfg);
+    validate_only = !strcmp(argv[17], "verify");
+    chunk = 0;
     if (cli_u64(argv[10], UINT64_MAX, &ple_offset) < 0 || cli_u64(argv[12], 4096, &budget) < 0 || !budget ||
-        cli_physical_ids(argv[13], physical) < 0 || cli_u64(argv[17], MODEL_ORACLE_MAX_CHUNK_POSITIONS, &chunk) < 0 || !chunk) {
+        cli_physical_ids(argv[13], physical) < 0 || (!validate_only &&
+        (cli_u64(argv[17], MODEL_ORACLE_MAX_CHUNK_POSITIONS, &chunk) < 0 || !chunk))) {
         fprintf(stderr, "model_oracle: invalid offset, budget, die list or chunk size\n"); return 2;
     }
     if (cli_read_ids(argv[11], &ids, &cfg.token_count) < 0) return 2;
@@ -2131,15 +2143,40 @@ int main(int argc, char **argv) {
     }
     /* Lock before opening the shared receipt or checkpoint. Append mode also
      * preserves an existing stream when no checkpoint has been published. */
-    records = fopen(argv[14], "a+b");
+    records = fopen(argv[14], validate_only ? "rb" : "a+b");
     if (!records) { perror(argv[14]); goto done; }
-    struct flock writer_lock = { .l_type = F_WRLCK, .l_whence = SEEK_SET };
+    struct flock writer_lock = { .l_type = validate_only ? F_RDLCK : F_WRLCK, .l_whence = SEEK_SET };
     if (fcntl(fileno(records), F_SETLK, &writer_lock) < 0) {
         status = cli_fail("record stream is already in use or cannot be locked", strerror(errno));
         goto done;
     }
-    receipt = fopen(argv[16], "a+b");
+    receipt = fopen(argv[16], validate_only ? "rb" : "a+b");
     if (!receipt) { perror(argv[16]); goto done; }
+    if (validate_only) {
+        model_oracle_reader_t *reader = NULL;
+        model_oracle_record_t record;
+        uint64_t positions = 0, items = 0;
+        int result;
+        if (model_oracle_verify_inputs_from_receipt(&cfg, receipt, &identity, error, sizeof error) < 0 ||
+            model_oracle_reader_open(&reader, records, &identity, error, sizeof error) < 0) {
+            status = cli_fail("record validation failed", error); goto done;
+        }
+        while ((result = model_oracle_reader_next(reader, &record, error, sizeof error)) > 0) {
+            if (record.teacher_id != ids[record.position]) {
+                oracle_error(error, sizeof error, "teacher ID differs at position %" PRIu64, record.position);
+                result = -1;
+                break;
+            }
+            positions++;
+            items += record.item_count;
+        }
+        model_oracle_reader_close(reader);
+        if (result < 0) { status = cli_fail("record validation failed", error); goto done; }
+        printf("MODEL_ORACLE_VERIFIED positions=%" PRIu64 " items=%" PRIu64 " source_revision=%s\n",
+               positions, items, identity.source_revision);
+        status = 0;
+        goto done;
+    }
     if (model_oracle_verify_inputs(&cfg, receipt, &identity, &full_hash, error, sizeof error) < 0) {
         status = cli_fail("input verification failed", error); goto done;
     }

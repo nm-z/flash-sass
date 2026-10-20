@@ -224,6 +224,18 @@ int main(int argc, char **argv) {
     empty.items = NULL;
     failed += compare_case("empty record rejected", &empty, NULL, 0, -1, NULL);
 
+    /* The producer once multiplied the ring's byte count twice by sizeof(float).
+     * Reject that malformed expected record before touching its payload. */
+    model_oracle_item_t ring = items[1];
+    snprintf(ring.label, sizeof ring.label, "b3.ring");
+    ring.layer = 3;
+    ring.dimensions[0] = 128;
+    ring.byte_count = 4 * 128 * sizeof(float);
+    model_oracle_record_t malformed = record;
+    malformed.item_count = 1;
+    malformed.items = &ring;
+    failed += compare_case("oversized ring byte count rejected", &malformed, NULL, 0, -1, NULL);
+
     if (argc == 2) failed += cli_lock_checks(argv[1]);
     else if (argc != 1) { fprintf(stderr, "usage: %s [MODEL_ORACLE_BINARY]\n", argv[0]); return 2; }
 
