@@ -51,4 +51,40 @@ it reports source revision `11ac712913234331088808284524a11effca7208`.
 The test-only constant removal does not change either production artifact.
 The final receipt also passed verification after copying the artifacts into the
 separate Archy checkout. Build excerpts retain both the initial failure and
-the corrected successful check. GPU results remain pending.
+the corrected successful check.
+
+## Matched stock-kernel control
+
+GPUQ `7ca22683-676f-43c5-b9dd-cf63c78b5152` uses the same engine/client
+artifacts and source revision as the diagnostic, with the stock cubin
+`aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423`.
+Canonical graph profiling overrides are cleared. The six holder PIDs are
+resolved after admission; the serving owner had restored them while the job
+waited, so the original PID list would have been stale.
+
+The control reproduces the intermittent failure: VRAM scalar, VRAM paired and
+host scalar each pass all 16 request checks. Host paired passes eight checks,
+then `save-3-A` has a GPU state fingerprint different from its A reference.
+All four private children exit 0, with no timeout, interruption or signal.
+The matrix therefore exits nonzero. The durable logs and report are retained
+as `matched-stock-7ca2.logs.json.gz` and `matched-stock-7ca2.results.json`.
+This report establishes the fingerprint mismatch; it does not identify the
+first divergent mathematical operation.
+
+## Transformed-kernel result
+
+GPUQ `8f6d8ae4-49ba-445c-9691-f06de1d55589` loads the transformed cubin
+`c2d8fe082adf54dfb35fcd6ef522baa20cf32f9660026ef7a98e40eab6f7e0e8`
+with the same engine/client binaries, declared source revision, profiling
+settings and workload. VRAM scalar passes all 16 requests; VRAM paired passes
+two checks, then `save-1-A` has a different state fingerprint from its A
+reference. Both children exit 0 without a signal, timeout or interruption.
+The runner stops before the host modes after this mismatch.
+
+The extra pair-body grid barrier does not make this request control pass.
+These two failing matrices do not establish that their mathematical divergence
+has the same instruction-level cause. The transform stays isolated as an
+experimental discriminator. Its durable export and report are
+`genbar-8f6d.logs.json.gz` and `genbar-8f6d.results.json`; scalar and failing
+paired child outputs are retained beside both run records. PR #105 retains
+the canonical kernel and continues its independent scalar-oracle work.
