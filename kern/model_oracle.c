@@ -689,23 +689,34 @@ fail:
 }
 
 static int seal_read(FILE *f, model_oracle_identity_t *identity, seal_meta_vector_t *meta,
+                     int *derived, uint8_t *root_sha256,
                      char *err, size_t errcap) {
     char magic[8]; uint32_t version;
+    uint8_t root[32], zero[32] = {0};
     if (fseek(f, 0, SEEK_SET) < 0) return oracle_error(err, errcap, "seek verification receipt: %s", strerror(errno));
     if (read_all(f, magic, sizeof magic, err, errcap) < 0 || memcmp(magic, ORACLE_SEAL_MAGIC, sizeof magic))
         return oracle_error(err, errcap, "invalid verification receipt magic");
-    if (read_u32(f, &version, err, errcap) < 0 || version != MODEL_ORACLE_FORMAT_VERSION)
+    if (read_u32(f, &version, err, errcap) < 0 || (version != 1u && version != 2u))
         return oracle_error(err, errcap, "unsupported verification receipt version");
     if (identity_read(f, identity, err, errcap) < 0 || meta_read(f, meta, err, errcap) < 0) return -1;
+    if (version == 2u) {
+        if (read_all(f, root, sizeof root, err, errcap) < 0) return -1;
+        if (!memcmp(root, zero, sizeof root)) return oracle_error(err, errcap, "derived receipt has an empty full-hash root");
+    } else memset(root, 0, sizeof root);
+    if (fgetc(f) != EOF || ferror(f)) return oracle_error(err, errcap, "verification receipt has trailing data or a read error");
+    if (derived) *derived = version == 2u;
+    if (root_sha256) memcpy(root_sha256, root, sizeof root);
     return 0;
 }
 
 static int seal_write(FILE *f, const model_oracle_identity_t *identity, const seal_meta_vector_t *meta,
+                      const uint8_t *root_sha256,
                       char *err, size_t errcap) {
     if (fseek(f, 0, SEEK_SET) < 0) return oracle_error(err, errcap, "seek verification receipt: %s", strerror(errno));
     if (write_all(f, ORACLE_SEAL_MAGIC, 8, err, errcap) < 0 ||
-        write_u32(f, MODEL_ORACLE_FORMAT_VERSION, err, errcap) < 0 ||
+        write_u32(f, root_sha256 ? 2u : 1u, err, errcap) < 0 ||
         identity_write(f, identity, err, errcap) < 0 || meta_write(f, meta, err, errcap) < 0 ||
+        (root_sha256 && write_all(f, root_sha256, 32, err, errcap) < 0) ||
         fflush(f) == EOF || fsync(fileno(f)) < 0) return oracle_error(err, errcap, "write verification receipt: %s", strerror(errno ? errno : EIO));
     return 0;
 }
@@ -724,7 +735,7 @@ static int verify_inputs_impl(const model_oracle_config_t *config, FILE *verific
     full_hash = length == 0;
     if (full_hash && !allow_full_hash)
         return oracle_error(error, error_capacity, "verification receipt is empty; full hashing is disabled on this path");
-    if (length && seal_read(verification_receipt, &sealed_identity, &sealed_meta, error, error_capacity) < 0) goto done;
+    if (length && seal_read(verification_receipt, &sealed_identity, &sealed_meta, NULL, NULL, error, error_capacity) < 0) goto done;
     if (identity_from_config(config, &current_identity, full_hash, full_hash ? NULL : &sealed_meta,
                              &current_meta, error, error_capacity) < 0) goto done;
     if (!full_hash) {
@@ -740,7 +751,7 @@ static int verify_inputs_impl(const model_oracle_config_t *config, FILE *verific
                 oracle_error(error, error_capacity, "large input metadata differs for %s", current_meta.items[i].key); goto done;
             }
         }
-    } else if (seal_write(verification_receipt, &current_identity, &current_meta, error, error_capacity) < 0) {
+    } else if (seal_write(verification_receipt, &current_identity, &current_meta, NULL, error, error_capacity) < 0) {
         goto done;
     }
     *identity = current_identity;
@@ -770,6 +781,80 @@ int model_oracle_verify_inputs_from_receipt(const model_oracle_config_t *config,
     if (full_hash_performed)
         return oracle_error(error, error_capacity, "cached verification unexpectedly performed full hashing");
     return 0;
+}
+
+int model_oracle_derive_inputs(const model_oracle_config_t *config,
+                               FILE *previous_receipt, FILE *empty_receipt,
+                               model_oracle_identity_t *identity,
+                               uint8_t root_receipt_sha256[MODEL_ORACLE_SHA256_BYTES],
+                               char *error, size_t error_capacity) {
+    model_oracle_identity_t previous, current;
+    seal_meta_vector_t sealed_meta = {0}, current_meta = {0};
+    struct stat old_stat, new_stat, after_stat;
+    uint8_t root_sha256[32], *snapshot = NULL;
+    FILE *snapshot_file = NULL;
+    int rc = -1, derived = 0;
+    if (!config || !previous_receipt || !empty_receipt || !identity)
+        return oracle_error(error, error_capacity, "derive requires config, both receipts and identity output");
+    if (fstat(fileno(previous_receipt), &old_stat) < 0 ||
+        fstat(fileno(empty_receipt), &new_stat) < 0)
+        return oracle_error(error, error_capacity, "stat input receipts: %s", strerror(errno));
+    if (old_stat.st_dev == new_stat.st_dev && old_stat.st_ino == new_stat.st_ino)
+        return oracle_error(error, error_capacity, "derived receipt must not alias its input receipt");
+    if (fseek(empty_receipt, 0, SEEK_END) < 0 || ftell(empty_receipt) != 0)
+        return oracle_error(error, error_capacity, "derived receipt must be empty");
+    if (!S_ISREG(old_stat.st_mode) || old_stat.st_size <= 0 || old_stat.st_size > 8 * 1024 * 1024)
+        return oracle_error(error, error_capacity, "invalid verification receipt size/type for derivation");
+    size_t length = (size_t)old_stat.st_size;
+    snapshot = malloc(length);
+    if (!snapshot) return oracle_error(error, error_capacity, "allocate verification receipt snapshot");
+    if (fseek(previous_receipt, 0, SEEK_SET) < 0) {
+        oracle_error(error, error_capacity, "seek full-hash receipt: %s", strerror(errno)); goto done;
+    }
+    if (read_all(previous_receipt, snapshot, length, error, error_capacity) < 0) goto done;
+    if (fstat(fileno(previous_receipt), &after_stat) < 0) {
+        oracle_error(error, error_capacity, "restat full-hash receipt: %s", strerror(errno)); goto done;
+    }
+    if (old_stat.st_dev != after_stat.st_dev || old_stat.st_ino != after_stat.st_ino ||
+        old_stat.st_size != after_stat.st_size || stat_mtime_ns(&old_stat) != stat_mtime_ns(&after_stat) ||
+        old_stat.st_ctim.tv_sec != after_stat.st_ctim.tv_sec || old_stat.st_ctim.tv_nsec != after_stat.st_ctim.tv_nsec) {
+        oracle_error(error, error_capacity, "verification receipt changed during snapshot"); goto done;
+    }
+    if (sha256_memory(snapshot, length, root_sha256, error, error_capacity) < 0) goto done;
+    snapshot_file = fmemopen(snapshot, length, "rb");
+    if (!snapshot_file) { oracle_error(error, error_capacity, "open receipt snapshot: %s", strerror(errno)); goto done; }
+    if (seal_read(snapshot_file, &previous, &sealed_meta, &derived, NULL, error, error_capacity) < 0) goto done;
+    if (derived) { oracle_error(error, error_capacity, "derivation requires a version-1 full-hash root receipt"); goto done; }
+    /* full_hash=0 checks the sealed large-file metadata while rehashing the
+     * current small source files. No prior record/checkpoint state is reused. */
+    if (identity_from_config(config, &current, 0, &sealed_meta, &current_meta,
+                             error, error_capacity) < 0) goto done;
+    if (memcmp(previous.tile_manifest_sha256, current.tile_manifest_sha256, 32) ||
+        memcmp(previous.tile_content_sha256, current.tile_content_sha256, 32) ||
+        memcmp(previous.checkpoint_content_sha256, current.checkpoint_content_sha256, 32) ||
+        memcmp(previous.primary_checkpoint_sha256, current.primary_checkpoint_sha256, 32) ||
+        memcmp(previous.ple_checkpoint_sha256, current.ple_checkpoint_sha256, 32) ||
+        sealed_meta.count != current_meta.count) {
+        oracle_error(error, error_capacity, "large input identity differs from previous receipt");
+        goto done;
+    }
+    for (size_t i = 0; i < current_meta.count; i++) {
+        const seal_meta_t *old = meta_find(&sealed_meta, current_meta.items[i].key);
+        if (!old || old->size != current_meta.items[i].size || old->mtime_ns != current_meta.items[i].mtime_ns) {
+            oracle_error(error, error_capacity, "large input metadata differs for %s", current_meta.items[i].key);
+            goto done;
+        }
+    }
+    if (seal_write(empty_receipt, &current, &current_meta, root_sha256, error, error_capacity) < 0) goto done;
+    *identity = current;
+    if (root_receipt_sha256) memcpy(root_receipt_sha256, root_sha256, 32);
+    rc = 0;
+done:
+    if (snapshot_file) fclose(snapshot_file);
+    free(snapshot);
+    meta_clear(&sealed_meta);
+    meta_clear(&current_meta);
+    return rc;
 }
 
 static void builder_clear(record_builder_t *b) {
@@ -2152,6 +2237,15 @@ int main(int argc, char **argv) {
     }
     receipt = fopen(argv[16], validate_only ? "rb" : "a+b");
     if (!receipt) { perror(argv[16]); goto done; }
+    {
+        struct stat records_stat, receipt_stat;
+        if (fstat(fileno(records), &records_stat) < 0 || fstat(fileno(receipt), &receipt_stat) < 0) {
+            status = cli_fail("stat record/receipt files", strerror(errno)); goto done;
+        }
+        if (records_stat.st_dev == receipt_stat.st_dev && records_stat.st_ino == receipt_stat.st_ino) {
+            status = cli_fail("record stream and input receipt must not alias", NULL); goto done;
+        }
+    }
     if (validate_only) {
         model_oracle_reader_t *reader = NULL;
         model_oracle_record_t record;
@@ -2176,6 +2270,28 @@ int main(int argc, char **argv) {
                positions, items, identity.source_revision);
         status = 0;
         goto done;
+    }
+    const char *reuse_receipt = getenv("MODEL_ORACLE_REUSE_RECEIPT");
+    if (reuse_receipt && *reuse_receipt) {
+        long receipt_length;
+        if (fseek(receipt, 0, SEEK_END) < 0 || (receipt_length = ftell(receipt)) < 0) {
+            status = cli_fail("seek derived receipt", strerror(errno)); goto done;
+        }
+        if (!receipt_length) {
+            FILE *previous = NULL;
+            if (fstat(fileno(records), &st) < 0 || st.st_size != 0) {
+                status = cli_fail("input derivation requires a fresh empty record stream", NULL); goto done;
+            }
+            previous = fopen(reuse_receipt, "rb");
+            if (!previous) { status = cli_fail("open previous input receipt", strerror(errno)); goto done; }
+            uint8_t root_sha256[32];
+            int derived = model_oracle_derive_inputs(&cfg, previous, receipt, &identity, root_sha256, error, sizeof error);
+            fclose(previous);
+            if (derived < 0) { status = cli_fail("derive input receipt failed", error); goto done; }
+            printf("MODEL_ORACLE_INPUTS_DERIVED full_hash=false large_inputs=unchanged root_receipt_sha256=");
+            for (unsigned i = 0; i < 32; i++) printf("%02x", (unsigned)root_sha256[i]);
+            printf(" source_revision=%s\n", identity.source_revision);
+        }
     }
     if (model_oracle_verify_inputs(&cfg, receipt, &identity, &full_hash, error, sizeof error) < 0) {
         status = cli_fail("input verification failed", error); goto done;

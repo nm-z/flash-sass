@@ -161,6 +161,21 @@ int model_oracle_verify_inputs_from_receipt(const model_oracle_config_t *config,
                                              model_oracle_identity_t *identity,
                                              char *error, size_t error_capacity);
 
+/* CPU-only preparation for a fresh reference. Reuse a prior verified large-input
+ * receipt when cache/checkpoint digests, inventory, sizes and mtimes still match.
+ * Rehash the current small source files and bind the new source/configuration/IDs
+ * into an empty version-2 output receipt, retaining the SHA-256 of its version-1
+ * full-hash root. Derived receipts cannot be derivation roots. This retains the cached verification contract:
+ * large inputs must be immutable (metadata-preserving replacement is not checked).
+ * The caller must use a fresh record stream and must not alias the two receipts.
+ * GPU consumption continues to require an existing, matching, read-only receipt.
+ * root_receipt_sha256 may be NULL when the caller does not need that output. */
+int model_oracle_derive_inputs(const model_oracle_config_t *config,
+                               FILE *previous_receipt, FILE *empty_receipt,
+                               model_oracle_identity_t *identity,
+                               uint8_t root_receipt_sha256[MODEL_ORACLE_SHA256_BYTES],
+                               char *error, size_t error_capacity);
+
 /* Open validates config against the verified identity. With checkpoint_in==NULL
  * it starts at position 0 and writes a new record header; otherwise record_stream
  * must reference the existing record file (opened for read/append) and the

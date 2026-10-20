@@ -29,6 +29,7 @@ ENGINE_PAIR_FUSE ?= 1
 ORACLE_DATA ?= /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/b$(BLOCKS)-t$(TOKENS)
 ORACLE_IDS ?= $(ORACLE_DATA)/ids.txt
 ORACLE_CHUNK ?= 32
+ORACLE_REUSE_RECEIPT ?=
 ORACLE_DIES ?= 0,1,2,3,4,5
 CACHE_SECOND_ROOT ?= /home/nate/work/fs9-sol-cache-tail
 SNAPSHOTS ?= 1,2,3,5
@@ -103,7 +104,7 @@ $(ORACLE_IDS):
 oracle-chunk: oracle-build oracle-source-identity $(ORACLE_IDS)
 	ldd $(OUT_DIR)/model_oracle
 	sha256sum $(OUT_DIR)/model_oracle $(ORACLE_IDS)
-	env SPLIT_SHARES=$(SHARES) ATTN_MAP=$(ATTENTION_MAP) $(OUT_DIR)/model_oracle $(ROOT) $(ORACLE_SOURCE_MANIFEST) $(ORACLE_REVISION) $(MODEL_CACHE) $(CACHE_ROOT)/manifest.new $(CACHE_ROOT)/tensors.sha256 $(CACHE_ROOT)/checkpoints.sha256 $(GGUF) $(PLE_GGUF) 192 $(ORACLE_IDS) $(BLOCKS) $(ORACLE_DIES) $(ORACLE_DATA)/records.bin $(ORACLE_DATA)/checkpoint.bin $(ORACLE_DATA)/receipt.bin $(ORACLE_CHUNK)
+	env SPLIT_SHARES=$(SHARES) ATTN_MAP=$(ATTENTION_MAP) $(if $(ORACLE_REUSE_RECEIPT),MODEL_ORACLE_REUSE_RECEIPT=$(ORACLE_REUSE_RECEIPT)) $(OUT_DIR)/model_oracle $(ROOT) $(ORACLE_SOURCE_MANIFEST) $(ORACLE_REVISION) $(MODEL_CACHE) $(CACHE_ROOT)/manifest.new $(CACHE_ROOT)/tensors.sha256 $(CACHE_ROOT)/checkpoints.sha256 $(GGUF) $(PLE_GGUF) 192 $(ORACLE_IDS) $(BLOCKS) $(ORACLE_DIES) $(ORACLE_DATA)/records.bin $(ORACLE_DATA)/checkpoint.bin $(ORACLE_DATA)/receipt.bin $(ORACLE_CHUNK)
 
 # Eight serialized, individually checkpointed chunks per routed CPU job.
 # The deep reference can resume this bounded batch after an interruption.
