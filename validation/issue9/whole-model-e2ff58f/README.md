@@ -85,9 +85,13 @@ its C source SHA-256 is
 The uniform four-worker deep reference starts from position zero in
 `par-e2ff-b512-t2055`, with 32-position durable checkpoints and source epoch
 held fixed. Its initial eight-chunk routed job is
-`build-352749-1792508656328957494`. Four 32-position chunks are committed in
-`cpu-deep-progress128.excerpt`; this is partial progress, and completion remains
-pending. The older source-36a
+`build-352749-1792508656328957494`; it exits 0 after eight committed chunks,
+256 positions, as retained in `cpu-deep-first256.excerpt`. This is a completed
+batch, not a completed 2055-position reference. Continuation
+`build-1157614-1792515841388210491` resumes the same files for the remaining
+57 chunks, followed by full-stream validation, under a longer routed timeout.
+Its producer and source-manifest hashes match the first batch exactly. Full
+completion remains pending. The older source-36a
 native comparison stream was retired with 96 committed positions; its data and
 checkpoints remain available as partial evidence. Its first 32-position record
 prefix and frozen checkpoint matched the O3 source-36a control through routed
