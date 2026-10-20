@@ -21,13 +21,15 @@ float quant_act_int8(const float *x, int8_t *q, int32_t *sum32, int n);
 int q2_0_tile_stride(int K);
 int repack_q2_0(const uint8_t *src, int rows, int K, uint8_t *dst);
 
-/* lanes per row the GPU uses for a Q2_0 matvec of width K (5 half-blocks per lane) */
+/* Lanes per row for the current Q2_0 GPU instantiations (K=640/2560); returns
+ * 0 when the width has no matching Q2_0 reference/kernel geometry. */
 int q2_0_lanes_per_row(int K);
 
 /* y[r] for r < rows, computed as the GPU does: per lane a sequential FMA chain
  * over its 5 half-blocks, a SHFL-butterfly tree across the row's lanes, then
- * times xscale. Bit-identical to the kernel by construction. */
-void gemv_q2_0_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, const float *as, float *y);
+ * times xscale. Bit-identical to the kernel by construction. Returns 0 on
+ * success or -1 for unsupported geometry/arguments; on error, y is unchanged. */
+int gemv_q2_0_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, const float *as, float *y);
 
 /* plain fp32 dot of the dequantised row with the dequantised activations, for sanity */
 void gemv_q2_0_float(const uint8_t *src, int rows, int K, const float *x, float *y);
