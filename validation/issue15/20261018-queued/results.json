@@ -1,0 +1,99 @@
+{
+  "status": "BLOCKED",
+  "execution_host": "engi",
+  "target_host": "archy",
+  "source_sha": "7f52b0886829236a833c637ea3a87777b76648fe",
+  "host_implementation_sha": "bec699ca07f6cf1ac7452a93698d41509aa58576",
+  "target_source": "/home/nate/claude/flash-sass-resolve/timing-7f52b08",
+  "shared_lock": "/tmp/flash-sass-engine-validation.lock",
+  "target_build": {
+    "exit_code": 0,
+    "command": "make -C /home/nate/claude/flash-sass-resolve/timing-7f52b08/kern CUDA=/opt/cuda PTXAS11=/opt/cuda-11.4/bin/ptxas 'MAXAS=perl -I/home/nate/claude/flash-sass/maxas/lib /home/nate/claude/flash-sass/maxas/bin/maxas.pl' FLASH_REV=7f52b0886829236a833c637ea3a87777b76648fe die.cubin die_trace.cubin libengine.so flashcore flashd timings_test flashd_timing_test trace_session_test output_tokens_test prefill_plan_test",
+    "log": "cuda-build.log.gz",
+    "artifacts": "artifact-sha256.txt",
+    "gpu_request_validation": false
+  },
+  "initial_lock_probe": {
+    "utc": "2026-10-18T05:19:29Z",
+    "result": "AVAILABLE",
+    "command": "flock -n /tmp/flash-sass-engine-validation.lock true"
+  },
+  "checks": [
+    {
+      "started_utc": "2026-10-18T05:20:56Z",
+      "finished_utc": "2026-10-18T05:20:57Z",
+      "mode": "preflight-only",
+      "exit_code": 75,
+      "result": "preflight-1-results.json",
+      "lock_acquired": true,
+      "blocker": "Existing GPU compute process: 974018, ./hold, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f"
+    },
+    {
+      "started_utc": "2026-10-18T05:23:52Z",
+      "mode": "full-driver",
+      "exit_code": 75,
+      "result": "attempt-1-results.json",
+      "lock_acquired": false,
+      "blocker": "Shared engine validation lock is unavailable: Resource temporarily unavailable"
+    },
+    {
+      "started_utc": "2026-10-18T05:26:04Z",
+      "mode": "full-driver",
+      "exit_code": 75,
+      "result": "attempt-2-results.json",
+      "lock_acquired": false,
+      "blocker": "Shared engine validation lock is unavailable: Resource temporarily unavailable"
+    }
+  ],
+  "driver_command": "perl /home/nate/claude/flash-sass-resolve/timing-7f52b08/validation/issue15/run_target.pl --source /home/nate/claude/flash-sass-resolve/timing-7f52b08 --out NEW_EVIDENCE_DIRECTORY --source-sha 7f52b0886829236a833c637ea3a87777b76648fe",
+  "observed_gpu_capacity": {
+    "capture_window_utc": [
+      "2026-10-18T05:20:56Z",
+      "2026-10-18T05:20:57Z"
+    ],
+    "required_gpu_ordinals": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "free_memory_mib": [
+      52,
+      16,
+      77,
+      7,
+      3,
+      65
+    ],
+    "resident_core_pid": 3575268,
+    "resident_frontend_pid": 753710,
+    "weight_holder_pids": [
+      974018,
+      974061,
+      988060,
+      988067,
+      988072,
+      988080
+    ],
+    "fence_pid": 974103,
+    "evidence": [
+      "occupancy-1.log",
+      "gpu-preflight-1.log"
+    ],
+    "remeasured_by_later_lock_blocked_attempts": false
+  },
+  "lock_owner_observation": {
+    "utc": "2026-10-18T05:24:53Z",
+    "pid": 847383,
+    "command": "flock -w 300 -E 73 /tmp/flash-sass-engine-validation.lock bash --noprofile --norc -i",
+    "evidence": "lock-owner-2.log"
+  },
+  "owned_cores_started": 0,
+  "gpu_requests_executed": 0,
+  "event_reconciliation": "NOT_RUN",
+  "observation_transport_overhead": "NOT_MEASURED",
+  "ready_for_review": false,
+  "remaining_blocker": "Shared lock is currently held, and the acquired-lock preflight separately rejected existing allocations on all six required GPUs. A permitted setup with sufficient capacity is needed before the existing driver can launch its owned core."
+}

@@ -1,0 +1,27 @@
+{
+  "unit": "microseconds per standalone dense partition+merge launch-loop step",
+  "nkeys": 2051,
+  "iterations_per_arm": 200,
+  "order": "AB BA AB BA AB",
+  "raw": {
+    "parent": [
+      152.2,
+      152.4,
+      152.3,
+      152.4,
+      152.2
+    ],
+    "fixed": [
+      155.2,
+      155.2,
+      155.9,
+      154.9,
+      155.4
+    ]
+  },
+  "median": {
+    "parent": 152.3,
+    "fixed": 155.2
+  },
+  "scope": "Component launch loop only, not full-model latency; other dies active; not an isolated bus benchmark."
+}
