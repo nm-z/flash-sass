@@ -25,6 +25,7 @@ ORACLE_SOURCE_FILES := kern/model_oracle.c kern/model_oracle.h kern/model_oracle
 ORACLE_SOURCE_MANIFEST ?= $(OUT_DIR)/oracle-source.sha256
 ORACLE_REVISION ?= $(shell git -C $(ROOT) rev-parse HEAD)
 ENGINE_REVISION ?= $(ORACLE_REVISION)
+ENGINE_PAIR_FUSE ?= 1
 ORACLE_DATA ?= /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/b$(BLOCKS)-t$(TOKENS)
 ORACLE_IDS ?= $(ORACLE_DATA)/ids.txt
 ORACLE_CHUNK ?= 32
@@ -68,7 +69,7 @@ $(OUT_DIR)/engine_check: $(SOURCE_DIR)/engine_check.c | $(OUT_DIR)
 	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -o $@ $< -lcrypto
 
 engine-build: $(OUT_DIR)/engine_check
-	$(MAKE) -B -C $(ROOT)/kern FLASH_REV=$(ENGINE_REVISION) libengine.so flashcore
+	$(MAKE) -B -C $(ROOT)/kern FLASH_REV=$(ENGINE_REVISION) FLASH_BF16_PAIR_FUSE=$(ENGINE_PAIR_FUSE) libengine.so flashcore
 
 engine-check: $(OUT_DIR)/engine_check
 	$(OUT_DIR)/engine_check --self-test
