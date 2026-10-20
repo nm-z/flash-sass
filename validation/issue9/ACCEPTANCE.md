@@ -35,3 +35,8 @@ controls both fail a fingerprint check; the experiment does not supply a
 runtime fix. Its separate
 [run record](https://github.com/nm-z/flash-sass/tree/test/issue109-pair-grid/validation/issue109)
 retains both outcomes.
+
+The separate last-phase recorder for #110 is reviewed in
+[draft PR #112](https://github.com/nm-z/flash-sass/pull/112). Its instrumentation
+and short GPU checks are diagnostic evidence; this acceptance map retains
+the canonical numerical source and cubin.

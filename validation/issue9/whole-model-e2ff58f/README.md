@@ -136,3 +136,14 @@ The complete GPUQ export, report and child stdout/stderr are retained as
 and 3659 supplies the JSON report. These records retain the distinct request
 timing observations and do not establish a performance comparison or the
 offending instruction's identity.
+
+The count 1057 is the last observed completion count from die 0, not a precise
+faulting-token report for die 4. A bounded Archy kernel journal excerpt records
+Xid 31 for that core PID on BDF `0000:0b:00`: an MMU PDE read fault. It does
+not establish the source instruction or code cause. The excerpt, a failed
+full-segment recorder attempt that reaches the five-minute kernel limit,
+and subsequent bounded-window diagnostics are isolated in
+[draft PR #112](https://github.com/nm-z/flash-sass/pull/112). That recorder's GPU
+fixture and nine-position scalar-oracle canary pass their declared scopes;
+its long request matrix remains pending. This PR retains the canonical cubin
+and does not adopt that instrumentation as a runtime fix.
