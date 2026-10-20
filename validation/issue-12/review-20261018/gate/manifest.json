@@ -1,0 +1,46 @@
+{
+   "arguments" : {
+      "check_only" : 1,
+      "gpu" : "GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4",
+      "harness" : "./attnpartn_regress",
+      "harness_source" : null,
+      "host_lock" : "/tmp/flash-sass-engine-validation.lock",
+      "instrumentation" : "none",
+      "keys" : "1,1023,1024,1025,2047,2048,2049,2050,2051,2052,4095,4096,4097,8191,8192,8193",
+      "lock_dir" : "/tmp/flash-sass-gpu-locks",
+      "new" : null,
+      "new_library" : null,
+      "new_source" : "66725432f86cc193b75cd51230216aed44c60d3f",
+      "old" : null,
+      "old_library" : null,
+      "old_source" : "c6d3de8180d8b87caf0d2f61fa52edc9247daded",
+      "out" : "/tmp/flash-sass-issue12-gate.bZqgCy/result",
+      "poll_seconds" : 5,
+      "repeats" : 32,
+      "seeds" : "0,77,4242",
+      "self_test" : null,
+      "trace" : 0,
+      "wait_seconds" : 0
+   },
+   "environment" : {
+      "CUDA_DEVICE_ORDER" : "PCI_BUS_ID",
+      "CUDA_VISIBLE_DEVICES" : "GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4"
+   },
+   "helper" : {
+      "bytes" : 4566,
+      "path" : "/tmp/flash-sass-issue12-gate.bZqgCy/QsaEvidence.pm",
+      "sha256" : "41942d2671cf4dc5ab8a01e62505a7c6d0788aa0330a47bf1e00079f54f0bc0a"
+   },
+   "locking" : {
+      "gpu_dir" : "/tmp/flash-sass-gpu-locks",
+      "host" : "/tmp/flash-sass-engine-validation.lock"
+   },
+   "measurement_mode" : "check-only",
+   "runner" : {
+      "bytes" : 15520,
+      "path" : "/tmp/flash-sass-issue12-gate.bZqgCy/cta_remap_matrix.pl",
+      "sha256" : "cb74c41d7f11e1ccfee595b277b713067d67c6a0db927beef0c3c5d0ba464170"
+   },
+   "trace_requested" : false,
+   "utc" : "2026-10-18T03:41:00Z"
+}
