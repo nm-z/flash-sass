@@ -81,6 +81,8 @@ than attributed to the image encoder.
 | `0f0f2d20-d3f7-4020-9156-6fd8a76161f7` | Installed aligned GPU FA versus sampled float64 reference | Pass |
 | `63fbc0f0-901d-4feb-ada5-a55d6b4c1d9e` | Actual placement of all screenshot compute nodes | 617 GPU compute operations, including 27 GPU FA operations |
 | `78285269-a28f-4378-ae00-566d918c0fce` | Invalid/absent GPU, malformed input, injected error and NaN | Explicit errors; subsequent GPU FA requests succeed |
+| `b1c3a80a-0caa-482c-8ce1-4466da720162` | Final production build, fault checks and full-size encodes | Inference checks pass; recorder postprocessing fails, as detailed below |
+| `5f77f1c1-a8e5-4177-8ed9-4dc9347cae74` | Changed marker, native abort/error checks, sticky GPU reference and retained tensors | Pass, exit 0 |
 
 The first raw-kernel reference test (`f869d89f-3c9f-47d9-8414-ae3ac2dc75b8`)
 exposed an out-of-range test sample when Nq=1. The corrected test passes. No
@@ -188,6 +190,14 @@ as a successful queue run. The bug is tracked in [issue #101](https://github.com
 The test shim now writes a nonempty marker. A follow-up gate verifies those
 errors with the changed marker, the sticky GPU-reference observer, and the
 retained tensor byte counts, SHA-256 identities and all float values.
+
+That follow-up, `5f77f1c1-a8e5-4177-8ed9-4dc9347cae74`, **succeeded with exit 0**.
+It repeated the actual GPU failure checks, passed the sticky-observer numerical
+reference, and verified 1,541,120 / 10,485,760 / 41,943,040 finite retained float
+values with the exact hashes below. The completed full-resolution inference was
+not recomputed to validate the artifact-marker change. Optional process-tree and
+resident-engine trace collectors reported unavailable observations; the command,
+numerical results, retained outputs and waited resource usage are recorded.
 
 | Image | Retained embedding SHA-256 |
 |---|---|

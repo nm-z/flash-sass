@@ -175,7 +175,8 @@ from that checkout; the prebuilt libraries are reused. The default tree is
 `~/claude/llama.cpp-cuda`; `LLAMA_CPP` and `LLAMA_BUILD` select another matching
 source/build directory. A CUDA 11.4 `ptxas` assembles `vis_fa.cubin` for sm_52.
 The binary records its build's absolute module/backend paths, so rebuild it
-when moving the checkout. A changed dependency ABI fails the FA dispatch check.
+when moving the checkout. The FA dispatch check rejects a missing or bypassed
+hook; other dependency builds remain unverified.
 
 ```sh
 make -B -C kern flashvis LLAMA_CPP=/path/to/llama.cpp LLAMA_BUILD=/path/to/llama.cpp/build-cuda
