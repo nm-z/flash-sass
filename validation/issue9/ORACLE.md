@@ -174,9 +174,10 @@ Build/check through DSH with `oracle-fault-check`, then execute the prebuilt
 runner through GPUQ with `TOKENS=9 BLOCKS=1`, the pinned `ORACLE_REVISION` and
 matching `ORACLE_DATA`. The runner does not produce a CPU reference inside the
 GPU reservation. Its own CPU/GPU results are pending until recorded in the
-source-epoch run record. Routed build `build-849208-1792513127592872578`
-passed the strict C build and seven CPU fixtures; queued GPU fault results
-remain pending.
+source-epoch run record. Routed build `build-893011-1792513509803091078`
+passed the strict C build and twelve CPU fixtures, including malformed JSON
+rejection and cleanup through the production timeout wrapper. Queued GPU
+fault results remain pending.
 
 ## Private engine request validation
 

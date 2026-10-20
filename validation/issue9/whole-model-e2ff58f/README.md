@@ -18,6 +18,8 @@ IDs 10 through 18 and budget 1. The C comparison contract is exact bytes.
 | `build-130547-1792506606733982340` | 17 API/CLI checks passed | `cpu-api17.excerpt` |
 | `build-517679-1792510180423953110` | 46 pre-CUDA command-line boundary checks passed against the current GPU consumer | `cli-guards46.excerpt` |
 | `build-849208-1792513127592872578` | Strict C fault-runner build and seven CPU fixtures passed, including constructed Make arguments and retirement of a TERM-ignoring descendant after its leader exits | `fault-runner-cpu.excerpt` |
+| `build-877366-1792513372428956977` | Eight fixtures passed, adding the production GNU timeout wrapper and checking that the stubborn descendant shares the owned process group and is retired | `fault-runner-nested-timeout.excerpt` |
+| `build-893011-1792513509803091078` | Current strict fault runner passed twelve fixtures, including four malformed scalar-JSON cases | `fault-runner-strict.excerpt` |
 | `build-154782-1792506822173131858` | Four-worker row build completed nine positions; reader verified 9 positions / 8280 items | `cpu-parallel9.excerpt` |
 | `build-154783-1792506822176279513` | Independent serial run completed and verified 9 / 8280 | `cpu-serial9.excerpt` |
 | `build-245925-1792507667079498618` | Complete records and checkpoints compare byte for byte | `cpu-parity9.excerpt` |
@@ -67,11 +69,15 @@ is inferred from concurrent CPU runs or from comparing these domains.
 All four KV/launch placements pass their stated nine-position scopes. The
 prebuilt C fault runner groups seven expected mismatch cases into one queued
 reservation; its GPU results remain pending. Its binary SHA-256 is
-`0ddaff03f622682464cb24f6b1570c24ced3899367948435e875926e7d72cdd2`.
+`1293d4c93e4852459a6d3a0f3619517c568144cbe80d0827dd2ae2a22b70ff83`;
+its C source SHA-256 is
+`c7a55cfdeaf61531d263f58d4c2eebb35229a68515f2fc7846f96f248bf960e4`.
 The uniform four-worker deep reference starts from position zero in
 `par-e2ff-b512-t2055`, with 32-position durable checkpoints and source epoch
 held fixed. Its initial eight-chunk routed job is
-`build-352749-1792508656328957494`. Completion is pending. The older source-36a
+`build-352749-1792508656328957494`. Four 32-position chunks are committed in
+`cpu-deep-progress128.excerpt`; this is partial progress, and completion remains
+pending. The older source-36a
 native comparison stream was retired with 96 committed positions; its data and
 checkpoints remain available as partial evidence. Its first 32-position record
 prefix and frozen checkpoint matched the O3 source-36a control through routed

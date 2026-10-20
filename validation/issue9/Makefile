@@ -80,7 +80,7 @@ oracle-fault-build: $(OUT_DIR)/oracle_fault_matrix
 
 oracle-fault-check: oracle-fault-build
 	$(OUT_DIR)/oracle_fault_matrix --self-test
-	sha256sum $(OUT_DIR)/oracle_fault_matrix
+	sha256sum $(OUT_DIR)/oracle_fault_matrix $(SOURCE_DIR)/oracle_fault_matrix.c
 
 # All seven expected-failure cases share one queued reservation. The C runner
 # verifies the intended mismatch and complete comparison count in each case.

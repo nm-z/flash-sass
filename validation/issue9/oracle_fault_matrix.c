@@ -37,6 +37,7 @@ typedef struct {
 typedef struct {
     char *bytes;
     size_t length;
+    pid_t process_group;
     int exit_code;
     int term_signal;
     int overflow;
@@ -74,6 +75,10 @@ static const fault_case_t fault_cases[ORACLE_FAULT_CASE_COUNT] = {
     {"conv", "conv", "MODEL_INJECT=conv reached at b0.conv_state.d0", "eh", 1u, 0u, 0},
     {"ple", "ple", "MODEL_INJECT=ple reached at b1.ple_state.d0", "eh", 1u, 0u, 0},
     {"singlelaunch", "logits", "MODEL_INJECT=logits reached at logits.d0", "ehl", 0u, 8u, 1}
+};
+
+static const char *const timeout_argv[] = {
+    "timeout", "--signal=TERM", "--kill-after=2s", "360s"
 };
 
 static size_t find_bytes(const char *haystack, size_t haystack_len,
@@ -394,6 +399,7 @@ static int run_process(char *const command[], unsigned hard_timeout_seconds,
         execvp(command[0], command);
         _exit(127);
     }
+    result->process_group = child;
     close(pipefd[1]);
     pipefd[1] = -1;
     if (setpgid(child, child) < 0 && errno != EACCES && errno != ESRCH) {
@@ -491,75 +497,77 @@ static int starts_with(const char *line, size_t length, const char *prefix) {
     return length >= prefix_length && !memcmp(line, prefix, prefix_length);
 }
 
-static int parse_json_uint(const char *line, size_t length, const char *key,
-                           uint64_t *value_out) {
-    size_t key_length = strlen(key), at, count = 0;
+static void skip_json_whitespace(const char *line, size_t length, size_t *at) {
+    while (*at < length && (line[*at] == ' ' || line[*at] == '\t' ||
+                            line[*at] == '\r' || line[*at] == '\n')) (*at)++;
+}
+
+static int json_literal(const char *line, size_t length, size_t *at,
+                        const char *literal) {
+    size_t literal_length = strlen(literal);
+    if (length - *at < literal_length ||
+        memcmp(line + *at, literal, literal_length) != 0) return -1;
+    *at += literal_length;
+    return 0;
+}
+
+static int parse_json_unsigned(const char *line, size_t length, size_t *at,
+                               uint64_t *value_out) {
     uint64_t value = 0;
-    size_t found = SIZE_MAX;
-    size_t search = 0;
-    while ((at = find_bytes(line, length, key, key_length, search)) != SIZE_MAX) {
-        count++;
-        found = at;
-        search = at + key_length;
+    size_t start = *at;
+    if (*at >= length || !isdigit((unsigned char)line[*at])) return -1;
+    if (line[*at] == '0') {
+        (*at)++;
+        if (*at < length && isdigit((unsigned char)line[*at])) return -1;
+    } else {
+        while (*at < length && isdigit((unsigned char)line[*at])) {
+            unsigned digit = (unsigned)(line[*at] - '0');
+            if (value > (UINT64_MAX - digit) / 10u) return -1;
+            value = value * 10u + digit;
+            (*at)++;
+        }
     }
-    if (count != 1u) return -1;
-    at = found + key_length;
-    while (at < length && isspace((unsigned char)line[at])) at++;
-    if (at == length || line[at++] != ':') return -1;
-    while (at < length && isspace((unsigned char)line[at])) at++;
-    if (at == length || !isdigit((unsigned char)line[at])) return -1;
-    while (at < length && isdigit((unsigned char)line[at])) {
-        unsigned digit = (unsigned)(line[at] - '0');
-        if (value > (UINT64_MAX - digit) / 10u) return -1;
-        value = value * 10u + digit;
-        at++;
-    }
-    if (at < length && !isspace((unsigned char)line[at]) &&
-        line[at] != ',' && line[at] != '}') return -1;
+    if (*at == start) return -1;
     *value_out = value;
     return 0;
 }
 
-static int parse_json_bool(const char *line, size_t length, const char *key,
-                           int *value_out) {
-    size_t key_length = strlen(key), at, count = 0;
-    size_t found = SIZE_MAX;
-    size_t search = 0;
-    size_t word_length;
-    while ((at = find_bytes(line, length, key, key_length, search)) != SIZE_MAX) {
-        count++;
-        found = at;
-        search = at + key_length;
-    }
-    if (count != 1u) return -1;
-    at = found + key_length;
-    while (at < length && isspace((unsigned char)line[at])) at++;
-    if (at == length || line[at++] != ':') return -1;
-    while (at < length && isspace((unsigned char)line[at])) at++;
-    if (length - at >= 4u && !memcmp(line + at, "true", 4u)) {
-        word_length = 4u; *value_out = 1;
-    } else if (length - at >= 5u && !memcmp(line + at, "false", 5u)) {
-        word_length = 5u; *value_out = 0;
-    } else return -1;
-    at += word_length;
-    if (at < length && !isspace((unsigned char)line[at]) &&
-        line[at] != ',' && line[at] != '}') return -1;
+static int json_key(const char *line, size_t length, size_t *at,
+                    const char *key) {
+    size_t key_length = strlen(key);
+    skip_json_whitespace(line, length, at);
+    if (json_literal(line, length, at, "\"") < 0 ||
+        length - *at < key_length || memcmp(line + *at, key, key_length)) return -1;
+    *at += key_length;
+    if (json_literal(line, length, at, "\"") < 0) return -1;
+    skip_json_whitespace(line, length, at);
+    if (*at >= length || line[(*at)++] != ':') return -1;
+    skip_json_whitespace(line, length, at);
     return 0;
 }
 
 static int parse_scalar_record(const char *line, size_t length,
                                uint64_t *position, uint64_t *visible,
                                int *match) {
-    size_t start = 0, end = length;
-    while (start < end && isspace((unsigned char)line[start])) start++;
-    while (end > start && isspace((unsigned char)line[end - 1u])) end--;
-    if (end - start < 2u || line[start] != '{' || line[end - 1u] != '}') return -1;
-    line += start;
-    length = end - start;
-    if (parse_json_uint(line, length, "\"position\"", position) < 0 ||
-        parse_json_uint(line, length, "\"visible_length\"", visible) < 0 ||
-        parse_json_bool(line, length, "\"scalar_match\"", match) < 0) return -1;
-    return 0;
+    size_t at = 0;
+    skip_json_whitespace(line, length, &at);
+    if (at >= length || line[at++] != '{') return -1;
+    if (json_key(line, length, &at, "position") < 0 ||
+        parse_json_unsigned(line, length, &at, position) < 0) return -1;
+    skip_json_whitespace(line, length, &at);
+    if (at >= length || line[at++] != ',') return -1;
+    if (json_key(line, length, &at, "visible_length") < 0 ||
+        parse_json_unsigned(line, length, &at, visible) < 0) return -1;
+    skip_json_whitespace(line, length, &at);
+    if (at >= length || line[at++] != ',') return -1;
+    if (json_key(line, length, &at, "scalar_match") < 0) return -1;
+    if (json_literal(line, length, &at, "true") == 0) *match = 1;
+    else if (json_literal(line, length, &at, "false") == 0) *match = 0;
+    else return -1;
+    skip_json_whitespace(line, length, &at);
+    if (at >= length || line[at++] != '}') return -1;
+    skip_json_whitespace(line, length, &at);
+    return at == length ? 0 : -1;
 }
 
 static int parse_make_error(const char *line, size_t length, int *error_code) {
@@ -741,16 +749,14 @@ static int make_command(const char *makefile, const char *oracle_data,
                         char *revision_arg, size_t revision_arg_capacity,
                         char *inject_arg, size_t inject_arg_capacity,
                         char *command[], size_t command_capacity) {
-    static const char *const fixed_args[] = {
-        "timeout", "--foreground", "--signal=TERM", "--kill-after=2s", "360s",
-        "make", "-f"
-    };
     size_t count = 0;
     int n;
-    for (size_t i = 0; i < sizeof fixed_args / sizeof fixed_args[0]; i++) {
+    for (size_t i = 0; i < sizeof timeout_argv / sizeof timeout_argv[0]; i++) {
         if (count + 1u >= command_capacity) return -1;
-        command[count++] = (char *)fixed_args[i];
+        command[count++] = (char *)timeout_argv[i];
     }
+    command[count++] = "make";
+    command[count++] = "-f";
     if (count + 14u >= command_capacity) return -1;
     command[count++] = (char *)makefile;
     command[count++] = "TOKENS=9";
@@ -784,14 +790,14 @@ static int command_matches(char *const actual[], const char *const expected[]) {
 
 static int self_test_make_argv(void) {
     static const char *const per_token_expected[] = {
-        "timeout", "--foreground", "--signal=TERM", "--kill-after=2s", "360s", "make", "-f",
+        "timeout", "--signal=TERM", "--kill-after=2s", "360s", "make", "-f",
         "validation/issue9/Makefile", "TOKENS=9", "BLOCKS=1", "HOST_KV=1",
         "FLAGS=eh", "CAPTURE=0", "ORACLE_DATA=/fixture/oracle",
         "ORACLE_REVISION=0123456789abcdef0123456789abcdef01234567",
         "INJECT=layer", "model-oracle", NULL
     };
     static const char *const single_launch_expected[] = {
-        "timeout", "--foreground", "--signal=TERM", "--kill-after=2s", "360s", "make", "-f",
+        "timeout", "--signal=TERM", "--kill-after=2s", "360s", "make", "-f",
         "validation/issue9/Makefile", "TOKENS=9", "BLOCKS=1", "HOST_KV=0",
         "FLAGS=ehl", "CAPTURE=0", "ORACLE_DATA=/fixture/oracle",
         "ORACLE_REVISION=0123456789abcdef0123456789abcdef01234567",
@@ -820,6 +826,10 @@ static int fixture_emit(const char *mode) {
     int all_true = !strcmp(mode, "missing-mismatch");
     int add_capture = !strcmp(mode, "positive-capture");
     int wrong_exit = !strcmp(mode, "wrong-exit");
+    int trailing_token = !strcmp(mode, "trailing-token");
+    int trailing_garbage = !strcmp(mode, "trailing-garbage");
+    int duplicate_key = !strcmp(mode, "duplicate-key");
+    int extra_key = !strcmp(mode, "extra-key");
     if (!strcmp(mode, "descendant-holds-pipe")) {
         pid_t grandchild = fork();
         if (grandchild < 0) return 1;
@@ -827,19 +837,37 @@ static int fixture_emit(const char *mode) {
             char marker[96];
             int n;
             (void)signal(SIGTERM, SIG_IGN);
-            n = snprintf(marker, sizeof marker, "FIXTURE_GRANDCHILD_PID=%ld\n",
-                         (long)getpid());
+            n = snprintf(marker, sizeof marker, "FIXTURE_GRANDCHILD_PID=%ld PGID=%ld\n",
+                         (long)getpid(), (long)getpgrp());
             if (n <= 0 || (size_t)n >= sizeof marker ||
                 write_all(STDOUT_FILENO, marker, (size_t)n) < 0) _exit(1);
             for (;;) pause();
         }
         return 0;
     }
-    if (strcmp(mode, "valid") && !omit_marker && !all_true && !add_capture && !wrong_exit)
+    if (strcmp(mode, "valid") && !omit_marker && !all_true && !add_capture &&
+        !wrong_exit && !trailing_token && !trailing_garbage &&
+        !duplicate_key && !extra_key)
         return 2;
     if (!omit_marker) puts("MODEL_INJECT=layer reached at b0.S.d0");
     for (unsigned position = 0; position < ORACLE_FAULT_TOKEN_COUNT; position++) {
         int match = all_true || position != false_at;
+        if (position == 0u && trailing_token) {
+            puts("{\"position\":0,\"visible_length\":1,\"scalar_match\":false true}");
+            continue;
+        }
+        if (position == 0u && trailing_garbage) {
+            puts("{\"position\":0,\"visible_length\":1,\"scalar_match\":false} junk");
+            continue;
+        }
+        if (position == 0u && duplicate_key) {
+            puts("{\"position\":0,\"visible_length\":1,\"scalar_match\":false,\"scalar_match\":false}");
+            continue;
+        }
+        if (position == 0u && extra_key) {
+            puts("{\"position\":0,\"visible_length\":1,\"scalar_match\":false,\"extra\":0}");
+            continue;
+        }
         printf("{\"position\":%u,\"visible_length\":%u,\"scalar_match\":%s}\n",
                position, position + 1u, match ? "true" : "false");
     }
@@ -861,43 +889,72 @@ static int executable_path(const char *argv0, char *buffer, size_t capacity) {
     return 0;
 }
 
-static int fixture_grandchild_pid(const child_output_t *output, pid_t *pid_out) {
+static int fixture_grandchild_info(const child_output_t *output, pid_t *pid_out,
+                                   pid_t *group_out) {
     static const char marker[] = "FIXTURE_GRANDCHILD_PID=";
+    static const char group_marker[] = " PGID=";
     size_t at = find_bytes(output->bytes, output->length, marker, sizeof marker - 1u, 0);
-    long value = 0;
+    long value = 0, group = 0;
     if (at == SIZE_MAX) return -1;
     at += sizeof marker - 1u;
     if (at == output->length || !isdigit((unsigned char)output->bytes[at])) return -1;
     while (at < output->length && isdigit((unsigned char)output->bytes[at])) {
         unsigned digit = (unsigned)(output->bytes[at] - '0');
-        if (value > (INT_MAX - digit) / 10L) return -1;
+        if (value > ((long)INT_MAX - (long)digit) / 10L) return -1;
         value = value * 10L + digit;
         at++;
     }
     if (value <= 1) return -1;
+    if (find_bytes(output->bytes + at, output->length - at, group_marker,
+                   sizeof group_marker - 1u, 0) != 0) return -1;
+    at += sizeof group_marker - 1u;
+    if (at == output->length || !isdigit((unsigned char)output->bytes[at])) return -1;
+    while (at < output->length && isdigit((unsigned char)output->bytes[at])) {
+        unsigned digit = (unsigned)(output->bytes[at] - '0');
+        if (group > ((long)INT_MAX - (long)digit) / 10L) return -1;
+        group = group * 10L + digit;
+        at++;
+    }
+    if (group <= 1) return -1;
     *pid_out = (pid_t)value;
+    *group_out = (pid_t)group;
     return 0;
 }
 
-static int self_test_descendant_cleanup(const char *self) {
-    char *command[] = {(char *)self, "--fixture", "descendant-holds-pipe", NULL};
+static int self_test_descendant_cleanup(const char *self, int nested_timeout) {
+    char *direct_command[] = {(char *)self, "--fixture", "descendant-holds-pipe", NULL};
+    char *nested_command[] = {
+        (char *)timeout_argv[0], (char *)timeout_argv[1],
+        (char *)timeout_argv[2], (char *)timeout_argv[3],
+        (char *)self, "--fixture", "descendant-holds-pipe", NULL
+    };
+    char **command = nested_timeout ? nested_command : direct_command;
     child_output_t output;
-    pid_t grandchild = 0;
+    pid_t grandchild = 0, grandchild_group = 0;
     int run_ok = run_process(command, 1u, 0, &output) == 0;
     int live = -1;
-    if (run_ok && fixture_grandchild_pid(&output, &grandchild) == 0)
+    if (run_ok && fixture_grandchild_info(&output, &grandchild, &grandchild_group) == 0)
         live = process_is_live(grandchild);
     if (run_ok && output.pipe_eof && !output.group_live_after_cleanup &&
-        !output.io_error && output.local_timeout && grandchild > 1 && live == 0) {
-        puts("ORACLE_FAULT_SELF_TEST_CASE {\"mode\":\"leader-exit-term-ignoring-grandchild\","
-             "\"accepted\":true,\"pipe_eof\":true,\"descendant_live\":false,\"gpu_calls\":0}");
+        !output.io_error && output.local_timeout && grandchild > 1 && live == 0 &&
+        grandchild_group == output.process_group) {
+        printf("ORACLE_FAULT_SELF_TEST_CASE {\"mode\":\"%s\",\"accepted\":true,"
+               "\"pipe_eof\":true,\"descendant_live\":false,\"observed_pgid\":%ld,"
+               "\"runner_pgid\":%ld,\"gpu_calls\":0}\n",
+               nested_timeout ? "nested-timeout-leader-exit-stubborn-grandchild"
+                              : "leader-exit-term-ignoring-grandchild",
+               (long)grandchild_group, (long)output.process_group);
         free(output.bytes);
         return 0;
     }
-    fprintf(stderr, "ORACLE_FAULT_SELF_TEST_CASE_FAIL mode=leader-exit-term-ignoring-grandchild "
-            "run_ok=%d pipe_eof=%d group_live=%d timeout=%d descendant_pid=%ld descendant_live=%d io_error=%d\n",
+    fprintf(stderr, "ORACLE_FAULT_SELF_TEST_CASE_FAIL mode=%s "
+            "run_ok=%d pipe_eof=%d group_live=%d timeout=%d descendant_pid=%ld "
+            "descendant_pgid=%ld runner_pgid=%ld descendant_live=%d io_error=%d\n",
+            nested_timeout ? "nested-timeout-leader-exit-stubborn-grandchild"
+                           : "leader-exit-term-ignoring-grandchild",
             run_ok, output.pipe_eof, output.group_live_after_cleanup,
-            output.local_timeout, (long)grandchild, live, output.io_error);
+            output.local_timeout, (long)grandchild, (long)grandchild_group,
+            (long)output.process_group, live, output.io_error);
     free(output.bytes);
     return -1;
 }
@@ -911,7 +968,11 @@ static int self_test(const char *argv0) {
         {"wrong-exit", 0},
         {"missing-marker", 0},
         {"missing-mismatch", 0},
-        {"positive-capture", 0}
+        {"positive-capture", 0},
+        {"trailing-token", 0},
+        {"trailing-garbage", 0},
+        {"duplicate-key", 0},
+        {"extra-key", 0}
     };
     char self[ORACLE_FAULT_PATH_LIMIT];
     unsigned passed = 0;
@@ -951,7 +1012,9 @@ static int self_test(const char *argv0) {
         }
         free(output.bytes);
     }
-    if (self_test_descendant_cleanup(self) < 0) failed++;
+    if (self_test_descendant_cleanup(self, 0) < 0) failed++;
+    else passed++;
+    if (self_test_descendant_cleanup(self, 1) < 0) failed++;
     else passed++;
     printf("ORACLE_FAULT_SELF_TEST_RESULT {\"passed\":%u,\"failed\":%d,\"gpu_calls\":0}\n",
            passed, failed);
