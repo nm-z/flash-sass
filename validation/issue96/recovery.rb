@@ -1,125 +1,72 @@
 #!/usr/bin/env ruby
-# Real daemon recovery; fault.c is loaded only into diagnostic subprocesses.
+# Explicit failures must stay failures; the next request still uses GPU FA.
 require 'socket'
 require 'json'
-require 'digest'
 require 'timeout'
-require 'fileutils'
 require 'open3'
-abort 'usage: recovery.rb BINARY MMPROJ TEXT_GGUF IMAGE FAULT_SO [large]' unless (5..6).cover?(ARGV.length)
+abort 'usage: recovery.rb BINARY PROJECTOR TEXT_GGUF IMAGE FAULT_SO' unless ARGV.length == 5
 abort 'run through gpuq' unless ENV['GPUQ_JOB_ID'] && ENV['GPUQ_RUN_DIR']
-binary, projector, text_model, image, fault = ARGV.first(5).map { |p| File.realpath(p) }
-work = File.join(ENV.fetch('GPUQ_RUN_DIR'), 'vision-recovery')
-FileUtils.mkdir_p(work)
-$stdout.sync = true
+binary, projector, model, image, fault = ARGV.map { |p| File.realpath(p) }
 payload = File.binread(image)
-
-def bitmap(width, height)
-  pixels = ((width * 3 + 3) / 4) * 4 * height
-  'BM'.b + [54 + pixels, 0, 54, 40, width, height].pack('V6') +
-    [1, 24].pack('v2') + [0, pixels, 0, 0, 0, 0].pack('V6') + ("\x80".b * pixels)
+$stdout.sync = true
+[['cpu', {}], ['not-a-real-device', {}], ['auto', {'CUDA_VISIBLE_DEVICES' => '-1'}]].each do |device, env|
+  _, diagnostics, status = Open3.capture3(env.merge('FLASHVIS_DEVICE' => device), binary, projector, model, "/tmp/fs96-invalid-#{Process.pid}.sock")
+  raise "#{device} did not reject startup" unless status.exitstatus == 2 && diagnostics.match?(/not an available GPU|GPU Flash Attention is required/)
+  puts JSON.generate(event: 'vision_failure_check', case: "unavailable-#{device}", exit: status.exitstatus)
 end
 
-def read_exact(socket, count)
-  data = +''.b
-  while data.bytesize < count
-    part = socket.read(count - data.bytesize)
-    raise 'short encoder response' if part.nil? || part.empty?
-    data << part
-  end
-  data
-end
-
-def request(path, payload, timings, backend)
-  Timeout.timeout(300) do
+def request(path, bytes)
+  Timeout.timeout(120) do
     UNIXSocket.open(path) do |socket|
-      start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      socket.write("enc #{payload.bytesize}\n")
-      socket.write(payload)
+      socket.write("enc #{bytes.bytesize}\n")
+      socket.write(bytes)
       header = socket.gets
-      raise "unexpected header: #{header.inspect}" unless header&.match?(/\Aok (\d+) (\d+) (\d+) (\d+) (\d+)\n\z/)
+      raise 'closed encoder connection' unless header
+      return header if header.start_with?('err ')
+      raise "bad header #{header.inspect}" unless header.match?(/\Aok \d+ \d+ \d+ \d+ \d+\n\z/)
       dims = header.split.drop(1).map(&:to_i)
-      raise "unexpected dimensions #{dims}" unless dims[0].between?(1, 4096) && dims[4] == 2560
-      embeddings = read_exact(socket, dims[0] * dims[4] * 4)
-      positions = read_exact(socket, dims[0] * 12)
-      raise 'non-finite output escaped the daemon' unless embeddings.unpack('e*').all?(&:finite?)
-      actual = Timeout.timeout(5) { timings.pop }
-      raise "expected #{backend}, got #{actual}" unless actual == backend
-      puts JSON.generate(event: 'recovery_response', backend: actual, dimensions: dims,
-                         input_sha256: Digest::SHA256.hexdigest(payload),
-                         embeddings_sha256: Digest::SHA256.hexdigest(embeddings),
-                         roundtrip_seconds: Process.clock_gettime(Process::CLOCK_MONOTONIC) - start)
-      [dims, embeddings, positions]
+      count = dims[0] * dims[4] * 4
+      data, positions = socket.read(count), socket.read(dims[0] * 12)
+      raise 'short or invalid successful response' unless data&.bytesize == count && positions&.bytesize == dims[0] * 12 && data.unpack('e*').all?(&:finite?)
+      return dims
     end
   end
 end
 
-def run_case(label, env, binary, projector, text_model, work, payload, initial, fallback)
-  path = File.join(work, "#{label}.sock")
+%w[malformed oversized error nan].each do |mode|
+  path = "/tmp/fs96-recovery-#{Process.pid}.sock"
+  env = {'FLASHVIS_DEVICE' => 'auto', 'LD_PRELOAD' => %w[malformed oversized].include?(mode) ? nil : fault, 'FLASHVIS_TEST_FAULT' => mode}
   reader, writer = IO.pipe
   reader.binmode
-  lines = +''.b
-  timings, ready = Queue.new, Queue.new
-  pid = Process.spawn(env, binary, projector, text_model, path, '10', err: writer, out: $stdout, pgroup: true)
+  diagnostics = +''.b
+  pid = Process.spawn(env, binary, projector, model, path, '10', err: writer, pgroup: true)
   writer.close
-  diagnostics = Thread.new do
-    reader.each_line do |line|
-      lines << line
-      $stderr.write(line)
-      ready << Regexp.last_match(1) if line.match(/\Aflashvis: ready, backend ([^,]+),/)
-      timings << Regexp.last_match(1) if line.match(/encode [0-9.]+ s, backend ([^\s]+)/)
-    end
-  end
+  thread = Thread.new { reader.each_line { |line| diagnostics << line; $stderr.write(line) } }
   begin
     Timeout.timeout(120) do
       until File.socket?(path)
-        raise 'daemon exited before listening' if Process.waitpid(pid, Process::WNOHANG)
+        raise 'encoder exited during startup' if Process.waitpid(pid, Process::WNOHANG)
         sleep 0.05
       end
     end
-    selected = Timeout.timeout(5) { ready.pop }
-    correct = initial == :gpu ? selected != 'CPU' : selected == initial
-    raise "wrong startup device #{selected}" unless correct
-    result = request(path, payload, timings, 'CPU')
-    if fallback
-      request(path, bitmap(64, 64), timings, 'CPU')
-      raise 'expected exactly one request-time fallback' unless lines.scan(/switching to CPU until restart/).length == 1
-    else
-      raise 'unexpected fallback' if lines.include?('switching to CPU until restart')
+    input = mode == 'malformed' ? 'not an image' : payload
+    if mode == 'oversized'
+      w, h = 4097, 4096
+      size = (w * 3 + 3) / 4 * 4 * h
+      input = 'BM'.b + [54 + size, 0, 54, 40, w, h].pack('V6') + [1, 24].pack('v2') + [0, size, 0, 0, 0, 0].pack('V6') + ("\x80".b * size)
     end
-    puts JSON.generate(event: 'recovery_case_passed', case: label, initial_device: selected, fallback: fallback)
-    result
+    rejected = request(path, input)
+    raise "#{mode} was accepted: #{rejected.inspect}" unless rejected.is_a?(String) && rejected.start_with?('err ')
+    accepted = request(path, payload)
+    raise "subsequent GPU request failed: #{accepted.inspect}" unless accepted.is_a?(Array)
+    raise 'backend changed to CPU' if diagnostics.match?(/flashvis:.*(?:switching to CPU|backend CPU)/)
+    raise 'GPU FA not observed after failure' unless diagnostics.include?('observed_gpu=27') && diagnostics.include?('backend=CUDA')
+    puts JSON.generate(event: 'vision_failure_check', case: mode, rejection: rejected.strip, subsequent_dimensions: accepted, subsequent_backend: 'GPU FA')
   ensure
-    begin
-      Process.kill('TERM', -pid)
-      Timeout.timeout(5) { Process.waitpid(pid) }
-    rescue Errno::ESRCH, Errno::ECHILD
-    rescue Timeout::Error
-      Process.kill('KILL', -pid) rescue Errno::ESRCH
-      Process.waitpid(pid) rescue Errno::ECHILD
-    end
-    diagnostics.join(5)
+    Process.kill('TERM', -pid) rescue Errno::ESRCH
+    Process.waitpid(pid) rescue Errno::ECHILD
+    thread.join(5)
     reader.close
     File.unlink(path) if File.exist?(path)
   end
 end
-
-if ARGV[5] == 'large'
-  result = run_case('large', {'FLASHVIS_DEVICE' => 'auto'}, binary, projector, text_model,
-                    work, bitmap(2048, 2048), :gpu, true)
-  raise 'large image lost tokens' unless result[0] == [4096, 64, 64, 64, 2560]
-else
-  _, error, status = Open3.capture3({'FLASHVIS_DEVICE' => 'not-a-real-device'}, binary, projector, text_model, File.join(work, 'invalid.sock'))
-  raise 'invalid GPU must exit 2' unless status.exitstatus == 2 && error.include?('not an available GPU')
-  puts JSON.generate(event: 'recovery_case_passed', case: 'invalid-device', exit_code: 2)
-  baseline = run_case('cpu', {'FLASHVIS_DEVICE' => 'cpu'}, binary, projector, text_model, work, payload, 'CPU', false)
-  hidden = run_case('no-gpu', {'FLASHVIS_DEVICE' => 'auto', 'CUDA_VISIBLE_DEVICES' => '-1'},
-                    binary, projector, text_model, work, payload, 'CPU', false)
-  raise 'no-GPU fallback changed CPU output' unless baseline == hidden
-  %w[error nan].each do |mode|
-    recovered = run_case(mode, {'FLASHVIS_DEVICE' => 'auto', 'LD_PRELOAD' => fault, 'FLASHVIS_TEST_FAULT' => mode},
-                         binary, projector, text_model, work, payload, :gpu, true)
-    raise "#{mode} recovery changed CPU output" unless baseline == recovered
-  end
-end
-puts JSON.generate(event: 'recovery_complete', mode: ARGV[5] || 'faults')

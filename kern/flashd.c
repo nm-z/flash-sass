@@ -20,6 +20,7 @@
 #include "jinja.h"
 #include "timings.h"
 #include "tok.h"
+#include "vision.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <limits.h>
@@ -272,7 +273,7 @@ typedef struct { char path[240]; unsigned ntok, npos; } imgrec;
 static const char *vis_image(const unsigned char *bytes, size_t n, imgrec *r) {
 	if (!VIS_SOCK) return "this engine was started without a vision encoder";
 	char *dir = IMGDIR; mkdir(dir, 0755);
-	snprintf(r->path, sizeof r->path, "%s/%016llx.bin", dir, fnv64(bytes, n));
+	snprintf(r->path, sizeof r->path, "%s/" FLASH_IMAGE_CACHE_PREFIX "%016llx.bin", dir, fnv64(bytes, n));
 	FILE *f = fopen(r->path, "rb"); uint32_t hd[5];
 	if (f) { int ok = fread(hd, 4, 5, f) == 5; fclose(f); if (ok) { r->ntok = hd[0]; r->npos = hd[3]; utime(r->path, NULL); return NULL; } }
 	int s = socket(AF_UNIX, SOCK_STREAM, 0); struct sockaddr_un sa = { .sun_family = AF_UNIX }; snprintf(sa.sun_path, sizeof sa.sun_path, "%s", VIS_SOCK);

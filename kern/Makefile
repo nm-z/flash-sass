@@ -485,7 +485,7 @@ trace_session_test: trace_session_test.c $(ENGINE_SRC) prefill.h trace_host.inc 
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -UNDEBUG -pthread -o $@ trace_session_test.c $(filter-out engine.c,$(ENGINE_SRC)) -I../ref -I$(CUDA)/include -lcuda -lm
 # the commit (and -dirty when the tree differs from it) the library is built from: the engine reports it with its `config` command
 FLASH_REV ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)$(shell git diff --quiet HEAD -- .. 2>/dev/null || echo -dirty)
-libengine.so: trace_host.inc $(ENGINE_SRC) prefill.h prog.h hold.h core.h engine.h dieops.h ple_read_pool.h ple_read_reload.h ../ref/split.h ../ref/qsa.h ../ref/block.h ../ref/attn.h ../ref/ple.h ../ref/gguf.h ../ref/quant.h ../ref/fmath.h ../ref/hc.h ../ref/deltanet.h ../ref/router.h timings.h
+libengine.so: vision.h trace_host.inc $(ENGINE_SRC) prefill.h prog.h hold.h core.h engine.h dieops.h ple_read_pool.h ple_read_reload.h ../ref/split.h ../ref/qsa.h ../ref/block.h ../ref/attn.h ../ref/ple.h ../ref/gguf.h ../ref/quant.h ../ref/fmath.h ../ref/hc.h ../ref/deltanet.h ../ref/router.h timings.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -pthread -DFLASH_REV='"$(FLASH_REV)"' -o $@.new $(ENGINE_SRC) -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
 
 flashcore: flashcore.c core.h hold.h holdc.c ../ref/gguf.c ../ref/gguf.h
@@ -500,7 +500,7 @@ tok_test: tok_test.c tok.c tok.h ucd.h ../ref/gguf.c ../ref/gguf.h
 jinja_test: jinja_test.c jinja.c jinja.h json.c json.h
 	$(CC) -std=gnu99 -O2 -Wall -o $@ jinja_test.c jinja.c json.c -lm
 
-flashd: timings.h flashd.c tok.c tok.h jinja.c jinja.h json.c json.h ucd.h ../ref/gguf.c ../ref/gguf.h
+flashd: vision.h timings.h flashd.c tok.c tok.h jinja.c jinja.h json.c json.h ucd.h ../ref/gguf.c ../ref/gguf.h
 	$(CC) -std=gnu99 -O2 -Wall -o $@ flashd.c tok.c jinja.c json.c ../ref/gguf.c -I../ref -lm -lpthread
 
 sample_test: sample_test.c dieops.h ../ref/sample.c ../ref/sample.h ../ref/fmath.c
@@ -514,11 +514,15 @@ attnpartn_unitmap: attnpartn_unitmap.c
 	$(CC) -std=gnu99 -O2 -Wall -Wextra -o $@ $<
 
 # ---- the vision encoder daemon (libmtmd from a llama.cpp build; LLAMA_CPP names its tree) ----
-# Prefer the installed CUDA tree on archy; retain the CPU-only tree as a fallback.
-LLAMA_CPP ?= $(if $(wildcard $(HOME)/claude/llama.cpp-cuda/build/bin/libggml-cuda.so),$(HOME)/claude/llama.cpp-cuda,$(HOME)/claude/llama.cpp-up)
+# The vision service requires the installed CUDA backend.
+LLAMA_CPP ?= $(HOME)/claude/llama.cpp-cuda
 LLAMA_BUILD ?= $(LLAMA_CPP)/build
-flashvis: flashvis.c
-	$(CC) -std=gnu99 -O2 -Wall -o $@ flashvis.c -DFLASHVIS_BACKEND_DIR='"$(abspath $(LLAMA_BUILD))/bin"' -I$(LLAMA_CPP)/include -I$(LLAMA_CPP)/ggml/include -I$(LLAMA_CPP)/tools/mtmd -L$(LLAMA_BUILD)/bin -lmtmd -lllama -lggml -lggml-base -Wl,-rpath,$(abspath $(LLAMA_BUILD))/bin
+flashvis: flashvis.c vision.h vis_ggml.c vis_ggml.h vis_fa.c vis_fa.h vis_fa.cubin
+	@test -f $(LLAMA_BUILD)/bin/libggml-cuda.so || { echo 'flashvis requires a CUDA llama.cpp build' >&2; exit 1; }
+	$(CC) -std=gnu11 -O2 -Wall -Wl,--export-dynamic -o $@ flashvis.c vis_ggml.c vis_fa.c -DVIS_FA_PTX_PATH='"$(abspath vis_fa.cubin)"' -DFLASHVIS_BACKEND_DIR='"$(abspath $(LLAMA_BUILD))/bin"' -I$(CUDA)/include -I$(LLAMA_CPP)/include -I$(LLAMA_CPP)/ggml/include -I$(LLAMA_CPP)/tools/mtmd -L$(LLAMA_BUILD)/bin -lmtmd -lllama -lggml -lggml-base -lcuda -ldl -lm -Wl,-rpath,$(abspath $(LLAMA_BUILD))/bin
+
+vis_fa.cubin: vis_fa.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
 
 memtest: memtest.c
 	$(CC) -std=gnu99 -O2 -Wall -o $@ memtest.c -I$(CUDA)/include -lcuda

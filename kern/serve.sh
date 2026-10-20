@@ -1,7 +1,7 @@
 #!/bin/bash
 # serve.sh <all|holders|core|prewarm|vis|flashd|reload [lib]|status|stop|unload>: run the Flash-Next engine on archy.
 #   holders   the six weight holders (dies 0-5; ~40 min from NFS; restart only when the split changes)
-#   vis       flashvis: the vision encoder (libmtmd on a GPU with CPU fallback; FLASHVIS_DEVICE selects the backend)
+#   vis       flashvis: GPU vision encoding with mandatory GPU Flash Attention; FLASHVIS_DEVICE selects a GPU
 #   core      flashcore: contexts, arenas and the 28.8 GB PLE table (~7 min), then the engine library
 #   prewarm   read GGUF2 into the reclaimable file cache without starting any service
 # FLASH_PLE_DISK=1 FLASH_PLE_PREWARM=1 warms GGUF2 before core startup (off by default).
@@ -74,7 +74,7 @@ prewarm)
 	prewarm_ple || exit 1 ;;
 core)
 	if [[ "${FLASH_PLE_PREWARM-0}" = 1 ]]; then prewarm_ple || exit 1; fi
-	CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 FLASH_MAXT=${FLASH_MAXT:-262144} FLASH_ENGINE_MAXT=${FLASH_ENGINE_MAXT:-230000} FLASH_KV_HOST=${FLASH_KV_HOST:-0} FLASH_MAXIMG=${FLASH_MAXIMG:-4096} FLASH_PLE_OFF=${FLASH_PLE_OFF:-192} FLASH_SOCK=$SOCK \
+	CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 FLASH_MAXT=${FLASH_MAXT:-262144} FLASH_ENGINE_MAXT=${FLASH_ENGINE_MAXT:-230000} FLASH_KV_HOST=${FLASH_KV_HOST:-0} FLASH_MAXIMG=${FLASH_MAXIMG:-16384} FLASH_PLE_OFF=${FLASH_PLE_OFF:-192} FLASH_SOCK=$SOCK \
 		setsid -f ./flashcore "$GGUF2" "$PWD/libengine.so" /tmp/hold-h{0,1,2,3,4,5}.manifest > /tmp/flashcore.out 2> /tmp/flashcore.err < /dev/null ;;
 vis)
 	setsid -f ./flashvis "${MMPROJ:-$HOME/models-hdd-backup/Qwen3.8-Flash-Next-GGUF/mmproj-BF16.gguf}" "$GGUF1" "${FLASHVIS_SOCK:-/tmp/flashvis.sock}" "${VIS_THREADS:-10}" > /tmp/flashvis.out 2> /tmp/flashvis.err < /dev/null ;;
