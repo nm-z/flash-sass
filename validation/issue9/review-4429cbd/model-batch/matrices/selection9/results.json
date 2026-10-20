@@ -1,0 +1,425 @@
+{
+   "acceptance_complete" : false,
+   "cache_directory" : "/home/nate/codex/flash-pr35-cache-20261017/tensors",
+   "cases" : [
+      {
+         "argv" : [
+            "/tmp/flash-pr35-4429cbd/source/kern/model_test",
+            "/home/nate/codex/flash-pr35-cache-20261017/tensors",
+            "0",
+            "8",
+            "9",
+            "eh",
+            "/tmp/flash-pr35-4429cbd/evidence/model-batch/holder.manifest"
+         ],
+         "cwd" : "/tmp/flash-pr35-4429cbd/source/kern",
+         "elapsed_seconds" : 39.5687880516052,
+         "environment" : {
+            "ATTN_DIE" : "0",
+            "ATTN_MAP" : "0,0,0,0,0,0,0,0,0,0,0,0",
+            "CUDA_DEVICE_ORDER" : "PCI_BUS_ID",
+            "CUDA_VISIBLE_DEVICES" : "7",
+            "FLASH_KV_HOST" : "0",
+            "FLASH_NBLK" : "1",
+            "MODEL_ATTN" : "qsa",
+            "MODEL_IDS" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/ids.txt",
+            "MODEL_PLE" : "/home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+            "MODEL_PLE_OFF" : "192",
+            "SPLIT_SHARES" : "1"
+         },
+         "exit_code" : 0,
+         "expected_exit" : 0,
+         "name" : "b1-kv0-token-positive",
+         "passed" : true,
+         "reason" : "requested positive comparison completed",
+         "signal" : 0,
+         "stderr" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/b1-kv0-token-positive.stderr",
+         "stderr_identity" : {
+            "bytes" : 0,
+            "mtime" : 1792284164,
+            "path" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/b1-kv0-token-positive.stderr",
+            "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+         },
+         "stdout" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/b1-kv0-token-positive.stdout",
+         "stdout_identity" : {
+            "bytes" : 1196,
+            "mtime" : 1792284203,
+            "path" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/b1-kv0-token-positive.stdout",
+            "sha256" : "2dec542fc6fb1a6e9ed89377089e2169f1369e4e3b8f99a74ab59c7a5e6c2a05"
+         },
+         "timed_out" : false
+      },
+      {
+         "argv" : [
+            "/tmp/flash-pr35-4429cbd/source/kern/model_test",
+            "/home/nate/codex/flash-pr35-cache-20261017/tensors",
+            "0",
+            "8",
+            "9",
+            "eh",
+            "/tmp/flash-pr35-4429cbd/evidence/model-batch/holder.manifest"
+         ],
+         "cwd" : "/tmp/flash-pr35-4429cbd/source/kern",
+         "elapsed_seconds" : 39.7239580154419,
+         "environment" : {
+            "ATTN_DIE" : "0",
+            "ATTN_MAP" : "0,0,0,0,0,0,0,0,0,0,0,0",
+            "CUDA_DEVICE_ORDER" : "PCI_BUS_ID",
+            "CUDA_VISIBLE_DEVICES" : "7",
+            "FLASH_KV_HOST" : "0",
+            "FLASH_NBLK" : "1",
+            "MODEL_ATTN" : "qsa",
+            "MODEL_IDS" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/ids.txt",
+            "MODEL_INJECT" : "selection",
+            "MODEL_PLE" : "/home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+            "MODEL_PLE_OFF" : "192",
+            "SPLIT_SHARES" : "1"
+         },
+         "exit_code" : 3,
+         "expected_exit" : 3,
+         "name" : "b1-kv0-token-selection",
+         "passed" : true,
+         "reason" : "injection reached and mismatch rejected",
+         "signal" : 0,
+         "stderr" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/b1-kv0-token-selection.stderr",
+         "stderr_identity" : {
+            "bytes" : 0,
+            "mtime" : 1792284205,
+            "path" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/b1-kv0-token-selection.stderr",
+            "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+         },
+         "stdout" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/b1-kv0-token-selection.stdout",
+         "stdout_identity" : {
+            "bytes" : 1324,
+            "mtime" : 1792284244,
+            "path" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/b1-kv0-token-selection.stdout",
+            "sha256" : "6ae653b074256ed05daf24a3bf65666b2a1406186a65f62397b2ac050201bfd9"
+         },
+         "timed_out" : false
+      },
+      {
+         "argv" : [
+            "/tmp/flash-pr35-4429cbd/source/kern/model_test",
+            "/home/nate/codex/flash-pr35-cache-20261017/tensors",
+            "0",
+            "8",
+            "9",
+            "eh",
+            "/tmp/flash-pr35-4429cbd/evidence/model-batch/holder.manifest"
+         ],
+         "cwd" : "/tmp/flash-pr35-4429cbd/source/kern",
+         "elapsed_seconds" : 39.877347946167,
+         "environment" : {
+            "ATTN_DIE" : "0",
+            "ATTN_MAP" : "0,0,0,0,0,0,0,0,0,0,0,0",
+            "CUDA_DEVICE_ORDER" : "PCI_BUS_ID",
+            "CUDA_VISIBLE_DEVICES" : "7",
+            "FLASH_KV_HOST" : "1",
+            "FLASH_NBLK" : "1",
+            "MODEL_ATTN" : "qsa",
+            "MODEL_IDS" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/ids.txt",
+            "MODEL_PLE" : "/home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+            "MODEL_PLE_OFF" : "192",
+            "SPLIT_SHARES" : "1"
+         },
+         "exit_code" : 0,
+         "expected_exit" : 0,
+         "name" : "b1-kv1-token-positive",
+         "passed" : true,
+         "reason" : "requested positive comparison completed",
+         "signal" : 0,
+         "stderr" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/b1-kv1-token-positive.stderr",
+         "stderr_identity" : {
+            "bytes" : 0,
+            "mtime" : 1792284246,
+            "path" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/b1-kv1-token-positive.stderr",
+            "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+         },
+         "stdout" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/b1-kv1-token-positive.stdout",
+         "stdout_identity" : {
+            "bytes" : 1196,
+            "mtime" : 1792284286,
+            "path" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/b1-kv1-token-positive.stdout",
+            "sha256" : "56fb863f577fda861e6ae5bee28aa20b0b817fbb1dd85b9b4ec8791bba0ea872"
+         },
+         "timed_out" : false
+      },
+      {
+         "argv" : [
+            "/tmp/flash-pr35-4429cbd/source/kern/model_test",
+            "/home/nate/codex/flash-pr35-cache-20261017/tensors",
+            "0",
+            "8",
+            "9",
+            "eh",
+            "/tmp/flash-pr35-4429cbd/evidence/model-batch/holder.manifest"
+         ],
+         "cwd" : "/tmp/flash-pr35-4429cbd/source/kern",
+         "elapsed_seconds" : 39.777302980423,
+         "environment" : {
+            "ATTN_DIE" : "0",
+            "ATTN_MAP" : "0,0,0,0,0,0,0,0,0,0,0,0",
+            "CUDA_DEVICE_ORDER" : "PCI_BUS_ID",
+            "CUDA_VISIBLE_DEVICES" : "7",
+            "FLASH_KV_HOST" : "1",
+            "FLASH_NBLK" : "1",
+            "MODEL_ATTN" : "qsa",
+            "MODEL_IDS" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/ids.txt",
+            "MODEL_INJECT" : "selection",
+            "MODEL_PLE" : "/home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+            "MODEL_PLE_OFF" : "192",
+            "SPLIT_SHARES" : "1"
+         },
+         "exit_code" : 3,
+         "expected_exit" : 3,
+         "name" : "b1-kv1-token-selection",
+         "passed" : true,
+         "reason" : "injection reached and mismatch rejected",
+         "signal" : 0,
+         "stderr" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/b1-kv1-token-selection.stderr",
+         "stderr_identity" : {
+            "bytes" : 0,
+            "mtime" : 1792284287,
+            "path" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/b1-kv1-token-selection.stderr",
+            "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+         },
+         "stdout" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/b1-kv1-token-selection.stdout",
+         "stdout_identity" : {
+            "bytes" : 1324,
+            "mtime" : 1792284327,
+            "path" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/b1-kv1-token-selection.stdout",
+            "sha256" : "1a9b760b8ca58f3a8fb85f8317162f3afac833a1de78f3f5019eb234e1f26dcc"
+         },
+         "timed_out" : false
+      }
+   ],
+   "effective_ids" : {
+      "bytes" : 27,
+      "mtime" : 1792284163,
+      "path" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/ids.txt",
+      "sha256" : "a35a7a3114a37c2077d13a1ecdd9560c3edf324fa6be81cf1a1a95f9ecf9aa7e"
+   },
+   "file_identities" : [
+      {
+         "bytes" : 154032,
+         "mtime" : 1792283343,
+         "path" : "/tmp/flash-pr35-4429cbd/source/kern/model_test",
+         "sha256" : "c16c81e0b3c3e31e74c95f2512d454a8014c6713e5ba2f34326de0bbe1a59ce8"
+      },
+      {
+         "bytes" : 485608,
+         "mtime" : 1792283338,
+         "path" : "/tmp/flash-pr35-4429cbd/source/kern/die.cubin",
+         "sha256" : "116d828f20139d144d46d7d8115a28e35313dac1f6c24ba81c1b5c0984f50e14"
+      },
+      {
+         "bytes" : 11120,
+         "mtime" : 1792283759,
+         "path" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/holder.manifest",
+         "sha256" : "b76dadaef773dc48239309ee91d22a7ef19ddb55c83829c631d94f30663fa210"
+      },
+      {
+         "bytes" : 18391,
+         "mtime" : 1792282049,
+         "path" : "/home/nate/codex/flash-pr35-cache-20261017/tensors.sha256",
+         "sha256" : "d06e67e46646da61607ef40c6e74b38244533ff6fcd48131463d0b8244c8d2ed"
+      },
+      {
+         "bytes" : 11003,
+         "mtime" : 1792281432,
+         "path" : "/home/nate/codex/flash-pr35-cache-20261017/manifest.new",
+         "sha256" : "87821e6bdea2919379f7e3ac090d676d1a0b388d760bed7bd44fbb9addc9c2f0"
+      },
+      {
+         "bytes" : 169744,
+         "mtime" : 1792283353,
+         "path" : "/tmp/flash-pr35-4429cbd/source/kern/libengine.so",
+         "sha256" : "f7e64ae2538d544ea31a83c6740b2b5c77d23c2b571767049585742255e6c031"
+      },
+      {
+         "bytes" : 4507,
+         "mtime" : 1792283358,
+         "path" : "/tmp/flash-pr35-4429cbd/evidence/build.log",
+         "sha256" : "c8b31492e20e089edd7bd7f9b29db6129bdd1b16f5136816e2bf5a523ae084d6"
+      },
+      {
+         "bytes" : 25088,
+         "mtime" : 1792283338,
+         "path" : "/tmp/flash-pr35-4429cbd/source/kern/run_qsa_model_matrix.pl",
+         "sha256" : "d09194d34809c6c902907173e66151d79f567d55c5ff4020b97a21ba9ef97459"
+      }
+   ],
+   "finished_epoch" : 1792284327.68857,
+   "git_head" : "4429cbd0e40c9338cb9e5cf809afd52cb71e0a5e\n",
+   "git_status" : "?? kern/hold_cache\n",
+   "input_ids" : {
+      "bytes" : 27,
+      "mtime" : 1792283358,
+      "path" : "/home/nate/codex/flash-pr35-cache-20261017/ids9.txt",
+      "sha256" : "a35a7a3114a37c2077d13a1ecdd9560c3edf324fa6be81cf1a1a95f9ecf9aa7e"
+   },
+   "plan" : [
+      {
+         "argv" : [
+            "/tmp/flash-pr35-4429cbd/source/kern/model_test",
+            "/home/nate/codex/flash-pr35-cache-20261017/tensors",
+            "0",
+            "8",
+            "9",
+            "eh",
+            "/tmp/flash-pr35-4429cbd/evidence/model-batch/holder.manifest"
+         ],
+         "attention_layers" : 2,
+         "budget" : 1,
+         "cwd" : "/tmp/flash-pr35-4429cbd/source/kern",
+         "dies" : 1,
+         "environment" : {
+            "ATTN_DIE" : "0",
+            "ATTN_MAP" : "0,0,0,0,0,0,0,0,0,0,0,0",
+            "CUDA_DEVICE_ORDER" : "PCI_BUS_ID",
+            "CUDA_VISIBLE_DEVICES" : "7",
+            "FLASH_KV_HOST" : "0",
+            "FLASH_NBLK" : "1",
+            "MODEL_ATTN" : "qsa",
+            "MODEL_IDS" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/ids.txt",
+            "MODEL_PLE" : "/home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+            "MODEL_PLE_OFF" : "192",
+            "SPLIT_SHARES" : "1"
+         },
+         "expected_exit" : 0,
+         "injection" : "",
+         "kv_host" : 0,
+         "mode" : "token",
+         "name" : "b1-kv0-token-positive"
+      },
+      {
+         "argv" : [
+            "/tmp/flash-pr35-4429cbd/source/kern/model_test",
+            "/home/nate/codex/flash-pr35-cache-20261017/tensors",
+            "0",
+            "8",
+            "9",
+            "eh",
+            "/tmp/flash-pr35-4429cbd/evidence/model-batch/holder.manifest"
+         ],
+         "attention_layers" : 2,
+         "budget" : 1,
+         "cwd" : "/tmp/flash-pr35-4429cbd/source/kern",
+         "dies" : 1,
+         "environment" : {
+            "ATTN_DIE" : "0",
+            "ATTN_MAP" : "0,0,0,0,0,0,0,0,0,0,0,0",
+            "CUDA_DEVICE_ORDER" : "PCI_BUS_ID",
+            "CUDA_VISIBLE_DEVICES" : "7",
+            "FLASH_KV_HOST" : "0",
+            "FLASH_NBLK" : "1",
+            "MODEL_ATTN" : "qsa",
+            "MODEL_IDS" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/ids.txt",
+            "MODEL_INJECT" : "selection",
+            "MODEL_PLE" : "/home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+            "MODEL_PLE_OFF" : "192",
+            "SPLIT_SHARES" : "1"
+         },
+         "expected_exit" : 3,
+         "injection" : "selection",
+         "kv_host" : 0,
+         "mode" : "token",
+         "name" : "b1-kv0-token-selection"
+      },
+      {
+         "argv" : [
+            "/tmp/flash-pr35-4429cbd/source/kern/model_test",
+            "/home/nate/codex/flash-pr35-cache-20261017/tensors",
+            "0",
+            "8",
+            "9",
+            "eh",
+            "/tmp/flash-pr35-4429cbd/evidence/model-batch/holder.manifest"
+         ],
+         "attention_layers" : 2,
+         "budget" : 1,
+         "cwd" : "/tmp/flash-pr35-4429cbd/source/kern",
+         "dies" : 1,
+         "environment" : {
+            "ATTN_DIE" : "0",
+            "ATTN_MAP" : "0,0,0,0,0,0,0,0,0,0,0,0",
+            "CUDA_DEVICE_ORDER" : "PCI_BUS_ID",
+            "CUDA_VISIBLE_DEVICES" : "7",
+            "FLASH_KV_HOST" : "1",
+            "FLASH_NBLK" : "1",
+            "MODEL_ATTN" : "qsa",
+            "MODEL_IDS" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/ids.txt",
+            "MODEL_PLE" : "/home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+            "MODEL_PLE_OFF" : "192",
+            "SPLIT_SHARES" : "1"
+         },
+         "expected_exit" : 0,
+         "injection" : "",
+         "kv_host" : 1,
+         "mode" : "token",
+         "name" : "b1-kv1-token-positive"
+      },
+      {
+         "argv" : [
+            "/tmp/flash-pr35-4429cbd/source/kern/model_test",
+            "/home/nate/codex/flash-pr35-cache-20261017/tensors",
+            "0",
+            "8",
+            "9",
+            "eh",
+            "/tmp/flash-pr35-4429cbd/evidence/model-batch/holder.manifest"
+         ],
+         "attention_layers" : 2,
+         "budget" : 1,
+         "cwd" : "/tmp/flash-pr35-4429cbd/source/kern",
+         "dies" : 1,
+         "environment" : {
+            "ATTN_DIE" : "0",
+            "ATTN_MAP" : "0,0,0,0,0,0,0,0,0,0,0,0",
+            "CUDA_DEVICE_ORDER" : "PCI_BUS_ID",
+            "CUDA_VISIBLE_DEVICES" : "7",
+            "FLASH_KV_HOST" : "1",
+            "FLASH_NBLK" : "1",
+            "MODEL_ATTN" : "qsa",
+            "MODEL_IDS" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/ids.txt",
+            "MODEL_INJECT" : "selection",
+            "MODEL_PLE" : "/home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+            "MODEL_PLE_OFF" : "192",
+            "SPLIT_SHARES" : "1"
+         },
+         "expected_exit" : 3,
+         "injection" : "selection",
+         "kv_host" : 1,
+         "mode" : "token",
+         "name" : "b1-kv1-token-selection"
+      }
+   ],
+   "remaining_scope" : [
+      "This runner does not exercise request reset or snapshot/resume.",
+      "Huge-cache direct-position component validation is a separate matrix.",
+      "Loop mode retains final-token layer buffers; earlier predictions have weaker coverage.",
+      "Manifest fingerprints alone do not establish checkpoint conversion provenance.",
+      "The selected block/embedding/head scope is not a complete model.",
+      "Production-budget exclusion is not reached by this token count."
+   ],
+   "schema" : "flash-sass.qsa-model-matrix.v1",
+   "scope" : {
+      "blocks" : [
+         0,
+         8
+      ],
+      "cuda_visible_devices" : "7",
+      "flags" : "eh",
+      "minimum_gpu_free_mib" : 512,
+      "minimum_host_available_mib" : 1024,
+      "tokens" : 9
+   },
+   "source_diff" : {
+      "bytes" : 0,
+      "mtime" : 1792284163,
+      "path" : "/tmp/flash-pr35-4429cbd/evidence/model-batch/matrices/selection9/source-diff.stdout",
+      "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   "source_identity_note" : "Repository snapshot plus exact binary hashes; use the build log to link them. The model_test executable does not load libengine.so.",
+   "status" : "SELECTED_CASES_PASSED"
+}
