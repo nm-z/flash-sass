@@ -119,5 +119,10 @@ The variant cubin SHA-256 is
 `a57514187a81a017d7b08da31355182019468514a0e3b6cf0400dd491eca56b9`;
 the transform's SHA-256 is
 `744b19ed917f970b8cc214bdfeb622f7fab60bdd31293780f952aadb14b55485`.
-Its queued request control will reuse the matched engine/client binaries and
-explicit engine revision above. GPU results are pending.
+The request control reuses the matched engine/client binaries and explicit
+engine revision above. GPUQ `81654b75-8185-424e-97e6-e4d472d2ff7c` still fails:
+VRAM scalar, VRAM paired and host scalar each pass all 16 checks; host paired
+fails its first `fresh-A` fingerprint comparison. All four children exit 0
+without a signal, timeout or interruption. The cache/fence change is therefore
+not sufficient to make this control pass. Durable logs, the report and the
+host scalar/paired outputs are retained as `ple-visibility-8165.*`.
