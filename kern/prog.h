@@ -94,6 +94,7 @@ void split_of(split_t *s, int d, int n, int blk);
  * ssm_ab_bias = dt_bias ++ zeros, emap = global expert -> local index or 0xffffffff) */
 typedef struct {
 	CUdeviceptr hc_attn_norm, hc_attn_dj, hc_attn_up;
+	unsigned attn_q_split, attn_q_first, attn_q_rows;
 	CUdeviceptr hc_ffn_norm, hc_ffn_dj, hc_ffn_up;
 	CUdeviceptr attn_qkv, attn_gate, ssm_ab, ssm_ab_bias, ssm_conv1d, ssm_a, ssm_norm, ssm_out;
 	uint32_t attn_qkv_type, attn_gate_type, ssm_out_type;

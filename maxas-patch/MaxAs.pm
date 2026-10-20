@@ -58,7 +58,7 @@ sub Assemble
                 if exists $noDest{$inst->{op}} && ($inst->{ctrl} & 0x000e0) != 0x000e0;
 
             # track branches/jumps/calls/etc for label remapping
-            push @branches, @instructs+0 if exists $jumpOp{$inst->{op}};
+            push @branches, @instructs+0 if exists $jumpOp{$inst->{op}} || $inst->{op} eq 'BRX';
 
             # push the control code onto the control instruction
             push @{$ctrl->{ctrl}}, $inst->{ctrl};
@@ -101,7 +101,7 @@ sub Assemble
 
         $instructs[$i]{jump} = $labels{$1};
 
-        if (exists $relOffset{$instructs[$i]{op}})
+        if (exists $relOffset{$instructs[$i]{op}} || $instructs[$i]{op} eq 'BRX')
             { $instructs[$i]{inst} =~ s/(\w+);$/sprintf '0x%06x;', (($labels{$1} - $i - 1) * 8) & 0xffffff/e; }
         else
             { $instructs[$i]{inst} =~ s/(\w+);$/sprintf '0x%06x;', ($labels{$1} * 8) & 0xffffff/e; }
@@ -143,7 +143,7 @@ sub Assemble
                     }
                 }
                 # clear cache if jumping elsewhere
-                %reuse = () if exists $jumpOp{$op};
+                %reuse = () if exists $jumpOp{$op} || $op eq 'BRX';
 
                 # only track register reuse for instruction types this works with
                 if ($gram->{type}{reuse})

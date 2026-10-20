@@ -191,12 +191,10 @@ selected with PRMT from four registers — still integer, no float dequant.
 | N-gram rows 16 × 90 B | 1.4 KB | host RAM |
 | **Total** | **~3.4 GB** | |
 
-Each die moves its ~1/8 at ≤ 160 GB/s (M60 peak), pipelined die 0→7, so a single
-stream is bounded near 25–30 ms/token (≈ 35–40 tok/s) before MTP; a 2-token MTP step
-roughly doubles that. The HF card's 94 tok/s was on faster memory. If Nate wants
-more, the lever is requantizing the BF16 hyper-connection mats to Q8_0 at load
-(halves 1.26 GB) — not bit-exact to the published file, so it is an option, not
-the default.
+Target: 140 tok/s decode, 1,200 tok/s prompt processing.
+Requantizing the BF16 hyper-connection mats to Q8_0 at load
+halves their 1.26 GB but is not bit-exact to the published file, so it is an
+option, not the default.
 
 ## Memory placement
 
