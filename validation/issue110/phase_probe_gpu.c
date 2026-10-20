@@ -27,6 +27,98 @@ CUresult cuCtxCreate_v2(CUcontext *, unsigned int, CUdevice);
 static unsigned failures;
 static int failure_mode;
 
+#define FAILURE_LOG_CAPACITY 8192u
+
+static int failure_log_valid(const char *output, int mode) {
+    const char *marker = mode == 1
+        ? "FAULT_FIXTURE deliberate_invalid_read=1 error=700 host_observations=16 cuda_calls_after_error=0"
+        : "LIMIT_FIXTURE synthetic_host_limit_call=1 actual_kernel_expiry=not-tested copy_and_guards=PASS tags=16";
+    const char *header = mode == 1
+        ? "PHASE_PROBE_BEGIN request=90 active=1 segment_first=1024 segment_end=1025 window_first=1024 window_end=1280 error=700 expression=cuCtxSynchronize"
+        : "PHASE_PROBE_BEGIN request=91 active=1 segment_first=1024 segment_end=1025 window_first=1024 window_end=1280 error=0 expression=persistent_kernel_time_limit";
+    if (!strstr(output, marker) || !strstr(output, header) ||
+        !strstr(output, "PHASE_PROBE_END last_observation_only=1")) return 0;
+    unsigned tags = 0, record_lines = 0;
+    const char *line = output;
+    while ((line = strstr(line, "PHASE_PROBE die=0 cta="))) {
+        record_lines++;
+        line++;
+    }
+    for (unsigned cta = 0; cta < PHASE_PROBE_CTAS; cta++) {
+        char expected[192];
+        (void)snprintf(expected, sizeof expected,
+            "PHASE_PROBE die=0 cta=%u raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0",
+            cta);
+        if (strstr(output, expected)) tags++;
+    }
+    return tags == PHASE_PROBE_CTAS && record_lines == PHASE_PROBE_CTAS;
+}
+
+static int failure_child(const char *executable, const char *mode,
+                         const char *cubin, int expected_exit) {
+    int pipefd[2];
+    if (pipe(pipefd) < 0) { perror("failure fixture pipe"); return 1; }
+    fflush(NULL);
+    pid_t child = fork();
+    if (child < 0) {
+        perror("fork failure fixture");
+        close(pipefd[0]); close(pipefd[1]);
+        return 1;
+    }
+    if (!child) {
+        close(pipefd[0]);
+        if (dup2(pipefd[1], STDERR_FILENO) < 0) {
+            perror("failure fixture dup2"); _Exit(127);
+        }
+        close(pipefd[1]);
+        execlp(executable, executable, mode, cubin, (char *)NULL);
+        perror("exec failure fixture"); _Exit(127);
+    }
+    close(pipefd[1]);
+    char output[FAILURE_LOG_CAPACITY];
+    size_t length = 0;
+    int overflow = 0, read_error = 0;
+    for (;;) {
+        char discard[256];
+        char *destination = length < sizeof output - 1 ? output + length : discard;
+        size_t capacity = length < sizeof output - 1
+                        ? sizeof output - 1 - length : sizeof discard;
+        ssize_t bytes = read(pipefd[0], destination, capacity);
+        if (bytes == 0) break;
+        if (bytes < 0) {
+            if (errno == EINTR) continue;
+            read_error = errno;
+            break;
+        }
+        if (length < sizeof output - 1) length += (size_t)bytes;
+        else overflow = 1;
+    }
+    close(pipefd[0]);
+    output[length] = '\0';
+
+    int status = 0;
+    pid_t result;
+    do { result = waitpid(child, &status, 0); } while (result < 0 && errno == EINTR);
+    fprintf(stderr, "failure fixture captured child=%s stderr_bytes=%zu\n", mode, length);
+    if (length) (void)fwrite(output, 1, length, stderr);
+    if (read_error) {
+        fprintf(stderr, "failure fixture mode=%s pipe_read_errno=%d\n", mode, read_error);
+        return 1;
+    }
+    if (overflow || result != child || !WIFEXITED(status) ||
+        WEXITSTATUS(status) != expected_exit) {
+        fprintf(stderr, "failure fixture mode=%s overflow=%d wait_result=%d status=%d expected_exit=%d\n",
+                mode, overflow, (int)result, result == child ? status : -1, expected_exit);
+        return 1;
+    }
+    if (!failure_log_valid(output, expected_exit == 70 ? 1 : 2)) {
+        fprintf(stderr, "failure fixture mode=%s dump/tag assertions failed\n", mode);
+        return 1;
+    }
+    printf("phase_probe_failure case=%s exit=%d dump/tags=PASS\n", mode, expected_exit);
+    return 0;
+}
+
 static void launch_failure(CUresult result, const char *expression, int line) {
     if (failure_mode == 1) {
         /* A launch/configuration failure is not evidence for this check. The
@@ -40,7 +132,7 @@ static void launch_failure(CUresult result, const char *expression, int line) {
         const uint64_t expected = ((uint64_t)PHASE_PROBE_TOKEN_FIRST << 32) | 32u;
         for (unsigned cta = 0; cta < PHASE_PROBE_CTAS; cta++)
             observed += phase_probe_observe(0, cta) == expected;
-        if (!observed) {
+        if (observed != PHASE_PROBE_CTAS) {
             fprintf(stderr, "FAULT_FIXTURE no_expected_host_observation\n");
             fflush(NULL); _Exit(74);
         }
@@ -53,24 +145,11 @@ static void launch_failure(CUresult result, const char *expression, int line) {
 static int failure_children(const char *executable, const char *cubin) {
     const char *modes[] = {"--fault-child", "--limit-child"};
     const int expected[] = {70, 72};
+    int failed = 0;
     for (unsigned i = 0; i < 2; i++) {
-        fflush(NULL);
-        pid_t child = fork();
-        if (child < 0) { perror("fork failure fixture"); return 1; }
-        if (!child) {
-            execlp(executable, executable, modes[i], cubin, (char *)NULL);
-            perror("exec failure fixture"); _Exit(127);
-        }
-        int status;
-        pid_t result;
-        do { result = waitpid(child, &status, 0); } while (result < 0 && errno == EINTR);
-        if (result != child || !WIFEXITED(status) || WEXITSTATUS(status) != expected[i]) {
-            fprintf(stderr, "failure fixture mode=%s unexpected_child_result=%d status=%d\n",
-                    modes[i], (int)result, result == child ? status : -1);
-            return 1;
-        }
-        printf("phase_probe_failure case=%s exit=%d PASS\n", modes[i], expected[i]);
+        if (failure_child(executable, modes[i], cubin, expected[i])) failed++;
     }
+    if (failed) return 1;
     printf("phase_probe_failure: deliberate-CUDA-error and synthetic-host-limit paths passed\n");
     return 0;
 }
@@ -186,11 +265,7 @@ static int launch_program(CUfunction function, CUdeviceptr device_program,
         fprintf(stderr, "FAULT_FIXTURE invalid read unexpectedly succeeded\n");
         fflush(NULL); _Exit(75);
     }
-    if (failure_mode == 2) {
-        fprintf(stderr, "LIMIT_FIXTURE synthetic_host_limit_call=1 actual_kernel_expiry=not-tested\n");
-        phase_probe_limit(__LINE__);
-    }
-    phase_probe_done();
+    if (!failure_mode) phase_probe_done();
     return 1;
 }
 
@@ -428,10 +503,14 @@ int main(int argc, char **argv) {
             fprintf(stderr, "failure fixture: CUDA fault path returned\n");
             fflush(NULL); _Exit(76);
         }
-        (void)copy_case(function, device_program, device_control, 1, PHASE_PROBE_TOKEN_FIRST,
-                        1, 0, PHASE_PROBE_TOKEN_FIRST, 0, "host_limit", 91);
-        fprintf(stderr, "failure fixture: host limit path returned\n");
-        fflush(NULL); _Exit(77);
+        if (!copy_case(function, device_program, device_control, 1,
+                       PHASE_PROBE_TOKEN_FIRST, 1, 0, PHASE_PROBE_TOKEN_FIRST,
+                       0, "host_limit", 91)) {
+            fprintf(stderr, "failure fixture: in-window copy/tag/guard assertions failed\n");
+            fflush(NULL); _Exit(78);
+        }
+        fprintf(stderr, "LIMIT_FIXTURE synthetic_host_limit_call=1 actual_kernel_expiry=not-tested copy_and_guards=PASS tags=16\n");
+        phase_probe_limit(__LINE__);
     }
 
     if (!copy_case(function, device_program, device_control, 1, PHASE_PROBE_TOKEN_FIRST,

@@ -188,11 +188,15 @@ calling the recorder's host-limit exit 72, then executes an XCOPY with a
 deliberately unmapped source read in a separate child. That child requires
 `CUDA_ERROR_ILLEGAL_ADDRESS`, confirms at least one expected mapped-host tag,
 and exits through the recorder's error-70 dump without a post-error CUDA call.
-The CPU parent verifies both child exit codes; an accidental successful read,
-different CUDA error, missing tag or wrong exit fails the fixture. GPU6 is used
-through GPUQ and receives no writes from the deliberate invalid-read case. The
-synthetic host-limit fixture does not wait for, or claim to reproduce, an actual
-kernel time-limit event.
+The parent captures and validates both children’s bounded stderr dumps, exit
+codes and all 16 exact CTA tag records; an unexpected read result, missing dump,
+wrong tag or wrong exit fails the fixture. The limit child also completes
+`copy_case`: every tag, the copied test output and both destination guards pass
+before it calls the synthetic host-limit exit. The fixture’s HtoD and Memset
+writes target its device control, descriptor, input and output test allocations;
+the dispatch probes write only the diagnostic mapped tag buffer. The synthetic
+host-limit fixture does not wait for, or claim to reproduce, an actual kernel
+time-limit event.
 
 The fixture and CPU decoder check build on Benji as
 `build-3444639-1792529270056721202` (exit 0); no Perl/Ruby/Bash source or build
@@ -232,5 +236,6 @@ The deliberate GPU6 error-handler fixture also coincided with an Xid 31 on
 BDF `0000:12:00.0`, address zero, PID `3667902`. Its bounded log is
 `xid31-gpu6-fault-fixture.log`. GPUQ inventory maps BDF `12:00` to NVML index 6
 and UUID `GPU-431371bd-b482-96b2-4b70-04f83c6d075b`; post-run sampling showed
-zero utilization and no compute process. This fixture event is separate from
-the canonical BDF `0b:00` event and does not identify its cause.
+zero utilization and no compute process. The PIDs differ; the GPUQ evidence does
+not join the fixture Xid PID to the child process. The events are separate and
+neither identifies the other’s source or cause.
