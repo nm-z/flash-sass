@@ -1,0 +1,11 @@
+source=Archy kernel journal, read-only, bounded to the GPUQ error-handler fixture
+gpuq_job=7eab82bf-78b3-42d5-9adc-5ddead179716
+fixture=--failure-paths; CUDA_VISIBLE_DEVICES=6; child intentionally reads an unmapped XCOPY source
+interpretation=separate event from the earlier canonical-run Xid on BDF 00000000:0B:00.0; no production-model fault is inferred
+1792529515.998049 archy kernel: NVRM: Xid (PCI:0000:12:00): 31, pid=3667902, Ch 00000018, intr 10000000. MMU Fault: ENGINE GRAPHICS GPCCLIENT_T1_1 faulted @ 0x0_00000000. Fault is of type FAULT_PDE ACCESS_TYPE_READ
+gpu_inventory_before_after=GPUQ documents 66610 and 66650 (nvidia-smi -q -x)
+gpu6_uuid=GPU-431371bd-b482-96b2-4b70-04f83c6d075b
+gpu6_post_run=listed, NVML index 6, PCI 00000000:12:00.0, 7547 MiB free, 0% utilization, no compute process
+gpu6_ecc_before_after=volatile single-bit total 0; volatile double-bit total 0; aggregate single-bit total 0; aggregate double-bit total 0
+gpu6_retired_pages_before_after=multiple-single-bit retirement 0; double-bit retirement 0; pending retirement No; pending blacklist No
+bounded_kernel_journal_after_run=the fixture Xid31 above; no Xid79 or fallen-off-bus message in the bounded query

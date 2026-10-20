@@ -168,13 +168,69 @@ complete scalar records and predictions. The unchanged GPU consumer's hash
 remains `3c0dafd512307c58091202472a0285e7f5a997bb58706eb39938fd032584832c`.
 The queue export and output are `window-canary-bbe8.*`.
 
-The unchanged bounded-window binaries are now running the full 2055-position,
-B512 request/snapshot matrix in GPUQ
-`ff6ae989-f1d8-42f2-9b41-8ea92d4914ee`. No result is claimed for that job yet.
+The unchanged bounded-window binaries ran the full 2055-position, B512
+request/snapshot matrix in GPUQ `ff6ae989-f1d8-42f2-9b41-8ea92d4914ee`.
+The core child exits 0 without timeout or CUDA error after emitting 19 state
+fingerprints and the planned snapshot/resume requests. The verifier checks two
+fingerprints, then rejects `save-2048-A` because its fingerprint differs from
+the earlier `fresh-A` reference. The queue job exits 2 and the full request
+matrix is not accepted. Comparing raw statehash records gives 76 differing
+fields out of 234; the first stream-ordered mismatch is die 0, layer 33. This
+is a state-consistency failure under the
+instrumented run, not a reproduction of the prior CUDA illegal access. The
+complete child streams and report are `window-b512.*`.
+
+## Deliberate CUDA-error handler fixture
+
+Source `2ca99e1d9620901b067af9f21089c9b849f3b790` adds a two-child GPU fixture
+for the host-only failure exits. It executes one valid in-window copy before
+calling the recorder's host-limit exit 72, then executes an XCOPY with a
+deliberately unmapped source read in a separate child. That child requires
+`CUDA_ERROR_ILLEGAL_ADDRESS`, confirms at least one expected mapped-host tag,
+and exits through the recorder's error-70 dump without a post-error CUDA call.
+The CPU parent verifies both child exit codes; an accidental successful read,
+different CUDA error, missing tag or wrong exit fails the fixture. GPU6 is used
+through GPUQ and receives no writes from the deliberate invalid-read case. The
+synthetic host-limit fixture does not wait for, or claim to reproduce, an actual
+kernel time-limit event.
+
+The fixture and CPU decoder check build on Benji as
+`build-3444639-1792529270056721202` (exit 0); no Perl/Ruby/Bash source or build
+step is used. The fixture binary SHA-256 is
+`d5062d8013b6b8f9591927cf2025b15aea44d1e08e3c9fe12e0ea4e8adff2f99`; the
+copied opcode header SHA-256 is
+`5032a1e6012f19f30b922ede9fdb4662a19f17080163506b4edc5290f9f51356`. GPUQ
+`7eab82bf-78b3-42d5-9adc-5ddead179716` exits 0. Its first child receives CUDA
+error 700 on the deliberate invalid read, reads all 16 host observations,
+reports zero CUDA calls after the error, and exits 70. A second child exercises
+one valid in-window copy and the synthetic host-limit dump and exit 72. The
+parent validates both exits. Full GPU stdout and stderr are
+`failure-handler.gpu.*`.
+
+This was the only deliberate fault-handler GPUQ run. The pre/post telemetry
+for NVML index 6 (documents 66610 and 66650 in that GPUQ job) maps it to BDF
+`12:00` and the UUID below; it remained listed
+with 7,547 MiB free, no active compute process and zero utilization. Its
+volatile and aggregate ECC totals were zero before and after; retired-page
+counts were zero before and after, with no pending retirement or blacklist.
+The bounded kernel journal shows the expected Xid 31 at address zero on this
+GPU and no Xid 79 or fallen-off-bus message. No reset was required.
 
 ## Canonical fault's kernel journal
 
 `xid31-kernel-journal.log` retains a bounded read-only Archy kernel journal
 excerpt around the canonical `fe513a53...` job. At epoch `1792522477.212058`,
 Xid 31 identifies an MMU PDE read fault on BDF `0000:0b:00`, PID `3003319`.
-It does not identify the source instruction or underlying code cause.
+The retained pre/post NVML XML joins that BDF to UUID
+`GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d` at NVML index 4. The saved data does
+not map that UUID to an engine CUDA ordinal, so the `engine: die 4 failed`
+message is not attributed to the same adapter by ordinal. The Xid does not
+identify the source instruction or underlying code cause. The pre/post XML
+records are documents 3199 and 3653 in the `fe513a53...` GPUQ run.
+
+The deliberate GPU6 error-handler fixture also coincided with an Xid 31 on
+BDF `0000:12:00.0`, address zero, PID `3667902`. Its bounded log is
+`xid31-gpu6-fault-fixture.log`. GPUQ inventory maps BDF `12:00` to NVML index 6
+and UUID `GPU-431371bd-b482-96b2-4b70-04f83c6d075b`; post-run sampling showed
+zero utilization and no compute process. This fixture event is separate from
+the canonical BDF `0b:00` event and does not identify its cause.

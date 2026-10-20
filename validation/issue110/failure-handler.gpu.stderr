@@ -1,0 +1,38 @@
+FAULT_FIXTURE deliberate_invalid_read=1 error=700 host_observations=16 cuda_calls_after_error=0
+PHASE_PROBE_BEGIN request=90 active=1 segment_first=1024 segment_end=1025 window_first=1024 window_end=1280 error=700 expression=cuCtxSynchronize line=181 last_observation_only=1
+PHASE_PROBE die=0 cta=0 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=1 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=2 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=3 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=4 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=5 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=6 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=7 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=8 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=9 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=10 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=11 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=12 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=13 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=14 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=15 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE_END last_observation_only=1
+LIMIT_FIXTURE synthetic_host_limit_call=1 actual_kernel_expiry=not-tested
+PHASE_PROBE_BEGIN request=91 active=1 segment_first=1024 segment_end=1025 window_first=1024 window_end=1280 error=0 expression=persistent_kernel_time_limit line=191 last_observation_only=1
+PHASE_PROBE die=0 cta=0 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=1 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=2 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=3 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=4 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=5 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=6 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=7 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=8 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=9 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=10 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=11 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=12 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=13 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=14 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE die=0 cta=15 raw=0000040000000020 valid=1 base_token=1024 token=1024 primary_phase=0 physical_phase=0 mode=0 opcode=72 name=xcopy units=10 flags=0
+PHASE_PROBE_END last_observation_only=1
