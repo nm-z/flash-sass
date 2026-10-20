@@ -576,6 +576,11 @@ timings_test: timings_test.c timings.h
 
 flashd_timing_test: flashd_timing_test.c flashd.c timings.h tok.c tok.h jinja.c jinja.h json.c json.h ucd.h ../ref/gguf.c ../ref/gguf.h
 	$(CC) -std=gnu99 -O2 -Wall -UNDEBUG -o $@ flashd_timing_test.c tok.c jinja.c json.c ../ref/gguf.c -I../ref -lm -lpthread
+
+.PHONY: test-flashd-deadline
+test-flashd-deadline: flashd flashd_timing_test
+	./flashd_timing_test --unit
+	perl flashd_deadline_test.pl ./flashd
 # This planner test needs only a C compiler.
 prefill_plan_test: prefill_plan_test.c prefill.h
 	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -o $@ prefill_plan_test.c
