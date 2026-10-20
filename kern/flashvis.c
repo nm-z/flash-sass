@@ -15,6 +15,7 @@
  * pixels within the model's image_min / image_max tokens, see kern/vision/preprocessor_config.json). */
 #define _GNU_SOURCE
 #include "ggml-backend.h"
+#include "gguf.h"
 #include "llama.h"
 #include "mtmd.h"
 #include "mtmd-helper.h"
@@ -70,9 +71,48 @@ static int vision_device(ggml_backend_dev_t *selected) {
 	return 0;
 }
 
+struct vision_memory { uint32_t heads, merge; };
+
+/* The Qwen3-VL merger reduces merge*merge patch tokens to one image token.
+ * Read its actual head count instead of assuming the dimensions of one GGUF. */
+static struct vision_memory vision_memory(const char *projector) {
+	struct vision_memory memory = {0};
+	struct gguf_context *meta = gguf_init_from_file(projector, (struct gguf_init_params){ .no_alloc = true });
+	if (!meta) return memory;
+	int64_t type = gguf_find_key(meta, "clip.projector_type");
+	int64_t heads = gguf_find_key(meta, "clip.vision.attention.head_count");
+	int64_t merge = gguf_find_key(meta, "clip.vision.spatial_merge_size");
+	if (type >= 0 && gguf_get_kv_type(meta, type) == GGUF_TYPE_STRING &&
+	    !strcmp(gguf_get_val_str(meta, type), "qwen3vl_merger") &&
+	    heads >= 0 && gguf_get_kv_type(meta, heads) == GGUF_TYPE_UINT32) {
+		memory.heads = gguf_get_val_u32(meta, heads);
+		memory.merge = 2;  /* libmtmd's default for Qwen-VL */
+		if (merge >= 0) memory.merge = gguf_get_kv_type(meta, merge) == GGUF_TYPE_UINT32 ? gguf_get_val_u32(meta, merge) : 0;
+	}
+	gguf_free(meta);
+	return memory;
+}
+
+/* This backend can abort while reserving an oversized graph, before returning
+ * an encoding error. Bound its dense attention matrix before calling it. Keep
+ * half the currently free GPU memory for the rest of the graph and allocator
+ * overhead; this is a conservative budget, not a full allocation prediction. */
+static int exceeds_gpu_budget(ggml_backend_dev_t device, struct vision_memory memory, size_t tokens) {
+	if (!device || !memory.heads || !memory.merge) return 0;
+	size_t available = 0, total = 0;
+	ggml_backend_dev_memory(device, &available, &total);
+	long double patches = (long double)tokens * memory.merge * memory.merge;
+	long double scores = patches * patches * memory.heads * sizeof(float);
+	if (scores <= (long double)available / 2) return 0;
+	fprintf(stderr, "flashvis: %zu image tokens need at least %.0Lf MiB of dense attention; %zu MiB free on %s (half reserved for other buffers)\n",
+	        tokens, scores / (1024 * 1024), available >> 20, ggml_backend_dev_name(device));
+	return 1;
+}
+
 /* 2: retryable encoder failure; 1: bad image; -1: closed connection. */
 static int encode_image(int fd, mtmd_context *ctx, const uint8_t *buf, size_t nbytes,
-                        int dim, const char *backend, const char **message) {
+                        int dim, const char *backend, ggml_backend_dev_t device,
+                        struct vision_memory memory, const char **message) {
 	double t0 = now();
 	struct mtmd_helper_bitmap_wrapper bw = mtmd_helper_bitmap_init_from_buf(ctx, buf, nbytes, false, mtmd_helper_init_opt_default());
 	mtmd_bitmap *bm = bw.bitmap;
@@ -90,6 +130,8 @@ static int encode_image(int fd, mtmd_context *ctx, const uint8_t *buf, size_t nb
 	if (!img) goto done;
 	size_t ntok = mtmd_input_chunk_get_n_tokens(img); long npos = (long)mtmd_input_chunk_get_n_pos(img);
 	const mtmd_image_tokens *it = mtmd_input_chunk_get_tokens_image(img);
+	result = 2; *message = "image exceeds the GPU memory budget";
+	if (exceeds_gpu_budget(device, memory, ntok)) goto done;
 	double t1 = now();
 	result = 2; *message = "encoding failed";
 	if (mtmd_encode_chunk(ctx, img)) goto done;
@@ -125,6 +167,7 @@ int main(int argc, char **argv) {
 	llama_backend_init();
 	ggml_backend_dev_t device = NULL;
 	if (vision_device(&device)) { llama_backend_free(); return 2; }
+	struct vision_memory memory = device ? vision_memory(argv[1]) : (struct vision_memory){0};
 	struct llama_model_params mp = llama_model_default_params();
 	mp.vocab_only = true;
 	struct llama_model *model = llama_model_load_from_file(argv[2], mp);
@@ -161,7 +204,7 @@ int main(int argc, char **argv) {
 			uint8_t *buf = malloc(nbytes);
 			if (!buf || read_full(fd, buf, nbytes)) { free(buf); break; }
 			const char *message = NULL;
-			int rc = encode_image(fd, ctx, buf, nbytes, dim, cp.use_gpu ? ggml_backend_dev_name(cp.device) : "CPU", &message);
+			int rc = encode_image(fd, ctx, buf, nbytes, dim, cp.use_gpu ? ggml_backend_dev_name(cp.device) : "CPU", cp.device, memory, &message);
 			if (rc == 2 && cp.use_gpu) {
 				/* Request-sized GPU allocation can fail after successful startup.
 				 * Restore CPU defaults and recreate chunks from the original bytes. */
@@ -169,7 +212,7 @@ int main(int argc, char **argv) {
 				mtmd_free(ctx); cp = cpu_cp;
 				ctx = mtmd_init_from_file(argv[1], model, cp);
 				if (!ctx) { free(buf); err(fd, "CPU fallback initialization failed"); return 1; }
-				rc = encode_image(fd, ctx, buf, nbytes, dim, "CPU", &message);
+				rc = encode_image(fd, ctx, buf, nbytes, dim, "CPU", NULL, memory, &message);
 			}
 			free(buf);
 			if (rc < 0) break;
