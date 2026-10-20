@@ -12,6 +12,7 @@
 #include "ple.h"
 #include "hold.h"
 #include "prog.h"
+#include "phase_probe.h"
 #include "split.h"
 #include "qsa.h"
 #include "qsa_state.h"
@@ -53,7 +54,7 @@ static __thread double timing_request_start, timing_run_start;
 CUresult cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev);
 /* during engine_init a failure unwinds to it (the core and its weights and table stay up); later ones are fatal */
 static jmp_buf init_jb, run_jb; static int in_init, in_run;
-#define CK(x) do { CUresult r_ = (x); if (r_ != CUDA_SUCCESS) { const char *s_ = "?"; cuGetErrorString(r_, &s_); fprintf(stderr, "engine.c:%d: %s -> %s\n", __LINE__, #x, s_); if (in_init) longjmp(init_jb, 1); if (in_run) longjmp(run_jb, 1); exit(1); } } while (0)
+#define CK(x) do { CUresult r_ = (x); if (r_ != CUDA_SUCCESS) { phase_probe_fault(r_, #x, __LINE__); const char *s_ = "?"; cuGetErrorString(r_, &s_); fprintf(stderr, "engine.c:%d: %s -> %s\n", __LINE__, #x, s_); if (in_init) longjmp(init_jb, 1); if (in_run) longjmp(run_jb, 1); exit(1); } } while (0)
 static double now(void) { struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts); return ts.tv_sec + ts.tv_nsec * 1e-9; }
 
 #define MAXD CORE_MAXD
@@ -372,10 +373,12 @@ static void model_program(prog_t *P, int d, unsigned position, unsigned nprompt,
 }
 
 static void upload_programs(const prog_t *P, unsigned *nph, unsigned positions) {
+	phase_probe_upload_begin();
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
 		nph[d] = (unsigned)P[d].n;
 		if (nph[d] > 4096) { fprintf(stderr, "program too long (%u descriptors)\n", nph[d]); longjmp(run_jb, 1); }
+		if (phase_probe_program((unsigned)d, &P[d])) { fprintf(stderr, "PHASE_PROBE_INVALID_PROGRAM die=%d\n", d); fflush(NULL); _Exit(71); }
         prof_desc[d] = nph[d]; prof_nph[d] = 0;
         for (int i = 0; i < P[d].n; i += (P[d].p[i].w[30] & 8u) ? 2 : 1) {
             int j = prof_nph[d]++;
@@ -458,6 +461,7 @@ static void ple_pump(runctx *r, int budget) {
 /* launch the program on every die for tokens up to ntok and wait for it, streaming the generated tokens */
 static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 	r->ntok = ntok_;
+	phase_probe_launch(trace_request, (uint32_t)r->count, (uint32_t)ntok_);
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
 		CK(cuMemsetD32(dCTL[d]+0x2c,0,1));
@@ -508,6 +512,7 @@ static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 		if (!fin) nanosleep(&nap, NULL);
 	}
 	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuCtxSynchronize()); }
+	phase_probe_done();
 	for (int d=0;d<nd;d++) {
 		uint32_t limit=0;CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoH(&limit,dCTL[d]+0x2c,4));
 		if (limit) {fprintf(stderr,"engine: die %d reached the kernel time limit\n",d);longjmp(run_jb,1);}
@@ -1077,12 +1082,27 @@ int engine_init(core_t *c) {
 	CK(cuCtxSetCurrent(ctx[0]));
 	CK(cuMemAllocHost((void **)&h_ids, 4 * ((size_t)MAXT + 2))); CK(cuMemAllocHost((void **)&h_toks, 4 * ((size_t)MAXT + 2))); CK(cuMemAllocHost((void **)&h_rnd, 4 * ((size_t)MAXT + 2)));
 	CK(cuMemAllocHost((void **)&h_tok, 64)); CK(cuMemHostAlloc((void **)&h_abort, 64, CU_MEMHOSTALLOC_PORTABLE));
+	const char *probe_option = getenv("FLASH_PHASE_PROBE");
+	if (probe_option && strcmp(probe_option, "0") && strcmp(probe_option, "1")) {
+		fprintf(stderr, "FLASH_PHASE_PROBE must be 0 or 1\n"); longjmp(init_jb, 1);
+	}
+	if (probe_option && !strcmp(probe_option, "1")) {
+		if (!getenv("GPUQ_JOB_ID")) { fprintf(stderr, "phase probe requires GPUQ\n"); longjmp(init_jb, 1); }
+		CK(phase_probe_create(ctx, (unsigned)nd));
+		for (int d = 0; d < nd; d++) {
+			CUdeviceptr pointer = phase_probe_pointer((unsigned)d);
+			CK(cuCtxSetCurrent(ctx[d]));
+			CK(cuMemcpyHtoD(dCTL[d] + PHASE_PROBE_CTL_OFFSET, &pointer, sizeof pointer));
+		}
+		CK(cuCtxSetCurrent(ctx[0]));
+	}
 	in_init = 0;
 	fprintf(stderr, "engine: %d dies, %d/%d blocks, up to %d positions, %.0f MB of buffers per die, ready in %.1f s\n", nd, nlayers_run, NB, MAXT, (double)alloc_bytes / nd / 1e6, now() - ts0);
 	return 0;
 }
 
 void engine_fini(void) {
+	phase_probe_destroy();
 	ple_read_pool_destroy(&ple_reads);
 	ple_cache_path[0]=0;ple_cache_active=0;
 	if (!core) return;
@@ -1224,8 +1244,8 @@ int engine_session(FILE *in, FILE *out) {
 		if (!strncmp(p, "config", 6)) {   /* what this engine is: the identity to attach to a measurement (the commit it was built from, where the KV lives, the layers it runs, the kernel image) */
 			char ad[64] = ""; for (int d = 0; d < nd; d++) if (has_attn[d]) { char one[8]; snprintf(one, sizeof one, "%s%d", ad[0] ? "," : "", d); strncat(ad, one, sizeof ad - strlen(ad) - 1); }
 			const char *sh = getenv("SPLIT_SHARES"), *am = getenv("ATTN_MAP");
-			fprintf(out, "config rev=%s kv_host=%d kv_trace=%d ple_disk=%d ple_readers=%u ple_file=%s ple_cache=%s maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u rope_owner=%d trace_tokens=%u two_position=%d bf16_pair_fuse=%d prefill_chunk=%d attn_q_split=%u attn_q_mask=%x cubin=%s cubin_fnv=%016llx\n",
-			        FLASH_REV, kv_host, kv_trace, ple_disk, ple_disk ? ple_readers : 0, ple_cache_active ? ple_cache_path : "core", ple_cache_path[0] ? ple_cache_path : "core", MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, rope_owner, trace_n, two_position, FLASH_BF16_PAIR_FUSE, prefill_chunk, attn_q_split_mode, attn_q_split_mask, cubin_path, (unsigned long long)cubin_fnv);
+			fprintf(out, "config rev=%s kv_host=%d kv_trace=%d ple_disk=%d ple_readers=%u ple_file=%s ple_cache=%s maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u rope_owner=%d trace_tokens=%u two_position=%d bf16_pair_fuse=%d prefill_chunk=%d attn_q_split=%u attn_q_mask=%x cubin=%s cubin_fnv=%016llx phase_probe=%d\n",
+			        FLASH_REV, kv_host, kv_trace, ple_disk, ple_disk ? ple_readers : 0, ple_cache_active ? ple_cache_path : "core", ple_cache_path[0] ? ple_cache_path : "core", MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, rope_owner, trace_n, two_position, FLASH_BF16_PAIR_FUSE, prefill_chunk, attn_q_split_mode, attn_q_split_mask, cubin_path, (unsigned long long)cubin_fnv, phase_probe_enabled());
 			fflush(out); continue;
 		}
 		if (!strncmp(p, "cubin", 5)) {

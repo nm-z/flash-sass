@@ -1,0 +1,7 @@
+cc -std=c11 -O2 -Wall -Wextra -Werror -I/mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-2276488-1792524088849213919.paQV0P/source/kern -I/opt/cuda/include -o /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-2276488-1792524088849213919.paQV0P/source/validation/issue110//bin/phase_probe_test /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-2276488-1792524088849213919.paQV0P/source/kern/phase_probe_test.c /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-2276488-1792524088849213919.paQV0P/source/kern/phase_probe.c -lcuda
+phase_probe_test: checks=21 failures=0 cuda_initialization=not-run
+4d5e7483c11dc934ff648d4d92ac041c3ecdb03734618913d8cc2525cae735ed  /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-2276488-1792524088849213919.paQV0P/source/validation/issue110//bin/phase_probe_test
+500a1e86ecf2467e47f32562c2a68501871b566752ed681ec0f962398dad4aa4  /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-2276488-1792524088849213919.paQV0P/source/kern/phase_probe.c
+2db94b1ee9d79ffc39697e24077803b32042026a0dfb745ec403ebcc211ffa06  /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-2276488-1792524088849213919.paQV0P/source/kern/phase_probe.h
+dsh build: remote command finished build-2276488-1792524088849213919 status=0
+dsh build: phase: complete; phase elapsed 0s, total elapsed 12s

@@ -1,0 +1,7 @@
+cc -std=gnu99 -O2 -Wall -o flashcore flashcore.c holdc.c ../ref/gguf.c -I../ref -I/opt/cuda/include -lcuda -ldl -lm
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -pthread -DFLASH_REV='"351af0fdbbd116a70352dd34354cada787f86ca7"' -DFLASH_BF16_PAIR_FUSE=1 -o libengine.so.new engine.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c phase_probe.c -I../ref -I/opt/cuda/include -lcuda -lm && mv -f libengine.so.new libengine.so
+cc -std=c11 -O2 -Wall -Wextra -Werror -o /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-2290672-1792524194978680204.7tiB9e/source/validation/issue9//bin/engine_check /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-2290672-1792524194978680204.7tiB9e/source/validation/issue9//engine_check.c -lcrypto
+ENGINE_CHECK_SELF_TEST_PASSED checks=24 scope=config-parser-only gpu=not-run numerical=not-claimed
+22c270ae03dec59e2d6c76824d9fe2412e071448debc06efa704be3330d77f6f  /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-2290672-1792524194978680204.7tiB9e/source/validation/issue9//bin/engine_check
+dsh build: remote command finished build-2290672-1792524194978680204 status=0
+dsh build: phase: complete; phase elapsed 0s, total elapsed 25s
