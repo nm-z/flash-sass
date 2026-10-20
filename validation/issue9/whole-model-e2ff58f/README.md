@@ -17,6 +17,7 @@ IDs 10 through 18 and budget 1. The C comparison contract is exact bytes.
 | --- | --- | --- |
 | `build-130547-1792506606733982340` | 17 API/CLI checks passed | `cpu-api17.excerpt` |
 | `build-517679-1792510180423953110` | 46 pre-CUDA command-line boundary checks passed against the current GPU consumer | `cli-guards46.excerpt` |
+| `build-849208-1792513127592872578` | Strict C fault-runner build and seven CPU fixtures passed, including constructed Make arguments and retirement of a TERM-ignoring descendant after its leader exits | `fault-runner-cpu.excerpt` |
 | `build-154782-1792506822173131858` | Four-worker row build completed nine positions; reader verified 9 positions / 8280 items | `cpu-parallel9.excerpt` |
 | `build-154783-1792506822176279513` | Independent serial run completed and verified 9 / 8280 | `cpu-serial9.excerpt` |
 | `build-245925-1792507667079498618` | Complete records and checkpoints compare byte for byte | `cpu-parity9.excerpt` |
@@ -56,13 +57,17 @@ holder manifests, checkpoint identities and runtime arguments.
 | `78df6e22-1a73-40f4-9ced-37c57a50d84c` | Host KV, per-token, all 48 layers/six dies, budget 1 | Exit 0; all nine complete scalar records and predictions match. Twelve actual selected-ID captures at visible length 9, one for every attention layer, all match. Exclusion is active at lengths 8 and 9. |
 | `59f2ef9f-7b5c-4db7-90f4-a6a6ddcbca58` | VRAM KV, per-token, same model scope and budget | Exit 0; nine complete records and predictions match, with twelve matching actual selected-ID captures at visible length 9. |
 | `ee9b79e4-f01a-4738-a835-3eaa278ba88a` | Host KV, one persistent launch, same model scope and budget | Exit 0; all nine predictions on all six dies match, plus the final token's complete stage record. Twelve actual selected-ID captures match at visible length 9. Earlier tokens' stage buffers are not retained by this launch mode. |
+| `b68e8906-5c5c-4a71-b4ff-0811648d1729` | VRAM KV, one persistent launch, same model scope and budget | Exit 0; every prediction on every die and the final token's complete stage record match. Twelve matching actual selected-ID captures at visible length 9. Earlier tokens' stage buffers are not retained. |
 
 `.logs.json.gz` is a durable queue database export; `.stdout` is its readable
 derived output. Optional resident trace collection was unavailable, not zero.
 CPU/build wall time and device intervals are separate clock domains. No speedup
 is inferred from concurrent CPU runs or from comparing these domains.
 
-The new epoch's single-launch placements and fault gates are queued serially.
+All four KV/launch placements pass their stated nine-position scopes. The
+prebuilt C fault runner groups seven expected mismatch cases into one queued
+reservation; its GPU results remain pending. Its binary SHA-256 is
+`0ddaff03f622682464cb24f6b1570c24ced3899367948435e875926e7d72cdd2`.
 The uniform four-worker deep reference starts from position zero in
 `par-e2ff-b512-t2055`, with 32-position durable checkpoints and source epoch
 held fixed. Its initial eight-chunk routed job is

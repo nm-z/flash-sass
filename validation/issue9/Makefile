@@ -42,12 +42,13 @@ ifneq ($(GPUQ_JOB_ID),)
 ifeq ($(strip $(MAKECMDGOALS)),)
 $(error Default target builds CPU code; invoke a GPU execution target explicitly)
 endif
-ifneq ($(filter all cpu-check engine-build engine-check oracle-header oracle-build oracle-check oracle-chunk oracle-batch oracle-validate oracle-parity cache-export cache-export-two-volumes cache-identity kernel-build oracle-step-%,$(MAKECMDGOALS)),)
+ifneq ($(filter all cpu-check engine-build engine-check oracle-header oracle-build oracle-check oracle-chunk oracle-batch oracle-validate oracle-parity oracle-fault-build oracle-fault-check cache-export cache-export-two-volumes cache-identity kernel-build oracle-step-%,$(MAKECMDGOALS)),)
 $(error Run CPU builds/reference work through dsh build outside gpuq)
 endif
 endif
 
 .PHONY: all cpu-check engine-build engine-check engine-matrix oracle-header oracle-build oracle-check oracle-source-identity oracle-chunk oracle-batch oracle-validate oracle-parity model-oracle assembler-check kernel-build cache-export cache-export-two-volumes cache-identity identity model direct-identity direct-matrix
+.PHONY: oracle-fault-build oracle-fault-check oracle-fault-matrix
 all:
 	$(MAKE) -C $(ROOT)/kern FLASH_REV=$(ENGINE_REVISION) model_test hold_cache libengine.so flashcore
 
@@ -71,6 +72,24 @@ $(OUT_DIR)/cuinit_probe.so: $(SOURCE_DIR)/cuinit_probe.c | $(OUT_DIR)
 
 $(OUT_DIR)/engine_check: $(SOURCE_DIR)/engine_check.c | $(OUT_DIR)
 	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -o $@ $< -lcrypto
+
+$(OUT_DIR)/oracle_fault_matrix: $(SOURCE_DIR)/oracle_fault_matrix.c | $(OUT_DIR)
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -o $@ $<
+
+oracle-fault-build: $(OUT_DIR)/oracle_fault_matrix
+
+oracle-fault-check: oracle-fault-build
+	$(OUT_DIR)/oracle_fault_matrix --self-test
+	sha256sum $(OUT_DIR)/oracle_fault_matrix
+
+# All seven expected-failure cases share one queued reservation. The C runner
+# verifies the intended mismatch and complete comparison count in each case.
+oracle-fault-matrix:
+	$(if $(GPUQ_JOB_ID),,$(error Invoke oracle-fault-matrix through gpuq))
+	$(if $(filter 9,$(TOKENS)),,$(error Fault matrix requires TOKENS=9))
+	$(if $(filter 1,$(BLOCKS)),,$(error Fault matrix requires BLOCKS=1))
+	sha256sum $(OUT_DIR)/oracle_fault_matrix $(SOURCE_DIR)/oracle_fault_matrix.c
+	$(OUT_DIR)/oracle_fault_matrix $(SOURCE_DIR)/Makefile $(ORACLE_DATA) $(ORACLE_REVISION)
 
 engine-build: $(OUT_DIR)/engine_check
 	$(MAKE) -B -C $(ROOT)/kern FLASH_REV=$(ENGINE_REVISION) FLASH_BF16_PAIR_FUSE=$(ENGINE_PAIR_FUSE) libengine.so flashcore

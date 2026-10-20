@@ -12,8 +12,9 @@ intermittent paired engine failure.
 The current numerical source epoch is `e2ff58f`. Its optional four-worker CPU
 rows match the serial nine-position stream and checkpoint exactly, with 17
 API/CLI checks plus three actual input-rejection controls. The new consumer's
-host/per-token GPU canary also passes all nine complete records. Its remaining
-placements are queued. The complete four-mode matrix at `36a8246` remains
+host and VRAM per-token GPU gates pass all nine complete records. Both
+single-launch placements match all predictions and final-position stages.
+The complete four-mode matrix at `36a8246` remains
 separately identified evidence. See
 [the current source-epoch record](whole-model-e2ff58f/README.md) and
 [the parallel-row/input-root contract](PARALLEL_ORACLE.md).
@@ -153,6 +154,29 @@ Additional whole-model injected errors and deep production-budget exclusion
 remain required before closing #9. Both KV placements and launch modes passed
 their declared comparison scopes. Full request/snapshot reuse has the
 separate intermittent paired failure described below.
+
+## Complete fault controls
+
+The `oracle-fault-matrix` target runs seven serial fault cases in one GPUQ
+reservation. Six per-token cases perturb layer output, logits, selected IDs,
+recurrent state, convolution state and PLE state; a VRAM single-launch case
+perturbs final-position logits. The fixed workload is nine teacher-forced
+positions with budget 1 and the existing complete scalar reference.
+
+The C runner requires the specific injection label, one failed comparison at
+the intended position, the complete expected comparison count and the model's
+mismatch exit through Make. It rejects successful exit, missing markers,
+incomplete comparisons and successful selected-ID captures. Child execution is
+bounded and cancellation is forwarded to the owned subprocess. A CPU fixture
+suite checks the acceptance logic before queued GPU execution.
+
+Build/check through DSH with `oracle-fault-check`, then execute the prebuilt
+runner through GPUQ with `TOKENS=9 BLOCKS=1`, the pinned `ORACLE_REVISION` and
+matching `ORACLE_DATA`. The runner does not produce a CPU reference inside the
+GPU reservation. Its own CPU/GPU results are pending until recorded in the
+source-epoch run record. Routed build `build-849208-1792513127592872578`
+passed the strict C build and seven CPU fixtures; queued GPU fault results
+remain pending.
 
 ## Private engine request validation
 
