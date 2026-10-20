@@ -43,7 +43,7 @@ endif
 
 .PHONY: all cpu-check engine-build engine-check engine-matrix oracle-header oracle-build oracle-check oracle-source-identity oracle-chunk model-oracle assembler-check kernel-build cache-export cache-export-two-volumes cache-identity identity model direct-identity direct-matrix
 all:
-	$(MAKE) -C $(ROOT)/kern model_test hold_cache libengine.so flashcore
+	$(MAKE) -C $(ROOT)/kern FLASH_REV=$(ENGINE_REVISION) model_test hold_cache libengine.so flashcore
 
 assembler-check:
 	cmp $(ROOT)/maxas-patch/MaxAsGrammar.pm $(MAXAS_ROOT)/lib/MaxAs/MaxAsGrammar.pm
@@ -67,7 +67,7 @@ $(OUT_DIR)/engine_check: $(SOURCE_DIR)/engine_check.c | $(OUT_DIR)
 	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -o $@ $< -lcrypto
 
 engine-build: $(OUT_DIR)/engine_check
-	$(MAKE) -C $(ROOT)/kern FLASH_REV=$(ENGINE_REVISION) libengine.so flashcore
+	$(MAKE) -B -C $(ROOT)/kern FLASH_REV=$(ENGINE_REVISION) libengine.so flashcore
 
 engine-check: $(OUT_DIR)/engine_check
 	$(OUT_DIR)/engine_check --self-test
