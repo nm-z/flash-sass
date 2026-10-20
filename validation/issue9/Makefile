@@ -23,22 +23,25 @@ ORACLE_CFLAGS := -std=c11 -D_XOPEN_SOURCE=700 -O2 -ffp-contract=off -Wall -Wextr
 ORACLE_SOURCE_FILES := kern/model_oracle.c kern/model_oracle.h kern/model_oracle_gpu.h kern/model_test.c kern/model_qsa_test.h kern/qsa_state.h kern/prog.c kern/prog.h kern/holdc.c kern/hold.h kern/dieops.h $(patsubst $(ROOT)/%,%,$(wildcard $(ROOT)/ref/*.c $(ROOT)/ref/*.h))
 ORACLE_SOURCE_MANIFEST ?= $(OUT_DIR)/oracle-source.sha256
 ORACLE_REVISION ?= $(shell git -C $(ROOT) rev-parse HEAD)
+ENGINE_REVISION ?= $(ORACLE_REVISION)
 ORACLE_DATA ?= /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/b$(BLOCKS)-t$(TOKENS)
 ORACLE_IDS ?= $(ORACLE_DATA)/ids.txt
 ORACLE_CHUNK ?= 32
 ORACLE_DIES ?= 0,1,2,3,4,5
 CACHE_SECOND_ROOT ?= /home/nate/work/fs9-sol-cache-tail
+SNAPSHOTS ?= 1,2,3,5
+ENGINE_TIMEOUT ?= 3600
 .NOTPARALLEL:
 ifneq ($(GPUQ_JOB_ID),)
 ifeq ($(strip $(MAKECMDGOALS)),)
 $(error Default target builds CPU code; invoke a GPU execution target explicitly)
 endif
-ifneq ($(filter all cpu-check oracle-build oracle-check oracle-chunk cache-export cache-export-two-volumes kernel-build,$(MAKECMDGOALS)),)
+ifneq ($(filter all cpu-check engine-build engine-check oracle-header oracle-build oracle-check oracle-chunk cache-export cache-export-two-volumes cache-identity kernel-build,$(MAKECMDGOALS)),)
 $(error Run CPU builds/reference work through dsh build outside gpuq)
 endif
 endif
 
-.PHONY: all cpu-check oracle-header oracle-build oracle-check oracle-source-identity oracle-chunk model-oracle assembler-check kernel-build cache-export cache-export-two-volumes cache-identity identity model direct-identity direct-matrix
+.PHONY: all cpu-check engine-build engine-check engine-matrix oracle-header oracle-build oracle-check oracle-source-identity oracle-chunk model-oracle assembler-check kernel-build cache-export cache-export-two-volumes cache-identity identity model direct-identity direct-matrix
 all:
 	$(MAKE) -C $(ROOT)/kern model_test hold_cache libengine.so flashcore
 
@@ -59,6 +62,16 @@ $(OUT_DIR)/model_cli_test: $(SOURCE_DIR)/model_cli_test.c | $(OUT_DIR)
 
 $(OUT_DIR)/cuinit_probe.so: $(SOURCE_DIR)/cuinit_probe.c | $(OUT_DIR)
 	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -fPIC -shared -o $@ $<
+
+$(OUT_DIR)/engine_check: $(SOURCE_DIR)/engine_check.c | $(OUT_DIR)
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -o $@ $< -lcrypto
+
+engine-build: $(OUT_DIR)/engine_check
+	$(MAKE) -C $(ROOT)/kern FLASH_REV=$(ENGINE_REVISION) libengine.so flashcore
+
+engine-check: $(OUT_DIR)/engine_check
+	$(OUT_DIR)/engine_check --self-test
+	sha256sum $(OUT_DIR)/engine_check
 
 $(OUT_DIR)/model_oracle: $(ORACLE_SOURCES) $(ORACLE_HEADERS) | $(OUT_DIR)
 	$(CC) $(ORACLE_CFLAGS) -DMODEL_ORACLE_STANDALONE -o $@ $(ORACLE_SOURCES) -lcrypto -lm
@@ -81,7 +94,7 @@ oracle-source-identity: | $(OUT_DIR)
 
 $(ORACLE_IDS):
 	mkdir -p $(ORACLE_DATA)
-	gawk -v count=$(TOKENS) 'BEGIN { for (i = 0; i < count; ++i) print 10 + i }' > $@
+	gawk -v count=$(TOKENS) 'BEGIN { for (i = 0; i < count; ++i) print (10 + i) % 248320 }' > $@
 
 # CPU execution uses persistent storage outside GPUQ; every invocation commits
 # at most 32 positions, and resumes with the same content/geometry seal.
@@ -131,13 +144,17 @@ identity: assembler-check
 	nvidia-smi --query-gpu=index,uuid,name,driver_version,memory.free --format=csv
 
 model: identity
-	gawk -v count=$(TOKENS) 'BEGIN { for (i = 0; i < count; ++i) print 10 + i }' > $(GPUQ_RUN_DIR)/ids.txt
+	gawk -v count=$(TOKENS) 'BEGIN { for (i = 0; i < count; ++i) print (10 + i) % 248320 }' > $(GPUQ_RUN_DIR)/ids.txt
 	sha256sum $(GPUQ_RUN_DIR)/ids.txt
 	env --chdir=$(ROOT)/kern -u MODEL_NOTWIN -u MODEL_ORACLE_RECORDS -u MODEL_NPH -u MODEL_INJECT -u MODEL_DUMP_S -u MODEL_DUMP_DIR -u MODEL_DUMP_TWIN MODEL_ATTN=qsa MODEL_IDS=$(GPUQ_RUN_DIR)/ids.txt MODEL_PLE=$(PLE_GGUF) MODEL_PLE_OFF=192 MODEL_CAPTURE_QSA=$(CAPTURE) FLASH_NBLK=$(BLOCKS) FLASH_KV_HOST=$(HOST_KV) SPLIT_SHARES=$(SHARES) ATTN_MAP=$(ATTENTION_MAP) CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 $(if $(INJECT),MODEL_INJECT=$(INJECT)) ./model_test $(MODEL_CACHE) 0 48 $(TOKENS) $(FLAGS) $(MANIFESTS)
 
 model-oracle: identity oracle-source-identity
 	sha256sum $(ORACLE_IDS) $(ORACLE_DATA)/records.bin $(ORACLE_DATA)/receipt.bin
 	env --chdir=$(ROOT)/kern -u MODEL_NOTWIN -u MODEL_NPH -u MODEL_INJECT -u MODEL_DUMP_S -u MODEL_DUMP_DIR -u MODEL_DUMP_TWIN MODEL_ATTN=qsa MODEL_IDS=$(ORACLE_IDS) MODEL_PLE=$(PLE_GGUF) MODEL_PLE_OFF=192 MODEL_CAPTURE_QSA=$(CAPTURE) FLASH_NBLK=$(BLOCKS) FLASH_KV_HOST=$(HOST_KV) SPLIT_SHARES=$(SHARES) ATTN_MAP=$(ATTENTION_MAP) CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 MODEL_ORACLE_RECORDS=$(ORACLE_DATA)/records.bin MODEL_ORACLE_RECEIPT=$(ORACLE_DATA)/receipt.bin MODEL_ORACLE_SOURCE_ROOT=$(ROOT) MODEL_ORACLE_SOURCE_MANIFEST=$(ORACLE_SOURCE_MANIFEST) MODEL_ORACLE_SOURCE_REVISION=$(ORACLE_REVISION) MODEL_ORACLE_TILE_MANIFEST=$(CACHE_ROOT)/manifest.new MODEL_ORACLE_TILE_HASHES=$(CACHE_ROOT)/tensors.sha256 MODEL_ORACLE_CHECKPOINT_HASHES=$(CACHE_ROOT)/checkpoints.sha256 MODEL_ORACLE_PRIMARY=$(GGUF) $(if $(INJECT),MODEL_INJECT=$(INJECT)) ./model_test $(MODEL_CACHE) 0 48 $(TOKENS) $(FLAGS) $(MANIFESTS)
+
+engine-matrix: identity
+	$(if $(filter 6,$(words $(HOLDER_PIDS))),,$(error Supply the six verified live holder PIDs in logical-die order))
+	$(OUT_DIR)/engine_check --repo $(ROOT) --out $(GPUQ_RUN_DIR)/engine-matrix --ple $(PLE_GGUF) --revision $(ENGINE_REVISION) $(foreach path,$(MANIFESTS),--manifest $(path)) $(foreach pid,$(HOLDER_PIDS),--holder-pid $(pid)) --cuda-visible 0,1,2,3,4,5 --split-shares $(SHARES) --attn-map $(ATTENTION_MAP) --tokens $(TOKENS) --snapshots $(SNAPSHOTS) --nblk $(BLOCKS) --lock-fd $(GPUQ_LOCK_FD) --timeout $(ENGINE_TIMEOUT) --weight-manifest $(CACHE_ROOT)/checkpoints.sha256
 
 direct-identity: assembler-check
 	$(if $(GPUQ_JOB_ID),,$(error Invoke direct-matrix through gpuq))

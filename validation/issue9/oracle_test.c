@@ -103,11 +103,10 @@ static int cli_lock_checks(const char *binary) {
     id_file = NULL;
     struct flock lock = { .l_type = F_WRLCK, .l_whence = SEEK_SET };
     if (fcntl(record_fd, F_SETLK, &lock) < 0) { perror("oracle CLI parent lock"); failed = -1; goto done; }
-    for (int locked = 1; locked >= 0; locked--) {
-        if (!locked) {
-            lock.l_type = F_UNLCK;
-            if (fcntl(record_fd, F_SETLK, &lock) < 0) { failed = -1; break; }
-        }
+    for (int stage = 2; stage >= 0; stage--) {
+        int locked = stage != 0;
+        lock.l_type = stage == 2 ? F_WRLCK : stage == 1 ? F_RDLCK : F_UNLCK;
+        if (fcntl(record_fd, F_SETLK, &lock) < 0) { failed = -1; break; }
         pid_t child = fork();
         if (child < 0) { perror("oracle CLI fork"); failed = -1; break; }
         if (!child) {
@@ -141,7 +140,8 @@ static int cli_lock_checks(const char *binary) {
             bytes == sizeof sentinel && !memcmp(actual, sentinel, sizeof sentinel);
         if (locked) ok = ok && strstr(error, "record stream is already in use") && access(receipt, F_OK) != 0;
         else ok = ok && strstr(error, "input verification failed");
-        const char *name = locked ? "CLI excludes concurrent writers before input verification" :
+        const char *name = stage == 2 ? "CLI excludes concurrent writers before input verification" :
+            stage == 1 ? "shared reader excludes CLI writer before input verification" :
             "failed CLI verification preserves existing record bytes";
         if (ok) printf("PASS %s\n", name);
         else { fprintf(stderr, "FAIL %s: status=%d error=%s\n", name, status, error); failed = -1; }
