@@ -115,9 +115,19 @@ not acceptance evidence.
 Corrected-format CPU parity/continuation, multi-position GPU comparisons, both
 KV placements/launch modes, actual production-budget exclusion, and private
 full-model request/snapshot matrices remain pending. The engine request gate
-`06cb459e-0a40-4810-a87b-6bbab40758b4` is queued with the six verified holders;
-an earlier queued invocation with incorrect SSH argument grouping was cancelled
-by its owner before execution.
+`06cb459e-0a40-4810-a87b-6bbab40758b4` failed in queue capture before core
+startup: document 613 records `SQLite3::BusyException: database is locked`.
+It is being replayed serially. An earlier queued invocation with incorrect SSH
+argument grouping was cancelled by its owner before execution.
+
+The replay `ee5de8c3-3472-4ef4-9328-791e6c5cae20` executed the engine matrix
+and failed a real fingerprint comparison: VRAM/scalar passed all 16 requests;
+VRAM/paired mode passed 14 before `final-A` changed recurrent and logit hashes.
+The report and both captured response streams are retained in `engine-ee5d/`.
+An unchanged repeat `93d25b21-3730-4b71-91f6-f192c85227c7` passed all four
+placement/launch modes. The earlier mismatch is intermittent and remains
+under investigation in [issue #109](https://github.com/nm-z/flash-sass/issues/109);
+the passing repeat does not erase that failure or establish a root cause.
 
 The first direct attempt failed; its record is retained in the database and
 described in [the oracle notes](../ORACLE.md). No GPU job or resident holder

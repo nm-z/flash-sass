@@ -163,4 +163,10 @@ assume immutable model storage; metadata checks do not prove byte equality
 against an offline digest or detect a transient replacement that restores the
 same metadata between observations. The independent scalar input seal supplies
 its separately documented content verification.
-The engine request matrix has not run yet.
+The first executed engine matrix (`ee5de8c3-3472-4ef4-9328-791e6c5cae20`)
+passed VRAM/scalar reuse, then failed the paired mode's final repeated A
+request with changed recurrent/logit fingerprints. An unchanged repeat
+(`93d25b21-3730-4b71-91f6-f192c85227c7`) passed all 64 requests across four
+private cores. The intermittent earlier failure is retained and investigated
+in [issue #109](https://github.com/nm-z/flash-sass/issues/109); it has not been
+reclassified as a passing result.
