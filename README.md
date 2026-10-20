@@ -164,9 +164,10 @@ The encoder uses the model's 65,536–16,777,216 pixel preprocessing policy:
 4096 × 4096 image produces all 16,384 tokens and a 128 × 128 M-RoPE grid.
 The model's patch alignment still applies. Inputs above 16,777,216 pixels are
 rejected explicitly. Image resolution and token counts are not reduced to fit
-GPU memory. `FLASH_MAXIMG` defaults to 16,384 tokens per response (bounded by
-context capacity in the engine's default); this is an aggregate limit across
-images. Cached embeddings use a new `16mp-` filename prefix so entries produced
+GPU memory. The engine's default image capacity is 16,384 tokens per response,
+bounded by context capacity. The `vision-all` and `vision-core` Make launch
+targets supply `FLASH_MAXIMG=16384`; this is an aggregate limit across images.
+Cached embeddings use a new `16mp-` filename prefix so entries produced
 with the previous resolution limit are not reused.
 
 The C adapter targets the installed llama.cpp CUDA ABI at
@@ -178,10 +179,14 @@ The binary records its build's absolute module/backend paths, so rebuild it
 when moving the checkout. The FA dispatch check rejects a missing or bypassed
 hook; other dependency builds remain unverified.
 
-```sh
-make -B -C kern flashvis LLAMA_CPP=/path/to/llama.cpp LLAMA_BUILD=/path/to/llama.cpp/build-cuda
-FLASHVIS_DEVICE=CUDA6 ./kern/flashvis /path/to/mmproj.gguf /path/to/text.gguf /tmp/flashvis.sock 10
+```console
+dsh build --host archy --require-tool cargo --require-tool cc -- make -f /home/nate/work/fs96-sol/validation/issue96/Makefile all cpu-check --artifact vision-artifacts
+ssh archy env FLASHVIS_DEVICE=CUDA6 /home/nate/work/fs96-sol/kern/flashvis /path/to/mmproj.gguf /path/to/text.gguf /tmp/flashvis.sock 10
 ```
+
+For complete engine startup, the Make targets `vision-all` and `vision-core`
+in `kern/Makefile` supply the 16,384-token image capacity to the inherited
+launcher. The engine's C default is also 16,384, bounded by context capacity.
 
 `CUDA_VISIBLE_DEVICES` affects the ggml GPU names. Image file decoding and the
 model's image preprocessing run on the host; projector computation and attention

@@ -150,35 +150,14 @@ SQLite lock and is not used for the performance result. The subsequent
 `f33c7d38-dd68-4f67-919f-6cf60c13ac29` attempt exposed a too-long reference socket
 path in the harness; the final run uses the corrected short path.
 
-## Reproduce
+## Historical execution record
 
-From this checkout on Archy, export `LLAMA_CPP`, `MMPROJ`, `TEXT_GGUF` and `IMAGE`
-to the matching CUDA tree and input paths above. Build only the C daemon and C
-test interposer; the existing CUDA llama.cpp libraries are reused:
+The original commands are retained in the immutable queue job records and
+commit `b588499`. Current reproduction uses the C programs and Make targets
+described in [README.md](README.md). Retrieve historical evidence with
+`gpuq logs JOB_ID`, `gpuq metrics JOB_ID` and read-only `gpuq query`.
 
-```sh
-gpuq run --name issue96-compare -- bash -c '
-  make -B -C kern flashvis &&
-  cc -std=gnu99 -Wall -shared -fPIC \
-    -I"$LLAMA_CPP/include" -I"$LLAMA_CPP/ggml/include" \
-    -I"$LLAMA_CPP/tools/mtmd" validation/issue96/fault.c \
-    -ldl -o kern/flashvis_fault.so &&
-  ruby kern/flashvis_bench.rb kern/flashvis "$MMPROJ" "$TEXT_GGUF" "$IMAGE" 3
-'
-
-gpuq run --name issue96-recovery -- ruby validation/issue96/recovery.rb \
-  kern/flashvis "$MMPROJ" "$TEXT_GGUF" "$IMAGE" kern/flashvis_fault.so
-
-gpuq run --name issue96-large -- ruby validation/issue96/recovery.rb \
-  kern/flashvis "$MMPROJ" "$TEXT_GGUF" "$IMAGE" kern/flashvis_fault.so large
-
-gpuq run --name issue96-http -- bash validation/issue96/http.sh \
-  "$MMPROJ" "$TEXT_GGUF" "$IMAGE"
-```
-
-`LLAMA_BUILD` can select another build directory from the same source tree.
-Retrieve evidence with `gpuq logs JOB_ID`, `gpuq metrics JOB_ID` and `gpuq query`.
-Collectors remain enabled. The resident engine has no enabled raw trace producer;
-the recorder marks that trace unavailable, and shared-engine observations are
-not attributed to the encoder workload. The daemon's timing records and the
-harness's socket measurements provide the latency comparison.
+Collectors remained enabled. The resident engine had no enabled raw trace
+producer; the recorder marked that trace unavailable. Shared-engine observations
+are not attributed to the encoder workload. The daemon's timing records and the
+historical client's socket measurements provide the latency comparison.

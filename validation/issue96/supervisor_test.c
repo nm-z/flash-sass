@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -53,6 +54,30 @@ static int read_line(int fd, char *line, size_t capacity) {
 static int worker(int fd) {
     struct rlimit no_core = {0, 0};
     (void)setrlimit(RLIMIT_CORE, &no_core);
+
+    /* Optional runner-only startup gate. Record both process IDs before
+     * withholding ready so cancellation tests can verify full reaping. */
+    const char *marker = getenv("VIS_SUPERVISOR_TEST_STARTUP_MARKER");
+    if (marker && *marker) {
+        FILE *f = fopen(marker, "w");
+        if (!f) return 2;
+        int bad = fprintf(f, "%ld %ld\n", (long)getpid(), (long)getppid()) < 0;
+        if (fclose(f)) bad = 1;
+        if (bad) return 2;
+    }
+    const char *delay_text = getenv("VIS_SUPERVISOR_TEST_STARTUP_DELAY_MS");
+    if (delay_text && *delay_text) {
+        char *end = NULL;
+        errno = 0;
+        unsigned long delay = strtoul(delay_text, &end, 10);
+        if (errno || !end || *end || delay > 60000) return 2;
+        struct timespec remaining = {
+            .tv_sec = (time_t)(delay / 1000),
+            .tv_nsec = (long)(delay % 1000) * 1000000L
+        };
+        while (nanosleep(&remaining, &remaining) && errno == EINTR) {}
+        if (errno && errno != EINTR) return 2;
+    }
     if (write_full(fd, "ready\n", 6)) return 2;
 
     for (;;) {

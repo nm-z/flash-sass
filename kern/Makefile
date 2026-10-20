@@ -1,8 +1,15 @@
 CUDA ?= /opt/cuda
+.DEFAULT_GOAL := all
 PTXAS11 ?= /opt/cuda-11.4/bin/ptxas
 MAXAS = PATH=$(CUDA)/bin:$$PATH perl -I../maxas/lib ../maxas/bin/maxas.pl
 CC ?= gcc
 SHARD1 ?= /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+
+.PHONY: vision-all vision-core
+vision-all:
+	env FLASH_MAXIMG=16384 ./serve.sh all
+vision-core:
+	env FLASH_MAXIMG=16384 ./serve.sh core
 
 all: gemv_q2_0_k2560.cubin gemv_q2_0_k640.cubin gemv_test gemv_bf16_k2560.cubin gemv_bf16_k320.cubin gemv_bf16_test gemv_q4_k_k2560.cubin gemv_q4_k_k6144.cubin gemv_q5_k_k2560.cubin gemv_q5_k_k6144.cubin gemv_k_test
 
@@ -517,8 +524,7 @@ attnpartn_unitmap: attnpartn_unitmap.c
 # The vision service requires the installed CUDA backend.
 LLAMA_CPP ?= $(HOME)/claude/llama.cpp-cuda
 LLAMA_BUILD ?= $(LLAMA_CPP)/build
-flashvis: flashvis.c vision.h vis_ggml.c vis_ggml.h vis_fa.c vis_fa.h vis_fa.cubin vis_supervisor.c vis_supervisor.h
-	@test -f $(LLAMA_BUILD)/bin/libggml-cuda.so || { echo 'flashvis requires a CUDA llama.cpp build' >&2; exit 1; }
+flashvis: flashvis.c vision.h vis_ggml.c vis_ggml.h vis_fa.c vis_fa.h vis_fa.cubin vis_supervisor.c vis_supervisor.h $(LLAMA_BUILD)/bin/libggml-cuda.so
 	$(CC) -std=gnu11 -O2 -Wall -Wl,--export-dynamic -o $@ flashvis.c vis_ggml.c vis_fa.c vis_supervisor.c -DVIS_FA_PTX_PATH='"$(abspath vis_fa.cubin)"' -DFLASHVIS_BACKEND_DIR='"$(abspath $(LLAMA_BUILD))/bin"' -I$(CUDA)/include -I$(LLAMA_CPP)/include -I$(LLAMA_CPP)/ggml/include -I$(LLAMA_CPP)/tools/mtmd -L$(LLAMA_BUILD)/bin -lmtmd -lllama -lggml -lggml-base -lcuda -ldl -lm -Wl,-rpath,$(abspath $(LLAMA_BUILD))/bin
 
 vis_fa.cubin: vis_fa.ptx
