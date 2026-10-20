@@ -207,11 +207,22 @@ copied opcode header SHA-256 is
 `7eab82bf-78b3-42d5-9adc-5ddead179716` exits 0. Its first child receives CUDA
 error 700 on the deliberate invalid read, reads all 16 host observations,
 reports zero CUDA calls after the error, and exits 70. A second child exercises
-one valid in-window copy and the synthetic host-limit dump and exit 72. The
-parent validates both exits. Full GPU stdout and stderr are
-`failure-handler.gpu.*`.
+one in-window copy and exits through the synthetic host-limit dump at 72. The
+parent in this version validated both child exit codes; the retained streams
+show the dump records. Complete output is `failure-handler.gpu.*`.
 
-This was the only deliberate fault-handler GPUQ run. The pre/post telemetry
+Luna's read-only review found that the parent did not check either dump's
+contents and that the limit child exited before `copy_case` checked the copy
+bytes and destination guards. Revision `18bd65ec71f4c27f0f38fc41ce44385e7c105014`
+captures each child's stderr through a bounded pipe, then checks the dump
+header, terminator and all 16 exact CTA records. The limit child now completes
+`copy_case`, verifies the copy, tags and guards, and calls exit 72 afterwards.
+Benji build `build-3971517-1792530780129130442` passes the strict build and 21
+CPU decoder checks. The rebuilt fixture SHA-256 is
+`1b46db65b8c21694d4db2dc8b94a252ff97f3be422e6f32dd0f6186ac12ea6f2`. One GPUQ
+rerun of the corrected assertions on GPU6 is pending.
+
+The first deliberate fault-handler GPUQ run's pre/post telemetry
 for NVML index 6 (documents 66610 and 66650 in that GPUQ job) maps it to BDF
 `12:00` and the UUID below; it remained listed
 with 7,547 MiB free, no active compute process and zero utilization. Its
