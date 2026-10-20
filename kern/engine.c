@@ -673,8 +673,8 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	if (snap_at > nprompt - 1) snap_at = nprompt - 1;
 	for (int i = 0; i < nimg; i++) if (snap_at > imgs[i].s) snap_at = imgs[i].s;   /* the snapshot would not know the image */
 	if (snap_at <= resume) snap_at = 0;
-	if (!resume) snap_s = 0;   /* this response rewrites the attention caches from position 0 */
 	if (capture_begin(T, resume)) { in_run = 0; trace_status = "capture_scope_error"; last_timing.error_code = -5; return -5; }
+	if (!resume) snap_s = 0;   /* this response rewrites the attention caches from position 0 */
 	if (ple_disk) {   /* a new id for this response (never 0); the rows of the positions it runs are staged from `resume` on */
 		ple_rid = ple_rid + 1 ? ple_rid + 1 : 1; ple_start = ple_next = resume; ple_short_reads = 0;
 		memcpy(ple_seq, ids, 4 * (size_t)nprompt);
@@ -1294,7 +1294,7 @@ int engine_session(FILE *in, FILE *out) {
 		if (rc == -3) { fprintf(out, "error: bad image data (a file, a position or too many image tokens)\n"); fflush(out); continue; }
 		if (rc == -4) { fprintf(out, "error: host program allocation failed\n"); fflush(out); continue; }
 		if (rc == -5) { fprintf(out, "error: diagnostic capture scope invalid; model was not run\n"); fflush(out); continue; }
-		if (rc == -6) { fprintf(out, "error: model completed but diagnostic capture failed; request was not replayed\n"); fflush(out); continue; }
+		if (rc == -6) { fprintf(out, "error: model execution finished but diagnostic capture failed; state may have advanced; request was not replayed\n"); fflush(out); continue; }
 		if (rc == -2) {
 		fprintf(out, "error: device fault; the core rebuilds the contexts and the engine; request=%llu", (unsigned long long)trace_request);
 		trace_status_fields(out); fputc('\n', out); fflush(out); free(line); return 3;

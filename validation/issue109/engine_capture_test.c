@@ -108,6 +108,7 @@ int main(void) {
     CHECK(capture_begin(3, -1) == -1);
     CHECK(capture_begin(3, 3) == -1);
     CHECK(!capture_begin(3, 1));
+    CHECK(capture_finish(2) == -1);
 
     prog_t program; prog_init(&program); program.loop = 1; program.token_offset = 1;
     capture_tap(&program, 0, CAP_EMBED, capture_device[0][0]);
