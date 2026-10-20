@@ -26,8 +26,11 @@ dsh build --host archy --require-tool cargo --require-tool cc -- make -f validat
 ```
 
 GPU request controls use the inherited `engine-matrix` recipe through Archy's
-FIFO, with the diagnostic checkout's full `ENGINE_REVISION` and six verified
-live holder PIDs. The private test children import the holders' existing
+FIFO, with the diagnostic engine's full `ENGINE_REVISION`. The Make recipe
+resolves the six current holder PIDs after admission, matching checkpoint path,
+full layer scope, device, manifest name and split arguments; duplicate or
+missing matches fail before the private runner starts. Explicit `HOLDER_PIDS`
+can override that lookup. The private test children import the holders' existing
 allocations. Keep the diagnostic cubin in its separate checkout, retain the
 unchanged baseline controls and record passing and failing runs. A bounded
 series of passing repeats would provide evidence about this discriminator;

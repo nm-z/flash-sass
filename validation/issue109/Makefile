@@ -3,6 +3,9 @@ include $(ISSUE109_DIR)/../issue9/Makefile
 .DEFAULT_GOAL := pair-build
 PAIR_OUT := $(ISSUE109_DIR)/bin
 PAIR_MAXAS := env PATH=/opt/cuda/bin:/usr/bin:/bin perl -I$(MAXAS_ROOT)/lib $(MAXAS_ROOT)/bin/maxas.pl
+# Resolve after queue admission: serving owners may restore holders while this
+# job waits. Explicit caller-supplied PIDs still take precedence.
+HOLDER_PIDS ?= $(shell ps -C hold -o pid=,args= | gawk -v gguf='$(GGUF)' -f $(ISSUE109_DIR)/holders.awk)
 
 ifneq ($(GPUQ_JOB_ID),)
 ifneq ($(filter pair-build pair-check,$(MAKECMDGOALS)),)
