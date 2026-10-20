@@ -126,3 +126,14 @@ fails its first `fresh-A` fingerprint comparison. All four children exit 0
 without a signal, timeout or interruption. The cache/fence change is therefore
 not sufficient to make this control pass. Durable logs, the report and the
 host scalar/paired outputs are retained as `ple-visibility-8165.*`.
+
+## Failed-child stderr review
+
+The paired children that first fail each of these three controls have their
+stderr retained as `matched-stock-7ca2.host-paired.stderr.gz`,
+`genbar-8f6d.vram-paired.stderr.gz` and
+`ple-visibility-8165.host-paired.stderr.gz`. Their GPUQ artifact document IDs
+are 2253, 2803 and 2894, respectively. These artifacts contain startup messages
+and no reported PLE short read, CUDA error or watchdog event. The absence of
+such a diagnostic does not establish correct input bytes or numerical output;
+the fingerprint failures above remain the measured result.
