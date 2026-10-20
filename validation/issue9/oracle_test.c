@@ -79,6 +79,37 @@ static void initialize_observation(model_oracle_observation_t *observation,
     observation->byte_count = byte_count;
 }
 
+static int derive_boundary_checks(void) {
+    model_oracle_config_t config = {0};
+    model_oracle_identity_t identity;
+    char error[512] = {0};
+    FILE *old = tmpfile(), *target = tmpfile();
+    const char sentinel[] = "preserve derived target";
+    char actual[sizeof sentinel];
+    int failed = 0;
+    if (!old || !target) { perror("derive receipt fixtures"); failed = -1; goto done; }
+    if (model_oracle_derive_inputs(&config, old, old, &identity, NULL, error, sizeof error) < 0 &&
+        strstr(error, "must not alias")) puts("PASS derived receipt rejects aliased output");
+    else { fputs("FAIL derived receipt alias gate\n", stderr); failed = -1; }
+    error[0] = '\0';
+    if (model_oracle_derive_inputs(&config, old, target, &identity, NULL, error, sizeof error) < 0 &&
+        strstr(error, "invalid verification receipt") && ftell(target) == 0)
+        puts("PASS derived receipt rejects empty prior seal before input traversal");
+    else { fputs("FAIL derived receipt empty-input gate\n", stderr); failed = -1; }
+    if (fwrite(sentinel, 1, sizeof sentinel, target) != sizeof sentinel) { failed = -1; goto done; }
+    error[0] = '\0';
+    int result = model_oracle_derive_inputs(&config, old, target, &identity, NULL, error, sizeof error);
+    rewind(target);
+    if (result < 0 && strstr(error, "must be empty") &&
+        fread(actual, 1, sizeof actual, target) == sizeof actual && !memcmp(actual, sentinel, sizeof sentinel))
+        puts("PASS derived receipt preserves nonempty target");
+    else { fputs("FAIL derived receipt nonempty-output gate\n", stderr); failed = -1; }
+done:
+    if (old) fclose(old);
+    if (target) fclose(target);
+    return failed;
+}
+
 static int cli_lock_checks(const char *binary) {
     char directory[] = "/tmp/flash-oracle-cli.XXXXXX";
     char records[128], ids[128], checkpoint[128], receipt[128], error_path[128], missing[128];
@@ -103,8 +134,8 @@ static int cli_lock_checks(const char *binary) {
     id_file = NULL;
     struct flock lock = { .l_type = F_WRLCK, .l_whence = SEEK_SET };
     if (fcntl(record_fd, F_SETLK, &lock) < 0) { perror("oracle CLI parent lock"); failed = -1; goto done; }
-    for (int stage = 2; stage >= 0; stage--) {
-        int locked = stage != 0;
+    for (int stage = 2; stage >= -1; stage--) {
+        int locked = stage > 0, aliased = stage < 0;
         lock.l_type = stage == 2 ? F_WRLCK : stage == 1 ? F_RDLCK : F_UNLCK;
         if (fcntl(record_fd, F_SETLK, &lock) < 0) { failed = -1; break; }
         pid_t child = fork();
@@ -116,7 +147,7 @@ static int cli_lock_checks(const char *binary) {
             close(err); close(out);
             char *arguments[] = {(char *)binary, directory, missing, "cli-test", directory,
                 missing, missing, missing, missing, missing, "192", ids, "1", "0,1,2,3,4,5",
-                records, checkpoint, receipt, "1", NULL};
+                records, checkpoint, aliased ? records : receipt, "1", NULL};
             execv(binary, arguments);
             _Exit(127);
         }
@@ -139,9 +170,11 @@ static int cli_lock_checks(const char *binary) {
         int ok = finished && WIFEXITED(status) && WEXITSTATUS(status) == 1 &&
             bytes == sizeof sentinel && !memcmp(actual, sentinel, sizeof sentinel);
         if (locked) ok = ok && strstr(error, "record stream is already in use") && access(receipt, F_OK) != 0;
+        else if (aliased) ok = ok && strstr(error, "record stream and input receipt must not alias");
         else ok = ok && strstr(error, "input verification failed");
         const char *name = stage == 2 ? "CLI excludes concurrent writers before input verification" :
             stage == 1 ? "shared reader excludes CLI writer before input verification" :
+            aliased ? "CLI rejects record/receipt alias before writing" :
             "failed CLI verification preserves existing record bytes";
         if (ok) printf("PASS %s\n", name);
         else { fprintf(stderr, "FAIL %s: status=%d error=%s\n", name, status, error); failed = -1; }
@@ -236,6 +269,7 @@ int main(int argc, char **argv) {
     malformed.items = &ring;
     failed += compare_case("oversized ring byte count rejected", &malformed, NULL, 0, -1, NULL);
 
+    failed += derive_boundary_checks();
     if (argc == 2) failed += cli_lock_checks(argv[1]);
     else if (argc != 1) { fprintf(stderr, "usage: %s [MODEL_ORACLE_BINARY]\n", argv[0]); return 2; }
 
