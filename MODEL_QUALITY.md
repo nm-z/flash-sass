@@ -262,10 +262,14 @@ perl kern/qsa_attention_replay.pl \
   /absolute/path/new-gpu-attention-run/n2052-comparison.json
 ```
 
-Choose the GPU from the actual machine inventory. The runner queues on
-`/tmp/flash-sass-engine-validation.lock`, records an observation every three
-minutes while retaining its place, and permits up to 30 minutes to acquire it.
-Under the lock it records device/process state, verifies available memory,
+Choose the GPU from the actual machine inventory. Direct runner invocations
+queue on `/tmp/flash-sass-engine-validation.lock`, record an observation every
+three minutes while retaining their place, and permit up to 30 minutes to
+acquire it. Under GPUQ, the queue owns this lock and passes the inherited
+`GPUQ_LOCK_FD=9` descriptor to the wrapper. The wrapper verifies that descriptor
+9 points at the shared lock and keeps it open for the runner, which reuses the
+lease without opening or flocking the file a second time. Under either path the
+runner records device/process state, verifies available memory,
 limits the fixture runtime, checks source and binary hashes before and after,
 and hashes every completed capture artifact. It leaves other workers running.
 A successful capture still requires the independent replay command for each

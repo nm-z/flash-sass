@@ -39,33 +39,48 @@ export DIE_CUBIN=$issue22_repo/kern/die.cubin
 sha256sum kern/qsa_attention_gpu kern/qsa_attention_gpu.c kern/die.cubin kern/dieops.h \
     validation/issue22/attention-limits.json validation/issue22/run_attention_gpu.sh \
     > "$issue22_out/source-before.sha256"
-exec 9>/tmp/flash-sass-engine-validation.lock
-# Stay queued instead of repeatedly losing our position to other waiters.
-# flock and this shell share the same open file description for descriptor 9.
-flock -w 1800 -E 75 9 &
-issue22_waiter=$!
-trap 'if [[ -n $issue22_waiter ]]; then kill -TERM "$issue22_waiter" 2>/dev/null || true; fi; exec 9>&-' EXIT
-issue22_waited=0
-while kill -0 "$issue22_waiter" 2>/dev/null; do
-    if (( issue22_waited % 180 == 0 )); then
-        date -u '+%FT%TZ queued for shared validation lock' | tee -a "$issue22_out/lock.log"
-        lslocks --noheadings --output PID,COMMAND,TYPE,MODE,PATH |
-            rg 'flash-sass-engine-validation.lock' >> "$issue22_out/lock.log" || true
-    fi
-    sleep 5
-    (( issue22_waited += 5 ))
-done
-set +e
-wait "$issue22_waiter"
-issue22_rc=$?
-set -e
+issue22_lock=/tmp/flash-sass-engine-validation.lock
 issue22_waiter=
-if (( issue22_rc != 0 )); then
-    printf 'shared validation lock acquisition ended with exit %s after up to 1800 seconds\n' "$issue22_rc" \
-        | tee "$issue22_out/blocked.txt"
-    exit "$issue22_rc"
+if [[ -n ${GPUQ_JOB_ID:-} || -n ${GPUQ_LOCK_FD:-} ]]; then
+    [[ -n ${GPUQ_JOB_ID:-} && ${GPUQ_LOCK_FD:-} == 9 ]] || {
+        printf 'incomplete inherited gpuq lock lease\n' >&2
+        exit 2
+    }
+    issue22_inherited_lock=$(readlink -- "/proc/$$/fd/9" 2>/dev/null || true)
+    [[ $issue22_inherited_lock == "$issue22_lock" ]] || {
+        printf 'gpuq descriptor 9 does not reference %s: %s\n' \
+            "$issue22_lock" "$issue22_inherited_lock" >&2
+        exit 2
+    }
+    date -u '+%FT%TZ using inherited GPUQ_LOCK_FD=9 lease' | tee -a "$issue22_out/lock.log"
+else
+    exec 9>"$issue22_lock"
+    # Direct callers stay queued instead of repeatedly losing their position.
+    flock -w 1800 -E 75 9 &
+    issue22_waiter=$!
+    issue22_waited=0
+    while kill -0 "$issue22_waiter" 2>/dev/null; do
+        if (( issue22_waited % 180 == 0 )); then
+            date -u '+%FT%TZ queued for shared validation lock' | tee -a "$issue22_out/lock.log"
+            lslocks --noheadings --output PID,COMMAND,TYPE,MODE,PATH |
+                rg 'flash-sass-engine-validation.lock' >> "$issue22_out/lock.log" || true
+        fi
+        sleep 5
+        (( issue22_waited += 5 ))
+    done
+    set +e
+    wait "$issue22_waiter"
+    issue22_rc=$?
+    set -e
+    issue22_waiter=
+    if (( issue22_rc != 0 )); then
+        printf 'shared validation lock acquisition ended with exit %s after up to 1800 seconds\n' "$issue22_rc" \
+            | tee "$issue22_out/blocked.txt"
+        exit "$issue22_rc"
+    fi
+    date -u '+%FT%TZ acquired shared validation lock' | tee -a "$issue22_out/lock.log"
 fi
-date -u '+%FT%TZ acquired shared validation lock' | tee -a "$issue22_out/lock.log"
+trap 'if [[ -n $issue22_waiter ]]; then kill -TERM "$issue22_waiter" 2>/dev/null || true; fi; exec 9>&-' EXIT
 nvidia-smi > "$issue22_out/gpu-before.txt"
 nvidia-smi -i "$issue22_gpu" --query-gpu=index,uuid,pci.bus_id,name,memory.free,utilization.gpu \
     --format=csv,noheader,nounits > "$issue22_out/device-before.csv"
