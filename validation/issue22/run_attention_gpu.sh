@@ -38,6 +38,7 @@ export DIE_CUBIN=$issue22_repo/kern/die.cubin
 } > "$issue22_out/command.txt"
 sha256sum kern/qsa_attention_gpu kern/qsa_attention_gpu.c kern/die.cubin kern/dieops.h \
     validation/issue22/attention-limits.json validation/issue22/run_attention_gpu.sh \
+    validation/issue22/run_attention_gpu_smoke.sh \
     > "$issue22_out/source-before.sha256"
 issue22_lock=/tmp/flash-sass-engine-validation.lock
 issue22_waiter=
@@ -104,6 +105,7 @@ printf '%s\n' "$issue22_rc" > "$issue22_out/gpu.exit"
 nvidia-smi > "$issue22_out/gpu-after.txt"
 sha256sum kern/qsa_attention_gpu kern/qsa_attention_gpu.c kern/die.cubin kern/dieops.h \
     validation/issue22/attention-limits.json validation/issue22/run_attention_gpu.sh \
+    validation/issue22/run_attention_gpu_smoke.sh \
     > "$issue22_out/source-after.sha256"
 cmp -- "$issue22_out/source-before.sha256" "$issue22_out/source-after.sha256"
 (( issue22_rc == 0 )) || exit "$issue22_rc"
