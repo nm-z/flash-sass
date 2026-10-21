@@ -10,7 +10,7 @@ typedef struct {
     int pair_end; /* [begin,pair_end) uses B2; an odd tail uses B1 */
 } prefill_chunk_t;
 
-/* Absent/zero disables. Malformed settings must not silently select a path. */
+/* Absence and zero parse as size 0; the caller selects the default policy. */
 static inline int prefill_parse_chunk(const char *text, int *size) {
     if (!size) return -1;
     if (!text) { *size = 0; return 0; }
