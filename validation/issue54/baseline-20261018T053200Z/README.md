@@ -60,7 +60,7 @@ Root-port links were unchanged: `00:01.0 8GT/s x8`, `00:02.0 8GT/s x16`, and `00
 From the repository root:
 
 ```bash
-ruby kern/die_balance.rb \
+kern/die_balance \
   --baseline validation/issue54/baseline-20261018T053200Z/capture.json
 ```
 

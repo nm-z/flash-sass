@@ -1,10 +1,10 @@
 # Issue #54: balance experiment status
 
-This directory contains the CPU tests and a real six-die resident baseline. It does not contain a passing measured placement.
+This directory contains C CPU tests and a real six-die resident baseline. It does not contain a passing measured placement.
 
 ## Validation
 
-`make -C kern die_balance_test` runs the analyzer's synthetic acceptance fixtures and the collector's fake UNIX-socket engine tests. The fake engine exercises pipelined commands/tokens, same-connection profile collection before `done`, error/EOF handling, peer-PID verification, and waiting for a busy lock. Regression tests cover Ruby 3.4 without the optional CSV gem and recognition of flashcore's mapped engine generation. These tests use no CUDA calls or model inference.
+`make -C kern die_balance_test` builds both C tools and runs the analyzer's synthetic acceptance fixtures and the collector's fake UNIX-socket engine tests. The fake engine exercises pipelined commands/tokens, same-connection profile collection before `done`, error/EOF handling, peer-PID verification, and waiting for a busy lock. Regression tests cover numeric NVIDIA query parsing without a CSV dependency and recognition of flashcore's mapped engine generation. These tests use no CUDA calls or model inference.
 
 ### Queue lease repair, 2026-10-20
 
@@ -14,11 +14,10 @@ the collector's duplicate preserves the parent lease; direct callers wait for
 another owner. Wrong-file descriptors, independent descriptors while another
 owner holds the lock, and incomplete queue environments are rejected.
 
-On engi, `make -C kern die_balance_test` passed **34 tests, 229 assertions**, with
-zero failures, errors, or skips. This includes a separate child process with
-descriptor 9 inherited from a parent holding the lock, plus verification that
-the parent remains locked after child cleanup. `ruby -c
-kern/die_balance_capture.rb` and `git diff --check` also passed.
+The C suite built and ran on benji through `dsh build`. The analyzer reported
+**34 checks, 0 failures**; the collector reported **50 checks, 0 failures**.
+The collector suite verifies an inherited descriptor, that the parent remains
+locked after child cleanup, socket relay behavior, and fake NVIDIA output.
 
 A real `gpuq run` on engi executed the repaired lease function and verified the
 parent still excluded a separately opened descriptor after collector cleanup:

@@ -126,7 +126,7 @@ test-gemv: all
 	./gemv_test $(SHARD1) blk.4.ffn_down_exps.weight 0 20
 
 clean:
-	rm -f *.cubin *.dis *.so *.so.new die.sass die_trace.sass die_trace16.sass dieops.h flashcore flashd flashvis hold memtest fence *_test ple_read_bench ple_read_audit
+	rm -f *.cubin *.dis *.so *.so.new die.sass die_trace.sass die_trace16.sass dieops.h flashcore flashd flashvis hold memtest fence die_balance die_balance_capture *_test ple_read_bench ple_read_audit
 
 .PHONY: all test test-gemv clean
 
@@ -664,8 +664,25 @@ test-ple: ple_read_test ple_read_bench_test ple_read_audit_test
 	bash ./ple_io_run_test.sh
 	bash ./ple_io_validate_test.sh
 
-# Offline checks for the six-die balance experiment; no CUDA or model required.
+# Offline six-die balance tools and CPU-only tests; no CUDA or model required.
+DIE_BALANCE_JSON_CFLAGS = $(shell pkg-config --cflags json-c)
+DIE_BALANCE_JSON_LIBS = $(shell pkg-config --libs json-c) -lm
+DIE_BALANCE_CAPTURE_CFLAGS = $(shell pkg-config --cflags json-c libcurl openssl)
+DIE_BALANCE_CAPTURE_LIBS = $(shell pkg-config --libs json-c libcurl openssl) -pthread -lm
+
+die_balance: die_balance.c die_balance_common.c die_balance_common.h
+	$(CC) -std=gnu99 -O2 -Wall -Wextra $(DIE_BALANCE_JSON_CFLAGS) -o $@ die_balance.c die_balance_common.c $(DIE_BALANCE_JSON_LIBS)
+
+die_balance_capture: die_balance_capture.c die_balance_capture.h die_balance_common.c die_balance_common.h
+	$(CC) -std=gnu99 -O2 -Wall -Wextra $(DIE_BALANCE_CAPTURE_CFLAGS) -o $@ die_balance_capture.c die_balance_common.c $(DIE_BALANCE_CAPTURE_LIBS)
+
+die_balance_analyzer_test: die_balance ../validation/issue54/test_die_balance.c ../validation/issue54/fixtures.c ../validation/issue54/fixtures.h die_balance_common.c die_balance_common.h
+	$(CC) -std=gnu99 -O2 -Wall -Wextra $(DIE_BALANCE_JSON_CFLAGS) -o $@ ../validation/issue54/test_die_balance.c ../validation/issue54/fixtures.c die_balance_common.c $(DIE_BALANCE_JSON_LIBS)
+
+die_balance_capture_test: ../validation/issue54/test_die_balance_capture.c ../validation/issue54/fixtures.c ../validation/issue54/fixtures.h die_balance_capture.c die_balance_capture.h die_balance_common.c die_balance_common.h
+	$(CC) -std=gnu99 -O2 -Wall -Wextra -DDIE_BALANCE_CAPTURE_NO_MAIN $(DIE_BALANCE_CAPTURE_CFLAGS) -o $@ ../validation/issue54/test_die_balance_capture.c ../validation/issue54/fixtures.c die_balance_capture.c die_balance_common.c $(DIE_BALANCE_CAPTURE_LIBS)
+
 .PHONY: die_balance_test
-die_balance_test:
-	ruby ../validation/issue54/test_die_balance.rb
-	ruby ../validation/issue54/test_die_balance_capture.rb
+die_balance_test: die_balance die_balance_capture die_balance_analyzer_test die_balance_capture_test
+	./die_balance_analyzer_test ./die_balance
+	./die_balance_capture_test
