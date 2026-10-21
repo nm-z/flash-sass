@@ -15,11 +15,13 @@
  * others wait in a FIFO queue (see "the request queue"; GET endpoints never wait).
  *
  *   flashd <shard-1.gguf> <flash-socket> <host:port>      env FLASHD_NAME, FLASHD_THINKING (0: off by default),
- *   FLASHD_QUEUE_MAX (waiting requests, default 8), FLASHD_QUEUE_WAIT_S (default 600), FLASHD_REQUEST_MAX_S (default 300) */
+ *   FLASHD_QUEUE_MAX (waiting requests, default 8), FLASHD_QUEUE_WAIT_S (default 600),
+ *   FLASHD_REQUEST_MAX_S (default 300 without vision, 2400 with FLASHVIS_SOCK; 0 disables the limit) */
 #define _GNU_SOURCE
 #include "jinja.h"
 #include "timings.h"
 #include "tok.h"
+#include "vision.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -43,6 +45,11 @@ static tok_vocab *V;
 static jinja *TPL;
 static const char *SOCK, *NAME = "Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass";
 static int POSITIONS = 2048, THINK_DEFAULT = 1;
+enum { FLASHD_TEXT_REQUEST_MAX_S = 300, FLASHD_VISION_REQUEST_MAX_S = 2400 };
+static int request_max_seconds(const char *configured, int vision_enabled) {
+    if (configured) return atoi(configured);
+    return vision_enabled ? FLASHD_VISION_REQUEST_MAX_S : FLASHD_TEXT_REQUEST_MAX_S;
+}
 // Output budgets in thinking mode: up to 262,144 tokens of reasoning and 131,072 of final answer (the context bounds both).
 static long REASONING_MAX = 262144, ANSWER_MAX = 131072;
 static double DEF_TEMP = 0.0, DEF_TOPP = 1.0; static int DEF_TOPK = 0;   /* general.sampling.* from the GGUF; temperature 0 = greedy */
@@ -141,11 +148,11 @@ static void admitted_error(int fd, int headers_sent, int status, const char *msg
    The engine runs one sequence, so one request runs at a time and the others wait here in arrival order. A request whose client goes away
    leaves the queue (or, running, stops the engine) instead of being served to nobody; a full queue or a long wait is a 503 with Retry-After.
    FLASHD_QUEUE_MAX (waiting requests, default 8), FLASHD_QUEUE_WAIT_S (default 600). GET /queue shows the depth.
-   FLASHD_REQUEST_MAX_S (default 300, 0: no limit) bounds a whole request from its arrival, the wait and the run together: a request still waiting
+   FLASHD_REQUEST_MAX_S (default 300 without vision, 2400 with FLASHVIS_SOCK; 0: no limit) bounds a whole request from its arrival, the wait and the run together: a request still waiting
    leaves the queue, a running one closes its engine connection (the core aborts the turn when its client goes) and the next one starts. */
 typedef struct waiter { struct waiter *next; } waiter;
 static pthread_mutex_t QM = PTHREAD_MUTEX_INITIALIZER; static pthread_cond_t QC = PTHREAD_COND_INITIALIZER;
-static waiter *QHEAD, *QTAIL; static int QBUSY, QLEN, QMAX = 8, QWAIT_S = 600, REQ_MAX_S = 300;
+static waiter *QHEAD, *QTAIL; static int QBUSY, QLEN, QMAX = 8, QWAIT_S = 600, REQ_MAX_S = FLASHD_TEXT_REQUEST_MAX_S;
 static int client_gone(int fd) {   /* the peer closed or reset its end */
 	struct pollfd p = { .fd = fd, .events = POLLRDHUP };
 	return poll(&p, 1, 0) > 0 && (p.revents & (POLLRDHUP | POLLHUP | POLLERR));
@@ -365,7 +372,7 @@ static void on_token(gen *g, uint32_t id) {
 }
 
 /* ---- images: the vision encoder daemon (flashvis) and its cache ----
-   A request's image parts (data: URLs) are decoded, run through flashvis (CPU, seconds per image) and the embeddings are kept in files
+   A request's image parts (data: URLs) are decoded, run through flashvis (GPU Flash Attention) and the embeddings are kept in files
    under IMGDIR keyed by a hash of the image bytes, so the images of earlier turns, which the page sends again with every question, cost nothing the
    second time. The engine reads those files (the `img` command). */
 static const char *VIS_SOCK;               /* FLASHVIS_SOCK: the encoder; NULL: no images */
@@ -391,7 +398,7 @@ typedef struct { char path[240]; unsigned ntok, npos; } imgrec;
 static const char *vis_image(const unsigned char *bytes, size_t n, imgrec *r) {
 	if (!VIS_SOCK) return "this engine was started without a vision encoder";
 	char *dir = IMGDIR; mkdir(dir, 0755);
-	snprintf(r->path, sizeof r->path, "%s/%016llx.bin", dir, fnv64(bytes, n));
+	snprintf(r->path, sizeof r->path, "%s/" FLASH_IMAGE_CACHE_PREFIX "%016llx.bin", dir, fnv64(bytes, n));
 	FILE *f = fopen(r->path, "rb"); uint32_t hd[5];
 	if (f) { int ok = fread(hd, 4, 5, f) == 5; fclose(f); if (ok) { r->ntok = hd[0]; r->npos = hd[3]; utime(r->path, NULL); return NULL; } }
 	int s = unix_open(VIS_SOCK);
@@ -821,9 +828,10 @@ int main(int argc, char **argv) {
 	if (getenv("FLASHD_THINKING")) THINK_DEFAULT = atoi(getenv("FLASHD_THINKING"));
 	if (getenv("FLASHD_QUEUE_MAX")) QMAX = atoi(getenv("FLASHD_QUEUE_MAX"));
 	if (getenv("FLASHD_QUEUE_WAIT_S")) QWAIT_S = atoi(getenv("FLASHD_QUEUE_WAIT_S"));
-	if (getenv("FLASHD_REQUEST_MAX_S")) REQ_MAX_S = atoi(getenv("FLASHD_REQUEST_MAX_S"));
+	VIS_SOCK = getenv("FLASHVIS_SOCK");
+	REQ_MAX_S = request_max_seconds(getenv("FLASHD_REQUEST_MAX_S"), VIS_SOCK && *VIS_SOCK);
 	V = tok_load(argv[1]); if (!V) return 1;
-	VIS_SOCK = getenv("FLASHVIS_SOCK"); if (getenv("FLASHD_IMGDIR")) snprintf(IMGDIR, sizeof IMGDIR, "%s", getenv("FLASHD_IMGDIR"));
+	if (getenv("FLASHD_IMGDIR")) snprintf(IMGDIR, sizeof IMGDIR, "%s", getenv("FLASHD_IMGDIR"));
 	ID_IMGPAD = tok_find(V, "<|image_pad|>");
 	{ double x; if (!tok_meta_num(V, "general.sampling.temp", &x)) DEF_TEMP = x; if (!tok_meta_num(V, "general.sampling.top_p", &x)) DEF_TOPP = x; if (!tok_meta_num(V, "general.sampling.top_k", &x)) DEF_TOPK = (int)x;
 	  if (getenv("FLASHD_GREEDY")) DEF_TEMP = 0.0; }
