@@ -2,6 +2,13 @@
   "schema": "flash.issue16.matrix.v1",
   "source_commit": "64cf729d87e6d51718f32b05b0b6d52842dacdd2",
   "build_manifest": "../current-head-build-64cf.json",
+  "launcher": {
+    "source": "../tools/issue16_matrix_launcher.c",
+    "source_sha256": "b3ec60b7e440de57553aa6850c47e40befbcfc7db19dc4a90d238f83effa30fe",
+    "dsh_build_id": "build-2329980-1792567558414685804",
+    "dsh_host": "azb2",
+    "artifact_sha256": "71280deb9d13401fce50a37d2c68972cf92f842754594671d84b9175e4e3e9e1"
+  },
   "build_artifacts": {
     "qsa_gather_bench_sha256": "565996be8055dcf79ba9b31661aaf4e611fa7d9c3793d9d660bbe13af988090a",
     "die_cubin_sha256": "aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423"

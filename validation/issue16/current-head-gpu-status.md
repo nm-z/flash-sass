@@ -14,7 +14,9 @@ The merged-head 40-pair matrix has now completed as GPUQ job `cfacfaa9-faa5-4b06
 
 A supplemental selection job `b7de97de-7982-453c-907c-c380e72ca9a8` succeeded. `qsa_test idxfull` reported BIT-EXACT and emitted 512 sorted IDs from `OP_IDXSEL`; the same IDs passed paired host/VRAM `captured` runs at position 7999. A `captured-token` pair exercised positions 7999–8006 with that one synthetic row repeated. A separate `changing-token` pair changed all seven consecutive selections and verified output signatures for both placements. Raw IDs, JSON, CSVs, logs, and pair checks are in [selection-pairs-64cf](selection-pairs-64cf/). The fixture is synthetic query/key/pool data, not a checkpoint-derived production capture.
 
-Remaining evidence is the separate current-head Maxwell byte, transaction, and stall profiles. No accepted checkpoint-derived selection input exists in the reviewed issue #10 archive.
+All three current-head Maxwell profile groups succeeded on the M60: system-memory/DRAM bytes, transactions, and stalls. Each group used separate paired host/VRAM runs with the captured ID row, one profiled launch, and output validation. Raw profile bundles and counters are in [profile-manifest.json](profile-manifest.json) and [profiles-64cf](profiles-64cf/). The first non-root nvprof attempt hit `ERR_NVGPUCTRPERM`; the successful runs invoked nvprof with process-level sudo inside GPUQ and did not change driver settings. The profiler replay inflated the timing distribution, so only counters are used from those jobs.
+
+The remaining selection limitation is data provenance: the `idxfull` capture uses synthetic query/key/pool inputs. The issue #10 archive has no accepted checkpoint-derived selection lineage or actual per-token production selection rows.
 
 The GPUQ inventory found an idle Tesla M60 (`GPU-431371bd-b482-96b2-4b70-04f83c6d075b`, driver `470.256.02`, 7,547 MiB free at the inventory sample). A short GPUQ negative test confirmed `QSA_HOSTKV=2` is rejected with status 2 and the expected message.
 

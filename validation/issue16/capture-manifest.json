@@ -1,6 +1,6 @@
 {
   "schema": "flash.issue16.capture-manifest.v1",
-  "status": "CAPTURE_AND_MATRIX_COMPLETE; COUNTER_PROFILES_PENDING",
+  "status": "MATRIX_SELECTION_PAIRS_AND_COUNTER_PROFILES_COMPLETE; CHECKPOINT_DERIVED_SELECTION_UNAVAILABLE",
   "pr": {
     "number": 43,
     "code_source_revision": "64cf729d87e6d51718f32b05b0b6d52842dacdd2"
@@ -91,7 +91,7 @@
   "issue10_archive_review": "validation/issue16/issue10-offline-review.md",
   "queue": {
     "required_route": "ssh archy gpuq run -- ...",
-    "status": "MERGED_HEAD_SMOKE_AND_MATRIX_AND_SELECTION_PAIRS_SUCCEEDED; COUNTERS_PENDING",
+    "status": "MERGED_HEAD_SMOKE_MATRIX_SELECTION_PAIRS_AND_COUNTER_PROFILES_SUCCEEDED; MODEL_SELECTION_SOURCE_UNAVAILABLE",
     "successful_jobs": [
       {
         "id": "b68ef825-8db8-4869-bf67-3855ac9af1dd",
@@ -178,7 +178,17 @@
       "status": "succeeded",
       "exit_code": 0,
       "supplied_document_id": 79430,
+      "launcher_source": "validation/issue16/tools/issue16_capture_launcher.c",
+      "launcher_source_sha256": "2a68853dd4e036f742ae5814fc5ec1e18b238f5d1ffad7a595c7414665251e79",
+      "launcher_dsh_build_id": "build-2389446-1792568096785980187",
       "evidence": "validation/issue16/selection-pairs-64cf/manifest.json"
+    },
+    "current_head_profiles": {
+      "status": "succeeded",
+      "traffic_job_id": "663cd1b8-bf5f-427d-b501-382b6b2d35be",
+      "transactions_job_id": "1c08039d-0f37-44f4-913b-77f1768d26ef",
+      "stalls_job_id": "bd22bd13-2c43-4da9-ab0f-632cf06fc6e8",
+      "evidence": "validation/issue16/profile-manifest.json"
     }
   }
 }
