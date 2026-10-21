@@ -68,15 +68,15 @@ static int copy_file(const char *from, const char *to) {
 	return bad;
 }
 
-static int read_tokenizer_path(char *path, size_t cap) {
-	FILE *f = fopen("./tokenizer-path.txt", "rb");
-	if (!f) { perror("./tokenizer-path.txt"); return 1; }
-	size_t n = fread(path, 1, cap - 1, f);
+static int read_tokenizer_source(char *source, size_t cap) {
+	FILE *f = fopen("./tokenizer-source.txt", "rb");
+	if (!f) { perror("./tokenizer-source.txt"); return 1; }
+	size_t n = fread(source, 1, cap - 1, f);
 	int extra = fgetc(f), bad = ferror(f) || n == 0 || extra != EOF;
 	if (fclose(f)) bad = 1;
-	while (n && (path[n - 1] == '\n' || path[n - 1] == '\r')) n--;
-	path[n] = '\0';
-	if (bad || !n) { fprintf(stderr, "tokenizer-path.txt must contain one nonempty path line\n"); return 1; }
+	while (n && (source[n - 1] == '\n' || source[n - 1] == '\r')) n--;
+	source[n] = '\0';
+	if (bad || !n) { fprintf(stderr, "tokenizer-source.txt must contain one nonempty description line\n"); return 1; }
 	return 0;
 }
 
@@ -252,15 +252,16 @@ int main(int argc, char **argv) {
 	}
 	if (mkdir(work, 0700) < 0) { perror(work); return 2; }
 	int run_rc = 0; unsigned prompt_tokens = 0; uint64_t selection_hash = 0;
-	char tokenizer_path[PATH_MAX];
+	char tokenizer_source[PATH_MAX];
 	int model_ok = 0;
 	fprintf(stderr, "issue16 production capture: staging prompt and model inputs\n"); fflush(stderr);
 	if (chdir("/dev/shm/fs16-issue16-production") < 0) {
 		perror("chdir staged inputs"); run_rc = 1;
 	}
-	char launcher_source[PATH_MAX], tokenizer_source[PATH_MAX];
+	char launcher_source[PATH_MAX], tokenizer_code_copy[PATH_MAX], tokenizer_provenance_copy[PATH_MAX];
 	if (snprintf(launcher_source, sizeof launcher_source, "%s/launcher-source.c", work) >= (int)sizeof launcher_source ||
-	    snprintf(tokenizer_source, sizeof tokenizer_source, "%s/tokenizer-source.c", work) >= (int)sizeof tokenizer_source) {
+	    snprintf(tokenizer_code_copy, sizeof tokenizer_code_copy, "%s/production_prompt_ids.c", work) >= (int)sizeof tokenizer_code_copy ||
+	    snprintf(tokenizer_provenance_copy, sizeof tokenizer_provenance_copy, "%s/tokenizer-provenance.md", work) >= (int)sizeof tokenizer_provenance_copy) {
 		fprintf(stderr, "source bundle path is too long\n"); run_rc = 2;
 	}
 	char model_copy[PATH_MAX], gather_copy[PATH_MAX], helper_copy[PATH_MAX], cubin_copy[PATH_MAX], launcher_bin_copy[PATH_MAX];
@@ -271,13 +272,14 @@ int main(int argc, char **argv) {
 			snprintf(launcher_bin_copy, sizeof launcher_bin_copy, "%s/issue16_production_launcher", work) >= (int)sizeof launcher_bin_copy)) {
 		fprintf(stderr, "binary bundle path is too long\n"); run_rc = 2;
 	}
-	char tokenizer_path_copy[PATH_MAX];
-	if (!run_rc && snprintf(tokenizer_path_copy, sizeof tokenizer_path_copy, "%s/tokenizer-path.txt", work) >= (int)sizeof tokenizer_path_copy) {
-		fprintf(stderr, "tokenizer path manifest is too long\n"); run_rc = 2;
+	char tokenizer_source_copy[PATH_MAX];
+	if (!run_rc && snprintf(tokenizer_source_copy, sizeof tokenizer_source_copy, "%s/tokenizer-source.txt", work) >= (int)sizeof tokenizer_source_copy) {
+		fprintf(stderr, "tokenizer source manifest is too long\n"); run_rc = 2;
 	}
-	if (!run_rc && (copy_file("./tokenizer-path.txt", tokenizer_path_copy) ||
+	if (!run_rc && (copy_file("./tokenizer-source.txt", tokenizer_source_copy) ||
+			copy_file("./production-prompt-tokenizer.md", tokenizer_provenance_copy) ||
 			copy_file("./issue16_production_launcher.c", launcher_source) ||
-			copy_file("./production_prompt_ids.c", tokenizer_source) ||
+			copy_file("./production_prompt_ids.c", tokenizer_code_copy) ||
 			copy_file("./production-prompt.txt", prompt_src) ||
 			copy_file("./model_test", model_copy) ||
 			copy_file("./issue16_production_launcher", launcher_bin_copy))) {
@@ -294,16 +296,31 @@ int main(int argc, char **argv) {
 			fprintf(stderr, "holder manifest path is too long\n"); run_rc = 2;
 		} else if (copy_file(argv[2 + i], dest)) run_rc = 1;
 	}
-	if (!run_rc && read_tokenizer_path(tokenizer_path, sizeof tokenizer_path)) run_rc = 1;
+	if (!run_rc && read_tokenizer_source(tokenizer_source, sizeof tokenizer_source)) run_rc = 1;
 	if (!run_rc) {
-		fprintf(stderr, "issue16 production capture: render chat template and tokenize full user prompt\n"); fflush(stderr);
 		char render_out[PATH_MAX], render_err[PATH_MAX];
 		if (snprintf(render_out, sizeof render_out, "%s/tokenizer.stdout", work) >= (int)sizeof render_out ||
 		    snprintf(render_err, sizeof render_err, "%s/tokenizer.stderr", work) >= (int)sizeof render_err) {
 			fprintf(stderr, "tokenizer log path is too long\n"); run_rc = 2;
 		} else {
-			char *const token_argv[] = {"./issue16_production_prompt_ids", tokenizer_path, (char *)"./production-prompt.txt", rendered, ids_txt, NULL};
-			run_rc = run_to_files(token_argv, render_out, render_err);
+			if (access("./prompt.ids.txt", R_OK) != 0 || access("./rendered-prompt.txt", R_OK) != 0) {
+				fprintf(stderr, "pretokenized prompt.ids.txt and rendered-prompt.txt are required; GPUQ must not access NFS\n");
+				run_rc = 3;
+			} else {
+				fprintf(stderr, "issue16 production capture: use staged tok.c/jinja.c IDs from pinned GGUF prefix\n"); fflush(stderr);
+				if (copy_file("./prompt.ids.txt", ids_txt) || copy_file("./rendered-prompt.txt", rendered)) run_rc = 1;
+				FILE *meta = fopen(render_out, "wb");
+				if (!meta) { perror(render_out); run_rc = 1; }
+				else {
+					struct stat st;
+					if (stat(rendered, &st)) { perror("stat rendered prompt"); run_rc = 1; }
+					else if (fprintf(meta, "{\"prompt_tokens_source\":\"pretokenized tok.c/jinja.c from pinned GGUF prefix\",\"rendered_bytes\":%llu}\n", (unsigned long long)st.st_size) < 0) run_rc = 1;
+					if (fclose(meta)) { perror("close tokenizer metadata"); run_rc = 1; }
+				}
+				FILE *err = fopen(render_err, "wb");
+				if (!err) { perror(render_err); run_rc = 1; }
+				else if (fclose(err)) { perror("close tokenizer stderr"); run_rc = 1; }
+			}
 			if (!run_rc && count_token_lines(ids_txt, &prompt_tokens)) run_rc = 1;
 			if (!run_rc && prompt_tokens <= CAPTURE_POSITION) {
 				fprintf(stderr, "rendered prompt has %u tokens and cannot reach position %u\n", prompt_tokens, CAPTURE_POSITION);
@@ -354,7 +371,7 @@ int main(int argc, char **argv) {
 		else {
 			fprintf(report,
 			"{\"source_revision\":\"%s\",\"gpuq_job_id\":\"%s\",\"model_test_status\":%s,\"model_test_scalar_twin\":false,\"prompt_tokens\":%u,\"model_tokens_run\":%u,\"generated_tokens\":1,\"tokenizer_gguf\":\"%s\",\"ple_gguf\":\"%s\",\"ple_data_offset_bytes\":192,\"selection_source\":\"full-model MODEL_ATTN=qsa OP_IDXSEL output\",\"selection_layer\":47,\"selection_position\":%u,\"candidate_blocks\":%u,\"selected_blocks\":%u,\"logical_tail_tokens\":1,\"selection_fnv1a64\":\"%016llx\",\"model_kv_placement\":\"device-vram (FLASH_KV_HOST=0)\",\"gather_pair\":\"captured selection; distinct paired arms host_kv=0 and host_kv=1; nv=513, tail=1, position=2052, 8 iterations each\",\"gather_fixture\":\"finite position/channel-signature INT8 K/V and FP16 scales, exact C reference preflight\",\"prompt_rendering\":\"model tokenizer.chat_template, add_generation_prompt=true, parse_special=true\"}\n",
-				argv[8], job, model_ok ? "true" : "false", prompt_tokens, prompt_tokens + 1, tokenizer_path, argv[1], CAPTURE_POSITION,
+				argv[8], job, model_ok ? "true" : "false", prompt_tokens, prompt_tokens + 1, tokenizer_source, argv[1], CAPTURE_POSITION,
 				CANDIDATE_BLOCKS, QSA_BUDGET, (unsigned long long)selection_hash);
 			if (fclose(report)) { perror("close manifest"); run_rc = run_rc ? run_rc : 1; }
 		}
@@ -365,7 +382,7 @@ int main(int argc, char **argv) {
 		    snprintf(identity_err, sizeof identity_err, "%s/binary-identities.stderr", work) >= (int)sizeof identity_err) {
 			fprintf(stderr, "identity path is too long\n"); run_rc = 2;
 		} else {
-			char *const sha[] = {"sha256sum", model_copy, gather_copy, helper_copy, cubin_copy, prompt_src, rendered, ids_txt, selection, tokenizer_path_copy, NULL};
+			char *const sha[] = {"sha256sum", model_copy, gather_copy, helper_copy, cubin_copy, prompt_src, rendered, ids_txt, selection, tokenizer_source_copy, tokenizer_provenance_copy, NULL};
 			int sha_rc = run_to_files(sha, identity, identity_err);
 			if (sha_rc) run_rc = sha_rc;
 		}
