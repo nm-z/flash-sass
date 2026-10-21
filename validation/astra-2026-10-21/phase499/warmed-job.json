@@ -1,0 +1,26 @@
+[
+  {
+    "id": "03bff6fb-db1f-4844-9d91-0e2e381ea17f",
+    "parent_id": null,
+    "replay_of": null,
+    "label": "phase499-v8-warmed-repeatability",
+    "host": "archy",
+    "boot_id": "bfba2bdc-c2d5-4bff-af28-edf8f2bbbedf",
+    "pid": 3942140,
+    "process_start": "18661598",
+    "cwd": "/home/nate",
+    "argv_json": "[\"env\",\"BENCH_NO_MTP=1\",\"BENCH_KERNEL_ONLY=1\",\"BENCH_PROFILE=1\",\"BENCH_FUSED_GR=1\",\"BENCH_PRODUCER_QUANT=1\",\"BENCH_MATRIX_GROUP=1\",\"BENCH_CONTEXT=32768\",\"BENCH_SCALAR_PREFIX=1\",\"BENCH_PHASE_WATCH=1\",\"BENCH_COLLECT_MISMATCHES=1\",\"BENCH_RUNS=4\",\"BENCH_GENERATE=128\",\"BENCH_SOCKET_TIMEOUT=90\",\"/home/nate/work/flash-phase499-20261021-checks-v2/resident_decode_bench\",\"--resident\",\"/tmp/flash.sock\",\"/home/nate/work/flash-phase499-20261021-v8/libengine_exact.so\",\"/home/nate/codex/flash-astra-build-20261018/iq4-bias/kern/die.cubin\",\"/home/nate/work/flash-phase499-20261021-v8/die_phase.cubin\",\"/home/nate/work/flash-phase499-20261021-v8/libengine_exact.so\",\"/home/nate/work/flash-phase499-20261021-v8/die_phase.cubin\"]",
+    "environment_json": "{}",
+    "submitted_ns": "1792624624997898904",
+    "started_ns": "1792624625772767814",
+    "ended_ns": "1792624671700417754",
+    "status": "succeeded",
+    "exit_code": 0,
+    "termination_signal": null,
+    "ticket": "1792624625018851948",
+    "exclusions_json": "[]",
+    "profile_version": 1,
+    "origin": "live",
+    "source_key": null
+  }
+]

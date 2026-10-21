@@ -34,6 +34,50 @@ The matched prompt rates were 41.55 versus 33.99 tokens/s at 64 tokens, and
 claimed. These checks cover the specified greedy and seeded-sampling workloads;
 they are not exhaustive validation of every context length or cancellation mode.
 
+## Follow-up: warmed repeatability
+
+After testing was explicitly authorized, job
+`03bff6fb-db1f-4844-9d91-0e2e381ea17f` ran four matched requests per arm with
+64 prompt tokens and 128 output tokens. Run 0 was warm-up; runs 1–3 determine
+the medians below. The kernel and its configuration were unchanged.
+
+| Measurement | Baseline | 499-phase candidate |
+|---|---:|---:|
+| Warm decode rates, TPS | 40.1136, 40.1113, 40.1059 | 32.9841, 32.9853, 32.9863 |
+| Median decode TPS | **40.1113** | **32.9853** |
+| Median prompt tokens/s | 41.5298 | 34.0033 |
+| Final runtime phases per die | 1,178–1,230 | 499 on all six |
+| Output mismatches | 0 | 0 across all 512 candidate tokens |
+
+The candidate is about 17.8% slower in this warm comparison. All eight requests
+completed without a device error, and restoration reported an identical
+configuration. This follow-up addresses warm-state repeatability and the
+steady-throughput question; the previously passing long-context and sampling
+cases were reused rather than run again without a new concern.
+
+The final-token profiles attribute the following time to `hcwsum` plus
+`bf16hcrx` in baseline, and their fused `grwrite_read` plus remaining unfused
+operations in the candidate:
+
+| Die | Baseline GR group, ms/token | Candidate GR group, ms/token | Increase, ms/token |
+|---|---:|---:|---:|
+| 0 | 3.4365 | 5.5961 | 2.1596 |
+| 1 | 3.5102 | 5.6658 | 2.1556 |
+| 2 | 3.8359 | 6.0273 | 2.1914 |
+| 3 | 3.4990 | 5.7088 | 2.2098 |
+| 4 | 3.5922 | 5.9137 | 2.3215 |
+| 5 | 3.3741 | 5.6944 | 2.3203 |
+
+These are inclusive phase times: synchronization waits and ownership changes
+affect attribution. They identify a substantial cost increase, not a causal
+isolation of the arithmetic itself. The fused GR emitter expands six-peer sums
+at 30 RMS-write load sites, making repeated loads/reductions a concrete next
+optimization target. No optimization or ablation is claimed from this test.
+
+[Raw warmed-run output](phase499/03bff6fb-db1f-4844-9d91-0e2e381ea17f.json)
+and [job metadata](phase499/warmed-job.json) are retained alongside the original
+evidence. All data remains in the same canonical GPUQ database.
+
 ## Production changes
 
 - Quantize GR and GDN activations in their producing operations and publish

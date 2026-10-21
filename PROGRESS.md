@@ -42,3 +42,11 @@ opening a destination, then rename atomically. Do not repeat the truncation bug.
 No more tests are needed for the phase-count goal absent new changes/failures.
 Do not silently resume MTP/FP8 work. Prior experimental sources are retained but
 are not enabled or validated by this phase-count result.
+
+User subsequently authorized testing. A targeted warm-repeatability comparison,
+job03bff6fb-db1f-4844-9d91-0e2e381ea17f, passed four128-token requests per arm:
+all512 candidate output tokens match,499phases/all six dies, configuration restored
+identically. Discarding warm-up, medians are32.9853TPS candidate vs40.1113baseline.
+GR sum/write/read inclusive phase time increased2.16–2.32ms/token across dies.
+This is profiling evidence, not a causal ablation. Kernel code was not modified.
+Report and raw output are in PHASE499.md and its phase499 directory.
