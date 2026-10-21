@@ -81,7 +81,7 @@
   "issue10_archive_review": "validation/issue16/issue10-offline-review.md",
   "queue": {
     "required_route": "ssh archy gpuq run -- ...",
-    "status": "INTERMITTENT_LOST_AND_DATABASE_LOCK",
+    "status": "REPEATED_LOST_BEFORE_QUEUE_START",
     "successful_jobs": [
       {
         "id": "b68ef825-8db8-4869-bf67-3855ac9af1dd",
@@ -122,6 +122,23 @@
         "started_ns": null,
         "exit_code": null,
         "history_error": "database is locked"
+      },
+      {
+        "id": "e93afb10-dcb4-4c8c-a23c-dc2cf43f05ee",
+        "label": "fs16-a623032-matrix-c-launcher",
+        "status": "queued",
+        "started_ns": null,
+        "ticket": null,
+        "exit_code": null
+      },
+      {
+        "id": "e93afb10-dcb4-4c8c-a23c-dc2cf43f05ee",
+        "label": "fs16-a623032-matrix-c-launcher",
+        "status": "lost",
+        "started_ns": null,
+        "ended_ns": "1792564225495504755",
+        "ticket": null,
+        "exit_code": null
       }
     ],
     "issue": "https://github.com/nm-z/gpuq/issues/35"

@@ -96,7 +96,7 @@
     "command_form": "bash -c",
     "ssh_exit_code": 2,
     "history_query": "database is locked",
-    "final_status": "unconfirmed",
+    "final_status": "no_job_row_found_after_database_unlock",
     "gpu_execution_confirmed": false
   },
   "auto_routed_dsh_smoke": {
@@ -105,5 +105,31 @@
     "command_status": "failed before CUDA initialization",
     "diagnostic": "libcuda.so.1 not found on azb1; the GPUQ strict-value check returned the expected status 2 on Archy."
   },
-  "gpuq_database_lock_issue": "nm-z/gpuq#35"
+  "gpuq_database_lock_issue": "nm-z/gpuq#35",
+  "matrix_launcher_build": {
+    "dsh_build_id": "build-1738475-1792564131368627507",
+    "host": "sentry",
+    "status": "succeeded",
+    "source": "validation/issue16/current-build/issue16_matrix_launcher.c",
+    "artifact_sha256": "6be1b38397d7108846519481b00d4ec570ccbf35cbfb01ddedeb6c1d72279406",
+    "purpose": "Temporary C launcher reads GPUQ_RUN_DIR then execs the existing Perl matrix runner; not part of product source."
+  },
+  "gpuq_matrix_launcher_job": {
+    "id": "e93afb10-dcb4-4c8c-a23c-dc2cf43f05ee",
+    "label": "fs16-a623032-matrix-c-launcher",
+    "status": "lost",
+    "started_ns": null,
+    "ticket": null,
+    "exit_code": null,
+    "predecessor_seen_running": "fs99-master-41k-final-retry",
+    "gpu_execution_confirmed": false,
+    "ended_ns": "1792564225495504755"
+  },
+  "gpuq_matrix_launcher_build": {
+    "dsh_build_id": "build-1738475-1792564131368627507",
+    "host": "sentry",
+    "status": "succeeded",
+    "artifact_sha256": "6be1b38397d7108846519481b00d4ec570ccbf35cbfb01ddedeb6c1d72279406",
+    "purpose": "Temporary C launcher reads GPUQ_RUN_DIR and execs existing Perl matrix runner."
+  }
 }
