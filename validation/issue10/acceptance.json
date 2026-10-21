@@ -277,6 +277,40 @@
       "status" : "PASS",
       "test_count" : 77
    },
+   "planned_full_model_campaign" : {
+      "runner" : "kern/paired_depth_bench.pl",
+      "status" : "PREPARATION_ONLY",
+      "full_issue_acceptance" : false,
+      "contexts" : [
+         2048,
+         2051,
+         2052,
+         3100,
+         8000,
+         65000,
+         262000
+      ],
+      "outputs_per_request" : 129,
+      "decode_intervals_per_request" : 128,
+      "interleaved_host_vram_pairs" : 5,
+      "pair_order" : "alternates host-first and vram-first by pair parity",
+      "trace_mode" : "Pass --trace; the runner default is untraced",
+      "minimum_core_capacity_positions" : 262128,
+      "required_live_inputs" : [
+         "host and vram core sockets",
+         "full source SHA and dirty-patch record",
+         "build record and built artifact identities",
+         "weight identity manifest",
+         "host and vram argv, launch environments, reload-command lists and limitations"
+      ],
+      "still_required_after_this_runner" : [
+         "Separate controlled tracing-overhead comparison",
+         "Full-model Maxwell memory and stall counter attribution",
+         "Checkpoint-derived selected-ID/layout coverage",
+         "Complete startup, prefill and resident-runtime provenance"
+      ],
+      "note" : "The live campaign has not run; SSH authentication to Archy fails before gpuq."
+   },
    "previous_counter_matrix_lock_blocker" : {
       "attempt_started_utc" : "2026-10-18T05:43:39Z",
       "exit_code" : 73,
