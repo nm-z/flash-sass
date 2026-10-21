@@ -12,9 +12,9 @@ quality run.
   to `model-00082-of-00131.safetensors`. Its verified SHA-256 is recorded in
   [projection-complete.json](projected-inputs/projection-complete.json). The
   complete 360 GB model remains unavailable.
-- The C extractor was built and run on Benji through DSH build
-  `build-3194469-1792569900393663119`, source revision
-  `57e6e0e9907710ef9559f1a14a393e0492e02788`. It converted the pinned BF16
+- The corrected C extractor was built and run on Benji through DSH build
+  `build-3238978-1792570309168879849`, source revision
+  `647f0eccc19a03cb69e552a0a7f447ee61ab4434`. It converted the pinned BF16
   `q_proj`, `k_proj`, `v_proj`, `q_norm`, and `k_norm` tensors to frozen FP32
   projection inputs.
 - The input is nine deterministic synthetic hidden vectors, seed 4242. The
@@ -25,6 +25,12 @@ quality run.
 The manifest records exact tensor shapes, file offsets, weights revision, and
 weight hash. The projection artifact explicitly marks `teacher_forced`,
 `model_forward`, `production_indexer_executed`, and `full_model` as false.
+
+The first wired GPUQ attempt used a pre-fix extractor and exited on non-finite
+projection input before CUDA initialization. It exposed a little-endian BF16
+decode ordering error; commit `647f0eccc19a03cb69e552a0a7f447ee61ab4434` fixes
+the conversion. The invalid projection files were replaced. That attempt is
+not a GPU measurement.
 
 ## Scope
 
