@@ -468,7 +468,9 @@ void prog_ple_prefix(prog_t *P, const split_t *s, const xchg_t *x, const dn_weig
 	ph_gemv_any(P, GG_Q2_0, 2560, w->ple_key, b->pgq, b->pgs32, b->pgs16, b->lk, (unsigned)s->pkn, b->pgas, 0, 0);
 	CUdeviceptr K = ph_xchg(P, x, s->d, s->n, b->lk, 4u * (unsigned)s->pkn, 4u * (unsigned)s->pk0, 4 * 10240);
 	ph_rms(P, OP_RMS2560, K, w->ple_norm_key, b->kn, eps, 4);
+	prog_nobar(P);   /* the key norm and query norm write separate buffers */
 	ph_rms(P, OP_RMS2560, b->S, w->ple_norm_query, b->qn, eps, 4);
+	prog_nobar(P);   /* PLE value reads pg; the following exchange still synchronizes its writes */
 	ph_bf16(P, OP_BF16K2560, w->ple_value, b->pg, b->lv, (unsigned)s->yn, 0);
 	CUdeviceptr V = ph_xchg(P, x, s->d, s->n, b->lv, 4u * (unsigned)s->yn, 4u * (unsigned)s->y0, 4 * 2560);
 	p = prog_add(P, OP_PLEGATE, 4);

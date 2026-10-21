@@ -9,7 +9,21 @@ static void build(prog_t *p,unsigned off) {
     ph_actq(p,OP_ACTQ256,0x4000+off*0x100,0x5000+off*0x100,0x6000+off*0x100,0x7000+off*0x100,0x8000+off*0x100,256,4);
     p->xj=2;
 }
+static int test_ple_rms_barriers(void) {
+    prog_t p; split_t s; xchg_t x={0}; dn_weights_t w={0}; dn_bufs_t b={0};
+    prog_init(&p); split_of(&s,0,6,1); unsetenv("PROG_NONOBAR");
+    prog_ple_prefix(&p,&s,&x,&w,&b,0,1e-5f);
+    int i;
+    for(i=0;i+2<p.n;i++)
+        if(p.p[i].w[0]==OP_RMS2560 && p.p[i+1].w[0]==OP_RMS2560 && p.p[i+2].w[0]==OP_BF16K2560) break;
+    CHECK(i+2<p.n);
+    CHECK(p.p[i].w[30]&4u); CHECK(p.p[i+1].w[30]&4u);
+    CHECK(!(p.p[i+2].w[30]&4u));
+    prog_free(&p);
+    return 0;
+}
 int main(void) {
+    CHECK(!test_ple_rms_barriers());
     prog_t a,b,out; prog_init(&a);prog_init(&b);prog_init(&out);
     CHECK(!a.token_offset); build(&a,0);build(&b,1);
     const int tw=2+(0x160-0x140)/4;
