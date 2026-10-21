@@ -80,21 +80,6 @@ static const tensor_spec INDEX_K_NORM = {
     "\"shape\":[128]", "\"data_offsets\":[1706664960,1706665216]",
     UINT64_C(1706664960), 128u, 1u
 };
-static const tensor_spec INDEX_QK = {
-    "model.language_model.layers.3.self_attn.indexer.index_qk_proj.weight",
-    "\"shape\":[640,2560]", "\"data_offsets\":[1703388160,1706664960]",
-    UINT64_C(1703388160), 640u, 2560u
-};
-static const tensor_spec INDEX_Q_NORM = {
-    "model.language_model.layers.3.self_attn.indexer.q_layernorm.weight",
-    "\"shape\":[128]", "\"data_offsets\":[1706665216,1706665472]",
-    UINT64_C(1706665216), 128u, 1u
-};
-static const tensor_spec INDEX_K_NORM = {
-    "model.language_model.layers.3.self_attn.indexer.k_layernorm.weight",
-    "\"shape\":[128]", "\"data_offsets\":[1706664960,1706665216]",
-    UINT64_C(1706664960), 128u, 1u
-};
 
 static void fail(const char *message)
 {
@@ -200,14 +185,6 @@ static void load_index_norm(const unsigned char *data, uint64_t offset, float *o
     }
 }
 
-static void load_index_norm(const unsigned char *data, uint64_t offset, float *output)
-{
-    const unsigned char *weights = data + offset;
-    for (size_t i = 0; i < INDEX_DIM; ++i) {
-        output[i] = bf16_to_float(weights + i * 2u);
-        if (!isfinite(output[i])) fail("non-finite BF16 indexer norm weight");
-    }
-}
 
 static void write_bytes(const char *directory, const char *leaf,
                         const void *data, size_t bytes)
