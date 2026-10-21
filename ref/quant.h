@@ -112,6 +112,7 @@ void gemv_iq4_xs_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, con
  * 16 B nibbles (element 2i low / 2i+1 high) for Q4_0, Q5_0, IQ4_NL or 32 B int8 for
  * Q8_0][Q5_0 only: 20 x 4 B high-bit words, bit e = element e]. */
 int b32_tile_stride(uint32_t type, int K);
+/* Q8 scales occupy round_up(2*(K/32),16) bytes; K=640 retains its 48-byte ABI. */
 int repack_b32(uint32_t type, const uint8_t *src, int rows, int K, uint8_t *dst);
 /* element value of the tile (for checks): d * (q - 8 | q - 16 | q | kvalues[q]) */
 float b32_tile_value(uint32_t type, const uint8_t *tile, int K, int r, int e);

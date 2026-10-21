@@ -7,8 +7,8 @@
 #include <string.h>
 #include <limits.h>
 
-void prog_init(prog_t *P) { P->cap = 64; P->n = 0; P->xj = 0; P->loop = 0; P->token_offset = 0; P->pending_wait = 0; P->stop[0] = P->stop[1] = 0xffffffffu; P->end = 0; P->samp_k = 0; P->samp_topp = 1.0f; P->samp_invT = 1.0f; P->p = malloc(sizeof(phase_t) * P->cap); }
-void prog_free(prog_t *P) { free(P->p); P->p = NULL; P->n = P->cap = 0; }
+void prog_init(prog_t *P) { P->cap = 64; P->n = 0; P->xj = 0; P->loop = 0; P->token_offset = 0; P->pending_wait = 0; P->stop[0] = P->stop[1] = 0xffffffffu; P->end = 0; P->samp_k = 0; P->samp_topp = 1.0f; P->samp_invT = 1.0f; P->xr = NULL; P->nxr = P->xrcap = 0; P->p = malloc(sizeof(phase_t) * P->cap); }
+void prog_free(prog_t *P) { free(P->p); free(P->xr); P->xr = NULL; P->nxr = P->xrcap = 0; P->p = NULL; P->n = P->cap = 0; }
 int prog_pair(prog_t *out, const prog_t *a, const prog_t *b) {
     /* Validate before changing out. Parameters name separate activations and
        consecutive causal positions; logical exchanges are published once. */
@@ -88,7 +88,15 @@ phase_t *prog_add(prog_t *P, int op, unsigned units) {
 	phase_t *p = &P->p[P->n++];
 	memset(p, 0, sizeof *p);
 	p->w[0] = (uint32_t)op; p->w[1] = units;
-	if (P->pending_wait) { p->w[30] |= 2; P->pending_wait = 0; }   /* wait for the exchange before running */
+	if (P->pending_wait) {
+		p->w[30] |= 2; P->pending_wait = 0;
+		/* The consumer waits for every sender CTA, including this die. That
+		 * wait subsumes the producer's local grid barrier. Mark only a send
+		 * with an actual following consumer; terminal padding stays fenced. */
+		if (P->n > 1 && (P->p[P->n - 2].w[30] & 1u) &&
+		    getenv("FLASH_FAST_EXCHANGE") && atoi(getenv("FLASH_FAST_EXCHANGE")))
+			P->p[P->n - 2].w[30] |= 64u;
+	}
 	return p;
 }
 /* the phase just added needs no grid barrier after it: the next phase neither reads what it
@@ -317,9 +325,18 @@ static void ph_moe_half(prog_t *P, const split_t *s, const xchg_t *x, const dn_w
 	ph_bf16(P, OP_BF16K2560, w->ffn_gate_inp_x, Z, b->r, 513, 0);
 	ph_router(P, b->r, b->r + 512 * 4, b->idx, b->w, b->s);
 	ph_moesel(P, b->idx, b->w, w->emap, b->lidx, b->lw, b->ne, b->part);
-	ph_q2(P, OP_Q2MOEGN, w->ffn_gate_exps, b->zq, b->zs32, b->g, 640, b->lidx, b->zas, 0, b->ne);
-	prog_nobar(P);   /* expert gate / up and shared gate / up: four GEMVs of z into disjoint rows */
-	ph_q2(P, OP_Q2MOEGN, w->ffn_up_exps, b->zq, b->zs32, b->gu, 640, b->lidx, b->zas, 0, b->ne);
+	int fused_moe = getenv("FLASH_FUSED_MOE") && atoi(getenv("FLASH_FUSED_MOE"));
+	ph_q2(P, OP_Q2MOEGN, w->ffn_gate_exps, b->zq, b->zs32, b->g, 640, b->lidx, b->zas, fused_moe ? b->gu : 0, b->ne);
+	if (fused_moe) {
+		phase_t *p = &P->p[P->n - 1];
+		p->w[30] |= 32u;
+		ph_ptr(p, 0x188, w->ffn_up_exps);
+		ph_ptr(p, 0x190, b->hq); ph_ptr(p, 0x198, b->hs32);
+		ph_ptr(p, 0x1a0, b->hs16); ph_ptr(p, 0x1a8, b->has);
+	} else {
+		prog_nobar(P);   /* independent gate / up GEMVs */
+		ph_q2(P, OP_Q2MOEGN, w->ffn_up_exps, b->zq, b->zs32, b->gu, 640, b->lidx, b->zas, 0, b->ne);
+	}
 	if (s->shexp) {
 		prog_nobar(P);
 		ph_gemv_any(P, w->ffn_gate_shexp_type, 2560, w->ffn_gate_shexp, b->zq, b->zs32, b->zs16, b->g + 6400 * 4, 640, b->zas, 0, 0);
@@ -327,7 +344,9 @@ static void ph_moe_half(prog_t *P, const split_t *s, const xchg_t *x, const dn_w
 		ph_gemv_any(P, w->ffn_up_shexp_type, 2560, w->ffn_up_shexp, b->zq, b->zs32, b->zs16, b->gu + 6400 * 4, 640, b->zas, 0, 0);
 		if (getenv("PROG_DUP")) ph_gemv_any(P, w->ffn_up_shexp_type, 2560, w->ffn_up_shexp, b->zq, b->zs32, b->zs16, b->gu + 6400 * 4, 640, b->zas, 0, 0);
 	}
-	ph_ffnact(P, b->g, b->gu, b->hq, b->hs32, b->hs16, b->has, 640, s->shexp ? 11 : 10);
+	if (!fused_moe) ph_ffnact(P, b->g, b->gu, b->hq, b->hs32, b->hs16, b->has, 640, s->shexp ? 11 : 10);
+	else if (s->shexp) ph_ffnact(P, b->g + 25600, b->gu + 25600, b->hq + 12800,
+	                           b->hs32 + 800, b->hs16 + 1600, b->has + 800, 640, 1);
 	ph_q2(P, OP_Q2MOEDN, w->ffn_down_exps, b->hq, b->hs32, b->part, 2560, b->lidx, b->has, b->lw, b->ne);
 	if (s->shexp) ph_gemv_any(P, w->ffn_down_shexp_type, 640, w->ffn_down_shexp, b->hq + 10 * 640 * 2, b->hs32 + 10 * 20 * 4, b->hs16 + 10 * 40 * 4, b->part, 2560, b->has + 10 * 20 * 4, 1, b->s);
 	CUdeviceptr PARTS = ph_xchg(P, x, s->d, s->n, b->part, 2560 * 4, 2560u * 4u * (unsigned)s->d, 2560u * 4u * (unsigned)s->n);
@@ -346,6 +365,14 @@ static void ph_attn_kvi(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, CU
 	prog_nobar(P);
 	ph_bf16(P, OP_BF16K2560, w->indexer_x, Z, b->iqk, 640, 0);   /* iq (512) ++ ik (128) */
 }
+static void checkpoint_copy(prog_t *p,unsigned opcode,CUdeviceptr source,CUdeviceptr destination,size_t bytes) {
+    if(!destination)return;
+    if(!opcode || !source || !bytes || (bytes&15u) || bytes/16>UINT32_MAX) {
+        fprintf(stderr,"prog: invalid state checkpoint copy\n");exit(1);
+    }
+    phase_t *a=prog_add(p,(int)opcode,(unsigned)((bytes+4095)/4096));
+    ph_ptr(a,0x140,source);ph_ptr(a,0x148,destination);ph_u32(a,0x150,(unsigned)(bytes/16));
+}
 static void ph_attn_qsa(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps, CUdeviceptr Z, CUdeviceptr QG) {
 	if (!QG) {
 		ph_gemv_any(P, w->attn_q_type, 2560, w->attn_q, b->zq, b->zs32, b->zs16, b->qg, 12288, b->zas, 0, 0);
@@ -353,6 +380,11 @@ static void ph_attn_qsa(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, un
 		ph_attn_kvi(P, w, b, Z);
 		QG = b->qg;
 	}
+	prog_attn_qsa_projected(P, w, b, t, eps, QG);
+}
+
+void prog_attn_qsa_projected(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b,
+                             unsigned t, float eps, CUdeviceptr QG) {
 	phase_t *p = prog_add(P, OP_ATTNQKQ, 26);
 	ph_ptr(p, 0x140, QG); ph_ptr(p, 0x148, b->k); ph_ptr(p, 0x150, b->v); ph_ptr(p, 0x158, w->attn_q_norm); ph_ptr(p, 0x160, w->attn_k_norm);
 	ph_ptr(p, 0x168, b->rope_cs); ph_ptr(p, 0x170, b->rope_sn); ph_ptr(p, 0x178, b->qo); ph_ptr(p, 0x180, b->kq); ph_ptr(p, 0x188, b->vq);
@@ -375,6 +407,7 @@ static void ph_attn_qsa(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, un
 	ph_ptr(p, 0x140, b->qo); ph_ptr(p, 0x148, b->kc); ph_ptr(p, 0x150, b->vc); ph_ptr(p, 0x158, b->pm); ph_ptr(p, 0x160, b->pd); ph_ptr(p, 0x168, b->po); ph_tokv(P, p, 0x170, 1, t + 1); ph_u32(p, 0x174, b->nblk);
 	p = prog_add(P, OP_ATTNMERGE, 24);
 	ph_ptr(p, 0x140, b->pm); ph_ptr(p, 0x148, b->pd); ph_ptr(p, 0x150, b->po); ph_ptr(p, 0x158, QG); ph_ptr(p, 0x160, b->aout);
+    checkpoint_copy(P,b->checkpoint_copy_op,b->ring,b->ring_checkpoint,2048);
 }
 
 /* attention proper on die 0 (v1): q/k/v GEMVs, per-head norm + RoPE + cache append,
@@ -438,6 +471,11 @@ void prog_head(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t 
 	/* the read gate without an inject: 320 down rows, nothing copied behind t */
 	CUdeviceptr DOWN = ph_bf16rx(P, x, w->output_hc_down, b->S, w->output_hc_norm, b->xh, eps, (unsigned)s->hdn, 4u * (unsigned)s->hd0);
 	CUdeviceptr Z = ph_hcup(P, x, w->output_hc_up, DOWN, b->lup, cols, b->xh + 4u * 32u * (unsigned)s->cb0, b->t, 320, 4u * 32u * (unsigned)s->cb0);
+	prog_logits(P, s, x, w, b, Z, t, nprompt);
+}
+
+void prog_logits(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w,
+                 const dn_bufs_t *b, CUdeviceptr Z, unsigned t, unsigned nprompt) {
 	ph_actq(P, OP_ACTQ256, Z, b->zq, b->zs32, b->zs16, b->zas, 256, 10);
 	ph_gemv_any(P, GG_Q5_K, 2560, w->output, b->zq, b->zs32, b->zs16, b->hlo, (unsigned)s->on, b->zas, 0, 0);
 	phase_t *p;
@@ -476,6 +514,7 @@ void prog_ple_prefix(prog_t *P, const split_t *s, const xchg_t *x, const dn_weig
 	ph_rms(P, OP_RMS2560, b->pG, w->ple_norm_conv, b->px, eps, 4);
 	p = prog_add(P, OP_PLECONV, 10);
 	ph_ptr(p, 0x140, b->px); ph_ptr(p, 0x148, b->ple_state); ph_ptr(p, 0x150, w->ple_conv1d); ph_ptr(p, 0x158, b->pG); ph_ptr(p, 0x160, b->S); ph_tokv(P, p, 0x168, 0, t);
+    checkpoint_copy(P,b->checkpoint_copy_op,b->ple_state,b->ple_checkpoint,4u*10u*10240u);
 }
 
 void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps) {
@@ -489,7 +528,9 @@ void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_
 	prog_nobar(P);   /* qkv, gate and the alpha/beta rows all read z only */
 	ph_bf16(P, OP_BF16BIAS, w->ssm_ab, Z, b->la, 2u * (unsigned)s->hn, w->ssm_ab_bias);
 	ph_conv1d(P, b->lqkv, b->conv_state, w->ssm_conv1d, b->lu, t, nloc);
+    checkpoint_copy(P,b->checkpoint_copy_op,b->conv_state,b->conv_checkpoint,4u*4u*nloc);
 	ph_dnstep(P, b->dn_state, b->lu, b->lu + 512u * (unsigned)s->nk, b->lu + 1024u * (unsigned)s->nk, b->la, b->la + 4u * (unsigned)s->hn, w->ssm_a, b->lo, eps, (unsigned)s->h0, (unsigned)s->klo, (unsigned)s->hn);
+    if(b->dn_checkpoint)ph_ptr(&P->p[P->n-1],0x198,b->dn_checkpoint);
 	CUdeviceptr ON = ph_dnnormx(P, x, b->lo, w->ssm_norm, b->lgate, eps, (unsigned)s->hn, 4u * 128u * (unsigned)s->h0);
 	ph_actq(P, OP_ACTQ256, ON, b->oq, b->os32, b->os16, b->oas, 256, 24);
 	ph_gemv_any(P, w->ssm_out_type, 6144, w->ssm_out, b->oq, b->os32, b->os16, b->ly, (unsigned)s->yn, b->oas, 0, 0);

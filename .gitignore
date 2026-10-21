@@ -18,9 +18,26 @@ kern/*_test
 kern/ple_read_bench
 kern/ple_read_audit
 kern/hold
+kern/hold_cache
 kern/flashcore
 kern/flashd
 kern/flashvis
 vision-artifacts/
 
 kern/ple_ram
+kern/decode_fuse
+kern/die_fused.sass
+kern/resident_decode_bench
+kern/mtp_q8_gen
+kern/phase_schedule_patch
+kern/mtp_q8_*.sass
+/kern/chunk/build/
+kern/die_chunk.sass
+kern/chunk_ops.h
+kern/die_exact.sass
+kern/die_verify.sass
+kern/exact_ops.h
+/kern/mtp/build/
+kern/die_mtp.sass
+kern/die_collective.sass
+kern/mtp_ops.h

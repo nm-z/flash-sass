@@ -1,0 +1,12 @@
+.version 7.4
+.target sm_52
+.address_size 64
+.visible .entry mtp_q8(
+    .param .u64 W, .param .u64 X, .param .u64 Y,
+    .param .u32 rows, .param .u32 xstride, .param .u64 indices)
+.reqntid 256, 1, 1
+{
+    .reg .u32 r;
+    mov.u32 r, %tid.x;
+    ret;
+}

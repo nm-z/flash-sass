@@ -1,0 +1,11 @@
+STAGE := /home/nate/work/flash-140-1200
+DB := $(STAGE)/gpuq.sqlite3
+COMPONENT_JOB := 6be1fc97-0cfc-4136-b2a9-d87242a2b8e0
+RESTORE_LIB := /home/nate/codex/flash-astra-build-20261018/qsplit-release/kern/libengine.so
+RESTORE_CUBIN := /home/nate/codex/flash-astra-build-20261018/iq4-bias/kern/die.cubin
+KERNEL := $(STAGE)/kern/die_chunk-coherent-v1.cubin
+
+.PHONY: ab
+ab:
+	gpuq --db $(DB) query "SELECT status,exit_code FROM jobs WHERE id='$(COMPONENT_JOB)'" | jq -e '.[0].status == "succeeded" and .[0].exit_code == 0'
+	env BENCH_NATIVE_CHUNK=128 BENCH_PROMPT_COPIES=1 BENCH_COLLECT_MISMATCHES=1 BENCH_VERIFY_STREAM=1 $(STAGE)/kern/resident_decode_bench-v7 --resident /tmp/flash.sock $(STAGE)/kern/libengine_chunk-v4.so $(KERNEL) $(KERNEL) $(RESTORE_LIB) $(RESTORE_CUBIN)

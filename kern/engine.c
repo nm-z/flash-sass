@@ -74,12 +74,9 @@ static CUdeviceptr dalloc(size_t bytes) {
 }
 /* Clone an activation allocation's shape, leaving the new position zero-filled.
  * Cached weights, positional KV, recurrent state and token arrays are shared. */
-static CUdeviceptr scratch_like(CUdeviceptr p) {
-	if (!p) return 0;
-	for (int i = 0; i < nallocs; i++) if (allocs[i].p == p) {
-		size_t bytes = allocs[i].bytes;
-		return dalloc(bytes);
-	}
+static size_t scratch_bytes(CUdeviceptr p,CUcontext context) {
+    if (!p) return 0;
+	for (int i = 0; i < nallocs; i++) if (allocs[i].p == p && allocs[i].c == context) return allocs[i].bytes;
 	fprintf(stderr, "engine: unregistered paired activation allocation\n");
 	longjmp(init_jb, 1);
 }
@@ -90,6 +87,36 @@ static CUmodule mod[MAXD]; static CUfunction fn[MAXD];
 static uint32_t *s_ids, *s_toks;   /* engine_session scratch (positions each) */
 static dn_weights_t (*dw)[NB]; static dn_bufs_t db[MAXD]; static xchg_t xc[MAXD]; static split_t (*sp)[NB];
 static dn_bufs_t db_pair[MAXD]; static xchg_t xc_pair[MAXD];
+#ifdef FLASH_EXACT_BATCH
+#include "exactbatch/prog_group.h"
+static unsigned exact_width;
+static dn_bufs_t db_exact[7][MAXD];
+static xchg_t xc_exact[7][MAXD];
+static CUmodule exact_mod[MAXD];
+static CUfunction exact_fn[MAXD];
+static char exact_cubin_path[512];
+static uint64_t exact_cubin_fnv;
+static int last_batched_positions;
+#endif
+#ifdef FLASH_VERIFY_NATIVE
+static unsigned verify_accept;
+static CUdeviceptr verify_dn[7][MAXD][NB],verify_conv[7][MAXD][NB],verify_ring[7][MAXD][NB],verify_ple[7][MAXD];
+#endif
+static unsigned program_capacity = 4096, active_program_positions = 1;
+static unsigned allocated_positions = 1;
+static prog_t *request_programs[4];
+static void release_request_programs(void) {
+	for (unsigned i = 0; i < 4; i++) if (request_programs[i]) {
+		for (int d = 0; d < MAXD; d++) prog_free(&request_programs[i][d]);
+		free(request_programs[i]); request_programs[i] = NULL;
+	}
+}
+static prog_t *new_request_programs(void) {
+	for (unsigned i = 0; i < 4; i++) if (!request_programs[i]) {
+		return request_programs[i] = calloc(MAXD, sizeof(prog_t));
+	}
+	return NULL;
+}
 static int two_position, prefill_chunk;       /* opt-in causal forward over two known prompt ids */
 static int last_positions, last_paired_positions, last_prefill_chunks;
 static CUdeviceptr dPROG[MAXD], dCTL[MAXD], (*dst_dn)[NB], (*dst_conv)[NB], (*dst_kq)[NB], (*dst_ks)[NB], (*dst_vq)[NB], (*dst_vs)[NB], (*dst_pkt)[NB], (*dst_ring)[NB], (*snap_ring)[NB], dst_ple[MAXD];
@@ -111,6 +138,16 @@ static unsigned attn_q_split_mode;
 #define FLASH_REV "unknown"             /* the Makefile passes the commit (and -dirty) this library was built from */
 #endif
 static char cubin_path[512]; static uint64_t cubin_fnv;   /* identity of the loaded kernel image: FNV-1a 64 of the cubin file */
+static void check_fused_moe_module(CUmodule module) {
+	CUfunction marker;
+#ifdef FLASH_CHUNK_NATIVE
+	const char *chunk_image = getenv("FLASH_CHUNK_CUBIN");
+	if (getenv("FLASH_CHUNK_PREFILL") && atoi(getenv("FLASH_CHUNK_PREFILL")) > 0 && !(chunk_image && *chunk_image))
+		CK(cuModuleGetFunction(&marker, module, "flash_chunk_abi_v2"));
+#endif
+	if (!getenv("FLASH_FUSED_MOE") || !atoi(getenv("FLASH_FUSED_MOE"))) return;
+	CK(cuModuleGetFunction(&marker, module, "flash_fused_moe_abi_v1"));
+}
 static uint64_t file_fnv(const char *path) {
 	FILE *f = fopen(path, "rb"); if (!f) return 0;
 	uint64_t h = 0xcbf29ce484222325ull; unsigned char buf[65536]; size_t k;
@@ -295,10 +332,25 @@ static void kv_stats(FILE *out) {
 	fflush(out);
 }
 
-static void alloc_second_position(int d) {
-	dn_bufs_t *b = &db_pair[d];
+static dn_bufs_t *position_buf(int d, unsigned position) {
+#ifdef FLASH_EXACT_BATCH
+	if (position && exact_width) return &db_exact[position - 1][d];
+#endif
+	return position ? &db_pair[d] : &db[d];
+}
+static xchg_t *position_xchg(int d, unsigned position) {
+#ifdef FLASH_EXACT_BATCH
+	if (position && exact_width) return &xc_exact[position - 1][d];
+#endif
+	return position ? &xc_pair[d] : &xc[d];
+}
+static void clone_position(int d, dn_bufs_t *b, xchg_t *x, int alias_attention) {
 	*b = db[d];
-#define SECOND(field) b->field = scratch_like(b->field)
+	*x = xc[d];
+	struct { CUdeviceptr *destination; size_t bytes; } fields[96];
+	unsigned count=0;size_t total=0;
+#define CLONE(ptr) do { if(*(ptr)) { size_t bytes=scratch_bytes(*(ptr),ctx[d]); fields[count].destination=(ptr);fields[count++].bytes=bytes; total=((total+255)&~(size_t)255)+bytes+256; } } while(0)
+#define SECOND(field) CLONE(&b->field)
 	SECOND(S); SECOND(S2); SECOND(xh); SECOND(t);
 	SECOND(ldown); SECOND(lup); SECOND(lz);
 	SECOND(zq); SECOND(zs32); SECOND(zs16); SECOND(zas);
@@ -307,19 +359,35 @@ static void alloc_second_position(int d) {
 	SECOND(r); SECOND(idx); SECOND(w); SECOND(s);
 	SECOND(lidx); SECOND(lw); SECOND(ne); SECOND(part);
 	SECOND(g); SECOND(gu); SECOND(hq); SECOND(hs32); SECOND(hs16); SECOND(has); SECOND(out);
-	SECOND(qg); SECOND(k); SECOND(v); SECOND(qo); SECOND(kc); SECOND(vc);
-	SECOND(pm); SECOND(pd); SECOND(po); SECOND(aout);
+	SECOND(qg); SECOND(k); SECOND(v); SECOND(qo); SECOND(aout);
+	/* Wide headless programs serialize gather/partial/merge per position. */
+	if (!alias_attention) { SECOND(kc); SECOND(vc); SECOND(pm); SECOND(pd); SECOND(po); }
 	SECOND(iqk); SECOND(iq); SECOND(sc); SECOND(hst); SECOND(sel);
 	SECOND(pg); SECOND(pgq); SECOND(pgs32); SECOND(pgs16); SECOND(pgas);
 	SECOND(lk); SECOND(kn); SECOND(qn); SECOND(lv); SECOND(pG); SECOND(pgates); SECOND(px); SECOND(prows);
-	SECOND(hlo); SECOND(amo); SECOND(apart); SECOND(acnt); SECOND(tokout);
-	SECOND(tkout); SECOND(tkpart); SECOND(tkcnt);
+	int copy_head = !alias_attention;
+#ifdef FLASH_VERIFY_NATIVE
+	copy_head |= verify_accept != 0;
+#endif
+	if (copy_head) {
+		SECOND(hlo); SECOND(amo); SECOND(apart); SECOND(acnt); SECOND(tokout);
+		SECOND(tkout); SECOND(tkpart); SECOND(tkcnt);
+	}
 #undef SECOND
+	CLONE(&x->inbox);CLONE(&x->xtab);
+#undef CLONE
+	/* One arena avoids allocator granularity costs for dozens of small buffers
+	 * per position. Keep zeroed guard space between logical activations. */
+	CUdeviceptr arena=dalloc(total);size_t offset=0;
+	for(unsigned i=0;i<count;i++) {
+		offset=(offset+255)&~(size_t)255;*fields[i].destination=arena+offset;
+		offset+=fields[i].bytes+256;
+	}
 	/* Each position has both exchange slots, while a logical paired exchange has
 	 * one generation and one publication to the common peer flags. */
-	xc_pair[d] = xc[d];
-	xc_pair[d].inbox = dalloc(2 * XSLOT);
-	xc_pair[d].xtab = dalloc(128);
+}
+static void alloc_position(int d, unsigned position) {
+	clone_position(d, position_buf(d, position), position_xchg(d, position), position >= 2);
 }
 
 static void state_copy(int to_snapshot) {
@@ -341,10 +409,10 @@ static void state_copy(int to_snapshot) {
  * activations, router selections, compact gathers and exchange inboxes. */
 static void model_program(prog_t *P, int d, unsigned position, unsigned nprompt,
                           const uint32_t stop[2], int samp_k, float topp, float invT,
-                          int include_head) {
-	const dn_bufs_t *b = position ? &db_pair[d] : &db[d];
-	const xchg_t *x = position ? &xc_pair[d] : &xc[d];
-	if (!position) for (int p = 0; p < 4096; p++) prof_layer[d][p] = -1;
+                          int include_head, int checkpoints) {
+	const dn_bufs_t *b = position_buf(d, position);
+	const xchg_t *x = position_xchg(d, position);
+	if (!position && !checkpoints) for (int p = 0; p < 4096; p++) prof_layer[d][p] = -1;
 	prog_init(P); P->loop = 1; P->token_offset = position;
 	P->stop[0] = stop[0]; P->stop[1] = stop[1]; P->end = dCTL[d] + 0x14;
 	P->samp_k = samp_k; P->samp_topp = topp; P->samp_invT = invT;
@@ -354,27 +422,81 @@ static void model_program(prog_t *P, int d, unsigned position, unsigned nprompt,
 		dn_bufs_t layer = *b;
 		layer.dn_state = dst_dn[d][bb]; layer.conv_state = dst_conv[d][bb]; layer.ple_state = dst_ple[d];
 		qsa_bind_layer(&layer, nblk_qsa, dst_kq[d][bb], dst_ks[d][bb], dst_vq[d][bb], dst_vs[d][bb], dst_pkt[d][bb], dst_ring[d][bb]);
+#ifdef FLASH_VERIFY_NATIVE
+		if (checkpoints) {
+			layer.checkpoint_copy_op = OP_VERIFY_COPY;
+			layer.dn_checkpoint = position < 7 ? verify_dn[position][d][bb] : 0;
+			layer.conv_checkpoint = position < 7 ? verify_conv[position][d][bb] : layer.conv_state;
+			layer.ple_checkpoint = position < 7 ? verify_ple[position][d] : layer.ple_state;
+			layer.ring_checkpoint = position < 7 ? verify_ring[position][d][bb] : layer.ring;
+		}
+#endif
 		layer.kv_rawmax = kv_trace && layer.kq
 		    ? d_kv_rawmax[d] + (size_t)((bb - 3) / 4) * (size_t)MAXT * KV_TRACE_WORDS * sizeof(uint32_t) : 0;
 		if (bb == 1) prog_ple_prefix(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
 		if (BLK_IS_ATTN(bb)) prog_attn_block(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
 		else prog_deltanet_block(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
-		if (!position) for (int p = phase_first; p < P->n && p < 4096; p++) prof_layer[d][p] = bb;
+		if (!position && !checkpoints) for (int p = phase_first; p < P->n && p < 4096; p++) prof_layer[d][p] = bb;
 	}
 	if (include_head) prog_head(P, &sp[d][0], x, &dw[d][0], b, eps, 0, nprompt);
 	prog_token_end(P, x, d, nd, b->S);
 }
 
+#ifdef FLASH_EXACT_BATCH
+static int fuse_exact_program(prog_t *out,int d);
+static int build_exact_program(prog_t *out, const prog_t *first, int d,
+                               unsigned nprompt, const uint32_t stop[2],
+                               int samp_k, float topp, float invT) {
+	prog_t extra[7] = {0};
+	const prog_t *positions[8] = { first };
+	for (unsigned p = 1; p < exact_width; p++) {
+		model_program(&extra[p - 1], d, p, nprompt, stop, samp_k, topp, invT, 0, 0);
+		positions[p] = &extra[p - 1];
+	}
+	/* Preserve position order through PLE and shared attention scratch. */
+	prog_init(out);
+	int rc = prog_group_aliased(out, positions, exact_width);
+	for (unsigned p = 1; p < exact_width; p++) prog_free(&extra[p - 1]);
+	if (rc) return rc;
+	(void)fuse_exact_program(out,d);
+	return 0;
+}
+static int fuse_exact_program(prog_t *out,int d) {
+	int bf = prog_batch_fuse_bf16(out, 1);
+	/* Production-input component timings show the routed B8 scan and large
+	 * K2560 rows regress. Keep those grouped scalar operations until replaced. */
+	int q2 = prog_batch_fuse_q2(out, 0);
+	for (int i = 0; i < out->n; i += (int)phase_descriptors(out->p + i)) {
+		phase_t *a = out->p + i;
+		if (a->w[0] == OP_Q2K25608 && a->w[10] > 1024) {
+			a->w[0] = OP_Q2K2560; a->w[30] &= ~PHASE_FUSED_FLAG; q2--;
+		}
+	}
+	int dn = prog_batch_fuse_dnstep(out), act = prog_batch_fuse_actq(out);
+	fprintf(stderr, "engine: exact batch die=%d width=%u descriptors=%d bf16=%d q2=%d dn=%d act=%d\n",
+	        d, exact_width, out->n, bf, q2, dn, act);
+	return dn;
+}
+#endif
+
 static void upload_programs(const prog_t *P, unsigned *nph, unsigned positions) {
+	active_program_positions = positions;
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
 		nph[d] = (unsigned)P[d].n;
-		if (nph[d] > 4096) { fprintf(stderr, "program too long (%u descriptors)\n", nph[d]); longjmp(run_jb, 1); }
+		if (nph[d] > program_capacity) { fprintf(stderr, "program too long (%u descriptors)\n", nph[d]); longjmp(run_jb, 1); }
         prof_desc[d] = nph[d]; prof_nph[d] = 0;
-        for (int i = 0; i < P[d].n; i += (P[d].p[i].w[30] & 8u) ? 2 : 1) {
+        for (int i = 0; i < P[d].n; ) {
+#ifdef FLASH_EXACT_BATCH
+            unsigned step = phase_descriptors(&P[d].p[i]);
+#else
+            unsigned step = (P[d].p[i].w[30] & 8u) ? 2u : 1u;
+#endif
+            if (step > (unsigned)(P[d].n - i) || prof_nph[d] >= 4096) { fprintf(stderr,"invalid logical phase span\n");longjmp(run_jb,1); }
             int j = prof_nph[d]++;
             prof_index[d][j] = (uint32_t)i; prof_op[d][j] = P[d].p[i].w[0];
             prof_units[d][j] = P[d].p[i].w[1]; prof_flags[d][j] = P[d].p[i].w[30];
+            i += (int)step;
         }
 		CK(cuMemcpyHtoD(dPROG[d], P[d].p, sizeof(phase_t) * (size_t)P[d].n));
 		CK(cuMemsetD32(dCTL[d] + 0x24, positions, 1));
@@ -384,7 +506,7 @@ static void upload_programs(const prog_t *P, unsigned *nph, unsigned positions) 
 /* ---- persistent launches bounded by snapshots and known-prefix tails ---- */
 typedef struct {
 	int T, nprompt, ntok, sent, count, ended, aborted;
-	int paired_positions, prefill_chunks;
+	int paired_positions, prefill_chunks, batched_positions;
 	double tfirst;
 	const engine_cb *cb;
 } runctx;
@@ -456,7 +578,11 @@ static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 		CK(cuCtxSetCurrent(ctx[d]));
 		CK(cuMemsetD32(dCTL[d]+0x2c,0,1));
 		unsigned ntok = (unsigned)ntok_; void *params[] = { &dPROG[d], (void *)&nph[d], &dCTL[d], &ntok };
-		CK(cuLaunchKernel(fn[d], 16, 1, 1, 256, 1, 1, 0, 0, params, NULL));
+		CUfunction kernel = fn[d];
+#ifdef FLASH_EXACT_BATCH
+		if (exact_width && active_program_positions > 1) kernel = exact_fn[d];
+#endif
+		CK(cuLaunchKernel(kernel, 16, 1, 1, 256, 1, 1, 0, 0, params, NULL));
 	}
 	/* poll ctl[2] on die 0 through a non-blocking stream (the kernel runs on the legacy one), then the new tokens;
 	   once the kernel is done, one last read */
@@ -506,13 +632,34 @@ static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 		uint32_t limit=0;CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoH(&limit,dCTL[d]+0x2c,4));
 		if (limit) {fprintf(stderr,"engine: die %d reached the kernel time limit\n",d);longjmp(run_jb,1);}
 	}
+	if (getenv("FLASH_VERIFY_STREAM") && atoi(getenv("FLASH_VERIFY_STREAM")) && r->count >= r->nprompt) {
+		unsigned start = (unsigned)r->nprompt - 1, n = (unsigned)r->count - start, bad = 0;
+		uint32_t *final = malloc((size_t)n * 4);
+		if (!final) { fprintf(stderr,"engine: stream verification allocation failed\n"); longjmp(run_jb,1); }
+		CK(cuCtxSetCurrent(ctx[0])); CK(cuMemcpyDtoH(final, db[0].toks + 4ull * start, (size_t)n * 4));
+		for (unsigned i = 0; i < n; i++) if (final[i] != h_toks[start+i]) {
+			if (bad < 3) fprintf(stderr,"engine: stream mismatch position=%u delivered=%u final_device=%u\n",start+i,h_toks[start+i],final[i]);
+			bad++;
+		}
+		fprintf(stderr,"engine: streamcheck positions=%u mismatches=%u\n",n,bad);
+		free(final);
+	}
 }
 
 /* The paired program may only consume known ids. Stop before the last prompt
  * position, whose head produces the first generated token. */
-static void run_known_prefix(runctx *r, const prog_t *single, const prog_t *pair, int end) {
+static void run_known_prefix(runctx *r, const prog_t *single, const prog_t *pair, const prog_t *batch, int end) {
 	unsigned nph[MAXD];
 	if (r->aborted || r->count >= end) return;
+#ifdef FLASH_EXACT_BATCH
+	if (batch && exact_width && end - r->count >= (int)exact_width) {
+		int start = r->count, limit = end - (end - start) % (int)exact_width;
+		upload_programs(batch, nph, exact_width); run_segment(r, nph, limit);
+		r->batched_positions += r->count - start;
+	}
+#else
+	(void)batch;
+#endif
 	if (pair && end - r->count >= 2) {
 		int start = r->count;
 		int paired_end = end - ((end - r->count) & 1);
@@ -530,8 +677,8 @@ static void run_known_prefix(runctx *r, const prog_t *single, const prog_t *pair
  * Poll at every host boundary, even if a fast GPU launch finished before its
  * in-flight poll ran. No generated ID is admitted to this program. */
 static void run_prefill_prefix(runctx *r, const prog_t *full,
-                               const prog_t *prefix, const prog_t *pair, int end) {
-    if (!prefix) { run_known_prefix(r, full, pair, end); return; }
+                               const prog_t *prefix, const prog_t *pair, const prog_t *batch, int end) {
+    if (!prefix) { run_known_prefix(r, full, pair, NULL, end); return; }
     while (!r->aborted && r->count < end) {
         if (r->cb && r->cb->alive && r->cb->alive(r->cb->arg)) {
             r->aborted = 1;
@@ -543,7 +690,7 @@ static void run_prefill_prefix(runctx *r, const prog_t *full,
             fprintf(stderr, "engine: invalid prefill boundary at %d of %d\n", r->count, end);
             longjmp(run_jb, 1);
         }
-        run_known_prefix(r, prefix, pair, chunk.end);
+        run_known_prefix(r, prefix, pair, batch, chunk.end);
         if (r->count == chunk.end) r->prefill_chunks++;
         else if (!r->aborted) {
             fprintf(stderr, "engine: prefill stopped at %d before %d\n", r->count, chunk.end);
@@ -612,6 +759,16 @@ static int prepare_images(const engine_img *imgs, int nimg, int nprompt, int T) 
 	return bad ? -3 : 0;
 }
 
+#ifdef FLASH_CHUNK_NATIVE
+#include "chunk/engine_chunk.c"
+#endif
+#ifdef FLASH_MTP_NATIVE
+#include "mtp/engine_mtp.c"
+#endif
+#ifdef FLASH_VERIFY_NATIVE
+#include "exactbatch/engine_verify.c"
+#endif
+
 int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], const sampling *sm, int snap_at, const engine_img *imgs, int nimg, const engine_cb *cb, run_stats *st) {
     kv_trace_complete = 0;
     timing_request_start=now();timing_run_start=0;
@@ -629,6 +786,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	/* a CUDA error from here on unwinds to this point: the contexts are no longer usable, the core rebuilds them (return -2) */
 	in_run = 1;
     if(setjmp(run_jb)) {
+        release_request_programs();
         trace_status="device_error";in_run=0;snap_s=0;last_timing.error_code=-2;last_timing.counts_final=0;
         if(timing_run_start)last_timing.run_ms=(now()-timing_run_start)*1e3;
         else last_timing.build_ms=(now()-timing_request_start)*1e3;
@@ -643,6 +801,20 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	int irc = prepare_images(imgs, nimg, nprompt, T);
 	if (irc) { trace_status="image_error";in_run = 0; last_timing.error_code=irc;last_timing.build_ms=(now()-timing_request_start)*1e3;return irc; }
 	int samp_k = (sm && sm->temp > 0.f && sm->top_k >= 2) ? (sm->top_k > 32 ? 32 : sm->top_k) : 0;
+#ifdef FLASH_VERIFY_NATIVE
+	if (verify_accept && (nimg || snap_at || snap_s || samp_k || nprompt < 25)) {
+		fprintf(stderr,"engine: rollback audit requires at least25 prompt tokens, greedy text, no snapshots\n");
+		trace_status="argument_error";in_run=0;last_timing.error_code=-1;
+		last_timing.build_ms=(now()-timing_request_start)*1e3;return -1;
+	}
+#endif
+#ifdef FLASH_MTP_NATIVE
+	if (mtp_enabled && (nimg || snap_at || snap_s || samp_k)) {
+		fprintf(stderr,"engine: MTP shadow mode supports greedy text without snapshots\n");
+		trace_status="argument_error";in_run=0;last_timing.error_code=-1;
+		last_timing.build_ms=(now()-timing_request_start)*1e3;return -1;
+	}
+#endif
 	float samp_topp = sm && sm->topp > 0.f ? sm->topp : 1.0f, samp_invT = samp_k ? 1.0f / sm->temp : 1.0f;
 	if (samp_k) {   /* u[t] in [0, 1): splitmix64 over the seed, 24 bits each */
 		uint64_t z0 = sm->seed;
@@ -660,14 +832,37 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	if (ple_disk) {   /* a new id for this response (never 0); the rows of the positions it runs are staged from `resume` on */
 		ple_rid = ple_rid + 1 ? ple_rid + 1 : 1; ple_start = ple_next = resume; ple_short_reads = 0;
 		memcpy(ple_seq, ids, 4 * (size_t)nprompt);
-		for (int d = 0; d < nd; d++) { db[d].ple_rid = ple_rid; db_pair[d].ple_rid = ple_rid; }
+		for (int d = 0; d < nd; d++) for (unsigned p = 0; p < allocated_positions; p++) position_buf(d, p)->ple_rid = ple_rid;
 	}
-	prog_t *P = calloc(MAXD, sizeof *P); unsigned nph[MAXD];
-	prog_t *pair = two_position ? calloc(MAXD, sizeof *pair) : NULL;
+	prog_t *P = new_request_programs(); unsigned nph[MAXD];
+	prog_t *pair = two_position ? new_request_programs() : NULL;
     /* gen 0 is the existing teacher-forced, full-head diagnostic interface. */
-    prog_t *prefix = prefill_chunk && n_new > 0 ? calloc(MAXD, sizeof *prefix) : NULL;
-    if (!P || (two_position && !pair) || (prefill_chunk && n_new > 0 && !prefix)) {
-        free(P); free(pair); free(prefix);
+    int need_prefix = prefill_chunk && (n_new > 0 || (cb && cb->token));
+#ifdef FLASH_VERIFY_NATIVE
+    if (verify_accept) need_prefix = 1;
+#endif
+#ifdef FLASH_MTP_NATIVE
+    if (mtp_enabled && (n_new > 0 || (cb && cb->token))) need_prefix = 1;
+#endif
+    prog_t *prefix = need_prefix ? new_request_programs() : NULL;
+    prog_t *batch = NULL;
+    int need_batch = 0;
+#ifdef FLASH_EXACT_BATCH
+    need_batch = exact_width && need_prefix && !nimg && nprompt - 1 - resume >= (int)exact_width;
+#ifdef FLASH_VERIFY_NATIVE
+    if (verify_accept) need_batch = 0;
+#endif
+    if (need_batch) batch = new_request_programs();
+    last_batched_positions = 0;
+#endif
+    prog_t *verification = NULL;int need_verification=0;
+#ifdef FLASH_VERIFY_NATIVE
+    need_verification=verify_accept!=0;
+    if(need_verification)verification=new_request_programs();
+    verify_executed=verify_replayed=verify_changed=0;
+#endif
+    if (!P || (two_position && !pair) || (need_prefix && !prefix) || (need_batch && !batch) || (need_verification && !verification)) {
+        release_request_programs();
         /* No snapshot has been restored or current-request counter observed.
            Allocation failure must not retain the provisional success record. */
         last_timing.error_code = -4;
@@ -695,17 +890,28 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 		CK(cuMemcpyHtoD(db[d].ids, h_ids, 4 * ((size_t)T + 2)));
 		CK(cuMemsetD8(db[d].toks, 0, 4 * ((size_t)T + 2)));
 		if (samp_k) CK(cuMemcpyHtoD(db[d].rnd, h_rnd, 4 * ((size_t)T + 2)));
-		model_program(&P[d], d, 0, (unsigned)nprompt, stop, samp_k, samp_topp, samp_invT, 1);
-		if (prefix) model_program(&prefix[d], d, 0, (unsigned)nprompt, stop, samp_k, samp_topp, samp_invT, 0);
+		model_program(&P[d], d, 0, (unsigned)nprompt, stop, samp_k, samp_topp, samp_invT, 1, 0);
+		if (prefix) model_program(&prefix[d], d, 0, (unsigned)nprompt, stop, samp_k, samp_topp, samp_invT, 0, 0);
 		if (pair) {
 			prog_t second;
-			model_program(&second, d, 1, (unsigned)nprompt, stop, samp_k, samp_topp, samp_invT, prefix == NULL);
+			model_program(&second, d, 1, (unsigned)nprompt, stop, samp_k, samp_topp, samp_invT, prefix == NULL, 0);
 			prog_init(&pair[d]);
 			if (prog_pair(&pair[d], prefix ? &prefix[d] : &P[d], &second)) { fprintf(stderr, "engine: incompatible position programs on die %d\n", d); prog_free(&second); longjmp(run_jb, 1); }
-			/* alloc_second_position gives every position disjoint scratch/inboxes. */
+			/* The two positions have disjoint scratch/inboxes. */
 			prog_pair_fuse_bf16(&pair[d], 1);
 			prog_free(&second);
 		}
+#ifdef FLASH_EXACT_BATCH
+		if (batch && build_exact_program(&batch[d], &prefix[d], d, (unsigned)nprompt, stop, samp_k, samp_topp, samp_invT)) {
+			fprintf(stderr, "engine: incompatible exact position programs on die %d\n", d);
+			longjmp(run_jb, 1);
+		}
+#endif
+#ifdef FLASH_VERIFY_NATIVE
+		if (verification && build_verify_program(&verification[d],d)) {
+			fprintf(stderr,"engine: incompatible verifier program die%d\n",d);longjmp(run_jb,1);
+		}
+#endif
 	}
 	upload_programs(P, nph, 1);
     /* Paired known-prefix passes end before trace_first. Generated positions
@@ -729,19 +935,41 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	 * in-flight pump fills it. Reading the entire lookahead before launch
 	 * serialized cold prompt I/O with all of the prompt's compute. */
 	ple_pump(&r, 1);
+#ifdef FLASH_VERIFY_NATIVE
+	if (verification) verify_audit_run(&r,P,prefix,verification);
+	else {
+#endif
+#ifdef FLASH_MTP_NATIVE
+	if (mtp_enabled) mtp_audit_run(&r,P,prefix);
+	else {
+#endif
+#ifdef FLASH_CHUNK_NATIVE
+	/* Chunk attention caches are local to this fresh prompt. Snapshot resumes
+	 * retain the scalar path until their prefix caches are imported as well. */
+	if (!resume && !snap_at && (n_new > 0 || (cb && cb->token))) chunk_prefill(&r, nprompt - 1, nimg);
+#endif
 	if (snap_at) {   /* run the prompt up to the snapshot position, copy the states, go on */
-		run_prefill_prefix(&r, P, prefix, pair, snap_at);
+		run_prefill_prefix(&r, P, prefix, pair, batch, snap_at);
 		if (!r.aborted && r.count == snap_at) {
 			state_copy(1);
 			memcpy(snap_ids, ids, 4 * (size_t)snap_at); snap_s = snap_at;
 		}
 	}
-	if ((pair || prefix) && !r.aborted) run_prefill_prefix(&r, P, prefix, pair, nprompt - 1);
+	if ((pair || prefix) && !r.aborted) run_prefill_prefix(&r, P, prefix, pair, batch, nprompt - 1);
 	if (!r.aborted) { upload_programs(P, nph, 1); run_segment(&r, nph, T); }
+#ifdef FLASH_MTP_NATIVE
+	}
+#endif
+#ifdef FLASH_VERIFY_NATIVE
+	}
+#endif
 	double t2 = now();
 	trace_completed = (unsigned)r.count; trace_aborted = r.aborted != 0; trace_ended = r.ended != 0;
 	trace_status = r.aborted ? "aborted" : "completed";
 	last_positions = r.count; last_paired_positions = r.paired_positions; last_prefill_chunks = r.prefill_chunks;
+#ifdef FLASH_EXACT_BATCH
+	last_batched_positions = r.batched_positions;
+#endif
 	kv_trace_complete = !r.aborted && r.count == T && resume == 0;
 	if (trace_n && r.count > (int)trace_first) { trace_valid = (unsigned)r.count - trace_first; if (trace_valid > trace_n) trace_valid = trace_n; }
 	if (st) { st->ntok = r.count; st->ended = r.ended; st->nph = nph[0]; st->resumed = resume; st->snapshot = snap_at; st->build_ms = (t1 - timing_request_start) * 1e3; st->run_ms = (t2 - t1) * 1e3; st->first_ms = r.tfirst ? (r.tfirst - t1) * 1e3 : 0; st->paired_positions = r.paired_positions; st->prefill_chunks = r.prefill_chunks; }
@@ -765,10 +993,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
         flash_timing_device(&last_timing,begin[0],first[7],last[7],trace_valid);
     }
 
-	for (int d = 0; d < nd; d++) prog_free(&P[d]);
-	if (pair) { for (int d = 0; d < nd; d++) prog_free(&pair[d]); free(pair); }
-	if (prefix) { for (int d = 0; d < nd; d++) prog_free(&prefix[d]); free(prefix); }
-	free(P);
+	release_request_programs();
 	in_run = 0;
 	return 0;
 }
@@ -809,9 +1034,12 @@ static void split_attention_queries(void) {
 				fprintf(stderr, "engine: unsupported resident Q tensor at block %d\n", bb); longjmp(init_jb, 1);
 			}
 			for (int d = 0; d < nd; d++) if (participants & (1u << d)) {
-				/* Multiples of 32 rows preserve vector/tile alignment. */
-				first[d][bb] = (384u * rank / workers) * 32;
-				rows[d][bb] = (384u * (rank + 1) / workers) * 32 - first[d][bb]; rank++;
+				unsigned quantum = 32;
+#ifdef FLASH_CHUNK_NATIVE
+				if (chunk_enabled()) quantum = 512; /* complete Q/gate heads */
+#endif
+				first[d][bb] = ((12288u / quantum) * rank / workers) * quantum;
+				rows[d][bb] = ((12288u / quantum) * (rank + 1) / workers) * quantum - first[d][bb]; rank++;
 				if (d != owner) needed[d] += ((size_t)rows[d][bb] * q->stride + 65535) & ~(size_t)65535;
 			}
 		}
@@ -868,6 +1096,37 @@ int engine_init(core_t *c) {
 		in_init = 0; return -1;
 	}
 	two_position = pair_env ? !strcmp(pair_env, "1") : prefill_chunk > 1;
+#ifdef FLASH_VERIFY_NATIVE
+	const char *verify_env=getenv("FLASH_VERIFY_AUDIT");verify_accept=0;
+	if(verify_env && strcmp(verify_env,"0")) {
+		char *end;unsigned long n=strtoul(verify_env,&end,10);
+		if(!*verify_env || *end || n<1 || n>8) { fprintf(stderr,"engine: FLASH_VERIFY_AUDIT must be0..8\n");longjmp(init_jb,1); }
+		verify_accept=(unsigned)n;
+	}
+#endif
+	program_capacity = 4096;
+	allocated_positions = two_position ? 2 : 1;
+#ifdef FLASH_EXACT_BATCH
+	const char *batch_env = getenv("FLASH_PHASE_BATCH");
+	if (batch_env && strcmp(batch_env, "0") && strcmp(batch_env, "8")) {
+		fprintf(stderr, "engine: FLASH_PHASE_BATCH must be 0 or 8\n");
+		longjmp(init_jb, 1);
+	}
+	exact_width = batch_env ? (unsigned)atoi(batch_env) : 0;
+	exact_cubin_path[0] = 0; exact_cubin_fnv = 0;
+	if (exact_width) {
+		const char *image = getenv("FLASH_EXACT_CUBIN");
+		if (!image || !*image || strlen(image) >= sizeof exact_cubin_path ||
+		    (getenv("FLASH_FUSED_MOE") && atoi(getenv("FLASH_FUSED_MOE"))) ||
+		    (getenv("FLASH_FAST_EXCHANGE") && atoi(getenv("FLASH_FAST_EXCHANGE")))) {
+			fprintf(stderr, "engine: exact batch requires FLASH_EXACT_CUBIN and ordinary exchange flags\n");
+			longjmp(init_jb, 1);
+		}
+		strcpy(exact_cubin_path, image); exact_cubin_fnv = file_fnv(image);
+		program_capacity *= exact_width; allocated_positions = exact_width;
+		if (!prefill_chunk) prefill_chunk = 64;
+	}
+#endif
 	if (ple_read_parse_readers(getenv("FLASH_PLE_READERS"), &ple_readers)) {
 		fprintf(stderr, "engine: FLASH_PLE_READERS must be a decimal integer from 1 to 16\n");
 		longjmp(init_jb, 1);
@@ -896,7 +1155,15 @@ int engine_init(core_t *c) {
 	memset(has_attn, 0, sizeof has_attn);
 	for (int bb = 3; bb < nlayers_run; bb += 4) if (attn_die_of(bb) >= 0 && attn_die_of(bb) < nd) has_attn[attn_die_of(bb)] = 1;
 	double ts0 = now();
-	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuModuleLoad(&mod[d], cubin)); CK(cuModuleGetFunction(&fn[d], mod[d], "die")); }
+	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuModuleLoad(&mod[d], cubin)); check_fused_moe_module(mod[d]); CK(cuModuleGetFunction(&fn[d], mod[d], "die")); }
+#ifdef FLASH_EXACT_BATCH
+	if (exact_width) for (int d = 0; d < nd; d++) {
+		CUfunction marker;
+		CK(cuCtxSetCurrent(ctx[d])); CK(cuModuleLoad(&exact_mod[d], exact_cubin_path));
+		CK(cuModuleGetFunction(&marker, exact_mod[d], "flash_exact_batch_abi_v1"));
+		CK(cuModuleGetFunction(&exact_fn[d], exact_mod[d], "die"));
+	}
+#endif
 	snprintf(cubin_path, sizeof cubin_path, "%s", cubin); cubin_fnv = file_fnv(cubin);
 	/* ---- the PLE constants block (plerows layout); the table itself is the core's ---- */
 	uint8_t ppc[160]; uint64_t pmult[3]; uint32_t pabsent = PLE_EOS_TOKEN, pend = PLE_EOS_TOKEN;   /* qwen4exp.ple.eos_token_id for both the fill and the reset */
@@ -909,7 +1176,13 @@ int engine_init(core_t *c) {
 	const char *ple_file=getenv("FLASH_PLE_FILE");
 	if (ple_disk && ple_file && *ple_file) {
 		struct stat source;
-		if (fstat(ple_fd,&source)) {perror("PLE source stat");longjmp(init_jb,1);}
+		/* The core already opened this immutable checkpoint. Its cached size
+		 * lets a validated local copy remain usable while NFS is unavailable. */
+		struct statx sx;
+		if (!statx(ple_fd,"",AT_EMPTY_PATH|AT_STATX_DONT_SYNC,STATX_SIZE|STATX_TYPE,&sx) &&
+		    (sx.stx_mask & (STATX_SIZE|STATX_TYPE)) == (STATX_SIZE|STATX_TYPE)) {
+			memset(&source,0,sizeof source); source.st_size=(off_t)sx.stx_size; source.st_mode=sx.stx_mode;
+		} else if (fstat(ple_fd,&source)) {perror("PLE source stat");longjmp(init_jb,1);}
 		ple_source_bytes=source.st_size;
 		if (strlen(ple_file)>=sizeof ple_cache_path) {fprintf(stderr,"PLE cache path too long\n");longjmp(init_jb,1);}
 		strcpy(ple_cache_path,ple_file);
@@ -1044,9 +1317,10 @@ int engine_init(core_t *c) {
 		uint32_t fl[96]; for (int e = 0; e < 96; e++) fl[e] = e / 16 < nd ? 0u : 0xffffffffu;
 		CK(cuMemcpyHtoD(x->flags, fl, sizeof fl));
 		if (trace_n) dTRACE[d] = dalloc((size_t)trace_n * 4096 * 64);
-		dPROG[d] = dalloc(128 * 4096); dCTL[d] = dalloc(0x100 + 4 * 4096);
+		dPROG[d] = dalloc(sizeof(phase_t) * program_capacity);
+		dCTL[d] = dalloc(0x100 + 4 * (program_capacity < 8192 ? 8192 : program_capacity));
 		x->xgen = dCTL[d] + 0x20;
-		if (two_position) alloc_second_position(d);
+		for (unsigned p = 1; p < allocated_positions; p++) alloc_position(d, p);
 	}
 	embed_die = -1; for (int d = 0; d < nd; d++) if (dw[d][0].token_embd) { embed_die = d; break; }
 	if (embed_die < 0) { fprintf(stderr, "engine: no die holds token_embd\n"); if (in_init) longjmp(init_jb, 1); exit(1); }
@@ -1061,20 +1335,39 @@ int engine_init(core_t *c) {
 		uint64_t mf = (uint64_t)xc[d].flags; memcpy(&hdr[28], &mf, 8);
 		CK(cuMemsetD8(dCTL[d], 0, 0x100)); CK(cuMemcpyHtoD(dCTL[d], hdr, sizeof hdr));
 	}
-	if (two_position) {
-		for (int d = 0; d < 6; d++) tab[d] = (uint64_t)xc_pair[d < nd ? d : 0].inbox;
-		for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(xc_pair[d].xtab, tab, sizeof tab)); }
+	for (unsigned p = 1; p < allocated_positions; p++) {
+		for (int d = 0; d < 6; d++) tab[d] = (uint64_t)position_xchg(d < nd ? d : 0, p)->inbox;
+		for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(position_xchg(d, p)->xtab, tab, sizeof tab)); }
 	}
 	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuStreamCreate(&pollst[d], CU_STREAM_NON_BLOCKING)); }
 	CK(cuCtxSetCurrent(ctx[0]));
 	CK(cuMemAllocHost((void **)&h_ids, 4 * ((size_t)MAXT + 2))); CK(cuMemAllocHost((void **)&h_toks, 4 * ((size_t)MAXT + 2))); CK(cuMemAllocHost((void **)&h_rnd, 4 * ((size_t)MAXT + 2)));
 	CK(cuMemAllocHost((void **)&h_tok, 64)); CK(cuMemHostAlloc((void **)&h_abort, 64, CU_MEMHOSTALLOC_PORTABLE));
+#ifdef FLASH_CHUNK_NATIVE
+	chunk_init();
+#endif
+#ifdef FLASH_VERIFY_NATIVE
+	verify_init();
+#endif
+#ifdef FLASH_MTP_NATIVE
+	mtp_init();
+#endif
 	in_init = 0;
 	fprintf(stderr, "engine: %d dies, %d/%d blocks, up to %d positions, %.0f MB of buffers per die, ready in %.1f s\n", nd, nlayers_run, NB, MAXT, (double)alloc_bytes / nd / 1e6, now() - ts0);
 	return 0;
 }
 
 void engine_fini(void) {
+	release_request_programs();
+#ifdef FLASH_VERIFY_NATIVE
+	verify_fini();
+#endif
+#ifdef FLASH_MTP_NATIVE
+	mtp_fini();
+#endif
+#ifdef FLASH_CHUNK_NATIVE
+	chunk_fini();
+#endif
 	ple_read_pool_destroy(&ple_reads);
 	ple_cache_path[0]=0;ple_cache_active=0;
 	if (!core) return;
@@ -1094,6 +1387,13 @@ void engine_fini(void) {
 	for (int i = 0; i < nallocs; i++) { cuCtxSetCurrent(allocs[i].c); cuMemFree(allocs[i].p); }
 	free(allocs); allocs = NULL; nallocs = capallocs = 0; alloc_bytes = 0;
 	for (int d = 0; d < nd; d++) { if (mod[d]) { cuCtxSetCurrent(ctx[d]); cuModuleUnload(mod[d]); mod[d] = 0; } }
+#ifdef FLASH_EXACT_BATCH
+	for (int d = 0; d < nd; d++) if (exact_mod[d]) {
+		cuCtxSetCurrent(ctx[d]); cuModuleUnload(exact_mod[d]); exact_mod[d] = 0; exact_fn[d] = 0;
+	}
+	memset(db_exact, 0, sizeof db_exact); memset(xc_exact, 0, sizeof xc_exact);
+	exact_width = 0; exact_cubin_fnv = 0; exact_cubin_path[0] = 0;
+#endif
 	cuCtxSetCurrent(ctx[0]);
 	free(snap_dn); free(snap_conv); free(snap_ids); snap_dn = snap_conv = NULL; snap_ids = NULL; snap_s = 0; memset(snap_ple, 0, sizeof snap_ple);
 	free(dw); free(sp); free(dst_dn); free(dst_conv); free(dst_kq); free(dst_ks); free(dst_vq); free(dst_vs); free(dst_pkt); free(dst_ring); free(snap_ring); dw = NULL; sp = NULL; dst_dn = dst_conv = dst_kq = dst_ks = dst_vq = dst_vs = dst_pkt = dst_ring = snap_ring = NULL;
@@ -1102,6 +1402,7 @@ void engine_fini(void) {
 	memset(db, 0, sizeof db); memset(xc, 0, sizeof xc); memset(dPROG, 0, sizeof dPROG); memset(dCTL, 0, sizeof dCTL); memset(dst_ple, 0, sizeof dst_ple);
 	memset(dTRACE, 0, sizeof dTRACE); trace_n = trace_valid = 0;
 	memset(db_pair, 0, sizeof db_pair); memset(xc_pair, 0, sizeof xc_pair); two_position = prefill_chunk = 0;
+	allocated_positions = active_program_positions = 1; program_capacity = 4096;
 	core = NULL;
 }
 
@@ -1194,7 +1495,9 @@ int engine_session(FILE *in, FILE *out) {
 		if (!strncmp(p, "hosttrace", 9)) { host_trace_dump(out); fflush(out); continue; }
 		if (!strncmp(p, "prof", 4)) {   /* where the last token of the last response spent its time, from the phase timestamps CTA 0 writes at each phase end */
 			int pd = atoi(p + 4); if (pd < 0 || pd >= nd) pd = 0; const int nph_ = prof_nph[pd]; const uint32_t *pop = prof_op[pd];   /* prof [die] */
-			uint32_t *ts = malloc(4 * 4096); CK(cuCtxSetCurrent(ctx[pd])); CK(cuMemcpyDtoH(ts, dCTL[pd] + 0x100, 4 * (size_t)prof_desc[pd]));
+			uint32_t *ts = malloc(4 * (size_t)(prof_desc[pd] ? prof_desc[pd] : 1));
+			if (!ts) { fprintf(out, "error: profile allocation\n"); fflush(out); continue; }
+			CK(cuCtxSetCurrent(ctx[pd])); CK(cuMemcpyDtoH(ts, dCTL[pd] + 0x100, 4 * (size_t)prof_desc[pd]));
 			/* Secondary descriptors have no timestamp; compact logical phase ends. */
 			for (int i = 0; i < nph_; i++) ts[i] = ts[prof_index[pd][i]];
 			static double tot[OP_COUNT]; static int cnt[OP_COUNT]; memset(tot, 0, sizeof tot); memset(cnt, 0, sizeof cnt);
@@ -1211,18 +1514,55 @@ int engine_session(FILE *in, FILE *out) {
 			fprintf(out, "\n"); fflush(out); free(ts); continue;
 		}
 		if (!strncmp(p, "statehash", 9)) { state_hashes(out); continue; }
+#ifdef FLASH_VERIFY_NATIVE
+		if (!strncmp(p,"verifystats",11)) { verify_stats(out);continue; }
+		if (!strncmp(p,"verifykeep ",11)) {
+			char *end;unsigned long kept=strtoul(p+11,&end,10);
+			if(!verify_accept || end==p+11 || strspn(end," \t\r\n")!=strlen(end) || kept<1 || kept>8)
+				fprintf(out,"error: verifykeep requires an enabled verifier and a value1..8\n");
+			else { verify_accept=(unsigned)kept;fprintf(out,"ok: verifykeep %u\n",verify_accept); }
+			fflush(out);continue;
+		}
+#endif
+#ifdef FLASH_MTP_NATIVE
+		if (!strncmp(p,"mtpstats",8)) { mtp_stats(out);continue; }
+#endif
+#ifdef FLASH_EXACT_BATCH
+		if (!strncmp(p, "batchstats", 10)) {
+			fprintf(out, "batchstats width=%u positions=%d paired=%d total=%d\n", exact_width, last_batched_positions, last_paired_positions, last_positions);
+			fflush(out); continue;
+		}
+#endif
+#ifdef FLASH_CHUNK_NATIVE
+		if (!strncmp(p, "chunkhash", 9)) {
+			fprintf(out, "%s\n", chunk_hash_report[0] ? chunk_hash_report : "chunkhash unavailable"); fflush(out); continue;
+		}
+#endif
 		if (!strncmp(p, "kvstats", 7)) { kv_stats(out); continue; }
 		if (!strncmp(p, "info", 4)) { fprintf(out, "info %d %u\n", MAXT, img_rows_max); fflush(out); continue; }
 		if (!strncmp(p, "config", 6)) {   /* what this engine is: the identity to attach to a measurement (the commit it was built from, where the KV lives, the layers it runs, the kernel image) */
 			char ad[64] = ""; for (int d = 0; d < nd; d++) if (has_attn[d]) { char one[8]; snprintf(one, sizeof one, "%s%d", ad[0] ? "," : "", d); strncat(ad, one, sizeof ad - strlen(ad) - 1); }
 			const char *sh = getenv("SPLIT_SHARES"), *am = getenv("ATTN_MAP");
-			fprintf(out, "config rev=%s kv_host=%d kv_trace=%d ple_disk=%d ple_readers=%u ple_file=%s ple_cache=%s maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u rope_owner=%d trace_tokens=%u two_position=%d prefill_chunk=%d attn_q_split=%u attn_q_mask=%x cubin=%s cubin_fnv=%016llx\n",
+			fprintf(out, "config rev=%s kv_host=%d kv_trace=%d ple_disk=%d ple_readers=%u ple_file=%s ple_cache=%s maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u rope_owner=%d trace_tokens=%u two_position=%d prefill_chunk=%d attn_q_split=%u attn_q_mask=%x cubin=%s cubin_fnv=%016llx",
 			        FLASH_REV, kv_host, kv_trace, ple_disk, ple_disk ? ple_readers : 0, ple_cache_active ? ple_cache_path : "core", ple_cache_path[0] ? ple_cache_path : "core", MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, rope_owner, trace_n, two_position, prefill_chunk, attn_q_split_mode, attn_q_split_mask, cubin_path, (unsigned long long)cubin_fnv);
+#ifdef FLASH_CHUNK_NATIVE
+			fprintf(out, " native_chunk=%u chunk_maxt=%u prefix_hash=%d chunk_cubin=%s chunk_cubin_fnv=%016llx", chunk_ldx, chunk_ldx ? chunk_maxt : 0, getenv("FLASH_PREFIX_HASH") && atoi(getenv("FLASH_PREFIX_HASH")), chunk_ldx ? (chunk_mod[0] ? chunk_cubin_path : cubin_path) : "none", (unsigned long long)(chunk_ldx ? (chunk_mod[0] ? chunk_cubin_fnv : cubin_fnv) : 0));
+#endif
+#ifdef FLASH_EXACT_BATCH
+			fprintf(out, " phase_batch=%u exact_cubin=%s exact_cubin_fnv=%016llx", exact_width, exact_width ? exact_cubin_path : "none", (unsigned long long)exact_cubin_fnv);
+#endif
+#ifdef FLASH_MTP_NATIVE
+			fprintf(out," mtp_shadow=%d mtp_model=%s mtp_cubin=%s mtp_cubin_fnv=%016llx",mtp_enabled,mtp_enabled?mtp_model_path:"none",mtp_enabled?mtp_cubin_path:"none",(unsigned long long)mtp_cubin_fnv);
+#endif
+#ifdef FLASH_VERIFY_NATIVE
+			fprintf(out," verify_audit=%u verify_state_check=%d",verify_accept,verify_check_state);
+#endif
+			fputc('\n', out);
 			fflush(out); continue;
 		}
 		if (!strncmp(p, "cubin", 5)) {
 			char path[512]; if (sscanf(p + 5, "%511s", path) != 1) { fprintf(out, "error: cubin <path>\n"); fflush(out); continue; }
-			for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuModuleUnload(mod[d])); CK(cuModuleLoad(&mod[d], path)); CK(cuModuleGetFunction(&fn[d], mod[d], "die")); }
+			for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuModuleUnload(mod[d])); CK(cuModuleLoad(&mod[d], path)); check_fused_moe_module(mod[d]); CK(cuModuleGetFunction(&fn[d], mod[d], "die")); }
 			snprintf(cubin_path, sizeof cubin_path, "%s", path); cubin_fnv = file_fnv(path);
 			fprintf(out, "ok: %s\n", path); fflush(out); continue;
 		}

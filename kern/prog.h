@@ -9,7 +9,7 @@
 #include <stdint.h>
 
 typedef struct { uint32_t w[32]; } phase_t;
-typedef struct { phase_t *p; int n, cap; int xj; int loop; unsigned token_offset; int pending_wait; uint32_t stop[2]; CUdeviceptr end; int samp_k; float samp_topp, samp_invT; } prog_t;   /* stop[2], end: a generated token equal to stop[0] or stop[1] sets *end (ctl[5]) = 0x80000000 and the kernel exits after that token (0xffffffff: none) */
+typedef struct { phase_t *p; int n, cap; int xj; int loop; unsigned token_offset; int pending_wait; uint32_t stop[2]; CUdeviceptr end; int samp_k; float samp_topp, samp_invT; unsigned *xr; int nxr, xrcap; } prog_t;   /* stop[2], end: a generated token equal to stop[0] or stop[1] sets *end (ctl[5]) = 0x80000000 and the kernel exits after that token (0xffffffff: none) */
    /* pending_wait: the next phase consumes an exchange */   /* xj: exchanges issued (slot parity); loop: token-relative
  * parameters are marked for the kernel's token loop instead of taking the position literally */
 
@@ -58,6 +58,8 @@ typedef struct {
 	CUdeviceptr flags;    /* u32[6]: last exchange completed by each die (absent dies 0xffffffff) */
 	CUdeviceptr xgen;     /* u32: this die's exchange counter */
 	CUdeviceptr xtab;     /* u64[12]: inbox base of die 0..5, flag base of die 0..5 (the same on every die) */
+	CUdeviceptr unp[2], pinbox; /* optional chunk exchange unpack buffers */
+	int xd, xnd, relay;
 } xchg_t;
 /* send this die's part (nbytes at src, at byte myoff of the slot) to every die and wait
  * for all parts: two phases; returns the slot's address in this die's inbox */
@@ -153,10 +155,15 @@ typedef struct {
 	/* Validation-only raw pre-clamp maxima: u32[position][K/V][2 heads][8 groups].
 	 * Null normally; only a QSA_KV_TRACE=1 cubin consumes this descriptor field. */
 	CUdeviceptr kv_rawmax;
+	/* Optional verifier captures. The ordinary programs leave these zero. */
+	CUdeviceptr dn_checkpoint, conv_checkpoint, ple_checkpoint, ring_checkpoint;
+	unsigned checkpoint_copy_op;
 } dn_bufs_t;
 
 void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps);
 void prog_attn_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps);
+/* Attention after Q/K/V and indexer projections have been produced. */
+void prog_attn_qsa_projected(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps, CUdeviceptr QG);
 /* the PLE prefix of block 1 (before its DeltaNet block program): S += PLE(S, n-gram rows of position t) */
 void prog_ple_prefix(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps);
 /* S = 4 lanes of token_embd[id] (every die) */
@@ -165,6 +172,8 @@ void prog_embed_bcast(prog_t *P, const xchg_t *x, int me, int ndies, int owner, 
 /* the head: output_hc read gate -> z -> output.weight rows of this die -> argmax, the dies' (idx, max) pairs
  * gathered and combined identically everywhere into tokout = {idx, max bits} */
 void prog_head(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, float eps, unsigned t, unsigned nprompt);   /* toks[t] = token; ids[t+1] = token once t + 1 >= nprompt */
+/* Existing quantized output projection and sampling, from a supplied HC result. */
+void prog_logits(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, CUdeviceptr Z, unsigned t, unsigned nprompt);
 /* attention blocks are every fourth block from 3 */
 #define QSA_NBLK 512                 /* indexer.top_k (2048) / 4 keys per block */
 #define BLK_IS_ATTN(blk) (((blk) & 3) == 3)

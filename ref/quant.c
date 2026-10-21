@@ -689,10 +689,15 @@ void gemv_iq4_xs_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, con
 /* ---- block-32 formats at K = 640 ---- */
 
 static int b32_block_bytes(uint32_t type) { return type == GG_Q8_0 ? 32 : 16; }
+/* Existing block-32 kernels use K=640 and its 48-byte prefix. The MTP Q8
+ * projections also use wider rows: reserve all scales before the byte codes. */
+static int b32_prefix_bytes(uint32_t type, int K) {
+	return type == GG_Q8_0 ? ((K / 16 + 15) & ~15) : 48;
+}
 
 int b32_tile_stride(uint32_t type, int K) {
 	int B = K / 32;
-	return 48 + B * b32_block_bytes(type) + (type == GG_Q5_0 ? 4 * B : 0);
+	return b32_prefix_bytes(type, K) + B * b32_block_bytes(type) + (type == GG_Q5_0 ? 4 * B : 0);
 }
 
 /* integer code of element e (0..31) of a raw block: the value before the offset */
@@ -714,14 +719,14 @@ static int b32_code(uint32_t type, const uint8_t *blk, int e) {
 static int b32_offset(uint32_t type) { return type == GG_Q4_0 ? 8 : type == GG_Q5_0 ? 16 : 0; }
 
 int repack_b32(uint32_t type, const uint8_t *src, int rows, int K, uint8_t *dst) {
-	int B = K / 32, stride = b32_tile_stride(type, K), bb = b32_block_bytes(type);
+	int B = K / 32, stride = b32_tile_stride(type, K), bb = b32_block_bytes(type), prefix = b32_prefix_bytes(type, K);
 	uint32_t ge, gb;
 	gguf_block(type, &ge, &gb);
 	if (!dst) return stride;
 	for (int r = 0; r < rows; r++) {
 		const uint8_t *s = src + (size_t)r * B * gb;
-		uint8_t *pre = dst + (size_t)r * stride, *data = pre + 48, *qh = data + bb * B;
-		memset(pre, 0, 48);
+		uint8_t *pre = dst + (size_t)r * stride, *data = pre + prefix, *qh = data + bb * B;
+		memset(pre, 0, (size_t)prefix);
 		for (int b = 0; b < B; b++) {
 			const uint8_t *blk = s + gb * b;
 			memcpy(pre + 2 * b, blk, 2);
@@ -745,7 +750,7 @@ int repack_b32(uint32_t type, const uint8_t *src, int rows, int K, uint8_t *dst)
 
 static int b32_tile_code(uint32_t type, const uint8_t *pre, int K, int e) {
 	int B = K / 32, b = e >> 5, el = e & 31, bb = b32_block_bytes(type);
-	const uint8_t *data = pre + 48;
+	const uint8_t *data = pre + b32_prefix_bytes(type, K);
 	if (type == GG_Q8_0) return (int8_t)data[32 * b + el];
 	int q = (data[16 * b + (el >> 1)] >> (4 * (el & 1))) & 0xF;
 	if (type == GG_Q5_0) { uint32_t w; memcpy(&w, data + bb * B + 4 * b, 4); q |= ((w >> el) & 1) << 4; }

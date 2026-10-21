@@ -130,6 +130,9 @@ static void select_rows(const char *name, int rows, int experts, sel_t *s) {
 	if (!strcmp(name, "output_hc_up.weight")) { s->nr = 4; for (int l = 0; l < 4; l++) s->r[l] = (range_t){ 2560 * l + 32 * p->cb0, 32 * p->cbn }; return; }
 	const char *x = suffix(name);
 	if (!x) return;
+	/* The draft block's final HC read uses the ordinary output-row split. */
+	if (!strcmp(x, "nextn.hc_head_down.weight")) { s->nr = 1; s->r[0] = (range_t){ p->hd0, p->hdn }; return; }
+	if (!strcmp(x, "nextn.hc_head_up.weight")) { s->nr = 4; for (int l = 0; l < 4; l++) s->r[l] = (range_t){ 2560 * l + 32 * p->cb0, 32 * p->cbn }; return; }
 	/* the shared expert runs on one die per block */
 	if (strstr(x, "_shexp.weight") && !p->shexp) { s->nr = 1; s->r[0] = (range_t){ 0, 0 }; return; }
 	if (!strcmp(x, "hc_attn_dj.weight") || !strcmp(x, "hc_ffn_dj.weight")) { s->nr = 1; s->r[0] = (range_t){ p->dj0, p->djn }; }

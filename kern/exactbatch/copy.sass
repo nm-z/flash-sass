@@ -1,0 +1,40 @@
+# Persistent bounded copy for convolution, PLE and indexer checkpoints.
+# Descriptor: SRC at word2, DST at word4, 16-byte vector count at word6.
+<REGISTER_MAPPING>
+    16-19 : verifycopy_v<0-3>
+    20 : verifycopy_i
+    21 : verifycopy_n
+    22 : verifycopy_off
+    24,25 : verifycopy_src<0-1>
+    26,27 : verifycopy_dst<0-1>
+    28,29 : verifycopy_param_src<0-1>
+    30,31 : verifycopy_param_dst<0-1>
+</REGISTER_MAPPING>
+verifycopy_SETUP:
+--:-:-:-:6      MOV vid, cta;
+--:-:-:-:6      ISETP.GE.U32.AND P6, PT, vid, units, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P6 BRA POSITION_END;
+verifycopy_BEGIN:
+--:-:1:-:1      LDS.64 verifycopy_param_src0, [RZ+0xbf88];
+--:-:1:-:1      LDS.64 verifycopy_param_dst0, [RZ+0xbf90];
+--:-:1:-:2      LDS verifycopy_n, [RZ+0xbf98];
+01:-:-:-:6      ISCADD verifycopy_i, vid, tid, 0x8;
+--:-:-:-:6      ISETP.LT.U32.AND P0, PT, verifycopy_i, verifycopy_n, PT;
+--:-:-:-:6      SHL verifycopy_off, verifycopy_i, 0x4;
+--:-:-:-:6      IADD verifycopy_src0.CC, verifycopy_param_src0, verifycopy_off;
+--:-:-:-:6      IADD.X verifycopy_src1, verifycopy_param_src1, RZ;
+--:-:-:-:6      IADD verifycopy_dst0.CC, verifycopy_param_dst0, verifycopy_off;
+--:-:-:-:6      IADD.X verifycopy_dst1, verifycopy_param_dst1, RZ;
+--:-:2:-:2  @P0 LDG.E.CV.128 verifycopy_v0, [verifycopy_src];
+02:1:-:-:6  @P0 STG.E.128 [verifycopy_dst], verifycopy_v0;
+01:-:-:-:6      BAR.SYNC 0x0;
+--:-:-:-:6      IADD vid, vid, 0x10;
+--:-:-:-:6      ISETP.LT.U32.AND P6, PT, vid, units, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P6 BRA verifycopy_BEGIN;
+--:-:-:-:6      BRA POSITION_END;

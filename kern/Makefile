@@ -389,7 +389,7 @@ plegate: plegate.cubin plegate_test
 ple: plerows.cubin plerows_ng.cubin plerows_test plegate pleconv
 
 # ---- the persistent per-die kernel (die.pl stitches the ops together) ----
-DIE_OPS = $(filter-out die.sass die_trace%.sass semtest%.sass bartest.sass fmath.sass gridbar.sass mailbox.sass xmadbench.sass, $(wildcard *.sass)) actq.pl fmath.pl
+DIE_OPS = $(filter-out die.sass die_fused.sass die_chunk.sass die_exact.sass die_verify.sass die_mtp.sass die_collective.sass mtp_q8_%.sass die_trace%.sass semtest%.sass bartest.sass fmath.sass gridbar.sass mailbox.sass xmadbench.sass, $(wildcard *.sass)) actq.pl fmath.pl
 die.sass: die.pl trace.pl $(DIE_OPS)
 	DIE_TRACE=0 perl die.pl > $@
 
@@ -402,6 +402,39 @@ skel_die.cubin: die.ptx
 die.cubin: die.sass skel_die.cubin
 	cp skel_die.cubin $@
 	$(MAXAS) -i die.sass $@
+
+decode_fuse: decode_fuse.c
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -o $@ $<
+
+die_fused.sass: die.sass decode_fuse
+	./decode_fuse die.sass > $@.tmp
+	mv $@.tmp $@
+
+skel_die_fused.cubin: die_fused.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+die_fused.cubin: die_fused.sass skel_die_fused.cubin
+	cp skel_die_fused.cubin $@
+	$(MAXAS) -i -k die die_fused.sass $@
+
+moe_fused_test: moe_fused_test.c prog.c prog.h dieops.h ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/split.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -Wextra -o $@ moe_fused_test.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/split.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+resident_decode_bench: resident_decode_bench.c
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -o $@ $<
+
+mtp_q8_gen: mtp_q8_gen.c
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -o $@ $<
+
+mtp_q8_%.sass: mtp_q8_gen
+	./mtp_q8_gen $* > $@
+
+skel_mtp_q8.cubin: mtp_q8.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+mtp_q8_%.cubin: mtp_q8_%.sass skel_mtp_q8.cubin
+	cp skel_mtp_q8.cubin $@
+	$(MAXAS) -i -k mtp_q8 $< $@
 
 die_test: die_test.c dieops.h ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/ple.c ../ref/ple.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ die_test.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/ple.c -I../ref -I$(CUDA)/include -lcuda -lm
@@ -487,6 +520,13 @@ model_test: model_test.c prog.c prog.h holdc.c hold.h dieops.h ../ref/block.c ..
 # the persistent core and the reloadable engine library (see core.h); the library is built to a new name and moved
 # over the old one, so a running core that has the old file mapped keeps a consistent image
 ENGINE_SRC = engine.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c
+
+mtp_q8_test: mtp_q8_test.c ../ref/quant.c ../ref/gguf.c ../ref/quant.h ../ref/gguf.h
+	$(CC) -std=c11 -D_POSIX_C_SOURCE=200809L -O2 -ffp-contract=off -Wall -o $@ mtp_q8_test.c ../ref/quant.c ../ref/gguf.c -I../ref -I$(CUDA)/include -lcuda -lm
+include chunk/Makefile.inc
+include exactbatch/Makefile.inc
+include mtp/Makefile.inc
+include comm/Makefile.inc
 
 trace_session_test: trace_session_test.c $(ENGINE_SRC) prefill.h trace_host.inc timings.h engine.h core.h prog.h hold.h dieops.h ple_read_pool.h ple_read_reload.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -UNDEBUG -pthread -o $@ trace_session_test.c $(filter-out engine.c,$(ENGINE_SRC)) -I../ref -I$(CUDA)/include -lcuda -lm

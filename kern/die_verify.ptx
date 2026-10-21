@@ -1,0 +1,18 @@
+.version 7.4
+.target sm_52
+.address_size 64
+.visible .entry flash_exact_batch_abi_v1() { ret; }
+.visible .entry flash_verify_checkpoints_abi_v1() { ret; }
+.visible .entry die(.param .u64 pprog, .param .u32 nph, .param .u64 pctl, .param .u32 ntok)
+{
+    .shared .align 16 .b8 smem[49152];
+    .reg .u32 %r<2>;
+    .reg .pred %p;
+    ld.param.u32 %r0, [nph];
+    mov.u32 %r1, %tid.x;
+    bar.sync 0;
+    bar.sync 1;
+    setp.lt.u32 %p, %r1, %r0;
+    @%p ret;
+    ret;
+}
