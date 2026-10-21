@@ -654,6 +654,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	int resume = (snap_s > 0 && snap_s <= nprompt - 1 && !memcmp(ids, snap_ids, 4 * (size_t)snap_s)) ? snap_s : 0;
     int run_prefill_chunk = prefill_effective_chunk(prefill_chunk, prefill_auto,
                                                     nprompt - resume);
+    int run_pair = prefill_pair_enabled(two_position, run_prefill_chunk, n_new);
     last_timing.resumed=resume;last_timing.completed=resume;last_timing.counts_known=1;last_timing.error_code=0;
 	kv_trace_start = resume;
 	if (snap_at > nprompt - 1) snap_at = nprompt - 1;
@@ -666,10 +667,10 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 		for (int d = 0; d < nd; d++) { db[d].ple_rid = ple_rid; db_pair[d].ple_rid = ple_rid; }
 	}
 	prog_t *P = calloc(MAXD, sizeof *P); unsigned nph[MAXD];
-	prog_t *pair = two_position ? calloc(MAXD, sizeof *pair) : NULL;
+	prog_t *pair = run_pair ? calloc(MAXD, sizeof *pair) : NULL;
     /* gen 0 is the existing teacher-forced, full-head diagnostic interface. */
     prog_t *prefix = run_prefill_chunk ? calloc(MAXD, sizeof *prefix) : NULL;
-    if (!P || (two_position && !pair) || (run_prefill_chunk && !prefix)) {
+	if (!P || (run_pair && !pair) || (run_prefill_chunk && !prefix)) {
         free(P); free(pair); free(prefix);
         /* No snapshot has been restored or current-request counter observed.
            Allocation failure must not retain the provisional success record. */

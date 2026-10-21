@@ -35,6 +35,12 @@ static inline int prefill_effective_chunk(int configured, int automatic,
         ? FLASH_PREFILL_CHUNK_MAX : 0;
 }
 
+/* The fused headless pair faults for chunked prompt-only requests. */
+static inline int prefill_pair_enabled(int two_position, int chunk_size,
+                                       int n_new) {
+    return two_position && !(chunk_size > 0 && n_new == 0);
+}
+
 /* Plan [position,min(until,nprompt-1)), stopping exactly at snapshots.
  * Difference-before-addition avoids overflow near INT_MAX.
  * Return 1 for work, 0 at the boundary, -1 for invalid inputs.

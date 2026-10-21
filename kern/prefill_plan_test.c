@@ -29,6 +29,13 @@ static void selection_tests(void) {
     assert(prefill_effective_chunk(1,1,41500)==1);
     assert(prefill_effective_chunk(4096,0,41500)==4096);
 }
+static void pair_selection_tests(void) {
+    assert(!prefill_pair_enabled(0,64,0));
+    assert(!prefill_pair_enabled(1,64,0));
+    assert(prefill_pair_enabled(1,64,1));
+    assert(prefill_pair_enabled(1,0,0));
+    assert(prefill_pair_enabled(1,0,1));
+}
 static int collect(int pos,int nprompt,int until,int size,int paired,
                    int *seen,int *chunks,int cancel_after) {
     int last=pos-1;
@@ -115,7 +122,7 @@ static void long_prompt_auto_plan_test(void) {
     free(seen);
 }
 int main(void) {
-    parse_tests();selection_tests();range_tests();snapshot_cancel_tests();edge_tests();long_prompt_auto_plan_test();
-    puts("prefill planner: configuration, automatic selection, exhaustive boundaries, snapshot, cancellation, overflow PASS");
+    parse_tests();selection_tests();pair_selection_tests();range_tests();snapshot_cancel_tests();edge_tests();long_prompt_auto_plan_test();
+    puts("prefill planner: configuration, automatic selection, pair policy, exhaustive boundaries, snapshot, cancellation, overflow PASS");
     return 0;
 }
