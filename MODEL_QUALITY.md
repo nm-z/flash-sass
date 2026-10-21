@@ -364,3 +364,10 @@ PR #46 remains draft while the complete independent-comparison and held-out
 quality acceptance in issue #22 is unmet. A completed capture, successful
 replay or passing numerical profile must not set the overall issue or
 checkpoint-quality status to accepted.
+
+The October 20 continuation check merged current `master` into the PR branch
+and passed the CPU-only request-checker self-test (93 cases), syntax checks, and
+a Makefile dry run. Required build and GPU access were unavailable from this
+engi session; the current evidence and host failures are recorded in
+[`validation/issue22/review-20261020/README.md`](validation/issue22/review-20261020/README.md).
+Criteria 1–6 remain unmet, and this work does not make the PR ready for review.

@@ -1,0 +1,49 @@
+{
+  "schema": "flash-sass.issue22-continuation-status.v1",
+  "observed_local": "2026-10-20 7:01 PM PDT",
+  "source_revision": "ad2a7532c64bc22a323f1e0276518b8a7f991c4a",
+  "master_revision": "270aa639dd9dc86eb16db698e318aaa7e7d3fd2c",
+  "merge_conflicts_resolved": [
+    ".gitignore",
+    "QSA_MODEL_TEST.md",
+    "kern/Makefile",
+    "kern/check_qsa_engine_requests.pl",
+    "kern/engine.c",
+    "kern/model_test.c",
+    "kern/test_model_cli.sh"
+  ],
+  "checks": {
+    "request_checker_self_test": {
+      "result": "PASS",
+      "checks": 93,
+      "complete_synthetic_captures": 28,
+      "corrupt_synthetic_captures": 25,
+      "cpu_only": true,
+      "gpu_validation": false
+    },
+    "make_dry_run": "PASS",
+    "shell_syntax": "PASS",
+    "perl_syntax": "PASS",
+    "full_build_and_cpu_test_suite": "BLOCKED: benji SSH banner timeout; no command submitted"
+  },
+  "checkpoint_metadata": {
+    "repository": "Qwen/Qwen3.8-Flash-Next",
+    "revision": "de4b8e4d43b917e7706784d8bb445c9af86a3540",
+    "public": true,
+    "gated": false,
+    "architectures": ["Qwen4ExpForConditionalGeneration"],
+    "safetensors_shards": 131,
+    "weights_downloaded": false,
+    "weights_executed": false
+  },
+  "gpu_access": {
+    "queue_query": "BLOCKED: SSH authentication denied before gpuq",
+    "gpu_jobs_started": 0
+  },
+  "acceptance": {
+    "criteria_1_through_6": "UNMET",
+    "criterion_7_reporting": "MET",
+    "issue22_resolved": false,
+    "ready_for_review": false
+  }
+}
