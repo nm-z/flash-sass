@@ -39,23 +39,26 @@ independent; no expert-union optimization is claimed.
 
 ## Implemented chunked prefill
 
-With `FLASH_PREFILL_CHUNK` unset, requests with more than 4096 positions still
-to run after the prefix-cache resume point automatically use chunks of at most
-4096 positions. Shorter prompts keep the single-launch path. Set it to `0` to
-disable automatic chunking, or use a decimal size from `1..4096` to choose a
-chunk size explicitly; malformed or out-of-range settings fail engine
-initialization. Explicit sizes above one enable the paired pass by default. An
-explicit `FLASH_TWO_POSITION=0` selects scalar microbatches within chunks;
+`FLASH_PREFILL_CHUNK=N` bounds each host submission to at most N known prompt
+positions. `flashcore` defaults it to `64`; set `0` to disable chunking or use
+a decimal size from `1..4096`. Malformed or out-of-range settings fail engine
+initialization. For direct engine loads with the setting unset, requests with
+more than 4096 positions still to run after the prefix-cache resume point
+automatically use chunks of at most 4096; shorter requests keep the single-launch
+path. Explicit sizes above one enable the paired pass by default. An explicit
+`FLASH_TWO_POSITION=0` selects scalar microbatches within chunks;
 `FLASH_TWO_POSITION=1` retains pairing even when chunking is disabled. Automatic
-chunks keep the configured pairing setting, which remains scalar by default.
+direct-engine chunks keep the configured pairing setting, which is scalar by
+default.
 
-For requests that generate tokens, the prefix program omits the vocabulary head
-and sampler. It consumes only `[resume, nprompt-1)`, splitting chunks at exact
-snapshot boundaries. Within each chunk, pairs run first and an odd tail runs B1.
-The final prompt position and generated positions use the full B1 program. The
-existing `gen 0` teacher-forced diagnostic keeps the full heads at all positions.
-Sampling continues to use absolute position indices, so skipping unused prefix
-heads does not shift the seeded sampler.
+The prefix program omits the vocabulary head and sampler. It consumes only
+`[resume, nprompt-1)`, splitting chunks at exact snapshot boundaries. Within
+each chunk, pairs run first and an odd tail runs B1. The final prompt position
+and generated positions use the full B1 program. This prefix path also runs when
+`n_new == 0`, so a one-token completion request still uses the bounded chunks.
+The existing `gen 0` teacher-forced diagnostic keeps the full heads at all
+positions. Sampling continues to use absolute position indices, so skipping
+unused prefix heads does not shift the seeded sampler.
 
 Client liveness is polled before every chunk, including when the preceding launch
 finished before the in-flight poll. A disconnected request stops submitting chunks;
