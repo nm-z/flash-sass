@@ -1,0 +1,18 @@
+cc -std=c11 -O2 -Wall -Wextra -Werror -o /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-893011-1792513509803091078.WURqBR/source/validation/issue9//bin/oracle_fault_matrix /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-893011-1792513509803091078.WURqBR/source/validation/issue9//oracle_fault_matrix.c
+ORACLE_FAULT_SELF_TEST_BEGIN {"gpu_calls":0}
+ORACLE_FAULT_SELF_TEST_CASE {"mode":"make-argv","accepted":true,"gpu_calls":0}
+ORACLE_FAULT_SELF_TEST_CASE {"mode":"valid","accepted":true,"expected":true}
+ORACLE_FAULT_SELF_TEST_CASE {"mode":"wrong-exit","accepted":false,"expected":false}
+ORACLE_FAULT_SELF_TEST_CASE {"mode":"missing-marker","accepted":false,"expected":false}
+ORACLE_FAULT_SELF_TEST_CASE {"mode":"missing-mismatch","accepted":false,"expected":false}
+ORACLE_FAULT_SELF_TEST_CASE {"mode":"positive-capture","accepted":false,"expected":false}
+ORACLE_FAULT_SELF_TEST_CASE {"mode":"trailing-token","accepted":false,"expected":false}
+ORACLE_FAULT_SELF_TEST_CASE {"mode":"trailing-garbage","accepted":false,"expected":false}
+ORACLE_FAULT_SELF_TEST_CASE {"mode":"duplicate-key","accepted":false,"expected":false}
+ORACLE_FAULT_SELF_TEST_CASE {"mode":"extra-key","accepted":false,"expected":false}
+ORACLE_FAULT_SELF_TEST_CASE {"mode":"leader-exit-term-ignoring-grandchild","accepted":true,"pipe_eof":true,"descendant_live":false,"observed_pgid":2181631,"runner_pgid":2181631,"gpu_calls":0}
+ORACLE_FAULT_SELF_TEST_CASE {"mode":"nested-timeout-leader-exit-stubborn-grandchild","accepted":true,"pipe_eof":true,"descendant_live":false,"observed_pgid":2181892,"runner_pgid":2181892,"gpu_calls":0}
+ORACLE_FAULT_SELF_TEST_RESULT {"passed":12,"failed":0,"gpu_calls":0}
+1293d4c93e4852459a6d3a0f3619517c568144cbe80d0827dd2ae2a22b70ff83  /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-893011-1792513509803091078.WURqBR/source/validation/issue9//bin/oracle_fault_matrix
+c7a55cfdeaf61531d263f58d4c2eebb35229a68515f2fc7846f96f248bf960e4  /mnt/stop-hook-hdd/stop-hook/nates-dsh-builds/build-893011-1792513509803091078.WURqBR/source/validation/issue9//oracle_fault_matrix.c
+dsh build: remote command finished build-893011-1792513509803091078 status=0

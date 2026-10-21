@@ -44,6 +44,13 @@ static __thread double timing_request_start, timing_run_start;
 #include <sys/un.h>
 #include <sys/stat.h>
 
+#ifndef FLASH_BF16_PAIR_FUSE
+#define FLASH_BF16_PAIR_FUSE 1
+#endif
+#if FLASH_BF16_PAIR_FUSE != 0 && FLASH_BF16_PAIR_FUSE != 1
+#error "FLASH_BF16_PAIR_FUSE must be 0 or 1"
+#endif
+
 CUresult cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev);
 /* during engine_init a failure unwinds to it (the core and its weights and table stay up); later ones are fatal */
 static jmp_buf init_jb, run_jb; static int in_init, in_run;
@@ -703,7 +710,9 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 			prog_init(&pair[d]);
 			if (prog_pair(&pair[d], prefix ? &prefix[d] : &P[d], &second)) { fprintf(stderr, "engine: incompatible position programs on die %d\n", d); prog_free(&second); longjmp(run_jb, 1); }
 			/* alloc_second_position gives every position disjoint scratch/inboxes. */
+			#if FLASH_BF16_PAIR_FUSE
 			prog_pair_fuse_bf16(&pair[d], 1);
+			#endif
 			prog_free(&second);
 		}
 	}
@@ -1216,8 +1225,8 @@ int engine_session(FILE *in, FILE *out) {
 		if (!strncmp(p, "config", 6)) {   /* what this engine is: the identity to attach to a measurement (the commit it was built from, where the KV lives, the layers it runs, the kernel image) */
 			char ad[64] = ""; for (int d = 0; d < nd; d++) if (has_attn[d]) { char one[8]; snprintf(one, sizeof one, "%s%d", ad[0] ? "," : "", d); strncat(ad, one, sizeof ad - strlen(ad) - 1); }
 			const char *sh = getenv("SPLIT_SHARES"), *am = getenv("ATTN_MAP");
-			fprintf(out, "config rev=%s kv_host=%d kv_trace=%d ple_disk=%d ple_readers=%u ple_file=%s ple_cache=%s maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u rope_owner=%d trace_tokens=%u two_position=%d prefill_chunk=%d attn_q_split=%u attn_q_mask=%x cubin=%s cubin_fnv=%016llx\n",
-			        FLASH_REV, kv_host, kv_trace, ple_disk, ple_disk ? ple_readers : 0, ple_cache_active ? ple_cache_path : "core", ple_cache_path[0] ? ple_cache_path : "core", MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, rope_owner, trace_n, two_position, prefill_chunk, attn_q_split_mode, attn_q_split_mask, cubin_path, (unsigned long long)cubin_fnv);
+			fprintf(out, "config rev=%s kv_host=%d kv_trace=%d ple_disk=%d ple_readers=%u ple_file=%s ple_cache=%s maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u rope_owner=%d trace_tokens=%u two_position=%d bf16_pair_fuse=%d prefill_chunk=%d attn_q_split=%u attn_q_mask=%x cubin=%s cubin_fnv=%016llx\n",
+			        FLASH_REV, kv_host, kv_trace, ple_disk, ple_disk ? ple_readers : 0, ple_cache_active ? ple_cache_path : "core", ple_cache_path[0] ? ple_cache_path : "core", MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, rope_owner, trace_n, two_position, FLASH_BF16_PAIR_FUSE, prefill_chunk, attn_q_split_mode, attn_q_split_mask, cubin_path, (unsigned long long)cubin_fnv);
 			fflush(out); continue;
 		}
 		if (!strncmp(p, "cubin", 5)) {

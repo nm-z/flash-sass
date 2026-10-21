@@ -4,6 +4,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(ORACLE_PARALLEL_ROWS) && ORACLE_PARALLEL_ROWS && defined(_OPENMP)
+#define ORACLE_GEMV_PARALLEL_ROWS \
+	_Pragma("omp parallel for schedule(static) num_threads(4) if(rows >= 256)")
+#else
+#define ORACLE_GEMV_PARALLEL_ROWS
+#endif
+
 float fp16_to_fp32(uint16_t h) {
 	uint32_t sign = (uint32_t)(h & 0x8000) << 16;
 	uint32_t exp = (h >> 10) & 0x1f;
@@ -236,8 +243,9 @@ int gemv_q2_0_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const 
 	int L = q2_0_lanes_per_row(K);
 	if (!L || rows <= 0 || !tile || !xq || !sum32 || !as || !y) return -1;
 	int B = K / 64, stride = q2_0_tile_stride(K), scales = stride - 16 * B;
-	float v[32] = { 0 }, w[32] = { 0 };
+	ORACLE_GEMV_PARALLEL_ROWS
 	for (int r = 0; r < rows; r++) {
+		float v[32] = { 0 }, w[32] = { 0 };
 		const uint8_t *row = tile + (size_t)r * stride;
 		for (int l = 0; l < L; l++) {
 			float acc = 0.f;
@@ -261,9 +269,10 @@ int gemv_q2_0_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const 
 }
 
 void gemv_q2_0_float(const uint8_t *src, int rows, int K, const float *x, float *y) {
-	float w[4096];
 	if (K > 4096) K = 4096;
+	ORACLE_GEMV_PARALLEL_ROWS
 	for (int r = 0; r < rows; r++) {
+		float w[4096];
 		dequant(GG_Q2_0, src + (size_t)r * (K / 64) * 18, w, (uint64_t)K);
 		double s = 0;
 		for (int k = 0; k < K; k++) s += (double)w[k] * x[k];
@@ -281,6 +290,7 @@ void act_nsum64(const int8_t *q, int32_t *nsum64, int n) {
 
 void gemv_q2_0_ref_v2(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *nsum64, float xscale, float *y) {
 	int B = K / 64, stride = q2_0_tile_stride(K), scales = stride - 16 * B;
+	ORACLE_GEMV_PARALLEL_ROWS
 	for (int r = 0; r < rows; r++) {
 		const uint8_t *row = tile + (size_t)r * stride;
 		float acc = 0.f;
@@ -301,8 +311,9 @@ int bf16_lanes_per_row(int K) {
 
 void gemv_bf16_ref(const uint16_t *W, int rows, int K, const float *x, float *y) {
 	int L = bf16_lanes_per_row(K), C = K / (8 * L);
-	float v[32], w[32];
+	ORACLE_GEMV_PARALLEL_ROWS
 	for (int r = 0; r < rows; r++) {
+		float v[32], w[32];
 		const uint16_t *row = W + (size_t)r * K;
 		for (int l = 0; l < L; l++) {
 			float acc = 0.f;
@@ -355,8 +366,9 @@ int repack_q4_k(const uint8_t *src, int rows, int K, uint8_t *dst) {
 void gemv_q4_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, const float *as, float *y) {
 	int B = K / 256, stride = q4_k_tile_stride(K);
 	int L = q4_k_lanes_per_row(K), n = (K / 32) / L;
-	float v[32], w[32];
+	ORACLE_GEMV_PARALLEL_ROWS
 	for (int r = 0; r < rows; r++) {
+		float v[32], w[32];
 		const uint8_t *hdr = tile + (size_t)r * stride, *codes = hdr + 16 * B;
 		for (int l = 0; l < L; l++) {
 			float acc = 0.f;
@@ -417,8 +429,9 @@ int repack_q5_k(const uint8_t *src, int rows, int K, uint8_t *dst) {
 void gemv_q5_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, const float *as, float *y) {
 	int B = K / 256, stride = q5_k_tile_stride(K);
 	int L = q4_k_lanes_per_row(K), n = (K / 32) / L;
-	float v[32], w[32];
+	ORACLE_GEMV_PARALLEL_ROWS
 	for (int r = 0; r < rows; r++) {
+		float v[32], w[32];
 		const uint8_t *hdr = tile + (size_t)r * stride, *codes = hdr + 16 * B, *hb = hdr + 144 * B;
 		for (int l = 0; l < L; l++) {
 			float acc = 0.f;
@@ -500,8 +513,9 @@ int repack_q3_k(const uint8_t *src, int rows, int K, uint8_t *dst) {
 void gemv_q3_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const float *as, float *y) {
 	int B = K / 256, stride = q3_k_tile_stride(K);
 	int L = q4_k_lanes_per_row(K), Q = L / 8, n = B / Q;
-	float v[32], w[32];
+	ORACLE_GEMV_PARALLEL_ROWS
 	for (int r = 0; r < rows; r++) {
+		float v[32], w[32];
 		const uint8_t *pre = tile + (size_t)r * stride, *blocks = pre + 16 * Q;
 		for (int l = 0; l < L; l++) {
 			int q = l >> 3, jj = l & 7;
@@ -593,9 +607,10 @@ int repack_q6_k(const uint8_t *src, int rows, int K, uint8_t *dst) {
 void gemv_q6_k_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum16, const float *as, float *y) {
 	int B = K / 256, stride = q6_k_tile_stride(K);
 	int L = q4_k_lanes_per_row(K), Q = L / 8, n = B / Q;
-	float v[32], w[32];
 	(void)sum16;
+	ORACLE_GEMV_PARALLEL_ROWS
 	for (int r = 0; r < rows; r++) {
+		float v[32], w[32];
 		const uint8_t *pre = tile + (size_t)r * stride, *blocks = pre + 16 * Q;
 		for (int l = 0; l < L; l++) {
 			int q = l >> 3, jj = l & 7;
@@ -662,8 +677,9 @@ int repack_iq4_xs(const uint8_t *src, int rows, int K, uint8_t *dst) {
 void gemv_iq4_xs_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const float *as, float *y) {
 	int B = K / 256, stride = iq4_xs_tile_stride(K);
 	int L = q4_k_lanes_per_row(K), Q = L / 8, n = B / Q;
-	float v[32], w[32];
+	ORACLE_GEMV_PARALLEL_ROWS
 	for (int r = 0; r < rows; r++) {
+		float v[32], w[32];
 		const uint8_t *pre = tile + (size_t)r * stride, *nib = pre + 16 * Q, *scs = nib + 128 * B;
 		for (int l = 0; l < L; l++) {
 			int q = l >> 3, jj = l & 7;
@@ -762,9 +778,10 @@ float b32_tile_value(uint32_t type, const uint8_t *tile, int K, int r, int e) {
 
 void gemv_b32_ref(uint32_t type, const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, const float *as, float *y) {
 	int B = K / 32, stride = b32_tile_stride(type, K), L = 4, n = B / L, off = b32_offset(type);
-	float v[4], w[4];
 	(void)sum32;
+	ORACLE_GEMV_PARALLEL_ROWS
 	for (int r = 0; r < rows; r++) {
+		float v[4], w[4];
 		const uint8_t *pre = tile + (size_t)r * stride;
 		for (int l = 0; l < L; l++) {
 			float acc = 0.f;

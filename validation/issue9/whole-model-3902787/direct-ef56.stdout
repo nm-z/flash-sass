@@ -1,0 +1,271 @@
+cmp /home/nate/work/fs9-sol/maxas-patch/MaxAsGrammar.pm /home/nate/work/fs9-maxas/lib/MaxAs/MaxAsGrammar.pm
+cmp /home/nate/work/fs9-sol/maxas-patch/MaxAs.pm /home/nate/work/fs9-maxas/lib/MaxAs/MaxAs.pm
+cmp /home/nate/work/fs9-sol/maxas-patch/Cubin.pm /home/nate/work/fs9-maxas/lib/MaxAs/Cubin.pm
+env --chdir=/home/nate/work/fs9-sol sha256sum -c /home/nate/work/fs9-sol/kern/issue9-kernel.sha256
+kern/die.cubin: OK
+kern/actq.sass: OK
+kern/allgather.sass: OK
+kern/amax.sass: OK
+kern/argmax.sass: OK
+kern/attnmerge.sass: OK
+kern/attnpart.sass: OK
+kern/attnpartn.sass: OK
+kern/attnqk.sass: OK
+kern/attnqkq.sass: OK
+kern/bartest.sass: OK
+kern/conv1d.sass: OK
+kern/dnnorm.sass: OK
+kern/dnstep.sass: OK
+kern/embrow.sass: OK
+kern/ffnact.sass: OK
+kern/fmath.sass: OK
+kern/gemv_b32.sass: OK
+kern/gemv_bf16.sass: OK
+kern/gemv_bf16_pair.sass: OK
+kern/gemv_iq4_xs.sass: OK
+kern/gemv_q2_0.sass: OK
+kern/gemv_q3_k.sass: OK
+kern/gemv_q4_k.sass: OK
+kern/gemv_q6_k.sass: OK
+kern/gridbar.sass: OK
+kern/hcops.sass: OK
+kern/idxqk.sass: OK
+kern/idxscore.sass: OK
+kern/idxsel.sass: OK
+kern/kvgather.sass: OK
+kern/mailbox.sass: OK
+kern/moesel.sass: OK
+kern/normq.sass: OK
+kern/pleconv.sass: OK
+kern/plegate.sass: OK
+kern/plerows.sass: OK
+kern/rmsnorm.sass: OK
+kern/router.sass: OK
+kern/sample.sass: OK
+kern/semtest.sass: OK
+kern/semtest2.sass: OK
+kern/semtest3.sass: OK
+kern/semtest4.sass: OK
+kern/sumn.sass: OK
+kern/topk.sass: OK
+kern/xchg.sass: OK
+kern/xcopy.sass: OK
+kern/xmadbench.sass: OK
+kern/die.pl: OK
+kern/trace.pl: OK
+kern/actq.pl: OK
+kern/fmath.pl: OK
+kern/die.ptx: OK
+maxas-patch/Cubin.pm: OK
+maxas-patch/MaxAs.pm: OK
+maxas-patch/MaxAsGrammar.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/MaxAsGrammar.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/MaxAs.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/Cubin.pm: OK
+git -C /home/nate/work/fs9-sol rev-parse HEAD
+210fd98bf8177aeadc0af19b062737a48bedc47a
+git -C /home/nate/work/fs9-sol status --short
+ M validation/issue9/Makefile
+?? kern/issue9-kernel.sha256
+sha256sum /home/nate/work/fs9-sol/kern/qsa_direct_test /home/nate/work/fs9-sol/kern/die.cubin /usr/lib/libcuda.so.470.256.02
+8ad99631d6a726f5f426213e4f7098b85478b99631eb55d74c17deff64e32cfe  /home/nate/work/fs9-sol/kern/qsa_direct_test
+aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423  /home/nate/work/fs9-sol/kern/die.cubin
+6f379857a042713f8c4c28e689006b9143889c7a465044074d99a614a64e2fa2  /usr/lib/libcuda.so.470.256.02
+sha256sum /home/nate/work/fs9-maxas/lib/MaxAs/MaxAsGrammar.pm /home/nate/work/fs9-maxas/lib/MaxAs/MaxAs.pm /home/nate/work/fs9-maxas/lib/MaxAs/Cubin.pm
+9698b546ad5af6da6aefccaa9944c50e5fa42aa0f95da8cfa995100e544818d3  /home/nate/work/fs9-maxas/lib/MaxAs/MaxAsGrammar.pm
+399e954359e0163fc181f19a315ae19c8c81572e1baf08b1e14c3b684e24e219  /home/nate/work/fs9-maxas/lib/MaxAs/MaxAs.pm
+0fa8cb6989248b38ee44b27f0ef6a14809b06c1f7f332df12a587412998fe3ad  /home/nate/work/fs9-maxas/lib/MaxAs/Cubin.pm
+sha256sum /home/nate/work/fs9-sol/kern/qsa_direct_test.c /home/nate/work/fs9-sol/kern/qsa_test.c /home/nate/work/fs9-sol/kern/prog.c /home/nate/work/fs9-sol/kern/prog.h /home/nate/work/fs9-sol/kern/die.pl /home/nate/work/fs9-sol/kern/trace.pl /home/nate/work/fs9-sol/kern/*.sass /home/nate/work/fs9-sol/ref/qsa.c /home/nate/work/fs9-sol/ref/attn.c
+781ea95bae6028f2f76c58cf7dd10aa2466f8666a77f01383ef614dfb35f6ed6  /home/nate/work/fs9-sol/kern/qsa_direct_test.c
+981e66b81b1be53fbfdf5f3f38d43685693e2981ee1663747d566b9e60bb30bd  /home/nate/work/fs9-sol/kern/qsa_test.c
+e4714b8c1b7aa4e36bbc088e69df2f3f4253a2e648bbf4e4b09e1aa6613ce587  /home/nate/work/fs9-sol/kern/prog.c
+3fc57b0a0b257d52dfe56d2322b581c09a05ac59e5a74601e463e828b11659e2  /home/nate/work/fs9-sol/kern/prog.h
+3af43d6bb4f9955dec68003d6ef88409eef7bad1d2f608cd514f91c1caa45b82  /home/nate/work/fs9-sol/kern/die.pl
+30b55b5d477453be1d98035d68e4413f4724d75a2d2319bdce214447c8d2cff6  /home/nate/work/fs9-sol/kern/trace.pl
+77dafcdd7cedb6a7d5560497a51a14979dec90917f111cf25f13cad415f1729e  /home/nate/work/fs9-sol/kern/actq.sass
+3657e0f5cab84e4f88e98d966021a0dbc0ec1fc67993977921b774d9dbab2cd1  /home/nate/work/fs9-sol/kern/allgather.sass
+bc44c5d0614c7e800b5b36eecd66821ebd7fdc341ec46d83e093760079bb7198  /home/nate/work/fs9-sol/kern/amax.sass
+8698c8b6b7290283c69a5ae7add61c07f8de4cea50adffec73466530e729925d  /home/nate/work/fs9-sol/kern/argmax.sass
+364ac6ca65f25b0452897d65b9ee2b519b9bd4bae030078a08349cc06950fe43  /home/nate/work/fs9-sol/kern/attnmerge.sass
+59c90db37794e88bb112a5cbd29089c930b1ca08ceb03553c77cc28629fae22c  /home/nate/work/fs9-sol/kern/attnpart.sass
+0b18392c699c05208c98b064dee6a896a5d53a84c93c74cfab0a804178cb0b54  /home/nate/work/fs9-sol/kern/attnpartn.sass
+64001e9e2ff8a57229d0e96891062462fd85733e19fb3bccb05293eadf03dcbd  /home/nate/work/fs9-sol/kern/attnqk.sass
+48eb512441f291671db9c5fabf4600b7b4ad54c98301fe543787825f90086493  /home/nate/work/fs9-sol/kern/attnqkq.sass
+da68996ea9f6222b7fdd8992046d1d16896953da68c26ef7cf6a77bf85ebc67d  /home/nate/work/fs9-sol/kern/bartest.sass
+93a2652a6d699a84e4be0a0d6d837d03c126bf178f48326e08045e53e3f4e081  /home/nate/work/fs9-sol/kern/conv1d.sass
+ddffe399da059b792fe7fc2bae9f55706e66e28a4571ef0029d055b037bdf06a  /home/nate/work/fs9-sol/kern/dnnorm.sass
+258055fb58de8f5b35fddc2b95dc47ca706db6e12fca06ef322d344bcfbebc12  /home/nate/work/fs9-sol/kern/dnstep.sass
+7574bf7cf23f63b7fd0432c02e8c8695281557650bbe2ae5bb014b30fa9cf5f0  /home/nate/work/fs9-sol/kern/embrow.sass
+eed78587dd7efaf87008e1b4a4deebdc1875ffb4a183438234303dbb63a8955d  /home/nate/work/fs9-sol/kern/ffnact.sass
+8b6498110a48886a238a88f165afd49f0fa3ed25124ce11e7dbd49b4b16e20b0  /home/nate/work/fs9-sol/kern/fmath.sass
+8ddce3e992ecec074920818a738e85ca236abf249b590f5c8089a1b33dfbedd3  /home/nate/work/fs9-sol/kern/gemv_b32.sass
+4f04c0bab7e9c26cf88d69d63a5d2c476ae8c3fdd9a204d5484f1bd4824c0b96  /home/nate/work/fs9-sol/kern/gemv_bf16.sass
+a1675c84d1ef9fdfca6bce5a2ed4863e78eb4df57715aad330e3a20b07acda00  /home/nate/work/fs9-sol/kern/gemv_bf16_pair.sass
+9a4e9e6f96ec9ce3c09eb7ba8c0af64f5b56aa5620f1b7420ead289024589667  /home/nate/work/fs9-sol/kern/gemv_iq4_xs.sass
+f71bffec894afa08a8dda91f8a387d404c8c86574b9b39fa5cccea0fb64e7d95  /home/nate/work/fs9-sol/kern/gemv_q2_0.sass
+79c7c11390cf03261f1942a0298508055f4ccf4a43ef56ae0c21a3dbd800a799  /home/nate/work/fs9-sol/kern/gemv_q3_k.sass
+47130bae29fc8cff9a9d360d561c0c6a9da9060a93ef3c7add7b186f6b383ebc  /home/nate/work/fs9-sol/kern/gemv_q4_k.sass
+0200a643bebabe24c9dc959aeef854eb781111ff7b5061703ba1ef9021a39293  /home/nate/work/fs9-sol/kern/gemv_q6_k.sass
+ccd59f7b71a533489908045091e8a25628a147c00656f3a5d411a4073341502e  /home/nate/work/fs9-sol/kern/gridbar.sass
+7b835e372269e441f9deadf857e87c5bf186ef473130bbfbd863fb81a74757d9  /home/nate/work/fs9-sol/kern/hcops.sass
+d1133d337e1956d581dec212bef6e9d804ffb1077645c0dcf7c9579bdf1139c0  /home/nate/work/fs9-sol/kern/idxqk.sass
+090316992eb4a01248b3632c30d0defdd202b34036622b330099d0670d1e2119  /home/nate/work/fs9-sol/kern/idxscore.sass
+fdb8eee193cc99c65389246fcea7173b4ff96ce3e9b83975d925e2abf4e4085b  /home/nate/work/fs9-sol/kern/idxsel.sass
+1f2a1fee9ef1c5d2e9d1c834eb85b8c05e0c47772b309a869dc6a3eba859a639  /home/nate/work/fs9-sol/kern/kvgather.sass
+ddb7dc6042fe47ab79f81f0f9c25f0d285d5eb43ab055fa5819b123376ec857c  /home/nate/work/fs9-sol/kern/mailbox.sass
+f3cdb0121f113e0ef9b383efeea7cc2d269539bb4cde66695f7993b99da7c5eb  /home/nate/work/fs9-sol/kern/moesel.sass
+c756cb3d3ccaadc62a84716d8d376b393b1b13c3a6ff27d3fb816f11faf36f77  /home/nate/work/fs9-sol/kern/normq.sass
+ea2faf5c3be6c9d733a721e0b9152c42c616a8c837ab1e54e8cf480a46bea3f0  /home/nate/work/fs9-sol/kern/pleconv.sass
+8a0062c254a348c41975f8fb17d3c9cd0776d370b4192f578837309edcae61df  /home/nate/work/fs9-sol/kern/plegate.sass
+a792c3f22cf89d8f462433cef3b63b6301a9b5d33f6e3ed342cb8b77e5b62ed1  /home/nate/work/fs9-sol/kern/plerows.sass
+f122f330d6311a5fe9012e7e4edb0ab09f5408becfb9df291d1e6a6d656860f7  /home/nate/work/fs9-sol/kern/rmsnorm.sass
+74a0d55a2b7561752a3138bb2973ed5d7c28366516b0c4a382a7013292af9cbb  /home/nate/work/fs9-sol/kern/router.sass
+39c9a5f6b077932a43def30aeb8903438386ce4c749cb54af7d8695ce40decb2  /home/nate/work/fs9-sol/kern/sample.sass
+1fcc9be6d47d8cb446829e148bd609f4a2819c71ab61c321221e17d56c4616ff  /home/nate/work/fs9-sol/kern/semtest.sass
+3188fa47ee42f9c995b663bbbe3440b48ea6b9ddfe5136e07f8aebf408ec8302  /home/nate/work/fs9-sol/kern/semtest2.sass
+4da50a47b373836d9ede332d26338c17c6a71403cada187d4920e79075a561e3  /home/nate/work/fs9-sol/kern/semtest3.sass
+56782fe9ca87fab9c305d01d3f1b79e442caea3e58a60e6fe97391b5c4c46a77  /home/nate/work/fs9-sol/kern/semtest4.sass
+3561863d74038173d6deb573042ac91a229c385c1d84aecc66ff26cf51d032d2  /home/nate/work/fs9-sol/kern/sumn.sass
+08188cc3bce1d42769ad484ef4a35bfbbc77d63a438b2c4dbc6e3fc0fdaf6ab5  /home/nate/work/fs9-sol/kern/topk.sass
+f398ee1d95c12af60f975c80fd8f653e0fed35cf23b38df67f61ad16eaa3c947  /home/nate/work/fs9-sol/kern/xchg.sass
+399b0f644151a8488d54afce16ceefead28fd790e79ac1e8a3da2b938b38f862  /home/nate/work/fs9-sol/kern/xcopy.sass
+3d8a8b00059972b49ccc972311f28bab99d74a6feab262f09c28843d411030bf  /home/nate/work/fs9-sol/kern/xmadbench.sass
+5d63aa53fae30d50addba450d1bd132c5c01aa67af279b2cd8925c0b523d5c21  /home/nate/work/fs9-sol/ref/qsa.c
+653521378d9bad2d2860696a6e3acde9b0316215923c6bd8eaff6a987983fa18  /home/nate/work/fs9-sol/ref/attn.c
+nvidia-smi --query-gpu=index,uuid,name,driver_version,memory.free --format=csv
+index, uuid, name, driver_version, memory.free [MiB]
+0, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, Tesla M60, 470.256.02, 266 MiB
+1, GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, Tesla M60, 470.256.02, 248 MiB
+2, GPU-c767d250-4454-d181-d648-8706b5f2fb64, Tesla M60, 470.256.02, 220 MiB
+3, GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, Tesla M60, 470.256.02, 187 MiB
+4, GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, Tesla M60, 470.256.02, 238 MiB
+5, GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, Tesla M60, 470.256.02, 175 MiB
+6, GPU-431371bd-b482-96b2-4b70-04f83c6d075b, Tesla M60, 470.256.02, 7547 MiB
+7, GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4, Tesla M60, 470.256.02, 4626 MiB
+env --chdir=/home/nate/work/fs9-sol/kern -u QSA_DIRECT_INJECT -u QSA_REPLAY_PREFIX -u QSA_PROJECTED CUDA_VISIBLE_DEVICES=6 QSA_HOSTKV=0 QSA_DIRECT_SEED=4242 QSA_PATTERN=hash ./qsa_direct_test 1 512 4
+projection_mode=synthetic_fixed_BF16_weights types=30,30,30 indexer=BF16 original_input=deterministic_FP32_Z checkpoint_provenance=not_supplied_cache_fingerprints_only
+direct QSA: SYNTHETIC HISTORY source=e646546-dirty compiler=16.2.1 20260810 driver=11040 gpu=Tesla M60 CUDA_VISIBLE_DEVICES=6 cubin=die.cubin fnv1a64=9abf8aafb9134d59
+visible=1 steps=4 budget=512 hostKV=0 seed=4242 prefix_seeded_once=yes future_sentinels=yes current_mode=ORIGINAL_INPUT_PROJECTIONS projected_fnv=0000000000000000
+visible=1 complete=0 tail=1 selected=0 keys=1 guarded_allocations=36 exclusion=no EXACT
+visible=2 complete=0 tail=2 selected=0 keys=2 guarded_allocations=36 exclusion=no EXACT
+visible=3 complete=0 tail=3 selected=0 keys=3 guarded_allocations=36 exclusion=no EXACT
+visible=4 complete=1 tail=0 selected=1 keys=4 guarded_allocations=36 exclusion=no EXACT
+direct QSA PASS: 4 steps, 0 mismatching steps; synthetic cache fixture
+env --chdir=/home/nate/work/fs9-sol/kern -u QSA_DIRECT_INJECT -u QSA_REPLAY_PREFIX -u QSA_PROJECTED CUDA_VISIBLE_DEVICES=6 QSA_HOSTKV=0 QSA_DIRECT_SEED=4242 QSA_PATTERN=hash ./qsa_direct_test 2048 512 4
+projection_mode=synthetic_fixed_BF16_weights types=30,30,30 indexer=BF16 original_input=deterministic_FP32_Z checkpoint_provenance=not_supplied_cache_fingerprints_only
+direct QSA: SYNTHETIC HISTORY source=e646546-dirty compiler=16.2.1 20260810 driver=11040 gpu=Tesla M60 CUDA_VISIBLE_DEVICES=6 cubin=die.cubin fnv1a64=9abf8aafb9134d59
+visible=2048 steps=4 budget=512 hostKV=0 seed=4242 prefix_seeded_once=yes future_sentinels=yes current_mode=ORIGINAL_INPUT_PROJECTIONS projected_fnv=0000000000000000
+visible=2048 complete=512 tail=0 selected=512 keys=2048 guarded_allocations=36 exclusion=no EXACT
+visible=2049 complete=512 tail=1 selected=512 keys=2049 guarded_allocations=36 exclusion=no EXACT
+visible=2050 complete=512 tail=2 selected=512 keys=2050 guarded_allocations=36 exclusion=no EXACT
+visible=2051 complete=512 tail=3 selected=512 keys=2051 guarded_allocations=36 exclusion=no EXACT
+direct QSA PASS: 4 steps, 0 mismatching steps; synthetic cache fixture
+env --chdir=/home/nate/work/fs9-sol/kern -u QSA_DIRECT_INJECT -u QSA_REPLAY_PREFIX -u QSA_PROJECTED CUDA_VISIBLE_DEVICES=6 QSA_HOSTKV=0 QSA_DIRECT_SEED=4242 QSA_PATTERN=hash ./qsa_direct_test 2052 512 4
+projection_mode=synthetic_fixed_BF16_weights types=30,30,30 indexer=BF16 original_input=deterministic_FP32_Z checkpoint_provenance=not_supplied_cache_fingerprints_only
+direct QSA: SYNTHETIC HISTORY source=e646546-dirty compiler=16.2.1 20260810 driver=11040 gpu=Tesla M60 CUDA_VISIBLE_DEVICES=6 cubin=die.cubin fnv1a64=9abf8aafb9134d59
+visible=2052 steps=4 budget=512 hostKV=0 seed=4242 prefix_seeded_once=yes future_sentinels=yes current_mode=ORIGINAL_INPUT_PROJECTIONS projected_fnv=0000000000000000
+visible=2052 complete=513 tail=0 selected=512 keys=2048 guarded_allocations=36 exclusion=yes EXACT
+visible=2053 complete=513 tail=1 selected=512 keys=2049 guarded_allocations=36 exclusion=yes EXACT
+visible=2054 complete=513 tail=2 selected=512 keys=2050 guarded_allocations=36 exclusion=yes EXACT
+visible=2055 complete=513 tail=3 selected=512 keys=2051 guarded_allocations=36 exclusion=yes EXACT
+direct QSA PASS: 4 steps, 0 mismatching steps; synthetic cache fixture
+env --chdir=/home/nate/work/fs9-sol/kern -u QSA_DIRECT_INJECT -u QSA_REPLAY_PREFIX -u QSA_PROJECTED CUDA_VISIBLE_DEVICES=6 QSA_HOSTKV=0 QSA_DIRECT_SEED=4242 QSA_PATTERN=hash ./qsa_direct_test 3100 512 4
+projection_mode=synthetic_fixed_BF16_weights types=30,30,30 indexer=BF16 original_input=deterministic_FP32_Z checkpoint_provenance=not_supplied_cache_fingerprints_only
+direct QSA: SYNTHETIC HISTORY source=e646546-dirty compiler=16.2.1 20260810 driver=11040 gpu=Tesla M60 CUDA_VISIBLE_DEVICES=6 cubin=die.cubin fnv1a64=9abf8aafb9134d59
+visible=3100 steps=4 budget=512 hostKV=0 seed=4242 prefix_seeded_once=yes future_sentinels=yes current_mode=ORIGINAL_INPUT_PROJECTIONS projected_fnv=0000000000000000
+visible=3100 complete=775 tail=0 selected=512 keys=2048 guarded_allocations=36 exclusion=yes EXACT
+visible=3101 complete=775 tail=1 selected=512 keys=2049 guarded_allocations=36 exclusion=yes EXACT
+visible=3102 complete=775 tail=2 selected=512 keys=2050 guarded_allocations=36 exclusion=yes EXACT
+visible=3103 complete=775 tail=3 selected=512 keys=2051 guarded_allocations=36 exclusion=yes EXACT
+direct QSA PASS: 4 steps, 0 mismatching steps; synthetic cache fixture
+env --chdir=/home/nate/work/fs9-sol/kern -u QSA_DIRECT_INJECT -u QSA_REPLAY_PREFIX -u QSA_PROJECTED CUDA_VISIBLE_DEVICES=6 QSA_HOSTKV=0 QSA_DIRECT_SEED=4242 QSA_PATTERN=hash ./qsa_direct_test 8000 512 4
+projection_mode=synthetic_fixed_BF16_weights types=30,30,30 indexer=BF16 original_input=deterministic_FP32_Z checkpoint_provenance=not_supplied_cache_fingerprints_only
+direct QSA: SYNTHETIC HISTORY source=e646546-dirty compiler=16.2.1 20260810 driver=11040 gpu=Tesla M60 CUDA_VISIBLE_DEVICES=6 cubin=die.cubin fnv1a64=9abf8aafb9134d59
+visible=8000 steps=4 budget=512 hostKV=0 seed=4242 prefix_seeded_once=yes future_sentinels=yes current_mode=ORIGINAL_INPUT_PROJECTIONS projected_fnv=0000000000000000
+visible=8000 complete=2000 tail=0 selected=512 keys=2048 guarded_allocations=36 exclusion=yes EXACT
+visible=8001 complete=2000 tail=1 selected=512 keys=2049 guarded_allocations=36 exclusion=yes EXACT
+visible=8002 complete=2000 tail=2 selected=512 keys=2050 guarded_allocations=36 exclusion=yes EXACT
+visible=8003 complete=2000 tail=3 selected=512 keys=2051 guarded_allocations=36 exclusion=yes EXACT
+direct QSA PASS: 4 steps, 0 mismatching steps; synthetic cache fixture
+env --chdir=/home/nate/work/fs9-sol/kern -u QSA_DIRECT_INJECT -u QSA_REPLAY_PREFIX -u QSA_PROJECTED CUDA_VISIBLE_DEVICES=6 QSA_HOSTKV=0 QSA_DIRECT_SEED=4242 QSA_PATTERN=hash ./qsa_direct_test 65000 512 4
+projection_mode=synthetic_fixed_BF16_weights types=30,30,30 indexer=BF16 original_input=deterministic_FP32_Z checkpoint_provenance=not_supplied_cache_fingerprints_only
+direct QSA: SYNTHETIC HISTORY source=e646546-dirty compiler=16.2.1 20260810 driver=11040 gpu=Tesla M60 CUDA_VISIBLE_DEVICES=6 cubin=die.cubin fnv1a64=9abf8aafb9134d59
+visible=65000 steps=4 budget=512 hostKV=0 seed=4242 prefix_seeded_once=yes future_sentinels=yes current_mode=ORIGINAL_INPUT_PROJECTIONS projected_fnv=0000000000000000
+visible=65000 complete=16250 tail=0 selected=512 keys=2048 guarded_allocations=36 exclusion=yes EXACT
+visible=65001 complete=16250 tail=1 selected=512 keys=2049 guarded_allocations=36 exclusion=yes EXACT
+visible=65002 complete=16250 tail=2 selected=512 keys=2050 guarded_allocations=36 exclusion=yes EXACT
+visible=65003 complete=16250 tail=3 selected=512 keys=2051 guarded_allocations=36 exclusion=yes EXACT
+direct QSA PASS: 4 steps, 0 mismatching steps; synthetic cache fixture
+env --chdir=/home/nate/work/fs9-sol/kern -u QSA_DIRECT_INJECT -u QSA_REPLAY_PREFIX -u QSA_PROJECTED CUDA_VISIBLE_DEVICES=6 QSA_HOSTKV=0 QSA_DIRECT_SEED=4242 QSA_PATTERN=hash ./qsa_direct_test 262000 512 4
+projection_mode=synthetic_fixed_BF16_weights types=30,30,30 indexer=BF16 original_input=deterministic_FP32_Z checkpoint_provenance=not_supplied_cache_fingerprints_only
+direct QSA: SYNTHETIC HISTORY source=e646546-dirty compiler=16.2.1 20260810 driver=11040 gpu=Tesla M60 CUDA_VISIBLE_DEVICES=6 cubin=die.cubin fnv1a64=9abf8aafb9134d59
+visible=262000 steps=4 budget=512 hostKV=0 seed=4242 prefix_seeded_once=yes future_sentinels=yes current_mode=ORIGINAL_INPUT_PROJECTIONS projected_fnv=0000000000000000
+visible=262000 complete=65500 tail=0 selected=512 keys=2048 guarded_allocations=36 exclusion=yes EXACT
+visible=262001 complete=65500 tail=1 selected=512 keys=2049 guarded_allocations=36 exclusion=yes EXACT
+visible=262002 complete=65500 tail=2 selected=512 keys=2050 guarded_allocations=36 exclusion=yes EXACT
+visible=262003 complete=65500 tail=3 selected=512 keys=2051 guarded_allocations=36 exclusion=yes EXACT
+direct QSA PASS: 4 steps, 0 mismatching steps; synthetic cache fixture
+env --chdir=/home/nate/work/fs9-sol/kern -u QSA_DIRECT_INJECT -u QSA_REPLAY_PREFIX -u QSA_PROJECTED CUDA_VISIBLE_DEVICES=6 QSA_HOSTKV=1 QSA_DIRECT_SEED=4242 QSA_PATTERN=hash ./qsa_direct_test 1 512 4
+projection_mode=synthetic_fixed_BF16_weights types=30,30,30 indexer=BF16 original_input=deterministic_FP32_Z checkpoint_provenance=not_supplied_cache_fingerprints_only
+direct QSA: SYNTHETIC HISTORY source=e646546-dirty compiler=16.2.1 20260810 driver=11040 gpu=Tesla M60 CUDA_VISIBLE_DEVICES=6 cubin=die.cubin fnv1a64=9abf8aafb9134d59
+visible=1 steps=4 budget=512 hostKV=1 seed=4242 prefix_seeded_once=yes future_sentinels=yes current_mode=ORIGINAL_INPUT_PROJECTIONS projected_fnv=0000000000000000
+visible=1 complete=0 tail=1 selected=0 keys=1 guarded_allocations=36 exclusion=no EXACT
+visible=2 complete=0 tail=2 selected=0 keys=2 guarded_allocations=36 exclusion=no EXACT
+visible=3 complete=0 tail=3 selected=0 keys=3 guarded_allocations=36 exclusion=no EXACT
+visible=4 complete=1 tail=0 selected=1 keys=4 guarded_allocations=36 exclusion=no EXACT
+direct QSA PASS: 4 steps, 0 mismatching steps; synthetic cache fixture
+env --chdir=/home/nate/work/fs9-sol/kern -u QSA_DIRECT_INJECT -u QSA_REPLAY_PREFIX -u QSA_PROJECTED CUDA_VISIBLE_DEVICES=6 QSA_HOSTKV=1 QSA_DIRECT_SEED=4242 QSA_PATTERN=hash ./qsa_direct_test 2048 512 4
+projection_mode=synthetic_fixed_BF16_weights types=30,30,30 indexer=BF16 original_input=deterministic_FP32_Z checkpoint_provenance=not_supplied_cache_fingerprints_only
+direct QSA: SYNTHETIC HISTORY source=e646546-dirty compiler=16.2.1 20260810 driver=11040 gpu=Tesla M60 CUDA_VISIBLE_DEVICES=6 cubin=die.cubin fnv1a64=9abf8aafb9134d59
+visible=2048 steps=4 budget=512 hostKV=1 seed=4242 prefix_seeded_once=yes future_sentinels=yes current_mode=ORIGINAL_INPUT_PROJECTIONS projected_fnv=0000000000000000
+visible=2048 complete=512 tail=0 selected=512 keys=2048 guarded_allocations=36 exclusion=no EXACT
+visible=2049 complete=512 tail=1 selected=512 keys=2049 guarded_allocations=36 exclusion=no EXACT
+visible=2050 complete=512 tail=2 selected=512 keys=2050 guarded_allocations=36 exclusion=no EXACT
+visible=2051 complete=512 tail=3 selected=512 keys=2051 guarded_allocations=36 exclusion=no EXACT
+direct QSA PASS: 4 steps, 0 mismatching steps; synthetic cache fixture
+env --chdir=/home/nate/work/fs9-sol/kern -u QSA_DIRECT_INJECT -u QSA_REPLAY_PREFIX -u QSA_PROJECTED CUDA_VISIBLE_DEVICES=6 QSA_HOSTKV=1 QSA_DIRECT_SEED=4242 QSA_PATTERN=hash ./qsa_direct_test 2052 512 4
+projection_mode=synthetic_fixed_BF16_weights types=30,30,30 indexer=BF16 original_input=deterministic_FP32_Z checkpoint_provenance=not_supplied_cache_fingerprints_only
+direct QSA: SYNTHETIC HISTORY source=e646546-dirty compiler=16.2.1 20260810 driver=11040 gpu=Tesla M60 CUDA_VISIBLE_DEVICES=6 cubin=die.cubin fnv1a64=9abf8aafb9134d59
+visible=2052 steps=4 budget=512 hostKV=1 seed=4242 prefix_seeded_once=yes future_sentinels=yes current_mode=ORIGINAL_INPUT_PROJECTIONS projected_fnv=0000000000000000
+visible=2052 complete=513 tail=0 selected=512 keys=2048 guarded_allocations=36 exclusion=yes EXACT
+visible=2053 complete=513 tail=1 selected=512 keys=2049 guarded_allocations=36 exclusion=yes EXACT
+visible=2054 complete=513 tail=2 selected=512 keys=2050 guarded_allocations=36 exclusion=yes EXACT
+visible=2055 complete=513 tail=3 selected=512 keys=2051 guarded_allocations=36 exclusion=yes EXACT
+direct QSA PASS: 4 steps, 0 mismatching steps; synthetic cache fixture
+env --chdir=/home/nate/work/fs9-sol/kern -u QSA_DIRECT_INJECT -u QSA_REPLAY_PREFIX -u QSA_PROJECTED CUDA_VISIBLE_DEVICES=6 QSA_HOSTKV=1 QSA_DIRECT_SEED=4242 QSA_PATTERN=hash ./qsa_direct_test 3100 512 4
+projection_mode=synthetic_fixed_BF16_weights types=30,30,30 indexer=BF16 original_input=deterministic_FP32_Z checkpoint_provenance=not_supplied_cache_fingerprints_only
+direct QSA: SYNTHETIC HISTORY source=e646546-dirty compiler=16.2.1 20260810 driver=11040 gpu=Tesla M60 CUDA_VISIBLE_DEVICES=6 cubin=die.cubin fnv1a64=9abf8aafb9134d59
+visible=3100 steps=4 budget=512 hostKV=1 seed=4242 prefix_seeded_once=yes future_sentinels=yes current_mode=ORIGINAL_INPUT_PROJECTIONS projected_fnv=0000000000000000
+visible=3100 complete=775 tail=0 selected=512 keys=2048 guarded_allocations=36 exclusion=yes EXACT
+visible=3101 complete=775 tail=1 selected=512 keys=2049 guarded_allocations=36 exclusion=yes EXACT
+visible=3102 complete=775 tail=2 selected=512 keys=2050 guarded_allocations=36 exclusion=yes EXACT
+visible=3103 complete=775 tail=3 selected=512 keys=2051 guarded_allocations=36 exclusion=yes EXACT
+direct QSA PASS: 4 steps, 0 mismatching steps; synthetic cache fixture
+env --chdir=/home/nate/work/fs9-sol/kern -u QSA_DIRECT_INJECT -u QSA_REPLAY_PREFIX -u QSA_PROJECTED CUDA_VISIBLE_DEVICES=6 QSA_HOSTKV=1 QSA_DIRECT_SEED=4242 QSA_PATTERN=hash ./qsa_direct_test 8000 512 4
+projection_mode=synthetic_fixed_BF16_weights types=30,30,30 indexer=BF16 original_input=deterministic_FP32_Z checkpoint_provenance=not_supplied_cache_fingerprints_only
+direct QSA: SYNTHETIC HISTORY source=e646546-dirty compiler=16.2.1 20260810 driver=11040 gpu=Tesla M60 CUDA_VISIBLE_DEVICES=6 cubin=die.cubin fnv1a64=9abf8aafb9134d59
+visible=8000 steps=4 budget=512 hostKV=1 seed=4242 prefix_seeded_once=yes future_sentinels=yes current_mode=ORIGINAL_INPUT_PROJECTIONS projected_fnv=0000000000000000
+visible=8000 complete=2000 tail=0 selected=512 keys=2048 guarded_allocations=36 exclusion=yes EXACT
+visible=8001 complete=2000 tail=1 selected=512 keys=2049 guarded_allocations=36 exclusion=yes EXACT
+visible=8002 complete=2000 tail=2 selected=512 keys=2050 guarded_allocations=36 exclusion=yes EXACT
+visible=8003 complete=2000 tail=3 selected=512 keys=2051 guarded_allocations=36 exclusion=yes EXACT
+direct QSA PASS: 4 steps, 0 mismatching steps; synthetic cache fixture
+env --chdir=/home/nate/work/fs9-sol/kern -u QSA_DIRECT_INJECT -u QSA_REPLAY_PREFIX -u QSA_PROJECTED CUDA_VISIBLE_DEVICES=6 QSA_HOSTKV=1 QSA_DIRECT_SEED=4242 QSA_PATTERN=hash ./qsa_direct_test 65000 512 4
+projection_mode=synthetic_fixed_BF16_weights types=30,30,30 indexer=BF16 original_input=deterministic_FP32_Z checkpoint_provenance=not_supplied_cache_fingerprints_only
+direct QSA: SYNTHETIC HISTORY source=e646546-dirty compiler=16.2.1 20260810 driver=11040 gpu=Tesla M60 CUDA_VISIBLE_DEVICES=6 cubin=die.cubin fnv1a64=9abf8aafb9134d59
+visible=65000 steps=4 budget=512 hostKV=1 seed=4242 prefix_seeded_once=yes future_sentinels=yes current_mode=ORIGINAL_INPUT_PROJECTIONS projected_fnv=0000000000000000
+visible=65000 complete=16250 tail=0 selected=512 keys=2048 guarded_allocations=36 exclusion=yes EXACT
+visible=65001 complete=16250 tail=1 selected=512 keys=2049 guarded_allocations=36 exclusion=yes EXACT
+visible=65002 complete=16250 tail=2 selected=512 keys=2050 guarded_allocations=36 exclusion=yes EXACT
+visible=65003 complete=16250 tail=3 selected=512 keys=2051 guarded_allocations=36 exclusion=yes EXACT
+direct QSA PASS: 4 steps, 0 mismatching steps; synthetic cache fixture
+env --chdir=/home/nate/work/fs9-sol/kern -u QSA_DIRECT_INJECT -u QSA_REPLAY_PREFIX -u QSA_PROJECTED CUDA_VISIBLE_DEVICES=6 QSA_HOSTKV=1 QSA_DIRECT_SEED=4242 QSA_PATTERN=hash ./qsa_direct_test 262000 512 4
+projection_mode=synthetic_fixed_BF16_weights types=30,30,30 indexer=BF16 original_input=deterministic_FP32_Z checkpoint_provenance=not_supplied_cache_fingerprints_only
+direct QSA: SYNTHETIC HISTORY source=e646546-dirty compiler=16.2.1 20260810 driver=11040 gpu=Tesla M60 CUDA_VISIBLE_DEVICES=6 cubin=die.cubin fnv1a64=9abf8aafb9134d59
+visible=262000 steps=4 budget=512 hostKV=1 seed=4242 prefix_seeded_once=yes future_sentinels=yes current_mode=ORIGINAL_INPUT_PROJECTIONS projected_fnv=0000000000000000
+visible=262000 complete=65500 tail=0 selected=512 keys=2048 guarded_allocations=36 exclusion=yes EXACT
+visible=262001 complete=65500 tail=1 selected=512 keys=2049 guarded_allocations=36 exclusion=yes EXACT
+visible=262002 complete=65500 tail=2 selected=512 keys=2050 guarded_allocations=36 exclusion=yes EXACT
+visible=262003 complete=65500 tail=3 selected=512 keys=2051 guarded_allocations=36 exclusion=yes EXACT
+direct QSA PASS: 4 steps, 0 mismatching steps; synthetic cache fixture
+

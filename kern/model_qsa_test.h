@@ -13,6 +13,47 @@ static dn_bufs_t model_qdev[MAXD][MAXB];
 static model_qsa_t *model_qhost[MAXB];
 static CUdeviceptr model_trace[MAXD][MAXB];
 static float *model_href[MAXB];
+static unsigned model_capture_last;
+static int model_capture_full_scope;
+static int model_qsa_capture_mode = -1;
+static int model_qsa_capture_enabled(void) {
+    if (model_qsa_capture_mode < 0) {
+        const char *v = getenv("MODEL_CAPTURE_QSA");
+        if (!v || !*v || !strcmp(v, "0")) model_qsa_capture_mode = 0;
+        else if (!strcmp(v, "1")) model_qsa_capture_mode = 1;
+        else { fprintf(stderr, "MODEL_CAPTURE_QSA must be 0 or 1\n"); exit(2); }
+    }
+    return model_qsa_capture_mode;
+}
+static void model_qsa_capture_emit(int die, int layer, unsigned t, CUdeviceptr device_ids) {
+    int logical_die = attn_die_of(layer);
+    if (logical_die != die || logical_die < 0 || logical_die >= nd) {
+        fprintf(stderr, "MODEL_CAPTURE_QSA: invalid logical die for block %d\n", layer); exit(1);
+    }
+    size_t bytes = (size_t)model_budget * sizeof(uint32_t);
+    uint32_t *ids = malloc(bytes);
+    if (!ids) { fprintf(stderr, "MODEL_CAPTURE_QSA: selected-ID readback allocation failed\n"); exit(1); }
+    CUresult r = cuCtxSetCurrent(ctx[logical_die]);
+    if (r == CUDA_SUCCESS) r = cuMemcpyDtoH(ids, device_ids, bytes);
+    if (r != CUDA_SUCCESS) {
+        const char *s = "?"; cuGetErrorString(r, &s);
+        fprintf(stderr, "MODEL_CAPTURE_QSA: GPU selected-ID readback failed: %s\n", s);
+        free(ids); exit(1);
+    }
+    if (printf("{\"schema\":\"flash-sass.qsa-selected-blocks.v1\",\"source\":\"actual_model_gpu_readback\",\"visible_length\":%u,\"layer\":%d,\"logical_die\":%d,\"physical_die\":%d,\"FLASH_NBLK\":%u,\"selected_block_ids\":[",
+               t + 1, layer, logical_die, ar[logical_die].die, model_budget) < 0) {
+        fprintf(stderr, "MODEL_CAPTURE_QSA: JSON output failed\n"); free(ids); exit(1);
+    }
+    for (unsigned i = 0; i < model_budget; i++) {
+        if (printf("%s%u", i ? "," : "", (unsigned)ids[i]) < 0) {
+            fprintf(stderr, "MODEL_CAPTURE_QSA: JSON output failed\n"); free(ids); exit(1);
+        }
+    }
+    free(ids);
+    if (fputs("],\"full_model_scope\":true,\"selected_ids_match_scalar\":true}\n", stdout) == EOF || fflush(stdout) == EOF) {
+        fprintf(stderr, "MODEL_CAPTURE_QSA: JSON output failed\n"); exit(1);
+    }
+}
 static CUdeviceptr model_kv_alloc(size_t n) {
     if (!model_host) return dalloc(n);
     void *p; CUdeviceptr dev;
@@ -70,6 +111,7 @@ static void model_assert_program(const prog_t *P, int die, int b0, int b1) {
 static int model_qsa_compare(int die, int layer, unsigned t) {
     model_qsa_t *h = model_qhost[layer]; dn_bufs_t *q = &model_qdev[die][layer]; int bad = 0;
     unsigned nv = (t + 1) / 4, n = qsa_nkeys(t, model_budget);
+    int capture = model_qsa_capture_enabled();
 #define MC(name, ref, dev, bytes, unit) do { char label[80]; snprintf(label, sizeof label, "b%d.%s", layer, name); bad += cmpbuf(label, ref, dev, bytes, unit); } while (0)
     MC("kq", h->kq + (size_t)t * 512, q->kq + (size_t)t * 512, 512, 1);
     MC("vq", h->vq + (size_t)t * 512, q->vq + (size_t)t * 512, 512, 1);
@@ -88,7 +130,8 @@ static int model_qsa_compare(int die, int layer, unsigned t) {
     if (nv > model_budget) {
         MC("scores", h->score, q->sc, 4 * (size_t)nv, 4);
         char label[80]; snprintf(label, sizeof label, "b%d.selected_ids", layer);
-        bad += cmpbuf_control(label, h->sel, q->sel, 4 * model_budget, 4, "selection");
+        int selection_bad = cmpbuf_control(label, h->sel, q->sel, 4 * model_budget, 4, "selection");
+        bad += selection_bad;
     }
     float *kg = malloc(4 * model_kcf), *vg = malloc(4 * (size_t)n * 512);
     if (!kg || !vg) { fprintf(stderr, "gather comparison allocation failed\n"); exit(1); }
@@ -102,6 +145,8 @@ static int model_qsa_compare(int die, int layer, unsigned t) {
     MC("qo", h->qo, q->qo, sizeof h->qo, 4); MC("pm", h->pm, q->pm, sizeof h->pm, 4); MC("pd", h->pd, q->pd, sizeof h->pd, 4);
     MC("po", h->po, q->po, sizeof h->po, 4); MC("aout", h->aout, q->aout, sizeof h->aout, 4);
 #undef MC
+    if (capture && model_capture_full_scope && nv > model_budget && t == model_capture_last && bad == 0)
+        model_qsa_capture_emit(die, layer, t, q->sel);
     return bad;
 }
 static int model_compare_recurrent(int die, int layer, const split_t *s,

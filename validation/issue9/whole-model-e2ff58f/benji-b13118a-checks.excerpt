@@ -1,0 +1,31 @@
+Latest-master CPU and library checks
+====================================
+
+Source revision: b13118ad9bf81cd57dc78369b4c4b627627b6bdf
+Merged master: 98c176a80e82cd31736ed3165a134cfbbae45338
+Build host: benji (x86_64-unknown-linux-gnu)
+DSH build: build-1072753-1792561871441815452
+Temporary DSH build root: /tmp/fs9b-builds (used after the shared root rejected admission for a Cargo process in D state)
+
+Commands completed with exit 0:
+  make -C kern test-flashcore-prefill
+  make -f validation/issue9/Makefile oracle-check cpu-check oracle-fault-check engine-check
+  make -C kern libengine.so FLASH_REV=b13118a FLASH_BF16_PAIR_FUSE=1
+
+Results:
+  flashcore_prefill_test exited 0
+  17 oracle API checks passed
+  46 CPU boundary checks passed; cuInit was intercepted
+  12 oracle fault-runner fixtures passed; gpu_calls=0
+  20 engine configuration cases passed; config-parser-only, GPU not run
+  libengine.so compiled and linked for revision b13118a with pair fusion enabled
+
+The linker emitted existing -Wmaybe-uninitialized warnings in ref/quant.c and completed successfully.
+No model weights were loaded, no deep oracle was run, and no GPU validation is claimed.
+
+Short direct Benji CPU boundary check at the same source revision:
+  make -C kern checked_test
+  ./kern/checked_test
+Result: exit 0; `qsa_nkeys_checked` B512 positions 2050 and 2051 plus API/capacity/selected-gather checks passed.
+The compile emitted existing -Wmisleading-indentation warnings in checked_test.c and ref/checked.c.
+Binary SHA-256: ee555a31855e5a98599fd977ddcb965ae5c9f375893a87a100f7fd0c86df1852

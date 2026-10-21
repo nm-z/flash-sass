@@ -1,0 +1,8 @@
+cmp /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/fix36a-full-b1-t9/records.bin /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/fix36a-portable-b1-t9/records.bin
+cmp /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/fix36a-full-b1-t9/checkpoint.bin /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/fix36a-portable-b1-t9/checkpoint.bin
+cde924457c656f853c92d7c0a39a763c54cdd26c844e711e942993535663fe15  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/fix36a-full-b1-t9/records.bin
+cde924457c656f853c92d7c0a39a763c54cdd26c844e711e942993535663fe15  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/fix36a-portable-b1-t9/records.bin
+20bbe8d8ec0de21c9b9c8fba7edd5dc475d966c3d60c461afb94035e990637c8  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/fix36a-full-b1-t9/checkpoint.bin
+20bbe8d8ec0de21c9b9c8fba7edd5dc475d966c3d60c461afb94035e990637c8  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/fix36a-portable-b1-t9/checkpoint.bin
+dsh build: remote command finished build-4061563-1792504281619723007 status=0
+dsh build: phase: complete; phase elapsed 0s, total elapsed 12s

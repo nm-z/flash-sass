@@ -1,0 +1,169 @@
+cmp /home/nate/work/fs9-par/maxas-patch/MaxAsGrammar.pm /home/nate/work/fs9-maxas/lib/MaxAs/MaxAsGrammar.pm
+cmp /home/nate/work/fs9-par/maxas-patch/MaxAs.pm /home/nate/work/fs9-maxas/lib/MaxAs/MaxAs.pm
+cmp /home/nate/work/fs9-par/maxas-patch/Cubin.pm /home/nate/work/fs9-maxas/lib/MaxAs/Cubin.pm
+env --chdir=/home/nate/work/fs9-par sha256sum -c /home/nate/work/fs9-par/kern/issue9-kernel.sha256
+kern/die.cubin: OK
+kern/actq.sass: OK
+kern/allgather.sass: OK
+kern/amax.sass: OK
+kern/argmax.sass: OK
+kern/attnmerge.sass: OK
+kern/attnpart.sass: OK
+kern/attnpartn.sass: OK
+kern/attnqk.sass: OK
+kern/attnqkq.sass: OK
+kern/bartest.sass: OK
+kern/conv1d.sass: OK
+kern/dnnorm.sass: OK
+kern/dnstep.sass: OK
+kern/embrow.sass: OK
+kern/ffnact.sass: OK
+kern/fmath.sass: OK
+kern/gemv_b32.sass: OK
+kern/gemv_bf16.sass: OK
+kern/gemv_bf16_pair.sass: OK
+kern/gemv_iq4_xs.sass: OK
+kern/gemv_q2_0.sass: OK
+kern/gemv_q3_k.sass: OK
+kern/gemv_q4_k.sass: OK
+kern/gemv_q6_k.sass: OK
+kern/gridbar.sass: OK
+kern/hcops.sass: OK
+kern/idxqk.sass: OK
+kern/idxscore.sass: OK
+kern/idxsel.sass: OK
+kern/kvgather.sass: OK
+kern/mailbox.sass: OK
+kern/moesel.sass: OK
+kern/normq.sass: OK
+kern/pleconv.sass: OK
+kern/plegate.sass: OK
+kern/plerows.sass: OK
+kern/rmsnorm.sass: OK
+kern/router.sass: OK
+kern/sample.sass: OK
+kern/semtest.sass: OK
+kern/semtest2.sass: OK
+kern/semtest3.sass: OK
+kern/semtest4.sass: OK
+kern/sumn.sass: OK
+kern/topk.sass: OK
+kern/xchg.sass: OK
+kern/xcopy.sass: OK
+kern/xmadbench.sass: OK
+kern/die.pl: OK
+kern/trace.pl: OK
+kern/actq.pl: OK
+kern/fmath.pl: OK
+kern/die.ptx: OK
+maxas-patch/Cubin.pm: OK
+maxas-patch/MaxAs.pm: OK
+maxas-patch/MaxAsGrammar.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/MaxAsGrammar.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/MaxAs.pm: OK
+/home/nate/work/fs9-maxas/lib/MaxAs/Cubin.pm: OK
+git -C /home/nate/work/fs9-par rev-parse HEAD
+e2ff58ff1b0e956d61a1c93830c5f66210d27788
+git -C /home/nate/work/fs9-par status --short
+cc --version
+cc (GCC) 16.2.1 20260810
+Copyright (C) 2026 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+ldd /home/nate/work/fs9-par/kern/model_test
+	linux-vdso.so.1 (0x00007fcb2ae62000)
+	libcuda.so.1 => /usr/lib/libcuda.so.1 (0x00007fcb29600000)
+	libcrypto.so.3 => /usr/lib/libcrypto.so.3 (0x00007fcb29000000)
+	libm.so.6 => /usr/lib/libm.so.6 (0x00007fcb28ec9000)
+	libc.so.6 => /usr/lib/libc.so.6 (0x00007fcb28c00000)
+	libdl.so.2 => /usr/lib/libdl.so.2 (0x00007fcb2ada9000)
+	libpthread.so.0 => /usr/lib/libpthread.so.0 (0x00007fcb2ada4000)
+	librt.so.1 => /usr/lib/librt.so.1 (0x00007fcb2ad9f000)
+	libz.so.1 => /usr/lib/libz.so.1 (0x00007fcb2ad84000)
+	libbrotlienc.so.1 => /usr/lib/libbrotlienc.so.1 (0x00007fcb28b40000)
+	libbrotlidec.so.1 => /usr/lib/libbrotlidec.so.1 (0x00007fcb2ad75000)
+	libzstd.so.1 => /usr/lib/libzstd.so.1 (0x00007fcb28a5a000)
+	/lib64/ld-linux-x86-64.so.2 => /usr/lib64/ld-linux-x86-64.so.2 (0x00007fcb2ae64000)
+	libbrotlicommon.so.1 => /usr/lib/libbrotlicommon.so.1 (0x00007fcb2ad50000)
+sha256sum /usr/lib/libcuda.so.470.256.02
+6f379857a042713f8c4c28e689006b9143889c7a465044074d99a614a64e2fa2  /usr/lib/libcuda.so.470.256.02
+sha256sum /home/nate/work/fs9-par/kern/model_test /home/nate/work/fs9-par/kern/die.cubin /home/nate/work/fs9-par/kern/libengine.so
+3c0dafd512307c58091202472a0285e7f5a997bb58706eb39938fd032584832c  /home/nate/work/fs9-par/kern/model_test
+aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423  /home/nate/work/fs9-par/kern/die.cubin
+ad3b5654ca61739c3e509d5cc6622353f9093e6299bf0231eedb0c18360453e6  /home/nate/work/fs9-par/kern/libengine.so
+sha256sum /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256 /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+4d05f248b11edfe20155cc92f86bf870d28fb6d884e4403e5d02db9b359faf53  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new
+011a28a8823fe2d93e1c5d3185f4089e17ca91a690bf3d4776a2ba35bf09f90b  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256
+c9cb2f1cc450798da3db3ac5df0d938218c74502c6116a4c14f6ec0ff117f8c1  /tmp/hold-h0.manifest
+5408c30646de2fca082ad7e3f346bbede03ea48960cfe56d0580a93804ba8e2e  /tmp/hold-h1.manifest
+02812e1a990beb277512bf592d9c1f9aeca3308a2b216b9364761476cfaf2ca4  /tmp/hold-h2.manifest
+1d7e6cbee030ffb00ddb6c4f6a94ff74bd2f25089ed81a2f70fc43c1a0baf0ea  /tmp/hold-h3.manifest
+19104acec06a2ad29732153db8cde96cafd5483e956453439f63b5e3b6a73080  /tmp/hold-h4.manifest
+fe467498596fb3bd77665286511d567ffea851ceb768bd08ae0442e6546c9d4b  /tmp/hold-h5.manifest
+cat /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/checkpoints.sha256
+69820c02ec7d0b45ef2ebb19d6620299db749fe2aded7f39f93c6b88b199b720  /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+316b46f3a2dbd68c900f43136ab9449f9dcc3725dfd8c794847c204bc161e113  /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf
+nvidia-smi --query-gpu=index,uuid,name,driver_version,memory.free --format=csv
+index, uuid, name, driver_version, memory.free [MiB]
+0, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, Tesla M60, 470.256.02, 266 MiB
+1, GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, Tesla M60, 470.256.02, 248 MiB
+2, GPU-c767d250-4454-d181-d648-8706b5f2fb64, Tesla M60, 470.256.02, 220 MiB
+3, GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, Tesla M60, 470.256.02, 187 MiB
+4, GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, Tesla M60, 470.256.02, 238 MiB
+5, GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, Tesla M60, 470.256.02, 175 MiB
+6, GPU-431371bd-b482-96b2-4b70-04f83c6d075b, Tesla M60, 470.256.02, 7547 MiB
+7, GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4, Tesla M60, 470.256.02, 4626 MiB
+mkdir -p /home/nate/work/fs9-par/validation/issue9//bin
+env --chdir=/home/nate/work/fs9-par sha256sum kern/model_oracle.c kern/model_oracle.h kern/model_oracle_gpu.h kern/model_test.c kern/model_qsa_test.h kern/qsa_state.h kern/prog.c kern/prog.h kern/holdc.c kern/hold.h kern/dieops.h ref/attn.c ref/attn_contract_test.c ref/block.c ref/checked.c ref/deltanet.c ref/deqcheck.c ref/fmath.c ref/gguf.c ref/ggufhdr.c ref/hc.c ref/ple.c ref/qsa.c ref/quant.c ref/ref_test.c ref/router.c ref/sample.c ref/split.c ref/attn.h ref/block.h ref/checked.h ref/deltanet.h ref/fmath.h ref/gguf.h ref/hc.h ref/ple.h ref/qsa.h ref/quant.h ref/router.h ref/sample.h ref/split.h > /home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256
+sha256sum /home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256
+d9974e7d2b9d542ce3d13658c8660cf283930d7f6aa6ae67eb10a67f45a76f2b  /home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256
+sha256sum /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/ids.txt /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/receipt.bin
+a35a7a3114a37c2077d13a1ecdd9560c3edf324fa6be81cf1a1a95f9ecf9aa7e  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/ids.txt
+e3b6821bf962b5850471bf16db182ed06fee97af639ebbceb31b0a3b26a52ca9  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin
+1975b064107d9c80feea9e1d132e49720a41a7506583e6e9ad686f8438be1019  /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/receipt.bin
+env --chdir=/home/nate/work/fs9-par/kern -u MODEL_NOTWIN -u MODEL_NPH -u MODEL_INJECT -u MODEL_DUMP_S -u MODEL_DUMP_DIR -u MODEL_DUMP_TWIN MODEL_ATTN=qsa MODEL_IDS=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/ids.txt MODEL_PLE=/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf MODEL_PLE_OFF=192 MODEL_CAPTURE_QSA=1 FLASH_NBLK=1 FLASH_KV_HOST=1 SPLIT_SHARES=112,97,81,116,97,97 ATTN_MAP=1,1,1,1,4,4,4,4,5,5,5,5 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 MODEL_ORACLE_RECORDS=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/records.bin MODEL_ORACLE_RECEIPT=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-oracle/par-e2ff-b1-t9/receipt.bin MODEL_ORACLE_SOURCE_ROOT=/home/nate/work/fs9-par MODEL_ORACLE_SOURCE_MANIFEST=/home/nate/work/fs9-par/validation/issue9//bin/oracle-source.sha256 MODEL_ORACLE_SOURCE_REVISION=e2ff58ff1b0e956d61a1c93830c5f66210d27788 MODEL_ORACLE_TILE_MANIFEST=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/manifest.new MODEL_ORACLE_TILE_HASHES=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors.sha256 MODEL_ORACLE_CHECKPOINT_HASHES=/mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/checkpoints.sha256 MODEL_ORACLE_PRIMARY=/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf  ./model_test /mnt/stop-hook-hdd/stop-hook/flash-sass-issue9-cache-v3/tensors 0 48 9 eh /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+attention mode: qsa (production INT8 QSA; instruction-order twin)
+FLASH_NBLK=1 FLASH_KV_HOST=1; cache positions=128 compact positions=2080
+CPU oracle: 9 complete teacher-forced records; input seal checked without large-file hashing
+PLE table /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf mapped for the twin; 9 prompt positions x 16 rows staged for the GPU
+production embedding owner: die 0
+6 die(s), blocks [0, 48), embed, head, 9 tokens (9 prompt)
+  die 0 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 1 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+  die 2 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 3 asserted QSA opcodes and FLASH_NBLK=1 for 0 layer(s)
+  die 4 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+  die 5 asserted QSA opcodes and FLASH_NBLK=1 for 4 layer(s)
+{"position":0,"visible_length":1,"scalar_match":true}
+token   0: id     10 ->     18 1202 phases; oracle read 0.00 s, dies 26.048 ms  exact
+{"position":1,"visible_length":2,"scalar_match":true}
+token   1: id     11 ->    220 1202 phases; oracle read 0.00 s, dies 26.030 ms  exact
+{"position":2,"visible_length":3,"scalar_match":true}
+token   2: id     12 ->    198 1202 phases; oracle read 0.00 s, dies 25.966 ms  exact
+{"position":3,"visible_length":4,"scalar_match":true}
+token   3: id     13 ->    271 1202 phases; oracle read 0.00 s, dies 26.096 ms  exact
+{"position":4,"visible_length":5,"scalar_match":true}
+token   4: id     14 ->     15 1202 phases; oracle read 0.00 s, dies 26.075 ms  exact
+{"position":5,"visible_length":6,"scalar_match":true}
+token   5: id     15 ->     16 1202 phases; oracle read 0.00 s, dies 26.078 ms  exact
+{"position":6,"visible_length":7,"scalar_match":true}
+token   6: id     16 ->     17 1202 phases; oracle read 0.00 s, dies 26.071 ms  exact
+{"position":7,"visible_length":8,"scalar_match":true}
+token   7: id     17 ->     18 1202 phases; oracle read 0.00 s, dies 26.413 ms  exact
+{"position":8,"visible_length":9,"scalar_match":true}
+{"schema":"flash-sass.qsa-selected-blocks.v1","source":"actual_model_gpu_readback","visible_length":9,"layer":3,"logical_die":1,"physical_die":1,"FLASH_NBLK":1,"selected_block_ids":[0],"full_model_scope":true,"selected_ids_match_scalar":true}
+{"schema":"flash-sass.qsa-selected-blocks.v1","source":"actual_model_gpu_readback","visible_length":9,"layer":7,"logical_die":1,"physical_die":1,"FLASH_NBLK":1,"selected_block_ids":[0],"full_model_scope":true,"selected_ids_match_scalar":true}
+{"schema":"flash-sass.qsa-selected-blocks.v1","source":"actual_model_gpu_readback","visible_length":9,"layer":11,"logical_die":1,"physical_die":1,"FLASH_NBLK":1,"selected_block_ids":[0],"full_model_scope":true,"selected_ids_match_scalar":true}
+{"schema":"flash-sass.qsa-selected-blocks.v1","source":"actual_model_gpu_readback","visible_length":9,"layer":15,"logical_die":1,"physical_die":1,"FLASH_NBLK":1,"selected_block_ids":[0],"full_model_scope":true,"selected_ids_match_scalar":true}
+{"schema":"flash-sass.qsa-selected-blocks.v1","source":"actual_model_gpu_readback","visible_length":9,"layer":19,"logical_die":4,"physical_die":4,"FLASH_NBLK":1,"selected_block_ids":[0],"full_model_scope":true,"selected_ids_match_scalar":true}
+{"schema":"flash-sass.qsa-selected-blocks.v1","source":"actual_model_gpu_readback","visible_length":9,"layer":23,"logical_die":4,"physical_die":4,"FLASH_NBLK":1,"selected_block_ids":[0],"full_model_scope":true,"selected_ids_match_scalar":true}
+{"schema":"flash-sass.qsa-selected-blocks.v1","source":"actual_model_gpu_readback","visible_length":9,"layer":27,"logical_die":4,"physical_die":4,"FLASH_NBLK":1,"selected_block_ids":[0],"full_model_scope":true,"selected_ids_match_scalar":true}
+{"schema":"flash-sass.qsa-selected-blocks.v1","source":"actual_model_gpu_readback","visible_length":9,"layer":31,"logical_die":4,"physical_die":4,"FLASH_NBLK":1,"selected_block_ids":[0],"full_model_scope":true,"selected_ids_match_scalar":true}
+{"schema":"flash-sass.qsa-selected-blocks.v1","source":"actual_model_gpu_readback","visible_length":9,"layer":35,"logical_die":5,"physical_die":5,"FLASH_NBLK":1,"selected_block_ids":[0],"full_model_scope":true,"selected_ids_match_scalar":true}
+{"schema":"flash-sass.qsa-selected-blocks.v1","source":"actual_model_gpu_readback","visible_length":9,"layer":39,"logical_die":5,"physical_die":5,"FLASH_NBLK":1,"selected_block_ids":[0],"full_model_scope":true,"selected_ids_match_scalar":true}
+{"schema":"flash-sass.qsa-selected-blocks.v1","source":"actual_model_gpu_readback","visible_length":9,"layer":43,"logical_die":5,"physical_die":5,"FLASH_NBLK":1,"selected_block_ids":[0],"full_model_scope":true,"selected_ids_match_scalar":true}
+{"schema":"flash-sass.qsa-selected-blocks.v1","source":"actual_model_gpu_readback","visible_length":9,"layer":47,"logical_die":5,"physical_die":5,"FLASH_NBLK":1,"selected_block_ids":[0],"full_model_scope":true,"selected_ids_match_scalar":true}
+token   8: id     18 ->     19 1202 phases; oracle read 0.00 s, dies 26.490 ms  exact
+OK: 9 of 9 tokens exact; mean 26.141 ms per token
+
