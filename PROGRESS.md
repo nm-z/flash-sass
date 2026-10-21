@@ -2,7 +2,8 @@
 
 The requested full-model production path has been implemented and runtime
 verified at **499 phases/token on every one of six dies**. All48 layers and the
-output head execute; MTP and FP8 are disabled. Publication is being finalized.
+output head execute; MTP and FP8 are disabled. Implementation and evidence are
+published in draft PR #135; implementation commit `03c14eb`.
 
 Authoritative report: `validation/astra-2026-10-21/PHASE499.md`, with raw logs and
 job metadata under `validation/astra-2026-10-21/phase499/`. All runs remain in
