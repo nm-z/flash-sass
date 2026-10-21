@@ -46,10 +46,10 @@ complete the 2055-position oracle or the production-budget GPU matrix. See the
 [post-merge CPU check excerpt](benji-421a6df-checks.excerpt).
 
 A short local Benji run of `make -C kern checked_test` and
-`./kern/checked_test` also passes on `421a6df`. It exercises the checked QSA API
-at positions 2050 and 2051 for B512 and remains CPU-only. The compile emits
-existing misleading-indentation warnings; full output and source hashes are
-in the same excerpt.
+`./kern/checked_test` passes at both `421a6df` and current source `b13118a`. It
+exercises the checked QSA API at positions 2050 and 2051 for B512 and remains
+CPU-only. The compile emits existing misleading-indentation warnings; full
+output and source hashes are in the corresponding excerpts.
 
 After the subsequent master merge `98c176a` at branch revision
 `b13118ad9bf81cd57dc78369b4c4b627627b6bdf`, DSH build

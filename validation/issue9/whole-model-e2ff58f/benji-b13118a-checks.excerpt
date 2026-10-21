@@ -22,3 +22,10 @@ Results:
 
 The linker emitted existing -Wmaybe-uninitialized warnings in ref/quant.c and completed successfully.
 No model weights were loaded, no deep oracle was run, and no GPU validation is claimed.
+
+Short direct Benji CPU boundary check at the same source revision:
+  make -C kern checked_test
+  ./kern/checked_test
+Result: exit 0; `qsa_nkeys_checked` B512 positions 2050 and 2051 plus API/capacity/selected-gather checks passed.
+The compile emitted existing -Wmisleading-indentation warnings in checked_test.c and ref/checked.c.
+Binary SHA-256: ee555a31855e5a98599fd977ddcb965ae5c9f375893a87a100f7fd0c86df1852
