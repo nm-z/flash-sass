@@ -88,7 +88,10 @@ int main(int argc, char **argv) {
 		repack_q2_0(t->data, rows, K, tile);
 		double t2 = now();
 		float *y = malloc(sizeof(float) * rows), *yf = malloc(sizeof(float) * rows);
-		gemv_q2_0_ref(tile, rows, K, xq, sum32, as, y);
+		if (gemv_q2_0_ref(tile, rows, K, xq, sum32, as, y)) {
+			fprintf(stderr, "unsupported Q2_0 reference shape K=%d\n", K);
+			return 1;
+		}
 		double t3 = now();
 		gemv_q2_0_float(t->data, rows, K, xd, yf);
 		double maxrel = 0, maxabs = 0;

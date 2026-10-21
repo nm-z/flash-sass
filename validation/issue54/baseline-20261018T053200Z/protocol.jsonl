@@ -1,0 +1,1266 @@
+{"at":"2026-10-18T05:32:02.578954Z","direction":"frontend_or_collector_to_core","raw":"info\n"}
+{"at":"2026-10-18T05:32:02.579150Z","direction":"core_to_relay","raw":"info 230000 4096\n"}
+{"at":"2026-10-18T05:32:02.593108Z","direction":"frontend_or_collector_to_core","raw":"stop 248046 4294967295\n"}
+{"at":"2026-10-18T05:32:02.593249Z","direction":"core_to_relay","raw":"ok: stop 248046 -1\n"}
+{"at":"2026-10-18T05:32:02.593414Z","direction":"frontend_or_collector_to_core","raw":"sample 12621334060722953067 0 20 0.95\n"}
+{"at":"2026-10-18T05:32:02.593518Z","direction":"core_to_relay","raw":"ok: sample seed 12621334060722953067 temp 0 top_k 20 top_p 0.95 (greedy)\n"}
+{"at":"2026-10-18T05:32:02.593565Z","direction":"frontend_or_collector_to_core","raw":"snap 63\n"}
+{"at":"2026-10-18T05:32:02.593673Z","direction":"core_to_relay","raw":"ok: snap 63\n"}
+{"at":"2026-10-18T05:32:02.593799Z","direction":"frontend_or_collector_to_core","raw":"chat 39 248045 8678 198 24342 286 4879 369 716 310 830 11553 13 5044 1683 15060 1472 279 3274 11 9307 1328 30800 11 2814 47675 25605 11 321 60445 55404 11 27224 11 321 30246 303 279 1534 4087 13 248046 198 248045 846 198 3710 369 279 6511 314 9338 30 21134 303 799 3299 13 248046 198 248045 74455 198 248068 198\n"}
+{"at":"2026-10-18T05:32:09.191311Z","direction":"core_to_relay","raw":"tok 1596\n"}
+{"at":"2026-10-18T05:32:09.302107Z","direction":"core_to_relay","raw":"tok 1144\n"}
+{"at":"2026-10-18T05:32:09.427027Z","direction":"core_to_relay","raw":"tok 4087\n"}
+{"at":"2026-10-18T05:32:09.530552Z","direction":"core_to_relay","raw":"tok 1156\n"}
+{"at":"2026-10-18T05:32:09.648210Z","direction":"core_to_relay","raw":"tok 579\n"}
+{"at":"2026-10-18T05:32:09.762218Z","direction":"core_to_relay","raw":"tok 4145\n"}
+{"at":"2026-10-18T05:32:09.885842Z","direction":"core_to_relay","raw":"tok 3296\n"}
+{"at":"2026-10-18T05:32:09.997397Z","direction":"core_to_relay","raw":"tok 25\n"}
+{"at":"2026-10-18T05:32:10.103084Z","direction":"core_to_relay","raw":"tok 328\n"}
+{"at":"2026-10-18T05:32:10.212962Z","direction":"core_to_relay","raw":"tok 3710\n"}
+{"at":"2026-10-18T05:32:10.351213Z","direction":"core_to_relay","raw":"tok 369\n"}
+{"at":"2026-10-18T05:32:10.421170Z","direction":"core_to_relay","raw":"tok 279\n"}
+{"at":"2026-10-18T05:32:10.449010Z","direction":"core_to_relay","raw":"tok 6511\n"}
+{"at":"2026-10-18T05:32:10.476969Z","direction":"core_to_relay","raw":"tok 314\n"}
+{"at":"2026-10-18T05:32:10.504896Z","direction":"core_to_relay","raw":"tok 9338\n"}
+{"at":"2026-10-18T05:32:10.532949Z","direction":"core_to_relay","raw":"tok 30\n"}
+{"at":"2026-10-18T05:32:10.560917Z","direction":"core_to_relay","raw":"tok 21134\n"}
+{"at":"2026-10-18T05:32:10.588995Z","direction":"core_to_relay","raw":"tok 303\n"}
+{"at":"2026-10-18T05:32:10.617031Z","direction":"core_to_relay","raw":"tok 799\n"}
+{"at":"2026-10-18T05:32:10.645166Z","direction":"core_to_relay","raw":"tok 3299\n"}
+{"at":"2026-10-18T05:32:10.673036Z","direction":"core_to_relay","raw":"tok 1149\n"}
+{"at":"2026-10-18T05:32:10.797404Z","direction":"core_to_relay","raw":"tok 14235\n"}
+{"at":"2026-10-18T05:32:10.937893Z","direction":"core_to_relay","raw":"tok 1534\n"}
+{"at":"2026-10-18T05:32:11.094720Z","direction":"core_to_relay","raw":"tok 799\n"}
+{"at":"2026-10-18T05:32:11.202234Z","direction":"core_to_relay","raw":"tok 3299\n"}
+{"at":"2026-10-18T05:32:11.285121Z","direction":"core_to_relay","raw":"tok 13\n"}
+{"at":"2026-10-18T05:32:11.313000Z","direction":"core_to_relay","raw":"tok 28320\n"}
+{"at":"2026-10-18T05:32:11.416415Z","direction":"core_to_relay","raw":"tok 1132\n"}
+{"at":"2026-10-18T05:32:11.523227Z","direction":"core_to_relay","raw":"tok 799\n"}
+{"at":"2026-10-18T05:32:11.641033Z","direction":"core_to_relay","raw":"tok 3299\n"}
+{"at":"2026-10-18T05:32:11.703485Z","direction":"core_to_relay","raw":"tok 13\n"}
+{"at":"2026-10-18T05:32:11.731384Z","direction":"core_to_relay","raw":"tok 11751\n"}
+{"at":"2026-10-18T05:32:11.835787Z","direction":"core_to_relay","raw":"tok 13\n"}
+{"at":"2026-10-18T05:32:11.940312Z","direction":"core_to_relay","raw":"tok 198\n"}
+{"at":"2026-10-18T05:32:12.028014Z","direction":"core_to_relay","raw":"tok 248069\n"}
+{"at":"2026-10-18T05:32:12.134429Z","direction":"core_to_relay","raw":"tok 271\n"}
+{"at":"2026-10-18T05:32:12.211860Z","direction":"core_to_relay","raw":"tok 57590\n"}
+{"at":"2026-10-18T05:32:12.347793Z","direction":"core_to_relay","raw":"tok 248046\n"}
+{"at":"2026-10-18T05:32:12.348064Z","direction":"core_to_relay","raw":"done 38 1 64 9749.8 6593.2 0 63\n"}
+{"at":"2026-10-18T05:32:12.348248Z","direction":"frontend_or_collector_to_core","raw":"config\n"}
+{"at":"2026-10-18T05:32:12.348498Z","direction":"core_to_relay","raw":"config rev=edc66d9 kv_host=0 ple_disk=1 maxt=230000 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=4096 two_position=0 prefill_chunk=0 cubin=/home/nate/claude/flash-sass-live/kern/die.cubin cubin_fnv=669dbb2e43186b1a\n"}
+{"at":"2026-10-18T05:32:12.348823Z","direction":"frontend_or_collector_to_core","raw":"prof 0 all\n"}
+{"at":"2026-10-18T05:32:12.349213Z","direction":"core_to_relay","raw":"prof: 1154 phases, 135.94 ms between the first and last timestamp\n"}
+{"at":"2026-10-18T05:32:12.349271Z","direction":"core_to_relay","raw":"  plerows       1 phases  107896.8 us (107896.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.349313Z","direction":"core_to_relay","raw":"  actq256     146 phases    5052.4 us (  34.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.349401Z","direction":"core_to_relay","raw":"  hcwsum       48 phases    2416.6 us (  50.3 us each)\n"}
+{"at":"2026-10-18T05:32:12.349462Z","direction":"core_to_relay","raw":"  bf16hcup     97 phases    2412.5 us (  24.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.349526Z","direction":"core_to_relay","raw":"  bf16hcrwx    48 phases    1855.5 us (  38.7 us each)\n"}
+{"at":"2026-10-18T05:32:12.349571Z","direction":"core_to_relay","raw":"  q2moegn      96 phases    1738.8 us (  18.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.349619Z","direction":"core_to_relay","raw":"  q3kk2560     48 phases    1618.9 us (  33.7 us each)\n"}
+{"at":"2026-10-18T05:32:12.349673Z","direction":"core_to_relay","raw":"  bf16hcrx     49 phases    1551.4 us (  31.7 us each)\n"}
+{"at":"2026-10-18T05:32:12.349722Z","direction":"core_to_relay","raw":"  xsend       112 phases    1389.6 us (  12.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.349769Z","direction":"core_to_relay","raw":"  bf16k2560    49 phases    1353.7 us (  27.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.349813Z","direction":"core_to_relay","raw":"  router       48 phases    1162.2 us (  24.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.349855Z","direction":"core_to_relay","raw":"  q2moedn      48 phases    1003.5 us (  20.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.349901Z","direction":"core_to_relay","raw":"  iq4k2560     20 phases     776.2 us (  38.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.349943Z","direction":"core_to_relay","raw":"  q5kk2560      2 phases     690.2 us ( 345.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.349985Z","direction":"core_to_relay","raw":"  ffnact       48 phases     640.0 us (  13.3 us each)\n"}
+{"at":"2026-10-18T05:32:12.350028Z","direction":"core_to_relay","raw":"  dnstep       36 phases     619.5 us (  17.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.350074Z","direction":"core_to_relay","raw":"  dnnormx      36 phases     587.8 us (  16.3 us each)\n"}
+{"at":"2026-10-18T05:32:12.350117Z","direction":"core_to_relay","raw":"  iq4k6144     17 phases     566.3 us (  33.3 us each)\n"}
+{"at":"2026-10-18T05:32:12.350160Z","direction":"core_to_relay","raw":"  q4kk6144     15 phases     431.1 us (  28.7 us each)\n"}
+{"at":"2026-10-18T05:32:12.350204Z","direction":"core_to_relay","raw":"  moesel       48 phases     295.9 us (   6.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.350270Z","direction":"core_to_relay","raw":"  q5kk6144      7 phases     289.8 us (  41.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.350327Z","direction":"core_to_relay","raw":"  q4kk2560     10 phases     288.8 us (  28.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.350374Z","direction":"core_to_relay","raw":"  q6kk1536acc   18 phases     244.7 us (  13.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.350423Z","direction":"core_to_relay","raw":"  bf16bias     36 phases     239.6 us (   6.7 us each)\n"}
+{"at":"2026-10-18T05:32:12.350468Z","direction":"core_to_relay","raw":"  conv1d       36 phases     230.4 us (   6.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.350512Z","direction":"core_to_relay","raw":"  q2k2560      10 phases     148.5 us (  14.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.350558Z","direction":"core_to_relay","raw":"  q6kk1536      6 phases     112.6 us (  18.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.350602Z","direction":"core_to_relay","raw":"  q3kk6144      3 phases     106.5 us (  35.5 us each)\n"}
+{"at":"2026-10-18T05:32:12.350644Z","direction":"core_to_relay","raw":"  q2acc640      4 phases      61.4 us (  15.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.350691Z","direction":"core_to_relay","raw":"  b32q50acc     2 phases      54.3 us (  27.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.350737Z","direction":"core_to_relay","raw":"  b32q40acc     2 phases      38.9 us (  19.5 us each)\n"}
+{"at":"2026-10-18T05:32:12.350783Z","direction":"core_to_relay","raw":"  rms2560       3 phases      21.5 us (   7.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.350829Z","direction":"core_to_relay","raw":"  amax          1 phases      15.4 us (  15.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.350879Z","direction":"core_to_relay","raw":"  argmax        1 phases      11.3 us (  11.3 us each)\n"}
+{"at":"2026-10-18T05:32:12.350927Z","direction":"core_to_relay","raw":"  pleconv       1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.350970Z","direction":"core_to_relay","raw":"  plegate       1 phases       6.1 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.351016Z","direction":"core_to_relay","raw":"  longest: #29 plerows 107897 us; #1150 q5kk2560 666 us; #1132 actq256 370 us; #941 actq256 368 us; #750 actq256 366 us; #1035 actq256 358 us; #374 actq256 357 us; #468 actq256 356 us;\n"}
+{"at":"2026-10-18T05:32:12.351542Z","direction":"frontend_or_collector_to_core","raw":"prof 1 all\n"}
+{"at":"2026-10-18T05:32:12.351930Z","direction":"core_to_relay","raw":"prof: 1214 phases, 135.94 ms between the first and last timestamp\n"}
+{"at":"2026-10-18T05:32:12.351964Z","direction":"core_to_relay","raw":"  plerows       1 phases  107897.9 us (107897.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.352013Z","direction":"core_to_relay","raw":"  actq256     146 phases    3723.3 us (  25.5 us each)\n"}
+{"at":"2026-10-18T05:32:12.352063Z","direction":"core_to_relay","raw":"  hcwsum       48 phases    2866.2 us (  59.7 us each)\n"}
+{"at":"2026-10-18T05:32:12.352108Z","direction":"core_to_relay","raw":"  bf16hcup     97 phases    2529.3 us (  26.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.352155Z","direction":"core_to_relay","raw":"  bf16hcrwx    48 phases    1903.6 us (  39.7 us each)\n"}
+{"at":"2026-10-18T05:32:12.352201Z","direction":"core_to_relay","raw":"  q3kk2560     49 phases    1745.9 us (  35.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.352245Z","direction":"core_to_relay","raw":"  bf16hcrx     49 phases    1514.5 us (  30.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.352289Z","direction":"core_to_relay","raw":"  bf16k2560    53 phases    1484.8 us (  28.0 us each)\n"}
+{"at":"2026-10-18T05:32:12.352334Z","direction":"core_to_relay","raw":"  q2moegn      96 phases    1469.4 us (  15.3 us each)\n"}
+{"at":"2026-10-18T05:32:12.352378Z","direction":"core_to_relay","raw":"  xsend       111 phases    1413.1 us (  12.7 us each)\n"}
+{"at":"2026-10-18T05:32:12.352422Z","direction":"core_to_relay","raw":"  router       48 phases    1165.3 us (  24.3 us each)\n"}
+{"at":"2026-10-18T05:32:12.352469Z","direction":"core_to_relay","raw":"  iq4k2560     22 phases     923.6 us (  42.0 us each)\n"}
+{"at":"2026-10-18T05:32:12.352524Z","direction":"core_to_relay","raw":"  q2moedn      48 phases     847.9 us (  17.7 us each)\n"}
+{"at":"2026-10-18T05:32:12.352569Z","direction":"core_to_relay","raw":"  ffnact       48 phases     641.0 us (  13.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.352613Z","direction":"core_to_relay","raw":"  q5kk2560      4 phases     631.8 us ( 158.0 us each)\n"}
+{"at":"2026-10-18T05:32:12.352659Z","direction":"core_to_relay","raw":"  dnstep       36 phases     613.4 us (  17.0 us each)\n"}
+{"at":"2026-10-18T05:32:12.352707Z","direction":"core_to_relay","raw":"  dnnormx      36 phases     555.0 us (  15.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.352753Z","direction":"core_to_relay","raw":"  iq4k6144     17 phases     541.7 us (  31.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.352798Z","direction":"core_to_relay","raw":"  q4kk6144     15 phases     418.8 us (  27.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.352844Z","direction":"core_to_relay","raw":"  q2k2560      16 phases     371.7 us (  23.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.352891Z","direction":"core_to_relay","raw":"  q4kk2560     11 phases     310.3 us (  28.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.352935Z","direction":"core_to_relay","raw":"  moesel       48 phases     291.8 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.352978Z","direction":"core_to_relay","raw":"  q5kk6144      7 phases     281.6 us (  40.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.353022Z","direction":"core_to_relay","raw":"  bf16bias     36 phases     263.2 us (   7.3 us each)\n"}
+{"at":"2026-10-18T05:32:12.353071Z","direction":"core_to_relay","raw":"  attnpartn     4 phases     238.6 us (  59.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.353120Z","direction":"core_to_relay","raw":"  q6kk1536acc   18 phases     237.6 us (  13.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.353164Z","direction":"core_to_relay","raw":"  conv1d       36 phases     232.4 us (   6.5 us each)\n"}
+{"at":"2026-10-18T05:32:12.353207Z","direction":"core_to_relay","raw":"  q6kk1536      6 phases     108.5 us (  18.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.353250Z","direction":"core_to_relay","raw":"  amax          1 phases     105.5 us ( 105.5 us each)\n"}
+{"at":"2026-10-18T05:32:12.353292Z","direction":"core_to_relay","raw":"  q3kk6144      3 phases     104.4 us (  34.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.353335Z","direction":"core_to_relay","raw":"  idxsel       20 phases      87.0 us (   4.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.353379Z","direction":"core_to_relay","raw":"  kvgather      4 phases      82.9 us (  20.7 us each)\n"}
+{"at":"2026-10-18T05:32:12.353421Z","direction":"core_to_relay","raw":"  q2acc640      4 phases      63.5 us (  15.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.353464Z","direction":"core_to_relay","raw":"  b32q40acc     2 phases      41.0 us (  20.5 us each)\n"}
+{"at":"2026-10-18T05:32:12.353506Z","direction":"core_to_relay","raw":"  xcopy         1 phases      34.8 us (  34.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.353549Z","direction":"core_to_relay","raw":"  attnmerge     4 phases      32.8 us (   8.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.353618Z","direction":"core_to_relay","raw":"  attnqkq       4 phases      27.6 us (   6.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.353653Z","direction":"core_to_relay","raw":"  b32q50acc     1 phases      26.6 us (  26.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.353725Z","direction":"core_to_relay","raw":"  b32iq4nlacc    1 phases      23.6 us (  23.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.353774Z","direction":"core_to_relay","raw":"  idxqk         4 phases      22.5 us (   5.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.353817Z","direction":"core_to_relay","raw":"  rms2560       3 phases      22.5 us (   7.5 us each)\n"}
+{"at":"2026-10-18T05:32:12.353861Z","direction":"core_to_relay","raw":"  idxscore      4 phases      17.4 us (   4.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.353904Z","direction":"core_to_relay","raw":"  argmax        1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.353950Z","direction":"core_to_relay","raw":"  pleconv       1 phases       9.2 us (   9.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.353993Z","direction":"core_to_relay","raw":"  plegate       1 phases       5.1 us (   5.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.354039Z","direction":"core_to_relay","raw":"  longest: #26 plerows 107898 us; #1210 q5kk2560 579 us; #1192 actq256 370 us; #1001 actq256 368 us; #807 actq256 366 us; #1092 actq256 358 us; #525 actq256 355 us; #713 actq256 355 us;\n"}
+{"at":"2026-10-18T05:32:12.354585Z","direction":"frontend_or_collector_to_core","raw":"prof 2 all\n"}
+{"at":"2026-10-18T05:32:12.354867Z","direction":"core_to_relay","raw":"prof: 1154 phases, 135.94 ms between the first and last timestamp\n"}
+{"at":"2026-10-18T05:32:12.354899Z","direction":"core_to_relay","raw":"  plerows       1 phases  107894.8 us (107894.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.354948Z","direction":"core_to_relay","raw":"  actq256     146 phases    5942.3 us (  40.7 us each)\n"}
+{"at":"2026-10-18T05:32:12.354998Z","direction":"core_to_relay","raw":"  hcwsum       48 phases    3184.6 us (  66.3 us each)\n"}
+{"at":"2026-10-18T05:32:12.355059Z","direction":"core_to_relay","raw":"  bf16hcup     97 phases    2220.0 us (  22.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.355110Z","direction":"core_to_relay","raw":"  bf16hcrwx    48 phases    2188.3 us (  45.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.355156Z","direction":"core_to_relay","raw":"  q3kk2560     50 phases    1507.3 us (  30.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.355199Z","direction":"core_to_relay","raw":"  bf16hcrx     49 phases    1476.6 us (  30.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.355239Z","direction":"core_to_relay","raw":"  bf16k2560    49 phases    1356.8 us (  27.7 us each)\n"}
+{"at":"2026-10-18T05:32:12.355279Z","direction":"core_to_relay","raw":"  q2moegn      96 phases    1306.6 us (  13.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.355320Z","direction":"core_to_relay","raw":"  router       48 phases    1146.9 us (  23.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.355360Z","direction":"core_to_relay","raw":"  xsend       111 phases    1132.5 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.355400Z","direction":"core_to_relay","raw":"  q2moedn      48 phases     743.4 us (  15.5 us each)\n"}
+{"at":"2026-10-18T05:32:12.355439Z","direction":"core_to_relay","raw":"  iq4k2560     19 phases     705.5 us (  37.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.355480Z","direction":"core_to_relay","raw":"  ffnact       48 phases     639.0 us (  13.3 us each)\n"}
+{"at":"2026-10-18T05:32:12.355523Z","direction":"core_to_relay","raw":"  dnstep       36 phases     596.0 us (  16.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.355569Z","direction":"core_to_relay","raw":"  q5kk2560      1 phases     482.3 us ( 482.3 us each)\n"}
+{"at":"2026-10-18T05:32:12.355614Z","direction":"core_to_relay","raw":"  iq4k6144     17 phases     474.1 us (  27.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.355653Z","direction":"core_to_relay","raw":"  q4kk6144     15 phases     370.7 us (  24.7 us each)\n"}
+{"at":"2026-10-18T05:32:12.355694Z","direction":"core_to_relay","raw":"  dnnormx      36 phases     295.9 us (   8.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.355734Z","direction":"core_to_relay","raw":"  moesel       48 phases     290.8 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.355777Z","direction":"core_to_relay","raw":"  q5kk6144      7 phases     247.8 us (  35.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.355816Z","direction":"core_to_relay","raw":"  q4kk2560      8 phases     245.8 us (  30.7 us each)\n"}
+{"at":"2026-10-18T05:32:12.355856Z","direction":"core_to_relay","raw":"  bf16bias     36 phases     229.4 us (   6.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.355896Z","direction":"core_to_relay","raw":"  q6kk1536acc   18 phases     226.3 us (  12.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.355935Z","direction":"core_to_relay","raw":"  conv1d       36 phases     208.9 us (   5.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.356006Z","direction":"core_to_relay","raw":"  amax          1 phases     202.8 us ( 202.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.356051Z","direction":"core_to_relay","raw":"  q2k2560      12 phases     158.7 us (  13.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.356094Z","direction":"core_to_relay","raw":"  q6kk1536      6 phases     105.5 us (  17.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.356134Z","direction":"core_to_relay","raw":"  q3kk6144      3 phases      89.1 us (  29.7 us each)\n"}
+{"at":"2026-10-18T05:32:12.356177Z","direction":"core_to_relay","raw":"  b32q40acc     3 phases      58.4 us (  19.5 us each)\n"}
+{"at":"2026-10-18T05:32:12.356219Z","direction":"core_to_relay","raw":"  b32iq4nlacc    2 phases      47.1 us (  23.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.356259Z","direction":"core_to_relay","raw":"  xcopy         1 phases      34.8 us (  34.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.356299Z","direction":"core_to_relay","raw":"  rms2560       3 phases      26.6 us (   8.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.356339Z","direction":"core_to_relay","raw":"  b32q50acc     1 phases      26.6 us (  26.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.356379Z","direction":"core_to_relay","raw":"  b32q80acc     1 phases      25.6 us (  25.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.356418Z","direction":"core_to_relay","raw":"  q2acc640      1 phases      16.4 us (  16.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.356458Z","direction":"core_to_relay","raw":"  plegate       1 phases      14.3 us (  14.3 us each)\n"}
+{"at":"2026-10-18T05:32:12.356510Z","direction":"core_to_relay","raw":"  pleconv       1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.356555Z","direction":"core_to_relay","raw":"  argmax        1 phases       9.2 us (   9.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.356613Z","direction":"core_to_relay","raw":"  longest: #26 plerows 107895 us; #1150 q5kk2560 482 us; #1132 actq256 371 us; #747 actq256 367 us; #941 actq256 367 us; #1032 actq256 358 us; #374 actq256 357 us; #465 actq256 355 us;\n"}
+{"at":"2026-10-18T05:32:12.357437Z","direction":"frontend_or_collector_to_core","raw":"prof 3 all\n"}
+{"at":"2026-10-18T05:32:12.357717Z","direction":"core_to_relay","raw":"prof: 1154 phases, 135.94 ms between the first and last timestamp\n"}
+{"at":"2026-10-18T05:32:12.357749Z","direction":"core_to_relay","raw":"  plerows       1 phases  107895.8 us (107895.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.357807Z","direction":"core_to_relay","raw":"  actq256     146 phases    4960.3 us (  34.0 us each)\n"}
+{"at":"2026-10-18T05:32:12.357852Z","direction":"core_to_relay","raw":"  bf16hcup     97 phases    2482.2 us (  25.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.357894Z","direction":"core_to_relay","raw":"  hcwsum       48 phases    2452.5 us (  51.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.357941Z","direction":"core_to_relay","raw":"  bf16hcrwx    48 phases    1879.0 us (  39.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.357984Z","direction":"core_to_relay","raw":"  q2moegn      96 phases    1798.1 us (  18.7 us each)\n"}
+{"at":"2026-10-18T05:32:12.358030Z","direction":"core_to_relay","raw":"  q3kk2560     50 phases    1785.9 us (  35.7 us each)\n"}
+{"at":"2026-10-18T05:32:12.358073Z","direction":"core_to_relay","raw":"  bf16hcrx     49 phases    1531.9 us (  31.3 us each)\n"}
+{"at":"2026-10-18T05:32:12.358114Z","direction":"core_to_relay","raw":"  bf16k2560    49 phases    1348.6 us (  27.5 us each)\n"}
+{"at":"2026-10-18T05:32:12.358158Z","direction":"core_to_relay","raw":"  xsend       111 phases    1261.6 us (  11.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.358197Z","direction":"core_to_relay","raw":"  router       48 phases    1141.8 us (  23.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.358236Z","direction":"core_to_relay","raw":"  q2moedn      48 phases    1033.2 us (  21.5 us each)\n"}
+{"at":"2026-10-18T05:32:12.358275Z","direction":"core_to_relay","raw":"  iq4k2560     19 phases     811.0 us (  42.7 us each)\n"}
+{"at":"2026-10-18T05:32:12.358314Z","direction":"core_to_relay","raw":"  q5kk2560      1 phases     675.8 us ( 675.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.358354Z","direction":"core_to_relay","raw":"  ffnact       48 phases     638.0 us (  13.3 us each)\n"}
+{"at":"2026-10-18T05:32:12.358397Z","direction":"core_to_relay","raw":"  dnstep       36 phases     630.8 us (  17.5 us each)\n"}
+{"at":"2026-10-18T05:32:12.358437Z","direction":"core_to_relay","raw":"  iq4k6144     17 phases     562.2 us (  33.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.358482Z","direction":"core_to_relay","raw":"  q4kk6144     15 phases     433.2 us (  28.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.358524Z","direction":"core_to_relay","raw":"  dnnormx      36 phases     429.1 us (  11.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.358565Z","direction":"core_to_relay","raw":"  q5kk6144      7 phases     289.8 us (  41.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.358608Z","direction":"core_to_relay","raw":"  moesel       48 phases     286.7 us (   6.0 us each)\n"}
+{"at":"2026-10-18T05:32:12.358649Z","direction":"core_to_relay","raw":"  q4kk2560      8 phases     279.6 us (  34.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.358690Z","direction":"core_to_relay","raw":"  q6kk1536acc   18 phases     245.8 us (  13.7 us each)\n"}
+{"at":"2026-10-18T05:32:12.358729Z","direction":"core_to_relay","raw":"  bf16bias     36 phases     220.2 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.358768Z","direction":"core_to_relay","raw":"  conv1d       36 phases     215.0 us (   6.0 us each)\n"}
+{"at":"2026-10-18T05:32:12.358807Z","direction":"core_to_relay","raw":"  q2k2560      12 phases     179.2 us (  14.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.358846Z","direction":"core_to_relay","raw":"  q6kk1536      6 phases     111.6 us (  18.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.358886Z","direction":"core_to_relay","raw":"  q3kk6144      3 phases     105.5 us (  35.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.358925Z","direction":"core_to_relay","raw":"  b32q50acc     2 phases      53.2 us (  26.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.358964Z","direction":"core_to_relay","raw":"  q2acc640      3 phases      49.2 us (  16.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.359004Z","direction":"core_to_relay","raw":"  b32q40acc     2 phases      37.9 us (  18.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.359044Z","direction":"core_to_relay","raw":"  xcopy         1 phases      34.8 us (  34.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.359082Z","direction":"core_to_relay","raw":"  b32iq4nlacc    1 phases      22.5 us (  22.5 us each)\n"}
+{"at":"2026-10-18T05:32:12.359122Z","direction":"core_to_relay","raw":"  rms2560       3 phases      21.5 us (   7.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.359161Z","direction":"core_to_relay","raw":"  argmax        1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.359200Z","direction":"core_to_relay","raw":"  pleconv       1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.359239Z","direction":"core_to_relay","raw":"  plegate       1 phases       7.2 us (   7.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.359277Z","direction":"core_to_relay","raw":"  amax          1 phases       6.1 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.359317Z","direction":"core_to_relay","raw":"  longest: #26 plerows 107896 us; #1150 q5kk2560 676 us; #1132 actq256 370 us; #938 actq256 368 us; #747 actq256 366 us; #371 actq256 357 us; #1032 actq256 357 us; #465 actq256 355 us;\n"}
+{"at":"2026-10-18T05:32:12.359904Z","direction":"frontend_or_collector_to_core","raw":"prof 4 all\n"}
+{"at":"2026-10-18T05:32:12.360315Z","direction":"core_to_relay","raw":"prof: 1214 phases, 135.94 ms between the first and last timestamp\n"}
+{"at":"2026-10-18T05:32:12.360350Z","direction":"core_to_relay","raw":"  plerows       1 phases  107895.8 us (107895.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.360400Z","direction":"core_to_relay","raw":"  actq256     146 phases    3625.0 us (  24.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.360444Z","direction":"core_to_relay","raw":"  hcwsum       48 phases    2609.2 us (  54.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.360489Z","direction":"core_to_relay","raw":"  bf16hcup     97 phases    2480.1 us (  25.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.360536Z","direction":"core_to_relay","raw":"  q3kk2560     53 phases    2069.5 us (  39.0 us each)\n"}
+{"at":"2026-10-18T05:32:12.360577Z","direction":"core_to_relay","raw":"  bf16hcrwx    48 phases    1891.3 us (  39.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.360617Z","direction":"core_to_relay","raw":"  q2moegn      96 phases    1640.4 us (  17.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.360661Z","direction":"core_to_relay","raw":"  bf16hcrx     49 phases    1520.6 us (  31.0 us each)\n"}
+{"at":"2026-10-18T05:32:12.360704Z","direction":"core_to_relay","raw":"  bf16k2560    53 phases    1496.1 us (  28.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.360748Z","direction":"core_to_relay","raw":"  xsend       111 phases    1372.2 us (  12.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.360789Z","direction":"core_to_relay","raw":"  router       48 phases    1154.0 us (  24.0 us each)\n"}
+{"at":"2026-10-18T05:32:12.360832Z","direction":"core_to_relay","raw":"  q2moedn      48 phases     952.3 us (  19.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.360871Z","direction":"core_to_relay","raw":"  iq4k2560     22 phases     910.3 us (  41.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.360910Z","direction":"core_to_relay","raw":"  ffnact       48 phases     638.0 us (  13.3 us each)\n"}
+{"at":"2026-10-18T05:32:12.360950Z","direction":"core_to_relay","raw":"  dnstep       36 phases     618.5 us (  17.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.360989Z","direction":"core_to_relay","raw":"  q5kk2560      2 phases     590.8 us ( 295.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.361029Z","direction":"core_to_relay","raw":"  dnnormx      36 phases     587.8 us (  16.3 us each)\n"}
+{"at":"2026-10-18T05:32:12.361069Z","direction":"core_to_relay","raw":"  iq4k6144     17 phases     541.7 us (  31.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.361108Z","direction":"core_to_relay","raw":"  q4kk6144     15 phases     413.7 us (  27.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.361148Z","direction":"core_to_relay","raw":"  q4kk2560     12 phases     312.3 us (  26.0 us each)\n"}
+{"at":"2026-10-18T05:32:12.361188Z","direction":"core_to_relay","raw":"  moesel       48 phases     293.9 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.361227Z","direction":"core_to_relay","raw":"  q5kk6144      7 phases     281.6 us (  40.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.361269Z","direction":"core_to_relay","raw":"  bf16bias     36 phases     280.6 us (   7.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.361324Z","direction":"core_to_relay","raw":"  attnpartn     4 phases     237.6 us (  59.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.361370Z","direction":"core_to_relay","raw":"  q6kk1536acc   18 phases     236.5 us (  13.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.361412Z","direction":"core_to_relay","raw":"  conv1d       36 phases     235.5 us (   6.5 us each)\n"}
+{"at":"2026-10-18T05:32:12.361451Z","direction":"core_to_relay","raw":"  q2k2560      11 phases     160.8 us (  14.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.361490Z","direction":"core_to_relay","raw":"  amax          1 phases     111.6 us ( 111.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.361531Z","direction":"core_to_relay","raw":"  q6kk1536      6 phases     107.5 us (  17.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.361571Z","direction":"core_to_relay","raw":"  q3kk6144      3 phases     103.4 us (  34.5 us each)\n"}
+{"at":"2026-10-18T05:32:12.361610Z","direction":"core_to_relay","raw":"  idxsel       20 phases      89.1 us (   4.5 us each)\n"}
+{"at":"2026-10-18T05:32:12.361649Z","direction":"core_to_relay","raw":"  kvgather      4 phases      81.9 us (  20.5 us each)\n"}
+{"at":"2026-10-18T05:32:12.361688Z","direction":"core_to_relay","raw":"  b32q40acc     4 phases      79.9 us (  20.0 us each)\n"}
+{"at":"2026-10-18T05:32:12.361727Z","direction":"core_to_relay","raw":"  q6kk2560      2 phases      55.3 us (  27.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.361767Z","direction":"core_to_relay","raw":"  b32iq4nlacc    2 phases      47.1 us (  23.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.361807Z","direction":"core_to_relay","raw":"  xcopy         1 phases      34.8 us (  34.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.361859Z","direction":"core_to_relay","raw":"  attnmerge     4 phases      32.8 us (   8.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.361905Z","direction":"core_to_relay","raw":"  q2acc640      2 phases      31.7 us (  15.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.361945Z","direction":"core_to_relay","raw":"  attnqkq       4 phases      25.6 us (   6.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.361997Z","direction":"core_to_relay","raw":"  idxqk         4 phases      24.6 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.362042Z","direction":"core_to_relay","raw":"  rms2560       3 phases      22.5 us (   7.5 us each)\n"}
+{"at":"2026-10-18T05:32:12.362085Z","direction":"core_to_relay","raw":"  idxscore      4 phases      16.4 us (   4.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.362127Z","direction":"core_to_relay","raw":"  argmax        1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.362169Z","direction":"core_to_relay","raw":"  pleconv       1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.362211Z","direction":"core_to_relay","raw":"  plegate       1 phases       7.2 us (   7.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.362253Z","direction":"core_to_relay","raw":"  longest: #26 plerows 107896 us; #1210 q5kk2560 571 us; #1192 actq256 369 us; #998 actq256 367 us; #371 actq256 358 us; #1092 actq256 357 us; #904 actq256 352 us; #277 actq256 349 us;\n"}
+{"at":"2026-10-18T05:32:12.363680Z","direction":"frontend_or_collector_to_core","raw":"prof 5 all\n"}
+{"at":"2026-10-18T05:32:12.363986Z","direction":"core_to_relay","raw":"prof: 1214 phases, 135.94 ms between the first and last timestamp\n"}
+{"at":"2026-10-18T05:32:12.364018Z","direction":"core_to_relay","raw":"  plerows       1 phases  107894.8 us (107894.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.364451Z","direction":"core_to_relay","raw":"  actq256     146 phases    3605.5 us (  24.7 us each)\n"}
+{"at":"2026-10-18T05:32:12.364509Z","direction":"core_to_relay","raw":"  bf16hcup     97 phases    2496.5 us (  25.7 us each)\n"}
+{"at":"2026-10-18T05:32:12.364556Z","direction":"core_to_relay","raw":"  hcwsum       48 phases    2365.4 us (  49.3 us each)\n"}
+{"at":"2026-10-18T05:32:12.364600Z","direction":"core_to_relay","raw":"  bf16hcrwx    48 phases    1901.6 us (  39.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.364646Z","direction":"core_to_relay","raw":"  q3kk2560     52 phases    1885.2 us (  36.3 us each)\n"}
+{"at":"2026-10-18T05:32:12.364686Z","direction":"core_to_relay","raw":"  q2moegn      96 phases    1801.2 us (  18.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.364730Z","direction":"core_to_relay","raw":"  bf16hcrx     49 phases    1522.7 us (  31.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.364770Z","direction":"core_to_relay","raw":"  bf16k2560    53 phases    1482.8 us (  28.0 us each)\n"}
+{"at":"2026-10-18T05:32:12.364811Z","direction":"core_to_relay","raw":"  xsend       111 phases    1367.0 us (  12.3 us each)\n"}
+{"at":"2026-10-18T05:32:12.364854Z","direction":"core_to_relay","raw":"  router       48 phases    1148.9 us (  23.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.364907Z","direction":"core_to_relay","raw":"  q2moedn      48 phases    1061.9 us (  22.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.364953Z","direction":"core_to_relay","raw":"  iq4k2560     22 phases    1054.7 us (  47.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.364996Z","direction":"core_to_relay","raw":"  ffnact       48 phases     645.1 us (  13.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.365036Z","direction":"core_to_relay","raw":"  q5kk2560      4 phases     630.8 us ( 157.7 us each)\n"}
+{"at":"2026-10-18T05:32:12.365091Z","direction":"core_to_relay","raw":"  dnstep       36 phases     619.5 us (  17.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.365130Z","direction":"core_to_relay","raw":"  dnnormx      36 phases     584.7 us (  16.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.365169Z","direction":"core_to_relay","raw":"  iq4k6144     17 phases     535.6 us (  31.5 us each)\n"}
+{"at":"2026-10-18T05:32:12.365208Z","direction":"core_to_relay","raw":"  q4kk6144     15 phases     416.8 us (  27.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.365261Z","direction":"core_to_relay","raw":"  moesel       48 phases     288.8 us (   6.0 us each)\n"}
+{"at":"2026-10-18T05:32:12.365306Z","direction":"core_to_relay","raw":"  q4kk2560      9 phases     280.6 us (  31.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.365351Z","direction":"core_to_relay","raw":"  q5kk6144      7 phases     279.6 us (  39.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.365393Z","direction":"core_to_relay","raw":"  bf16bias     36 phases     265.2 us (   7.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.365435Z","direction":"core_to_relay","raw":"  q6kk1536acc   18 phases     238.6 us (  13.3 us each)\n"}
+{"at":"2026-10-18T05:32:12.365474Z","direction":"core_to_relay","raw":"  attnpartn     4 phases     237.6 us (  59.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.365513Z","direction":"core_to_relay","raw":"  conv1d       36 phases     229.4 us (   6.4 us each)\n"}
+{"at":"2026-10-18T05:32:12.365552Z","direction":"core_to_relay","raw":"  q2k2560      11 phases     163.8 us (  14.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.365590Z","direction":"core_to_relay","raw":"  amax          1 phases     112.6 us ( 112.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.365629Z","direction":"core_to_relay","raw":"  q6kk1536      6 phases     107.5 us (  17.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.366128Z","direction":"core_to_relay","raw":"  q3kk6144      3 phases     103.4 us (  34.5 us each)\n"}
+{"at":"2026-10-18T05:32:12.366182Z","direction":"core_to_relay","raw":"  q6kk2560      4 phases      91.1 us (  22.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.366225Z","direction":"core_to_relay","raw":"  idxsel       20 phases      89.1 us (   4.5 us each)\n"}
+{"at":"2026-10-18T05:32:12.366265Z","direction":"core_to_relay","raw":"  kvgather      4 phases      81.9 us (  20.5 us each)\n"}
+{"at":"2026-10-18T05:32:12.366318Z","direction":"core_to_relay","raw":"  b32q40acc     3 phases      58.4 us (  19.5 us each)\n"}
+{"at":"2026-10-18T05:32:12.366361Z","direction":"core_to_relay","raw":"  xcopy         1 phases      34.8 us (  34.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.366400Z","direction":"core_to_relay","raw":"  attnmerge     4 phases      32.8 us (   8.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.366439Z","direction":"core_to_relay","raw":"  q2acc640      2 phases      29.7 us (  14.8 us each)\n"}
+{"at":"2026-10-18T05:32:12.366478Z","direction":"core_to_relay","raw":"  attnqkq       4 phases      27.6 us (   6.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.366516Z","direction":"core_to_relay","raw":"  b32q50acc     1 phases      26.6 us (  26.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.366568Z","direction":"core_to_relay","raw":"  b32q80acc     1 phases      24.6 us (  24.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.366614Z","direction":"core_to_relay","raw":"  b32iq4nlacc    1 phases      23.6 us (  23.6 us each)\n"}
+{"at":"2026-10-18T05:32:12.366656Z","direction":"core_to_relay","raw":"  idxqk         4 phases      23.6 us (   5.9 us each)\n"}
+{"at":"2026-10-18T05:32:12.366694Z","direction":"core_to_relay","raw":"  rms2560       3 phases      21.5 us (   7.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.366747Z","direction":"core_to_relay","raw":"  idxscore      4 phases      16.4 us (   4.1 us each)\n"}
+{"at":"2026-10-18T05:32:12.366810Z","direction":"core_to_relay","raw":"  argmax        1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.366876Z","direction":"core_to_relay","raw":"  pleconv       1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.366957Z","direction":"core_to_relay","raw":"  plegate       1 phases       7.2 us (   7.2 us each)\n"}
+{"at":"2026-10-18T05:32:12.367016Z","direction":"core_to_relay","raw":"  longest: #26 plerows 107895 us; #1210 q5kk2560 571 us; #747 actq256 366 us; #371 actq256 358 us; #465 actq256 355 us; #650 actq256 355 us; #556 actq256 352 us; #274 actq256 348 us;\n"}
+{"at":"2026-10-18T05:32:12.371482Z","direction":"frontend_or_collector_to_core","raw":"stop 248046 4294967295\n"}
+{"at":"2026-10-18T05:32:12.371631Z","direction":"core_to_relay","raw":"ok: stop 248046 -1\n"}
+{"at":"2026-10-18T05:32:12.371881Z","direction":"frontend_or_collector_to_core","raw":"sample 15947659491400713645 0 20 0.95\n"}
+{"at":"2026-10-18T05:32:12.372671Z","direction":"core_to_relay","raw":"ok: sample seed 15947659491400713645 temp 0 top_k 20 top_p 0.95 (greedy)\n"}
+{"at":"2026-10-18T05:32:12.372809Z","direction":"frontend_or_collector_to_core","raw":"snap 63\n"}
+{"at":"2026-10-18T05:32:12.373472Z","direction":"core_to_relay","raw":"ok: snap 63\n"}
+{"at":"2026-10-18T05:32:12.373642Z","direction":"frontend_or_collector_to_core","raw":"chat 39 248045 8678 198 24342 286 4879 369 716 310 830 11553 13 5044 1683 15060 1472 279 3274 11 9307 1328 30800 11 2814 47675 25605 11 321 60445 55404 11 27224 11 321 30246 303 279 1534 4087 13 248046 198 248045 846 198 3710 369 279 6511 314 9338 30 21134 303 799 3299 13 248046 198 248045 74455 198 248068 198\n"}
+{"at":"2026-10-18T05:32:12.404738Z","direction":"core_to_relay","raw":"tok 1596\n"}
+{"at":"2026-10-18T05:32:12.432554Z","direction":"core_to_relay","raw":"tok 1144\n"}
+{"at":"2026-10-18T05:32:12.460433Z","direction":"core_to_relay","raw":"tok 4087\n"}
+{"at":"2026-10-18T05:32:12.488354Z","direction":"core_to_relay","raw":"tok 1156\n"}
+{"at":"2026-10-18T05:32:12.516175Z","direction":"core_to_relay","raw":"tok 579\n"}
+{"at":"2026-10-18T05:32:12.544029Z","direction":"core_to_relay","raw":"tok 4145\n"}
+{"at":"2026-10-18T05:32:12.571923Z","direction":"core_to_relay","raw":"tok 3296\n"}
+{"at":"2026-10-18T05:32:12.599732Z","direction":"core_to_relay","raw":"tok 25\n"}
+{"at":"2026-10-18T05:32:12.627776Z","direction":"core_to_relay","raw":"tok 328\n"}
+{"at":"2026-10-18T05:32:12.655708Z","direction":"core_to_relay","raw":"tok 3710\n"}
+{"at":"2026-10-18T05:32:12.683719Z","direction":"core_to_relay","raw":"tok 369\n"}
+{"at":"2026-10-18T05:32:12.711674Z","direction":"core_to_relay","raw":"tok 279\n"}
+{"at":"2026-10-18T05:32:12.739510Z","direction":"core_to_relay","raw":"tok 6511\n"}
+{"at":"2026-10-18T05:32:12.767490Z","direction":"core_to_relay","raw":"tok 314\n"}
+{"at":"2026-10-18T05:32:12.795413Z","direction":"core_to_relay","raw":"tok 9338\n"}
+{"at":"2026-10-18T05:32:12.823417Z","direction":"core_to_relay","raw":"tok 30\n"}
+{"at":"2026-10-18T05:32:12.851439Z","direction":"core_to_relay","raw":"tok 21134\n"}
+{"at":"2026-10-18T05:32:12.879585Z","direction":"core_to_relay","raw":"tok 303\n"}
+{"at":"2026-10-18T05:32:12.907610Z","direction":"core_to_relay","raw":"tok 799\n"}
+{"at":"2026-10-18T05:32:12.935689Z","direction":"core_to_relay","raw":"tok 3299\n"}
+{"at":"2026-10-18T05:32:12.963643Z","direction":"core_to_relay","raw":"tok 1149\n"}
+{"at":"2026-10-18T05:32:12.991607Z","direction":"core_to_relay","raw":"tok 14235\n"}
+{"at":"2026-10-18T05:32:13.019527Z","direction":"core_to_relay","raw":"tok 1534\n"}
+{"at":"2026-10-18T05:32:13.047510Z","direction":"core_to_relay","raw":"tok 799\n"}
+{"at":"2026-10-18T05:32:13.075395Z","direction":"core_to_relay","raw":"tok 3299\n"}
+{"at":"2026-10-18T05:32:13.103361Z","direction":"core_to_relay","raw":"tok 13\n"}
+{"at":"2026-10-18T05:32:13.131185Z","direction":"core_to_relay","raw":"tok 28320\n"}
+{"at":"2026-10-18T05:32:13.159197Z","direction":"core_to_relay","raw":"tok 1132\n"}
+{"at":"2026-10-18T05:32:13.187226Z","direction":"core_to_relay","raw":"tok 799\n"}
+{"at":"2026-10-18T05:32:13.215159Z","direction":"core_to_relay","raw":"tok 3299\n"}
+{"at":"2026-10-18T05:32:13.243313Z","direction":"core_to_relay","raw":"tok 13\n"}
+{"at":"2026-10-18T05:32:13.271163Z","direction":"core_to_relay","raw":"tok 11751\n"}
+{"at":"2026-10-18T05:32:13.299190Z","direction":"core_to_relay","raw":"tok 13\n"}
+{"at":"2026-10-18T05:32:13.327158Z","direction":"core_to_relay","raw":"tok 198\n"}
+{"at":"2026-10-18T05:32:13.354885Z","direction":"core_to_relay","raw":"tok 248069\n"}
+{"at":"2026-10-18T05:32:13.382930Z","direction":"core_to_relay","raw":"tok 271\n"}
+{"at":"2026-10-18T05:32:13.411066Z","direction":"core_to_relay","raw":"tok 57590\n"}
+{"at":"2026-10-18T05:32:13.439232Z","direction":"core_to_relay","raw":"tok 248046\n"}
+{"at":"2026-10-18T05:32:13.439383Z","direction":"core_to_relay","raw":"done 38 1 64 1062.9 28.4 63 0\n"}
+{"at":"2026-10-18T05:32:13.440547Z","direction":"frontend_or_collector_to_core","raw":"config\n"}
+{"at":"2026-10-18T05:32:13.440797Z","direction":"core_to_relay","raw":"config rev=edc66d9 kv_host=0 ple_disk=1 maxt=230000 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=4096 two_position=0 prefill_chunk=0 cubin=/home/nate/claude/flash-sass-live/kern/die.cubin cubin_fnv=669dbb2e43186b1a\n"}
+{"at":"2026-10-18T05:32:13.441012Z","direction":"frontend_or_collector_to_core","raw":"prof 0 all\n"}
+{"at":"2026-10-18T05:32:13.441299Z","direction":"core_to_relay","raw":"prof: 1154 phases, 28.10 ms between the first and last timestamp\n"}
+{"at":"2026-10-18T05:32:13.441336Z","direction":"core_to_relay","raw":"  actq256     146 phases    5097.5 us (  34.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.441392Z","direction":"core_to_relay","raw":"  hcwsum       48 phases    2413.6 us (  50.3 us each)\n"}
+{"at":"2026-10-18T05:32:13.441458Z","direction":"core_to_relay","raw":"  bf16hcup     97 phases    2406.4 us (  24.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.441513Z","direction":"core_to_relay","raw":"  bf16hcrwx    48 phases    1861.6 us (  38.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.441567Z","direction":"core_to_relay","raw":"  q2moegn      96 phases    1735.7 us (  18.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.441617Z","direction":"core_to_relay","raw":"  q3kk2560     48 phases    1618.9 us (  33.7 us each)\n"}
+{"at":"2026-10-18T05:32:13.441668Z","direction":"core_to_relay","raw":"  bf16hcrx     49 phases    1548.3 us (  31.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.441723Z","direction":"core_to_relay","raw":"  xsend       112 phases    1394.7 us (  12.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.441777Z","direction":"core_to_relay","raw":"  bf16k2560    49 phases    1349.6 us (  27.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.441826Z","direction":"core_to_relay","raw":"  router       48 phases    1158.1 us (  24.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.441872Z","direction":"core_to_relay","raw":"  q2moedn      48 phases     996.4 us (  20.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.441925Z","direction":"core_to_relay","raw":"  iq4k2560     20 phases     776.2 us (  38.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.441979Z","direction":"core_to_relay","raw":"  q5kk2560      2 phases     683.0 us ( 341.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.442032Z","direction":"core_to_relay","raw":"  ffnact       48 phases     651.3 us (  13.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.442085Z","direction":"core_to_relay","raw":"  dnstep       36 phases     614.4 us (  17.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.442139Z","direction":"core_to_relay","raw":"  dnnormx      36 phases     569.3 us (  15.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.442192Z","direction":"core_to_relay","raw":"  iq4k6144     17 phases     558.1 us (  32.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.442241Z","direction":"core_to_relay","raw":"  q4kk6144     15 phases     432.1 us (  28.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.442286Z","direction":"core_to_relay","raw":"  moesel       48 phases     294.9 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.442341Z","direction":"core_to_relay","raw":"  q4kk2560     10 phases     291.8 us (  29.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.442394Z","direction":"core_to_relay","raw":"  q5kk6144      7 phases     290.8 us (  41.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.442439Z","direction":"core_to_relay","raw":"  q6kk1536acc   18 phases     246.8 us (  13.7 us each)\n"}
+{"at":"2026-10-18T05:32:13.442492Z","direction":"core_to_relay","raw":"  bf16bias     36 phases     228.4 us (   6.3 us each)\n"}
+{"at":"2026-10-18T05:32:13.442545Z","direction":"core_to_relay","raw":"  conv1d       36 phases     227.3 us (   6.3 us each)\n"}
+{"at":"2026-10-18T05:32:13.442591Z","direction":"core_to_relay","raw":"  q2k2560      10 phases     150.5 us (  15.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.442645Z","direction":"core_to_relay","raw":"  q6kk1536      6 phases     110.6 us (  18.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.442691Z","direction":"core_to_relay","raw":"  q3kk6144      3 phases     106.5 us (  35.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.442740Z","direction":"core_to_relay","raw":"  q2acc640      4 phases      62.5 us (  15.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.442790Z","direction":"core_to_relay","raw":"  plerows       1 phases      59.4 us (  59.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.442844Z","direction":"core_to_relay","raw":"  b32q50acc     2 phases      53.2 us (  26.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.442894Z","direction":"core_to_relay","raw":"  b32q40acc     2 phases      38.9 us (  19.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.442948Z","direction":"core_to_relay","raw":"  amax          1 phases      27.6 us (  27.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.443003Z","direction":"core_to_relay","raw":"  rms2560       3 phases      21.5 us (   7.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.443053Z","direction":"core_to_relay","raw":"  argmax        1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.443102Z","direction":"core_to_relay","raw":"  pleconv       1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.443151Z","direction":"core_to_relay","raw":"  plegate       1 phases       6.1 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.443202Z","direction":"core_to_relay","raw":"  longest: #1150 q5kk2560 659 us; #941 actq256 372 us; #1132 actq256 371 us; #750 actq256 370 us; #653 actq256 360 us; #1035 actq256 360 us; #468 actq256 359 us; #374 actq256 356 us;\n"}
+{"at":"2026-10-18T05:32:13.443693Z","direction":"frontend_or_collector_to_core","raw":"prof 1 all\n"}
+{"at":"2026-10-18T05:32:13.444024Z","direction":"core_to_relay","raw":"prof: 1214 phases, 28.10 ms between the first and last timestamp\n"}
+{"at":"2026-10-18T05:32:13.444058Z","direction":"core_to_relay","raw":"  actq256     146 phases    3747.8 us (  25.7 us each)\n"}
+{"at":"2026-10-18T05:32:13.444082Z","direction":"core_to_relay","raw":"  hcwsum       48 phases    2881.5 us (  60.0 us each)\n"}
+{"at":"2026-10-18T05:32:13.444100Z","direction":"core_to_relay","raw":"  bf16hcup     97 phases    2518.0 us (  26.0 us each)\n"}
+{"at":"2026-10-18T05:32:13.444118Z","direction":"core_to_relay","raw":"  bf16hcrwx    48 phases    1902.6 us (  39.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.444213Z","direction":"core_to_relay","raw":"  q3kk2560     49 phases    1783.8 us (  36.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.444275Z","direction":"core_to_relay","raw":"  bf16hcrx     49 phases    1508.4 us (  30.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.444332Z","direction":"core_to_relay","raw":"  bf16k2560    53 phases    1483.8 us (  28.0 us each)\n"}
+{"at":"2026-10-18T05:32:13.444390Z","direction":"core_to_relay","raw":"  q2moegn      96 phases    1477.6 us (  15.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.444439Z","direction":"core_to_relay","raw":"  xsend       111 phases    1408.0 us (  12.7 us each)\n"}
+{"at":"2026-10-18T05:32:13.444494Z","direction":"core_to_relay","raw":"  router       48 phases    1148.9 us (  23.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.444547Z","direction":"core_to_relay","raw":"  iq4k2560     22 phases     918.5 us (  41.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.444594Z","direction":"core_to_relay","raw":"  q2moedn      48 phases     846.8 us (  17.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.444640Z","direction":"core_to_relay","raw":"  ffnact       48 phases     642.0 us (  13.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.444690Z","direction":"core_to_relay","raw":"  q5kk2560      4 phases     627.7 us ( 156.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.444740Z","direction":"core_to_relay","raw":"  dnstep       36 phases     609.3 us (  16.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.444793Z","direction":"core_to_relay","raw":"  dnnormx      36 phases     551.9 us (  15.3 us each)\n"}
+{"at":"2026-10-18T05:32:13.444843Z","direction":"core_to_relay","raw":"  iq4k6144     17 phases     541.7 us (  31.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.444896Z","direction":"core_to_relay","raw":"  q4kk6144     15 phases     418.8 us (  27.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.444949Z","direction":"core_to_relay","raw":"  q2k2560      16 phases     367.6 us (  23.0 us each)\n"}
+{"at":"2026-10-18T05:32:13.445006Z","direction":"core_to_relay","raw":"  q4kk2560     11 phases     309.2 us (  28.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.445061Z","direction":"core_to_relay","raw":"  moesel       48 phases     289.8 us (   6.0 us each)\n"}
+{"at":"2026-10-18T05:32:13.445107Z","direction":"core_to_relay","raw":"  q5kk6144      7 phases     283.6 us (  40.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.445156Z","direction":"core_to_relay","raw":"  q6kk1536acc   18 phases     236.5 us (  13.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.445202Z","direction":"core_to_relay","raw":"  attnpartn     4 phases     236.5 us (  59.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.445252Z","direction":"core_to_relay","raw":"  conv1d       36 phases     235.5 us (   6.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.445299Z","direction":"core_to_relay","raw":"  bf16bias     36 phases     229.4 us (   6.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.445349Z","direction":"core_to_relay","raw":"  amax          1 phases     114.7 us ( 114.7 us each)\n"}
+{"at":"2026-10-18T05:32:13.445398Z","direction":"core_to_relay","raw":"  q6kk1536      6 phases     109.6 us (  18.3 us each)\n"}
+{"at":"2026-10-18T05:32:13.445448Z","direction":"core_to_relay","raw":"  q3kk6144      3 phases     102.4 us (  34.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.445497Z","direction":"core_to_relay","raw":"  idxsel       20 phases      88.1 us (   4.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.445543Z","direction":"core_to_relay","raw":"  kvgather      4 phases      84.0 us (  21.0 us each)\n"}
+{"at":"2026-10-18T05:32:13.445596Z","direction":"core_to_relay","raw":"  q2acc640      4 phases      62.5 us (  15.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.445649Z","direction":"core_to_relay","raw":"  plerows       1 phases      58.4 us (  58.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.445695Z","direction":"core_to_relay","raw":"  b32q40acc     2 phases      41.0 us (  20.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.445748Z","direction":"core_to_relay","raw":"  xcopy         1 phases      33.8 us (  33.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.445797Z","direction":"core_to_relay","raw":"  attnmerge     4 phases      32.8 us (   8.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.445847Z","direction":"core_to_relay","raw":"  b32q50acc     1 phases      27.6 us (  27.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.445893Z","direction":"core_to_relay","raw":"  attnqkq       4 phases      26.6 us (   6.7 us each)\n"}
+{"at":"2026-10-18T05:32:13.445939Z","direction":"core_to_relay","raw":"  idxqk         4 phases      24.6 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.445987Z","direction":"core_to_relay","raw":"  b32iq4nlacc    1 phases      23.6 us (  23.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.446040Z","direction":"core_to_relay","raw":"  rms2560       3 phases      21.5 us (   7.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.446092Z","direction":"core_to_relay","raw":"  idxscore      4 phases      16.4 us (   4.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.446143Z","direction":"core_to_relay","raw":"  argmax        1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.446196Z","direction":"core_to_relay","raw":"  pleconv       1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.446216Z","direction":"core_to_relay","raw":"  plegate       1 phases       7.2 us (   7.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.446284Z","direction":"core_to_relay","raw":"  longest: #1210 q5kk2560 572 us; #1001 actq256 371 us; #1192 actq256 370 us; #807 actq256 368 us; #525 actq256 360 us; #713 actq256 360 us; #1092 actq256 359 us; #619 actq256 357 us;\n"}
+{"at":"2026-10-18T05:32:13.446761Z","direction":"frontend_or_collector_to_core","raw":"prof 2 all\n"}
+{"at":"2026-10-18T05:32:13.447108Z","direction":"core_to_relay","raw":"prof: 1154 phases, 28.10 ms between the first and last timestamp\n"}
+{"at":"2026-10-18T05:32:13.447147Z","direction":"core_to_relay","raw":"  actq256     146 phases    5835.8 us (  40.0 us each)\n"}
+{"at":"2026-10-18T05:32:13.447206Z","direction":"core_to_relay","raw":"  hcwsum       48 phases    3175.4 us (  66.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.447256Z","direction":"core_to_relay","raw":"  bf16hcup     97 phases    2200.6 us (  22.7 us each)\n"}
+{"at":"2026-10-18T05:32:13.447305Z","direction":"core_to_relay","raw":"  bf16hcrwx    48 phases    2185.2 us (  45.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.447351Z","direction":"core_to_relay","raw":"  q3kk2560     50 phases    1571.8 us (  31.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.447396Z","direction":"core_to_relay","raw":"  bf16hcrx     49 phases    1464.3 us (  29.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.447440Z","direction":"core_to_relay","raw":"  bf16k2560    49 phases    1354.8 us (  27.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.447483Z","direction":"core_to_relay","raw":"  q2moegn      96 phases    1309.7 us (  13.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.447526Z","direction":"core_to_relay","raw":"  router       48 phases    1146.9 us (  23.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.447572Z","direction":"core_to_relay","raw":"  xsend       111 phases    1143.8 us (  10.3 us each)\n"}
+{"at":"2026-10-18T05:32:13.447616Z","direction":"core_to_relay","raw":"  q2moedn      48 phases     742.4 us (  15.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.447660Z","direction":"core_to_relay","raw":"  iq4k2560     19 phases     701.4 us (  36.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.447704Z","direction":"core_to_relay","raw":"  ffnact       48 phases     641.0 us (  13.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.447747Z","direction":"core_to_relay","raw":"  dnstep       36 phases     594.9 us (  16.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.447791Z","direction":"core_to_relay","raw":"  iq4k6144     17 phases     484.4 us (  28.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.447833Z","direction":"core_to_relay","raw":"  q5kk2560      1 phases     480.3 us ( 480.3 us each)\n"}
+{"at":"2026-10-18T05:32:13.447876Z","direction":"core_to_relay","raw":"  q4kk6144     15 phases     370.7 us (  24.7 us each)\n"}
+{"at":"2026-10-18T05:32:13.447919Z","direction":"core_to_relay","raw":"  dnnormx      36 phases     364.5 us (  10.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.447962Z","direction":"core_to_relay","raw":"  moesel       48 phases     293.9 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.448007Z","direction":"core_to_relay","raw":"  q5kk6144      7 phases     245.8 us (  35.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.448051Z","direction":"core_to_relay","raw":"  q4kk2560      8 phases     245.8 us (  30.7 us each)\n"}
+{"at":"2026-10-18T05:32:13.448095Z","direction":"core_to_relay","raw":"  q6kk1536acc   18 phases     234.5 us (  13.0 us each)\n"}
+{"at":"2026-10-18T05:32:13.448139Z","direction":"core_to_relay","raw":"  bf16bias     36 phases     222.2 us (   6.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.448183Z","direction":"core_to_relay","raw":"  amax          1 phases     206.8 us ( 206.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.448228Z","direction":"core_to_relay","raw":"  conv1d       36 phases     203.8 us (   5.7 us each)\n"}
+{"at":"2026-10-18T05:32:13.448271Z","direction":"core_to_relay","raw":"  q2k2560      12 phases     158.7 us (  13.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.448315Z","direction":"core_to_relay","raw":"  q6kk1536      6 phases     105.5 us (  17.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.448358Z","direction":"core_to_relay","raw":"  q3kk6144      3 phases      90.1 us (  30.0 us each)\n"}
+{"at":"2026-10-18T05:32:13.448402Z","direction":"core_to_relay","raw":"  b32q40acc     3 phases      59.4 us (  19.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.448445Z","direction":"core_to_relay","raw":"  plerows       1 phases      58.4 us (  58.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.448489Z","direction":"core_to_relay","raw":"  b32iq4nlacc    2 phases      48.1 us (  24.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.448533Z","direction":"core_to_relay","raw":"  xcopy         1 phases      34.8 us (  34.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.448577Z","direction":"core_to_relay","raw":"  b32q50acc     1 phases      26.6 us (  26.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.448620Z","direction":"core_to_relay","raw":"  b32q80acc     1 phases      25.6 us (  25.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.448671Z","direction":"core_to_relay","raw":"  rms2560       3 phases      23.6 us (   7.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.448720Z","direction":"core_to_relay","raw":"  q2acc640      1 phases      15.4 us (  15.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.448763Z","direction":"core_to_relay","raw":"  plegate       1 phases      13.3 us (  13.3 us each)\n"}
+{"at":"2026-10-18T05:32:13.448806Z","direction":"core_to_relay","raw":"  pleconv       1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.448856Z","direction":"core_to_relay","raw":"  argmax        1 phases       9.2 us (   9.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.448903Z","direction":"core_to_relay","raw":"  longest: #1150 q5kk2560 480 us; #941 actq256 371 us; #1132 actq256 371 us; #747 actq256 369 us; #653 actq256 360 us; #1032 actq256 360 us; #465 actq256 359 us; #559 actq256 357 us;\n"}
+{"at":"2026-10-18T05:32:13.449377Z","direction":"frontend_or_collector_to_core","raw":"prof 3 all\n"}
+{"at":"2026-10-18T05:32:13.449761Z","direction":"core_to_relay","raw":"prof: 1154 phases, 28.10 ms between the first and last timestamp\n"}
+{"at":"2026-10-18T05:32:13.449794Z","direction":"core_to_relay","raw":"  actq256     146 phases    4980.7 us (  34.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.449845Z","direction":"core_to_relay","raw":"  bf16hcup     97 phases    2476.0 us (  25.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.449896Z","direction":"core_to_relay","raw":"  hcwsum       48 phases    2423.8 us (  50.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.449941Z","direction":"core_to_relay","raw":"  bf16hcrwx    48 phases    1880.1 us (  39.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.449987Z","direction":"core_to_relay","raw":"  q2moegn      96 phases    1803.3 us (  18.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.450031Z","direction":"core_to_relay","raw":"  q3kk2560     50 phases    1802.2 us (  36.0 us each)\n"}
+{"at":"2026-10-18T05:32:13.450075Z","direction":"core_to_relay","raw":"  bf16hcrx     49 phases    1534.0 us (  31.3 us each)\n"}
+{"at":"2026-10-18T05:32:13.450117Z","direction":"core_to_relay","raw":"  bf16k2560    49 phases    1341.4 us (  27.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.450175Z","direction":"core_to_relay","raw":"  xsend       111 phases    1259.5 us (  11.3 us each)\n"}
+{"at":"2026-10-18T05:32:13.450226Z","direction":"core_to_relay","raw":"  router       48 phases    1140.7 us (  23.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.450296Z","direction":"core_to_relay","raw":"  q2moedn      48 phases    1033.2 us (  21.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.450353Z","direction":"core_to_relay","raw":"  iq4k2560     19 phases     803.8 us (  42.3 us each)\n"}
+{"at":"2026-10-18T05:32:13.450399Z","direction":"core_to_relay","raw":"  q5kk2560      1 phases     679.9 us ( 679.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.450443Z","direction":"core_to_relay","raw":"  ffnact       48 phases     645.1 us (  13.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.450486Z","direction":"core_to_relay","raw":"  dnstep       36 phases     642.0 us (  17.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.450530Z","direction":"core_to_relay","raw":"  iq4k6144     17 phases     561.2 us (  33.0 us each)\n"}
+{"at":"2026-10-18T05:32:13.450574Z","direction":"core_to_relay","raw":"  q4kk6144     15 phases     437.2 us (  29.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.450617Z","direction":"core_to_relay","raw":"  dnnormx      36 phases     402.4 us (  11.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.450676Z","direction":"core_to_relay","raw":"  q5kk6144      7 phases     290.8 us (  41.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.450744Z","direction":"core_to_relay","raw":"  moesel       48 phases     286.7 us (   6.0 us each)\n"}
+{"at":"2026-10-18T05:32:13.451091Z","direction":"core_to_relay","raw":"  q4kk2560      8 phases     278.5 us (  34.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.451148Z","direction":"core_to_relay","raw":"  q6kk1536acc   18 phases     249.9 us (  13.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.451196Z","direction":"core_to_relay","raw":"  bf16bias     36 phases     226.3 us (   6.3 us each)\n"}
+{"at":"2026-10-18T05:32:13.451245Z","direction":"core_to_relay","raw":"  conv1d       36 phases     215.0 us (   6.0 us each)\n"}
+{"at":"2026-10-18T05:32:13.451288Z","direction":"core_to_relay","raw":"  q2k2560      12 phases     175.1 us (  14.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.451332Z","direction":"core_to_relay","raw":"  q6kk1536      6 phases     113.7 us (  18.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.451376Z","direction":"core_to_relay","raw":"  q3kk6144      3 phases     105.5 us (  35.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.451419Z","direction":"core_to_relay","raw":"  plerows       1 phases      59.4 us (  59.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.451461Z","direction":"core_to_relay","raw":"  b32q50acc     2 phases      54.3 us (  27.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.451503Z","direction":"core_to_relay","raw":"  q2acc640      3 phases      47.1 us (  15.7 us each)\n"}
+{"at":"2026-10-18T05:32:13.451545Z","direction":"core_to_relay","raw":"  b32q40acc     2 phases      37.9 us (  18.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.451587Z","direction":"core_to_relay","raw":"  xcopy         1 phases      34.8 us (  34.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.451631Z","direction":"core_to_relay","raw":"  rms2560       3 phases      22.5 us (   7.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.451675Z","direction":"core_to_relay","raw":"  b32iq4nlacc    1 phases      22.5 us (  22.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.451718Z","direction":"core_to_relay","raw":"  argmax        1 phases      11.3 us (  11.3 us each)\n"}
+{"at":"2026-10-18T05:32:13.451761Z","direction":"core_to_relay","raw":"  pleconv       1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.451804Z","direction":"core_to_relay","raw":"  plegate       1 phases       6.1 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.451848Z","direction":"core_to_relay","raw":"  amax          1 phases       6.1 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.451892Z","direction":"core_to_relay","raw":"  longest: #1150 q5kk2560 680 us; #938 actq256 372 us; #1132 actq256 371 us; #747 actq256 369 us; #1032 actq256 360 us; #465 actq256 359 us; #650 actq256 359 us; #371 actq256 356 us;\n"}
+{"at":"2026-10-18T05:32:13.452324Z","direction":"frontend_or_collector_to_core","raw":"prof 4 all\n"}
+{"at":"2026-10-18T05:32:13.452766Z","direction":"core_to_relay","raw":"prof: 1214 phases, 28.10 ms between the first and last timestamp\n"}
+{"at":"2026-10-18T05:32:13.452799Z","direction":"core_to_relay","raw":"  actq256     146 phases    3628.0 us (  24.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.452849Z","direction":"core_to_relay","raw":"  hcwsum       48 phases    2597.9 us (  54.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.452897Z","direction":"core_to_relay","raw":"  bf16hcup     97 phases    2467.8 us (  25.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.452943Z","direction":"core_to_relay","raw":"  q3kk2560     53 phases    2151.4 us (  40.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.452989Z","direction":"core_to_relay","raw":"  bf16hcrwx    48 phases    1901.6 us (  39.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.453033Z","direction":"core_to_relay","raw":"  q2moegn      96 phases    1646.6 us (  17.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.453077Z","direction":"core_to_relay","raw":"  bf16hcrx     49 phases    1530.9 us (  31.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.453121Z","direction":"core_to_relay","raw":"  bf16k2560    53 phases    1487.9 us (  28.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.453165Z","direction":"core_to_relay","raw":"  xsend       111 phases    1365.0 us (  12.3 us each)\n"}
+{"at":"2026-10-18T05:32:13.453210Z","direction":"core_to_relay","raw":"  router       48 phases    1146.9 us (  23.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.453254Z","direction":"core_to_relay","raw":"  q2moedn      48 phases     954.4 us (  19.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.453298Z","direction":"core_to_relay","raw":"  iq4k2560     22 phases     927.7 us (  42.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.453352Z","direction":"core_to_relay","raw":"  ffnact       48 phases     634.9 us (  13.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.453402Z","direction":"core_to_relay","raw":"  dnstep       36 phases     617.5 us (  17.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.453446Z","direction":"core_to_relay","raw":"  q5kk2560      2 phases     590.8 us ( 295.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.453490Z","direction":"core_to_relay","raw":"  dnnormx      36 phases     563.2 us (  15.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.453533Z","direction":"core_to_relay","raw":"  iq4k6144     17 phases     544.8 us (  32.0 us each)\n"}
+{"at":"2026-10-18T05:32:13.453591Z","direction":"core_to_relay","raw":"  q4kk6144     15 phases     417.8 us (  27.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.453648Z","direction":"core_to_relay","raw":"  q4kk2560     12 phases     309.2 us (  25.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.453695Z","direction":"core_to_relay","raw":"  moesel       48 phases     289.8 us (   6.0 us each)\n"}
+{"at":"2026-10-18T05:32:13.453740Z","direction":"core_to_relay","raw":"  q5kk6144      7 phases     279.6 us (  39.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.453783Z","direction":"core_to_relay","raw":"  q6kk1536acc   18 phases     241.7 us (  13.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.453827Z","direction":"core_to_relay","raw":"  attnpartn     4 phases     237.6 us (  59.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.453871Z","direction":"core_to_relay","raw":"  bf16bias     36 phases     232.4 us (   6.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.453932Z","direction":"core_to_relay","raw":"  conv1d       36 phases     228.4 us (   6.3 us each)\n"}
+{"at":"2026-10-18T05:32:13.453975Z","direction":"core_to_relay","raw":"  q2k2560      11 phases     157.7 us (  14.3 us each)\n"}
+{"at":"2026-10-18T05:32:13.454017Z","direction":"core_to_relay","raw":"  amax          1 phases     114.7 us ( 114.7 us each)\n"}
+{"at":"2026-10-18T05:32:13.454059Z","direction":"core_to_relay","raw":"  q6kk1536      6 phases     106.5 us (  17.7 us each)\n"}
+{"at":"2026-10-18T05:32:13.454101Z","direction":"core_to_relay","raw":"  q3kk6144      3 phases     102.4 us (  34.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.454144Z","direction":"core_to_relay","raw":"  idxsel       20 phases      88.1 us (   4.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.454186Z","direction":"core_to_relay","raw":"  kvgather      4 phases      82.9 us (  20.7 us each)\n"}
+{"at":"2026-10-18T05:32:13.454228Z","direction":"core_to_relay","raw":"  b32q40acc     4 phases      77.8 us (  19.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.454271Z","direction":"core_to_relay","raw":"  plerows       1 phases      59.4 us (  59.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.454313Z","direction":"core_to_relay","raw":"  q6kk2560      2 phases      56.3 us (  28.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.454355Z","direction":"core_to_relay","raw":"  b32iq4nlacc    2 phases      48.1 us (  24.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.454397Z","direction":"core_to_relay","raw":"  xcopy         1 phases      33.8 us (  33.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.454439Z","direction":"core_to_relay","raw":"  q2acc640      2 phases      31.7 us (  15.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.454481Z","direction":"core_to_relay","raw":"  attnmerge     4 phases      30.7 us (   7.7 us each)\n"}
+{"at":"2026-10-18T05:32:13.454523Z","direction":"core_to_relay","raw":"  attnqkq       4 phases      25.6 us (   6.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.454568Z","direction":"core_to_relay","raw":"  idxqk         4 phases      22.5 us (   5.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.454611Z","direction":"core_to_relay","raw":"  rms2560       3 phases      22.5 us (   7.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.454653Z","direction":"core_to_relay","raw":"  idxscore      4 phases      18.4 us (   4.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.454695Z","direction":"core_to_relay","raw":"  argmax        1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.454745Z","direction":"core_to_relay","raw":"  pleconv       1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.454790Z","direction":"core_to_relay","raw":"  plegate       1 phases       6.1 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.454833Z","direction":"core_to_relay","raw":"  longest: #1210 q5kk2560 571 us; #998 actq256 372 us; #1192 actq256 371 us; #1092 actq256 360 us; #371 actq256 355 us; #277 actq256 353 us; #904 actq256 346 us; #89 actq256 308 us;\n"}
+{"at":"2026-10-18T05:32:13.455297Z","direction":"frontend_or_collector_to_core","raw":"prof 5 all\n"}
+{"at":"2026-10-18T05:32:13.455687Z","direction":"core_to_relay","raw":"prof: 1214 phases, 28.10 ms between the first and last timestamp\n"}
+{"at":"2026-10-18T05:32:13.455718Z","direction":"core_to_relay","raw":"  actq256     146 phases    3650.6 us (  25.0 us each)\n"}
+{"at":"2026-10-18T05:32:13.455766Z","direction":"core_to_relay","raw":"  bf16hcup     97 phases    2474.0 us (  25.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.455811Z","direction":"core_to_relay","raw":"  hcwsum       48 phases    2347.0 us (  48.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.455856Z","direction":"core_to_relay","raw":"  bf16hcrwx    48 phases    1910.8 us (  39.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.455901Z","direction":"core_to_relay","raw":"  q3kk2560     52 phases    1894.4 us (  36.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.455944Z","direction":"core_to_relay","raw":"  q2moegn      96 phases    1802.2 us (  18.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.455986Z","direction":"core_to_relay","raw":"  bf16hcrx     49 phases    1527.8 us (  31.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.456028Z","direction":"core_to_relay","raw":"  bf16k2560    53 phases    1478.7 us (  27.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.456070Z","direction":"core_to_relay","raw":"  xsend       111 phases    1370.1 us (  12.3 us each)\n"}
+{"at":"2026-10-18T05:32:13.456114Z","direction":"core_to_relay","raw":"  router       48 phases    1152.0 us (  24.0 us each)\n"}
+{"at":"2026-10-18T05:32:13.456156Z","direction":"core_to_relay","raw":"  q2moedn      48 phases    1059.8 us (  22.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.456198Z","direction":"core_to_relay","raw":"  iq4k2560     22 phases    1057.8 us (  48.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.456239Z","direction":"core_to_relay","raw":"  ffnact       48 phases     638.0 us (  13.3 us each)\n"}
+{"at":"2026-10-18T05:32:13.456281Z","direction":"core_to_relay","raw":"  q5kk2560      4 phases     631.8 us ( 158.0 us each)\n"}
+{"at":"2026-10-18T05:32:13.456323Z","direction":"core_to_relay","raw":"  dnstep       36 phases     619.5 us (  17.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.456365Z","direction":"core_to_relay","raw":"  dnnormx      36 phases     559.1 us (  15.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.456406Z","direction":"core_to_relay","raw":"  iq4k6144     17 phases     537.6 us (  31.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.456448Z","direction":"core_to_relay","raw":"  q4kk6144     15 phases     417.8 us (  27.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.456489Z","direction":"core_to_relay","raw":"  moesel       48 phases     291.8 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.456532Z","direction":"core_to_relay","raw":"  q5kk6144      7 phases     279.6 us (  39.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.456575Z","direction":"core_to_relay","raw":"  q4kk2560      9 phases     272.4 us (  30.3 us each)\n"}
+{"at":"2026-10-18T05:32:13.456617Z","direction":"core_to_relay","raw":"  bf16bias     36 phases     260.1 us (   7.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.456659Z","direction":"core_to_relay","raw":"  q6kk1536acc   18 phases     238.6 us (  13.3 us each)\n"}
+{"at":"2026-10-18T05:32:13.456701Z","direction":"core_to_relay","raw":"  attnpartn     4 phases     238.6 us (  59.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.456743Z","direction":"core_to_relay","raw":"  conv1d       36 phases     227.3 us (   6.3 us each)\n"}
+{"at":"2026-10-18T05:32:13.456785Z","direction":"core_to_relay","raw":"  q2k2560      11 phases     157.7 us (  14.3 us each)\n"}
+{"at":"2026-10-18T05:32:13.456837Z","direction":"core_to_relay","raw":"  amax          1 phases     114.7 us ( 114.7 us each)\n"}
+{"at":"2026-10-18T05:32:13.456887Z","direction":"core_to_relay","raw":"  q6kk1536      6 phases     107.5 us (  17.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.456944Z","direction":"core_to_relay","raw":"  q3kk6144      3 phases     104.4 us (  34.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.456998Z","direction":"core_to_relay","raw":"  q6kk2560      4 phases     100.4 us (  25.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.457044Z","direction":"core_to_relay","raw":"  idxsel       20 phases      88.1 us (   4.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.457086Z","direction":"core_to_relay","raw":"  kvgather      4 phases      81.9 us (  20.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.457129Z","direction":"core_to_relay","raw":"  plerows       1 phases      58.4 us (  58.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.457171Z","direction":"core_to_relay","raw":"  b32q40acc     3 phases      58.4 us (  19.5 us each)\n"}
+{"at":"2026-10-18T05:32:13.457213Z","direction":"core_to_relay","raw":"  xcopy         1 phases      34.8 us (  34.8 us each)\n"}
+{"at":"2026-10-18T05:32:13.457254Z","direction":"core_to_relay","raw":"  attnmerge     4 phases      31.7 us (   7.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.457296Z","direction":"core_to_relay","raw":"  q2acc640      2 phases      31.7 us (  15.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.457337Z","direction":"core_to_relay","raw":"  b32q50acc     1 phases      26.6 us (  26.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.457380Z","direction":"core_to_relay","raw":"  b32q80acc     1 phases      25.6 us (  25.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.457424Z","direction":"core_to_relay","raw":"  attnqkq       4 phases      25.6 us (   6.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.457467Z","direction":"core_to_relay","raw":"  rms2560       3 phases      23.6 us (   7.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.457509Z","direction":"core_to_relay","raw":"  b32iq4nlacc    1 phases      23.6 us (  23.6 us each)\n"}
+{"at":"2026-10-18T05:32:13.457551Z","direction":"core_to_relay","raw":"  idxqk         4 phases      23.6 us (   5.9 us each)\n"}
+{"at":"2026-10-18T05:32:13.457592Z","direction":"core_to_relay","raw":"  idxscore      4 phases      17.4 us (   4.4 us each)\n"}
+{"at":"2026-10-18T05:32:13.457634Z","direction":"core_to_relay","raw":"  argmax        1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.457676Z","direction":"core_to_relay","raw":"  pleconv       1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:13.457718Z","direction":"core_to_relay","raw":"  plegate       1 phases       6.1 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:13.457760Z","direction":"core_to_relay","raw":"  longest: #1210 q5kk2560 572 us; #747 actq256 369 us; #465 actq256 359 us; #650 actq256 359 us; #371 actq256 356 us; #556 actq256 356 us; #274 actq256 352 us; #89 actq256 307 us;\n"}
+{"at":"2026-10-18T05:32:13.459629Z","direction":"frontend_or_collector_to_core","raw":"stop 248046 4294967295\n"}
+{"at":"2026-10-18T05:32:13.459787Z","direction":"core_to_relay","raw":"ok: stop 248046 -1\n"}
+{"at":"2026-10-18T05:32:13.459939Z","direction":"frontend_or_collector_to_core","raw":"sample 8900816925474725523 0 20 0.95\n"}
+{"at":"2026-10-18T05:32:13.460055Z","direction":"core_to_relay","raw":"ok: sample seed 8900816925474725523 temp 0 top_k 20 top_p 0.95 (greedy)\n"}
+{"at":"2026-10-18T05:32:13.460128Z","direction":"frontend_or_collector_to_core","raw":"snap 63\n"}
+{"at":"2026-10-18T05:32:13.460225Z","direction":"core_to_relay","raw":"ok: snap 63\n"}
+{"at":"2026-10-18T05:32:13.460344Z","direction":"frontend_or_collector_to_core","raw":"chat 39 248045 8678 198 24342 286 4879 369 716 310 830 11553 13 5044 1683 15060 1472 279 3274 11 9307 1328 30800 11 2814 47675 25605 11 321 60445 55404 11 27224 11 321 30246 303 279 1534 4087 13 248046 198 248045 846 198 3710 369 279 6511 314 9338 30 21134 303 799 3299 13 248046 198 248045 74455 198 248068 198\n"}
+{"at":"2026-10-18T05:32:13.492278Z","direction":"core_to_relay","raw":"tok 1596\n"}
+{"at":"2026-10-18T05:32:13.520107Z","direction":"core_to_relay","raw":"tok 1144\n"}
+{"at":"2026-10-18T05:32:13.548006Z","direction":"core_to_relay","raw":"tok 4087\n"}
+{"at":"2026-10-18T05:32:13.575868Z","direction":"core_to_relay","raw":"tok 1156\n"}
+{"at":"2026-10-18T05:32:13.603787Z","direction":"core_to_relay","raw":"tok 579\n"}
+{"at":"2026-10-18T05:32:13.631522Z","direction":"core_to_relay","raw":"tok 4145\n"}
+{"at":"2026-10-18T05:32:13.659284Z","direction":"core_to_relay","raw":"tok 3296\n"}
+{"at":"2026-10-18T05:32:13.687220Z","direction":"core_to_relay","raw":"tok 25\n"}
+{"at":"2026-10-18T05:32:13.715235Z","direction":"core_to_relay","raw":"tok 328\n"}
+{"at":"2026-10-18T05:32:13.743249Z","direction":"core_to_relay","raw":"tok 3710\n"}
+{"at":"2026-10-18T05:32:13.771163Z","direction":"core_to_relay","raw":"tok 369\n"}
+{"at":"2026-10-18T05:32:13.799249Z","direction":"core_to_relay","raw":"tok 279\n"}
+{"at":"2026-10-18T05:32:13.827016Z","direction":"core_to_relay","raw":"tok 6511\n"}
+{"at":"2026-10-18T05:32:13.854988Z","direction":"core_to_relay","raw":"tok 314\n"}
+{"at":"2026-10-18T05:32:13.882890Z","direction":"core_to_relay","raw":"tok 9338\n"}
+{"at":"2026-10-18T05:32:13.910976Z","direction":"core_to_relay","raw":"tok 30\n"}
+{"at":"2026-10-18T05:32:13.938938Z","direction":"core_to_relay","raw":"tok 21134\n"}
+{"at":"2026-10-18T05:32:13.966984Z","direction":"core_to_relay","raw":"tok 303\n"}
+{"at":"2026-10-18T05:32:13.995085Z","direction":"core_to_relay","raw":"tok 799\n"}
+{"at":"2026-10-18T05:32:14.023075Z","direction":"core_to_relay","raw":"tok 3299\n"}
+{"at":"2026-10-18T05:32:14.051027Z","direction":"core_to_relay","raw":"tok 1149\n"}
+{"at":"2026-10-18T05:32:14.078941Z","direction":"core_to_relay","raw":"tok 14235\n"}
+{"at":"2026-10-18T05:32:14.106967Z","direction":"core_to_relay","raw":"tok 1534\n"}
+{"at":"2026-10-18T05:32:14.134881Z","direction":"core_to_relay","raw":"tok 799\n"}
+{"at":"2026-10-18T05:32:14.162809Z","direction":"core_to_relay","raw":"tok 3299\n"}
+{"at":"2026-10-18T05:32:14.190734Z","direction":"core_to_relay","raw":"tok 13\n"}
+{"at":"2026-10-18T05:32:14.218717Z","direction":"core_to_relay","raw":"tok 28320\n"}
+{"at":"2026-10-18T05:32:14.246613Z","direction":"core_to_relay","raw":"tok 1132\n"}
+{"at":"2026-10-18T05:32:14.274657Z","direction":"core_to_relay","raw":"tok 799\n"}
+{"at":"2026-10-18T05:32:14.302646Z","direction":"core_to_relay","raw":"tok 3299\n"}
+{"at":"2026-10-18T05:32:14.330641Z","direction":"core_to_relay","raw":"tok 13\n"}
+{"at":"2026-10-18T05:32:14.358639Z","direction":"core_to_relay","raw":"tok 11751\n"}
+{"at":"2026-10-18T05:32:14.386563Z","direction":"core_to_relay","raw":"tok 13\n"}
+{"at":"2026-10-18T05:32:14.414377Z","direction":"core_to_relay","raw":"tok 198\n"}
+{"at":"2026-10-18T05:32:14.442440Z","direction":"core_to_relay","raw":"tok 248069\n"}
+{"at":"2026-10-18T05:32:14.470316Z","direction":"core_to_relay","raw":"tok 271\n"}
+{"at":"2026-10-18T05:32:14.498468Z","direction":"core_to_relay","raw":"tok 57590\n"}
+{"at":"2026-10-18T05:32:14.526604Z","direction":"core_to_relay","raw":"tok 248046\n"}
+{"at":"2026-10-18T05:32:14.526787Z","direction":"core_to_relay","raw":"done 38 1 64 1062.8 28.4 63 0\n"}
+{"at":"2026-10-18T05:32:14.526938Z","direction":"frontend_or_collector_to_core","raw":"config\n"}
+{"at":"2026-10-18T05:32:14.527039Z","direction":"core_to_relay","raw":"config rev=edc66d9 kv_host=0 ple_disk=1 maxt=230000 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=4096 two_position=0 prefill_chunk=0 cubin=/home/nate/claude/flash-sass-live/kern/die.cubin cubin_fnv=669dbb2e43186b1a\n"}
+{"at":"2026-10-18T05:32:14.527179Z","direction":"frontend_or_collector_to_core","raw":"prof 0 all\n"}
+{"at":"2026-10-18T05:32:14.527397Z","direction":"core_to_relay","raw":"prof: 1154 phases, 28.09 ms between the first and last timestamp\n"}
+{"at":"2026-10-18T05:32:14.527431Z","direction":"core_to_relay","raw":"  actq256     146 phases    5060.6 us (  34.7 us each)\n"}
+{"at":"2026-10-18T05:32:14.527483Z","direction":"core_to_relay","raw":"  bf16hcup     97 phases    2416.6 us (  24.9 us each)\n"}
+{"at":"2026-10-18T05:32:14.527544Z","direction":"core_to_relay","raw":"  hcwsum       48 phases    2406.4 us (  50.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.527606Z","direction":"core_to_relay","raw":"  bf16hcrwx    48 phases    1837.1 us (  38.3 us each)\n"}
+{"at":"2026-10-18T05:32:14.527683Z","direction":"core_to_relay","raw":"  q2moegn      96 phases    1746.9 us (  18.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.527743Z","direction":"core_to_relay","raw":"  q3kk2560     48 phases    1636.4 us (  34.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.527799Z","direction":"core_to_relay","raw":"  bf16hcrx     49 phases    1556.5 us (  31.8 us each)\n"}
+{"at":"2026-10-18T05:32:14.527853Z","direction":"core_to_relay","raw":"  xsend       112 phases    1390.6 us (  12.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.527907Z","direction":"core_to_relay","raw":"  bf16k2560    49 phases    1356.8 us (  27.7 us each)\n"}
+{"at":"2026-10-18T05:32:14.527957Z","direction":"core_to_relay","raw":"  router       48 phases    1160.2 us (  24.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.528012Z","direction":"core_to_relay","raw":"  q2moedn      48 phases     999.4 us (  20.8 us each)\n"}
+{"at":"2026-10-18T05:32:14.530585Z","direction":"core_to_relay","raw":"  iq4k2560     20 phases     778.2 us (  38.9 us each)\n"}
+{"at":"2026-10-18T05:32:14.530674Z","direction":"core_to_relay","raw":"  q5kk2560      2 phases     685.1 us ( 342.5 us each)\n"}
+{"at":"2026-10-18T05:32:14.530738Z","direction":"core_to_relay","raw":"  ffnact       48 phases     638.0 us (  13.3 us each)\n"}
+{"at":"2026-10-18T05:32:14.530794Z","direction":"core_to_relay","raw":"  dnstep       36 phases     617.5 us (  17.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.530846Z","direction":"core_to_relay","raw":"  dnnormx      36 phases     575.5 us (  16.0 us each)\n"}
+{"at":"2026-10-18T05:32:14.530899Z","direction":"core_to_relay","raw":"  iq4k6144     17 phases     560.1 us (  32.9 us each)\n"}
+{"at":"2026-10-18T05:32:14.530947Z","direction":"core_to_relay","raw":"  q4kk6144     15 phases     436.2 us (  29.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.531000Z","direction":"core_to_relay","raw":"  moesel       48 phases     295.9 us (   6.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.531056Z","direction":"core_to_relay","raw":"  q5kk6144      7 phases     291.8 us (  41.7 us each)\n"}
+{"at":"2026-10-18T05:32:14.531108Z","direction":"core_to_relay","raw":"  q4kk2560     10 phases     289.8 us (  29.0 us each)\n"}
+{"at":"2026-10-18T05:32:14.531155Z","direction":"core_to_relay","raw":"  q6kk1536acc   18 phases     246.8 us (  13.7 us each)\n"}
+{"at":"2026-10-18T05:32:14.531203Z","direction":"core_to_relay","raw":"  conv1d       36 phases     229.4 us (   6.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.531251Z","direction":"core_to_relay","raw":"  bf16bias     36 phases     228.4 us (   6.3 us each)\n"}
+{"at":"2026-10-18T05:32:14.531304Z","direction":"core_to_relay","raw":"  q2k2560      10 phases     143.4 us (  14.3 us each)\n"}
+{"at":"2026-10-18T05:32:14.531357Z","direction":"core_to_relay","raw":"  q6kk1536      6 phases     111.6 us (  18.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.531410Z","direction":"core_to_relay","raw":"  q3kk6144      3 phases     105.5 us (  35.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.531464Z","direction":"core_to_relay","raw":"  q2acc640      4 phases      64.5 us (  16.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.531518Z","direction":"core_to_relay","raw":"  plerows       1 phases      59.4 us (  59.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.531572Z","direction":"core_to_relay","raw":"  b32q50acc     2 phases      54.3 us (  27.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.531627Z","direction":"core_to_relay","raw":"  b32q40acc     2 phases      38.9 us (  19.5 us each)\n"}
+{"at":"2026-10-18T05:32:14.531673Z","direction":"core_to_relay","raw":"  amax          1 phases      26.6 us (  26.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.531730Z","direction":"core_to_relay","raw":"  rms2560       3 phases      23.6 us (   7.9 us each)\n"}
+{"at":"2026-10-18T05:32:14.531788Z","direction":"core_to_relay","raw":"  argmax        1 phases      11.3 us (  11.3 us each)\n"}
+{"at":"2026-10-18T05:32:14.531845Z","direction":"core_to_relay","raw":"  pleconv       1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.531893Z","direction":"core_to_relay","raw":"  plegate       1 phases       5.1 us (   5.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.531947Z","direction":"core_to_relay","raw":"  longest: #1150 q5kk2560 662 us; #1132 actq256 369 us; #750 actq256 367 us; #559 actq256 365 us; #653 actq256 361 us; #941 actq256 358 us; #1035 actq256 357 us; #374 actq256 356 us;\n"}
+{"at":"2026-10-18T05:32:14.532401Z","direction":"frontend_or_collector_to_core","raw":"prof 1 all\n"}
+{"at":"2026-10-18T05:32:14.532680Z","direction":"core_to_relay","raw":"prof: 1214 phases, 28.09 ms between the first and last timestamp\n"}
+{"at":"2026-10-18T05:32:14.532714Z","direction":"core_to_relay","raw":"  actq256     146 phases    3745.8 us (  25.7 us each)\n"}
+{"at":"2026-10-18T05:32:14.532771Z","direction":"core_to_relay","raw":"  hcwsum       48 phases    2867.2 us (  59.7 us each)\n"}
+{"at":"2026-10-18T05:32:14.532827Z","direction":"core_to_relay","raw":"  bf16hcup     97 phases    2499.6 us (  25.8 us each)\n"}
+{"at":"2026-10-18T05:32:14.532882Z","direction":"core_to_relay","raw":"  bf16hcrwx    48 phases    1892.4 us (  39.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.532937Z","direction":"core_to_relay","raw":"  q3kk2560     49 phases    1702.9 us (  34.8 us each)\n"}
+{"at":"2026-10-18T05:32:14.532985Z","direction":"core_to_relay","raw":"  bf16k2560    53 phases    1506.3 us (  28.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.533041Z","direction":"core_to_relay","raw":"  bf16hcrx     49 phases    1505.3 us (  30.7 us each)\n"}
+{"at":"2026-10-18T05:32:14.533094Z","direction":"core_to_relay","raw":"  q2moegn      96 phases    1473.5 us (  15.3 us each)\n"}
+{"at":"2026-10-18T05:32:14.533150Z","direction":"core_to_relay","raw":"  xsend       111 phases    1398.8 us (  12.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.533206Z","direction":"core_to_relay","raw":"  router       48 phases    1155.1 us (  24.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.533262Z","direction":"core_to_relay","raw":"  iq4k2560     22 phases     930.8 us (  42.3 us each)\n"}
+{"at":"2026-10-18T05:32:14.533315Z","direction":"core_to_relay","raw":"  q2moedn      48 phases     852.0 us (  17.7 us each)\n"}
+{"at":"2026-10-18T05:32:14.533368Z","direction":"core_to_relay","raw":"  ffnact       48 phases     641.0 us (  13.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.533421Z","direction":"core_to_relay","raw":"  q5kk2560      4 phases     640.0 us ( 160.0 us each)\n"}
+{"at":"2026-10-18T05:32:14.533477Z","direction":"core_to_relay","raw":"  dnstep       36 phases     612.4 us (  17.0 us each)\n"}
+{"at":"2026-10-18T05:32:14.533529Z","direction":"core_to_relay","raw":"  dnnormx      36 phases     562.2 us (  15.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.533603Z","direction":"core_to_relay","raw":"  iq4k6144     17 phases     540.7 us (  31.8 us each)\n"}
+{"at":"2026-10-18T05:32:14.533668Z","direction":"core_to_relay","raw":"  q4kk6144     15 phases     419.8 us (  28.0 us each)\n"}
+{"at":"2026-10-18T05:32:14.533724Z","direction":"core_to_relay","raw":"  q2k2560      16 phases     371.7 us (  23.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.533776Z","direction":"core_to_relay","raw":"  q4kk2560     11 phases     314.4 us (  28.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.533825Z","direction":"core_to_relay","raw":"  moesel       48 phases     293.9 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.533881Z","direction":"core_to_relay","raw":"  bf16bias     36 phases     288.8 us (   8.0 us each)\n"}
+{"at":"2026-10-18T05:32:14.533936Z","direction":"core_to_relay","raw":"  q5kk6144      7 phases     278.5 us (  39.8 us each)\n"}
+{"at":"2026-10-18T05:32:14.533989Z","direction":"core_to_relay","raw":"  q6kk1536acc   18 phases     239.6 us (  13.3 us each)\n"}
+{"at":"2026-10-18T05:32:14.534048Z","direction":"core_to_relay","raw":"  attnpartn     4 phases     239.6 us (  59.9 us each)\n"}
+{"at":"2026-10-18T05:32:14.534100Z","direction":"core_to_relay","raw":"  conv1d       36 phases     238.6 us (   6.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.534153Z","direction":"core_to_relay","raw":"  amax          1 phases     109.6 us ( 109.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.534206Z","direction":"core_to_relay","raw":"  q6kk1536      6 phases     108.5 us (  18.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.534252Z","direction":"core_to_relay","raw":"  q3kk6144      3 phases     102.4 us (  34.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.534306Z","direction":"core_to_relay","raw":"  idxsel       20 phases      89.1 us (   4.5 us each)\n"}
+{"at":"2026-10-18T05:32:14.534353Z","direction":"core_to_relay","raw":"  kvgather      4 phases      78.8 us (  19.7 us each)\n"}
+{"at":"2026-10-18T05:32:14.534400Z","direction":"core_to_relay","raw":"  q2acc640      4 phases      61.4 us (  15.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.534446Z","direction":"core_to_relay","raw":"  plerows       1 phases      59.4 us (  59.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.534493Z","direction":"core_to_relay","raw":"  b32q40acc     2 phases      42.0 us (  21.0 us each)\n"}
+{"at":"2026-10-18T05:32:14.534540Z","direction":"core_to_relay","raw":"  xcopy         1 phases      32.8 us (  32.8 us each)\n"}
+{"at":"2026-10-18T05:32:14.534593Z","direction":"core_to_relay","raw":"  attnmerge     4 phases      31.7 us (   7.9 us each)\n"}
+{"at":"2026-10-18T05:32:14.534640Z","direction":"core_to_relay","raw":"  b32q50acc     1 phases      26.6 us (  26.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.534686Z","direction":"core_to_relay","raw":"  attnqkq       4 phases      25.6 us (   6.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.534733Z","direction":"core_to_relay","raw":"  idxqk         4 phases      24.6 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.534784Z","direction":"core_to_relay","raw":"  b32iq4nlacc    1 phases      23.6 us (  23.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.534838Z","direction":"core_to_relay","raw":"  rms2560       3 phases      21.5 us (   7.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.534891Z","direction":"core_to_relay","raw":"  idxscore      4 phases      16.4 us (   4.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.534939Z","direction":"core_to_relay","raw":"  argmax        1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.534989Z","direction":"core_to_relay","raw":"  pleconv       1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.535035Z","direction":"core_to_relay","raw":"  plegate       1 phases       7.2 us (   7.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.535081Z","direction":"core_to_relay","raw":"  longest: #1210 q5kk2560 580 us; #1192 actq256 369 us; #807 actq256 367 us; #619 actq256 365 us; #713 actq256 360 us; #1001 actq256 358 us; #1092 actq256 357 us; #525 actq256 354 us;\n"}
+{"at":"2026-10-18T05:32:14.535649Z","direction":"frontend_or_collector_to_core","raw":"prof 2 all\n"}
+{"at":"2026-10-18T05:32:14.536073Z","direction":"core_to_relay","raw":"prof: 1154 phases, 28.09 ms between the first and last timestamp\n"}
+{"at":"2026-10-18T05:32:14.536105Z","direction":"core_to_relay","raw":"  actq256     146 phases    5888.0 us (  40.3 us each)\n"}
+{"at":"2026-10-18T05:32:14.536129Z","direction":"core_to_relay","raw":"  hcwsum       48 phases    3189.8 us (  66.5 us each)\n"}
+{"at":"2026-10-18T05:32:14.536148Z","direction":"core_to_relay","raw":"  bf16hcup     97 phases    2214.9 us (  22.8 us each)\n"}
+{"at":"2026-10-18T05:32:14.536225Z","direction":"core_to_relay","raw":"  bf16hcrwx    48 phases    2190.3 us (  45.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.536281Z","direction":"core_to_relay","raw":"  q3kk2560     50 phases    1555.5 us (  31.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.536345Z","direction":"core_to_relay","raw":"  bf16hcrx     49 phases    1463.3 us (  29.9 us each)\n"}
+{"at":"2026-10-18T05:32:14.536401Z","direction":"core_to_relay","raw":"  bf16k2560    49 phases    1365.0 us (  27.9 us each)\n"}
+{"at":"2026-10-18T05:32:14.536464Z","direction":"core_to_relay","raw":"  q2moegn      96 phases    1296.4 us (  13.5 us each)\n"}
+{"at":"2026-10-18T05:32:14.536517Z","direction":"core_to_relay","raw":"  router       48 phases    1142.8 us (  23.8 us each)\n"}
+{"at":"2026-10-18T05:32:14.536572Z","direction":"core_to_relay","raw":"  xsend       111 phases    1136.6 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.536624Z","direction":"core_to_relay","raw":"  q2moedn      48 phases     741.4 us (  15.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.536677Z","direction":"core_to_relay","raw":"  iq4k2560     19 phases     706.6 us (  37.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.536724Z","direction":"core_to_relay","raw":"  ffnact       48 phases     645.1 us (  13.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.536777Z","direction":"core_to_relay","raw":"  dnstep       36 phases     597.0 us (  16.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.536823Z","direction":"core_to_relay","raw":"  iq4k6144     17 phases     481.3 us (  28.3 us each)\n"}
+{"at":"2026-10-18T05:32:14.536886Z","direction":"core_to_relay","raw":"  q5kk2560      1 phases     479.2 us ( 479.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.536970Z","direction":"core_to_relay","raw":"  q4kk6144     15 phases     371.7 us (  24.8 us each)\n"}
+{"at":"2026-10-18T05:32:14.537028Z","direction":"core_to_relay","raw":"  dnnormx      36 phases     306.2 us (   8.5 us each)\n"}
+{"at":"2026-10-18T05:32:14.537077Z","direction":"core_to_relay","raw":"  moesel       48 phases     286.7 us (   6.0 us each)\n"}
+{"at":"2026-10-18T05:32:14.537127Z","direction":"core_to_relay","raw":"  q5kk6144      7 phases     246.8 us (  35.3 us each)\n"}
+{"at":"2026-10-18T05:32:14.537182Z","direction":"core_to_relay","raw":"  q4kk2560      8 phases     241.7 us (  30.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.537230Z","direction":"core_to_relay","raw":"  q6kk1536acc   18 phases     232.4 us (  12.9 us each)\n"}
+{"at":"2026-10-18T05:32:14.537284Z","direction":"core_to_relay","raw":"  bf16bias     36 phases     218.1 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.537337Z","direction":"core_to_relay","raw":"  amax          1 phases     209.9 us ( 209.9 us each)\n"}
+{"at":"2026-10-18T05:32:14.537384Z","direction":"core_to_relay","raw":"  conv1d       36 phases     200.7 us (   5.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.537431Z","direction":"core_to_relay","raw":"  q2k2560      12 phases     162.8 us (  13.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.537478Z","direction":"core_to_relay","raw":"  q6kk1536      6 phases     106.5 us (  17.7 us each)\n"}
+{"at":"2026-10-18T05:32:14.537525Z","direction":"core_to_relay","raw":"  q3kk6144      3 phases      90.1 us (  30.0 us each)\n"}
+{"at":"2026-10-18T05:32:14.537572Z","direction":"core_to_relay","raw":"  plerows       1 phases      59.4 us (  59.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.537626Z","direction":"core_to_relay","raw":"  b32q40acc     3 phases      58.4 us (  19.5 us each)\n"}
+{"at":"2026-10-18T05:32:14.537680Z","direction":"core_to_relay","raw":"  b32iq4nlacc    2 phases      47.1 us (  23.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.537727Z","direction":"core_to_relay","raw":"  xcopy         1 phases      33.8 us (  33.8 us each)\n"}
+{"at":"2026-10-18T05:32:14.537780Z","direction":"core_to_relay","raw":"  b32q50acc     1 phases      26.6 us (  26.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.537835Z","direction":"core_to_relay","raw":"  b32q80acc     1 phases      26.6 us (  26.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.537887Z","direction":"core_to_relay","raw":"  rms2560       3 phases      24.6 us (   8.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.537941Z","direction":"core_to_relay","raw":"  q2acc640      1 phases      16.4 us (  16.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.537988Z","direction":"core_to_relay","raw":"  plegate       1 phases      14.3 us (  14.3 us each)\n"}
+{"at":"2026-10-18T05:32:14.538041Z","direction":"core_to_relay","raw":"  argmax        1 phases       9.2 us (   9.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.538090Z","direction":"core_to_relay","raw":"  pleconv       1 phases       9.2 us (   9.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.538146Z","direction":"core_to_relay","raw":"  longest: #1150 q5kk2560 479 us; #1132 actq256 370 us; #747 actq256 367 us; #559 actq256 364 us; #653 actq256 360 us; #941 actq256 359 us; #1032 actq256 357 us; #374 actq256 356 us;\n"}
+{"at":"2026-10-18T05:32:14.538588Z","direction":"frontend_or_collector_to_core","raw":"prof 3 all\n"}
+{"at":"2026-10-18T05:32:14.539012Z","direction":"core_to_relay","raw":"prof: 1154 phases, 28.09 ms between the first and last timestamp\n"}
+{"at":"2026-10-18T05:32:14.539044Z","direction":"core_to_relay","raw":"  actq256     146 phases    4971.5 us (  34.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.539100Z","direction":"core_to_relay","raw":"  bf16hcup     97 phases    2478.1 us (  25.5 us each)\n"}
+{"at":"2026-10-18T05:32:14.539153Z","direction":"core_to_relay","raw":"  hcwsum       48 phases    2454.5 us (  51.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.539207Z","direction":"core_to_relay","raw":"  bf16hcrwx    48 phases    1877.0 us (  39.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.539256Z","direction":"core_to_relay","raw":"  q2moegn      96 phases    1788.9 us (  18.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.539308Z","direction":"core_to_relay","raw":"  q3kk2560     50 phases    1697.8 us (  34.0 us each)\n"}
+{"at":"2026-10-18T05:32:14.539363Z","direction":"core_to_relay","raw":"  bf16hcrx     49 phases    1530.9 us (  31.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.539410Z","direction":"core_to_relay","raw":"  bf16k2560    49 phases    1340.4 us (  27.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.539463Z","direction":"core_to_relay","raw":"  xsend       111 phases    1252.4 us (  11.3 us each)\n"}
+{"at":"2026-10-18T05:32:14.539517Z","direction":"core_to_relay","raw":"  router       48 phases    1147.9 us (  23.9 us each)\n"}
+{"at":"2026-10-18T05:32:14.539571Z","direction":"core_to_relay","raw":"  q2moedn      48 phases    1036.3 us (  21.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.539624Z","direction":"core_to_relay","raw":"  iq4k2560     19 phases     816.1 us (  43.0 us each)\n"}
+{"at":"2026-10-18T05:32:14.539671Z","direction":"core_to_relay","raw":"  q5kk2560      1 phases     682.0 us ( 682.0 us each)\n"}
+{"at":"2026-10-18T05:32:14.539724Z","direction":"core_to_relay","raw":"  ffnact       48 phases     645.1 us (  13.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.539770Z","direction":"core_to_relay","raw":"  dnstep       36 phases     639.0 us (  17.7 us each)\n"}
+{"at":"2026-10-18T05:32:14.539817Z","direction":"core_to_relay","raw":"  iq4k6144     17 phases     556.0 us (  32.7 us each)\n"}
+{"at":"2026-10-18T05:32:14.539863Z","direction":"core_to_relay","raw":"  q4kk6144     15 phases     432.1 us (  28.8 us each)\n"}
+{"at":"2026-10-18T05:32:14.539916Z","direction":"core_to_relay","raw":"  dnnormx      36 phases     429.1 us (  11.9 us each)\n"}
+{"at":"2026-10-18T05:32:14.539962Z","direction":"core_to_relay","raw":"  bf16bias     36 phases     288.8 us (   8.0 us each)\n"}
+{"at":"2026-10-18T05:32:14.540010Z","direction":"core_to_relay","raw":"  q5kk6144      7 phases     288.8 us (  41.3 us each)\n"}
+{"at":"2026-10-18T05:32:14.540063Z","direction":"core_to_relay","raw":"  moesel       48 phases     287.7 us (   6.0 us each)\n"}
+{"at":"2026-10-18T05:32:14.540132Z","direction":"core_to_relay","raw":"  q4kk2560      8 phases     279.6 us (  34.9 us each)\n"}
+{"at":"2026-10-18T05:32:14.540186Z","direction":"core_to_relay","raw":"  q6kk1536acc   18 phases     244.7 us (  13.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.540235Z","direction":"core_to_relay","raw":"  conv1d       36 phases     218.1 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.540304Z","direction":"core_to_relay","raw":"  q2k2560      12 phases     178.2 us (  14.8 us each)\n"}
+{"at":"2026-10-18T05:32:14.540357Z","direction":"core_to_relay","raw":"  q6kk1536      6 phases     113.7 us (  18.9 us each)\n"}
+{"at":"2026-10-18T05:32:14.540409Z","direction":"core_to_relay","raw":"  q3kk6144      3 phases     103.4 us (  34.5 us each)\n"}
+{"at":"2026-10-18T05:32:14.540460Z","direction":"core_to_relay","raw":"  plerows       1 phases      59.4 us (  59.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.540506Z","direction":"core_to_relay","raw":"  b32q50acc     2 phases      54.3 us (  27.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.540555Z","direction":"core_to_relay","raw":"  q2acc640      3 phases      48.1 us (  16.0 us each)\n"}
+{"at":"2026-10-18T05:32:14.540608Z","direction":"core_to_relay","raw":"  b32q40acc     2 phases      38.9 us (  19.5 us each)\n"}
+{"at":"2026-10-18T05:32:14.540654Z","direction":"core_to_relay","raw":"  xcopy         1 phases      33.8 us (  33.8 us each)\n"}
+{"at":"2026-10-18T05:32:14.540705Z","direction":"core_to_relay","raw":"  rms2560       3 phases      22.5 us (   7.5 us each)\n"}
+{"at":"2026-10-18T05:32:14.540750Z","direction":"core_to_relay","raw":"  b32iq4nlacc    1 phases      22.5 us (  22.5 us each)\n"}
+{"at":"2026-10-18T05:32:14.540795Z","direction":"core_to_relay","raw":"  argmax        1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.540847Z","direction":"core_to_relay","raw":"  pleconv       1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.540893Z","direction":"core_to_relay","raw":"  plegate       1 phases       7.2 us (   7.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.540945Z","direction":"core_to_relay","raw":"  amax          1 phases       7.2 us (   7.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.540991Z","direction":"core_to_relay","raw":"  longest: #1150 q5kk2560 682 us; #1132 actq256 369 us; #747 actq256 367 us; #559 actq256 364 us; #650 actq256 360 us; #938 actq256 358 us; #1032 actq256 358 us; #371 actq256 356 us;\n"}
+{"at":"2026-10-18T05:32:14.541771Z","direction":"frontend_or_collector_to_core","raw":"prof 4 all\n"}
+{"at":"2026-10-18T05:32:14.542043Z","direction":"core_to_relay","raw":"prof: 1214 phases, 28.09 ms between the first and last timestamp\n"}
+{"at":"2026-10-18T05:32:14.542075Z","direction":"core_to_relay","raw":"  actq256     146 phases    3595.3 us (  24.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.542127Z","direction":"core_to_relay","raw":"  hcwsum       48 phases    2604.0 us (  54.3 us each)\n"}
+{"at":"2026-10-18T05:32:14.542180Z","direction":"core_to_relay","raw":"  bf16hcup     97 phases    2481.2 us (  25.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.542227Z","direction":"core_to_relay","raw":"  q3kk2560     53 phases    2150.4 us (  40.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.542280Z","direction":"core_to_relay","raw":"  bf16hcrwx    48 phases    1893.4 us (  39.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.542332Z","direction":"core_to_relay","raw":"  q2moegn      96 phases    1644.5 us (  17.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.542378Z","direction":"core_to_relay","raw":"  bf16hcrx     49 phases    1524.7 us (  31.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.542423Z","direction":"core_to_relay","raw":"  bf16k2560    53 phases    1476.6 us (  27.9 us each)\n"}
+{"at":"2026-10-18T05:32:14.542472Z","direction":"core_to_relay","raw":"  xsend       111 phases    1361.9 us (  12.3 us each)\n"}
+{"at":"2026-10-18T05:32:14.542519Z","direction":"core_to_relay","raw":"  router       48 phases    1151.0 us (  24.0 us each)\n"}
+{"at":"2026-10-18T05:32:14.542571Z","direction":"core_to_relay","raw":"  q2moedn      48 phases     958.5 us (  20.0 us each)\n"}
+{"at":"2026-10-18T05:32:14.542618Z","direction":"core_to_relay","raw":"  iq4k2560     22 phases     926.7 us (  42.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.542664Z","direction":"core_to_relay","raw":"  ffnact       48 phases     640.0 us (  13.3 us each)\n"}
+{"at":"2026-10-18T05:32:14.542709Z","direction":"core_to_relay","raw":"  dnstep       36 phases     618.5 us (  17.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.542755Z","direction":"core_to_relay","raw":"  q5kk2560      2 phases     591.9 us ( 295.9 us each)\n"}
+{"at":"2026-10-18T05:32:14.542802Z","direction":"core_to_relay","raw":"  dnnormx      36 phases     573.4 us (  15.9 us each)\n"}
+{"at":"2026-10-18T05:32:14.542850Z","direction":"core_to_relay","raw":"  iq4k6144     17 phases     548.9 us (  32.3 us each)\n"}
+{"at":"2026-10-18T05:32:14.542905Z","direction":"core_to_relay","raw":"  q4kk6144     15 phases     417.8 us (  27.9 us each)\n"}
+{"at":"2026-10-18T05:32:14.542956Z","direction":"core_to_relay","raw":"  q4kk2560     12 phases     309.2 us (  25.8 us each)\n"}
+{"at":"2026-10-18T05:32:14.543004Z","direction":"core_to_relay","raw":"  moesel       48 phases     287.7 us (   6.0 us each)\n"}
+{"at":"2026-10-18T05:32:14.543050Z","direction":"core_to_relay","raw":"  q5kk6144      7 phases     282.6 us (  40.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.543103Z","direction":"core_to_relay","raw":"  q6kk1536acc   18 phases     238.6 us (  13.3 us each)\n"}
+{"at":"2026-10-18T05:32:14.543155Z","direction":"core_to_relay","raw":"  attnpartn     4 phases     235.5 us (  58.9 us each)\n"}
+{"at":"2026-10-18T05:32:14.543207Z","direction":"core_to_relay","raw":"  conv1d       36 phases     234.5 us (   6.5 us each)\n"}
+{"at":"2026-10-18T05:32:14.543253Z","direction":"core_to_relay","raw":"  bf16bias     36 phases     226.3 us (   6.3 us each)\n"}
+{"at":"2026-10-18T05:32:14.543299Z","direction":"core_to_relay","raw":"  q2k2560      11 phases     159.7 us (  14.5 us each)\n"}
+{"at":"2026-10-18T05:32:14.543347Z","direction":"core_to_relay","raw":"  amax          1 phases     116.7 us ( 116.7 us each)\n"}
+{"at":"2026-10-18T05:32:14.543396Z","direction":"core_to_relay","raw":"  q6kk1536      6 phases     108.5 us (  18.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.543448Z","direction":"core_to_relay","raw":"  q3kk6144      3 phases     104.4 us (  34.8 us each)\n"}
+{"at":"2026-10-18T05:32:14.543497Z","direction":"core_to_relay","raw":"  idxsel       20 phases      88.1 us (   4.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.543543Z","direction":"core_to_relay","raw":"  kvgather      4 phases      85.0 us (  21.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.543612Z","direction":"core_to_relay","raw":"  b32q40acc     4 phases      77.8 us (  19.5 us each)\n"}
+{"at":"2026-10-18T05:32:14.543671Z","direction":"core_to_relay","raw":"  plerows       1 phases      59.4 us (  59.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.543726Z","direction":"core_to_relay","raw":"  q6kk2560      2 phases      55.3 us (  27.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.543775Z","direction":"core_to_relay","raw":"  b32iq4nlacc    2 phases      47.1 us (  23.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.543821Z","direction":"core_to_relay","raw":"  attnmerge     4 phases      33.8 us (   8.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.543873Z","direction":"core_to_relay","raw":"  xcopy         1 phases      33.8 us (  33.8 us each)\n"}
+{"at":"2026-10-18T05:32:14.543925Z","direction":"core_to_relay","raw":"  q2acc640      2 phases      30.7 us (  15.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.543971Z","direction":"core_to_relay","raw":"  attnqkq       4 phases      27.6 us (   6.9 us each)\n"}
+{"at":"2026-10-18T05:32:14.544026Z","direction":"core_to_relay","raw":"  rms2560       3 phases      23.6 us (   7.9 us each)\n"}
+{"at":"2026-10-18T05:32:14.544072Z","direction":"core_to_relay","raw":"  idxqk         4 phases      23.6 us (   5.9 us each)\n"}
+{"at":"2026-10-18T05:32:14.544117Z","direction":"core_to_relay","raw":"  idxscore      4 phases      16.4 us (   4.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.544169Z","direction":"core_to_relay","raw":"  argmax        1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.544214Z","direction":"core_to_relay","raw":"  pleconv       1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.544260Z","direction":"core_to_relay","raw":"  plegate       1 phases       7.2 us (   7.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.544313Z","direction":"core_to_relay","raw":"  longest: #1210 q5kk2560 571 us; #1192 actq256 369 us; #998 actq256 357 us; #1092 actq256 357 us; #371 actq256 356 us; #277 actq256 351 us; #904 actq256 349 us; #89 actq256 306 us;\n"}
+{"at":"2026-10-18T05:32:14.544784Z","direction":"frontend_or_collector_to_core","raw":"prof 5 all\n"}
+{"at":"2026-10-18T05:32:14.545229Z","direction":"core_to_relay","raw":"prof: 1214 phases, 28.09 ms between the first and last timestamp\n"}
+{"at":"2026-10-18T05:32:14.545268Z","direction":"core_to_relay","raw":"  actq256     146 phases    3628.0 us (  24.8 us each)\n"}
+{"at":"2026-10-18T05:32:14.545321Z","direction":"core_to_relay","raw":"  bf16hcup     97 phases    2486.3 us (  25.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.545373Z","direction":"core_to_relay","raw":"  hcwsum       48 phases    2333.7 us (  48.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.545430Z","direction":"core_to_relay","raw":"  q3kk2560     52 phases    1957.9 us (  37.7 us each)\n"}
+{"at":"2026-10-18T05:32:14.545480Z","direction":"core_to_relay","raw":"  bf16hcrwx    48 phases    1892.4 us (  39.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.545536Z","direction":"core_to_relay","raw":"  q2moegn      96 phases    1809.4 us (  18.8 us each)\n"}
+{"at":"2026-10-18T05:32:14.545585Z","direction":"core_to_relay","raw":"  bf16hcrx     49 phases    1527.8 us (  31.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.545633Z","direction":"core_to_relay","raw":"  bf16k2560    53 phases    1473.5 us (  27.8 us each)\n"}
+{"at":"2026-10-18T05:32:14.545681Z","direction":"core_to_relay","raw":"  xsend       111 phases    1391.6 us (  12.5 us each)\n"}
+{"at":"2026-10-18T05:32:14.545733Z","direction":"core_to_relay","raw":"  router       48 phases    1143.8 us (  23.8 us each)\n"}
+{"at":"2026-10-18T05:32:14.545782Z","direction":"core_to_relay","raw":"  q2moedn      48 phases    1059.8 us (  22.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.545837Z","direction":"core_to_relay","raw":"  iq4k2560     22 phases    1057.8 us (  48.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.545892Z","direction":"core_to_relay","raw":"  ffnact       48 phases     642.0 us (  13.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.545940Z","direction":"core_to_relay","raw":"  q5kk2560      4 phases     633.9 us ( 158.5 us each)\n"}
+{"at":"2026-10-18T05:32:14.545996Z","direction":"core_to_relay","raw":"  dnstep       36 phases     621.6 us (  17.3 us each)\n"}
+{"at":"2026-10-18T05:32:14.546047Z","direction":"core_to_relay","raw":"  dnnormx      36 phases     575.5 us (  16.0 us each)\n"}
+{"at":"2026-10-18T05:32:14.546099Z","direction":"core_to_relay","raw":"  iq4k6144     17 phases     538.6 us (  31.7 us each)\n"}
+{"at":"2026-10-18T05:32:14.546150Z","direction":"core_to_relay","raw":"  q4kk6144     15 phases     417.8 us (  27.9 us each)\n"}
+{"at":"2026-10-18T05:32:14.546205Z","direction":"core_to_relay","raw":"  moesel       48 phases     288.8 us (   6.0 us each)\n"}
+{"at":"2026-10-18T05:32:14.546253Z","direction":"core_to_relay","raw":"  q5kk6144      7 phases     282.6 us (  40.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.546302Z","direction":"core_to_relay","raw":"  q4kk2560      9 phases     272.4 us (  30.3 us each)\n"}
+{"at":"2026-10-18T05:32:14.546351Z","direction":"core_to_relay","raw":"  q6kk1536acc   18 phases     236.5 us (  13.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.546406Z","direction":"core_to_relay","raw":"  attnpartn     4 phases     236.5 us (  59.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.546459Z","direction":"core_to_relay","raw":"  bf16bias     36 phases     225.3 us (   6.3 us each)\n"}
+{"at":"2026-10-18T05:32:14.546508Z","direction":"core_to_relay","raw":"  conv1d       36 phases     225.3 us (   6.3 us each)\n"}
+{"at":"2026-10-18T05:32:14.546560Z","direction":"core_to_relay","raw":"  q2k2560      11 phases     154.6 us (  14.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.546608Z","direction":"core_to_relay","raw":"  amax          1 phases     112.6 us ( 112.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.546660Z","direction":"core_to_relay","raw":"  q6kk1536      6 phases     104.4 us (  17.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.546708Z","direction":"core_to_relay","raw":"  q3kk6144      3 phases     103.4 us (  34.5 us each)\n"}
+{"at":"2026-10-18T05:32:14.546757Z","direction":"core_to_relay","raw":"  idxsel       20 phases      87.0 us (   4.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.546805Z","direction":"core_to_relay","raw":"  kvgather      4 phases      85.0 us (  21.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.546853Z","direction":"core_to_relay","raw":"  q6kk2560      4 phases      79.9 us (  20.0 us each)\n"}
+{"at":"2026-10-18T05:32:14.546902Z","direction":"core_to_relay","raw":"  plerows       1 phases      58.4 us (  58.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.546981Z","direction":"core_to_relay","raw":"  b32q40acc     3 phases      56.3 us (  18.8 us each)\n"}
+{"at":"2026-10-18T05:32:14.547033Z","direction":"core_to_relay","raw":"  attnmerge     4 phases      32.8 us (   8.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.547078Z","direction":"core_to_relay","raw":"  xcopy         1 phases      32.8 us (  32.8 us each)\n"}
+{"at":"2026-10-18T05:32:14.547124Z","direction":"core_to_relay","raw":"  q2acc640      2 phases      30.7 us (  15.4 us each)\n"}
+{"at":"2026-10-18T05:32:14.547173Z","direction":"core_to_relay","raw":"  attnqkq       4 phases      26.6 us (   6.7 us each)\n"}
+{"at":"2026-10-18T05:32:14.547222Z","direction":"core_to_relay","raw":"  b32q50acc     1 phases      26.6 us (  26.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.547270Z","direction":"core_to_relay","raw":"  b32q80acc     1 phases      25.6 us (  25.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.547322Z","direction":"core_to_relay","raw":"  rms2560       3 phases      24.6 us (   8.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.547370Z","direction":"core_to_relay","raw":"  b32iq4nlacc    1 phases      23.6 us (  23.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.547419Z","direction":"core_to_relay","raw":"  idxqk         4 phases      22.5 us (   5.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.547465Z","direction":"core_to_relay","raw":"  idxscore      4 phases      18.4 us (   4.6 us each)\n"}
+{"at":"2026-10-18T05:32:14.547518Z","direction":"core_to_relay","raw":"  argmax        1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.547571Z","direction":"core_to_relay","raw":"  pleconv       1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:14.547620Z","direction":"core_to_relay","raw":"  plegate       1 phases       6.1 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:14.547669Z","direction":"core_to_relay","raw":"  longest: #1210 q5kk2560 578 us; #747 actq256 368 us; #556 actq256 362 us; #650 actq256 360 us; #371 actq256 356 us; #465 actq256 353 us; #274 actq256 351 us; #89 actq256 306 us;\n"}
+{"at":"2026-10-18T05:32:14.549669Z","direction":"frontend_or_collector_to_core","raw":"stop 248046 4294967295\n"}
+{"at":"2026-10-18T05:32:14.549807Z","direction":"core_to_relay","raw":"ok: stop 248046 -1\n"}
+{"at":"2026-10-18T05:32:14.549966Z","direction":"frontend_or_collector_to_core","raw":"sample 1855133005193819170 0 20 0.95\n"}
+{"at":"2026-10-18T05:32:14.550077Z","direction":"core_to_relay","raw":"ok: sample seed 1855133005193819170 temp 0 top_k 20 top_p 0.95 (greedy)\n"}
+{"at":"2026-10-18T05:32:14.550157Z","direction":"frontend_or_collector_to_core","raw":"snap 63\n"}
+{"at":"2026-10-18T05:32:14.550264Z","direction":"core_to_relay","raw":"ok: snap 63\n"}
+{"at":"2026-10-18T05:32:14.550352Z","direction":"frontend_or_collector_to_core","raw":"chat 39 248045 8678 198 24342 286 4879 369 716 310 830 11553 13 5044 1683 15060 1472 279 3274 11 9307 1328 30800 11 2814 47675 25605 11 321 60445 55404 11 27224 11 321 30246 303 279 1534 4087 13 248046 198 248045 846 198 3710 369 279 6511 314 9338 30 21134 303 799 3299 13 248046 198 248045 74455 198 248068 198\n"}
+{"at":"2026-10-18T05:32:14.583355Z","direction":"core_to_relay","raw":"tok 1596\n"}
+{"at":"2026-10-18T05:32:14.611281Z","direction":"core_to_relay","raw":"tok 1144\n"}
+{"at":"2026-10-18T05:32:14.639116Z","direction":"core_to_relay","raw":"tok 4087\n"}
+{"at":"2026-10-18T05:32:14.666929Z","direction":"core_to_relay","raw":"tok 1156\n"}
+{"at":"2026-10-18T05:32:14.694726Z","direction":"core_to_relay","raw":"tok 579\n"}
+{"at":"2026-10-18T05:32:14.722517Z","direction":"core_to_relay","raw":"tok 4145\n"}
+{"at":"2026-10-18T05:32:14.750319Z","direction":"core_to_relay","raw":"tok 3296\n"}
+{"at":"2026-10-18T05:32:14.778245Z","direction":"core_to_relay","raw":"tok 25\n"}
+{"at":"2026-10-18T05:32:14.806233Z","direction":"core_to_relay","raw":"tok 328\n"}
+{"at":"2026-10-18T05:32:14.834153Z","direction":"core_to_relay","raw":"tok 3710\n"}
+{"at":"2026-10-18T05:32:14.862045Z","direction":"core_to_relay","raw":"tok 369\n"}
+{"at":"2026-10-18T05:32:14.890040Z","direction":"core_to_relay","raw":"tok 279\n"}
+{"at":"2026-10-18T05:32:14.917881Z","direction":"core_to_relay","raw":"tok 6511\n"}
+{"at":"2026-10-18T05:32:14.945751Z","direction":"core_to_relay","raw":"tok 314\n"}
+{"at":"2026-10-18T05:32:14.973725Z","direction":"core_to_relay","raw":"tok 9338\n"}
+{"at":"2026-10-18T05:32:15.001789Z","direction":"core_to_relay","raw":"tok 30\n"}
+{"at":"2026-10-18T05:32:15.029791Z","direction":"core_to_relay","raw":"tok 21134\n"}
+{"at":"2026-10-18T05:32:15.057816Z","direction":"core_to_relay","raw":"tok 303\n"}
+{"at":"2026-10-18T05:32:15.085798Z","direction":"core_to_relay","raw":"tok 799\n"}
+{"at":"2026-10-18T05:32:15.113818Z","direction":"core_to_relay","raw":"tok 3299\n"}
+{"at":"2026-10-18T05:32:15.141805Z","direction":"core_to_relay","raw":"tok 1149\n"}
+{"at":"2026-10-18T05:32:15.169693Z","direction":"core_to_relay","raw":"tok 14235\n"}
+{"at":"2026-10-18T05:32:15.197614Z","direction":"core_to_relay","raw":"tok 1534\n"}
+{"at":"2026-10-18T05:32:15.225571Z","direction":"core_to_relay","raw":"tok 799\n"}
+{"at":"2026-10-18T05:32:15.253562Z","direction":"core_to_relay","raw":"tok 3299\n"}
+{"at":"2026-10-18T05:32:15.281453Z","direction":"core_to_relay","raw":"tok 13\n"}
+{"at":"2026-10-18T05:32:15.309259Z","direction":"core_to_relay","raw":"tok 28320\n"}
+{"at":"2026-10-18T05:32:15.337181Z","direction":"core_to_relay","raw":"tok 1132\n"}
+{"at":"2026-10-18T05:32:15.365230Z","direction":"core_to_relay","raw":"tok 799\n"}
+{"at":"2026-10-18T05:32:15.393223Z","direction":"core_to_relay","raw":"tok 3299\n"}
+{"at":"2026-10-18T05:32:15.421269Z","direction":"core_to_relay","raw":"tok 13\n"}
+{"at":"2026-10-18T05:32:15.449159Z","direction":"core_to_relay","raw":"tok 11751\n"}
+{"at":"2026-10-18T05:32:15.477151Z","direction":"core_to_relay","raw":"tok 13\n"}
+{"at":"2026-10-18T05:32:15.504975Z","direction":"core_to_relay","raw":"tok 198\n"}
+{"at":"2026-10-18T05:32:15.532951Z","direction":"core_to_relay","raw":"tok 248069\n"}
+{"at":"2026-10-18T05:32:15.560922Z","direction":"core_to_relay","raw":"tok 271\n"}
+{"at":"2026-10-18T05:32:15.589129Z","direction":"core_to_relay","raw":"tok 57590\n"}
+{"at":"2026-10-18T05:32:15.617187Z","direction":"core_to_relay","raw":"tok 248046\n"}
+{"at":"2026-10-18T05:32:15.617418Z","direction":"core_to_relay","raw":"done 38 1 64 1062.4 28.5 63 0\n"}
+{"at":"2026-10-18T05:32:15.617549Z","direction":"frontend_or_collector_to_core","raw":"config\n"}
+{"at":"2026-10-18T05:32:15.617653Z","direction":"core_to_relay","raw":"config rev=edc66d9 kv_host=0 ple_disk=1 maxt=230000 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=4096 two_position=0 prefill_chunk=0 cubin=/home/nate/claude/flash-sass-live/kern/die.cubin cubin_fnv=669dbb2e43186b1a\n"}
+{"at":"2026-10-18T05:32:15.617807Z","direction":"frontend_or_collector_to_core","raw":"prof 0 all\n"}
+{"at":"2026-10-18T05:32:15.618051Z","direction":"core_to_relay","raw":"prof: 1154 phases, 28.08 ms between the first and last timestamp\n"}
+{"at":"2026-10-18T05:32:15.618086Z","direction":"core_to_relay","raw":"  actq256     146 phases    5069.8 us (  34.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.618216Z","direction":"core_to_relay","raw":"  hcwsum       48 phases    2419.7 us (  50.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.618335Z","direction":"core_to_relay","raw":"  bf16hcup     97 phases    2381.8 us (  24.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.618378Z","direction":"core_to_relay","raw":"  bf16hcrwx    48 phases    1863.7 us (  38.8 us each)\n"}
+{"at":"2026-10-18T05:32:15.618456Z","direction":"core_to_relay","raw":"  q2moegn      96 phases    1738.8 us (  18.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.618525Z","direction":"core_to_relay","raw":"  q3kk2560     48 phases    1588.2 us (  33.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.618583Z","direction":"core_to_relay","raw":"  bf16hcrx     49 phases    1557.5 us (  31.8 us each)\n"}
+{"at":"2026-10-18T05:32:15.618634Z","direction":"core_to_relay","raw":"  xsend       112 phases    1391.6 us (  12.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.618680Z","direction":"core_to_relay","raw":"  bf16k2560    49 phases    1358.8 us (  27.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.618727Z","direction":"core_to_relay","raw":"  router       48 phases    1160.2 us (  24.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.618774Z","direction":"core_to_relay","raw":"  q2moedn      48 phases    1001.5 us (  20.9 us each)\n"}
+{"at":"2026-10-18T05:32:15.618820Z","direction":"core_to_relay","raw":"  iq4k2560     20 phases     773.1 us (  38.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.618869Z","direction":"core_to_relay","raw":"  q5kk2560      2 phases     691.2 us ( 345.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.618921Z","direction":"core_to_relay","raw":"  ffnact       48 phases     644.1 us (  13.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.618967Z","direction":"core_to_relay","raw":"  dnstep       36 phases     616.4 us (  17.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.619011Z","direction":"core_to_relay","raw":"  dnnormx      36 phases     583.7 us (  16.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.619069Z","direction":"core_to_relay","raw":"  iq4k6144     17 phases     550.9 us (  32.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.619123Z","direction":"core_to_relay","raw":"  q4kk6144     15 phases     430.1 us (  28.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.619168Z","direction":"core_to_relay","raw":"  moesel       48 phases     291.8 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.619213Z","direction":"core_to_relay","raw":"  q4kk2560     10 phases     291.8 us (  29.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.619258Z","direction":"core_to_relay","raw":"  q5kk6144      7 phases     289.8 us (  41.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.619302Z","direction":"core_to_relay","raw":"  bf16bias     36 phases     260.1 us (   7.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.619347Z","direction":"core_to_relay","raw":"  q6kk1536acc   18 phases     243.7 us (  13.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.619392Z","direction":"core_to_relay","raw":"  conv1d       36 phases     231.4 us (   6.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.619436Z","direction":"core_to_relay","raw":"  q2k2560      10 phases     149.5 us (  15.0 us each)\n"}
+{"at":"2026-10-18T05:32:15.619481Z","direction":"core_to_relay","raw":"  q6kk1536      6 phases     111.6 us (  18.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.619538Z","direction":"core_to_relay","raw":"  q3kk6144      3 phases     106.5 us (  35.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.619593Z","direction":"core_to_relay","raw":"  q2acc640      4 phases      62.5 us (  15.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.619638Z","direction":"core_to_relay","raw":"  plerows       1 phases      60.4 us (  60.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.619682Z","direction":"core_to_relay","raw":"  b32q50acc     2 phases      53.2 us (  26.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.619726Z","direction":"core_to_relay","raw":"  b32q40acc     2 phases      38.9 us (  19.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.619771Z","direction":"core_to_relay","raw":"  rms2560       3 phases      22.5 us (   7.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.619815Z","direction":"core_to_relay","raw":"  amax          1 phases      19.5 us (  19.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.619859Z","direction":"core_to_relay","raw":"  argmax        1 phases      11.3 us (  11.3 us each)\n"}
+{"at":"2026-10-18T05:32:15.619904Z","direction":"core_to_relay","raw":"  pleconv       1 phases       9.2 us (   9.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.619948Z","direction":"core_to_relay","raw":"  plegate       1 phases       5.1 us (   5.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.619995Z","direction":"core_to_relay","raw":"  longest: #1150 q5kk2560 666 us; #1132 actq256 372 us; #750 actq256 369 us; #941 actq256 366 us; #277 actq256 358 us; #374 actq256 357 us; #1035 actq256 357 us; #559 actq256 354 us;\n"}
+{"at":"2026-10-18T05:32:15.622112Z","direction":"frontend_or_collector_to_core","raw":"prof 1 all\n"}
+{"at":"2026-10-18T05:32:15.622441Z","direction":"core_to_relay","raw":"prof: 1214 phases, 28.08 ms between the first and last timestamp\n"}
+{"at":"2026-10-18T05:32:15.622478Z","direction":"core_to_relay","raw":"  actq256     146 phases    3708.9 us (  25.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.622532Z","direction":"core_to_relay","raw":"  hcwsum       48 phases    2865.2 us (  59.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.622583Z","direction":"core_to_relay","raw":"  bf16hcup     97 phases    2511.9 us (  25.9 us each)\n"}
+{"at":"2026-10-18T05:32:15.622633Z","direction":"core_to_relay","raw":"  bf16hcrwx    48 phases    1872.9 us (  39.0 us each)\n"}
+{"at":"2026-10-18T05:32:15.622684Z","direction":"core_to_relay","raw":"  q3kk2560     49 phases    1806.3 us (  36.9 us each)\n"}
+{"at":"2026-10-18T05:32:15.622707Z","direction":"core_to_relay","raw":"  bf16hcrx     49 phases    1514.5 us (  30.9 us each)\n"}
+{"at":"2026-10-18T05:32:15.622724Z","direction":"core_to_relay","raw":"  bf16k2560    53 phases    1486.8 us (  28.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.622740Z","direction":"core_to_relay","raw":"  q2moegn      96 phases    1477.6 us (  15.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.622828Z","direction":"core_to_relay","raw":"  xsend       111 phases    1413.1 us (  12.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.622888Z","direction":"core_to_relay","raw":"  router       48 phases    1154.0 us (  24.0 us each)\n"}
+{"at":"2026-10-18T05:32:15.622940Z","direction":"core_to_relay","raw":"  iq4k2560     22 phases     930.8 us (  42.3 us each)\n"}
+{"at":"2026-10-18T05:32:15.622990Z","direction":"core_to_relay","raw":"  q2moedn      48 phases     853.0 us (  17.8 us each)\n"}
+{"at":"2026-10-18T05:32:15.623047Z","direction":"core_to_relay","raw":"  ffnact       48 phases     642.0 us (  13.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.623100Z","direction":"core_to_relay","raw":"  q5kk2560      4 phases     628.7 us ( 157.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.623154Z","direction":"core_to_relay","raw":"  dnstep       36 phases     616.4 us (  17.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.623208Z","direction":"core_to_relay","raw":"  dnnormx      36 phases     551.9 us (  15.3 us each)\n"}
+{"at":"2026-10-18T05:32:15.623266Z","direction":"core_to_relay","raw":"  iq4k6144     17 phases     545.8 us (  32.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.623315Z","direction":"core_to_relay","raw":"  q4kk6144     15 phases     421.9 us (  28.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.623372Z","direction":"core_to_relay","raw":"  q2k2560      16 phases     368.6 us (  23.0 us each)\n"}
+{"at":"2026-10-18T05:32:15.623422Z","direction":"core_to_relay","raw":"  q4kk2560     11 phases     305.2 us (  27.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.623479Z","direction":"core_to_relay","raw":"  moesel       48 phases     293.9 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.623529Z","direction":"core_to_relay","raw":"  q5kk6144      7 phases     279.6 us (  39.9 us each)\n"}
+{"at":"2026-10-18T05:32:15.623598Z","direction":"core_to_relay","raw":"  q6kk1536acc   18 phases     242.7 us (  13.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.623661Z","direction":"core_to_relay","raw":"  attnpartn     4 phases     237.6 us (  59.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.623718Z","direction":"core_to_relay","raw":"  bf16bias     36 phases     232.4 us (   6.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.623770Z","direction":"core_to_relay","raw":"  conv1d       36 phases     231.4 us (   6.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.623818Z","direction":"core_to_relay","raw":"  amax          1 phases     110.6 us ( 110.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.623865Z","direction":"core_to_relay","raw":"  q6kk1536      6 phases     105.5 us (  17.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.623922Z","direction":"core_to_relay","raw":"  q3kk6144      3 phases     103.4 us (  34.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.623980Z","direction":"core_to_relay","raw":"  idxsel       20 phases      89.1 us (   4.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.624036Z","direction":"core_to_relay","raw":"  kvgather      4 phases      82.9 us (  20.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.624090Z","direction":"core_to_relay","raw":"  q2acc640      4 phases      64.5 us (  16.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.624144Z","direction":"core_to_relay","raw":"  plerows       1 phases      58.4 us (  58.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.624198Z","direction":"core_to_relay","raw":"  b32q40acc     2 phases      39.9 us (  20.0 us each)\n"}
+{"at":"2026-10-18T05:32:15.624251Z","direction":"core_to_relay","raw":"  xcopy         1 phases      33.8 us (  33.8 us each)\n"}
+{"at":"2026-10-18T05:32:15.624305Z","direction":"core_to_relay","raw":"  attnmerge     4 phases      30.7 us (   7.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.624358Z","direction":"core_to_relay","raw":"  b32q50acc     1 phases      27.6 us (  27.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.624411Z","direction":"core_to_relay","raw":"  attnqkq       4 phases      24.6 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.624465Z","direction":"core_to_relay","raw":"  idxqk         4 phases      24.6 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.624540Z","direction":"core_to_relay","raw":"  b32iq4nlacc    1 phases      23.6 us (  23.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.624595Z","direction":"core_to_relay","raw":"  rms2560       3 phases      22.5 us (   7.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.624643Z","direction":"core_to_relay","raw":"  idxscore      4 phases      17.4 us (   4.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.624696Z","direction":"core_to_relay","raw":"  argmax        1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.624751Z","direction":"core_to_relay","raw":"  pleconv       1 phases       9.2 us (   9.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.624804Z","direction":"core_to_relay","raw":"  plegate       1 phases       6.1 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.624858Z","direction":"core_to_relay","raw":"  longest: #1210 q5kk2560 575 us; #1192 actq256 372 us; #807 actq256 369 us; #1001 actq256 366 us; #1092 actq256 357 us; #619 actq256 353 us; #713 actq256 351 us; #525 actq256 347 us;\n"}
+{"at":"2026-10-18T05:32:15.625453Z","direction":"frontend_or_collector_to_core","raw":"prof 2 all\n"}
+{"at":"2026-10-18T05:32:15.625737Z","direction":"core_to_relay","raw":"prof: 1154 phases, 28.08 ms between the first and last timestamp\n"}
+{"at":"2026-10-18T05:32:15.625777Z","direction":"core_to_relay","raw":"  actq256     146 phases    5888.0 us (  40.3 us each)\n"}
+{"at":"2026-10-18T05:32:15.625840Z","direction":"core_to_relay","raw":"  hcwsum       48 phases    3170.3 us (  66.0 us each)\n"}
+{"at":"2026-10-18T05:32:15.625900Z","direction":"core_to_relay","raw":"  bf16hcup     97 phases    2207.7 us (  22.8 us each)\n"}
+{"at":"2026-10-18T05:32:15.625958Z","direction":"core_to_relay","raw":"  bf16hcrwx    48 phases    2178.0 us (  45.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.626013Z","direction":"core_to_relay","raw":"  q3kk2560     50 phases    1498.1 us (  30.0 us each)\n"}
+{"at":"2026-10-18T05:32:15.626070Z","direction":"core_to_relay","raw":"  bf16hcrx     49 phases    1486.8 us (  30.3 us each)\n"}
+{"at":"2026-10-18T05:32:15.626122Z","direction":"core_to_relay","raw":"  bf16k2560    49 phases    1355.8 us (  27.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.626174Z","direction":"core_to_relay","raw":"  q2moegn      96 phases    1313.8 us (  13.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.626226Z","direction":"core_to_relay","raw":"  router       48 phases    1146.9 us (  23.9 us each)\n"}
+{"at":"2026-10-18T05:32:15.626284Z","direction":"core_to_relay","raw":"  xsend       111 phases    1145.9 us (  10.3 us each)\n"}
+{"at":"2026-10-18T05:32:15.626336Z","direction":"core_to_relay","raw":"  q2moedn      48 phases     747.5 us (  15.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.626392Z","direction":"core_to_relay","raw":"  iq4k2560     19 phases     715.8 us (  37.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.626450Z","direction":"core_to_relay","raw":"  ffnact       48 phases     638.0 us (  13.3 us each)\n"}
+{"at":"2026-10-18T05:32:15.626507Z","direction":"core_to_relay","raw":"  dnstep       36 phases     597.0 us (  16.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.626559Z","direction":"core_to_relay","raw":"  q5kk2560      1 phases     481.3 us ( 481.3 us each)\n"}
+{"at":"2026-10-18T05:32:15.626615Z","direction":"core_to_relay","raw":"  iq4k6144     17 phases     478.2 us (  28.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.626667Z","direction":"core_to_relay","raw":"  q4kk6144     15 phases     370.7 us (  24.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.626723Z","direction":"core_to_relay","raw":"  dnnormx      36 phases     308.2 us (   8.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.626774Z","direction":"core_to_relay","raw":"  moesel       48 phases     284.7 us (   5.9 us each)\n"}
+{"at":"2026-10-18T05:32:15.626832Z","direction":"core_to_relay","raw":"  q4kk2560      8 phases     250.9 us (  31.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.626884Z","direction":"core_to_relay","raw":"  q5kk6144      7 phases     245.8 us (  35.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.626952Z","direction":"core_to_relay","raw":"  bf16bias     36 phases     238.6 us (   6.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.627012Z","direction":"core_to_relay","raw":"  q6kk1536acc   18 phases     232.4 us (  12.9 us each)\n"}
+{"at":"2026-10-18T05:32:15.627068Z","direction":"core_to_relay","raw":"  conv1d       36 phases     210.9 us (   5.9 us each)\n"}
+{"at":"2026-10-18T05:32:15.627122Z","direction":"core_to_relay","raw":"  amax          1 phases     204.8 us ( 204.8 us each)\n"}
+{"at":"2026-10-18T05:32:15.627175Z","direction":"core_to_relay","raw":"  q2k2560      12 phases     169.0 us (  14.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.627228Z","direction":"core_to_relay","raw":"  q6kk1536      6 phases     105.5 us (  17.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.627281Z","direction":"core_to_relay","raw":"  q3kk6144      3 phases      87.0 us (  29.0 us each)\n"}
+{"at":"2026-10-18T05:32:15.627338Z","direction":"core_to_relay","raw":"  plerows       1 phases      58.4 us (  58.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.627395Z","direction":"core_to_relay","raw":"  b32q40acc     3 phases      58.4 us (  19.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.627452Z","direction":"core_to_relay","raw":"  b32iq4nlacc    2 phases      46.1 us (  23.0 us each)\n"}
+{"at":"2026-10-18T05:32:15.627508Z","direction":"core_to_relay","raw":"  xcopy         1 phases      33.8 us (  33.8 us each)\n"}
+{"at":"2026-10-18T05:32:15.627564Z","direction":"core_to_relay","raw":"  b32q50acc     1 phases      26.6 us (  26.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.627620Z","direction":"core_to_relay","raw":"  b32q80acc     1 phases      25.6 us (  25.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.627676Z","direction":"core_to_relay","raw":"  rms2560       3 phases      22.5 us (   7.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.627730Z","direction":"core_to_relay","raw":"  q2acc640      1 phases      15.4 us (  15.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.627786Z","direction":"core_to_relay","raw":"  plegate       1 phases      13.3 us (  13.3 us each)\n"}
+{"at":"2026-10-18T05:32:15.627842Z","direction":"core_to_relay","raw":"  argmax        1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.628022Z","direction":"core_to_relay","raw":"  pleconv       1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.628128Z","direction":"core_to_relay","raw":"  longest: #1150 q5kk2560 481 us; #1132 actq256 372 us; #747 actq256 369 us; #941 actq256 366 us; #277 actq256 358 us; #374 actq256 357 us; #1032 actq256 357 us; #559 actq256 353 us;\n"}
+{"at":"2026-10-18T05:32:15.628608Z","direction":"frontend_or_collector_to_core","raw":"prof 3 all\n"}
+{"at":"2026-10-18T05:32:15.628891Z","direction":"core_to_relay","raw":"prof: 1154 phases, 28.08 ms between the first and last timestamp\n"}
+{"at":"2026-10-18T05:32:15.628926Z","direction":"core_to_relay","raw":"  actq256     146 phases    4953.1 us (  33.9 us each)\n"}
+{"at":"2026-10-18T05:32:15.628994Z","direction":"core_to_relay","raw":"  bf16hcup     97 phases    2473.0 us (  25.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.629052Z","direction":"core_to_relay","raw":"  hcwsum       48 phases    2446.3 us (  51.0 us each)\n"}
+{"at":"2026-10-18T05:32:15.629105Z","direction":"core_to_relay","raw":"  bf16hcrwx    48 phases    1865.7 us (  38.9 us each)\n"}
+{"at":"2026-10-18T05:32:15.629156Z","direction":"core_to_relay","raw":"  q2moegn      96 phases    1792.0 us (  18.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.629210Z","direction":"core_to_relay","raw":"  q3kk2560     50 phases    1713.2 us (  34.3 us each)\n"}
+{"at":"2026-10-18T05:32:15.629263Z","direction":"core_to_relay","raw":"  bf16hcrx     49 phases    1536.0 us (  31.3 us each)\n"}
+{"at":"2026-10-18T05:32:15.629317Z","direction":"core_to_relay","raw":"  bf16k2560    49 phases    1346.6 us (  27.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.629370Z","direction":"core_to_relay","raw":"  xsend       111 phases    1253.4 us (  11.3 us each)\n"}
+{"at":"2026-10-18T05:32:15.629424Z","direction":"core_to_relay","raw":"  router       48 phases    1141.8 us (  23.8 us each)\n"}
+{"at":"2026-10-18T05:32:15.629477Z","direction":"core_to_relay","raw":"  q2moedn      48 phases    1039.4 us (  21.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.629530Z","direction":"core_to_relay","raw":"  iq4k2560     19 phases     816.1 us (  43.0 us each)\n"}
+{"at":"2026-10-18T05:32:15.629584Z","direction":"core_to_relay","raw":"  q5kk2560      1 phases     678.9 us ( 678.9 us each)\n"}
+{"at":"2026-10-18T05:32:15.629637Z","direction":"core_to_relay","raw":"  ffnact       48 phases     635.9 us (  13.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.629690Z","direction":"core_to_relay","raw":"  dnstep       36 phases     629.8 us (  17.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.629736Z","direction":"core_to_relay","raw":"  iq4k6144     17 phases     557.1 us (  32.8 us each)\n"}
+{"at":"2026-10-18T05:32:15.629789Z","direction":"core_to_relay","raw":"  dnnormx      36 phases     440.3 us (  12.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.629835Z","direction":"core_to_relay","raw":"  q4kk6144     15 phases     438.3 us (  29.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.629888Z","direction":"core_to_relay","raw":"  q5kk6144      7 phases     291.8 us (  41.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.629942Z","direction":"core_to_relay","raw":"  moesel       48 phases     290.8 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.629994Z","direction":"core_to_relay","raw":"  q4kk2560      8 phases     287.7 us (  36.0 us each)\n"}
+{"at":"2026-10-18T05:32:15.630049Z","direction":"core_to_relay","raw":"  bf16bias     36 phases     281.6 us (   7.8 us each)\n"}
+{"at":"2026-10-18T05:32:15.630102Z","direction":"core_to_relay","raw":"  q6kk1536acc   18 phases     243.7 us (  13.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.630148Z","direction":"core_to_relay","raw":"  conv1d       36 phases     215.0 us (   6.0 us each)\n"}
+{"at":"2026-10-18T05:32:15.630193Z","direction":"core_to_relay","raw":"  q2k2560      12 phases     181.2 us (  15.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.630250Z","direction":"core_to_relay","raw":"  q6kk1536      6 phases     112.6 us (  18.8 us each)\n"}
+{"at":"2026-10-18T05:32:15.630315Z","direction":"core_to_relay","raw":"  q3kk6144      3 phases     103.4 us (  34.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.630369Z","direction":"core_to_relay","raw":"  plerows       1 phases      59.4 us (  59.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.630421Z","direction":"core_to_relay","raw":"  b32q50acc     2 phases      53.2 us (  26.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.630467Z","direction":"core_to_relay","raw":"  q2acc640      3 phases      48.1 us (  16.0 us each)\n"}
+{"at":"2026-10-18T05:32:15.630520Z","direction":"core_to_relay","raw":"  b32q40acc     2 phases      38.9 us (  19.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.630572Z","direction":"core_to_relay","raw":"  xcopy         1 phases      34.8 us (  34.8 us each)\n"}
+{"at":"2026-10-18T05:32:15.630623Z","direction":"core_to_relay","raw":"  rms2560       3 phases      23.6 us (   7.9 us each)\n"}
+{"at":"2026-10-18T05:32:15.630673Z","direction":"core_to_relay","raw":"  b32iq4nlacc    1 phases      22.5 us (  22.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.630725Z","direction":"core_to_relay","raw":"  argmax        1 phases      11.3 us (  11.3 us each)\n"}
+{"at":"2026-10-18T05:32:15.630779Z","direction":"core_to_relay","raw":"  pleconv       1 phases       9.2 us (   9.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.630831Z","direction":"core_to_relay","raw":"  amax          1 phases       7.2 us (   7.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.630877Z","direction":"core_to_relay","raw":"  plegate       1 phases       6.1 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.630927Z","direction":"core_to_relay","raw":"  longest: #1150 q5kk2560 679 us; #1132 actq256 372 us; #747 actq256 370 us; #938 actq256 367 us; #277 actq256 358 us; #371 actq256 357 us; #1032 actq256 357 us; #559 actq256 353 us;\n"}
+{"at":"2026-10-18T05:32:15.631413Z","direction":"frontend_or_collector_to_core","raw":"prof 4 all\n"}
+{"at":"2026-10-18T05:32:15.631712Z","direction":"core_to_relay","raw":"prof: 1214 phases, 28.08 ms between the first and last timestamp\n"}
+{"at":"2026-10-18T05:32:15.631746Z","direction":"core_to_relay","raw":"  actq256     146 phases    3607.6 us (  24.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.631805Z","direction":"core_to_relay","raw":"  hcwsum       48 phases    2601.0 us (  54.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.631858Z","direction":"core_to_relay","raw":"  bf16hcup     97 phases    2473.0 us (  25.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.631910Z","direction":"core_to_relay","raw":"  q3kk2560     53 phases    2018.3 us (  38.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.631962Z","direction":"core_to_relay","raw":"  bf16hcrwx    48 phases    1897.5 us (  39.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.632014Z","direction":"core_to_relay","raw":"  q2moegn      96 phases    1639.4 us (  17.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.632065Z","direction":"core_to_relay","raw":"  bf16hcrx     49 phases    1540.1 us (  31.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.632114Z","direction":"core_to_relay","raw":"  bf16k2560    53 phases    1488.9 us (  28.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.632161Z","direction":"core_to_relay","raw":"  xsend       111 phases    1374.2 us (  12.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.632215Z","direction":"core_to_relay","raw":"  router       48 phases    1161.2 us (  24.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.632268Z","direction":"core_to_relay","raw":"  q2moedn      48 phases     948.2 us (  19.8 us each)\n"}
+{"at":"2026-10-18T05:32:15.632317Z","direction":"core_to_relay","raw":"  iq4k2560     22 phases     912.4 us (  41.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.632363Z","direction":"core_to_relay","raw":"  ffnact       48 phases     641.0 us (  13.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.632415Z","direction":"core_to_relay","raw":"  dnstep       36 phases     615.4 us (  17.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.632461Z","direction":"core_to_relay","raw":"  dnnormx      36 phases     609.3 us (  16.9 us each)\n"}
+{"at":"2026-10-18T05:32:15.632510Z","direction":"core_to_relay","raw":"  q5kk2560      2 phases     604.2 us ( 302.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.632562Z","direction":"core_to_relay","raw":"  iq4k6144     17 phases     537.6 us (  31.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.632607Z","direction":"core_to_relay","raw":"  q4kk6144     15 phases     416.8 us (  27.8 us each)\n"}
+{"at":"2026-10-18T05:32:15.632655Z","direction":"core_to_relay","raw":"  q4kk2560     12 phases     318.5 us (  26.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.632705Z","direction":"core_to_relay","raw":"  bf16bias     36 phases     291.8 us (   8.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.632757Z","direction":"core_to_relay","raw":"  moesel       48 phases     288.8 us (   6.0 us each)\n"}
+{"at":"2026-10-18T05:32:15.632809Z","direction":"core_to_relay","raw":"  q5kk6144      7 phases     280.6 us (  40.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.632861Z","direction":"core_to_relay","raw":"  attnpartn     4 phases     236.5 us (  59.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.633268Z","direction":"core_to_relay","raw":"  q6kk1536acc   18 phases     234.5 us (  13.0 us each)\n"}
+{"at":"2026-10-18T05:32:15.633325Z","direction":"core_to_relay","raw":"  conv1d       36 phases     230.4 us (   6.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.633377Z","direction":"core_to_relay","raw":"  q2k2560      11 phases     163.8 us (  14.9 us each)\n"}
+{"at":"2026-10-18T05:32:15.633431Z","direction":"core_to_relay","raw":"  q6kk1536      6 phases     108.5 us (  18.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.633477Z","direction":"core_to_relay","raw":"  q3kk6144      3 phases     104.4 us (  34.8 us each)\n"}
+{"at":"2026-10-18T05:32:15.633525Z","direction":"core_to_relay","raw":"  amax          1 phases     102.4 us ( 102.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.633623Z","direction":"core_to_relay","raw":"  idxsel       20 phases      89.1 us (   4.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.633701Z","direction":"core_to_relay","raw":"  kvgather      4 phases      82.9 us (  20.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.633755Z","direction":"core_to_relay","raw":"  b32q40acc     4 phases      76.8 us (  19.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.633775Z","direction":"core_to_relay","raw":"  plerows       1 phases      60.4 us (  60.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.633829Z","direction":"core_to_relay","raw":"  q6kk2560      2 phases      57.3 us (  28.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.633878Z","direction":"core_to_relay","raw":"  b32iq4nlacc    2 phases      48.1 us (  24.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.633952Z","direction":"core_to_relay","raw":"  xcopy         1 phases      34.8 us (  34.8 us each)\n"}
+{"at":"2026-10-18T05:32:15.634025Z","direction":"core_to_relay","raw":"  attnmerge     4 phases      33.8 us (   8.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.634087Z","direction":"core_to_relay","raw":"  q2acc640      2 phases      31.7 us (  15.9 us each)\n"}
+{"at":"2026-10-18T05:32:15.634149Z","direction":"core_to_relay","raw":"  attnqkq       4 phases      28.7 us (   7.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.634340Z","direction":"core_to_relay","raw":"  rms2560       3 phases      23.6 us (   7.9 us each)\n"}
+{"at":"2026-10-18T05:32:15.634404Z","direction":"core_to_relay","raw":"  idxqk         4 phases      22.5 us (   5.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.634455Z","direction":"core_to_relay","raw":"  idxscore      4 phases      16.4 us (   4.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.634499Z","direction":"core_to_relay","raw":"  argmax        1 phases      10.2 us (  10.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.634542Z","direction":"core_to_relay","raw":"  pleconv       1 phases       9.2 us (   9.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.634583Z","direction":"core_to_relay","raw":"  plegate       1 phases       6.1 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.634631Z","direction":"core_to_relay","raw":"  longest: #1210 q5kk2560 583 us; #1192 actq256 371 us; #998 actq256 366 us; #277 actq256 358 us; #1092 actq256 357 us; #371 actq256 356 us; #904 actq256 347 us; #89 actq256 307 us;\n"}
+{"at":"2026-10-18T05:32:15.635424Z","direction":"frontend_or_collector_to_core","raw":"prof 5 all\n"}
+{"at":"2026-10-18T05:32:15.635740Z","direction":"core_to_relay","raw":"prof: 1214 phases, 28.08 ms between the first and last timestamp\n"}
+{"at":"2026-10-18T05:32:15.635797Z","direction":"core_to_relay","raw":"  actq256     146 phases    3600.4 us (  24.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.635866Z","direction":"core_to_relay","raw":"  bf16hcup     97 phases    2481.2 us (  25.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.635926Z","direction":"core_to_relay","raw":"  hcwsum       48 phases    2350.1 us (  49.0 us each)\n"}
+{"at":"2026-10-18T05:32:15.636003Z","direction":"core_to_relay","raw":"  q3kk2560     52 phases    1889.3 us (  36.3 us each)\n"}
+{"at":"2026-10-18T05:32:15.636071Z","direction":"core_to_relay","raw":"  bf16hcrwx    48 phases    1885.2 us (  39.3 us each)\n"}
+{"at":"2026-10-18T05:32:15.636140Z","direction":"core_to_relay","raw":"  q2moegn      96 phases    1804.3 us (  18.8 us each)\n"}
+{"at":"2026-10-18T05:32:15.636205Z","direction":"core_to_relay","raw":"  bf16hcrx     49 phases    1538.0 us (  31.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.636275Z","direction":"core_to_relay","raw":"  bf16k2560    53 phases    1482.8 us (  28.0 us each)\n"}
+{"at":"2026-10-18T05:32:15.636338Z","direction":"core_to_relay","raw":"  xsend       111 phases    1391.6 us (  12.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.636400Z","direction":"core_to_relay","raw":"  router       48 phases    1151.0 us (  24.0 us each)\n"}
+{"at":"2026-10-18T05:32:15.636457Z","direction":"core_to_relay","raw":"  q2moedn      48 phases    1062.9 us (  22.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.636517Z","direction":"core_to_relay","raw":"  iq4k2560     22 phases    1049.6 us (  47.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.636576Z","direction":"core_to_relay","raw":"  q5kk2560      4 phases     632.8 us ( 158.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.636641Z","direction":"core_to_relay","raw":"  ffnact       48 phases     628.7 us (  13.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.636701Z","direction":"core_to_relay","raw":"  dnstep       36 phases     614.4 us (  17.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.636766Z","direction":"core_to_relay","raw":"  dnnormx      36 phases     610.3 us (  17.0 us each)\n"}
+{"at":"2026-10-18T05:32:15.636821Z","direction":"core_to_relay","raw":"  iq4k6144     17 phases     535.6 us (  31.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.636874Z","direction":"core_to_relay","raw":"  q4kk6144     15 phases     415.7 us (  27.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.636950Z","direction":"core_to_relay","raw":"  moesel       48 phases     290.8 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.637104Z","direction":"core_to_relay","raw":"  q5kk6144      7 phases     279.6 us (  39.9 us each)\n"}
+{"at":"2026-10-18T05:32:15.637168Z","direction":"core_to_relay","raw":"  q4kk2560      9 phases     277.5 us (  30.8 us each)\n"}
+{"at":"2026-10-18T05:32:15.637218Z","direction":"core_to_relay","raw":"  bf16bias     36 phases     241.7 us (   6.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.637266Z","direction":"core_to_relay","raw":"  q6kk1536acc   18 phases     237.6 us (  13.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.637309Z","direction":"core_to_relay","raw":"  attnpartn     4 phases     235.5 us (  58.9 us each)\n"}
+{"at":"2026-10-18T05:32:15.637352Z","direction":"core_to_relay","raw":"  conv1d       36 phases     232.4 us (   6.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.637394Z","direction":"core_to_relay","raw":"  q2k2560      11 phases     160.8 us (  14.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.637438Z","direction":"core_to_relay","raw":"  amax          1 phases     114.7 us ( 114.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.637480Z","direction":"core_to_relay","raw":"  q6kk1536      6 phases     105.5 us (  17.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.637533Z","direction":"core_to_relay","raw":"  q3kk6144      3 phases     104.4 us (  34.8 us each)\n"}
+{"at":"2026-10-18T05:32:15.637590Z","direction":"core_to_relay","raw":"  q6kk2560      4 phases      99.3 us (  24.8 us each)\n"}
+{"at":"2026-10-18T05:32:15.637646Z","direction":"core_to_relay","raw":"  idxsel       20 phases      89.1 us (   4.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.637695Z","direction":"core_to_relay","raw":"  kvgather      4 phases      81.9 us (  20.5 us each)\n"}
+{"at":"2026-10-18T05:32:15.637739Z","direction":"core_to_relay","raw":"  plerows       1 phases      59.4 us (  59.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.637783Z","direction":"core_to_relay","raw":"  b32q40acc     3 phases      56.3 us (  18.8 us each)\n"}
+{"at":"2026-10-18T05:32:15.637825Z","direction":"core_to_relay","raw":"  xcopy         1 phases      33.8 us (  33.8 us each)\n"}
+{"at":"2026-10-18T05:32:15.637867Z","direction":"core_to_relay","raw":"  attnmerge     4 phases      32.8 us (   8.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.637912Z","direction":"core_to_relay","raw":"  q2acc640      2 phases      30.7 us (  15.4 us each)\n"}
+{"at":"2026-10-18T05:32:15.637959Z","direction":"core_to_relay","raw":"  attnqkq       4 phases      26.6 us (   6.7 us each)\n"}
+{"at":"2026-10-18T05:32:15.638001Z","direction":"core_to_relay","raw":"  b32q50acc     1 phases      26.6 us (  26.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.638046Z","direction":"core_to_relay","raw":"  b32q80acc     1 phases      25.6 us (  25.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.638088Z","direction":"core_to_relay","raw":"  rms2560       3 phases      23.6 us (   7.9 us each)\n"}
+{"at":"2026-10-18T05:32:15.638131Z","direction":"core_to_relay","raw":"  b32iq4nlacc    1 phases      23.6 us (  23.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.638173Z","direction":"core_to_relay","raw":"  idxqk         4 phases      22.5 us (   5.6 us each)\n"}
+{"at":"2026-10-18T05:32:15.638216Z","direction":"core_to_relay","raw":"  idxscore      4 phases      16.4 us (   4.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.638258Z","direction":"core_to_relay","raw":"  argmax        1 phases       9.2 us (   9.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.638300Z","direction":"core_to_relay","raw":"  pleconv       1 phases       9.2 us (   9.2 us each)\n"}
+{"at":"2026-10-18T05:32:15.638343Z","direction":"core_to_relay","raw":"  plegate       1 phases       6.1 us (   6.1 us each)\n"}
+{"at":"2026-10-18T05:32:15.638385Z","direction":"core_to_relay","raw":"  longest: #1210 q5kk2560 572 us; #747 actq256 368 us; #274 actq256 358 us; #371 actq256 356 us; #556 actq256 353 us; #650 actq256 350 us; #465 actq256 346 us; #89 actq256 307 us;\n"}
