@@ -1,0 +1,82 @@
+{
+  "schema": "flash-sass.issue22-original-layer3-replay-summary.v1",
+  "source_revision": "4da285019a3117493729cdaa9a78d85e8e0d4661",
+  "checkpoint_revision": "de4b8e4d43b917e7706784d8bb445c9af86a3540",
+  "weights_origin": "original_checkpoint_safetensors_layer3",
+  "weights_revision": "de4b8e4d43b917e7706784d8bb445c9af86a3540",
+  "gpuq_job_id": "eaf63d75-09a1-4b5a-9fb1-66d2bd0fc470",
+  "dsh_replay_build": "build-3304830-1792570891765182913",
+  "status": "arithmetic_limits_met",
+  "complete": true,
+  "limits": {
+    "enforced_fields": [
+      "arithmetic_max_abs",
+      "arithmetic_rmse",
+      "arithmetic_relative_l2",
+      "query_max_abs"
+    ],
+    "failed": [],
+    "file_observed_before_replay": true,
+    "historical_predeclaration_attested": false,
+    "observed": {
+      "arithmetic_max_abs": 3.88794557659722E-9,
+      "arithmetic_relative_l2": 9.6766683443471E-8,
+      "arithmetic_rmse": 6.41997484941288E-10,
+      "query_max_abs": 1.37811321243575E-7
+    },
+    "profile": {
+      "bytes": 177,
+      "path": "/home/nate/.local/state/nates-dsh/builds/build-3304830-1792570891765182913.cxxdMo/source/validation/issue22/attention-limits.json",
+      "sha256": "e6e6c337f222bfdef8eba689f307d6a39d6041464ac662d073a69687ba5b2f8e"
+    },
+    "quantization_effects_gated": false,
+    "schema": "flash-sass.qsa-attention-limits.v1",
+    "values": {
+      "arithmetic_max_abs": 0.005,
+      "arithmetic_relative_l2": 0.00005,
+      "arithmetic_rmse": 0.001,
+      "query_max_abs": 0.00001
+    }
+  },
+  "projection": {
+    "length": 9,
+    "budget": 1,
+    "selected_ids": [
+      0
+    ],
+    "attended_keys": 5,
+    "tail": 1,
+    "arithmetic_vs_gpu": {
+      "cosine": 0.999999999999994,
+      "cosine_defined": true,
+      "error_l2": 5.03221201362011E-8,
+      "max_abs": 3.88794557659722E-9,
+      "mean_abs": 4.47280131004503E-10,
+      "observed_l2": 0.520035592619165,
+      "observed_zero": false,
+      "reference_l2": 0.520035598467092,
+      "reference_zero": false,
+      "relative_l2": 9.6766683443471E-8,
+      "relative_l2_finite": true,
+      "rmse": 6.41997484941288E-10
+    },
+    "query_vs_gpu": {
+      "cosine": 1,
+      "cosine_defined": true,
+      "error_l2": 0.00000128010816004711,
+      "max_abs": 1.37811321243575E-7,
+      "mean_abs": 1.03401592426759E-8,
+      "observed_l2": 22.6928699402928,
+      "observed_zero": false,
+      "reference_l2": 22.6928698450356,
+      "reference_zero": false,
+      "relative_l2": 5.64101485968357E-8,
+      "relative_l2_finite": true,
+      "rmse": 1.63313114983773E-8
+    },
+    "quantization_effects": null,
+    "quality": false,
+    "production_sparse_dispatch_verified": false
+  },
+  "gpu_binary_source_revision": "4da285019a3117493729cdaa9a78d85e8e0d4661"
+}

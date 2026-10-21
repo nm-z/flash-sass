@@ -32,11 +32,38 @@ decode ordering error; commit `647f0eccc19a03cb69e552a0a7f447ee61ab4434` fixes
 the conversion. The invalid projection files were replaced. That attempt is
 not a GPU measurement.
 
+## GPU capture and independent replay
+
+- GPUQ job `eaf63d75-09a1-4b5a-9fb1-66d2bd0fc470` ran on device 6 with N=9,
+  budget 1, and supplied selected ID `[0]`. The capture completed with tail 1
+  and 5 attended keys. The GPUQ log confirms the runner reused inherited
+  `GPUQ_LOCK_FD=9`; there was no nested lock acquisition.
+- The GPU fixture exit code is 0; `capture.sha256` and
+  `frozen-inputs.sha256` verify. GPUQ marked the overall job failed with exit
+  70 after its artifact importer raised `NoMethodError: undefined method
+  'include?' for nil`. That importer error is tracked in [gpuq #51](https://github.com/nm-z/gpuq/issues/51).
+  The completed output was recovered from the GPUQ staging area and database.
+- The independent CPU FP64 replay ran on Benji through DSH build
+  `build-3304830-1792570891765182913` and reports `arithmetic_limits_met` with
+  no failed fields. For N=9, arithmetic max absolute error is `3.8879e-9`,
+  RMSE is `6.4200e-10`, relative L2 is `9.6767e-8`, and query max absolute
+  error is `1.3782e-7`.
+- The profile limits are max absolute `0.005`, RMSE `0.001`, relative L2
+  `0.00005`, and query max absolute `0.00001`. The exact profile hash is
+  `e6e6c337f222bfdef8eba689f307d6a39d6041464ac662d073a69687ba5b2f8e`; Git
+  history shows it was committed in `affe73f3b62c94639875a1d5b2c5d6958752f7be`
+  before this run. The replay report's own
+  `historical_predeclaration_attested` field remains false, so the report does
+  not claim that attestation.
+
+Machine-readable capture and job state are in `gpuq-run-r2/`; the compact
+metrics are in [replay-summary.json](replay-summary.json), and the full replay
+is retained as [n9-replay.json.gz](replays/n9-replay.json.gz).
+
 ## Scope
 
 This fixture supplies original layer-3 attention weights to a deterministic
-component comparison with fixed selected IDs. It can measure same-weight
-attention arithmetic and K/V storage behavior once the GPU capture and
-independent replay are added. The generated activations are synthetic, the
-production sparse selector is not executed, and held-out model quality remains
-unmeasured.
+component comparison with fixed selected IDs. It measures same-weight
+attention arithmetic and K/V storage behavior for this synthetic activation
+sequence. The production sparse selector is not executed, teacher-forced model
+inputs are absent, and held-out model quality remains unmeasured.

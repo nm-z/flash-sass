@@ -1,0 +1,21 @@
+{
+  "schema": "flash-sass.issue22-original-layer3-gpuq.v1",
+  "gpuq_job_id": "eaf63d75-09a1-4b5a-9fb1-66d2bd0fc470",
+  "gpuq_label": "fs22-original-layer3-attn-r2",
+  "gpuq_status": "failed",
+  "gpuq_exit_code": 70,
+  "fixture_exit_code": 0,
+  "capture_complete": true,
+  "capture_sha256_verified": true,
+  "frozen_inputs_sha256_verified": true,
+  "source_hashes_unchanged": true,
+  "independent_replay_build": "build-3304830-1792570891765182913",
+  "independent_replay_status": "arithmetic_limits_met",
+  "importer_issue": "https://github.com/nm-z/gpuq/issues/51",
+  "weights_origin": "original_checkpoint_safetensors_layer3",
+  "weights_revision": "de4b8e4d43b917e7706784d8bb445c9af86a3540",
+  "teacher_forced": false,
+  "production_indexer_executed": false,
+  "full_model": false,
+  "issue22_resolved": false
+}
