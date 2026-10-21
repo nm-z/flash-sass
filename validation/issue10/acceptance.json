@@ -10,7 +10,7 @@
          "remaining" : [
             "Traced parent environment is empty",
             "Historical full driver-counter query exited 2",
-            "Resident core source revision and GGUF conversion revision were not recorded",
+            "The instrumented engine source revision is present only in non-authoritative metadata; the resident core source revision is not embedded and GGUF conversion revision is null",
             "Original constructor/reload settings cannot be reconstructed completely"
          ],
          "requirement" : "Complete source, build, launch, model, token, device and runtime provenance",
@@ -222,6 +222,52 @@
          19
       ],
       "status" : "UNREPRODUCED"
+   },
+   "historical_setup_review" : {
+      "build_records_authoritative" : false,
+      "conversion_revision" : null,
+      "resident_core_source_revision" : null,
+      "build_settings" : {
+         "assembler_version_observed" : "CUDA 11.4.152",
+         "compiler_version_observed" : "GCC 16.2.1",
+         "job3_command" : "make CUDA=/opt/cuda PTXAS11=/opt/cuda-11.4/bin/ptxas die.cubin die_trace.cubin libengine.so",
+         "job4_command" : "make CUDA=/opt/cuda PTXAS11=/opt/cuda-11.4/bin/ptxas die.cubin die.cubin libengine.so",
+         "observed_flags" : "-std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared"
+      },
+      "engine_source_revision_observed" : "bac5b88b665ee6973488dd40b363ded3134136f6",
+      "gguf_revision_observed" : "ed59f92082b1e93c0e96d60a8b11aab089b52f09",
+      "job3_launch_environment_recorded" : false,
+      "job4_launch_environment_recorded" : true,
+      "job4_flash_trace" : "0",
+      "job3_runtime_config_record" : "config rev=unknown-dirty kv_host=0 ple_disk=1 maxt=230000 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=4096 cubin=/home/nate/claude/flash-sass-next/kern/die.cubin cubin_fnv=7e7f74fbd71bd973",
+      "job4_runtime_config_record" : "config rev=unknown-dirty kv_host=0 ple_disk=1 maxt=230000 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=4096 cubin=/home/nate/claude/flash-sass-next/kern/die.cubin cubin_fnv=7e7f74fbd71bd973",
+      "original_checkpoint_revision_observed" : "de4b8e4d43b917e7706784d8bb445c9af86a3540",
+      "remaining_gaps" : [
+         "Resident core source revision is not embedded in the retained core record",
+         "GGUF conversion revision is null",
+         "Build records are explicitly non-authoritative and cannot bind these settings to the resident executable",
+         "Only the untraced job launch environment is retained; constructor and reload settings remain incomplete",
+         "Archived runtime config says maxt=230000 while the job 4 launch environment records FLASH_MAXT=8192 and FLASH_ENGINE_MAXT=8192; the mismatch is unresolved"
+      ],
+      "scope" : "Recovered references from review/setup job 3 and job 4; these observations do not satisfy criterion 1 provenance",
+      "source_records" : [
+         "review/setup/job3-build.json",
+         "review/setup/job3-job-exit.json",
+         "review/setup/job4-build.json",
+         "review/setup/job4-job-exit.json",
+         "review/setup/job4-launch-environment.json"
+      ]
+   },
+   "current_gpu_access_attempt" : {
+      "attempt_date_local" : "2026-10-20",
+      "gpu_job_submitted" : false,
+      "gpuq_reached" : false,
+      "host_resolved_as" : "192.168.1.218",
+      "note" : "A later retry supersedes the earlier DNS failure: the host now resolves, but SSH authentication fails before gpuq. No queue bypass or GPU access was attempted.",
+      "probe_command" : "ssh -o BatchMode=yes -o ConnectTimeout=3 archy gpuq --help",
+      "ssh_agent_socket_available" : false,
+      "ssh_error" : "Permission denied (publickey,password)",
+      "status" : "BLOCKED"
    },
    "issue" : "https://github.com/nm-z/flash-sass/issues/10",
    "native_validation" : {
