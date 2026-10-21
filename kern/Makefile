@@ -1,8 +1,15 @@
 CUDA ?= /opt/cuda
+.DEFAULT_GOAL := all
 PTXAS11 ?= /opt/cuda-11.4/bin/ptxas
 MAXAS = PATH=$(CUDA)/bin:$$PATH perl -I../maxas/lib ../maxas/bin/maxas.pl
 CC ?= gcc
 SHARD1 ?= /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+
+.PHONY: vision-all vision-core
+vision-all:
+	env FLASH_MAXIMG=16384 ./serve.sh all
+vision-core:
+	env FLASH_MAXIMG=16384 ./serve.sh core
 
 all: gemv_q2_0_k2560.cubin gemv_q2_0_k640.cubin gemv_test gemv_bf16_k2560.cubin gemv_bf16_k320.cubin gemv_bf16_test gemv_q4_k_k2560.cubin gemv_q4_k_k6144.cubin gemv_q5_k_k2560.cubin gemv_q5_k_k6144.cubin gemv_k_test
 
@@ -486,7 +493,7 @@ trace_session_test: trace_session_test.c $(ENGINE_SRC) prefill.h trace_host.inc 
 # the commit (and -dirty when the tree differs from it) the library is built from: the engine reports it with its `config` command
 FLASH_REV ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)$(shell git diff --quiet HEAD -- .. 2>/dev/null || echo -dirty)
 FLASH_BF16_PAIR_FUSE ?= 1
-libengine.so: trace_host.inc $(ENGINE_SRC) prefill.h prog.h hold.h core.h engine.h dieops.h ple_read_pool.h ple_read_reload.h ../ref/split.h ../ref/qsa.h ../ref/block.h ../ref/attn.h ../ref/ple.h ../ref/gguf.h ../ref/quant.h ../ref/fmath.h ../ref/hc.h ../ref/deltanet.h ../ref/router.h timings.h qsa_state.h
+libengine.so: vision.h trace_host.inc $(ENGINE_SRC) prefill.h prog.h hold.h core.h engine.h dieops.h ple_read_pool.h ple_read_reload.h ../ref/split.h ../ref/qsa.h ../ref/block.h ../ref/attn.h ../ref/ple.h ../ref/gguf.h ../ref/quant.h ../ref/fmath.h ../ref/hc.h ../ref/deltanet.h ../ref/router.h timings.h qsa_state.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -pthread -DFLASH_REV='"$(FLASH_REV)"' -DFLASH_BF16_PAIR_FUSE=$(FLASH_BF16_PAIR_FUSE) -o $@.new $(ENGINE_SRC) -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
 
 flashcore: flashcore.c flashcore_prefill.h core.h hold.h holdc.c ../ref/gguf.c ../ref/gguf.h
@@ -508,7 +515,7 @@ tok_test: tok_test.c tok.c tok.h ucd.h ../ref/gguf.c ../ref/gguf.h
 jinja_test: jinja_test.c jinja.c jinja.h json.c json.h
 	$(CC) -std=gnu99 -O2 -Wall -o $@ jinja_test.c jinja.c json.c -lm
 
-flashd: timings.h flashd.c tok.c tok.h jinja.c jinja.h json.c json.h ucd.h ../ref/gguf.c ../ref/gguf.h
+flashd: vision.h timings.h flashd.c tok.c tok.h jinja.c jinja.h json.c json.h ucd.h ../ref/gguf.c ../ref/gguf.h
 	$(CC) -std=gnu99 -O2 -Wall -o $@ flashd.c tok.c jinja.c json.c ../ref/gguf.c -I../ref -lm -lpthread
 
 sample_test: sample_test.c dieops.h ../ref/sample.c ../ref/sample.h ../ref/fmath.c
@@ -522,9 +529,14 @@ attnpartn_unitmap: attnpartn_unitmap.c
 	$(CC) -std=gnu99 -O2 -Wall -Wextra -o $@ $<
 
 # ---- the vision encoder daemon (libmtmd from a llama.cpp build; LLAMA_CPP names its tree) ----
-LLAMA_CPP ?= $(HOME)/claude/llama.cpp-up
-flashvis: flashvis.c
-	$(CC) -std=gnu99 -O2 -Wall -o $@ flashvis.c -I$(LLAMA_CPP)/include -I$(LLAMA_CPP)/ggml/include -I$(LLAMA_CPP)/tools/mtmd -L$(LLAMA_CPP)/build/bin -lmtmd -lllama -lggml -lggml-base -Wl,-rpath,$(LLAMA_CPP)/build/bin
+# The vision service requires the installed CUDA backend.
+LLAMA_CPP ?= $(HOME)/claude/llama.cpp-cuda
+LLAMA_BUILD ?= $(LLAMA_CPP)/build
+flashvis: flashvis.c vision.h vis_ggml.c vis_ggml.h vis_fa.c vis_fa.h vis_fa.cubin vis_supervisor.c vis_supervisor.h $(LLAMA_BUILD)/bin/libggml-cuda.so
+	$(CC) -std=gnu11 -O2 -Wall -Wl,--export-dynamic -o $@ flashvis.c vis_ggml.c vis_fa.c vis_supervisor.c -DVIS_FA_PTX_PATH='"$(abspath vis_fa.cubin)"' -DFLASHVIS_BACKEND_DIR='"$(abspath $(LLAMA_BUILD))/bin"' -I$(CUDA)/include -I$(LLAMA_CPP)/include -I$(LLAMA_CPP)/ggml/include -I$(LLAMA_CPP)/tools/mtmd -L$(LLAMA_BUILD)/bin -lmtmd -lllama -lggml -lggml-base -lcuda -ldl -lm -Wl,-rpath,$(abspath $(LLAMA_BUILD))/bin
+
+vis_fa.cubin: vis_fa.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
 
 memtest: memtest.c
 	$(CC) -std=gnu99 -O2 -Wall -o $@ memtest.c -I$(CUDA)/include -lcuda

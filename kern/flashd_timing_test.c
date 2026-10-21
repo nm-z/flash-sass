@@ -9,6 +9,10 @@ static char *read_pair(int fd) {
 }
 static int helper_tests(void) {
     int p[2];char *wire;assert(socketpair(AF_UNIX,SOCK_STREAM,0,p)==0);
+    assert(request_max_seconds(NULL,0)==FLASHD_TEXT_REQUEST_MAX_S);
+    assert(request_max_seconds(NULL,1)==FLASHD_VISION_REQUEST_MAX_S);
+    assert(request_max_seconds("300",1)==300);
+    assert(request_max_seconds("0",1)==0);
     int hdr=0;double waited=-1;
     assert(!QBUSY && !QHEAD && !QLEN);
     assert(queue_enter(p[0],0,&hdr,&waited,http_clock_ms()-1)==-4);

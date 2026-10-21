@@ -19,6 +19,7 @@
 #include <fenv.h>
 #include "gguf.h"
 #include "engine.h"
+#include "vision.h"
 #include "prefill.h"
 #include "timings.h"
 static __thread flash_timing last_timing;
@@ -882,7 +883,7 @@ int engine_init(core_t *c) {
 	}
 	if (getenv("FLASH_ENGINE_MAXT")) { int m = atoi(getenv("FLASH_ENGINE_MAXT")); if (m > 0 && m <= c->maxt) MAXT = m; }   /* a library reloaded with FLASH_ENGINE_MAXT=n serves fewer positions than the core was started for (the KV caches shrink) */
 	const char *cubin = getenv("FLASH_CUBIN") ? getenv("FLASH_CUBIN") : "die.cubin";
-	img_rows_max = getenv("FLASH_MAXIMG") ? (unsigned)atoi(getenv("FLASH_MAXIMG")) : 2048;   /* image tokens per response (fp16 rows of 2560 on every die) */
+	img_rows_max = getenv("FLASH_MAXIMG") ? (unsigned)atoi(getenv("FLASH_MAXIMG")) : (unsigned)(MAXT < FLASH_IMAGE_MAX_TOKENS ? MAXT : FLASH_IMAGE_MAX_TOKENS);   /* image tokens per response (fp16 rows of 2560 on every die) */
 	h_imap = calloc((size_t)MAXT + 2, 4); imap_dirty = 0; rope_dirty_T = 0;
 	kv_host = getenv("FLASH_KV_HOST") ? atoi(getenv("FLASH_KV_HOST")) : 1;
 	nlayers_run = getenv("FLASH_LAYERS") ? atoi(getenv("FLASH_LAYERS")) : NB; if (nlayers_run < 1 || nlayers_run > NB) nlayers_run = NB;
