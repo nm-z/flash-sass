@@ -13,7 +13,7 @@ checker = File.join(root, 'kern/trace_lifecycle_check.rb')
 controller = File.join(root, 'kern/trace_control.rb')
 preflight = File.join(root, 'kern/trace_preflight')
 config = File.join(root, 'evidence/schema2/config-cta1.json')
-lock_path = '/tmp/flash-sass-engine-validation.lock'
+lock_path = '/tmp/fs13-validation.lock'
 
 FileUtils.mkdir_p(control_output)
 lock = File.open(lock_path, File::RDWR | File::CREAT, 0o600)
