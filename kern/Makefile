@@ -1,6 +1,8 @@
 CUDA ?= /opt/cuda
 .DEFAULT_GOAL := all
 PTXAS11 ?= /opt/cuda-11.4/bin/ptxas
+# %globaltimer.hi units for the persistent kernel's watchdog (default: 300 s).
+DIE_KERNEL_LIMIT_UNITS ?= 0x46
 # The M60 hosts use driver 470; compile direct driver API calls against the
 # matching 11.4 headers/stubs instead of a newer /opt/cuda header set.
 CUDA_DRIVER_API ?= /opt/cuda-11.4
@@ -395,7 +397,7 @@ ple: plerows.cubin plerows_ng.cubin plerows_test plegate pleconv
 # ---- the persistent per-die kernel (die.pl stitches the ops together) ----
 DIE_OPS = $(filter-out die.sass die_trace%.sass semtest%.sass bartest.sass fmath.sass gridbar.sass mailbox.sass xmadbench.sass, $(wildcard *.sass)) actq.pl fmath.pl
 die.sass: die.pl trace.pl $(DIE_OPS) q6kk1536acc_bound.awk
-	DIE_TRACE=0 perl die.pl | gawk -f q6kk1536acc_bound.awk > $@.tmp && mv $@.tmp $@
+	DIE_TRACE=0 perl die.pl | gawk -v DIE_KERNEL_LIMIT_UNITS='$(DIE_KERNEL_LIMIT_UNITS)' -f q6kk1536acc_bound.awk > $@.tmp && mv $@.tmp $@
 
 dieops.h: die.pl
 	perl die.pl header > $@
