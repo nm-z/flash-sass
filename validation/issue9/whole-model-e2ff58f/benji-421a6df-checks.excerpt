@@ -29,6 +29,22 @@ Binary SHA-256:
   oracle_fault_matrix 1293d4c93e4852459a6d3a0f3619517c568144cbe80d0827dd2ae2a22b70ff83
   engine_check        594c55c9716a52462ef0f908b6ff769f89ce0fc9083f0a31c34dce7e23104554
 
+Additional short Benji CPU boundary check at the same source revision
+---------------------------------------------------------------------
+Commands: make -C kern checked_test; ./kern/checked_test
+Result: exit 0
+Output: PASS: strict parser, empty/overflow/capacity/budget rejection, unchanged outputs, one-key attention, selected gather
+This includes qsa_nkeys_checked positions 2050 and 2051 at B512, across the visible-length 2051/2052 exclusion boundary. It does not execute GPU code.
+The compile emitted existing -Wmisleading-indentation warnings; it completed successfully.
+
+Binary/source SHA-256:
+  checked_test      ee555a31855e5a98599fd977ddcb965ae5c9f375893a87a100f7fd0c86df1852
+  checked_test.c    6a28bfd2751d64063ccd09d1e09bd6c539b1ba163eb0ea3e11cfffbe2738cdb8
+  ref/checked.c     c980751dfe202bcc28f197672f8a407dee69ccaad9a1ce746e10ae717c007a52
+  ref/attn.c        653521378d9bad2d2860696a6e3acde9b0316215923c6bd8eaff6a987983fa18
+  ref/qsa.c         5d63aa53fae30d50addba450d1bd132c5c01aa67af279b2cd8925c0b523d5c21
+  ref/fmath.c       69bbf4dbb4201dd24056f29183d289910ac7067722c3214a79b3de3ffdf8f462
+
 These are CPU build, API, CLI-boundary, fault-runner, configuration-parser
 and prefill unit checks only. They do not complete the 2055-position CPU
 reference or pass the production-budget GPU request matrix.
