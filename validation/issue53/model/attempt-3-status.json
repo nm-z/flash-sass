@@ -1,0 +1,72 @@
+{
+  "status": "PASS_DOCUMENTED_MODEL_TEST",
+  "wait_budget_seconds": 2700,
+  "started_utc": "2026-10-18T06:13:53Z",
+  "finished_utc": "2026-10-18T06:18:06Z",
+  "baseline_source_rev": "b97b6b94bc0aba994830396fadebe5f8acd082f7",
+  "candidate_source_rev": "be5df804165f44e5fe74df98a6030445244837c4",
+  "wrapper_sha256": "88f377c1faea976d29bc9287be4fea41cd87917787f7df0fc5994dc867dd957a",
+  "model_test_processes": 4,
+  "exit_code": 0,
+  "gpu": 7,
+  "physical_dies": 1,
+  "block_range": "[0,4)",
+  "tokens_per_process": 4,
+  "flags": {
+    "token": "eh",
+    "loop": "ehl"
+  },
+  "c_twins_enabled": true,
+  "phase_cap": null,
+  "ple_shard": "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+  "ple_offset": 192,
+  "modes": {
+    "baseline": {
+      "token": {
+        "exit_code": 0,
+        "status": "PASS",
+        "output_ids": [
+          8678,
+          0,
+          44480,
+          1132
+        ]
+      },
+      "loop": {
+        "exit_code": 0,
+        "status": "PASS",
+        "output_ids": [
+          8678,
+          101308,
+          77620,
+          13051
+        ]
+      }
+    },
+    "candidate": {
+      "token": {
+        "exit_code": 0,
+        "status": "PASS",
+        "output_ids": [
+          8678,
+          0,
+          44480,
+          1132
+        ]
+      },
+      "loop": {
+        "exit_code": 0,
+        "status": "PASS",
+        "output_ids": [
+          8678,
+          101308,
+          77620,
+          13051
+        ]
+      }
+    }
+  },
+  "all_48_block_c_twin_comparison": "not performed",
+  "cleanup": "Owned wrapper, supervisor, timeout, and holder PIDs no longer existed; resident flashcore PID 3575268 remained running.",
+  "interpretation": "The arbitrary teacher-forcing inputs are not expected next-token predictions. The numerical gate compares GPU output and stream state with the C twin; both arms pass those exact comparisons."
+}

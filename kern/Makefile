@@ -247,6 +247,11 @@ hcops_test: hcops_test.c ../ref/hc.c ../ref/hc.h ../ref/fmath.c
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ hcops_test.c ../ref/hc.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
 
 hcops: hc_silu.cubin hc_mix.cubin hc_write.cubin hcops_test
+
+# Persistent HC phases against the pinned baseline and independent C write twin.
+# Run through hc_phase_check.sh to observe the shared-host validation lock.
+hc_phase_test: hc_phase_test.c dieops.h ../ref/hc.c ../ref/hc.h ../ref/fmath.c ../ref/fmath.h
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -Wextra -o $@ hc_phase_test.c ../ref/hc.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
 .PHONY: hcops
 
 # MoE router

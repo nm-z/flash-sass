@@ -1,0 +1,16 @@
+{
+  "status": "INTERRUPTED_BEFORE_LOCK",
+  "wait_budget_seconds": 2700,
+  "wait_messages": 179,
+  "driver_log_last_write_utc": "2026-10-18 05:56:33 UTC",
+  "model_tests_executed": 0,
+  "exit_code": null,
+  "wrapper_pid": 946636,
+  "observed_utc": "2026-10-18T05:58:31Z",
+  "observations": [
+    "Command session unavailable; wrapper process no longer existed.",
+    "No owned holder, model-test output, or wrapper exit result existed.",
+    "The reason the command session ended was not recorded."
+  ],
+  "retry": "A bounded host-side supervisor launches a fresh attempt with the same 2700-second resource wait budget."
+}

@@ -1,0 +1,28 @@
+Sun Oct 18 00:16:05 UTC 2026
+Read-only inspection under shared validation lock
+index, uuid, pci.bus_id, name, memory.used [MiB], memory.total [MiB], utilization.gpu [%]
+0, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, 00000000:03:00.0, Tesla M60, 7566 MiB, 7618 MiB, 0 %
+1, GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, 00000000:04:00.0, Tesla M60, 7602 MiB, 7618 MiB, 0 %
+2, GPU-c767d250-4454-d181-d648-8706b5f2fb64, 00000000:07:00.0, Tesla M60, 7541 MiB, 7618 MiB, 0 %
+3, GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, 00000000:08:00.0, Tesla M60, 7611 MiB, 7618 MiB, 0 %
+4, GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, 00000000:0B:00.0, Tesla M60, 7615 MiB, 7618 MiB, 0 %
+5, GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, 00000000:0C:00.0, Tesla M60, 7553 MiB, 7618 MiB, 0 %
+6, GPU-431371bd-b482-96b2-4b70-04f83c6d075b, 00000000:12:00.0, Tesla M60, 80 MiB, 7618 MiB, 19 %
+7, GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4, 00000000:13:00.0, Tesla M60, 138 MiB, 7618 MiB, 0 %
+    PID    PPID     ELAPSED COMMAND
+ 974015       1    17:30:39 flock -s -n /home/nate/codex/asm-port/GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974018  974015    17:30:39 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974058       1    17:30:39 flock -s -n /home/nate/codex/asm-port/GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974061  974058    17:30:39 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974100       1    17:30:39 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./fence 2 2 2750-3769
+ 974103  974100    17:30:39 ./fence 2 2 2750-3769
+ 988058       1    17:30:23 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988060  988058    17:30:23 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988065       1    17:30:23 flock -s -n /home/nate/codex/asm-port/GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988067  988065    17:30:23 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988070       1    17:30:23 flock -s -n /home/nate/codex/asm-port/GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988072  988070    17:30:23 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988079       1    17:30:23 flock -s -n /home/nate/codex/asm-port/GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+ 988080  988079    17:30:23 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+1575007       1    04:03:23 ./flashcore /home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf /home/nate/claude/flash-sass-live/kern/libengine.so /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+Readiness inspection complete; shared lock released

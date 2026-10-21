@@ -1,0 +1,6669 @@
+{
+  "started_utc": "2026-10-18T05:32:22Z",
+  "host": "archy",
+  "options": {
+    "socket": "/tmp/flash.sock",
+    "url": "http://127.0.0.1:18090",
+    "wait_seconds": 2700,
+    "core_pid": 3575268,
+    "baseline_dir": "/tmp/flash-sass-issue53-resume.IwwJba/baseline",
+    "candidate_dir": "/tmp/flash-sass-issue53-resume.IwwJba/candidate",
+    "baseline_rev": "b97b6b94bc0aba994830396fadebe5f8acd082f7",
+    "candidate_rev": "be5df804165f44e5fe74df98a6030445244837c4",
+    "fixtures": "/tmp/flash-sass-issue53-gates.4F55qE/prompts.json",
+    "out": "/tmp/flash-sass-issue53-gates.4F55qE/attempt-1"
+  },
+  "runner_sha256": "29ae63430ea090aadca3b4fcc477ac2b8a70938c64762864a3992f31f774c12b",
+  "arms": {
+    "baseline": {
+      "config": {
+        "rev": "b97b6b94bc0aba994830396fadebe5f8acd082f7",
+        "kv_host": "0",
+        "ple_disk": "1",
+        "maxt": "230000",
+        "layers": "48/48",
+        "nblk": "512",
+        "dies": "6",
+        "attn_dies": "1,4,5",
+        "split": "112,97,81,116,97,97",
+        "attn_map": "1,1,1,1,4,4,4,4,5,5,5,5",
+        "img_rows": "4096",
+        "two_position": "0",
+        "prefill_chunk": "0",
+        "cubin": "/tmp/flash-sass-issue53-resume.IwwJba/baseline/die.cubin",
+        "cubin_fnv": "669dbb2e43186b1a"
+      },
+      "tokens": {
+        "c_code": {
+          "ids": [
+            71093,
+            66,
+            198,
+            390,
+            9057,
+            1494,
+            830,
+            8,
+            313,
+            198,
+            262,
+            460,
+            830,
+            348,
+            830,
+            26,
+            198,
+            92,
+            198,
+            71093,
+            248046
+          ],
+          "generated": 21,
+          "ended": 1,
+          "prompt": 32,
+          "run_ms": 5454.2,
+          "first_ms": 3048.2
+        },
+        "capital": {
+          "ids": [
+            57590,
+            248046
+          ],
+          "generated": 2,
+          "ended": 1,
+          "prompt": 24,
+          "run_ms": 801.2,
+          "first_ms": 665.6
+        },
+        "multiturn": {
+          "ids": [
+            18,
+            20,
+            248046
+          ],
+          "generated": 3,
+          "ended": 1,
+          "prompt": 46,
+          "run_ms": 3384.4,
+          "first_ms": 3078.6
+        },
+        "numbers": {
+          "ids": [
+            16,
+            11,
+            220,
+            17,
+            11,
+            220,
+            18,
+            11,
+            220,
+            19,
+            11,
+            220,
+            20,
+            11,
+            220,
+            21,
+            11,
+            220,
+            22,
+            11,
+            220,
+            23,
+            11,
+            220,
+            24,
+            11,
+            220,
+            16,
+            15,
+            11,
+            220,
+            16,
+            16,
+            11,
+            220,
+            16,
+            17,
+            11,
+            220,
+            16,
+            18,
+            11,
+            220,
+            16,
+            19,
+            11,
+            220,
+            16,
+            20,
+            11,
+            220,
+            16,
+            21,
+            11,
+            220,
+            16,
+            22,
+            11,
+            220,
+            16,
+            23,
+            11,
+            220,
+            16
+          ],
+          "generated": 64,
+          "ended": 0,
+          "prompt": 24,
+          "run_ms": 5311.3,
+          "first_ms": 1815.8
+        }
+      },
+      "requests": [
+        {
+          "warmup": true,
+          "predicted_per_second": 35.75,
+          "completion_tokens": 38
+        },
+        {
+          "warmup": false,
+          "predicted_per_second": 35.77,
+          "completion_tokens": 38
+        },
+        {
+          "warmup": false,
+          "predicted_per_second": 35.75,
+          "completion_tokens": 38
+        },
+        {
+          "warmup": false,
+          "predicted_per_second": 35.74,
+          "completion_tokens": 38
+        }
+      ],
+      "profiles": [
+        {
+          "0": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 5049.3
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2417.7
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2416.6
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1847.3
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1736.7
+              },
+              "q3kk2560": {
+                "count": 48,
+                "us": 1624.1
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1559.6
+              },
+              "xsend": {
+                "count": 112,
+                "us": 1397.8
+              },
+              "bf16k2560": {
+                "count": 49,
+                "us": 1365.0
+              },
+              "router": {
+                "count": 48,
+                "us": 1156.1
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 1004.5
+              },
+              "iq4k2560": {
+                "count": 20,
+                "us": 781.3
+              },
+              "q5kk2560": {
+                "count": 2,
+                "us": 683.0
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 643.1
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 611.3
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 587.8
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 560.1
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 431.1
+              },
+              "q4kk2560": {
+                "count": 10,
+                "us": 294.9
+              },
+              "moesel": {
+                "count": 48,
+                "us": 292.9
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 289.8
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 245.8
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 234.5
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 227.3
+              },
+              "q2k2560": {
+                "count": 10,
+                "us": 150.5
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 109.6
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 107.5
+              },
+              "plerows": {
+                "count": 1,
+                "us": 64.5
+              },
+              "q2acc640": {
+                "count": 4,
+                "us": 63.5
+              },
+              "b32q50acc": {
+                "count": 2,
+                "us": 53.2
+              },
+              "b32q40acc": {
+                "count": 2,
+                "us": 39.9
+              },
+              "amax": {
+                "count": 1,
+                "us": 39.9
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 21.5
+              },
+              "argmax": {
+                "count": 1,
+                "us": 11.3
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 6.1
+              }
+            },
+            "phases": 1154,
+            "total_ms": 28.14,
+            "hc_ms": 8.2412
+          },
+          "1": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 3720.2
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2864.1
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2522.1
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1918.0
+              },
+              "q3kk2560": {
+                "count": 49,
+                "us": 1691.6
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1510.4
+              },
+              "bf16k2560": {
+                "count": 53,
+                "us": 1497.1
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1469.4
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1416.2
+              },
+              "router": {
+                "count": 48,
+                "us": 1156.1
+              },
+              "iq4k2560": {
+                "count": 22,
+                "us": 929.8
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 845.8
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 649.2
+              },
+              "q5kk2560": {
+                "count": 4,
+                "us": 638.0
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 617.5
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 558.1
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 537.6
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 418.8
+              },
+              "q2k2560": {
+                "count": 16,
+                "us": 375.8
+              },
+              "q4kk2560": {
+                "count": 11,
+                "us": 312.3
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 301.1
+              },
+              "moesel": {
+                "count": 48,
+                "us": 294.9
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 282.6
+              },
+              "attnpartn": {
+                "count": 4,
+                "us": 237.6
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 236.5
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 232.4
+              },
+              "amax": {
+                "count": 1,
+                "us": 122.9
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 106.5
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 102.4
+              },
+              "idxsel": {
+                "count": 20,
+                "us": 90.1
+              },
+              "kvgather": {
+                "count": 4,
+                "us": 80.9
+              },
+              "plerows": {
+                "count": 1,
+                "us": 65.5
+              },
+              "q2acc640": {
+                "count": 4,
+                "us": 62.5
+              },
+              "b32q40acc": {
+                "count": 2,
+                "us": 38.9
+              },
+              "attnmerge": {
+                "count": 4,
+                "us": 32.8
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 32.8
+              },
+              "b32q50acc": {
+                "count": 1,
+                "us": 27.6
+              },
+              "attnqkq": {
+                "count": 4,
+                "us": 26.6
+              },
+              "b32iq4nlacc": {
+                "count": 1,
+                "us": 23.6
+              },
+              "idxqk": {
+                "count": 4,
+                "us": 22.5
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 21.5
+              },
+              "idxscore": {
+                "count": 4,
+                "us": 16.4
+              },
+              "argmax": {
+                "count": 1,
+                "us": 10.2
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 6.1
+              }
+            },
+            "phases": 1214,
+            "total_ms": 28.13,
+            "hc_ms": 8.8146
+          },
+          "2": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 5913.6
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 3191.8
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2227.2
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 2191.4
+              },
+              "q3kk2560": {
+                "count": 50,
+                "us": 1513.5
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1471.5
+              },
+              "bf16k2560": {
+                "count": 49,
+                "us": 1354.8
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1297.4
+              },
+              "router": {
+                "count": 48,
+                "us": 1154.0
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1143.8
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 747.5
+              },
+              "iq4k2560": {
+                "count": 19,
+                "us": 704.5
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 636.9
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 596.0
+              },
+              "q5kk2560": {
+                "count": 1,
+                "us": 487.4
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 474.1
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 371.7
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 298.0
+              },
+              "moesel": {
+                "count": 48,
+                "us": 286.7
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 244.7
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 244.7
+              },
+              "q4kk2560": {
+                "count": 8,
+                "us": 243.7
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 227.3
+              },
+              "amax": {
+                "count": 1,
+                "us": 212.0
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 206.8
+              },
+              "q2k2560": {
+                "count": 12,
+                "us": 165.9
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 104.4
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 90.1
+              },
+              "plerows": {
+                "count": 1,
+                "us": 64.5
+              },
+              "b32q40acc": {
+                "count": 3,
+                "us": 58.4
+              },
+              "b32iq4nlacc": {
+                "count": 2,
+                "us": 47.1
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 33.8
+              },
+              "b32q50acc": {
+                "count": 1,
+                "us": 27.6
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 25.6
+              },
+              "b32q80acc": {
+                "count": 1,
+                "us": 25.6
+              },
+              "q2acc640": {
+                "count": 1,
+                "us": 16.4
+              },
+              "plegate": {
+                "count": 1,
+                "us": 14.3
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "argmax": {
+                "count": 1,
+                "us": 9.2
+              }
+            },
+            "phases": 1154,
+            "total_ms": 28.13,
+            "hc_ms": 9.0819
+          },
+          "3": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 4971.5
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2482.2
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2456.6
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1882.1
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1791.0
+              },
+              "q3kk2560": {
+                "count": 50,
+                "us": 1689.6
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1537.0
+              },
+              "bf16k2560": {
+                "count": 49,
+                "us": 1342.5
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1247.2
+              },
+              "router": {
+                "count": 48,
+                "us": 1147.9
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 1039.4
+              },
+              "iq4k2560": {
+                "count": 19,
+                "us": 820.2
+              },
+              "q5kk2560": {
+                "count": 1,
+                "us": 691.2
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 641.0
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 640.0
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 559.1
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 433.2
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 417.8
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 294.9
+              },
+              "moesel": {
+                "count": 48,
+                "us": 287.7
+              },
+              "q4kk2560": {
+                "count": 8,
+                "us": 286.7
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 286.7
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 246.8
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 220.2
+              },
+              "q2k2560": {
+                "count": 12,
+                "us": 188.4
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 111.6
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 104.4
+              },
+              "plerows": {
+                "count": 1,
+                "us": 64.5
+              },
+              "b32q50acc": {
+                "count": 2,
+                "us": 53.2
+              },
+              "q2acc640": {
+                "count": 3,
+                "us": 48.1
+              },
+              "b32q40acc": {
+                "count": 2,
+                "us": 37.9
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 34.8
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 22.5
+              },
+              "b32iq4nlacc": {
+                "count": 1,
+                "us": 22.5
+              },
+              "argmax": {
+                "count": 1,
+                "us": 11.3
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "amax": {
+                "count": 1,
+                "us": 7.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 6.1
+              }
+            },
+            "phases": 1154,
+            "total_ms": 28.14,
+            "hc_ms": 8.357899999999999
+          },
+          "4": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 3623.9
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2596.9
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2491.4
+              },
+              "q3kk2560": {
+                "count": 53,
+                "us": 2059.3
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1908.7
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1648.6
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1531.9
+              },
+              "bf16k2560": {
+                "count": 53,
+                "us": 1486.8
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1372.2
+              },
+              "router": {
+                "count": 48,
+                "us": 1147.9
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 949.2
+              },
+              "iq4k2560": {
+                "count": 22,
+                "us": 925.7
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 649.2
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 616.4
+              },
+              "q5kk2560": {
+                "count": 2,
+                "us": 591.9
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 581.6
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 538.6
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 419.8
+              },
+              "q4kk2560": {
+                "count": 12,
+                "us": 316.4
+              },
+              "moesel": {
+                "count": 48,
+                "us": 287.7
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 280.6
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 276.5
+              },
+              "attnpartn": {
+                "count": 4,
+                "us": 238.6
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 237.6
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 231.4
+              },
+              "q2k2560": {
+                "count": 11,
+                "us": 159.7
+              },
+              "amax": {
+                "count": 1,
+                "us": 127.0
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 108.5
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 102.4
+              },
+              "idxsel": {
+                "count": 20,
+                "us": 88.1
+              },
+              "kvgather": {
+                "count": 4,
+                "us": 80.9
+              },
+              "b32q40acc": {
+                "count": 4,
+                "us": 77.8
+              },
+              "plerows": {
+                "count": 1,
+                "us": 65.5
+              },
+              "q6kk2560": {
+                "count": 2,
+                "us": 56.3
+              },
+              "b32iq4nlacc": {
+                "count": 2,
+                "us": 45.1
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 32.8
+              },
+              "attnmerge": {
+                "count": 4,
+                "us": 31.7
+              },
+              "q2acc640": {
+                "count": 2,
+                "us": 31.7
+              },
+              "attnqkq": {
+                "count": 4,
+                "us": 27.6
+              },
+              "idxqk": {
+                "count": 4,
+                "us": 22.5
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 22.5
+              },
+              "idxscore": {
+                "count": 4,
+                "us": 17.4
+              },
+              "argmax": {
+                "count": 1,
+                "us": 10.2
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 6.1
+              }
+            },
+            "phases": 1214,
+            "total_ms": 28.13,
+            "hc_ms": 8.5289
+          },
+          "5": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 3594.2
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2501.6
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2361.3
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1915.9
+              },
+              "q3kk2560": {
+                "count": 52,
+                "us": 1894.4
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1801.2
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1530.9
+              },
+              "bf16k2560": {
+                "count": 53,
+                "us": 1487.9
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1370.1
+              },
+              "router": {
+                "count": 48,
+                "us": 1152.0
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 1061.9
+              },
+              "iq4k2560": {
+                "count": 22,
+                "us": 1042.4
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 630.8
+              },
+              "q5kk2560": {
+                "count": 4,
+                "us": 628.7
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 611.3
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 585.7
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 536.6
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 418.8
+              },
+              "moesel": {
+                "count": 48,
+                "us": 290.8
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 280.6
+              },
+              "q4kk2560": {
+                "count": 9,
+                "us": 277.5
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 272.4
+              },
+              "attnpartn": {
+                "count": 4,
+                "us": 237.6
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 236.5
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 233.5
+              },
+              "q2k2560": {
+                "count": 11,
+                "us": 161.8
+              },
+              "amax": {
+                "count": 1,
+                "us": 128.0
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 105.5
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 103.4
+              },
+              "q6kk2560": {
+                "count": 4,
+                "us": 94.2
+              },
+              "idxsel": {
+                "count": 20,
+                "us": 90.1
+              },
+              "kvgather": {
+                "count": 4,
+                "us": 80.9
+              },
+              "plerows": {
+                "count": 1,
+                "us": 64.5
+              },
+              "b32q40acc": {
+                "count": 3,
+                "us": 59.4
+              },
+              "attnmerge": {
+                "count": 4,
+                "us": 32.8
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 32.8
+              },
+              "q2acc640": {
+                "count": 2,
+                "us": 31.7
+              },
+              "b32q50acc": {
+                "count": 1,
+                "us": 26.6
+              },
+              "b32q80acc": {
+                "count": 1,
+                "us": 25.6
+              },
+              "attnqkq": {
+                "count": 4,
+                "us": 24.6
+              },
+              "idxqk": {
+                "count": 4,
+                "us": 24.6
+              },
+              "b32iq4nlacc": {
+                "count": 1,
+                "us": 22.5
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 21.5
+              },
+              "idxscore": {
+                "count": 4,
+                "us": 16.4
+              },
+              "plegate": {
+                "count": 1,
+                "us": 11.3
+              },
+              "argmax": {
+                "count": 1,
+                "us": 10.2
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              }
+            },
+            "phases": 1214,
+            "total_ms": 28.13,
+            "hc_ms": 8.309700000000001
+          }
+        },
+        {
+          "0": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 5121.0
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2428.9
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2412.5
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1862.7
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1731.6
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1561.6
+              },
+              "q3kk2560": {
+                "count": 48,
+                "us": 1528.8
+              },
+              "xsend": {
+                "count": 112,
+                "us": 1403.9
+              },
+              "bf16k2560": {
+                "count": 49,
+                "us": 1356.8
+              },
+              "router": {
+                "count": 48,
+                "us": 1160.2
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 995.3
+              },
+              "iq4k2560": {
+                "count": 20,
+                "us": 781.3
+              },
+              "q5kk2560": {
+                "count": 2,
+                "us": 686.1
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 646.1
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 612.4
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 556.0
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 556.0
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 429.1
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 303.1
+              },
+              "q4kk2560": {
+                "count": 10,
+                "us": 295.9
+              },
+              "moesel": {
+                "count": 48,
+                "us": 291.8
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 289.8
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 242.7
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 237.6
+              },
+              "q2k2560": {
+                "count": 10,
+                "us": 157.7
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 111.6
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 107.5
+              },
+              "q2acc640": {
+                "count": 4,
+                "us": 62.5
+              },
+              "plerows": {
+                "count": 1,
+                "us": 59.4
+              },
+              "b32q50acc": {
+                "count": 2,
+                "us": 52.2
+              },
+              "b32q40acc": {
+                "count": 2,
+                "us": 38.9
+              },
+              "amax": {
+                "count": 1,
+                "us": 26.6
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 22.5
+              },
+              "argmax": {
+                "count": 1,
+                "us": 11.3
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 6.1
+              }
+            },
+            "phases": 1154,
+            "total_ms": 28.16,
+            "hc_ms": 8.2657
+          },
+          "1": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 3750.9
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2881.5
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2520.1
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1905.7
+              },
+              "q3kk2560": {
+                "count": 49,
+                "us": 1711.1
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1518.6
+              },
+              "bf16k2560": {
+                "count": 53,
+                "us": 1486.8
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1462.3
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1407.0
+              },
+              "router": {
+                "count": 48,
+                "us": 1160.2
+              },
+              "iq4k2560": {
+                "count": 22,
+                "us": 922.6
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 848.9
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 646.1
+              },
+              "q5kk2560": {
+                "count": 4,
+                "us": 625.7
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 620.5
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 564.2
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 545.8
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 419.8
+              },
+              "q2k2560": {
+                "count": 16,
+                "us": 370.7
+              },
+              "q4kk2560": {
+                "count": 11,
+                "us": 314.4
+              },
+              "moesel": {
+                "count": 48,
+                "us": 294.9
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 292.9
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 282.6
+              },
+              "attnpartn": {
+                "count": 4,
+                "us": 237.6
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 236.5
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 228.4
+              },
+              "amax": {
+                "count": 1,
+                "us": 119.8
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 108.5
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 103.4
+              },
+              "idxsel": {
+                "count": 20,
+                "us": 88.1
+              },
+              "kvgather": {
+                "count": 4,
+                "us": 81.9
+              },
+              "q2acc640": {
+                "count": 4,
+                "us": 62.5
+              },
+              "plerows": {
+                "count": 1,
+                "us": 59.4
+              },
+              "b32q40acc": {
+                "count": 2,
+                "us": 41.0
+              },
+              "attnmerge": {
+                "count": 4,
+                "us": 34.8
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 32.8
+              },
+              "attnqkq": {
+                "count": 4,
+                "us": 27.6
+              },
+              "b32q50acc": {
+                "count": 1,
+                "us": 27.6
+              },
+              "b32iq4nlacc": {
+                "count": 1,
+                "us": 23.6
+              },
+              "idxqk": {
+                "count": 4,
+                "us": 23.6
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 21.5
+              },
+              "idxscore": {
+                "count": 4,
+                "us": 16.4
+              },
+              "argmax": {
+                "count": 1,
+                "us": 10.2
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 7.2
+              }
+            },
+            "phases": 1214,
+            "total_ms": 28.16,
+            "hc_ms": 8.825899999999999
+          },
+          "2": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 5929.0
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 3184.6
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2215.9
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 2179.1
+              },
+              "q3kk2560": {
+                "count": 50,
+                "us": 1550.3
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1486.8
+              },
+              "bf16k2560": {
+                "count": 49,
+                "us": 1355.8
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1305.6
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1152.0
+              },
+              "router": {
+                "count": 48,
+                "us": 1150.0
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 742.4
+              },
+              "iq4k2560": {
+                "count": 19,
+                "us": 697.3
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 636.9
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 601.1
+              },
+              "q5kk2560": {
+                "count": 1,
+                "us": 479.2
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 478.2
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 373.8
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 308.2
+              },
+              "moesel": {
+                "count": 48,
+                "us": 285.7
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 248.8
+              },
+              "q4kk2560": {
+                "count": 8,
+                "us": 245.8
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 231.4
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 218.1
+              },
+              "amax": {
+                "count": 1,
+                "us": 210.9
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 204.8
+              },
+              "q2k2560": {
+                "count": 12,
+                "us": 162.8
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 106.5
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 89.1
+              },
+              "plerows": {
+                "count": 1,
+                "us": 59.4
+              },
+              "b32q40acc": {
+                "count": 3,
+                "us": 57.3
+              },
+              "b32iq4nlacc": {
+                "count": 2,
+                "us": 47.1
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 32.8
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 26.6
+              },
+              "b32q50acc": {
+                "count": 1,
+                "us": 25.6
+              },
+              "b32q80acc": {
+                "count": 1,
+                "us": 25.6
+              },
+              "q2acc640": {
+                "count": 1,
+                "us": 16.4
+              },
+              "plegate": {
+                "count": 1,
+                "us": 15.4
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "argmax": {
+                "count": 1,
+                "us": 9.2
+              }
+            },
+            "phases": 1154,
+            "total_ms": 28.16,
+            "hc_ms": 9.0664
+          },
+          "3": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 4998.1
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2486.3
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2447.4
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1893.4
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1798.1
+              },
+              "q3kk2560": {
+                "count": 50,
+                "us": 1722.4
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1540.1
+              },
+              "bf16k2560": {
+                "count": 49,
+                "us": 1340.4
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1259.5
+              },
+              "router": {
+                "count": 48,
+                "us": 1141.8
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 1038.3
+              },
+              "iq4k2560": {
+                "count": 19,
+                "us": 814.1
+              },
+              "q5kk2560": {
+                "count": 1,
+                "us": 681.0
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 639.0
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 636.9
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 561.2
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 433.2
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 419.8
+              },
+              "moesel": {
+                "count": 48,
+                "us": 287.7
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 287.7
+              },
+              "q4kk2560": {
+                "count": 8,
+                "us": 277.5
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 272.4
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 246.8
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 215.0
+              },
+              "q2k2560": {
+                "count": 12,
+                "us": 185.3
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 112.6
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 105.5
+              },
+              "plerows": {
+                "count": 1,
+                "us": 58.4
+              },
+              "b32q50acc": {
+                "count": 2,
+                "us": 54.3
+              },
+              "q2acc640": {
+                "count": 3,
+                "us": 47.1
+              },
+              "b32q40acc": {
+                "count": 2,
+                "us": 39.9
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 31.7
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 23.6
+              },
+              "b32iq4nlacc": {
+                "count": 1,
+                "us": 22.5
+              },
+              "argmax": {
+                "count": 1,
+                "us": 11.3
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 7.2
+              },
+              "amax": {
+                "count": 1,
+                "us": 7.2
+              }
+            },
+            "phases": 1154,
+            "total_ms": 28.15,
+            "hc_ms": 8.3672
+          },
+          "4": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 3651.6
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2605.1
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2471.9
+              },
+              "q3kk2560": {
+                "count": 53,
+                "us": 2035.7
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1911.8
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1632.3
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1534.0
+              },
+              "bf16k2560": {
+                "count": 53,
+                "us": 1508.4
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1370.1
+              },
+              "router": {
+                "count": 48,
+                "us": 1155.1
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 950.3
+              },
+              "iq4k2560": {
+                "count": 22,
+                "us": 930.8
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 646.1
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 618.5
+              },
+              "q5kk2560": {
+                "count": 2,
+                "us": 593.9
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 571.4
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 537.6
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 419.8
+              },
+              "q4kk2560": {
+                "count": 12,
+                "us": 317.4
+              },
+              "moesel": {
+                "count": 48,
+                "us": 293.9
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 291.8
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 279.6
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 239.6
+              },
+              "attnpartn": {
+                "count": 4,
+                "us": 237.6
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 229.4
+              },
+              "q2k2560": {
+                "count": 11,
+                "us": 167.9
+              },
+              "amax": {
+                "count": 1,
+                "us": 115.7
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 105.5
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 103.4
+              },
+              "idxsel": {
+                "count": 20,
+                "us": 88.1
+              },
+              "kvgather": {
+                "count": 4,
+                "us": 82.9
+              },
+              "b32q40acc": {
+                "count": 4,
+                "us": 79.9
+              },
+              "plerows": {
+                "count": 1,
+                "us": 59.4
+              },
+              "q6kk2560": {
+                "count": 2,
+                "us": 56.3
+              },
+              "b32iq4nlacc": {
+                "count": 2,
+                "us": 47.1
+              },
+              "attnmerge": {
+                "count": 4,
+                "us": 33.8
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 33.8
+              },
+              "q2acc640": {
+                "count": 2,
+                "us": 30.7
+              },
+              "attnqkq": {
+                "count": 4,
+                "us": 27.6
+              },
+              "idxqk": {
+                "count": 4,
+                "us": 22.5
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 22.5
+              },
+              "idxscore": {
+                "count": 4,
+                "us": 17.4
+              },
+              "argmax": {
+                "count": 1,
+                "us": 10.2
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 7.2
+              }
+            },
+            "phases": 1214,
+            "total_ms": 28.16,
+            "hc_ms": 8.5228
+          },
+          "5": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 3622.9
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2513.9
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2343.9
+              },
+              "q3kk2560": {
+                "count": 52,
+                "us": 1965.1
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1901.6
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1807.4
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1532.9
+              },
+              "bf16k2560": {
+                "count": 53,
+                "us": 1475.6
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1380.4
+              },
+              "router": {
+                "count": 48,
+                "us": 1146.9
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 1062.9
+              },
+              "iq4k2560": {
+                "count": 22,
+                "us": 1049.6
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 639.0
+              },
+              "q5kk2560": {
+                "count": 4,
+                "us": 626.7
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 619.5
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 562.2
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 541.7
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 418.8
+              },
+              "moesel": {
+                "count": 48,
+                "us": 286.7
+              },
+              "q4kk2560": {
+                "count": 9,
+                "us": 281.6
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 281.6
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 240.6
+              },
+              "attnpartn": {
+                "count": 4,
+                "us": 239.6
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 228.4
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 226.3
+              },
+              "q2k2560": {
+                "count": 11,
+                "us": 156.7
+              },
+              "amax": {
+                "count": 1,
+                "us": 121.9
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 108.5
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 103.4
+              },
+              "q6kk2560": {
+                "count": 4,
+                "us": 91.1
+              },
+              "idxsel": {
+                "count": 20,
+                "us": 87.0
+              },
+              "kvgather": {
+                "count": 4,
+                "us": 81.9
+              },
+              "plerows": {
+                "count": 1,
+                "us": 58.4
+              },
+              "b32q40acc": {
+                "count": 3,
+                "us": 58.4
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 33.8
+              },
+              "attnmerge": {
+                "count": 4,
+                "us": 32.8
+              },
+              "q2acc640": {
+                "count": 2,
+                "us": 30.7
+              },
+              "b32q50acc": {
+                "count": 1,
+                "us": 27.6
+              },
+              "attnqkq": {
+                "count": 4,
+                "us": 26.6
+              },
+              "b32q80acc": {
+                "count": 1,
+                "us": 25.6
+              },
+              "b32iq4nlacc": {
+                "count": 1,
+                "us": 24.6
+              },
+              "idxqk": {
+                "count": 4,
+                "us": 23.6
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 22.5
+              },
+              "idxscore": {
+                "count": 4,
+                "us": 17.4
+              },
+              "argmax": {
+                "count": 1,
+                "us": 10.2
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 7.2
+              }
+            },
+            "phases": 1214,
+            "total_ms": 28.16,
+            "hc_ms": 8.2923
+          }
+        },
+        {
+          "0": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 5102.6
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2420.7
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2394.1
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1849.3
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1741.8
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1568.8
+              },
+              "q3kk2560": {
+                "count": 48,
+                "us": 1559.6
+              },
+              "xsend": {
+                "count": 112,
+                "us": 1388.5
+              },
+              "bf16k2560": {
+                "count": 49,
+                "us": 1358.8
+              },
+              "router": {
+                "count": 48,
+                "us": 1156.1
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 998.4
+              },
+              "iq4k2560": {
+                "count": 20,
+                "us": 780.3
+              },
+              "q5kk2560": {
+                "count": 2,
+                "us": 682.0
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 642.0
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 613.4
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 584.7
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 562.2
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 433.2
+              },
+              "q4kk2560": {
+                "count": 10,
+                "us": 292.9
+              },
+              "moesel": {
+                "count": 48,
+                "us": 291.8
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 290.8
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 285.7
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 245.8
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 242.7
+              },
+              "q2k2560": {
+                "count": 10,
+                "us": 148.5
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 113.7
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 106.5
+              },
+              "q2acc640": {
+                "count": 4,
+                "us": 62.5
+              },
+              "plerows": {
+                "count": 1,
+                "us": 59.4
+              },
+              "b32q50acc": {
+                "count": 2,
+                "us": 54.3
+              },
+              "b32q40acc": {
+                "count": 2,
+                "us": 39.9
+              },
+              "amax": {
+                "count": 1,
+                "us": 29.7
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 21.5
+              },
+              "argmax": {
+                "count": 1,
+                "us": 11.3
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 5.1
+              }
+            },
+            "phases": 1154,
+            "total_ms": 28.15,
+            "hc_ms": 8.232899999999999
+          },
+          "1": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 3748.9
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2872.3
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2504.7
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1914.9
+              },
+              "q3kk2560": {
+                "count": 49,
+                "us": 1695.7
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1512.4
+              },
+              "bf16k2560": {
+                "count": 53,
+                "us": 1496.1
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1468.4
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1400.8
+              },
+              "router": {
+                "count": 48,
+                "us": 1158.1
+              },
+              "iq4k2560": {
+                "count": 22,
+                "us": 924.7
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 849.9
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 647.2
+              },
+              "q5kk2560": {
+                "count": 4,
+                "us": 631.8
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 620.5
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 577.5
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 544.8
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 421.9
+              },
+              "q2k2560": {
+                "count": 16,
+                "us": 369.7
+              },
+              "q4kk2560": {
+                "count": 11,
+                "us": 308.2
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 301.1
+              },
+              "moesel": {
+                "count": 48,
+                "us": 292.9
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 278.5
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 238.6
+              },
+              "attnpartn": {
+                "count": 4,
+                "us": 236.5
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 230.4
+              },
+              "amax": {
+                "count": 1,
+                "us": 116.7
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 107.5
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 103.4
+              },
+              "idxsel": {
+                "count": 20,
+                "us": 88.1
+              },
+              "kvgather": {
+                "count": 4,
+                "us": 84.0
+              },
+              "q2acc640": {
+                "count": 4,
+                "us": 63.5
+              },
+              "plerows": {
+                "count": 1,
+                "us": 59.4
+              },
+              "b32q40acc": {
+                "count": 2,
+                "us": 42.0
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 33.8
+              },
+              "attnmerge": {
+                "count": 4,
+                "us": 32.8
+              },
+              "b32q50acc": {
+                "count": 1,
+                "us": 27.6
+              },
+              "attnqkq": {
+                "count": 4,
+                "us": 27.6
+              },
+              "idxqk": {
+                "count": 4,
+                "us": 23.6
+              },
+              "b32iq4nlacc": {
+                "count": 1,
+                "us": 23.6
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 22.5
+              },
+              "idxscore": {
+                "count": 4,
+                "us": 17.4
+              },
+              "argmax": {
+                "count": 1,
+                "us": 10.2
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 9.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 6.1
+              }
+            },
+            "phases": 1214,
+            "total_ms": 28.15,
+            "hc_ms": 8.8043
+          },
+          "2": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 5933.1
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 3191.8
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2206.7
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 2193.4
+              },
+              "q3kk2560": {
+                "count": 50,
+                "us": 1483.8
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1475.6
+              },
+              "bf16k2560": {
+                "count": 49,
+                "us": 1361.9
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1292.3
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1154.0
+              },
+              "router": {
+                "count": 48,
+                "us": 1146.9
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 736.3
+              },
+              "iq4k2560": {
+                "count": 19,
+                "us": 706.6
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 639.0
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 596.0
+              },
+              "q5kk2560": {
+                "count": 1,
+                "us": 480.3
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 474.1
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 371.7
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 301.1
+              },
+              "moesel": {
+                "count": 48,
+                "us": 292.9
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 276.5
+              },
+              "q4kk2560": {
+                "count": 8,
+                "us": 250.9
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 247.8
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 229.4
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 212.0
+              },
+              "amax": {
+                "count": 1,
+                "us": 206.8
+              },
+              "q2k2560": {
+                "count": 12,
+                "us": 166.9
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 105.5
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 90.1
+              },
+              "plerows": {
+                "count": 1,
+                "us": 59.4
+              },
+              "b32q40acc": {
+                "count": 3,
+                "us": 57.3
+              },
+              "b32iq4nlacc": {
+                "count": 2,
+                "us": 47.1
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 34.8
+              },
+              "b32q50acc": {
+                "count": 1,
+                "us": 26.6
+              },
+              "b32q80acc": {
+                "count": 1,
+                "us": 25.6
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 23.6
+              },
+              "q2acc640": {
+                "count": 1,
+                "us": 15.4
+              },
+              "plegate": {
+                "count": 1,
+                "us": 13.3
+              },
+              "argmax": {
+                "count": 1,
+                "us": 10.2
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 9.2
+              }
+            },
+            "phases": 1154,
+            "total_ms": 28.15,
+            "hc_ms": 9.0675
+          },
+          "3": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 5001.2
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2478.1
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2440.2
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1884.2
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1798.1
+              },
+              "q3kk2560": {
+                "count": 50,
+                "us": 1783.8
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1531.9
+              },
+              "bf16k2560": {
+                "count": 49,
+                "us": 1345.5
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1247.2
+              },
+              "router": {
+                "count": 48,
+                "us": 1146.9
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 1038.3
+              },
+              "iq4k2560": {
+                "count": 19,
+                "us": 810.0
+              },
+              "q5kk2560": {
+                "count": 1,
+                "us": 681.0
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 634.9
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 632.8
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 557.1
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 437.2
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 436.2
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 292.9
+              },
+              "moesel": {
+                "count": 48,
+                "us": 290.8
+              },
+              "q4kk2560": {
+                "count": 8,
+                "us": 275.5
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 248.8
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 225.3
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 215.0
+              },
+              "q2k2560": {
+                "count": 12,
+                "us": 181.2
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 113.7
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 103.4
+              },
+              "plerows": {
+                "count": 1,
+                "us": 58.4
+              },
+              "b32q50acc": {
+                "count": 2,
+                "us": 53.2
+              },
+              "q2acc640": {
+                "count": 3,
+                "us": 48.1
+              },
+              "b32q40acc": {
+                "count": 2,
+                "us": 38.9
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 34.8
+              },
+              "b32iq4nlacc": {
+                "count": 1,
+                "us": 23.6
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 22.5
+              },
+              "argmax": {
+                "count": 1,
+                "us": 11.3
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 7.2
+              },
+              "amax": {
+                "count": 1,
+                "us": 6.1
+              }
+            },
+            "phases": 1154,
+            "total_ms": 28.15,
+            "hc_ms": 8.3344
+          },
+          "4": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 3640.3
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2599.9
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2477.1
+              },
+              "q3kk2560": {
+                "count": 53,
+                "us": 2151.4
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1902.6
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1638.4
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1534.0
+              },
+              "bf16k2560": {
+                "count": 53,
+                "us": 1460.2
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1368.1
+              },
+              "router": {
+                "count": 48,
+                "us": 1154.0
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 953.3
+              },
+              "iq4k2560": {
+                "count": 22,
+                "us": 927.7
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 645.1
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 618.5
+              },
+              "q5kk2560": {
+                "count": 2,
+                "us": 596.0
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 587.8
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 546.8
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 417.8
+              },
+              "q4kk2560": {
+                "count": 12,
+                "us": 311.3
+              },
+              "moesel": {
+                "count": 48,
+                "us": 288.8
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 281.6
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 237.6
+              },
+              "attnpartn": {
+                "count": 4,
+                "us": 236.5
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 232.4
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 226.3
+              },
+              "q2k2560": {
+                "count": 11,
+                "us": 160.8
+              },
+              "amax": {
+                "count": 1,
+                "us": 111.6
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 107.5
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 104.4
+              },
+              "idxsel": {
+                "count": 20,
+                "us": 88.1
+              },
+              "kvgather": {
+                "count": 4,
+                "us": 84.0
+              },
+              "b32q40acc": {
+                "count": 4,
+                "us": 77.8
+              },
+              "plerows": {
+                "count": 1,
+                "us": 59.4
+              },
+              "q6kk2560": {
+                "count": 2,
+                "us": 54.3
+              },
+              "b32iq4nlacc": {
+                "count": 2,
+                "us": 48.1
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 34.8
+              },
+              "attnmerge": {
+                "count": 4,
+                "us": 32.8
+              },
+              "q2acc640": {
+                "count": 2,
+                "us": 31.7
+              },
+              "attnqkq": {
+                "count": 4,
+                "us": 27.6
+              },
+              "idxqk": {
+                "count": 4,
+                "us": 23.6
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 23.6
+              },
+              "idxscore": {
+                "count": 4,
+                "us": 16.4
+              },
+              "argmax": {
+                "count": 1,
+                "us": 10.2
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 9.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 6.1
+              }
+            },
+            "phases": 1214,
+            "total_ms": 28.15,
+            "hc_ms": 8.5136
+          },
+          "5": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 3594.2
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2490.4
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2339.8
+              },
+              "q3kk2560": {
+                "count": 52,
+                "us": 1964.0
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1892.4
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1802.2
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1532.9
+              },
+              "bf16k2560": {
+                "count": 53,
+                "us": 1488.9
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1398.8
+              },
+              "router": {
+                "count": 48,
+                "us": 1151.0
+              },
+              "iq4k2560": {
+                "count": 22,
+                "us": 1063.9
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 1060.9
+              },
+              "q5kk2560": {
+                "count": 4,
+                "us": 633.9
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 630.8
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 614.4
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 593.9
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 541.7
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 419.8
+              },
+              "moesel": {
+                "count": 48,
+                "us": 291.8
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 281.6
+              },
+              "q4kk2560": {
+                "count": 9,
+                "us": 274.4
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 239.6
+              },
+              "attnpartn": {
+                "count": 4,
+                "us": 236.5
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 234.5
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 224.3
+              },
+              "q2k2560": {
+                "count": 11,
+                "us": 155.6
+              },
+              "amax": {
+                "count": 1,
+                "us": 112.6
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 106.5
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 102.4
+              },
+              "q6kk2560": {
+                "count": 4,
+                "us": 91.1
+              },
+              "idxsel": {
+                "count": 20,
+                "us": 88.1
+              },
+              "kvgather": {
+                "count": 4,
+                "us": 85.0
+              },
+              "plerows": {
+                "count": 1,
+                "us": 59.4
+              },
+              "b32q40acc": {
+                "count": 3,
+                "us": 59.4
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 33.8
+              },
+              "attnmerge": {
+                "count": 4,
+                "us": 31.7
+              },
+              "q2acc640": {
+                "count": 2,
+                "us": 30.7
+              },
+              "b32q50acc": {
+                "count": 1,
+                "us": 26.6
+              },
+              "b32q80acc": {
+                "count": 1,
+                "us": 25.6
+              },
+              "attnqkq": {
+                "count": 4,
+                "us": 25.6
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 24.6
+              },
+              "idxqk": {
+                "count": 4,
+                "us": 23.6
+              },
+              "b32iq4nlacc": {
+                "count": 1,
+                "us": 22.5
+              },
+              "idxscore": {
+                "count": 4,
+                "us": 17.4
+              },
+              "argmax": {
+                "count": 1,
+                "us": 10.2
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 9.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 6.1
+              }
+            },
+            "phases": 1214,
+            "total_ms": 28.14,
+            "hc_ms": 8.2555
+          }
+        }
+      ],
+      "mean_tok_s": 35.75333333333334,
+      "max_hc_ms": 9.0819
+    },
+    "candidate": {
+      "config": {
+        "rev": "be5df804165f44e5fe74df98a6030445244837c4",
+        "kv_host": "0",
+        "ple_disk": "1",
+        "maxt": "230000",
+        "layers": "48/48",
+        "nblk": "512",
+        "dies": "6",
+        "attn_dies": "1,4,5",
+        "split": "112,97,81,116,97,97",
+        "attn_map": "1,1,1,1,4,4,4,4,5,5,5,5",
+        "img_rows": "4096",
+        "two_position": "0",
+        "prefill_chunk": "0",
+        "cubin": "/tmp/flash-sass-issue53-resume.IwwJba/candidate/die.cubin",
+        "cubin_fnv": "7adc06a901eef1fe"
+      },
+      "tokens": {
+        "c_code": {
+          "ids": [
+            71093,
+            66,
+            198,
+            390,
+            9057,
+            1494,
+            830,
+            8,
+            313,
+            198,
+            262,
+            460,
+            830,
+            348,
+            830,
+            26,
+            198,
+            92,
+            198,
+            71093,
+            248046
+          ],
+          "generated": 21,
+          "ended": 1,
+          "prompt": 32,
+          "run_ms": 1420.1,
+          "first_ms": 873.1
+        },
+        "capital": {
+          "ids": [
+            57590,
+            248046
+          ],
+          "generated": 2,
+          "ended": 1,
+          "prompt": 24,
+          "run_ms": 683.0,
+          "first_ms": 655.5
+        },
+        "multiturn": {
+          "ids": [
+            18,
+            20,
+            248046
+          ],
+          "generated": 3,
+          "ended": 1,
+          "prompt": 46,
+          "run_ms": 1311.0,
+          "first_ms": 1256.3
+        },
+        "numbers": {
+          "ids": [
+            16,
+            11,
+            220,
+            17,
+            11,
+            220,
+            18,
+            11,
+            220,
+            19,
+            11,
+            220,
+            20,
+            11,
+            220,
+            21,
+            11,
+            220,
+            22,
+            11,
+            220,
+            23,
+            11,
+            220,
+            24,
+            11,
+            220,
+            16,
+            15,
+            11,
+            220,
+            16,
+            16,
+            11,
+            220,
+            16,
+            17,
+            11,
+            220,
+            16,
+            18,
+            11,
+            220,
+            16,
+            19,
+            11,
+            220,
+            16,
+            20,
+            11,
+            220,
+            16,
+            21,
+            11,
+            220,
+            16,
+            22,
+            11,
+            220,
+            16,
+            23,
+            11,
+            220,
+            16
+          ],
+          "generated": 64,
+          "ended": 0,
+          "prompt": 24,
+          "run_ms": 2379.6,
+          "first_ms": 655.1
+        }
+      },
+      "requests": [
+        {
+          "warmup": true,
+          "predicted_per_second": 36.31,
+          "completion_tokens": 38
+        },
+        {
+          "warmup": false,
+          "predicted_per_second": 36.31,
+          "completion_tokens": 38
+        },
+        {
+          "warmup": false,
+          "predicted_per_second": 36.29,
+          "completion_tokens": 38
+        },
+        {
+          "warmup": false,
+          "predicted_per_second": 36.35,
+          "completion_tokens": 38
+        }
+      ],
+      "profiles": [
+        {
+          "0": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 5051.4
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2449.4
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2365.4
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1729.5
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1587.2
+              },
+              "q3kk2560": {
+                "count": 48,
+                "us": 1551.4
+              },
+              "xsend": {
+                "count": 112,
+                "us": 1474.6
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1390.6
+              },
+              "bf16k2560": {
+                "count": 49,
+                "us": 1372.2
+              },
+              "router": {
+                "count": 48,
+                "us": 1146.9
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 1004.5
+              },
+              "iq4k2560": {
+                "count": 20,
+                "us": 768.0
+              },
+              "q5kk2560": {
+                "count": 2,
+                "us": 685.1
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 645.1
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 633.9
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 586.8
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 559.1
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 433.2
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 288.8
+              },
+              "q4kk2560": {
+                "count": 10,
+                "us": 286.7
+              },
+              "moesel": {
+                "count": 48,
+                "us": 281.6
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 273.4
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 243.7
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 235.5
+              },
+              "q2k2560": {
+                "count": 10,
+                "us": 156.7
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 108.5
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 107.5
+              },
+              "q2acc640": {
+                "count": 4,
+                "us": 61.4
+              },
+              "plerows": {
+                "count": 1,
+                "us": 58.4
+              },
+              "b32q50acc": {
+                "count": 2,
+                "us": 52.2
+              },
+              "b32q40acc": {
+                "count": 2,
+                "us": 38.9
+              },
+              "amax": {
+                "count": 1,
+                "us": 27.6
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 22.5
+              },
+              "argmax": {
+                "count": 1,
+                "us": 11.3
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 5.1
+              }
+            },
+            "phases": 1154,
+            "total_ms": 27.7,
+            "hc_ms": 7.7926
+          },
+          "1": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 3686.4
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2814.0
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2559.0
+              },
+              "q3kk2560": {
+                "count": 49,
+                "us": 1773.6
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1611.8
+              },
+              "bf16k2560": {
+                "count": 53,
+                "us": 1513.5
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1487.9
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1480.7
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1333.2
+              },
+              "router": {
+                "count": 48,
+                "us": 1138.7
+              },
+              "iq4k2560": {
+                "count": 22,
+                "us": 909.3
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 850.9
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 639.0
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 632.8
+              },
+              "q5kk2560": {
+                "count": 4,
+                "us": 626.7
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 586.8
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 554.0
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 426.0
+              },
+              "q2k2560": {
+                "count": 16,
+                "us": 373.8
+              },
+              "q4kk2560": {
+                "count": 11,
+                "us": 302.1
+              },
+              "moesel": {
+                "count": 48,
+                "us": 284.7
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 284.7
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 238.6
+              },
+              "attnpartn": {
+                "count": 4,
+                "us": 238.6
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 232.4
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 231.4
+              },
+              "amax": {
+                "count": 1,
+                "us": 119.8
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 106.5
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 105.5
+              },
+              "idxsel": {
+                "count": 20,
+                "us": 85.0
+              },
+              "kvgather": {
+                "count": 4,
+                "us": 80.9
+              },
+              "q2acc640": {
+                "count": 4,
+                "us": 62.5
+              },
+              "plerows": {
+                "count": 1,
+                "us": 57.3
+              },
+              "b32q40acc": {
+                "count": 2,
+                "us": 39.9
+              },
+              "attnmerge": {
+                "count": 4,
+                "us": 34.8
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 34.8
+              },
+              "b32q50acc": {
+                "count": 1,
+                "us": 26.6
+              },
+              "attnqkq": {
+                "count": 4,
+                "us": 24.6
+              },
+              "idxqk": {
+                "count": 4,
+                "us": 24.6
+              },
+              "b32iq4nlacc": {
+                "count": 1,
+                "us": 23.6
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 21.5
+              },
+              "idxscore": {
+                "count": 4,
+                "us": 16.4
+              },
+              "argmax": {
+                "count": 1,
+                "us": 10.2
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 7.2
+              }
+            },
+            "phases": 1214,
+            "total_ms": 27.7,
+            "hc_ms": 8.318
+          },
+          "2": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 5880.8
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 3090.4
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2159.6
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1964.0
+              },
+              "q3kk2560": {
+                "count": 50,
+                "us": 1560.6
+              },
+              "bf16k2560": {
+                "count": 49,
+                "us": 1397.8
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1296.4
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1282.0
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1199.1
+              },
+              "router": {
+                "count": 48,
+                "us": 1135.6
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 747.5
+              },
+              "iq4k2560": {
+                "count": 19,
+                "us": 715.8
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 643.1
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 613.4
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 494.6
+              },
+              "q5kk2560": {
+                "count": 1,
+                "us": 482.3
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 378.9
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 340.0
+              },
+              "moesel": {
+                "count": 48,
+                "us": 282.6
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 246.8
+              },
+              "q4kk2560": {
+                "count": 8,
+                "us": 241.7
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 235.5
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 222.2
+              },
+              "amax": {
+                "count": 1,
+                "us": 205.8
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 199.7
+              },
+              "q2k2560": {
+                "count": 12,
+                "us": 166.9
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 103.4
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 92.2
+              },
+              "plerows": {
+                "count": 1,
+                "us": 58.4
+              },
+              "b32q40acc": {
+                "count": 3,
+                "us": 57.3
+              },
+              "b32iq4nlacc": {
+                "count": 2,
+                "us": 49.2
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 34.8
+              },
+              "b32q50acc": {
+                "count": 1,
+                "us": 26.6
+              },
+              "b32q80acc": {
+                "count": 1,
+                "us": 24.6
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 23.6
+              },
+              "q2acc640": {
+                "count": 1,
+                "us": 15.4
+              },
+              "plegate": {
+                "count": 1,
+                "us": 14.3
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "argmax": {
+                "count": 1,
+                "us": 9.2
+              }
+            },
+            "phases": 1154,
+            "total_ms": 27.7,
+            "hc_ms": 8.496
+          },
+          "3": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 4972.5
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2425.9
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2381.8
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1780.7
+              },
+              "q3kk2560": {
+                "count": 50,
+                "us": 1690.6
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1677.3
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1394.7
+              },
+              "bf16k2560": {
+                "count": 49,
+                "us": 1357.8
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1354.8
+              },
+              "router": {
+                "count": 48,
+                "us": 1138.7
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 1024.0
+              },
+              "iq4k2560": {
+                "count": 19,
+                "us": 813.1
+              },
+              "q5kk2560": {
+                "count": 1,
+                "us": 679.9
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 652.3
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 643.1
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 558.1
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 458.8
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 436.2
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 288.8
+              },
+              "q4kk2560": {
+                "count": 8,
+                "us": 279.6
+              },
+              "moesel": {
+                "count": 48,
+                "us": 273.4
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 248.8
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 242.7
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 215.0
+              },
+              "q2k2560": {
+                "count": 12,
+                "us": 186.4
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 110.6
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 105.5
+              },
+              "plerows": {
+                "count": 1,
+                "us": 57.3
+              },
+              "b32q50acc": {
+                "count": 2,
+                "us": 54.3
+              },
+              "q2acc640": {
+                "count": 3,
+                "us": 48.1
+              },
+              "b32q40acc": {
+                "count": 2,
+                "us": 38.9
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 33.8
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 23.6
+              },
+              "b32iq4nlacc": {
+                "count": 1,
+                "us": 21.5
+              },
+              "argmax": {
+                "count": 1,
+                "us": 10.2
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 6.1
+              },
+              "amax": {
+                "count": 1,
+                "us": 6.1
+              }
+            },
+            "phases": 1154,
+            "total_ms": 27.7,
+            "hc_ms": 7.879700000000001
+          },
+          "4": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 3587.1
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2551.8
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2481.2
+              },
+              "q3kk2560": {
+                "count": 53,
+                "us": 2071.6
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1656.8
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1635.3
+              },
+              "bf16k2560": {
+                "count": 53,
+                "us": 1512.4
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1452.0
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1356.8
+              },
+              "router": {
+                "count": 48,
+                "us": 1138.7
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 947.2
+              },
+              "iq4k2560": {
+                "count": 22,
+                "us": 922.6
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 643.1
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 632.8
+              },
+              "q5kk2560": {
+                "count": 2,
+                "us": 590.8
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 589.8
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 544.8
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 420.9
+              },
+              "q4kk2560": {
+                "count": 12,
+                "us": 301.1
+              },
+              "moesel": {
+                "count": 48,
+                "us": 281.6
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 280.6
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 276.5
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 239.6
+              },
+              "attnpartn": {
+                "count": 4,
+                "us": 237.6
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 232.4
+              },
+              "q2k2560": {
+                "count": 11,
+                "us": 164.9
+              },
+              "amax": {
+                "count": 1,
+                "us": 116.7
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 104.4
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 104.4
+              },
+              "idxsel": {
+                "count": 20,
+                "us": 85.0
+              },
+              "kvgather": {
+                "count": 4,
+                "us": 81.9
+              },
+              "b32q40acc": {
+                "count": 4,
+                "us": 76.8
+              },
+              "plerows": {
+                "count": 1,
+                "us": 57.3
+              },
+              "q6kk2560": {
+                "count": 2,
+                "us": 56.3
+              },
+              "b32iq4nlacc": {
+                "count": 2,
+                "us": 48.1
+              },
+              "attnmerge": {
+                "count": 4,
+                "us": 34.8
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 34.8
+              },
+              "q2acc640": {
+                "count": 2,
+                "us": 32.8
+              },
+              "attnqkq": {
+                "count": 4,
+                "us": 26.6
+              },
+              "idxqk": {
+                "count": 4,
+                "us": 23.6
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 22.5
+              },
+              "idxscore": {
+                "count": 4,
+                "us": 17.4
+              },
+              "argmax": {
+                "count": 1,
+                "us": 10.2
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 7.2
+              }
+            },
+            "phases": 1214,
+            "total_ms": 27.7,
+            "hc_ms": 8.0466
+          },
+          "5": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 3567.6
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2487.3
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2308.1
+              },
+              "q3kk2560": {
+                "count": 52,
+                "us": 1964.0
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1807.4
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1671.2
+              },
+              "bf16k2560": {
+                "count": 53,
+                "us": 1498.1
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1425.4
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1340.4
+              },
+              "router": {
+                "count": 48,
+                "us": 1139.7
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 1054.7
+              },
+              "iq4k2560": {
+                "count": 22,
+                "us": 1035.3
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 638.0
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 633.9
+              },
+              "q5kk2560": {
+                "count": 4,
+                "us": 629.8
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 604.2
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 545.8
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 425.0
+              },
+              "moesel": {
+                "count": 48,
+                "us": 285.7
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 281.6
+              },
+              "q4kk2560": {
+                "count": 9,
+                "us": 272.4
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 240.6
+              },
+              "attnpartn": {
+                "count": 4,
+                "us": 238.6
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 231.4
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 218.1
+              },
+              "q2k2560": {
+                "count": 11,
+                "us": 159.7
+              },
+              "amax": {
+                "count": 1,
+                "us": 117.8
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 105.5
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 104.4
+              },
+              "q6kk2560": {
+                "count": 4,
+                "us": 94.2
+              },
+              "idxsel": {
+                "count": 20,
+                "us": 85.0
+              },
+              "kvgather": {
+                "count": 4,
+                "us": 82.9
+              },
+              "b32q40acc": {
+                "count": 3,
+                "us": 58.4
+              },
+              "plerows": {
+                "count": 1,
+                "us": 57.3
+              },
+              "attnmerge": {
+                "count": 4,
+                "us": 34.8
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 34.8
+              },
+              "q2acc640": {
+                "count": 2,
+                "us": 30.7
+              },
+              "b32q50acc": {
+                "count": 1,
+                "us": 26.6
+              },
+              "attnqkq": {
+                "count": 4,
+                "us": 25.6
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 24.6
+              },
+              "b32q80acc": {
+                "count": 1,
+                "us": 24.6
+              },
+              "b32iq4nlacc": {
+                "count": 1,
+                "us": 23.6
+              },
+              "idxqk": {
+                "count": 4,
+                "us": 23.6
+              },
+              "idxscore": {
+                "count": 4,
+                "us": 17.4
+              },
+              "argmax": {
+                "count": 1,
+                "us": 10.2
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 6.1
+              }
+            },
+            "phases": 1214,
+            "total_ms": 27.7,
+            "hc_ms": 7.807
+          }
+        },
+        {
+          "0": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 5113.9
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2455.6
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2339.8
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1728.5
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1573.9
+              },
+              "q3kk2560": {
+                "count": 48,
+                "us": 1541.1
+              },
+              "xsend": {
+                "count": 112,
+                "us": 1472.5
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1393.7
+              },
+              "bf16k2560": {
+                "count": 49,
+                "us": 1377.3
+              },
+              "router": {
+                "count": 48,
+                "us": 1143.8
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 1003.5
+              },
+              "iq4k2560": {
+                "count": 20,
+                "us": 778.2
+              },
+              "q5kk2560": {
+                "count": 2,
+                "us": 684.0
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 643.1
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 631.8
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 564.2
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 557.1
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 433.2
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 289.8
+              },
+              "q4kk2560": {
+                "count": 10,
+                "us": 284.7
+              },
+              "moesel": {
+                "count": 48,
+                "us": 282.6
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 280.6
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 245.8
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 235.5
+              },
+              "q2k2560": {
+                "count": 10,
+                "us": 158.7
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 109.6
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 107.5
+              },
+              "q2acc640": {
+                "count": 4,
+                "us": 60.4
+              },
+              "plerows": {
+                "count": 1,
+                "us": 57.3
+              },
+              "b32q50acc": {
+                "count": 2,
+                "us": 53.2
+              },
+              "b32q40acc": {
+                "count": 2,
+                "us": 38.9
+              },
+              "amax": {
+                "count": 1,
+                "us": 23.6
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 21.5
+              },
+              "argmax": {
+                "count": 1,
+                "us": 11.3
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 5.1
+              }
+            },
+            "phases": 1154,
+            "total_ms": 27.71,
+            "hc_ms": 7.763
+          },
+          "1": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 3740.7
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2809.9
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2564.1
+              },
+              "q3kk2560": {
+                "count": 49,
+                "us": 1732.6
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1613.8
+              },
+              "bf16k2560": {
+                "count": 53,
+                "us": 1505.3
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1492.0
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1465.3
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1332.2
+              },
+              "router": {
+                "count": 48,
+                "us": 1146.9
+              },
+              "iq4k2560": {
+                "count": 22,
+                "us": 912.4
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 849.9
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 650.2
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 633.9
+              },
+              "q5kk2560": {
+                "count": 4,
+                "us": 629.8
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 563.2
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 542.7
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 423.9
+              },
+              "q2k2560": {
+                "count": 16,
+                "us": 369.7
+              },
+              "q4kk2560": {
+                "count": 11,
+                "us": 304.1
+              },
+              "moesel": {
+                "count": 48,
+                "us": 281.6
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 281.6
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 271.4
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 239.6
+              },
+              "attnpartn": {
+                "count": 4,
+                "us": 235.5
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 228.4
+              },
+              "amax": {
+                "count": 1,
+                "us": 110.6
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 106.5
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 105.5
+              },
+              "idxsel": {
+                "count": 20,
+                "us": 86.0
+              },
+              "kvgather": {
+                "count": 4,
+                "us": 82.9
+              },
+              "q2acc640": {
+                "count": 4,
+                "us": 64.5
+              },
+              "plerows": {
+                "count": 1,
+                "us": 57.3
+              },
+              "b32q40acc": {
+                "count": 2,
+                "us": 39.9
+              },
+              "attnmerge": {
+                "count": 4,
+                "us": 35.8
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 33.8
+              },
+              "b32q50acc": {
+                "count": 1,
+                "us": 27.6
+              },
+              "attnqkq": {
+                "count": 4,
+                "us": 26.6
+              },
+              "b32iq4nlacc": {
+                "count": 1,
+                "us": 24.6
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 22.5
+              },
+              "idxqk": {
+                "count": 4,
+                "us": 22.5
+              },
+              "idxscore": {
+                "count": 4,
+                "us": 16.4
+              },
+              "argmax": {
+                "count": 1,
+                "us": 10.2
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 9.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 6.1
+              }
+            },
+            "phases": 1214,
+            "total_ms": 27.71,
+            "hc_ms": 8.32
+          },
+          "2": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 5966.8
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 3085.3
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2115.6
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1969.2
+              },
+              "q3kk2560": {
+                "count": 50,
+                "us": 1551.4
+              },
+              "bf16k2560": {
+                "count": 49,
+                "us": 1392.6
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1296.4
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1290.2
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1204.2
+              },
+              "router": {
+                "count": 48,
+                "us": 1141.8
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 746.5
+              },
+              "iq4k2560": {
+                "count": 19,
+                "us": 709.6
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 638.0
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 618.5
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 491.5
+              },
+              "q5kk2560": {
+                "count": 1,
+                "us": 481.3
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 375.8
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 331.8
+              },
+              "moesel": {
+                "count": 48,
+                "us": 275.5
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 244.7
+              },
+              "q4kk2560": {
+                "count": 8,
+                "us": 242.7
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 233.5
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 222.2
+              },
+              "amax": {
+                "count": 1,
+                "us": 201.7
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 197.6
+              },
+              "q2k2560": {
+                "count": 12,
+                "us": 164.9
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 104.4
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 93.2
+              },
+              "b32q40acc": {
+                "count": 3,
+                "us": 59.4
+              },
+              "plerows": {
+                "count": 1,
+                "us": 56.3
+              },
+              "b32iq4nlacc": {
+                "count": 2,
+                "us": 47.1
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 34.8
+              },
+              "b32q50acc": {
+                "count": 1,
+                "us": 25.6
+              },
+              "b32q80acc": {
+                "count": 1,
+                "us": 25.6
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 24.6
+              },
+              "q2acc640": {
+                "count": 1,
+                "us": 15.4
+              },
+              "plegate": {
+                "count": 1,
+                "us": 14.3
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "argmax": {
+                "count": 1,
+                "us": 9.2
+              }
+            },
+            "phases": 1154,
+            "total_ms": 27.71,
+            "hc_ms": 8.4603
+          },
+          "3": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 5005.3
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2409.5
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2358.3
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1784.8
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1677.3
+              },
+              "q3kk2560": {
+                "count": 50,
+                "us": 1650.7
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1390.6
+              },
+              "bf16k2560": {
+                "count": 49,
+                "us": 1369.1
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1337.3
+              },
+              "router": {
+                "count": 48,
+                "us": 1134.6
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 1025.0
+              },
+              "iq4k2560": {
+                "count": 19,
+                "us": 824.3
+              },
+              "q5kk2560": {
+                "count": 1,
+                "us": 675.8
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 660.5
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 648.2
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 556.0
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 442.4
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 418.8
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 330.8
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 288.8
+              },
+              "q4kk2560": {
+                "count": 8,
+                "us": 278.5
+              },
+              "moesel": {
+                "count": 48,
+                "us": 272.4
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 245.8
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 215.0
+              },
+              "q2k2560": {
+                "count": 12,
+                "us": 180.2
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 111.6
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 106.5
+              },
+              "plerows": {
+                "count": 1,
+                "us": 57.3
+              },
+              "b32q50acc": {
+                "count": 2,
+                "us": 53.2
+              },
+              "q2acc640": {
+                "count": 3,
+                "us": 48.1
+              },
+              "b32q40acc": {
+                "count": 2,
+                "us": 38.9
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 33.8
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 22.5
+              },
+              "b32iq4nlacc": {
+                "count": 1,
+                "us": 22.5
+              },
+              "argmax": {
+                "count": 1,
+                "us": 11.3
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "amax": {
+                "count": 1,
+                "us": 7.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 6.1
+              }
+            },
+            "phases": 1154,
+            "total_ms": 27.71,
+            "hc_ms": 7.8357
+          },
+          "4": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 3638.3
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2548.7
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2468.9
+              },
+              "q3kk2560": {
+                "count": 53,
+                "us": 2133.0
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1662.0
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1638.4
+              },
+              "bf16k2560": {
+                "count": 53,
+                "us": 1495.0
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1427.5
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1356.8
+              },
+              "router": {
+                "count": 48,
+                "us": 1145.9
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 953.3
+              },
+              "iq4k2560": {
+                "count": 22,
+                "us": 921.6
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 635.9
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 634.9
+              },
+              "q5kk2560": {
+                "count": 2,
+                "us": 589.8
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 574.5
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 543.7
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 425.0
+              },
+              "q4kk2560": {
+                "count": 12,
+                "us": 309.2
+              },
+              "moesel": {
+                "count": 48,
+                "us": 281.6
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 280.6
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 237.6
+              },
+              "attnpartn": {
+                "count": 4,
+                "us": 237.6
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 230.4
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 226.3
+              },
+              "q2k2560": {
+                "count": 11,
+                "us": 160.8
+              },
+              "amax": {
+                "count": 1,
+                "us": 113.7
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 105.5
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 105.5
+              },
+              "idxsel": {
+                "count": 20,
+                "us": 85.0
+              },
+              "kvgather": {
+                "count": 4,
+                "us": 84.0
+              },
+              "b32q40acc": {
+                "count": 4,
+                "us": 77.8
+              },
+              "plerows": {
+                "count": 1,
+                "us": 58.4
+              },
+              "q6kk2560": {
+                "count": 2,
+                "us": 57.3
+              },
+              "b32iq4nlacc": {
+                "count": 2,
+                "us": 49.2
+              },
+              "attnmerge": {
+                "count": 4,
+                "us": 33.8
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 33.8
+              },
+              "q2acc640": {
+                "count": 2,
+                "us": 31.7
+              },
+              "attnqkq": {
+                "count": 4,
+                "us": 26.6
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 23.6
+              },
+              "idxqk": {
+                "count": 4,
+                "us": 22.5
+              },
+              "idxscore": {
+                "count": 4,
+                "us": 17.4
+              },
+              "argmax": {
+                "count": 1,
+                "us": 10.2
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 9.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 6.1
+              }
+            },
+            "phases": 1214,
+            "total_ms": 27.71,
+            "hc_ms": 8.0364
+          },
+          "5": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 3657.7
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2467.8
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2298.9
+              },
+              "q3kk2560": {
+                "count": 52,
+                "us": 1881.1
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1801.2
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1684.5
+              },
+              "bf16k2560": {
+                "count": 53,
+                "us": 1518.6
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1424.4
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1344.5
+              },
+              "router": {
+                "count": 48,
+                "us": 1139.7
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 1060.9
+              },
+              "iq4k2560": {
+                "count": 22,
+                "us": 1041.4
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 634.9
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 630.8
+              },
+              "q5kk2560": {
+                "count": 4,
+                "us": 627.7
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 575.5
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 542.7
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 416.8
+              },
+              "moesel": {
+                "count": 48,
+                "us": 282.6
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 278.5
+              },
+              "q4kk2560": {
+                "count": 9,
+                "us": 267.3
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 264.2
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 238.6
+              },
+              "attnpartn": {
+                "count": 4,
+                "us": 237.6
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 223.2
+              },
+              "q2k2560": {
+                "count": 11,
+                "us": 165.9
+              },
+              "amax": {
+                "count": 1,
+                "us": 116.7
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 104.4
+              },
+              "q6kk2560": {
+                "count": 4,
+                "us": 104.4
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 104.4
+              },
+              "idxsel": {
+                "count": 20,
+                "us": 86.0
+              },
+              "kvgather": {
+                "count": 4,
+                "us": 82.9
+              },
+              "plerows": {
+                "count": 1,
+                "us": 56.3
+              },
+              "b32q40acc": {
+                "count": 3,
+                "us": 55.3
+              },
+              "attnmerge": {
+                "count": 4,
+                "us": 34.8
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 33.8
+              },
+              "q2acc640": {
+                "count": 2,
+                "us": 30.7
+              },
+              "b32q50acc": {
+                "count": 1,
+                "us": 26.6
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 24.6
+              },
+              "b32q80acc": {
+                "count": 1,
+                "us": 24.6
+              },
+              "idxqk": {
+                "count": 4,
+                "us": 24.6
+              },
+              "b32iq4nlacc": {
+                "count": 1,
+                "us": 23.6
+              },
+              "attnqkq": {
+                "count": 4,
+                "us": 23.6
+              },
+              "idxscore": {
+                "count": 4,
+                "us": 16.4
+              },
+              "argmax": {
+                "count": 1,
+                "us": 10.2
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 9.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 8.2
+              }
+            },
+            "phases": 1214,
+            "total_ms": 27.71,
+            "hc_ms": 7.795700000000001
+          }
+        },
+        {
+          "0": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 5043.2
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2450.4
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2349.1
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1718.3
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1577.0
+              },
+              "q3kk2560": {
+                "count": 48,
+                "us": 1548.3
+              },
+              "xsend": {
+                "count": 112,
+                "us": 1477.6
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1389.6
+              },
+              "bf16k2560": {
+                "count": 49,
+                "us": 1367.0
+              },
+              "router": {
+                "count": 48,
+                "us": 1148.9
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 998.4
+              },
+              "iq4k2560": {
+                "count": 20,
+                "us": 778.2
+              },
+              "q5kk2560": {
+                "count": 2,
+                "us": 683.0
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 649.2
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 632.8
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 580.6
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 561.2
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 431.1
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 288.8
+              },
+              "q4kk2560": {
+                "count": 10,
+                "us": 287.7
+              },
+              "moesel": {
+                "count": 48,
+                "us": 282.6
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 270.3
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 244.7
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 232.4
+              },
+              "q2k2560": {
+                "count": 10,
+                "us": 158.7
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 108.5
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 107.5
+              },
+              "q2acc640": {
+                "count": 4,
+                "us": 63.5
+              },
+              "plerows": {
+                "count": 1,
+                "us": 59.4
+              },
+              "b32q50acc": {
+                "count": 2,
+                "us": 52.2
+              },
+              "b32q40acc": {
+                "count": 2,
+                "us": 39.9
+              },
+              "amax": {
+                "count": 1,
+                "us": 27.6
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 22.5
+              },
+              "argmax": {
+                "count": 1,
+                "us": 11.3
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 5.1
+              }
+            },
+            "phases": 1154,
+            "total_ms": 27.66,
+            "hc_ms": 7.766100000000001
+          },
+          "1": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 3690.5
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2823.2
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2555.9
+              },
+              "q3kk2560": {
+                "count": 49,
+                "us": 1686.5
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1624.1
+              },
+              "bf16k2560": {
+                "count": 53,
+                "us": 1504.3
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1481.7
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1458.2
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1332.2
+              },
+              "router": {
+                "count": 48,
+                "us": 1154.0
+              },
+              "iq4k2560": {
+                "count": 22,
+                "us": 915.5
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 841.7
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 645.1
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 632.8
+              },
+              "q5kk2560": {
+                "count": 4,
+                "us": 627.7
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 578.6
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 542.7
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 421.9
+              },
+              "q2k2560": {
+                "count": 16,
+                "us": 371.7
+              },
+              "q4kk2560": {
+                "count": 11,
+                "us": 307.2
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 295.9
+              },
+              "moesel": {
+                "count": 48,
+                "us": 283.6
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 281.6
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 237.6
+              },
+              "attnpartn": {
+                "count": 4,
+                "us": 235.5
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 229.4
+              },
+              "amax": {
+                "count": 1,
+                "us": 117.8
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 107.5
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 106.5
+              },
+              "idxsel": {
+                "count": 20,
+                "us": 85.0
+              },
+              "kvgather": {
+                "count": 4,
+                "us": 82.9
+              },
+              "q2acc640": {
+                "count": 4,
+                "us": 62.5
+              },
+              "plerows": {
+                "count": 1,
+                "us": 59.4
+              },
+              "b32q40acc": {
+                "count": 2,
+                "us": 39.9
+              },
+              "attnmerge": {
+                "count": 4,
+                "us": 35.8
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 34.8
+              },
+              "b32q50acc": {
+                "count": 1,
+                "us": 26.6
+              },
+              "attnqkq": {
+                "count": 4,
+                "us": 25.6
+              },
+              "b32iq4nlacc": {
+                "count": 1,
+                "us": 23.6
+              },
+              "idxqk": {
+                "count": 4,
+                "us": 23.6
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 21.5
+              },
+              "idxscore": {
+                "count": 4,
+                "us": 16.4
+              },
+              "argmax": {
+                "count": 1,
+                "us": 10.2
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 7.2
+              }
+            },
+            "phases": 1214,
+            "total_ms": 27.66,
+            "hc_ms": 8.3354
+          },
+          "2": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 5964.8
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 3079.2
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2137.1
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1941.5
+              },
+              "q3kk2560": {
+                "count": 50,
+                "us": 1505.3
+              },
+              "bf16k2560": {
+                "count": 49,
+                "us": 1386.5
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1289.2
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1282.0
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1212.4
+              },
+              "router": {
+                "count": 48,
+                "us": 1133.6
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 747.5
+              },
+              "iq4k2560": {
+                "count": 19,
+                "us": 705.5
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 646.1
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 615.4
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 485.4
+              },
+              "q5kk2560": {
+                "count": 1,
+                "us": 481.3
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 376.8
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 312.3
+              },
+              "moesel": {
+                "count": 48,
+                "us": 281.6
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 249.9
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 247.8
+              },
+              "q4kk2560": {
+                "count": 8,
+                "us": 237.6
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 232.4
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 209.9
+              },
+              "amax": {
+                "count": 1,
+                "us": 206.8
+              },
+              "q2k2560": {
+                "count": 12,
+                "us": 165.9
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 105.5
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 90.1
+              },
+              "plerows": {
+                "count": 1,
+                "us": 59.4
+              },
+              "b32q40acc": {
+                "count": 3,
+                "us": 57.3
+              },
+              "b32iq4nlacc": {
+                "count": 2,
+                "us": 49.2
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 35.8
+              },
+              "b32q50acc": {
+                "count": 1,
+                "us": 26.6
+              },
+              "b32q80acc": {
+                "count": 1,
+                "us": 24.6
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 23.6
+              },
+              "q2acc640": {
+                "count": 1,
+                "us": 15.4
+              },
+              "plegate": {
+                "count": 1,
+                "us": 14.3
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 11.3
+              },
+              "argmax": {
+                "count": 1,
+                "us": 9.2
+              }
+            },
+            "phases": 1154,
+            "total_ms": 27.66,
+            "hc_ms": 8.447
+          },
+          "3": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 4937.7
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2444.3
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2345.0
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1784.8
+              },
+              "q3kk2560": {
+                "count": 50,
+                "us": 1728.5
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1647.6
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1395.7
+              },
+              "bf16k2560": {
+                "count": 49,
+                "us": 1370.1
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1330.2
+              },
+              "router": {
+                "count": 48,
+                "us": 1133.6
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 1030.1
+              },
+              "iq4k2560": {
+                "count": 19,
+                "us": 820.2
+              },
+              "q5kk2560": {
+                "count": 1,
+                "us": 679.9
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 645.1
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 644.1
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 562.2
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 440.3
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 418.8
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 289.8
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 280.6
+              },
+              "q4kk2560": {
+                "count": 8,
+                "us": 277.5
+              },
+              "moesel": {
+                "count": 48,
+                "us": 271.4
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 246.8
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 216.1
+              },
+              "q2k2560": {
+                "count": 12,
+                "us": 185.3
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 109.6
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 108.5
+              },
+              "plerows": {
+                "count": 1,
+                "us": 59.4
+              },
+              "b32q50acc": {
+                "count": 2,
+                "us": 53.2
+              },
+              "q2acc640": {
+                "count": 3,
+                "us": 47.1
+              },
+              "b32q40acc": {
+                "count": 2,
+                "us": 38.9
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 33.8
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 22.5
+              },
+              "b32iq4nlacc": {
+                "count": 1,
+                "us": 22.5
+              },
+              "argmax": {
+                "count": 1,
+                "us": 11.3
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 6.1
+              },
+              "amax": {
+                "count": 1,
+                "us": 6.1
+              }
+            },
+            "phases": 1154,
+            "total_ms": 27.66,
+            "hc_ms": 7.8326
+          },
+          "4": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 3620.9
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2542.6
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2483.2
+              },
+              "q3kk2560": {
+                "count": 53,
+                "us": 2093.1
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1647.6
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1634.3
+              },
+              "bf16k2560": {
+                "count": 53,
+                "us": 1500.2
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1418.2
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1348.6
+              },
+              "router": {
+                "count": 48,
+                "us": 1137.7
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 947.2
+              },
+              "iq4k2560": {
+                "count": 22,
+                "us": 913.4
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 651.3
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 629.8
+              },
+              "q5kk2560": {
+                "count": 2,
+                "us": 605.2
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 576.5
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 547.8
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 425.0
+              },
+              "q4kk2560": {
+                "count": 12,
+                "us": 302.1
+              },
+              "moesel": {
+                "count": 48,
+                "us": 282.6
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 281.6
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 254.0
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 238.6
+              },
+              "attnpartn": {
+                "count": 4,
+                "us": 235.5
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 233.5
+              },
+              "q2k2560": {
+                "count": 11,
+                "us": 159.7
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 106.5
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 104.4
+              },
+              "amax": {
+                "count": 1,
+                "us": 103.4
+              },
+              "kvgather": {
+                "count": 4,
+                "us": 86.0
+              },
+              "idxsel": {
+                "count": 20,
+                "us": 82.9
+              },
+              "b32q40acc": {
+                "count": 4,
+                "us": 77.8
+              },
+              "plerows": {
+                "count": 1,
+                "us": 60.4
+              },
+              "q6kk2560": {
+                "count": 2,
+                "us": 54.3
+              },
+              "b32iq4nlacc": {
+                "count": 2,
+                "us": 48.1
+              },
+              "attnmerge": {
+                "count": 4,
+                "us": 35.8
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 33.8
+              },
+              "q2acc640": {
+                "count": 2,
+                "us": 31.7
+              },
+              "attnqkq": {
+                "count": 4,
+                "us": 28.7
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 23.6
+              },
+              "idxqk": {
+                "count": 4,
+                "us": 21.5
+              },
+              "idxscore": {
+                "count": 4,
+                "us": 18.4
+              },
+              "argmax": {
+                "count": 1,
+                "us": 10.2
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 8.2
+              }
+            },
+            "phases": 1214,
+            "total_ms": 27.66,
+            "hc_ms": 8.022
+          },
+          "5": {
+            "kinds": {
+              "actq256": {
+                "count": 146,
+                "us": 3607.6
+              },
+              "bf16hcup": {
+                "count": 97,
+                "us": 2498.6
+              },
+              "hcwsum": {
+                "count": 48,
+                "us": 2307.1
+              },
+              "q3kk2560": {
+                "count": 52,
+                "us": 1888.3
+              },
+              "q2moegn": {
+                "count": 96,
+                "us": 1798.1
+              },
+              "bf16hcrwx": {
+                "count": 48,
+                "us": 1663.0
+              },
+              "bf16k2560": {
+                "count": 53,
+                "us": 1497.1
+              },
+              "xsend": {
+                "count": 111,
+                "us": 1414.1
+              },
+              "bf16hcrx": {
+                "count": 49,
+                "us": 1340.4
+              },
+              "router": {
+                "count": 48,
+                "us": 1138.7
+              },
+              "q2moedn": {
+                "count": 48,
+                "us": 1062.9
+              },
+              "iq4k2560": {
+                "count": 22,
+                "us": 1054.7
+              },
+              "ffnact": {
+                "count": 48,
+                "us": 638.0
+              },
+              "dnstep": {
+                "count": 36,
+                "us": 636.9
+              },
+              "q5kk2560": {
+                "count": 4,
+                "us": 628.7
+              },
+              "dnnormx": {
+                "count": 36,
+                "us": 585.7
+              },
+              "iq4k6144": {
+                "count": 17,
+                "us": 536.6
+              },
+              "q4kk6144": {
+                "count": 15,
+                "us": 423.9
+              },
+              "q5kk6144": {
+                "count": 7,
+                "us": 278.5
+              },
+              "moesel": {
+                "count": 48,
+                "us": 274.4
+              },
+              "q4kk2560": {
+                "count": 9,
+                "us": 264.2
+              },
+              "bf16bias": {
+                "count": 36,
+                "us": 252.9
+              },
+              "attnpartn": {
+                "count": 4,
+                "us": 237.6
+              },
+              "q6kk1536acc": {
+                "count": 18,
+                "us": 235.5
+              },
+              "conv1d": {
+                "count": 36,
+                "us": 226.3
+              },
+              "q2k2560": {
+                "count": 11,
+                "us": 162.8
+              },
+              "amax": {
+                "count": 1,
+                "us": 117.8
+              },
+              "q3kk6144": {
+                "count": 3,
+                "us": 105.5
+              },
+              "q6kk1536": {
+                "count": 6,
+                "us": 104.4
+              },
+              "q6kk2560": {
+                "count": 4,
+                "us": 95.2
+              },
+              "idxsel": {
+                "count": 20,
+                "us": 84.0
+              },
+              "kvgather": {
+                "count": 4,
+                "us": 84.0
+              },
+              "plerows": {
+                "count": 1,
+                "us": 59.4
+              },
+              "b32q40acc": {
+                "count": 3,
+                "us": 57.3
+              },
+              "attnmerge": {
+                "count": 4,
+                "us": 34.8
+              },
+              "xcopy": {
+                "count": 1,
+                "us": 33.8
+              },
+              "q2acc640": {
+                "count": 2,
+                "us": 29.7
+              },
+              "b32q50acc": {
+                "count": 1,
+                "us": 27.6
+              },
+              "attnqkq": {
+                "count": 4,
+                "us": 26.6
+              },
+              "rms2560": {
+                "count": 3,
+                "us": 24.6
+              },
+              "b32q80acc": {
+                "count": 1,
+                "us": 24.6
+              },
+              "b32iq4nlacc": {
+                "count": 1,
+                "us": 23.6
+              },
+              "idxqk": {
+                "count": 4,
+                "us": 22.5
+              },
+              "idxscore": {
+                "count": 4,
+                "us": 18.4
+              },
+              "argmax": {
+                "count": 1,
+                "us": 10.2
+              },
+              "pleconv": {
+                "count": 1,
+                "us": 10.2
+              },
+              "plegate": {
+                "count": 1,
+                "us": 8.2
+              }
+            },
+            "phases": 1214,
+            "total_ms": 27.66,
+            "hc_ms": 7.8091
+          }
+        }
+      ],
+      "mean_tok_s": 36.31666666666667,
+      "max_hc_ms": 8.496
+    }
+  },
+  "restoration": "PASS",
+  "model_test": "not run by this validator",
+  "fixtures_sha256": "d3fc452f12d056a4df82ae7df38379a4c6a05212228b488e64b492987feff1c2",
+  "lock_wait_seconds": 1.2310993042774498e-05,
+  "original": {
+    "config": {
+      "rev": "edc66d9",
+      "kv_host": "0",
+      "ple_disk": "1",
+      "maxt": "230000",
+      "layers": "48/48",
+      "nblk": "512",
+      "dies": "6",
+      "attn_dies": "1,4,5",
+      "split": "112,97,81,116,97,97",
+      "attn_map": "1,1,1,1,4,4,4,4,5,5,5,5",
+      "img_rows": "4096",
+      "two_position": "0",
+      "prefill_chunk": "0",
+      "cubin": "/home/nate/claude/flash-sass-live/kern/die.cubin",
+      "cubin_fnv": "669dbb2e43186b1a"
+    },
+    "library_sha256": "e0ce409d7f23f8ee924cf312c77eac4fbce89bfca6d180c6328f55b12e771eb2",
+    "cubin_sha256": "116d828f20139d144d46d7d8115a28e35313dac1f6c24ba81c1b5c0984f50e14"
+  },
+  "manifests": {
+    "/tmp/hold-h0.manifest": "94112cb11544279a753411c9005c6549105938167611091298e9ce7da2a63ba7",
+    "/tmp/hold-h1.manifest": "11a00e7fb074abc8f3a48732acb9f649d3a1bfe30b9bc8ecbc8034256815f440",
+    "/tmp/hold-h2.manifest": "a009077049b65fd08238da809e3c026af6fb7c818e81db945dde0a38a5419e11",
+    "/tmp/hold-h3.manifest": "cefb939ddbca4d8b3774465f74d14a7c19b2aee4fce1bea28144beb170271e15",
+    "/tmp/hold-h4.manifest": "1e9b3a0b446ed15f3d8ed7d8171da6e6e3b6652433baf187da01ce6d8b812950",
+    "/tmp/hold-h5.manifest": "ed6037d1452b8f59f93fd205eb83443a82ddda4e508cc9bb1479d2966804d544"
+  },
+  "gates": {
+    "token_ids_match": true,
+    "hc_at_most_4_ms": false,
+    "decode_at_least_38_tok_s": false
+  },
+  "status": "FAIL_LIVE_GATES",
+  "finished_utc": "2026-10-18T05:33:04Z"
+}

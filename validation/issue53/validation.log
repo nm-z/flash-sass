@@ -1,0 +1,549 @@
+Sat Oct 17 17:13:55 2026
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 470.256.02   Driver Version: 470.256.02   CUDA Version: 11.4     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   7  Tesla M60           On   | 00000000:13:00.0 Off |                    0 |
+| N/A   34C    P8    13W / 150W |    138MiB /  7618MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|  No running processes found                                                 |
++-----------------------------------------------------------------------------+
+    PID    PPID     ELAPSED COMMAND
+ 974015       1    17:28:29 flock -s -n /home/nate/codex/asm-port/GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974018  974015    17:28:29 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974058       1    17:28:29 flock -s -n /home/nate/codex/asm-port/GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974061  974058    17:28:29 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974100       1    17:28:29 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./fence 2 2 2750-3769
+ 974103  974100    17:28:29 ./fence 2 2 2750-3769
+ 988058       1    17:28:14 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988060  988058    17:28:14 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988065       1    17:28:14 flock -s -n /home/nate/codex/asm-port/GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988067  988065    17:28:14 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988070       1    17:28:13 flock -s -n /home/nate/codex/asm-port/GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988072  988070    17:28:13 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988079       1    17:28:13 flock -s -n /home/nate/codex/asm-port/GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+ 988080  988079    17:28:13 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+1575007       1    04:01:13 ./flashcore /home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf /home/nate/claude/flash-sass-live/kern/libengine.so /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+3160286 3160283       00:00 /bin/bash ./hc_phase_check.sh /tmp/flash-sass-issue53.4IEoK6/baseline/die.cubin /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+3160290 3160286       00:00 /bin/bash ./hc_phase_check.sh /tmp/flash-sass-issue53.4IEoK6/baseline/die.cubin /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
++ ./hcops_test
+hc_silu: BIT-EXACT (0 of 324 differ)
+hc_mix: BIT-EXACT (0 of 2560 differ)
+hc_write: BIT-EXACT (0 of 10240 differ)
+exit_code=0
+Sat Oct 17 17:13:56 2026
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 470.256.02   Driver Version: 470.256.02   CUDA Version: 11.4     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   7  Tesla M60           On   | 00000000:13:00.0 Off |                    0 |
+| N/A   34C    P0    37W / 150W |    138MiB /  7618MiB |      5%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|  No running processes found                                                 |
++-----------------------------------------------------------------------------+
+    PID    PPID     ELAPSED COMMAND
+ 974015       1    17:28:29 flock -s -n /home/nate/codex/asm-port/GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974018  974015    17:28:29 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974058       1    17:28:29 flock -s -n /home/nate/codex/asm-port/GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974061  974058    17:28:29 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974100       1    17:28:29 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./fence 2 2 2750-3769
+ 974103  974100    17:28:29 ./fence 2 2 2750-3769
+ 988058       1    17:28:14 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988060  988058    17:28:14 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988065       1    17:28:14 flock -s -n /home/nate/codex/asm-port/GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988067  988065    17:28:14 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988070       1    17:28:14 flock -s -n /home/nate/codex/asm-port/GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988072  988070    17:28:14 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988079       1    17:28:14 flock -s -n /home/nate/codex/asm-port/GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+ 988080  988079    17:28:14 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+1575007       1    04:01:14 ./flashcore /home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf /home/nate/claude/flash-sass-live/kern/libengine.so /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+3160286 3160283       00:00 /bin/bash ./hc_phase_check.sh /tmp/flash-sass-issue53.4IEoK6/baseline/die.cubin /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+3160359 3160286       00:00 /bin/bash ./hc_phase_check.sh /tmp/flash-sass-issue53.4IEoK6/baseline/die.cubin /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+WAIT: device 7 is occupied, active, reserved, or has less than 512 MiB free
+Sat Oct 17 17:14:01 2026
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 470.256.02   Driver Version: 470.256.02   CUDA Version: 11.4     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   7  Tesla M60           On   | 00000000:13:00.0 Off |                    0 |
+| N/A   34C    P8    12W / 150W |    138MiB /  7618MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|  No running processes found                                                 |
++-----------------------------------------------------------------------------+
+    PID    PPID     ELAPSED COMMAND
+ 974015       1    17:28:35 flock -s -n /home/nate/codex/asm-port/GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974018  974015    17:28:35 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974058       1    17:28:35 flock -s -n /home/nate/codex/asm-port/GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974061  974058    17:28:35 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974100       1    17:28:35 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./fence 2 2 2750-3769
+ 974103  974100    17:28:35 ./fence 2 2 2750-3769
+ 988058       1    17:28:19 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988060  988058    17:28:19 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988065       1    17:28:19 flock -s -n /home/nate/codex/asm-port/GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988067  988065    17:28:19 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988070       1    17:28:19 flock -s -n /home/nate/codex/asm-port/GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988072  988070    17:28:19 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988079       1    17:28:19 flock -s -n /home/nate/codex/asm-port/GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+ 988080  988079    17:28:19 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+1575007       1    04:01:19 ./flashcore /home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf /home/nate/claude/flash-sass-live/kern/libengine.so /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+3160286 3160283       00:05 /bin/bash ./hc_phase_check.sh /tmp/flash-sass-issue53.4IEoK6/baseline/die.cubin /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+3160359 3160286       00:05 /bin/bash ./hc_phase_check.sh /tmp/flash-sass-issue53.4IEoK6/baseline/die.cubin /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
++ ./pair_bf16_test
+GPU: Tesla M60
+bf16bias rows=1 units=1 run=0: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16bias rows=1 units=1 run=1: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16bias rows=137 units=16 run=0: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16bias rows=137 units=16 run=1: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16bias rows=513 units=33 run=0: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16bias rows=513 units=33 run=1: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16k2560 rows=1 units=1 run=0: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16k2560 rows=1 units=1 run=1: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16k2560 rows=137 units=16 run=0: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16k2560 rows=137 units=16 run=1: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16k2560 rows=513 units=33 run=0: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16k2560 rows=513 units=33 run=1: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16k320 rows=1 units=1 run=0: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16k320 rows=1 units=1 run=1: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16k320 rows=137 units=16 run=0: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16k320 rows=137 units=16 run=1: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16k320 rows=513 units=33 run=0: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16k320 rows=513 units=33 run=1: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16hc rows=1 units=1 run=0: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16hc rows=1 units=1 run=1: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16hc rows=137 units=16 run=0: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16hc rows=137 units=16 run=1: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16hc rows=513 units=33 run=0: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16hc rows=513 units=33 run=1: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16hcx rows=1 units=1 run=0: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16hcx rows=1 units=1 run=1: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16hcx rows=137 units=16 run=0: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16hcx rows=137 units=16 run=1: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16hcx rows=513 units=33 run=0: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+bf16hcx rows=513 units=33 run=1: mismatches=0 guard_errors=0 missing=0 BIT-EXACT
+paired BF16: 0 failed cases
+exit_code=0
+Sat Oct 17 17:14:02 2026
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 470.256.02   Driver Version: 470.256.02   CUDA Version: 11.4     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   7  Tesla M60           On   | 00000000:13:00.0 Off |                    0 |
+| N/A   34C    P0    36W / 150W |    138MiB /  7618MiB |     28%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|  No running processes found                                                 |
++-----------------------------------------------------------------------------+
+    PID    PPID     ELAPSED COMMAND
+ 974015       1    17:28:35 flock -s -n /home/nate/codex/asm-port/GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974018  974015    17:28:35 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974058       1    17:28:35 flock -s -n /home/nate/codex/asm-port/GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974061  974058    17:28:35 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974100       1    17:28:35 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./fence 2 2 2750-3769
+ 974103  974100    17:28:35 ./fence 2 2 2750-3769
+ 988058       1    17:28:20 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988060  988058    17:28:20 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988065       1    17:28:20 flock -s -n /home/nate/codex/asm-port/GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988067  988065    17:28:20 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988070       1    17:28:20 flock -s -n /home/nate/codex/asm-port/GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988072  988070    17:28:20 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988079       1    17:28:20 flock -s -n /home/nate/codex/asm-port/GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+ 988080  988079    17:28:20 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+1575007       1    04:01:19 ./flashcore /home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf /home/nate/claude/flash-sass-live/kern/libengine.so /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+3160286 3160283       00:06 /bin/bash ./hc_phase_check.sh /tmp/flash-sass-issue53.4IEoK6/baseline/die.cubin /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+3160997 3160286       00:00 /bin/bash ./hc_phase_check.sh /tmp/flash-sass-issue53.4IEoK6/baseline/die.cubin /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+WAIT: device 7 is occupied, active, reserved, or has less than 512 MiB free
+Sat Oct 17 17:14:07 2026
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 470.256.02   Driver Version: 470.256.02   CUDA Version: 11.4     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   7  Tesla M60           On   | 00000000:13:00.0 Off |                    0 |
+| N/A   35C    P8    13W / 150W |    138MiB /  7618MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|  No running processes found                                                 |
++-----------------------------------------------------------------------------+
+    PID    PPID     ELAPSED COMMAND
+ 974015       1    17:28:40 flock -s -n /home/nate/codex/asm-port/GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974018  974015    17:28:40 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974058       1    17:28:40 flock -s -n /home/nate/codex/asm-port/GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974061  974058    17:28:40 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974100       1    17:28:40 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./fence 2 2 2750-3769
+ 974103  974100    17:28:40 ./fence 2 2 2750-3769
+ 988058       1    17:28:25 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988060  988058    17:28:25 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988065       1    17:28:25 flock -s -n /home/nate/codex/asm-port/GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988067  988065    17:28:25 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988070       1    17:28:25 flock -s -n /home/nate/codex/asm-port/GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988072  988070    17:28:25 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988079       1    17:28:25 flock -s -n /home/nate/codex/asm-port/GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+ 988080  988079    17:28:25 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+1575007       1    04:01:25 ./flashcore /home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf /home/nate/claude/flash-sass-live/kern/libengine.so /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+3160286 3160283       00:11 /bin/bash ./hc_phase_check.sh /tmp/flash-sass-issue53.4IEoK6/baseline/die.cubin /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+3160997 3160286       00:05 /bin/bash ./hc_phase_check.sh /tmp/flash-sass-issue53.4IEoK6/baseline/die.cubin /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
++ ./gemv_bf16_test /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf blk.4.ffn_gate_inp.weight 0
+blk.4.ffn_gate_inp.weight: BF16 K=2560 rows=512 (2.6 MB), 32 lanes per row, 1 slice(s)
+reference 28.8 ms
+kernel: 138 registers, 1 CTAs/SM; grid 64 x 256, 8 rows per CTA iteration
+BIT-EXACT: 0 of 512 rows differ (max abs 0.000e+00)
+exit_code=0
+Sat Oct 17 17:14:07 2026
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 470.256.02   Driver Version: 470.256.02   CUDA Version: 11.4     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   7  Tesla M60           On   | 00000000:13:00.0 Off |                    0 |
+| N/A   35C    P0    37W / 150W |    138MiB /  7618MiB |      4%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|  No running processes found                                                 |
++-----------------------------------------------------------------------------+
+    PID    PPID     ELAPSED COMMAND
+ 974015       1    17:28:41 flock -s -n /home/nate/codex/asm-port/GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974018  974015    17:28:41 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974058       1    17:28:41 flock -s -n /home/nate/codex/asm-port/GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974061  974058    17:28:41 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974100       1    17:28:41 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./fence 2 2 2750-3769
+ 974103  974100    17:28:41 ./fence 2 2 2750-3769
+ 988058       1    17:28:25 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988060  988058    17:28:25 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988065       1    17:28:25 flock -s -n /home/nate/codex/asm-port/GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988067  988065    17:28:25 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988070       1    17:28:25 flock -s -n /home/nate/codex/asm-port/GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988072  988070    17:28:25 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988079       1    17:28:25 flock -s -n /home/nate/codex/asm-port/GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+ 988080  988079    17:28:25 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+1575007       1    04:01:25 ./flashcore /home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf /home/nate/claude/flash-sass-live/kern/libengine.so /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+3160286 3160283       00:12 /bin/bash ./hc_phase_check.sh /tmp/flash-sass-issue53.4IEoK6/baseline/die.cubin /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+3161645 3160286       00:00 /bin/bash ./hc_phase_check.sh /tmp/flash-sass-issue53.4IEoK6/baseline/die.cubin /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+WAIT: device 7 is occupied, active, reserved, or has less than 512 MiB free
+Sat Oct 17 17:14:13 2026
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 470.256.02   Driver Version: 470.256.02   CUDA Version: 11.4     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   7  Tesla M60           On   | 00000000:13:00.0 Off |                    0 |
+| N/A   35C    P8    13W / 150W |    138MiB /  7618MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|  No running processes found                                                 |
++-----------------------------------------------------------------------------+
+    PID    PPID     ELAPSED COMMAND
+ 974015       1    17:28:46 flock -s -n /home/nate/codex/asm-port/GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974018  974015    17:28:46 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974058       1    17:28:46 flock -s -n /home/nate/codex/asm-port/GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974061  974058    17:28:46 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974100       1    17:28:46 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./fence 2 2 2750-3769
+ 974103  974100    17:28:46 ./fence 2 2 2750-3769
+ 988058       1    17:28:31 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988060  988058    17:28:31 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988065       1    17:28:31 flock -s -n /home/nate/codex/asm-port/GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988067  988065    17:28:31 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988070       1    17:28:31 flock -s -n /home/nate/codex/asm-port/GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988072  988070    17:28:31 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988079       1    17:28:31 flock -s -n /home/nate/codex/asm-port/GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+ 988080  988079    17:28:31 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+1575007       1    04:01:30 ./flashcore /home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf /home/nate/claude/flash-sass-live/kern/libengine.so /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+3160286 3160283       00:17 /bin/bash ./hc_phase_check.sh /tmp/flash-sass-issue53.4IEoK6/baseline/die.cubin /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+3161645 3160286       00:05 /bin/bash ./hc_phase_check.sh /tmp/flash-sass-issue53.4IEoK6/baseline/die.cubin /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
++ ./gemv_bf16_test /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf blk.4.hc_attn_down.weight 0
+blk.4.hc_attn_down.weight: BF16 K=10240 rows=320 (6.6 MB), 32 lanes per row, 4 slice(s)
+reference 74.0 ms
+kernel: 142 registers, 1 CTAs/SM; grid 40 x 256, 8 rows per CTA iteration
+BIT-EXACT: 0 of 320 rows differ (max abs 0.000e+00)
+exit_code=0
+Sat Oct 17 17:14:13 2026
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 470.256.02   Driver Version: 470.256.02   CUDA Version: 11.4     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   7  Tesla M60           On   | 00000000:13:00.0 Off |                    0 |
+| N/A   35C    P0    37W / 150W |    138MiB /  7618MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|  No running processes found                                                 |
++-----------------------------------------------------------------------------+
+    PID    PPID     ELAPSED COMMAND
+ 974015       1    17:28:47 flock -s -n /home/nate/codex/asm-port/GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974018  974015    17:28:47 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974058       1    17:28:47 flock -s -n /home/nate/codex/asm-port/GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974061  974058    17:28:47 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974100       1    17:28:47 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./fence 2 2 2750-3769
+ 974103  974100    17:28:47 ./fence 2 2 2750-3769
+ 988058       1    17:28:31 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988060  988058    17:28:31 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988065       1    17:28:31 flock -s -n /home/nate/codex/asm-port/GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988067  988065    17:28:31 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988070       1    17:28:31 flock -s -n /home/nate/codex/asm-port/GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988072  988070    17:28:31 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988079       1    17:28:31 flock -s -n /home/nate/codex/asm-port/GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+ 988080  988079    17:28:31 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+1575007       1    04:01:31 ./flashcore /home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf /home/nate/claude/flash-sass-live/kern/libengine.so /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+3160286 3160283       00:17 /bin/bash ./hc_phase_check.sh /tmp/flash-sass-issue53.4IEoK6/baseline/die.cubin /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+3162316 3160286       00:00 /bin/bash ./hc_phase_check.sh /tmp/flash-sass-issue53.4IEoK6/baseline/die.cubin /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
++ ./gemv_bf16_test /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf blk.4.hc_attn_up.weight 0
+blk.4.hc_attn_up.weight: BF16 K=320 rows=10240 (6.6 MB), 8 lanes per row, 1 slice(s)
+reference 110.3 ms
+kernel: 78 registers, 3 CTAs/SM; grid 320 x 256, 32 rows per CTA iteration
+BIT-EXACT: 0 of 10240 rows differ (max abs 0.000e+00)
+exit_code=0
+Sat Oct 17 17:14:14 2026
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 470.256.02   Driver Version: 470.256.02   CUDA Version: 11.4     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   7  Tesla M60           On   | 00000000:13:00.0 Off |                    0 |
+| N/A   35C    P0    36W / 150W |    138MiB /  7618MiB |      7%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|  No running processes found                                                 |
++-----------------------------------------------------------------------------+
+    PID    PPID     ELAPSED COMMAND
+ 974015       1    17:28:47 flock -s -n /home/nate/codex/asm-port/GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974018  974015    17:28:47 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974058       1    17:28:47 flock -s -n /home/nate/codex/asm-port/GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974061  974058    17:28:47 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974100       1    17:28:47 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./fence 2 2 2750-3769
+ 974103  974100    17:28:47 ./fence 2 2 2750-3769
+ 988058       1    17:28:32 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988060  988058    17:28:32 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988065       1    17:28:32 flock -s -n /home/nate/codex/asm-port/GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988067  988065    17:28:32 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988070       1    17:28:32 flock -s -n /home/nate/codex/asm-port/GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988072  988070    17:28:32 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988079       1    17:28:32 flock -s -n /home/nate/codex/asm-port/GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+ 988080  988079    17:28:32 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+1575007       1    04:01:31 ./flashcore /home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf /home/nate/claude/flash-sass-live/kern/libengine.so /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+3160286 3160283       00:18 /bin/bash ./hc_phase_check.sh /tmp/flash-sass-issue53.4IEoK6/baseline/die.cubin /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+3162361 3160286       00:00 /bin/bash ./hc_phase_check.sh /tmp/flash-sass-issue53.4IEoK6/baseline/die.cubin /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+WAIT: device 7 is occupied, active, reserved, or has less than 512 MiB free
+Sat Oct 17 17:14:19 2026
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 470.256.02   Driver Version: 470.256.02   CUDA Version: 11.4     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   7  Tesla M60           On   | 00000000:13:00.0 Off |                    0 |
+| N/A   35C    P8    14W / 150W |    138MiB /  7618MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|  No running processes found                                                 |
++-----------------------------------------------------------------------------+
+    PID    PPID     ELAPSED COMMAND
+ 974015       1    17:28:52 flock -s -n /home/nate/codex/asm-port/GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974018  974015    17:28:52 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974058       1    17:28:52 flock -s -n /home/nate/codex/asm-port/GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974061  974058    17:28:52 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974100       1    17:28:52 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./fence 2 2 2750-3769
+ 974103  974100    17:28:52 ./fence 2 2 2750-3769
+ 988058       1    17:28:37 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988060  988058    17:28:37 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988065       1    17:28:37 flock -s -n /home/nate/codex/asm-port/GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988067  988065    17:28:37 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988070       1    17:28:37 flock -s -n /home/nate/codex/asm-port/GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988072  988070    17:28:37 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988079       1    17:28:37 flock -s -n /home/nate/codex/asm-port/GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+ 988080  988079    17:28:37 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+1575007       1    04:01:37 ./flashcore /home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf /home/nate/claude/flash-sass-live/kern/libengine.so /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+3160286 3160283       00:23 /bin/bash ./hc_phase_check.sh /tmp/flash-sass-issue53.4IEoK6/baseline/die.cubin /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
+3162361 3160286       00:05 /bin/bash ./hc_phase_check.sh /tmp/flash-sass-issue53.4IEoK6/baseline/die.cubin /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
++ ./hc_phase_test --baseline /tmp/flash-sass-issue53.4IEoK6/baseline/die.cubin
+GPU: Tesla M60 sm_52 SMs=16; local fanout only
+baseline=/tmp/flash-sass-issue53.4IEoK6/baseline/die.cubin
+candidate=die.cubin
+hcwsum n=2560 dies=1 inplace=0 round=0: BIT-EXACT
+hcwsum n=2560 dies=1 inplace=1 round=0: BIT-EXACT
+hcwsum n=2560 dies=2 inplace=0 round=0: BIT-EXACT
+hcwsum n=2560 dies=2 inplace=1 round=0: BIT-EXACT
+hcwsum n=2560 dies=3 inplace=0 round=0: BIT-EXACT
+hcwsum n=2560 dies=3 inplace=1 round=0: BIT-EXACT
+hcwsum n=2560 dies=4 inplace=0 round=0: BIT-EXACT
+hcwsum n=2560 dies=4 inplace=1 round=0: BIT-EXACT
+hcwsum n=2560 dies=5 inplace=0 round=0: BIT-EXACT
+hcwsum n=2560 dies=5 inplace=1 round=0: BIT-EXACT
+hcwsum n=1 dies=6 inplace=0 round=0: BIT-EXACT
+hcwsum n=1 dies=6 inplace=1 round=0: BIT-EXACT
+hcwsum n=31 dies=6 inplace=0 round=0: BIT-EXACT
+hcwsum n=31 dies=6 inplace=1 round=0: BIT-EXACT
+hcwsum n=33 dies=6 inplace=0 round=0: BIT-EXACT
+hcwsum n=33 dies=6 inplace=1 round=0: BIT-EXACT
+hcwsum n=159 dies=6 inplace=0 round=0: BIT-EXACT
+hcwsum n=159 dies=6 inplace=1 round=0: BIT-EXACT
+hcwsum n=160 dies=6 inplace=0 round=0: BIT-EXACT
+hcwsum n=160 dies=6 inplace=1 round=0: BIT-EXACT
+hcwsum n=161 dies=6 inplace=0 round=0: BIT-EXACT
+hcwsum n=161 dies=6 inplace=1 round=0: BIT-EXACT
+hcwsum n=255 dies=6 inplace=0 round=0: BIT-EXACT
+hcwsum n=255 dies=6 inplace=1 round=0: BIT-EXACT
+hcwsum n=257 dies=6 inplace=0 round=0: BIT-EXACT
+hcwsum n=257 dies=6 inplace=1 round=0: BIT-EXACT
+hcwsum n=2559 dies=6 inplace=0 round=0: BIT-EXACT
+hcwsum n=2559 dies=6 inplace=1 round=0: BIT-EXACT
+hcwsum n=2560 dies=6 inplace=0 round=0: BIT-EXACT
+hcwsum n=2560 dies=6 inplace=1 round=0: BIT-EXACT
+bf16hcrx rows=1 units=16 offset=1 round=0: BIT-EXACT
+bf16hcrwx rows=1 units=16 offset=1 round=0: BIT-EXACT
+bf16hcrx rows=53 units=16 offset=1 round=0: BIT-EXACT
+bf16hcrwx rows=53 units=16 offset=1 round=0: BIT-EXACT
+bf16hcrx rows=54 units=16 offset=1 round=0: BIT-EXACT
+bf16hcrwx rows=54 units=16 offset=1 round=0: BIT-EXACT
+bf16hcrx rows=55 units=16 offset=1 round=0: BIT-EXACT
+bf16hcrwx rows=55 units=16 offset=1 round=0: BIT-EXACT
+bf16hcrx rows=137 units=16 offset=1 round=0: BIT-EXACT
+bf16hcrwx rows=137 units=16 offset=1 round=0: BIT-EXACT
+bf16hcrx rows=324 units=16 offset=1 round=0: BIT-EXACT
+bf16hcrwx rows=324 units=16 offset=1 round=0: BIT-EXACT
+bf16hcx rows=1 units=1 offset=1 round=0: BIT-EXACT
+bf16hcx rows=1 units=16 offset=1 round=0: BIT-EXACT
+bf16hcx rows=1 units=33 offset=1 round=0: BIT-EXACT
+bf16hcx rows=137 units=1 offset=1 round=0: BIT-EXACT
+bf16hcx rows=137 units=16 offset=1 round=0: BIT-EXACT
+bf16hcx rows=137 units=33 offset=1 round=0: BIT-EXACT
+bf16hcx rows=513 units=1 offset=1 round=0: BIT-EXACT
+bf16hcx rows=513 units=16 offset=1 round=0: BIT-EXACT
+bf16hcx rows=513 units=33 offset=1 round=0: BIT-EXACT
+hcwsum n=2560 dies=1 inplace=0 round=1: BIT-EXACT
+hcwsum n=2560 dies=1 inplace=1 round=1: BIT-EXACT
+hcwsum n=2560 dies=2 inplace=0 round=1: BIT-EXACT
+hcwsum n=2560 dies=2 inplace=1 round=1: BIT-EXACT
+hcwsum n=2560 dies=3 inplace=0 round=1: BIT-EXACT
+hcwsum n=2560 dies=3 inplace=1 round=1: BIT-EXACT
+hcwsum n=2560 dies=4 inplace=0 round=1: BIT-EXACT
+hcwsum n=2560 dies=4 inplace=1 round=1: BIT-EXACT
+hcwsum n=2560 dies=5 inplace=0 round=1: BIT-EXACT
+hcwsum n=2560 dies=5 inplace=1 round=1: BIT-EXACT
+hcwsum n=1 dies=6 inplace=0 round=1: BIT-EXACT
+hcwsum n=1 dies=6 inplace=1 round=1: BIT-EXACT
+hcwsum n=31 dies=6 inplace=0 round=1: BIT-EXACT
+hcwsum n=31 dies=6 inplace=1 round=1: BIT-EXACT
+hcwsum n=33 dies=6 inplace=0 round=1: BIT-EXACT
+hcwsum n=33 dies=6 inplace=1 round=1: BIT-EXACT
+hcwsum n=159 dies=6 inplace=0 round=1: BIT-EXACT
+hcwsum n=159 dies=6 inplace=1 round=1: BIT-EXACT
+hcwsum n=160 dies=6 inplace=0 round=1: BIT-EXACT
+hcwsum n=160 dies=6 inplace=1 round=1: BIT-EXACT
+hcwsum n=161 dies=6 inplace=0 round=1: BIT-EXACT
+hcwsum n=161 dies=6 inplace=1 round=1: BIT-EXACT
+hcwsum n=255 dies=6 inplace=0 round=1: BIT-EXACT
+hcwsum n=255 dies=6 inplace=1 round=1: BIT-EXACT
+hcwsum n=257 dies=6 inplace=0 round=1: BIT-EXACT
+hcwsum n=257 dies=6 inplace=1 round=1: BIT-EXACT
+hcwsum n=2559 dies=6 inplace=0 round=1: BIT-EXACT
+hcwsum n=2559 dies=6 inplace=1 round=1: BIT-EXACT
+hcwsum n=2560 dies=6 inplace=0 round=1: BIT-EXACT
+hcwsum n=2560 dies=6 inplace=1 round=1: BIT-EXACT
+bf16hcrx rows=1 units=16 offset=54 round=1: BIT-EXACT
+bf16hcrwx rows=1 units=16 offset=54 round=1: BIT-EXACT
+bf16hcrx rows=53 units=16 offset=54 round=1: BIT-EXACT
+bf16hcrwx rows=53 units=16 offset=54 round=1: BIT-EXACT
+bf16hcrx rows=54 units=16 offset=54 round=1: BIT-EXACT
+bf16hcrwx rows=54 units=16 offset=54 round=1: BIT-EXACT
+bf16hcrx rows=55 units=16 offset=54 round=1: BIT-EXACT
+bf16hcrwx rows=55 units=16 offset=54 round=1: BIT-EXACT
+bf16hcrx rows=137 units=16 offset=54 round=1: BIT-EXACT
+bf16hcrwx rows=137 units=16 offset=54 round=1: BIT-EXACT
+bf16hcrx rows=324 units=16 offset=54 round=1: BIT-EXACT
+bf16hcrwx rows=324 units=16 offset=54 round=1: BIT-EXACT
+bf16hcx rows=1 units=1 offset=54 round=1: BIT-EXACT
+bf16hcx rows=1 units=16 offset=54 round=1: BIT-EXACT
+bf16hcx rows=1 units=33 offset=54 round=1: BIT-EXACT
+bf16hcx rows=137 units=1 offset=54 round=1: BIT-EXACT
+bf16hcx rows=137 units=16 offset=54 round=1: BIT-EXACT
+bf16hcx rows=137 units=33 offset=54 round=1: BIT-EXACT
+bf16hcx rows=513 units=1 offset=54 round=1: BIT-EXACT
+bf16hcx rows=513 units=16 offset=54 round=1: BIT-EXACT
+bf16hcx rows=513 units=33 offset=54 round=1: BIT-EXACT
+persistent HC: 102 cases, 0 failed; single-GPU correctness, not throughput acceptance
+exit_code=0
