@@ -1,0 +1,11 @@
+--- a/kern/flashd.c
++++ b/kern/flashd.c
+@@ -85,7 +85,7 @@
+ /* Check before every engine line, including buffered nonstreaming tokens. */
+ static char *generation_line(char *line, int capacity, FILE *in,
+                              int client_fd, int *gone) {
+-    if (*gone || client_gone(client_fd)) { *gone = 1; return NULL; }
++    (void)client_fd; (void)gone;
+     return fgets(line, capacity, in);
+ }
+ static void q_remove(waiter *w) {   /* QM held */

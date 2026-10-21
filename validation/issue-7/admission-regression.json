@@ -1,0 +1,26 @@
+[
+  {
+    "case": "before",
+    "command": [
+      "timeout",
+      "2",
+      "/tmp/flash-seqsched-regression-b9zyud7u/before"
+    ],
+    "exit_code": 124,
+    "expected_exit": 124,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "case": "after",
+    "command": [
+      "timeout",
+      "2",
+      "/home/nate/claude/flash-sass-resolve/issue-7/kern/seqsched_test"
+    ],
+    "exit_code": 0,
+    "expected_exit": 0,
+    "stdout": "seqsched: FIFO turns, eligible admission, bounded slots, cancellation, reuse and fault propagation passed\n",
+    "stderr": ""
+  }
+]

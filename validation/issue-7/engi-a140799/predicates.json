@@ -1,0 +1,48 @@
+{
+   "checks" : [
+      {
+         "expected_acceptance" : true,
+         "name" : "causal interleaving accepted despite delayed done",
+         "passed" : true,
+         "predicate_error" : ""
+      },
+      {
+         "expected_acceptance" : false,
+         "name" : "serial scheduler rejected",
+         "passed" : true,
+         "predicate_error" : "short request did not finish during the long request prefill\n"
+      },
+      {
+         "expected_acceptance" : false,
+         "name" : "short request scheduled entirely first rejected",
+         "passed" : true,
+         "predicate_error" : "short request finished before the observed long prefill started\n"
+      },
+      {
+         "expected_acceptance" : true,
+         "name" : "bounded active cancellation accepted",
+         "passed" : true,
+         "predicate_error" : ""
+      },
+      {
+         "expected_acceptance" : false,
+         "name" : "ignored cancellation rejected",
+         "passed" : true,
+         "predicate_error" : "disconnected request did not report cancellation\n"
+      },
+      {
+         "expected_acceptance" : false,
+         "name" : "cancellation deferred until output rejected",
+         "passed" : true,
+         "predicate_error" : "disconnected request continued through its entire prefill\n"
+      },
+      {
+         "expected_acceptance" : false,
+         "name" : "unbounded cancellation rejected",
+         "passed" : true,
+         "predicate_error" : "cancellation exceeded the documented completed-position bound\n"
+      }
+   ],
+   "kind" : "checker predicate self-test; no GPU execution",
+   "passed" : true
+}

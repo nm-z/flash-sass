@@ -5,7 +5,7 @@
  *   flashcore <ple.bin | -> <libengine.so> <manifest0> [manifest1 ...]
  *
  * The clients speak the line protocol of engine_session() (see engine.c) on stdin/stdout, or, with
- * FLASH_SOCK=<path>, one at a time on that Unix socket (flashd). `reload [path]` swaps the library; a CUDA error
+ * FLASH_SOCK=<path>, concurrently on that Unix socket (flashd). `reload [path]` swaps the library; a CUDA error
  * in the engine rebuilds the die contexts and the engine (the table is owned by an anchor context on another die).
  * Env: FLASH_MAXT (positions, default 2048), FLASH_PLE_OFF (byte offset of the table in the PLE file,
  * 192 for shard 2 itself, 0 for an extracted copy; the file "-" means no table: the PLE rows read
@@ -23,6 +23,9 @@
 #include <sys/un.h>
 #include <time.h>
 #include <unistd.h>
+#include <pthread.h>
+#include <sys/time.h>
+#include <errno.h>
 
 CUresult cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev);
 #define CK(x) do { CUresult r_ = (x); if (r_ != CUDA_SUCCESS) { const char *s_ = "?"; cuGetErrorString(r_, &s_); fprintf(stderr, "flashcore.c:%d: %s -> %s\n", __LINE__, #x, s_); exit(1); } } while (0)
@@ -31,6 +34,7 @@ static double now(void) { struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts
 static core_t core;
 static void *lib;
 static char libpath[1024];
+static int engine_parallel;
 static int (*e_init)(core_t *);
 static void (*e_fini)(void);
 static int (*e_session)(FILE *, FILE *);
@@ -69,7 +73,9 @@ static int engine_open(const char *file, const char *path) {
 	if (!i || !f || !s || !rp) { fprintf(stderr, "flashcore: %s lacks engine_init/engine_fini/engine_session/engine_reload_path\n", path); dlclose(h); return -1; }
 	double t0 = now();
 	if (i(&core)) { fprintf(stderr, "flashcore: engine_init failed in %s\n", path); f(); dlclose(h); return -1; }
-	lib = h; e_init = i; e_fini = f; e_session = s; e_reload_path = rp;
+	int (*parallel)(void) = dlsym(h, "engine_concurrent");
+    engine_parallel = parallel ? parallel() : 0;
+    lib = h; e_init = i; e_fini = f; e_session = s; e_reload_path = rp;
 	snprintf(libpath, sizeof libpath, "%s", path);
 	fprintf(stderr, "flashcore: engine %s ready in %.1f s\n", path, now() - t0);
 	return 0;
@@ -79,12 +85,16 @@ static void engine_unload(void) {
 	e_fini(); dlclose(lib); lib = NULL;
 }
 /* replace the library (path NULL: reload the current file); on failure bring the old one back */
+static int apply_reload_environment(void);
+static void restore_reload_environment(void);
 static int engine_reload(const char *path) {
 	char old[1024]; snprintf(old, sizeof old, "%s", libpath);
 	char oldcopy[1100]; snprintf(oldcopy, sizeof oldcopy, "%s", libcopy);   /* the image that is running now, kept on disk until the new one is up */
 	char next[1024]; snprintf(next, sizeof next, "%s", path && *path ? path : libpath);
 	engine_unload();
-	if (!engine_load(next)) { if (oldcopy[0]) unlink(oldcopy); return 0; }
+	int env_bad=apply_reload_environment();
+	if (!env_bad && !engine_load(next)) { if (oldcopy[0]) unlink(oldcopy); return 0; }
+	restore_reload_environment();
 	fprintf(stderr, "flashcore: the new library did not come up; falling back to the previous image of %s\n", old);
 	if (oldcopy[0] && !engine_open(oldcopy, old)) { snprintf(libcopy, sizeof libcopy, "%s", oldcopy); return -1; }
 	fprintf(stderr, "flashcore: cannot bring the previous library back; exiting\n"); exit(1);
@@ -124,9 +134,98 @@ static void close_dies(void) {
 	}
 }
 
+/* Maintenance closes admission and drains callers before unloading code. */
+static pthread_mutex_t sessions_mu = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t sessions_cv = PTHREAD_COND_INITIALIZER;
+static int sessions_active, clients, maintenance, stopping, generation, listen_fd = -1;
+static const char *initial_library;
+static __thread char missing_reload_command[8192];
+static int dispatch_session(FILE*in,FILE*out){
+ if(lib)return e_session(in,out);
+ char*buf=NULL;size_t cap=0;
+ while(getline(&buf,&cap,in)>0){
+  if(!strncmp(buf,"quit",4)){free(buf);return 1;}
+  if(!strncmp(buf,"reload",6)){const char*arg=buf+6;while(*arg==' '||*arg=='\t')arg++;size_t n=strcspn(arg,"\r\n");if(n>=sizeof missing_reload_command){fprintf(out,"error: reload command is too long\n");fflush(out);continue;}memcpy(missing_reload_command,arg,n);missing_reload_command[n]=0;free(buf);return 2;}
+  fprintf(out,"error: no engine loaded; send reload\n");fflush(out);
+ }
+ free(buf);return 0;
+}
+
+/* Maintenance owns staged settings; no library pointer survives unload. */
+#define RELOAD_COMMAND_BYTES 8192
+#define RELOAD_ENV_MAX 128
+typedef struct{char *name,*value,*old;int existed;}reload_setting;
+static struct{char *text;reload_setting v[RELOAD_ENV_MAX];int n,applied;}reload_environment;
+static void restore_reload_environment(void){
+ while(reload_environment.applied){reload_setting*v=&reload_environment.v[--reload_environment.applied];if(v->existed)setenv(v->name,v->old,1);else unsetenv(v->name);}
+}
+static void finish_reload_environment(int rollback){
+ if(rollback)restore_reload_environment();
+ for(int i=0;i<reload_environment.n;i++)free(reload_environment.v[i].old);
+ free(reload_environment.text);memset(&reload_environment,0,sizeof reload_environment);
+}
+static int prepare_reload_command(const char*command,char*path,size_t pathcap,char*error,size_t errorcap){
+ finish_reload_environment(1);path[0]=0;
+ if(strlen(command)>=RELOAD_COMMAND_BYTES){snprintf(error,errorcap,"reload command is too long");return -1;}
+ reload_environment.text=strdup(command);if(!reload_environment.text){snprintf(error,errorcap,"cannot allocate reload settings");return -1;}
+ char*save=NULL;int first=1;
+ for(char*t=strtok_r(reload_environment.text," \t\r\n",&save);t;t=strtok_r(NULL," \t\r\n",&save)){
+  char*eq=strchr(t,'=');
+  if(!eq){if(!first||strlen(t)>=pathcap){snprintf(error,errorcap,"reload expects optional path then FLASH_NAME=VALUE");goto bad;}snprintf(path,pathcap,"%s",t);}
+  else{*eq=0;if(strncmp(t,"FLASH_",6)||reload_environment.n==RELOAD_ENV_MAX){snprintf(error,errorcap,"invalid or too many reload settings");goto bad;}reload_setting*v=&reload_environment.v[reload_environment.n++];v->name=t;v->value=eq+1;}
+  first=0;
+ }
+ for(int i=0;i<reload_environment.n;i++){reload_setting*v=&reload_environment.v[i];const char*old=getenv(v->name);v->existed=old!=NULL;if(old&&!(v->old=strdup(old))){snprintf(error,errorcap,"cannot save previous reload settings");goto bad;}}
+ return 0;
+bad:finish_reload_environment(1);return -1;
+}
+static int apply_reload_environment(void){
+ for(;reload_environment.applied<reload_environment.n;reload_environment.applied++){reload_setting*v=&reload_environment.v[reload_environment.applied];if(setenv(v->name,v->value,1))return -1;}
+ return 0;
+}
+static int pending_fault;
+static void *socket_session(void *arg) {
+ int fd=(int)(long)arg;struct timeval tv={30,0};
+ setsockopt(fd,SOL_SOCKET,SO_RCVTIMEO,&tv,sizeof tv);setsockopt(fd,SOL_SOCKET,SO_SNDTIMEO,&tv,sizeof tv);
+ int outfd=dup(fd);FILE*in=fdopen(fd,"r"),*out=outfd>=0?fdopen(outfd,"w"):NULL;
+ if(!in||!out){if(in)fclose(in);else close(fd);if(out)fclose(out);else if(outfd>=0)close(outfd);goto client_done;}
+ pthread_mutex_lock(&sessions_mu);
+ while((maintenance||(!engine_parallel&&sessions_active))&&!stopping)pthread_cond_wait(&sessions_cv,&sessions_mu);
+ if(stopping){pthread_mutex_unlock(&sessions_mu);fclose(in);fclose(out);goto client_done;}
+ int mygen=generation;sessions_active++;pthread_mutex_unlock(&sessions_mu);
+ int q=dispatch_session(in,out);char next[8192]="";
+ if(q==2){const char*path=lib?e_reload_path():missing_reload_command;if(path)snprintf(next,sizeof next,"%s",path);}
+ cuCtxSetCurrent(NULL);pthread_mutex_lock(&sessions_mu);
+ if(q==3&&mygen==generation)pending_fault=1;
+ sessions_active--;pthread_cond_broadcast(&sessions_cv);
+ while(q&&maintenance&&!stopping)pthread_cond_wait(&sessions_cv,&sessions_mu);
+ int stale_fault=q==3&&mygen!=generation,refused=q&&stopping;
+ if(q&&!stopping&&!stale_fault){
+  maintenance=1;while(sessions_active)pthread_cond_wait(&sessions_cv,&sessions_mu);
+  int recover=q!=1&&(pending_fault||q==3);pending_fault=0;pthread_mutex_unlock(&sessions_mu);int fatal=0;
+  if(recover){
+   if(q==2)fprintf(stderr,"flashcore: recovering contexts before queued reload\n");
+   char keep[1024];snprintf(keep,sizeof keep,"%s",libpath);engine_unload();close_dies();
+   if(open_dies()||engine_load(keep)){fprintf(out,"error: context recovery failed\n");fatal=1;}
+  }
+  if(!fatal&&q==2){
+   char path[1024],error[192];
+   if(prepare_reload_command(next,path,sizeof path,error,sizeof error))fprintf(out,"error: %s\n",error);
+   else{int rc=lib?engine_reload(path):(apply_reload_environment()?-1:engine_load(*path?path:initial_library));finish_reload_environment(rc!=0);if(rc)fprintf(out,"error: reload failed\n");else fprintf(out,recover?"ok: contexts rebuilt, engine reloaded\n":"ok: engine reloaded\n");}
+  }else if(!fatal&&q==3)fprintf(out,"ok: contexts rebuilt, engine reloaded\n");
+  fflush(out);pthread_mutex_lock(&sessions_mu);generation++;if(q==1||fatal)stopping=1;maintenance=0;
+  if(stopping&&listen_fd>=0)shutdown(listen_fd,SHUT_RDWR);pthread_cond_broadcast(&sessions_cv);
+ }
+ pthread_mutex_unlock(&sessions_mu);
+ if(refused&&q!=1){fprintf(out,"error: core is stopping\n");fflush(out);}else if(stale_fault){fprintf(out,"ok: contexts already rebuilt\n");fflush(out);}
+ fclose(in);fclose(out);
+client_done:
+ pthread_mutex_lock(&sessions_mu);clients--;pthread_cond_broadcast(&sessions_cv);pthread_mutex_unlock(&sessions_mu);return NULL;
+}
+
 int main(int argc, char **argv) {
 	if (argc < 4) { fprintf(stderr, "usage: flashcore <ple.bin | -> <libengine.so> <manifest0> [manifest1 ...]\n"); return 2; }
-	const char *plefile = argv[1], *libfile = argv[2];
+	const char *plefile = argv[1], *libfile = argv[2]; initial_library = libfile;
 	core.abi = CORE_ABI; core.nd = argc - 3;
 	if (core.nd > CORE_MAXD) { fprintf(stderr, "at most %d dies\n", CORE_MAXD); return 2; }
 	core.maxt = getenv("FLASH_MAXT") ? atoi(getenv("FLASH_MAXT")) : 2048;
@@ -201,9 +300,31 @@ int main(int argc, char **argv) {
 	if (sock) {
 		ls = socket(AF_UNIX, SOCK_STREAM, 0); struct sockaddr_un sa = { .sun_family = AF_UNIX };
 		snprintf(sa.sun_path, sizeof sa.sun_path, "%s", sock); unlink(sock);
-		if (ls < 0 || bind(ls, (struct sockaddr *)&sa, sizeof sa) || listen(ls, 4)) { perror(sock); return 1; }
+		if (ls < 0 || bind(ls, (struct sockaddr *)&sa, sizeof sa) || listen(ls, 64)) { perror(sock); return 1; }
 		fprintf(stderr, "flashcore: listening on %s\n", sock);
 	}
+    if (ls >= 0) {
+        listen_fd = ls;
+        for (;;) {
+            int fd = accept(ls, NULL, NULL);
+            pthread_mutex_lock(&sessions_mu);
+            int stop = stopping, full = clients >= 64;
+            if (fd >= 0 && !stop && !full) clients++;
+            pthread_mutex_unlock(&sessions_mu);
+            if (stop) { if (fd >= 0) close(fd); break; }
+            if (fd < 0) { if (errno != EINTR) perror("accept"); continue; }
+            if (full) { close(fd); continue; }
+            pthread_t th;
+            if (pthread_create(&th, NULL, socket_session, (void *)(long)fd)) {
+                close(fd); pthread_mutex_lock(&sessions_mu);
+                clients--; pthread_mutex_unlock(&sessions_mu);
+            } else pthread_detach(th);
+        }
+        pthread_mutex_lock(&sessions_mu);
+        while (clients || maintenance) pthread_cond_wait(&sessions_cv, &sessions_mu);
+        pthread_mutex_unlock(&sessions_mu);
+        engine_unload(); close_dies(); close(ls); unlink(sock); return 0;
+    }
 	for (;;) {
 		FILE *in = stdin, *out = stdout;
 		if (ls >= 0) {
@@ -217,8 +338,9 @@ int main(int argc, char **argv) {
 			while (fgets(buf, sizeof buf, in)) {
 				if (!strncmp(buf, "quit", 4)) { q = 1; break; }
 				if (!strncmp(buf, "reload", 6)) {
-					char path[1000] = ""; sscanf(buf + 6, "%999s", path);
-					int rc = engine_load(*path ? path : libfile);
+                    char path[1024],error[192];int rc=-1;
+                    if(!prepare_reload_command(buf+6,path,sizeof path,error,sizeof error)&&!apply_reload_environment())rc=engine_load(*path?path:libfile);
+                    finish_reload_environment(rc!=0);
 					fprintf(out, rc ? "error: could not load the engine\n" : "ok: engine loaded\n"); fflush(out);
 					if (!rc) break;
 				} else { fprintf(out, "error: no engine loaded; send \"reload <path>\"\n"); fflush(out); }
@@ -233,9 +355,11 @@ int main(int argc, char **argv) {
 			if (rc) { if (ls >= 0) { fclose(in); fclose(out); } exit(1); }
 		}
 		if (q == 2) {
-			const char *next = e_reload_path();
-			char keep[1024]; snprintf(keep, sizeof keep, "%s", next ? next : "");
-			int rc = engine_reload(keep);
+            const char*next=e_reload_path();char command[8192];snprintf(command,sizeof command,"%s",next?next:"");
+            char path[1024],error[192];int rc=-1;
+            if(!prepare_reload_command(command,path,sizeof path,error,sizeof error))rc=engine_reload(path);
+            else fprintf(stderr,"flashcore: %s\n",error);
+            finish_reload_environment(rc!=0);
 			fprintf(out, rc ? "error: reload failed, the previous engine is back\n" : "ok: engine reloaded\n"); fflush(out);
 		}
 		if (ls >= 0) { fclose(in); fclose(out); } else if (q != 2) break;
