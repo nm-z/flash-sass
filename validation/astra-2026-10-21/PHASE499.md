@@ -1,5 +1,11 @@
 # Production decode: 499 phases on every die
 
+[Detailed merged-operation timing and block participation](phase499/MERGED-OPERATIONS.md)
+and [complete side-by-side PROF_ALL tables](phase499/operations.md) were extracted
+from the existing canonical GPUQ records without another GPU run. The report
+distinguishes measured opcode totals, unresolved timing subsets, and source-derived
+block participation; the saved records do not contain per-operation SM occupancy.
+
 The complete production decode kernel executes **499 logical phases per token on
 all six dies**. This includes all 48 layers, the output head and ordinary token
 selection. MTP and FP8 residual storage are disabled. The result is verified by
