@@ -26,7 +26,9 @@ issue22_sources=(
     kern/model_layer_capture_test.pl kern/model_capture.h kern/model_test.c
     kern/model_capture_test.c kern/model_capture_test.pl
     kern/model_reference.c kern/Makefile validation/issue22/replay_placement.sh
-    validation/issue22/run_cpu.sh validation/issue22/replay_reference.sh
+    validation/issue22/run_cpu.sh validation/issue22/run_cpu_compact.sh
+    validation/issue22/prepare_maxas.sh validation/issue22/build_attention_gpu.sh
+    validation/issue22/replay_reference.sh
 )
 sha256sum -- "${issue22_sources[@]}" > "$issue22_out/source-before.sha256"
 git rev-parse HEAD > "$issue22_out/source-commit.txt"
