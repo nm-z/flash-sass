@@ -51,6 +51,14 @@ at positions 2050 and 2051 for B512 and remains CPU-only. The compile emits
 existing misleading-indentation warnings; full output and source hashes are
 in the same excerpt.
 
+After the subsequent master merge `98c176a` at branch revision
+`b13118ad9bf81cd57dc78369b4c4b627627b6bdf`, DSH build
+`build-1072753-1792561871441815452` on Benji again passed the prefill and issue9
+CPU checks and compiled/linked `libengine.so` with pair fusion enabled. The
+task-scoped `/tmp` build root avoided a separate shared-root D-state admission
+block; the source log and limits are in the
+[latest-master check excerpt](benji-b13118a-checks.excerpt).
+
 The positive runs explicitly derive a version-2 receipt from the same version-1
 full-hash root, SHA-256
 `e7d0ff80c5b410dace18a069dcd425ab978c153af51f16845377a7c6bc700908`.

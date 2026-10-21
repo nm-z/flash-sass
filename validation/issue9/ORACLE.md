@@ -126,6 +126,7 @@ stay under their owners' control.
 
 | Evidence | Observed result | Scope |
 | --- | --- | --- |
+| DSH `build-1072753-1792561871441815452` on Benji at source `b13118a` | After merging master `98c176a`, prefill, all issue9 CPU checks, and `libengine.so` compile/link exited 0 | CPU-only; no model weights or GPU validation. Build summary: [latest-master checks](whole-model-e2ff58f/benji-b13118a-checks.excerpt). |
 | Short Benji `kern/checked_test` at source `421a6df` | Exit 0; strict API, bounds, capacity, selection-boundary, and selected-gather checks passed | Includes B512 positions 2050/2051; CPU-only, no GPU. Output and hashes: [post-merge CPU checks](whole-model-e2ff58f/benji-421a6df-checks.excerpt). |
 | DSH `build-661648-1792555441846020340` on Benji at source `421a6df` | After merging master `c099273`, the prefill unit and all issue9 CPU targets exited 0: 17 oracle API, 46 boundary, 12 fault-runner, 20 engine-parser checks | CPU-only; `cuInit` intercepted, `gpu_calls=0`, no GPU or deep-reference validation. Full details: [post-merge CPU checks](whole-model-e2ff58f/benji-421a6df-checks.excerpt). |
 | DSH `build-604008-1792554960906070300` on Benji at source `3ec4a25` | `oracle-check cpu-check` exited 0; 17 oracle API checks and 46 CPU boundary checks passed | `cuInit` intercepted; no GPU validation. Full summary and binary identities: [current-source CPU checks](whole-model-e2ff58f/benji-cpu-checks.excerpt). |
