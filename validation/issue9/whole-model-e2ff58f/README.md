@@ -36,13 +36,14 @@ structured results and errors; full telemetry remains in DSH's build logs.
 
 ## Current-source CPU-only checks
 
-After merging current `master`, DSH builds on Benji at branch head
-`3ec4a25d54baf755f85c734d2e0a6e3789c2b741` passed `oracle-check cpu-check`
-(oracle API checks and 46 pre-CUDA boundary checks), plus the 12-case fault
-runner and 20-case engine configuration self-tests. These verify current-source
-CPU and input-gate behavior only; they do not complete the 2055-position oracle
-or the production-budget GPU matrix. See the
-[current-source CPU check excerpt](benji-cpu-checks.excerpt).
+At the earlier branch head `3ec4a25d54baf755f85c734d2e0a6e3789c2b741`, DSH
+builds on Benji passed the issue9 API, CLI, fault-runner and engine-config CPU
+checks. After merging master `c099273` as branch revision
+`421a6df91afde108d4ad0aa30341010da125510d`, DSH build
+`build-661648-1792555441846020340` passed those checks again and passed the new
+`test-flashcore-prefill` target. These are CPU-only results; they do not
+complete the 2055-position oracle or the production-budget GPU matrix. See the
+[post-merge CPU check excerpt](benji-421a6df-checks.excerpt).
 
 The positive runs explicitly derive a version-2 receipt from the same version-1
 full-hash root, SHA-256
