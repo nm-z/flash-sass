@@ -3,8 +3,9 @@
 `gpuq run` keeps the FIFO queue and inherited GPU lock, and records every job in
 `~/.local/state/gpuq/history.sqlite3` on the execution host. Override with
 `GPUQ_DB` or `--db PATH`. The database and its directory are private to the user.
-All agents running as that user share the same history. This replaces the old
-print-only queue wrapper on archy.
+Clients using the same database share history. A client using another database
+has a separate history even when both clients share the queue and lock. This
+replaces the old print-only queue wrapper on archy.
 
 ## Run and inspect
 
@@ -18,6 +19,28 @@ ssh archy gpuq rerun JOB_ID
 ssh archy gpuq compare decode.engine.tokens_s JOB_A JOB_B
 ssh archy gpuq query 'SELECT * FROM job_metric_status WHERE job_id="JOB_ID"'
 ```
+
+### Visibility across history databases
+
+`gpuq ls` lists active jobs from only the selected history database. It does not
+enumerate sibling databases or reconstruct jobs from the shared FIFO. For a job
+recorded in another database, use that client's exact database path with
+`gpuq --db PATH ls` (or set `GPUQ_DB` to that path). For example, the history
+file `/home/nate/.local/state/gpuq/issue9-history.sqlite3` is inspected with:
+
+```text
+gpuq --db /home/nate/.local/state/gpuq/issue9-history.sqlite3 ls
+```
+
+If the path is not known, check the submitting client's `GPUQ_DB` setting or
+the `--db PATH` argument it used. Other clients' history paths are not
+discoverable from the current `ls` output.
+
+The shared queue directory contains `.job` ticket files for clients waiting for
+the lock. Each ticket contains a PID and job ID; the runner removes its ticket
+after acquiring the lock. The FIFO therefore helps explain queue order, but it
+does not list jobs that are already running. To see those jobs, inspect their
+history database with `gpuq --db PATH ls`.
 
 Run/emit commands print no normal output. Command stdout and stderr are
 captured verbatim, including binary bytes and unterminated lines, into compressed

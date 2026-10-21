@@ -186,6 +186,13 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "\rPLE table: %.2f GB pinned in %.0f s\n", PLE_BYTES / 1e9, now() - tp0);
 	}
 	fprintf(stderr, "flashcore: %d dies, weights and PLE table resident after %.0f s\n", core.nd, now() - ts0);
+	/* Long prompts use the validated headless two-position path by default. Keep
+	 * an explicit setting, including 0, so operators can select another chunk
+	 * size or restore scalar prefill. */
+	if (!getenv("FLASH_PREFILL_CHUNK") && setenv("FLASH_PREFILL_CHUNK", "64", 0)) {
+		perror("flashcore: set default FLASH_PREFILL_CHUNK");
+		return 1;
+	}
 	if (engine_load(libfile)) fprintf(stderr, "flashcore: starting without an engine; \"reload <path>\" loads one (the weights and the table stay resident)\n");
 	printf("ready\n"); fflush(stdout);
 
