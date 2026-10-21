@@ -1,0 +1,3 @@
+PASS changed_median: rejected (exit 1) /tmp/flash-sass-issue12-gpu.upFbpXEG/audit-component.rb:8:in 'Object#check': historical-keys2051-seed77: inconsistent median (RuntimeError)
+PASS wrong_trace_nonce: rejected (exit 1) /tmp/flash-sass-issue12-gpu.upFbpXEG/audit-component.rb:8:in 'Object#check': traced-keys2051-seed77: stale or wrong launch identity (RuntimeError)
+PASS other_gpu_activity: rejected (exit 1) /tmp/flash-sass-issue12-gpu.upFbpXEG/audit-component.rb:8:in 'Object#check': initial: competing off-device activity (RuntimeError)

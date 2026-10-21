@@ -1,0 +1,328 @@
+{
+   "acceptance_complete" : false,
+   "block_budget" : 1,
+   "commands" : [
+      "config",
+      "gen 0 10 11 12 13 14 15 16 17 18",
+      "statehash",
+      "gen 0 30 31 32 33 34 35 36 37 38",
+      "statehash",
+      "snap 1",
+      "gen 0 10 11 12 13 14 15 16 17 18",
+      "statehash",
+      "gen 0 10 11 12 13 14 15 16 17 18",
+      "statehash",
+      "gen 0 30 31 32 33 34 35 36 37 38",
+      "statehash",
+      "snap 2",
+      "gen 0 10 11 12 13 14 15 16 17 18",
+      "statehash",
+      "gen 0 10 11 12 13 14 15 16 17 18",
+      "statehash",
+      "gen 0 30 31 32 33 34 35 36 37 38",
+      "statehash",
+      "snap 3",
+      "gen 0 10 11 12 13 14 15 16 17 18",
+      "statehash",
+      "gen 0 10 11 12 13 14 15 16 17 18",
+      "statehash",
+      "gen 0 30 31 32 33 34 35 36 37 38",
+      "statehash",
+      "snap 5",
+      "gen 0 10 11 12 13 14 15 16 17 18",
+      "statehash",
+      "gen 0 10 11 12 13 14 15 16 17 18",
+      "statehash",
+      "gen 0 30 31 32 33 34 35 36 37 38",
+      "statehash",
+      "gen 0 10 11 12 13 14 15 16 17 18",
+      "statehash",
+      "gen 1 10 11 12 13 14 15 16 17 18",
+      "statehash",
+      "quit"
+   ],
+   "commands_identity" : {
+      "bytes" : 728,
+      "mtime" : 1792284486,
+      "path" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch/matrices/budget-1/commands.txt",
+      "sha256" : "e8d56bcf09d462957eef7448225b9dc3e602a24ebac6045317db096479d26e75"
+   },
+   "cores" : [
+      {
+         "argv" : [
+            "/tmp/flash-pr35-4429cbd/source/kern/flashcore",
+            "/home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+            "/tmp/flash-pr35-4429cbd/source/kern/libengine.so",
+            "/tmp/flash-pr35-4429cbd/evidence/engine-batch/holder.manifest"
+         ],
+         "elapsed_seconds" : 4.40799307823181,
+         "environment" : {
+            "ATTN_MAP" : "0,0,0,0,0,0,0,0,0,0,0,0",
+            "CUDA_DEVICE_ORDER" : "PCI_BUS_ID",
+            "CUDA_VISIBLE_DEVICES" : 7,
+            "FLASH_ENGINE_MAXT" : "128",
+            "FLASH_KV_HOST" : "0",
+            "FLASH_LAYERS" : "8",
+            "FLASH_MAXIMG" : "0",
+            "FLASH_MAXT" : "128",
+            "FLASH_NBLK" : "1",
+            "FLASH_PLE_DISK" : "1",
+            "FLASH_PLE_OFF" : "192",
+            "FLASH_PREFILL_CHUNK" : "0",
+            "FLASH_TWO_POSITION" : "0",
+            "SPLIT_SHARES" : "1"
+         },
+         "exit_code" : 0,
+         "interrupted" : false,
+         "name" : "kv0-scalar",
+         "pid" : 3368257,
+         "signal" : 0,
+         "stderr" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch/matrices/budget-1/kv0-scalar.stderr",
+         "stderr_identity" : {
+            "bytes" : 414,
+            "mtime" : 1792284486,
+            "path" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch/matrices/budget-1/kv0-scalar.stderr",
+            "sha256" : "3cb02211fdc0a2c5fc437d6d92698255f615570fd2ce13abfb15390147639973"
+         },
+         "stdin" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch/matrices/budget-1/commands.txt",
+         "stdout" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch/matrices/budget-1/kv0-scalar.stdout",
+         "stdout_identity" : {
+            "bytes" : 12102,
+            "mtime" : 1792284490,
+            "path" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch/matrices/budget-1/kv0-scalar.stdout",
+            "sha256" : "446d1395cc119a65a8a9550263604596ba8bbd86f276a2f8e5c16592ea9d8519"
+         },
+         "timed_out" : false
+      }
+   ],
+   "error" : "wrong number of numeric token outputs\n",
+   "expected_revision" : "4429cbd0e40c9338cb9e5cf809afd52cb71e0a5e",
+   "file_identities" : [
+      {
+         "bytes" : 41328,
+         "mtime" : 1792283358,
+         "path" : "/tmp/flash-pr35-4429cbd/source/kern/flashcore",
+         "sha256" : "0257e1fbf4a6505bc54ed230b93abe22d5f21ed66daa22345a85b73f6a673d06"
+      },
+      {
+         "bytes" : 169744,
+         "mtime" : 1792283353,
+         "path" : "/tmp/flash-pr35-4429cbd/source/kern/libengine.so",
+         "sha256" : "f7e64ae2538d544ea31a83c6740b2b5c77d23c2b571767049585742255e6c031"
+      },
+      {
+         "bytes" : 485608,
+         "mtime" : 1792283338,
+         "path" : "/tmp/flash-pr35-4429cbd/source/kern/die.cubin",
+         "sha256" : "116d828f20139d144d46d7d8115a28e35313dac1f6c24ba81c1b5c0984f50e14"
+      },
+      {
+         "bytes" : 11120,
+         "mtime" : 1792284484,
+         "path" : "/tmp/flash-pr35-4429cbd/evidence/engine-batch/holder.manifest",
+         "sha256" : "0976e0f5c57be2798f1701f6c97fa12a7400bc9358e3ff750123efcf21882817"
+      },
+      {
+         "bytes" : 57987,
+         "mtime" : 1792283338,
+         "path" : "/tmp/flash-pr35-4429cbd/source/kern/engine.c",
+         "sha256" : "eef9205d589a9b1289f42267a89b9437279a031bdb00274baf7b5885b9eaf899"
+      },
+      {
+         "bytes" : 14090,
+         "mtime" : 1792283338,
+         "path" : "/tmp/flash-pr35-4429cbd/source/kern/flashcore.c",
+         "sha256" : "9d86bfba3fd397deaa03a1925c4497eccf9ea1b80c05b425484b70131e0d7940"
+      },
+      {
+         "bytes" : 33204,
+         "mtime" : 1792283338,
+         "path" : "/tmp/flash-pr35-4429cbd/source/kern/prog.c",
+         "sha256" : "b3fa145ffff96605a5e5eb55eb9c4344e9de0296da590145b7e197fe7afa4553"
+      },
+      {
+         "bytes" : 19921,
+         "mtime" : 1792284412,
+         "path" : "/tmp/flash-pr35-4429cbd/request-scripts/check_qsa_engine_requests.pl",
+         "sha256" : "e9c4e1d5c77edcd7fc3e98694a624ea4427d6577a6ffed775905bfdee017f147"
+      },
+      {
+         "bytes" : 25111,
+         "mtime" : 1792284412,
+         "path" : "/tmp/flash-pr35-4429cbd/request-scripts/run_qsa_model_matrix.pl",
+         "sha256" : "b234aa76464b5fef22187289734b7db6fd57c123e73e8a5eecab3b92e0b0556b"
+      }
+   ],
+   "finished_epoch" : 1792284490.77903,
+   "git_head" : "4429cbd0e40c9338cb9e5cf809afd52cb71e0a5e\n",
+   "git_status" : "?? kern/hold_cache\n",
+   "layers" : 8,
+   "limitations" : [
+      "No scalar model or independent checkpoint comparison.",
+      "State comparisons use engine FNV fingerprints.",
+      "gen 0 tests the full-head path; gen 1 checks the final state/logits and one next token with a headless prefix when chunking is enabled.",
+      "Resumed token comparisons exclude the cleared output prefix."
+   ],
+   "references" : {
+      "A" : {
+         "fingerprint" : {
+            "layer_states" : {
+               "0" : "f46f32681279a381",
+               "1" : "a071be549fc37d87",
+               "2" : "f7b47c6e1b6af405",
+               "3" : "83f9c11fa303820c",
+               "4" : "10bb6c6e8c0534e7",
+               "5" : "92e7841e2ad3fc5a",
+               "6" : "e4d824fbdc7f9085",
+               "7" : "28a92b9cd776495f"
+            },
+            "logits" : "ddbb3d041e0b46f4",
+            "ple" : "c34302f227f73e6e"
+         },
+         "kv_host" : 0,
+         "mode" : "scalar",
+         "tokens" : [
+            220,
+            226355,
+            102345,
+            58460,
+            4508,
+            19483,
+            145502,
+            97421,
+            5649
+         ]
+      },
+      "B" : {
+         "fingerprint" : {
+            "layer_states" : {
+               "0" : "75c2768b6681b0e9",
+               "1" : "0e9f68a4debbd701",
+               "2" : "b6f9d2aabc84578a",
+               "3" : "fdde0acf4a6796cd",
+               "4" : "9169b780f6445173",
+               "5" : "d66bc44075d9ffa0",
+               "6" : "18a1f32477590c0d",
+               "7" : "ac2e6ee4ffcceba2"
+            },
+            "logits" : "d9137924622bb4ff",
+            "ple" : "193faffafe4ebe6d"
+         },
+         "kv_host" : 0,
+         "mode" : "scalar",
+         "tokens" : [
+            104357,
+            226080,
+            1862,
+            47432,
+            154293,
+            106830,
+            96029,
+            9594,
+            24465
+         ]
+      }
+   },
+   "request_plan" : [
+      {
+         "name" : "fresh-A",
+         "prompt" : "A",
+         "resume" : 0,
+         "snap" : 0
+      },
+      {
+         "name" : "fresh-B",
+         "prompt" : "B",
+         "resume" : 0,
+         "snap" : 0
+      },
+      {
+         "name" : "save-1-A",
+         "prompt" : "A",
+         "resume" : 0,
+         "snap" : 1
+      },
+      {
+         "name" : "resume-1-A",
+         "prompt" : "A",
+         "resume" : 1,
+         "snap" : 0
+      },
+      {
+         "name" : "reset-1-B",
+         "prompt" : "B",
+         "resume" : 0,
+         "snap" : 0
+      },
+      {
+         "name" : "save-2-A",
+         "prompt" : "A",
+         "resume" : 0,
+         "snap" : 2
+      },
+      {
+         "name" : "resume-2-A",
+         "prompt" : "A",
+         "resume" : 2,
+         "snap" : 0
+      },
+      {
+         "name" : "reset-2-B",
+         "prompt" : "B",
+         "resume" : 0,
+         "snap" : 0
+      },
+      {
+         "name" : "save-3-A",
+         "prompt" : "A",
+         "resume" : 0,
+         "snap" : 3
+      },
+      {
+         "name" : "resume-3-A",
+         "prompt" : "A",
+         "resume" : 3,
+         "snap" : 0
+      },
+      {
+         "name" : "reset-3-B",
+         "prompt" : "B",
+         "resume" : 0,
+         "snap" : 0
+      },
+      {
+         "name" : "save-5-A",
+         "prompt" : "A",
+         "resume" : 0,
+         "snap" : 5
+      },
+      {
+         "name" : "resume-5-A",
+         "prompt" : "A",
+         "resume" : 5,
+         "snap" : 0
+      },
+      {
+         "name" : "reset-5-B",
+         "prompt" : "B",
+         "resume" : 0,
+         "snap" : 0
+      },
+      {
+         "name" : "final-A",
+         "prompt" : "A",
+         "resume" : 0,
+         "snap" : 0
+      },
+      {
+         "n_new" : 1,
+         "name" : "one-new-A",
+         "prompt" : "A",
+         "resume" : 0,
+         "snap" : 0
+      }
+   ],
+   "schema" : "flash-sass.private-qsa-request-check.v1",
+   "scope" : "Partial-model GPU request/snapshot and paired-launch equivalence.",
+   "status" : "FAILED"
+}

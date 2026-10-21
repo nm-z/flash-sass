@@ -1,0 +1,339 @@
+    PID    PPID ELAPSED STAT COMMAND
+      1       0   67920 Ss   systemd
+      2       0   67920 S    kthreadd
+      3       2   67920 S    pool_workqueue_release
+      4       2   67920 I<   kworker/R-rcu_gp
+      5       2   67920 I<   kworker/R-sync_wq
+      6       2   67920 I<   kworker/R-kvfree_rcu_reclaim
+      7       2   67920 I<   kworker/R-slub_flushwq
+      8       2   67920 I<   kworker/R-netns
+     10       2   67920 I<   kworker/0:0H-events_highpri
+     13       2   67920 I<   kworker/R-mm_percpu_wq
+     14       2   67920 S    ksoftirqd/0
+     16       2   67920 I    rcu_preempt
+     17       2   67920 S    rcub/0
+     18       2   67920 S    rcu_exp_par_gp_kthread_worker/0
+     19       2   67920 S    rcu_exp_gp_kthread_worker
+     20       2   67920 S    migration/0
+     21       2   67920 S    idle_inject/0
+     22       2   67920 S    cpuhp/0
+     23       2   67920 S    cpuhp/1
+     24       2   67920 S    idle_inject/1
+     25       2   67920 S    migration/1
+     26       2   67920 S    ksoftirqd/1
+     28       2   67920 I<   kworker/1:0H-events_highpri
+     29       2   67920 S    cpuhp/2
+     30       2   67920 S    idle_inject/2
+     31       2   67920 S    migration/2
+     32       2   67920 S    ksoftirqd/2
+     34       2   67920 I<   kworker/2:0H-events_highpri
+     35       2   67920 S    cpuhp/3
+     36       2   67920 S    idle_inject/3
+     37       2   67920 S    migration/3
+     38       2   67920 S    ksoftirqd/3
+     40       2   67920 I<   kworker/3:0H-events_highpri
+     41       2   67920 S    cpuhp/4
+     42       2   67920 S    idle_inject/4
+     43       2   67920 S    migration/4
+     44       2   67920 S    ksoftirqd/4
+     46       2   67920 I<   kworker/4:0H-events_highpri
+     47       2   67920 S    cpuhp/5
+     48       2   67920 S    idle_inject/5
+     49       2   67920 S    migration/5
+     50       2   67920 S    ksoftirqd/5
+     52       2   67920 I<   kworker/5:0H-events_highpri
+     53       2   67920 S    cpuhp/6
+     54       2   67920 S    idle_inject/6
+     55       2   67920 S    migration/6
+     56       2   67920 S    ksoftirqd/6
+     58       2   67920 I<   kworker/6:0H-events_highpri
+     59       2   67920 S    cpuhp/7
+     60       2   67920 S    idle_inject/7
+     61       2   67920 S    migration/7
+     62       2   67920 S    ksoftirqd/7
+     64       2   67920 I<   kworker/7:0H-events_highpri
+     65       2   67920 S    cpuhp/8
+     66       2   67920 S    idle_inject/8
+     67       2   67920 S    migration/8
+     68       2   67920 S    ksoftirqd/8
+     70       2   67920 I<   kworker/8:0H-events_highpri
+     71       2   67920 S    cpuhp/9
+     72       2   67920 S    idle_inject/9
+     73       2   67920 S    migration/9
+     74       2   67920 S    ksoftirqd/9
+     76       2   67920 I<   kworker/9:0H-events_highpri
+     77       2   67920 S    cpuhp/10
+     78       2   67920 S    idle_inject/10
+     79       2   67920 S    migration/10
+     80       2   67920 S    ksoftirqd/10
+     82       2   67920 I<   kworker/10:0H-events_highpri
+     83       2   67920 S    cpuhp/11
+     84       2   67920 S    idle_inject/11
+     85       2   67920 S    migration/11
+     86       2   67920 S    ksoftirqd/11
+     88       2   67920 I<   kworker/11:0H-events_highpri
+     89       2   67920 S    kdevtmpfs
+     90       2   67920 I<   kworker/R-inet_frag_wq
+     91       2   67920 I    rcu_tasks_kthread
+     92       2   67920 I    rcu_tasks_rude_kthread
+     93       2   67920 I    rcu_tasks_trace_kthread
+     94       2   67920 S    kauditd
+     95       2   67920 S    khungtaskd
+     96       2   67920 S    oom_reaper
+     98       2   67920 I<   kworker/R-writeback
+     99       2   67920 S    kcompactd0
+    100       2   67920 SN   ksmd
+    101       2   67920 SN   khugepaged
+    102       2   67920 I<   kworker/R-kblockd
+    103       2   67920 I<   kworker/R-blkcg_punt_bio
+    104       2   67920 I<   kworker/R-kintegrityd
+    105       2   67920 S    irq/9-acpi
+    107       2   67920 I<   kworker/R-tpm_dev_wq
+    108       2   67920 I<   kworker/R-ata_sff
+    109       2   67920 I<   kworker/R-edac-poller
+    110       2   67920 I<   kworker/R-devfreq_wq
+    111       2   67920 S    watchdogd
+    112       2   67920 I<   kworker/R-quota_events_unbound
+    113       2   67920 I<   kworker/0:1H-kblockd
+    115       2   67920 S    kswapd0
+    116       2   67920 I<   kworker/R-kthrotld
+    117       2   67920 I<   kworker/R-acpi_thermal_pm
+    118       2   67920 S    scsi_eh_0
+    119       2   67920 I<   kworker/R-scsi_tmf_0
+    120       2   67920 S    scsi_eh_1
+    121       2   67920 I<   kworker/R-scsi_tmf_1
+    122       2   67920 S    scsi_eh_2
+    123       2   67920 I<   kworker/R-scsi_tmf_2
+    124       2   67920 S    scsi_eh_3
+    125       2   67920 I<   kworker/R-scsi_tmf_3
+    136       2   67920 I<   kworker/R-mld
+    138       2   67920 I<   kworker/2:1H-kblockd
+    139       2   67920 I<   kworker/R-ipv6_addrconf
+    140       2   67920 I<   kworker/R-kstrp
+    147       2   67919 I<   kworker/R-zswap-shrink
+    148       2   67919 I<   kworker/u49:0
+    153       2   67919 I<   kworker/9:1H-kblockd
+    170       2   67918 I<   kworker/11:1H-kblockd
+    171       2   67918 I<   kworker/10:1H-kblockd
+    172       2   67918 I<   kworker/3:1H-kblockd
+    173       2   67918 I<   kworker/1:1H-kblockd
+    177       2   67918 I<   kworker/7:1H-kblockd
+    181       2   67918 I<   kworker/5:1H-kblockd
+    224       2   67918 I<   kworker/4:1H-kblockd
+    225       2   67918 I<   kworker/6:1H-kblockd
+    226       2   67918 I<   kworker/8:1H-kblockd
+    250       2   67917 S    jbd2/sdb3-8
+    251       2   67917 I<   kworker/R-ext4-rsv-conversion
+    331       1   67915 Ss   systemd-userdbd
+    335       2   67915 S    nv_queue
+    336       2   67915 S    nv_queue
+    344       2   67914 S    psimon
+    347       1   67914 Ssl  systemd-timesyn
+    352       1   67914 Ss   systemd-udevd
+    354       2   67914 S    psimon
+    356       2   67914 S    UVM global queue
+    357       2   67914 S    UVM deferred release queue
+    358       2   67914 S    UVM Tools Event Queue
+    425       2   67913 S    irq/42-mei_me
+    431       2   67913 S    nvidia-modeset/kthread_q
+    432       2   67913 S    nvidia-modeset/deferred_close_kthread_q
+    435       2   67913 S    irq/44-nvidia
+    436       2   67913 S    nvidia
+    437       2   67913 S    nv_queue
+    492       1   67913 Ss   dbus-broker-lau
+    497     492   67913 S    dbus-broker
+    498       1   67913 Ssl  NetworkManager
+    499       1   67913 Ss   avahi-daemon
+    500       1   67913 Ssl  lms
+    501       1   67913 Ss   systemd-logind
+    530     499   67913 S    avahi-daemon
+    565       1   67912 Ss   sshd
+    576       1   67912 Ss   systemd
+    578       1   67912 Ssl  containerd
+    582     576   67912 S    (sd-pam)
+    604       2   67911 S    irq/46-nvidia
+    605       2   67911 S    nvidia
+    606       2   67911 S    nv_queue
+    615     576   67911 Ss   dbus-broker-lau
+    621     615   67911 S    dbus-broker
+    622     576   67911 Ssl  node-MainThread
+    623     576   67911 Ss   nmz-chat-gw
+    624     576   67911 Ssl  pipewire
+    625     576   67911 Ss   bash
+    626     576   67911 Ssl  wireplumber
+    627     576   67911 Ssl  pipewire-pulse
+    628     576   67911 SNsl llama-server
+    631     576   67911 SNs  socat
+    632     576   67911 SNs  socat
+    655       1   67911 SNsl rtkit-daemon
+    662       1   67911 Ssl  polkitd
+    738       2   67909 S    irq/47-nvidia
+    739       2   67909 S    nvidia
+    740       2   67909 S    nv_queue
+    749       1   67909 Ssl  cloudflared
+    750       1   67909 Ssl  dockerd
+    751       1   67909 Ssl  ollama
+    783       2   67907 S    irq/49-nvidia
+    784       2   67907 S    nvidia
+    785       2   67907 S    nv_queue
+    802       2   67907 S    jbd2/sda3-8
+    803       2   67907 I<   kworker/R-ext4-rsv-conversion
+    806     565   67906 Ss   sshd-session
+    807     565   67906 Ss   sshd-session
+    831     565   67906 Ss   sshd-session
+    857       2   67905 S    irq/50-nvidia
+    858       2   67905 S    nvidia
+    859       2   67905 S    nv_queue
+    863     806   67905 S    sshd-session
+    871     807   67905 S    sshd-session
+    878     831   67905 S    sshd-session
+    966     565   67903 Ss   sshd-session
+    973     966   67903 S    sshd-session
+   1230       1   67901 Sl   containerd-shim
+   1231       1   67901 Sl   containerd-shim
+   1278    1230   67900 Ssl  mlflow
+   1279    1231   67900 Ss   nginx
+   1308     750   67900 Sl   docker-proxy
+   1355    1279   67900 S    nginx
+   1356    1279   67900 S    nginx
+   1357    1279   67900 S    nginx
+   1358    1279   67900 S    nginx
+   1359    1279   67900 S    nginx
+   1360    1279   67900 S    nginx
+   1361    1279   67900 S    nginx
+   1362    1279   67900 S    nginx
+   1363    1279   67899 S    nginx
+   1364    1279   67899 S    nginx
+   1365    1279   67899 S    nginx
+   1366    1279   67899 S    nginx
+   1471       1   67897 Sl   codex
+   1488       2   67897 S    irq/51-nvidia
+   1489       2   67897 S    nvidia
+   1491       2   67897 S    nv_queue
+   1686       2   67887 S    irq/52-nvidia
+   1687       2   67887 S    nvidia
+   1688       2   67887 S    nv_queue
+   1821     565   67885 Ss   sshd-session
+   1824    1821   67885 S    sshd-session
+   1825    1824   67885 Ss   bash
+   1851       2   67885 S    irq/53-nvidia
+   1852       2   67885 S    nvidia
+   1853       2   67885 S    nv_queue
+   1877       1   67882 Ssl  plasmalogin
+   1947       2   67881 I<   kworker/R-rpciod
+   1948       2   67881 I<   kworker/R-xprtiod
+   1960       2   67881 I<   kworker/R-nfsiod
+   1982    1877   67881 S    plasmalogin-hel
+   2003       1   67881 Ss   rpcbind
+   2009       1   67881 Ss   systemd
+   2011    2009   67881 S    (sd-pam)
+   2017       1   67881 Ss   rpc.statd
+   2151    1982   67880 Ssl+ startplasma-log
+   2154       2   67880 I    lockd
+   2262    2009   67879 Ss   dbus-broker-lau
+   2267    2262   67879 S    dbus-broker
+   2343     565   67878 Ss   sshd-session
+   2359    2343   67878 S    sshd-session
+   2360    2359   67878 Ssl  codex
+   3013    1278   67871 S    python3.11
+   3014    1278   67871 Sl   python3.11
+   3077    3013   67870 S    python3.11
+   3078    3013   67870 Sl   python3.11
+   3079    3013   67870 Sl   python3.11
+   3080    3013   67870 Sl   python3.11
+   3081    3013   67870 Sl   python3.11
+   3401    3014   67868 Sl   python3.11
+   3403    3014   67868 Sl   python3.11
+   3405    3014   67868 Sl   python3.11
+   3407    3014   67868 Sl   python3.11
+   3411    3014   67868 Sl   python3.11
+   3412    3014   67868 Sl   python3.11
+   3413    3014   67868 Sl   python3.11
+   3780     565   67864 Ss   sshd-session
+   3784    3780   67864 S    sshd-session
+   4496     565   67856 Ss   sshd-session
+   4497     565   67856 Ss   sshd-session
+   4514    4497   67856 S    sshd-session
+   4517    4496   67856 S    sshd-session
+   4891     565   67852 Ss   sshd-session
+   4911    4891   67852 S    sshd-session
+   6840     576   67829 Ssl  nates-dsh
+   6925    6840   67828 Sl   pw-top
+ 950518       1   65551 Ss   bash
+ 950520       1   65551 Ss   nvidia-smi
+ 974015       1   65515 Ss   flock
+ 974018  974015   65515 Sl   hold
+ 974058       1   65515 Ss   flock
+ 974061  974058   65515 Sl   hold
+ 974100       1   65515 Ss   flock
+ 974103  974100   65515 Sl   fence
+ 988058       1   65500 Ss   flock
+ 988060  988058   65500 Sl   hold
+ 988065       1   65500 Ss   flock
+ 988067  988065   65500 Sl   hold
+ 988070       1   65500 Ss   flock
+ 988072  988070   65500 Sl   hold
+ 988079       1   65500 Ss   flock
+ 988080  988079   65500 Sl   hold
+1009083       2   19819 S    psimon
+1575007       1   17080 Ssl  flashcore
+1578451       1   17076 Ss   flashd
+1875170       1   16395 Ss   systemd-journal
+2805936     576   61366 SNsl llama-server
+2871085     576   61144 SNsl llama-server
+2872195     565   61133 Ss   sshd-session
+2872212 2872195   61133 S    sshd-session
+2872213 2872212   61133 Ss   bash
+2911670    1825    4827 Sl+  btop
+2971706       2    4295 I    kworker/u48:2-flush-8:16
+2976703       2    4252 I    kworker/3:2-mm_percpu_wq
+3019870       2    3884 I    kworker/u48:5-kvfree_rcu_reclaim
+3187435       2    2348 I    kworker/4:2-events
+3189154       2    2332 I    kworker/11:1-events
+3221592       2    2039 I    kworker/9:2-mm_percpu_wq
+3234766       2    1915 I    kworker/2:2-mm_percpu_wq
+3248079       2    1792 I    kworker/1:0-events
+3254573       2    1730 I    kworker/6:0-events
+3269877       2    1574 I    kworker/8:2-events
+3284277       2    1421 I    kworker/10:2-cgroup_release
+3302034       2    1235 I    kworker/8:0-cgroup_free
+3310808       2    1143 I    kworker/6:1-events
+3312889       2    1121 I    kworker/9:1-cgroup_free
+3318700       2    1060 I    kworker/u48:1-events_unbound
+3346312       2     776 I    kworker/7:0-events
+3346575       2     773 I    kworker/1:2-cgroup_release
+3346583       2     773 I    kworker/5:1-cgroup_free
+3351330       2     724 I    kworker/u48:3-flush-8:16
+3353490       2     704 I    kworker/0:0-cgroup_release
+3367542       2     564 I    kworker/11:2-events
+3374249       2     492 I    kworker/2:0-cgroup_free
+3376657       2     465 I    kworker/5:0-cgroup_release
+3381794       2     403 I    kworker/7:2-events
+3381989       2     401 I    kworker/3:1-cgroup_free
+3392248       2     372 I    kworker/0:2-mm_percpu_wq
+3393374       2     360 I    kworker/10:0-cgroup_free
+3393477       2     359 I    kworker/4:1-cgroup_free
+3395863       2     333 I    kworker/6:2-mm_percpu_wq
+3400603       2     279 I    kworker/1:1-events
+3401783       2     266 I    kworker/8:1-events
+3406381       2     212 I    kworker/u48:0-events_unbound
+3406382       2     212 I    kworker/u48:4
+3408608       2     187 I    kworker/6:3
+3409965       2     172 I    kworker/2:1-cgroup_free
+3411285       2     156 I    kworker/11:0-events
+3411295       2     156 I    kworker/9:0-events_freezable
+3417095       2      94 I    kworker/5:2-mm_percpu_wq
+3418529     331      78 S    systemd-userwor
+3418584     625      78 S    sleep
+3419139       2      71 I    kworker/3:0-events
+3419727       2      64 I    kworker/7:1-cgroup_free
+3422334       2      33 I    kworker/10:1-events
+3423913     331      13 S    systemd-userwor
+3423914     331      13 S    systemd-userwor
+3423919     331      13 S    systemd-userwor
+3424603     565       5 Ss   sshd-session
+3424616 3424603       5 S    sshd-session
+3424617 3424616       5 Ss   bash
+3424998 2872213       0 S    sleep
+3425023  950518       0 S    sleep
+3425080 3424617       0 R    ps

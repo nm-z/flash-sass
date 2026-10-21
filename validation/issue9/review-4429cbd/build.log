@@ -1,0 +1,58 @@
+make: Entering directory '/tmp/flash-pr35-4429cbd/source/kern'
+perl die.pl header > dieops.h
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -o model_test model_test.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm
+cc -std=gnu99 -O2 -Wall -o hold hold.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm
+cc -std=gnu99 -O2 -Wall -DHOLD_CACHE_ONLY -o hold_cache hold.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I/opt/cuda/include -lm
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -DFLASH_REV='"4429cbd0e40c9338cb9e5cf809afd52cb71e0a5e"' -o libengine.so.new engine.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm && mv -f libengine.so.new libengine.so
+../ref/quant.c: In function 'gemv_bf16_ref':
+../ref/quant.c:315:25: warning: 'v' may be used uninitialized [-Wmaybe-uninitialized]
+  315 |                 y[r] = v[0];
+      |                        ~^~~
+../ref/quant.c:300:15: note: 'v' declared here
+  300 |         float v[32], w[32];
+      |               ^
+../ref/quant.c: In function 'gemv_q4_k_ref':
+../ref/quant.c:379:25: warning: 'v' may be used uninitialized [-Wmaybe-uninitialized]
+  379 |                 y[r] = v[0];
+      |                        ~^~~
+../ref/quant.c:354:15: note: 'v' declared here
+  354 |         float v[32], w[32];
+      |               ^
+../ref/quant.c: In function 'gemv_q5_k_ref':
+../ref/quant.c:443:25: warning: 'v' may be used uninitialized [-Wmaybe-uninitialized]
+  443 |                 y[r] = v[0];
+      |                        ~^~~
+../ref/quant.c:416:15: note: 'v' declared here
+  416 |         float v[32], w[32];
+      |               ^
+../ref/quant.c: In function 'gemv_q3_k_ref':
+../ref/quant.c:529:25: warning: 'v' may be used uninitialized [-Wmaybe-uninitialized]
+  529 |                 y[r] = v[0];
+      |                        ~^~~
+../ref/quant.c:499:15: note: 'v' declared here
+  499 |         float v[32], w[32];
+      |               ^
+../ref/quant.c: In function 'gemv_q6_k_ref':
+../ref/quant.c:622:25: warning: 'v' may be used uninitialized [-Wmaybe-uninitialized]
+  622 |                 y[r] = v[0];
+      |                        ~^~~
+../ref/quant.c:592:15: note: 'v' declared here
+  592 |         float v[32], w[32];
+      |               ^
+../ref/quant.c: In function 'gemv_iq4_xs_ref':
+../ref/quant.c:681:25: warning: 'v' may be used uninitialized [-Wmaybe-uninitialized]
+  681 |                 y[r] = v[0];
+      |                        ~^~~
+../ref/quant.c:661:15: note: 'v' declared here
+  661 |         float v[32], w[32];
+      |               ^
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -o dies_test dies_test.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm
+dies_test.c: In function 'main':
+dies_test.c:380:136: warning: 'snprintf' output may be truncated before the last format character [-Wformat-truncation=]
+  380 |                         if (getenv("DIES_DUMP")) for (int sdie = 0; sdie < nd; sdie++) { char nm[16]; snprintf(nm, sizeof nm, "parts.%d", sdie); bad += cmpbuf(nm, hb->part[sdie], xc[d].inbox + 10240u * (unsigned)sdie, 4 * 2560, 4); }   /* the gathered copies (slot 0 at the end) */
+      |                                                                                                                                        ^
+dies_test.c:380:103: note: 'snprintf' output between 8 and 17 bytes into a destination of size 16
+  380 |                         if (getenv("DIES_DUMP")) for (int sdie = 0; sdie < nd; sdie++) { char nm[16]; snprintf(nm, sizeof nm, "parts.%d", sdie); bad += cmpbuf(nm, hb->part[sdie], xc[d].inbox + 10240u * (unsigned)sdie, 4 * 2560, 4); }   /* the gathered copies (slot 0 at the end) */
+      |                                                                                                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+cc -std=gnu99 -O2 -Wall -o flashcore flashcore.c holdc.c ../ref/gguf.c -I../ref -I/opt/cuda/include -lcuda -ldl -lm
+make: Leaving directory '/tmp/flash-pr35-4429cbd/source/kern'

@@ -1,5 +1,6 @@
 /* Checked bounds wrappers. Return 0 on success, 1 on rejection; outputs are
- * unchanged on rejection. Existing *_gpu routines remain unchecked twins.
+ * unchanged on rejection. Attention decode/partials also reject invalid counts;
+ * their other pointer and capacity preconditions remain caller duties.
  * This header defines dimensions, not the nonfinite/padding policies. */
 #ifndef FLASH_CHECKED_H
 #define FLASH_CHECKED_H
