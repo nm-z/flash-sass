@@ -45,7 +45,7 @@ neither writes staying within the allocation nor correctness of the new guards.
   weighted-value partials, and final outputs through the persistent dispatcher.
   Leading and trailing canaries surround each output allocation. Output-content
   checks and boundary checks have separate meanings.
-- `kern/cta_remap_matrix.pl` replaces the Python runner. Its shared lock paths
+- `kern/cta_remap_matrix.nu` replaces the Python runner. Its shared lock paths
   are configurable. It records GPU/process checks, refuses an occupied host,
   retains raw command results, and validates the harness's required coverage.
 - `DIE_CTA_TRACE=1` builds physical-CTA instrumentation in `kern/die.pl`.
@@ -55,14 +55,15 @@ neither writes staying within the allocation nor correctness of the new guards.
 - `kern/cta_remap_bench.c` builds the test-only
   `libengine_cta_remap.so`. It includes the production engine and compares
   mapping variants in a validator-owned six-die core.
-- `kern/cta_remap_summary.pl` summarizes a complete whole-model output
+- `kern/cta_remap_summary.nu` summarizes a complete whole-model output
   directory, including both warmup pairs. It validates every raw trace record's
   identity, opcode, work count, nonce, and timestamp order, then derives all
   device timing terms from the CSV and checks the reported JSON against them.
   Missing samples, output differences, invalid callback timing, incomplete or
   replayed traces, missing dies, and inconsistent timing terms fail validation.
 
-All new code uses C, Perl, Bash, or Ruby. The old Python runner is removed from the PR.
+The ported validation scripts use Nu, while the benchmark and harness code use C.
+The old Python runner is removed from the PR.
 
 ## Trace contract
 
@@ -110,7 +111,7 @@ From the branch checkout, on a host with the Maxwell-capable toolchain:
 ```bash
 PR29_BUILD=/tmp/pr29-build
 PTXAS11=/opt/cuda-11.4/bin/ptxas CUDA=/opt/cuda \
-    MAXAS_ROOT=/path/to/patched/maxas bash kern/cta_remap_build.sh "$PR29_BUILD"
+    MAXAS_ROOT=/path/to/patched/maxas nu --no-config-file kern/cta_remap_build.nu "$PR29_BUILD"
 ```
 
 The output directory must be new. The builder makes six isolated source trees:
@@ -143,7 +144,7 @@ The component runner accepts explicit paths to both cubins, both libraries, the
 harness, its full source commit, the GPU UUID, and a new evidence directory:
 
 ```bash
-perl kern/cta_remap_matrix.pl \
+nu --no-config-file kern/cta_remap_matrix.nu \
     --old "$PR29_BUILD/historical-old/kern/die.cubin" \
     --new "$PR29_BUILD/historical-new/kern/die.cubin" \
     --old-library "$PR29_BUILD/historical-old/kern/libengine.so" \
@@ -178,7 +179,8 @@ again. The runner checks the descriptor's device/inode against the configured
 host-lock path and requires an exclusive flock in `/proc/self/fdinfo` before
 duplicating the shared open-file description. A wrong or unlocked descriptor
 fails closed; this is not a skip-lock option. For example, prepend `gpuq run --`
-to the Perl matrix command and add `--host-lock-fd 9 --wait-seconds 10`.
+to `nu --no-config-file kern/cta_remap_matrix.nu` and add
+`--host-lock-fd 9 --wait-seconds 10`.
 
 For a component experiment on an **unused, separate GPU**, an explicit option
 can distinguish idle weight residency from active GPU work:
@@ -275,7 +277,7 @@ subtracted or summed into one serial token latency.
 After a successful complete run:
 
 ```bash
-perl kern/cta_remap_summary.pl OUT_DIR
+nu --no-config-file kern/cta_remap_summary.nu OUT_DIR
 ```
 
 Run the summary from the same source checkout used to build the benchmark. It

@@ -192,7 +192,7 @@ cooperative lock is not itself proof of an uncontended production device.
 
 [whole-model-attempt.tar.gz](whole-model-attempt.tar.gz) retains that attempt's
 preflight inventories, exit/status files and exact runner. The prepared
-[run-whole-model.sh](run-whole-model.sh) uses a private stdio core, imports the
+[run-whole-model.nu](run-whole-model.nu) uses a private stdio core, imports the
 existing weights, and sets image capacity to zero for this text-only experiment
 to fit the tightest die. All four benchmark cells use that same configuration.
 The GPU launch path has not yet run and is not reported as validated. The runner
@@ -205,22 +205,19 @@ to complete the matched decode experiment and measured whole-model conclusion.
 
 ## Reproduce and inspect
 
-[run-components.sh](run-components.sh) is the exact successful isolated runner.
+[run-components.nu](run-components.nu) is the ported isolated runner.
 It requires the caller's inherited FD 9 to hold the shared host reservation.
 It monitors GPU/process inventory, validates all cases, and executes the specific
 uninstrumented-image rejection check. It is retained as the run procedure,
 alongside the general matrix runner in kern.
 
-After producing the six builds with kern/cta_remap_build.sh and passing the
+After producing the six builds with kern/cta_remap_build.nu and passing the
 target-driver eager-binding check:
 
 ~~~bash
-(
-    exec 9>>/tmp/flash-sass-engine-validation.lock
-    flock -w 600 -E 75 9 || exit "$?"
-    bash validation/issue-12/gpu-20261018/run-components.sh \
-        "$PR29_BUILD" "$PR29_NEW_RESULTS" "$PR29_GPU_UUID"
-)
+ssh archy gpuq run -- nu --no-config-file \
+    validation/issue-12/gpu-20261018/run-components.nu \
+    "$PR29_BUILD" "$PR29_NEW_RESULTS" "$PR29_GPU_UUID"
 ~~~
 
 [component-raw.tar.gz](component-raw.tar.gz) contains every case JSON/stderr,
@@ -235,7 +232,7 @@ To recompute the checked summary from the raw archive:
 mkdir /tmp/pr29-component-readback
 tar -xzf validation/issue-12/gpu-20261018/component-raw.tar.gz \
     -C /tmp/pr29-component-readback
-perl validation/issue-12/gpu-20261018/summarize-components.pl \
+nu --no-config-file validation/issue-12/gpu-20261018/summarize-components.nu \
     /tmp/pr29-component-readback/component-matrix > /tmp/pr29-component-summary.json
 ~~~
 
