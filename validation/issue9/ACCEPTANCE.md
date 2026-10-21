@@ -1,11 +1,11 @@
 # Issue #9 review map
 
-Refs [issue #9](https://github.com/nm-z/flash-sass/issues/9) and
-[PR #105](https://github.com/nm-z/flash-sass/pull/105), stacked on
-[PR #35](https://github.com/nm-z/flash-sass/pull/35).
-The PR remains draft while the production-budget reference and comparisons
-finish. This page maps each requirement to its implementation and measured
-scope; the run records retain exact identities and unsuccessful attempts.
+Tracks [issue #9](https://github.com/nm-z/flash-sass/issues/9) and
+[PR #105](https://github.com/nm-z/flash-sass/pull/105), now based on `master`
+after [PR #35](https://github.com/nm-z/flash-sass/pull/35) merged. PR #105
+remains draft while the production-budget reference and comparisons finish.
+This page maps each requirement to its implementation and measured scope; the
+run records retain exact identities and unsuccessful attempts.
 
 | Requirement | Implementation and evidence | Current scope |
 | --- | --- | --- |
