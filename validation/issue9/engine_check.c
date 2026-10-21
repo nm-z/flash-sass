@@ -84,6 +84,7 @@ typedef struct {
     int scalar_only;
     int kv1_only;
     int state_diff;
+    int reset_sync;
     char *ld_library_path;
     char *cuda_device_order;
 } options_t;
@@ -285,7 +286,7 @@ static void usage(FILE *f, const char *program) {
         "--manifest FILE x6 --holder-pid PID x6 --cuda-visible CSV "
         "--split-shares CSV --attn-map CSV --tokens N [--snapshots CSV] "
         "--nblk N --lock-fd FD [--ple-off N] [--timeout SEC] "
-        "[--weight-manifest FILE ...] [--phase-probe] [--first-only] [--scalar-only] [--kv1-only] [--state-diff] [--self-test]\n", program);
+        "[--weight-manifest FILE ...] [--phase-probe] [--first-only] [--scalar-only] [--kv1-only] [--state-diff] [--reset-sync] [--self-test]\n", program);
 }
 
 static int add_arg_string(char **slot, const char *value, const char *name) {
@@ -324,7 +325,7 @@ static int parse_options(int argc, char **argv, options_t *o) {
         OPT_WEIGHT_MANIFEST, OPT_VISIBLE, OPT_SHARES, OPT_ATTN, OPT_TOKENS,
         OPT_SNAPSHOTS, OPT_NBLK, OPT_LOCK, OPT_PLE_OFF, OPT_TIMEOUT, OPT_KV,
         OPT_MIN_FREE, OPT_MIN_HOST, OPT_PHASE_PROBE, OPT_FIRST_ONLY, OPT_SCALAR_ONLY,
-        OPT_KV1_ONLY, OPT_STATE_DIFF
+        OPT_KV1_ONLY, OPT_STATE_DIFF, OPT_RESET_SYNC
     };
     static const struct option opts[] = {
         {"repo", required_argument, NULL, OPT_REPO},
@@ -351,6 +352,7 @@ static int parse_options(int argc, char **argv, options_t *o) {
         {"scalar-only", no_argument, NULL, OPT_SCALAR_ONLY},
         {"kv1-only", no_argument, NULL, OPT_KV1_ONLY},
         {"state-diff", no_argument, NULL, OPT_STATE_DIFF},
+        {"reset-sync", no_argument, NULL, OPT_RESET_SYNC},
         {NULL, 0, NULL, 0}
     };
     unsigned tmp;
@@ -423,6 +425,10 @@ static int parse_options(int argc, char **argv, options_t *o) {
         case OPT_STATE_DIFF:
             if (o->state_diff) return ec_fail("duplicate --state-diff");
             o->state_diff = 1;
+            break;
+        case OPT_RESET_SYNC:
+            if (o->reset_sync) return ec_fail("duplicate --reset-sync");
+            o->reset_sync = 1;
             break;
         default: return ec_fail("unknown command-line option");
         }
@@ -993,8 +999,9 @@ static int write_report(const options_t *o, const run_result_t *runs, size_t nru
         write_all_json_string(f, o->kv1_only ? "kv1-scalar only" : o->first_only ? "kv0-scalar only" : o->scalar_only ? "kv0+kv1 scalar" : "full matrix") < 0 ||
         fprintf(f, ",\n  \"revision\":") < 0 ||
         write_all_json_string(f, o->revision) < 0 ||
-        fprintf(f, ",\n  \"phase_probe\":%s,\n  \"state_diff_probe\":%s,\n  \"ple_path\":",
-                o->phase_probe ? "true" : "false", o->state_diff ? "true" : "false") < 0 || write_all_json_string(f, o->ple) < 0 ||
+        fprintf(f, ",\n  \"phase_probe\":%s,\n  \"state_diff_probe\":%s,\n  \"reset_sync_probe\":%s,\n  \"ple_path\":",
+                o->phase_probe ? "true" : "false", o->state_diff ? "true" : "false",
+                o->reset_sync ? "true" : "false") < 0 || write_all_json_string(f, o->ple) < 0 ||
         fprintf(f, ",\n  \"ple_offset\":%u,\n  \"ple_hash_provenance\":\"declared from offline checkpoints.sha256; live shard not rehashed\",\n  \"ple_receipt_manifest\":",
                 o->ple_off) < 0 || write_all_json_string(f, o->ple_receipt_path) < 0 ||
         fprintf(f, ",\n  \"ple_receipt_identity_sha256\":") < 0 ||
@@ -1136,7 +1143,8 @@ static int run_private_core(const options_t *o, const char *mode, unsigned kv_ho
         if (err_fd != STDERR_FILENO) close(err_fd);
         if (remove_inherited_engine_overrides() < 0) _exit(126);
         if (setenv("FLASH_PHASE_PROBE", o->phase_probe ? "1" : "0", 1) ||
-            setenv("FLASH_STATE_DIFF", o->state_diff ? "1" : "0", 1)) _exit(126);
+            setenv("FLASH_STATE_DIFF", o->state_diff ? "1" : "0", 1) ||
+            setenv("FLASH_RESET_SYNC", o->reset_sync ? "1" : "0", 1)) _exit(126);
         if ((o->ld_library_path && setenv("LD_LIBRARY_PATH", o->ld_library_path, 1)) ||
             (o->cuda_device_order && setenv("CUDA_DEVICE_ORDER", o->cuda_device_order, 1)) ||
             setenv("CUDA_VISIBLE_DEVICES", o->visible_csv, 1) ||
@@ -1395,6 +1403,7 @@ static int config_matches(const options_t *o, const char *mode, unsigned kv, con
     int found_layers = 0, found_nblk = 0, found_dies = 0, found_split = 0;
     int found_map = 0, found_attn = 0, found_pair = 0, found_chunk = 0;
     int found_probe = !o->phase_probe;
+    int found_reset_sync = 0;
     unsigned active[EC_DIES] = {0};
     char attn_dies[64] = {0};
     size_t used = 0;
@@ -1431,11 +1440,12 @@ static int config_matches(const options_t *o, const char *mode, unsigned kv, con
         else if (!strcmp(field, "two_position")) { char expected[8]; snprintf(expected, sizeof expected, "%d", !strcmp(mode, "chunk3")); found_pair = !strcmp(eq, expected); }
         else if (!strcmp(field, "prefill_chunk")) { char expected[8]; snprintf(expected, sizeof expected, "%d", !strcmp(mode, "chunk3") ? 3 : 0); found_chunk = !strcmp(eq, expected); }
         else if (!strcmp(field, "phase_probe")) found_probe = !strcmp(eq, o->phase_probe ? "1" : "0");
+        else if (!strcmp(field, "reset_sync")) found_reset_sync = !strcmp(eq, o->reset_sync ? "1" : "0");
         else continue;
     }
     free(copy);
     if (!(found_rev && found_kv && found_disk && found_maxt && found_layers && found_nblk &&
-          found_dies && found_split && found_map && found_attn && found_pair && found_chunk && found_probe))
+          found_dies && found_split && found_map && found_attn && found_pair && found_chunk && found_probe && found_reset_sync))
         return ec_fail("effective engine config differs from required full48/six-die request scope");
     return 0;
 }
@@ -1445,12 +1455,12 @@ static int config_fixture(char *out, size_t out_cap,
                           const char *layers_field, const char *dies_field,
                           const char *attn_dies_field, const char *shares_field,
                           const char *attn_map_field, const char *pair_field,
-                          const char *chunk_field) {
+                          const char *chunk_field, const char *reset_sync_field) {
     int n = snprintf(out, out_cap,
-                     "config %s %s ple_disk=1 maxt=2176 %s nblk=512 %s %s split=%s attn_map=%s %s %s",
+                     "config %s %s ple_disk=1 maxt=2176 %s nblk=512 %s %s split=%s attn_map=%s %s %s %s",
                      revision_fields, kv_field, layers_field, dies_field,
                      attn_dies_field, shares_field, attn_map_field,
-                     pair_field, chunk_field);
+                     pair_field, chunk_field, reset_sync_field);
     return n >= 0 && (size_t)n < out_cap ? 0 : -1;
 }
 
@@ -1486,7 +1496,7 @@ static int kv1_option_self_test(int conflict) {
         "--split-shares", "112,97,81,116,97,97",
         "--attn-map", "1,1,1,1,4,4,4,4,5,5,5,5",
         "--tokens", "800", "--snapshots", "512,515", "--nblk", "512",
-        "--lock-fd", "9", "--kv1-only", "--state-diff"
+        "--lock-fd", "9", "--kv1-only", "--state-diff", "--reset-sync"
     };
     char *argv[sizeof base / sizeof base[0] + 2];
     options_t parsed = {0};
@@ -1501,11 +1511,11 @@ static int kv1_option_self_test(int conflict) {
     if (conflict)
         ok = rc < 0 && strstr(ec_error, "cannot be combined") != NULL;
     else
-        ok = rc == 0 && parsed.kv1_only && parsed.state_diff && !parsed.first_only && !parsed.scalar_only;
+        ok = rc == 0 && parsed.kv1_only && parsed.state_diff && parsed.reset_sync && !parsed.first_only && !parsed.scalar_only;
     if (ok)
-        printf("PASS %s\n", conflict ? "--kv1-only conflicts with --first-only" : "--kv1-only and --state-diff options parsed");
+        printf("PASS %s\n", conflict ? "--kv1-only conflicts with --first-only" : "--kv1-only, --state-diff, and --reset-sync options parsed");
     else
-        fprintf(stderr, "FAIL %s: %s\n", conflict ? "--kv1-only conflict" : "--kv1-only selection",
+        fprintf(stderr, "FAIL %s: %s\n", conflict ? "--kv1-only conflict" : "selection options",
                 ec_error[0] ? ec_error : (rc == 0 ? "selection flags are inconsistent" : "option parse failed"));
     options_free(&parsed);
     ec_error[0] = '\0';
@@ -1537,7 +1547,7 @@ static int engine_check_self_test(void) {
     }
     snprintf(revision_field, sizeof revision_field, "rev=%s", revision40);
 #define FIXTURE(REV, KV, LAYERS, DIES, AD, SHARES, ATTN, PAIR, CHUNK) \
-    config_fixture(line, sizeof line, REV, KV, LAYERS, DIES, AD, SHARES, ATTN, PAIR, CHUNK)
+    config_fixture(line, sizeof line, REV, KV, LAYERS, DIES, AD, SHARES, ATTN, PAIR, CHUNK, "reset_sync=0")
 #define CHECK(NAME, MODE, KV, ACCEPT) do { \
     if (FIXTURE(revision_field, "kv_host=0", "layers=48/48", "dies=6", \
                 "attn_dies=1,4,5", shares, attn, "two_position=0", "prefill_chunk=0") < 0 || \
@@ -1611,6 +1621,17 @@ static int engine_check_self_test(void) {
     failed += config_fixture_check(&fixture, "chunk3 chunk-size mismatch rejected", "chunk3", 0, line, 0) < 0; checks++;
     FIXTURE(revision_field, "kv_host=0", "layers=48/48", "dies=6",
             "attn_dies=1,4,5", shares, attn, "two_position=0", "prefill_chunk=0");
+    fixture.reset_sync = 1;
+    if (config_fixture(line, sizeof line, revision_field, "kv_host=0", "layers=48/48", "dies=6",
+                       "attn_dies=1,4,5", shares, attn, "two_position=0", "prefill_chunk=0", "reset_sync=1") < 0 ||
+        config_fixture_check(&fixture, "reset sync effective flag accepted", "scalar", 0, line, 1) < 0) failed++;
+    checks++;
+    FIXTURE(revision_field, "kv_host=0", "layers=48/48", "dies=6",
+            "attn_dies=1,4,5", shares, attn, "two_position=0", "prefill_chunk=0");
+    fixture.reset_sync = 1;
+    if (config_fixture_check(&fixture, "reset sync mismatch rejected", "scalar", 0, line, 0) < 0) failed++;
+    checks++;
+    fixture.reset_sync = 0;
     fixture.phase_probe = 1;
     failed += config_fixture_check(&fixture, "phase probe missing effective flag rejected", "scalar", 0, line, 0) < 0; checks++;
     size_t probe_at = strlen(line);

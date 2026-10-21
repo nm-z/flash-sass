@@ -104,6 +104,7 @@ static CUdeviceptr dPROG[MAXD], dCTL[MAXD], (*dst_dn)[NB], (*dst_conv)[NB], (*ds
 static size_t dn_bytes[MAXD][NB], conv_bytes[MAXD][NB], kcf, vcf;
 static int state_diff_enabled;
 static unsigned state_diff_hash_calls;
+static int reset_sync_enabled;
 static unsigned char *state_diff_ref_dn46, *state_diff_ref_conv46;
 static unsigned char *state_diff_ref_b_dn46, *state_diff_ref_b_conv46;
 static unsigned char *state_diff_prev_dn46, *state_diff_prev_conv46;
@@ -1083,6 +1084,11 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 				state_diff_reset_capture_after(d, bb);
 			}
 			CK(cuMemsetD8(dst_ple[d], 0, 4 * 10 * 10240));
+			if (reset_sync_enabled) {
+				CK(cuCtxSynchronize());
+				fprintf(stderr, "RESET_SYNC phase=after-state-reset request=%llu die=%d method=cuCtxSynchronize\n",
+				        (unsigned long long)trace_request, d);
+			}
 		}
 		CK(cuMemsetD32(dCTL[d] + 0x8, (unsigned)resume, 1)); CK(cuMemsetD32(dCTL[d] + 0x14, 0, 2));   /* token count, end flag, abort count */
 		CK(cuMemcpyHtoD(db[d].ids, h_ids, 4 * ((size_t)T + 2)));
@@ -1258,6 +1264,12 @@ int engine_init(core_t *c) {
 		in_init = 0; return -1;
 	}
 	state_diff_enabled = state_diff_env && !strcmp(state_diff_env, "1");
+	const char *reset_sync_env = getenv("FLASH_RESET_SYNC");
+	if (reset_sync_env && strcmp(reset_sync_env, "0") && strcmp(reset_sync_env, "1")) {
+		fprintf(stderr, "FLASH_RESET_SYNC must be 0 or 1\n");
+		in_init = 0; return -1;
+	}
+	reset_sync_enabled = reset_sync_env && !strcmp(reset_sync_env, "1");
 	if (setjmp(init_jb)) { in_init = 0; engine_fini(); return -1; }
 	MAXT = c->maxt;
 	last_positions = last_paired_positions = last_prefill_chunks = 0;
@@ -1512,7 +1524,7 @@ void engine_fini(void) {
 	free(state_diff_prev_conv46); state_diff_prev_conv46 = NULL;
 	state_diff_reset_records_free();
 	state_diff_dn46_bytes = state_diff_conv46_bytes = 0;
-	state_diff_hash_calls = 0; state_diff_enabled = 0; state_diff_previous_name[0] = '\0';
+	state_diff_hash_calls = 0; state_diff_enabled = 0; reset_sync_enabled = 0; state_diff_previous_name[0] = '\0';
 	if (!core) return;
 	for (int d = 0; d < nd; d++) { if (pollst[d]) { cuCtxSetCurrent(ctx[d]); cuStreamDestroy(pollst[d]); pollst[d] = 0; } }
 	cuCtxSetCurrent(ctx[0]);
@@ -1652,8 +1664,8 @@ int engine_session(FILE *in, FILE *out) {
 		if (!strncmp(p, "config", 6)) {   /* what this engine is: the identity to attach to a measurement (the commit it was built from, where the KV lives, the layers it runs, the kernel image) */
 			char ad[64] = ""; for (int d = 0; d < nd; d++) if (has_attn[d]) { char one[8]; snprintf(one, sizeof one, "%s%d", ad[0] ? "," : "", d); strncat(ad, one, sizeof ad - strlen(ad) - 1); }
 			const char *sh = getenv("SPLIT_SHARES"), *am = getenv("ATTN_MAP");
-			fprintf(out, "config rev=%s kv_host=%d kv_trace=%d ple_disk=%d ple_readers=%u ple_file=%s ple_cache=%s maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u rope_owner=%d trace_tokens=%u two_position=%d bf16_pair_fuse=%d prefill_chunk=%d prefill_auto=%d attn_q_split=%u attn_q_mask=%x cubin=%s cubin_fnv=%016llx phase_probe=%d\n",
-			        FLASH_REV, kv_host, kv_trace, ple_disk, ple_disk ? ple_readers : 0, ple_cache_active ? ple_cache_path : "core", ple_cache_path[0] ? ple_cache_path : "core", MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, rope_owner, trace_n, two_position, FLASH_BF16_PAIR_FUSE, prefill_chunk, prefill_auto, attn_q_split_mode, attn_q_split_mask, cubin_path, (unsigned long long)cubin_fnv, phase_probe_enabled());
+			fprintf(out, "config rev=%s kv_host=%d kv_trace=%d ple_disk=%d ple_readers=%u ple_file=%s ple_cache=%s maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u rope_owner=%d trace_tokens=%u two_position=%d bf16_pair_fuse=%d reset_sync=%d prefill_chunk=%d prefill_auto=%d attn_q_split=%u attn_q_mask=%x cubin=%s cubin_fnv=%016llx phase_probe=%d\n",
+			        FLASH_REV, kv_host, kv_trace, ple_disk, ple_disk ? ple_readers : 0, ple_cache_active ? ple_cache_path : "core", ple_cache_path[0] ? ple_cache_path : "core", MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, rope_owner, trace_n, two_position, FLASH_BF16_PAIR_FUSE, reset_sync_enabled, prefill_chunk, prefill_auto, attn_q_split_mode, attn_q_split_mask, cubin_path, (unsigned long long)cubin_fnv, phase_probe_enabled());
 			fflush(out); continue;
 		}
 		if (!strncmp(p, "cubin", 5)) {
