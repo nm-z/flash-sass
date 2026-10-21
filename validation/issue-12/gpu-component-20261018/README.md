@@ -118,7 +118,8 @@ run the CPU-only audit:
 sha256sum -c raw-component-evidence.sha256
 mkdir raw
 tar -xzf raw-component-evidence.tar.gz -C raw
-ruby audit-component.rb raw/component-matrix /tmp/cta-remap-audit.json
+nu --no-config-file validation/issue-12/gpu-component-20261018/audit-component.nu \
+    raw/component-matrix /tmp/cta-remap-audit.json
 ```
 
 The archive contains every raw case JSON, trace, telemetry sample, exit table,
