@@ -19,17 +19,15 @@ Using **Maxwell SASS** (via [MaxAs](https://github.com/NervanaSystems/maxas)) fo
   the engine library is reloaded, `flashd` (a llama-server-style HTTP/SSE front-end that renders the
   GGUF's own Jinja chat template), and a tokenizer written from the GGUF's metadata.
 
-An opt-in **two-position pass** pairs known prompt positions with one synchronization and
-publication per logical phase. Set `FLASH_TWO_POSITION=1` when starting or reloading the
-engine. Five BF16 variants share weight loads; remaining operations replay their scalar
-arithmetic with separate position buffers. The final prompt token and generation stay B1.
-See [BATCH.md](BATCH.md) and [PAIR_TESTING.md](PAIR_TESTING.md).
-
-Set `FLASH_PREFILL_CHUNK=64` to run known prompt positions in chunks of at most
-64, omitting their vocabulary heads. Chunks use two-position microbatches unless
-`FLASH_TWO_POSITION=0` is set; `FLASH_PREFILL_CHUNK=1` uses scalar microbatches.
-The final prompt position still computes the first generated token through the
-full B1 head. Unset or `0` disables chunking; valid sizes are `1..4096`.
+The **two-position pass** pairs known prompt positions with one synchronization and
+publication per logical phase. `flashcore` defaults to `FLASH_PREFILL_CHUNK=64`, which
+runs known prompt positions in headless chunks of at most 64 and uses two-position
+microbatches. Five BF16 variants share weight loads; remaining operations replay their
+scalar arithmetic with separate position buffers. The final prompt token and generation
+stay B1. Set `FLASH_PREFILL_CHUNK=0` to disable chunking, or set it to a size from `1` to
+`4096`. `FLASH_PREFILL_CHUNK=1` uses scalar microbatches; `FLASH_TWO_POSITION=0` forces
+scalar microbatches for any chunk size. Set `FLASH_TWO_POSITION=1` to use paired execution
+even when chunking is disabled. See [BATCH.md](BATCH.md) and [PAIR_TESTING.md](PAIR_TESTING.md).
 
 `FLASH_ATTN_Q_SPLIT=1` distributes the 12,288-row attention query projection
 across dies with space for local weight slices. At engine initialization it

@@ -10,9 +10,10 @@
  * Env: FLASH_MAXT (positions, default 2048), FLASH_PLE_OFF (byte offset of the table in the PLE file,
  * 192 for shard 2 itself, 0 for an extracted copy; the file "-" means no table: the PLE rows read
  * zeros, timing only), FLASH_PLE_CONSUME (see below), plus the engine's own (SPLIT_SHARES, ATTN_DIE,
- * FLASH_CUBIN). */
+ * FLASH_CUBIN). When FLASH_SOCK is set, an unset FLASH_PREFILL_CHUNK defaults to 64; set 0 to disable. */
 #define _GNU_SOURCE
 #include "core.h"
+#include "flashcore_prefill.h"
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -230,6 +231,9 @@ int main(int argc, char **argv) {
 	core.maxt = getenv("FLASH_MAXT") ? atoi(getenv("FLASH_MAXT")) : 2048;
 	double ts0 = now();
 	signal(SIGPIPE, SIG_IGN);
+	int prefill_default = flashcore_http_prefill_default();
+	if (prefill_default < 0) { perror("flashcore: setenv FLASH_PREFILL_CHUNK"); return 1; }
+	if (prefill_default) fprintf(stderr, "flashcore: socket serving defaults FLASH_PREFILL_CHUNK=64 (set 0 to disable)\n");
 	CK(cuInit(0));
 	for (int d = 0; d < core.nd; d++) manifest[d] = argv[3 + d];
 	/* the anchor: a context on a die the engine never runs on (FLASH_ANCHOR_DIE, default 7; the first die if that one is not
@@ -281,6 +285,13 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "\rPLE table: %.2f GB pinned in %.0f s\n", PLE_BYTES / 1e9, now() - tp0);
 	}
 	fprintf(stderr, "flashcore: %d dies, weights and PLE table resident after %.0f s\n", core.nd, now() - ts0);
+	/* Long prompts use the validated headless two-position path by default. Keep
+	 * an explicit setting, including 0, so operators can select another chunk
+	 * size or restore scalar prefill. */
+	if (!getenv("FLASH_PREFILL_CHUNK") && setenv("FLASH_PREFILL_CHUNK", "64", 0)) {
+		perror("flashcore: set default FLASH_PREFILL_CHUNK");
+		return 1;
+	}
 	if (engine_load(libfile)) fprintf(stderr, "flashcore: starting without an engine; \"reload <path>\" loads one (the weights and the table stay resident)\n");
 	printf("ready\n"); fflush(stdout);
 
