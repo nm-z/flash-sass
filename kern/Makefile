@@ -515,6 +515,12 @@ nullengine.so: nullengine.c core.h
 tok_test: tok_test.c tok.c tok.h ucd.h ../ref/gguf.c ../ref/gguf.h
 	$(CC) -std=gnu99 -O2 -Wall -o $@ tok_test.c tok.c ../ref/gguf.c -I../ref
 
+issue16_production_prompt_ids: ../validation/issue16/tools/production_prompt_ids.c tok.c tok.h jinja.c jinja.h json.c json.h ucd.h ../ref/gguf.c ../ref/gguf.h
+	$(CC) -std=gnu99 -O2 -Wall -o $@ ../validation/issue16/tools/production_prompt_ids.c tok.c jinja.c json.c ../ref/gguf.c -I. -I../ref -lm
+
+issue16_production_launcher: ../validation/issue16/tools/issue16_production_launcher.c
+	$(CC) -std=gnu99 -O2 -Wall -Wextra -Werror -o $@ $<
+
 jinja_test: jinja_test.c jinja.c jinja.h json.c json.h
 	$(CC) -std=gnu99 -O2 -Wall -o $@ jinja_test.c jinja.c json.c -lm
 
