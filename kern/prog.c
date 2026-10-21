@@ -493,6 +493,7 @@ void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_
 	ph_gemv_any(P, w->attn_gate_type, 2560, w->attn_gate, b->zq, b->zs32, b->zs16, b->lgate, hrows, b->zas, 0, 0);
 	prog_nobar(P);   /* qkv, gate and the alpha/beta rows all read z only */
 	ph_bf16(P, OP_BF16BIAS, w->ssm_ab, Z, b->la, 2u * (unsigned)s->hn, w->ssm_ab_bias);
+	prog_nobar(P);   /* alpha/beta projection and convolution use disjoint outputs and inputs */
 	ph_conv1d(P, b->lqkv, b->conv_state, w->ssm_conv1d, b->lu, t, nloc);
 	ph_dnstep(P, b->dn_state, b->lu, b->lu + 512u * (unsigned)s->nk, b->lu + 1024u * (unsigned)s->nk, b->la, b->la + 4u * (unsigned)s->hn, w->ssm_a, b->lo, eps, (unsigned)s->h0, (unsigned)s->klo, (unsigned)s->hn);
 	CUdeviceptr ON = ph_dnnormx(P, x, b->lo, w->ssm_norm, b->lgate, eps, (unsigned)s->hn, 4u * 128u * (unsigned)s->h0);
