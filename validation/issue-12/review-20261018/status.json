@@ -1,0 +1,29 @@
+{
+  "source_commit": "9e3050ba3e9f6c1fe53d16e9fe7f2179e3974aa4",
+  "base_commit": "3d57d734d63aa74f167a6b5a02c616ddc018d2ff",
+  "build_host": "engi",
+  "recorded_utc": "2026-10-18T03:42:43Z",
+  "build_variants": 6,
+  "build_status": "PASS",
+  "matched_library_pairs_identical": true,
+  "untraced_sass_matches_base": true,
+  "cpu_status": "PASS",
+  "cpu_tests": {
+    "matrix": 15,
+    "summary": 24,
+    "helper": 10,
+    "harness_negative_canary_cases": 16,
+    "harness_negative_trace_cases": 14,
+    "harness_mapping_cases": 64
+  },
+  "gpu_gate": {
+    "completed": 0,
+    "error": "BLOCKED_BUSY: shared lock held: /tmp/flash-sass-engine-validation.lock\n",
+    "gpu_executed": false,
+    "gpu_launches": 0,
+    "status": "BLOCKED_BUSY"
+  },
+  "new_gpu_measurements": false,
+  "acceptance_complete": false,
+  "pr_ready": false
+}
