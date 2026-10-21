@@ -5,6 +5,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include <cuda.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -25,6 +26,8 @@ CUresult cuCtxCreate_v2(CUcontext *, unsigned int, CUdevice);
 
 typedef struct { uint32_t w[32]; } desc_t;
 static const char *root;
+static const char *frozen_root;
+static const char *weights_revision;
 static unsigned lengths[32], nlengths;
 static uint32_t rng=4242;
 static void fail(const char *why) { fprintf(stderr,"qsa_attention_gpu: %s\n",why); exit(2); }
@@ -52,6 +55,25 @@ static float random_float(void) {
 static void path(char *p, size_t cap, const char *leaf) {
     int n=snprintf(p,cap,"%s/%s",root,leaf);
     if (n<0 || (size_t)n>=cap) fail("path too long");
+}
+static void input_f32(const char *leaf, float *dst, size_t count) {
+    char p[4096];
+    int n=snprintf(p,sizeof p,"%s/%s",frozen_root,leaf);
+    if (n<0 || (size_t)n>=sizeof p) fail("input path too long");
+    int fd=open(p,O_RDONLY|O_NOFOLLOW);
+    if (fd<0) fail("cannot open frozen projection input");
+    struct stat st;
+    if (fstat(fd,&st) || !S_ISREG(st.st_mode) || st.st_size!=(off_t)(count*sizeof *dst))
+        fail("frozen projection input has wrong file type or size");
+    size_t got=0;
+    while (got<count*sizeof *dst) {
+        ssize_t nr=read(fd,(unsigned char *)dst+got,count*sizeof *dst-got);
+        if (nr<0 && errno==EINTR) continue;
+        if (nr<=0) fail("frozen projection input read failed");
+        got+=(size_t)nr;
+    }
+    if (close(fd)) fail("cannot close frozen projection input");
+    for (size_t i=0;i<count;i++) if (!isfinite(dst[i])) fail("non-finite frozen projection input");
 }
 static FILE *new_file(const char *leaf) {
     char p[4096]; path(p,sizeof p,leaf);
@@ -148,6 +170,11 @@ int main(int argc, char **argv) {
         return 2;
     }
     root=argv[4]; parse_lengths(argv[3],total);
+    frozen_root=getenv("ISSUE22_FROZEN_INPUT_DIR");
+    if (frozen_root && !*frozen_root) frozen_root=NULL;
+    weights_revision=getenv("ISSUE22_WEIGHT_REVISION");
+    if (frozen_root && (!weights_revision || strlen(weights_revision)!=40))
+        fail("frozen projection requires full ISSUE22_WEIGHT_REVISION");
     unsigned endian=1;
     if (*(unsigned char *)&endian!=1 || sizeof(float)!=4) fail("little-endian FP32 host required");
     struct stat st;
@@ -164,19 +191,29 @@ int main(int argc, char **argv) {
     if (mkdir(root,0700)) fail("cannot create output directory");
     const float eps=1e-6f;
     float qn[256],kn[256],qg[12288];
-    for (unsigned i=0;i<256;i++) { qn[i]=0.5f+0.5f*random_float(); kn[i]=0.5f+0.5f*random_float(); }
-    for (unsigned i=0;i<12288;i++) qg[i]=2.0f*random_float();
     size_t raw_count=(size_t)total*512, rope_count=(size_t)total*32;
     float *k=alloc(raw_count*4), *v=alloc(raw_count*4);
     float *cs=alloc(rope_count*4), *sn=alloc(rope_count*4);
-    for (unsigned t=0;t<total;t++) {
-        for (unsigned d=0;d<512;d++) {
-            size_t i=(size_t)t*512+d;
-            k[i]=2.0f*random_float(); v[i]=random_float();
-            if (t%7==3) v[i]*=1e-4f;
-            if (t%11==5 && d>=256) v[i]=0.0f;
-            if (t%13==6) v[i]*=3000.0f;
+    if (frozen_root) {
+        input_f32("qg.f32",qg,12288);
+        input_f32("qn.f32",qn,256);
+        input_f32("kn.f32",kn,256);
+        input_f32("raw_k.f32",k,raw_count);
+        input_f32("raw_v.f32",v,raw_count);
+    } else {
+        for (unsigned i=0;i<256;i++) { qn[i]=0.5f+0.5f*random_float(); kn[i]=0.5f+0.5f*random_float(); }
+        for (unsigned i=0;i<12288;i++) qg[i]=2.0f*random_float();
+        for (unsigned t=0;t<total;t++) {
+            for (unsigned d=0;d<512;d++) {
+                size_t i=(size_t)t*512+d;
+                k[i]=2.0f*random_float(); v[i]=random_float();
+                if (t%7==3) v[i]*=1e-4f;
+                if (t%11==5 && d>=256) v[i]=0.0f;
+                if (t%13==6) v[i]*=3000.0f;
+            }
         }
+    }
+    for (unsigned t=0;t<total;t++) {
         for (unsigned d=0;d<32;d++) {
             double angle=(double)t*pow(10000000.0,-(double)d/32.0);
             cs[(size_t)t*32+d]=(float)cos(angle);
@@ -266,12 +303,17 @@ int main(int argc, char **argv) {
             "\"evidence_kind\":\"synthetic_gpu_fixture\",\"selection_source\":\"supplied_fixture_ids\","
             "\"production_sparse_selector_executed\":false,\"full_model\":false,"
             "\"normalized_query_append_modes_byte_identical\":true,"
-            "\"program_opcodes\":[%u,%u,%u,%u,%u],\"quality_validation\":false}\n",
+            "\"program_opcodes\":[%u,%u,%u,%u,%u],\"quality_validation\":false",
             n,t,budget,blocks,n%4,4*selected+n%4,blocks>budget ? "true" : "false",
             OP_ATTNQKQ,OP_ATTNQK,OP_KVGATHER,OP_ATTNPARTN,OP_ATTNMERGE)<0) fail("metadata write failed");
+        if (frozen_root && fprintf(f,",\"weights_origin\":\"original_checkpoint_safetensors_layer3\","
+            "\"weights_revision\":\"%s\",\"activation_source\":\"synthetic_hidden_states\"",
+            weights_revision)<0) fail("metadata write failed");
+        if (fputs("}\n",f)==EOF) fail("metadata write failed");
         close_file(f); saved++;
-        printf("captured N=%u: %u/%u fixed complete blocks, tail=%u; GPU attention, no indexer or checkpoint\n",
-               n,selected,blocks,n%4); fflush(stdout);
+        printf("captured N=%u: %u/%u fixed complete blocks, tail=%u; GPU attention, %s\n",
+               n,selected,blocks,n%4,frozen_root ? "original layer-3 QKV weights" : "synthetic projections");
+        fflush(stdout);
     }
     free(ids);
     if (saved!=nlengths) fail("not every requested snapshot completed");
@@ -291,7 +333,11 @@ int main(int argc, char **argv) {
         "\"independent_checkpoint_evidence\":false,\"quality_validation\":false,\"snapshot_lengths\":[",
         total,budget,(double)eps,pci_bus_id,driver_version,FLASH_REV)<0) fail("completion write failed");
     for (unsigned i=0;i<nlengths;i++) if (fprintf(f,"%s%u",i ? "," : "",lengths[i])<0) fail("completion write failed");
-    if (fputs("]}\n",f)==EOF) fail("completion write failed");
+    if (fputs("]",f)==EOF) fail("completion write failed");
+    if (frozen_root && fprintf(f,",\"weights_origin\":\"original_checkpoint_safetensors_layer3\","
+        "\"weights_revision\":\"%s\",\"activation_source\":\"synthetic_hidden_states\"",
+        weights_revision)<0) fail("completion write failed");
+    if (fputs("}\n",f)==EOF) fail("completion write failed");
     close_file(f);
     char pending[4096],complete[4096];
     path(pending,sizeof pending,"complete.json.tmp"); path(complete,sizeof complete,"complete.json");

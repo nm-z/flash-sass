@@ -123,6 +123,7 @@ test-gemv: all
 
 clean:
 	rm -f *.cubin *.dis *.so *.so.new die.sass die_trace.sass die_trace16.sass dieops.h flashcore flashd flashvis hold memtest fence *_test ple_read_bench ple_read_audit model_quality model_quality_json.o qsa_quality qsa_attention_quality qsa_attention_gpu model_reference
+	rm -f qsa_safetensors_qkv
 
 # CPU-only FP32 logit comparison using core Perl modules.
 model_quality: model_quality.pl
@@ -134,6 +135,9 @@ qsa_quality: qsa_quality.c
 
 qsa_attention_quality: qsa_attention_quality.c
 	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -fno-fast-math -ffp-contract=off -o $@ $< -lm
+
+qsa_safetensors_qkv: qsa_safetensors_qkv.c
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -fno-fast-math -ffp-contract=off -DFLASH_REV='"$(FLASH_REV)"' -o $@ $< -lm
 
 # Fixed-projection GPU fixtures; supplied selection, no model/indexer claim.
 qsa_attention_gpu: qsa_attention_gpu.c dieops.h

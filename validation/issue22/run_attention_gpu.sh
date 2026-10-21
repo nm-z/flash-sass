@@ -14,6 +14,19 @@ issue22_out=$5
 issue22_repo=$(cd -- "$(dirname -- "$0")/../.." && pwd)
 issue22_revision=${ISSUE22_SOURCE_REVISION:-$(git -C "$issue22_repo" rev-parse HEAD)}
 [[ $issue22_revision =~ ^[0-9a-f]{40}$ ]] || { printf 'missing full source revision\n' >&2; exit 2; }
+issue22_frozen_inputs=${ISSUE22_FROZEN_INPUT_DIR:-}
+issue22_weights_revision=${ISSUE22_WEIGHT_REVISION:-}
+if [[ -n $issue22_frozen_inputs ]]; then
+    [[ $issue22_weights_revision =~ ^[0-9a-f]{40}$ ]] || {
+        printf 'frozen projection requires full ISSUE22_WEIGHT_REVISION\n' >&2
+        exit 2
+    }
+    jq -e --arg revision "$issue22_weights_revision" --argjson positions "$issue22_total" \
+        '.schema == "flash-sass.issue22-original-layer3-qkv.v1" and .complete == true
+         and .checkpoint_revision == $revision and .positions == $positions
+         and .full_model == false and .teacher_forced == false' \
+        "$issue22_frozen_inputs/projection-complete.json" > /dev/null
+fi
 [[ ! -e $issue22_out ]] || { printf 'output already exists: %s\n' "$issue22_out" >&2; exit 2; }
 [[ -x $issue22_repo/kern/qsa_attention_gpu && -f $issue22_repo/kern/die.cubin ]] || {
     printf 'build qsa_attention_gpu and die.cubin first\n' >&2
@@ -22,6 +35,13 @@ issue22_revision=${ISSUE22_SOURCE_REVISION:-$(git -C "$issue22_repo" rev-parse H
 mkdir -p -- "$(dirname -- "$issue22_out")"
 mkdir -- "$issue22_out"
 issue22_out=$(cd -- "$issue22_out" && pwd)
+if [[ -n $issue22_frozen_inputs ]]; then
+    cp -- "$issue22_frozen_inputs/projection-complete.json" "$issue22_out/"
+    (
+        cd -- "$issue22_frozen_inputs"
+        sha256sum hidden_input.f32 qg.f32 raw_k.f32 raw_v.f32 qn.f32 kn.f32 projection-complete.json
+    ) > "$issue22_out/frozen-inputs.sha256"
+fi
 cd -- "$issue22_repo"
 export LC_ALL=C CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=$issue22_gpu
 export DIE_CUBIN=$issue22_repo/kern/die.cubin
@@ -31,6 +51,10 @@ export DIE_CUBIN=$issue22_repo/kern/die.cubin
     uname -a
     printf 'source_revision=%s\nCUDA_VISIBLE_DEVICES=%s\nCUDA_DEVICE_ORDER=%s\n' \
         "$issue22_revision" "$CUDA_VISIBLE_DEVICES" "$CUDA_DEVICE_ORDER"
+    if [[ -n $issue22_frozen_inputs ]]; then
+        printf 'weights_revision=%s\nweights_input_dir=%s\n' \
+            "$issue22_weights_revision" "$issue22_frozen_inputs"
+    fi
     printf 'command: '
     printf '%q ' "$issue22_repo/kern/qsa_attention_gpu" "$issue22_total" \
         "$issue22_budget" "$issue22_lengths" "$issue22_out/capture"
@@ -124,6 +148,8 @@ jq -n --arg revision "$issue22_revision" --argjson gpu "$issue22_gpu" \
       gpu:$gpu,lock:"/tmp/flash-sass-engine-validation.lock",
       source_hashes_unchanged:true,capture_complete:true,comparison_performed:false,
       capture:$capture[0],evidence_kind:"synthetic_gpu_fixture",
+      weights_origin:($capture[0].weights_origin // null),
+      weights_revision:($capture[0].weights_revision // null),
       production_indexer_executed:false,full_model:false,
       original_checkpoint_quality:null,issue22_resolved:false}' > "$issue22_out/complete.json"
 printf 'GPU attention fixtures complete; independent numerical comparison is separate.\n'
