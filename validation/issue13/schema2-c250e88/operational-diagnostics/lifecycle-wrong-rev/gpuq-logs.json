@@ -1,0 +1,24 @@
+[
+  {
+    "id": 86952,
+    "job_id": "04ee620d-0708-450a-a9ba-9c9af515930a",
+    "kind": "stderr",
+    "source": "stderr",
+    "ordinal": 0,
+    "observed_ns": "1792589100567620121",
+    "bytes": 258,
+    "sha256": "5bbbff9dce34e7044ee23afdad2edb788b3c396ce606cd5a41299941d5c3137c",
+    "text": "/dev/shm/fs13-c250e88/commands/run_lifecycle.rb:31:in 'block in <main>': lifecycle failed with status 1: FAIL: RuntimeError: loaded engine revision differs from --source-sha (RuntimeError)\n\tfrom /dev/shm/fs13-c250e88/commands/run_lifecycle.rb:45:in '<main>'\n"
+  },
+  {
+    "id": 86956,
+    "job_id": "04ee620d-0708-450a-a9ba-9c9af515930a",
+    "kind": "collector_error",
+    "source": "trace",
+    "ordinal": 0,
+    "observed_ns": "1792589100585423251",
+    "bytes": 103,
+    "sha256": "30349a93d1d8c356fb6dc81ab296392e83b76d83f2b7e22d67e7a50c1df4d6d1",
+    "text": "RuntimeError: resident engine has no enabled trace producer; raw job-provided traces are still imported"
+  }
+]

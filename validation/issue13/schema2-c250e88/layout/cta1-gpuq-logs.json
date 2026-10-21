@@ -1,0 +1,35 @@
+[
+  {
+    "id": 86588,
+    "job_id": "a2473749-0bb6-46a5-97a5-0adf78da52b1",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 0,
+    "observed_ns": "1792588374966567219",
+    "bytes": 478,
+    "sha256": "a46a192fb9dd05dd63ae748293e6222938fbd776eb30147dde11db576d8592ad",
+    "text": "pass=0 count=2 end=0 exchange=2 grid=6\ndevice=Tesla M60 ctas=1 records=6 words=16\nsample t=0 cta=0 phase=0 generation=0 dispatch_ns=1024 body_ns=0\nsample t=0 cta=0 phase=1 generation=0 dispatch_ns=1024 body_ns=0\nsample t=0 cta=0 phase=2 generation=1 dispatch_ns=1024 body_ns=1024\nsample t=1 cta=0 phase=0 generation=1 dispatch_ns=1024 body_ns=0\nsample t=1 cta=0 phase=1 generation=1 dispatch_ns=1024 body_ns=1024\nsample t=1 cta=0 phase=2 generation=2 dispatch_ns=0 body_ns=1024\n"
+  },
+  {
+    "id": 86589,
+    "job_id": "a2473749-0bb6-46a5-97a5-0adf78da52b1",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 1,
+    "observed_ns": "1792588374967773474",
+    "bytes": 304,
+    "sha256": "02cb6d5c5af0e3ed6111c9dc7c8f6a552b5cfbe6034a210f36ad115cb1a02f80",
+    "text": "PASS dispatch/body boundaries, generation, peer-publication brackets, phase zero, per-token reconciliation\npass=1 count=2 end=0 exchange=2 grid=6\nPASS CTA mode mismatch: no trace writes, canaries intact\npass=2 count=2 end=0 exchange=2 grid=6\nPASS record stride mismatch: no trace writes, canaries intact\n"
+  },
+  {
+    "id": 86593,
+    "job_id": "a2473749-0bb6-46a5-97a5-0adf78da52b1",
+    "kind": "collector_error",
+    "source": "trace",
+    "ordinal": 0,
+    "observed_ns": "1792588375038014081",
+    "bytes": 103,
+    "sha256": "30349a93d1d8c356fb6dc81ab296392e83b76d83f2b7e22d67e7a50c1df4d6d1",
+    "text": "RuntimeError: resident engine has no enabled trace producer; raw job-provided traces are still imported"
+  }
+]

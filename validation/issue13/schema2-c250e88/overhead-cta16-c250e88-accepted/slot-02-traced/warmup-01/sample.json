@@ -1,0 +1,53 @@
+{
+  "block": 1,
+  "position": 2,
+  "slot": 2,
+  "mode": "traced",
+  "kind": "warmup",
+  "sample": 1,
+  "directory": "/dev/shm/fs13-c250e88/evidence/schema2/overhead-cta16-c250e88-accepted/slot-02-traced/warmup-01",
+  "config": {
+    "rev": "c250e88",
+    "kv_host": "0",
+    "kv_trace": "0",
+    "ple_disk": "1",
+    "ple_readers": "1",
+    "ple_file": "/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf",
+    "ple_cache": "/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf",
+    "maxt": "512",
+    "layers": "48/48",
+    "nblk": "512",
+    "dies": "6",
+    "attn_dies": "1,4,5",
+    "split": "112,97,81,116,97,97",
+    "attn_map": "1,1,1,1,4,4,4,4,5,5,5,5",
+    "img_rows": "1",
+    "rope_owner": "5",
+    "trace_tokens": "2",
+    "trace_ctas": "16",
+    "trace_schema": "2",
+    "two_position": "0",
+    "prefill_chunk": "0",
+    "prefill_auto": "0",
+    "attn_q_split": "1",
+    "attn_q_mask": "3f",
+    "cubin": "/dev/shm/fs13-c250e88/kern/die_trace16.cubin",
+    "cubin_fnv": "9e06d79c647dde90"
+  },
+  "tokens": [
+    220,
+    15
+  ],
+  "token_arrival_ns": [
+    151000120982921,
+    151000150923878
+  ],
+  "started_ns": 151000056059184,
+  "finished_ns": 151000151078558,
+  "wall_ns": 95019374,
+  "first_token_ns": 64923737,
+  "steady_decode_ns_per_token": 29940957.0,
+  "done": "done 2 0 2 90.1 60.0 0 0",
+  "run_ms_rounded": 90.1,
+  "first_ms_rounded": 60.0
+}

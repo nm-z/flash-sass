@@ -1,0 +1,60 @@
+{
+  "utc": "2026-10-21T12:33:25.546535Z",
+  "hostname": "archy",
+  "ruby": "ruby 3.4.10 (2026-06-30 revision 2b0b7728dc) +PRISM [x86_64-linux]",
+  "pid": 649575,
+  "identities": {
+    "library": {
+      "path": "/dev/shm/fs13-69b1e7c/kern/libengine.so",
+      "bytes": 205912,
+      "sha256": "39b6059978b9bdb1df126b2d6ca8155b29c4542f98773bf5be2281dea331be33"
+    },
+    "source_manifest": {
+      "path": "/dev/shm/fs13-69b1e7c/evidence/schema2/source-manifest.txt",
+      "bytes": 1115,
+      "sha256": "8d04efeb486c37ac8e6dd01094d1227c629e984b96b827a991ee875cea445f3b"
+    },
+    "weights_manifest": {
+      "path": "/dev/shm/fs13-69b1e7c/evidence/schema2/weights-manifest.txt",
+      "bytes": 528,
+      "sha256": "f3ee5175d91b119077fd874b497f065d5541fe2a149adb47522defc850da3f3f"
+    },
+    "ordinary_cubin": {
+      "path": "/dev/shm/fs13-69b1e7c/kern/die.cubin",
+      "bytes": 465384,
+      "sha256": "aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423"
+    },
+    "traced_cubin": {
+      "path": "/dev/shm/fs13-69b1e7c/kern/die_trace.cubin",
+      "bytes": 512104,
+      "sha256": "8ad2ae307c6802ac539de3261f6584aa838ee2f83563656efac69d336a37dd56"
+    }
+  },
+  "plan": [
+    {
+      "block": 1,
+      "position": 1,
+      "slot": 1,
+      "mode": "ordinary"
+    },
+    {
+      "block": 1,
+      "position": 2,
+      "slot": 2,
+      "mode": "traced"
+    },
+    {
+      "block": 1,
+      "position": 3,
+      "slot": 3,
+      "mode": "traced"
+    },
+    {
+      "block": 1,
+      "position": 4,
+      "slot": 4,
+      "mode": "ordinary"
+    }
+  ],
+  "runner_sha256": "5aa730d0207bea121ba7ec17bf0876b7138c7e85c2425247ef0d575a35e6a9b4"
+}

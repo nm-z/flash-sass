@@ -1,0 +1,199 @@
+{
+  "block": 1,
+  "position": 2,
+  "slot": 2,
+  "mode": "traced",
+  "kind": "measured",
+  "sample": 1,
+  "directory": "/dev/shm/fs13-69b1e7c/evidence/schema2/overhead-cta16-b2-gpuqfix2/slot-02-traced/measured-01",
+  "config": {
+    "rev": "69b1e7c",
+    "kv_host": "0",
+    "kv_trace": "0",
+    "ple_disk": "1",
+    "ple_readers": "1",
+    "ple_file": "/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf",
+    "ple_cache": "/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf",
+    "maxt": "512",
+    "layers": "48/48",
+    "nblk": "512",
+    "dies": "6",
+    "attn_dies": "1,4,5",
+    "split": "112,97,81,116,97,97",
+    "attn_map": "1,1,1,1,4,4,4,4,5,5,5,5",
+    "img_rows": "1",
+    "rope_owner": "5",
+    "trace_tokens": "2",
+    "trace_ctas": "16",
+    "trace_schema": "2",
+    "two_position": "0",
+    "prefill_chunk": "0",
+    "attn_q_split": "1",
+    "attn_q_mask": "3f",
+    "cubin": "/dev/shm/fs13-69b1e7c/kern/die_trace16.cubin",
+    "cubin_fnv": "9e06d79c647dde90"
+  },
+  "tokens": [
+    220,
+    15
+  ],
+  "token_arrival_ns": [
+    144734915666949,
+    144734945616991
+  ],
+  "started_ns": 144734850676977,
+  "finished_ns": 144734945776753,
+  "wall_ns": 95099776,
+  "first_token_ns": 64989972,
+  "steady_decode_ns_per_token": 29950042.0,
+  "done": "done 2 0 2 90.3 60.2 0 0",
+  "run_ms_rounded": 90.3,
+  "first_ms_rounded": 60.2,
+  "traces": [
+    {
+      "file": "trace-0.raw.gz",
+      "header": "trace_begin request=3 die=0 first=1 count=2 nph=1178 ctas=16 nblk=512 schema=2 status=completed aborted=0 ended=0 completed=3 requested=3",
+      "metadata": {
+        "request": "3",
+        "die": "0",
+        "first": "1",
+        "count": "2",
+        "nph": "1178",
+        "ctas": "16",
+        "nblk": "512",
+        "schema": "2",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "3",
+        "requested": "3"
+      },
+      "sha256": "716cdf28fcc06008c8a53d4e807402a67cb801a14392c865c42e31e7eca25458"
+    },
+    {
+      "file": "trace-1.raw.gz",
+      "header": "trace_begin request=3 die=1 first=1 count=2 nph=1230 ctas=16 nblk=512 schema=2 status=completed aborted=0 ended=0 completed=3 requested=3",
+      "metadata": {
+        "request": "3",
+        "die": "1",
+        "first": "1",
+        "count": "2",
+        "nph": "1230",
+        "ctas": "16",
+        "nblk": "512",
+        "schema": "2",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "3",
+        "requested": "3"
+      },
+      "sha256": "80ce610517598386afa005d06033b849876cc9254b4d68d1c85e935557373c62"
+    },
+    {
+      "file": "trace-2.raw.gz",
+      "header": "trace_begin request=3 die=2 first=1 count=2 nph=1178 ctas=16 nblk=512 schema=2 status=completed aborted=0 ended=0 completed=3 requested=3",
+      "metadata": {
+        "request": "3",
+        "die": "2",
+        "first": "1",
+        "count": "2",
+        "nph": "1178",
+        "ctas": "16",
+        "nblk": "512",
+        "schema": "2",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "3",
+        "requested": "3"
+      },
+      "sha256": "990cc9fdafa1fd0b6ca6839bf050e0ef8bbb2468a8aa38cb067e3f1746912016"
+    },
+    {
+      "file": "trace-3.raw.gz",
+      "header": "trace_begin request=3 die=3 first=1 count=2 nph=1178 ctas=16 nblk=512 schema=2 status=completed aborted=0 ended=0 completed=3 requested=3",
+      "metadata": {
+        "request": "3",
+        "die": "3",
+        "first": "1",
+        "count": "2",
+        "nph": "1178",
+        "ctas": "16",
+        "nblk": "512",
+        "schema": "2",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "3",
+        "requested": "3"
+      },
+      "sha256": "d7b02c563f26b6a931cc31be4894b1df3587d575443bfe5dbd806cdd117d6cc6"
+    },
+    {
+      "file": "trace-4.raw.gz",
+      "header": "trace_begin request=3 die=4 first=1 count=2 nph=1230 ctas=16 nblk=512 schema=2 status=completed aborted=0 ended=0 completed=3 requested=3",
+      "metadata": {
+        "request": "3",
+        "die": "4",
+        "first": "1",
+        "count": "2",
+        "nph": "1230",
+        "ctas": "16",
+        "nblk": "512",
+        "schema": "2",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "3",
+        "requested": "3"
+      },
+      "sha256": "7e1a49ab95db1e4228e1a5ed47230c1ca9bd86f178d3b90ad1937c77a57d6799"
+    },
+    {
+      "file": "trace-5.raw.gz",
+      "header": "trace_begin request=3 die=5 first=1 count=2 nph=1230 ctas=16 nblk=512 schema=2 status=completed aborted=0 ended=0 completed=3 requested=3",
+      "metadata": {
+        "request": "3",
+        "die": "5",
+        "first": "1",
+        "count": "2",
+        "nph": "1230",
+        "ctas": "16",
+        "nblk": "512",
+        "schema": "2",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "3",
+        "requested": "3"
+      },
+      "sha256": "2319616346de5cd156c38282dd82df0ca13d8ed410cacb9a277da66710cc0b6a"
+    },
+    {
+      "file": "hosttrace.raw.gz",
+      "header": "hosttrace_begin request=3 first=1 count=2 clock=CLOCK_MONOTONIC status=completed aborted=0 ended=0 completed=3 requested=3 schema=2 abort_start_ns=0 abort_end_ns=0 abort_position=-1 abort_reason=none request_poll_calls=764 request_poll_ns=8106272 request_readback_calls=2 request_readback_ns=17901",
+      "metadata": {
+        "request": "3",
+        "first": "1",
+        "count": "2",
+        "clock": "CLOCK_MONOTONIC",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "3",
+        "requested": "3",
+        "schema": "2",
+        "abort_start_ns": "0",
+        "abort_end_ns": "0",
+        "abort_position": "-1",
+        "abort_reason": "none",
+        "request_poll_calls": "764",
+        "request_poll_ns": "8106272",
+        "request_readback_calls": "2",
+        "request_readback_ns": "17901"
+      },
+      "sha256": "9cedb01743a6675abb757d7de0402c2e23764896413706e90696e708eeb611a9"
+    }
+  ]
+}

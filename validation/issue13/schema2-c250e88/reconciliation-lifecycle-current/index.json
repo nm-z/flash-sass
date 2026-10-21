@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "reconciled": [
+    {
+      "case": "single",
+      "report": "single-capture.json.gz",
+      "local_partitions": 6,
+      "die_envelopes": 6,
+      "sha256": "d6a23a5efa6f3d1adce76ab21545671b981020c1b44fb232bd71db3c8b1a725f"
+    },
+    {
+      "case": "normal",
+      "report": "normal-capture.json.gz",
+      "local_partitions": 24,
+      "die_envelopes": 24,
+      "sha256": "a9c337657712dd50bfc73ca806f9a54b5b247e71ad7224b02c7bc3e1bab8d8d5"
+    },
+    {
+      "case": "stop-single",
+      "report": "stop-single-capture.json.gz",
+      "local_partitions": 6,
+      "die_envelopes": 6,
+      "sha256": "efd7745090787b7d79ab487255cbd51076e086077ea01f4bca79984a8a2e6f64"
+    },
+    {
+      "case": "stop-multi",
+      "report": "stop-multi-capture.json.gz",
+      "local_partitions": 6,
+      "die_envelopes": 6,
+      "sha256": "3d427f93ed408dcbd2f4feaa389a37f9c94eb0722330ce79595827e2ea4d4040"
+    },
+    {
+      "case": "disconnect",
+      "report": "disconnect-capture.json.gz",
+      "local_partitions": 60,
+      "die_envelopes": 60,
+      "sha256": "d1f3c7018c4f1b96ab1333304ed513081356d47557481b1272c156ae19ff28aa"
+    },
+    {
+      "case": "recovery",
+      "report": "recovery-capture.json.gz",
+      "local_partitions": 24,
+      "die_envelopes": 24,
+      "sha256": "c71acda2bf5d9a39baaef0d917eb162cf38e41c57c1a6cff0b950eb804a0d135"
+    },
+    {
+      "case": "pair-first",
+      "report": "pair-first-capture.json.gz",
+      "local_partitions": 24,
+      "die_envelopes": 24,
+      "sha256": "47d65e7d85f8b32681b29313c7bfd059481c75293ff28a608582bf4ed830cc51"
+    },
+    {
+      "case": "pair-resume",
+      "report": "pair-resume-capture.json.gz",
+      "local_partitions": 24,
+      "die_envelopes": 24,
+      "sha256": "e3d45381ac26a72902dad595295c6ff917c45ceef80ace56979ab2c708c5f046"
+    }
+  ],
+  "skipped": [
+    {
+      "case": "argument-error",
+      "reason": "request has no trace records"
+    },
+    {
+      "case": "image-error",
+      "reason": "request has no trace records"
+    }
+  ]
+}

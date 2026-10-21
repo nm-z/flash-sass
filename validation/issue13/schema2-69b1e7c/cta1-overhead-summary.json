@@ -1,0 +1,142 @@
+{
+  "layout": "CTA1",
+  "blocks": [
+    {
+      "block": 1,
+      "metrics": {
+        "wall_ns": {
+          "block": 1,
+          "means": {
+            "ordinary": 128314051.5,
+            "traced": 149019820.0
+          },
+          "overhead_percent": 16.13678958613507
+        },
+        "first_token_ns": {
+          "block": 1,
+          "means": {
+            "ordinary": 54321342.5,
+            "traced": 62366509.5
+          },
+          "overhead_percent": 14.810324321421175
+        },
+        "steady_decode_ns_per_token": {
+          "block": 1,
+          "means": {
+            "ordinary": 24617952.5,
+            "traced": 28828433.666666664
+          },
+          "overhead_percent": 17.103295518450068
+        },
+        "run_ms_rounded": {
+          "block": 1,
+          "means": {
+            "ordinary": 124.1,
+            "traced": 144.64999999999998
+          },
+          "overhead_percent": 16.559226430298125
+        }
+      }
+    },
+    {
+      "block": 2,
+      "metrics": {
+        "wall_ns": {
+          "block": 1,
+          "means": {
+            "ordinary": 128806285.5,
+            "traced": 148789333.0
+          },
+          "overhead_percent": 15.514031339720603
+        },
+        "first_token_ns": {
+          "block": 1,
+          "means": {
+            "ordinary": 54862112.0,
+            "traced": 62193492.5
+          },
+          "overhead_percent": 13.3632852122062
+        },
+        "steady_decode_ns_per_token": {
+          "block": 1,
+          "means": {
+            "ordinary": 24602332.0,
+            "traced": 28802844.0
+          },
+          "overhead_percent": 17.073633507587815
+        },
+        "run_ms_rounded": {
+          "block": 1,
+          "means": {
+            "ordinary": 124.1,
+            "traced": 144.5
+          },
+          "overhead_percent": 16.43835616438356
+        }
+      }
+    },
+    {
+      "block": 3,
+      "metrics": {
+        "wall_ns": {
+          "block": 1,
+          "means": {
+            "ordinary": 128180190.5,
+            "traced": 148836727.0
+          },
+          "overhead_percent": 16.115233110064686
+        },
+        "first_token_ns": {
+          "block": 1,
+          "means": {
+            "ordinary": 54226794.5,
+            "traced": 62249083.0
+          },
+          "overhead_percent": 14.793956703452205
+        },
+        "steady_decode_ns_per_token": {
+          "block": 1,
+          "means": {
+            "ordinary": 24602574.0,
+            "traced": 28814115.666666664
+          },
+          "overhead_percent": 17.118296917495957
+        },
+        "run_ms_rounded": {
+          "block": 1,
+          "means": {
+            "ordinary": 124.0,
+            "traced": 144.55
+          },
+          "overhead_percent": 16.572580645161295
+        }
+      }
+    }
+  ],
+  "overhead_percent": {
+    "wall_ns": {
+      "n": 3,
+      "mean": 15.922018011973455,
+      "min": 15.514031339720603,
+      "max": 16.13678958613507
+    },
+    "first_token_ns": {
+      "n": 3,
+      "mean": 14.322522079026527,
+      "min": 13.3632852122062,
+      "max": 14.810324321421175
+    },
+    "steady_decode_ns_per_token": {
+      "n": 3,
+      "mean": 17.09840864784461,
+      "min": 17.073633507587815,
+      "max": 17.118296917495957
+    },
+    "run_ms_rounded": {
+      "n": 3,
+      "mean": 16.52338774661433,
+      "min": 16.43835616438356,
+      "max": 16.572580645161295
+    }
+  }
+}

@@ -1,0 +1,200 @@
+{
+  "block": 1,
+  "position": 2,
+  "slot": 2,
+  "mode": "traced",
+  "kind": "measured",
+  "sample": 1,
+  "directory": "/dev/shm/fs13-c250e88/evidence/schema2/overhead-cta16-c250e88-accepted/slot-02-traced/measured-01",
+  "config": {
+    "rev": "c250e88",
+    "kv_host": "0",
+    "kv_trace": "0",
+    "ple_disk": "1",
+    "ple_readers": "1",
+    "ple_file": "/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf",
+    "ple_cache": "/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf",
+    "maxt": "512",
+    "layers": "48/48",
+    "nblk": "512",
+    "dies": "6",
+    "attn_dies": "1,4,5",
+    "split": "112,97,81,116,97,97",
+    "attn_map": "1,1,1,1,4,4,4,4,5,5,5,5",
+    "img_rows": "1",
+    "rope_owner": "5",
+    "trace_tokens": "2",
+    "trace_ctas": "16",
+    "trace_schema": "2",
+    "two_position": "0",
+    "prefill_chunk": "0",
+    "prefill_auto": "0",
+    "attn_q_split": "1",
+    "attn_q_mask": "3f",
+    "cubin": "/dev/shm/fs13-c250e88/kern/die_trace16.cubin",
+    "cubin_fnv": "9e06d79c647dde90"
+  },
+  "tokens": [
+    220,
+    15
+  ],
+  "token_arrival_ns": [
+    151003325709474,
+    151003355593783
+  ],
+  "started_ns": 151003260722010,
+  "finished_ns": 151003355799506,
+  "wall_ns": 95077496,
+  "first_token_ns": 64987464,
+  "steady_decode_ns_per_token": 29884309.0,
+  "done": "done 2 0 2 90.0 59.9 0 0",
+  "run_ms_rounded": 90.0,
+  "first_ms_rounded": 59.9,
+  "traces": [
+    {
+      "file": "trace-0.raw.gz",
+      "header": "trace_begin request=3 die=0 first=1 count=2 nph=1178 ctas=16 nblk=512 schema=2 status=completed aborted=0 ended=0 completed=3 requested=3",
+      "metadata": {
+        "request": "3",
+        "die": "0",
+        "first": "1",
+        "count": "2",
+        "nph": "1178",
+        "ctas": "16",
+        "nblk": "512",
+        "schema": "2",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "3",
+        "requested": "3"
+      },
+      "sha256": "7740ec6fcecd6135c53200b0a64bd275dc942a49ba113463d8a35376211d1e79"
+    },
+    {
+      "file": "trace-1.raw.gz",
+      "header": "trace_begin request=3 die=1 first=1 count=2 nph=1230 ctas=16 nblk=512 schema=2 status=completed aborted=0 ended=0 completed=3 requested=3",
+      "metadata": {
+        "request": "3",
+        "die": "1",
+        "first": "1",
+        "count": "2",
+        "nph": "1230",
+        "ctas": "16",
+        "nblk": "512",
+        "schema": "2",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "3",
+        "requested": "3"
+      },
+      "sha256": "f19dbe3023bb90c02fdcc4ae53172b2dda04a48860a8382ba17bac0385c55b91"
+    },
+    {
+      "file": "trace-2.raw.gz",
+      "header": "trace_begin request=3 die=2 first=1 count=2 nph=1178 ctas=16 nblk=512 schema=2 status=completed aborted=0 ended=0 completed=3 requested=3",
+      "metadata": {
+        "request": "3",
+        "die": "2",
+        "first": "1",
+        "count": "2",
+        "nph": "1178",
+        "ctas": "16",
+        "nblk": "512",
+        "schema": "2",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "3",
+        "requested": "3"
+      },
+      "sha256": "d8c77acabafa272127c1a1bb25ddf81d34c6bf8214565537b72120043d6690a2"
+    },
+    {
+      "file": "trace-3.raw.gz",
+      "header": "trace_begin request=3 die=3 first=1 count=2 nph=1178 ctas=16 nblk=512 schema=2 status=completed aborted=0 ended=0 completed=3 requested=3",
+      "metadata": {
+        "request": "3",
+        "die": "3",
+        "first": "1",
+        "count": "2",
+        "nph": "1178",
+        "ctas": "16",
+        "nblk": "512",
+        "schema": "2",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "3",
+        "requested": "3"
+      },
+      "sha256": "29345eb898c4fe2bf07f33763c84fe00f1a448e49dce47e6befbe55958b33047"
+    },
+    {
+      "file": "trace-4.raw.gz",
+      "header": "trace_begin request=3 die=4 first=1 count=2 nph=1230 ctas=16 nblk=512 schema=2 status=completed aborted=0 ended=0 completed=3 requested=3",
+      "metadata": {
+        "request": "3",
+        "die": "4",
+        "first": "1",
+        "count": "2",
+        "nph": "1230",
+        "ctas": "16",
+        "nblk": "512",
+        "schema": "2",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "3",
+        "requested": "3"
+      },
+      "sha256": "c125fc1d1f9ff10b922e77e197aa7a95a5573b13ec8c4c68606a1d2dac1fea81"
+    },
+    {
+      "file": "trace-5.raw.gz",
+      "header": "trace_begin request=3 die=5 first=1 count=2 nph=1230 ctas=16 nblk=512 schema=2 status=completed aborted=0 ended=0 completed=3 requested=3",
+      "metadata": {
+        "request": "3",
+        "die": "5",
+        "first": "1",
+        "count": "2",
+        "nph": "1230",
+        "ctas": "16",
+        "nblk": "512",
+        "schema": "2",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "3",
+        "requested": "3"
+      },
+      "sha256": "584bf4f47263a2d7c9217adcb0127da1780f44ed2bbd7c7a940cf8143cb52587"
+    },
+    {
+      "file": "hosttrace.raw.gz",
+      "header": "hosttrace_begin request=3 first=1 count=2 clock=CLOCK_MONOTONIC status=completed aborted=0 ended=0 completed=3 requested=3 schema=2 abort_start_ns=0 abort_end_ns=0 abort_position=-1 abort_reason=none request_poll_calls=780 request_poll_ns=7472494 request_readback_calls=2 request_readback_ns=22924",
+      "metadata": {
+        "request": "3",
+        "first": "1",
+        "count": "2",
+        "clock": "CLOCK_MONOTONIC",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "3",
+        "requested": "3",
+        "schema": "2",
+        "abort_start_ns": "0",
+        "abort_end_ns": "0",
+        "abort_position": "-1",
+        "abort_reason": "none",
+        "request_poll_calls": "780",
+        "request_poll_ns": "7472494",
+        "request_readback_calls": "2",
+        "request_readback_ns": "22924"
+      },
+      "sha256": "d213fef93a27cbe633ba2594b1ad7ddfd7aebcabdc839a857c35a480ee3f8d84"
+    }
+  ]
+}

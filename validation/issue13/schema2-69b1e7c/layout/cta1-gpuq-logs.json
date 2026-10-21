@@ -1,0 +1,35 @@
+[
+  {
+    "id": 85677,
+    "job_id": "acef6590-250c-4f72-acab-d7159aea3e8b",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 0,
+    "observed_ns": "1792585364430353091",
+    "bytes": 591,
+    "sha256": "a94b71eb188d94055623edcc92aa418b2a36379ba5952a7c3eed59d794149071",
+    "text": "pass=0 count=2 end=0 exchange=2 grid=6\ndevice=Tesla M60 ctas=1 records=6 words=16\nsample t=0 cta=0 phase=0 generation=0 dispatch_ns=1024 body_ns=1024\nsample t=0 cta=0 phase=1 generation=0 dispatch_ns=1024 body_ns=0\nsample t=0 cta=0 phase=2 generation=1 dispatch_ns=1024 body_ns=1024\nsample t=1 cta=0 phase=0 generation=1 dispatch_ns=1024 body_ns=1024\nsample t=1 cta=0 phase=1 generation=1 dispatch_ns=1024 body_ns=1024\nsample t=1 cta=0 phase=2 generation=2 dispatch_ns=1024 body_ns=0\nPASS dispatch/body boundaries, generation, peer-publication brackets, phase zero, per-token reconciliation\n"
+  },
+  {
+    "id": 85678,
+    "job_id": "acef6590-250c-4f72-acab-d7159aea3e8b",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 1,
+    "observed_ns": "1792585364432672462",
+    "bytes": 197,
+    "sha256": "0e8d53de5238e3146ba30384c29b0c540454a2d5f8454a93b93e30d5c36d140f",
+    "text": "pass=1 count=2 end=0 exchange=2 grid=6\nPASS CTA mode mismatch: no trace writes, canaries intact\npass=2 count=2 end=0 exchange=2 grid=6\nPASS record stride mismatch: no trace writes, canaries intact\n"
+  },
+  {
+    "id": 85682,
+    "job_id": "acef6590-250c-4f72-acab-d7159aea3e8b",
+    "kind": "collector_error",
+    "source": "trace",
+    "ordinal": 0,
+    "observed_ns": "1792585364484809573",
+    "bytes": 103,
+    "sha256": "30349a93d1d8c356fb6dc81ab296392e83b76d83f2b7e22d67e7a50c1df4d6d1",
+    "text": "RuntimeError: resident engine has no enabled trace producer; raw job-provided traces are still imported"
+  }
+]
