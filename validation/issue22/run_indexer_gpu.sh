@@ -27,9 +27,10 @@ issue22_lock=/tmp/flash-sass-engine-validation.lock
     exit 2
 }
 jq -e --arg revision "$issue22_weight_revision" --argjson positions "$issue22_positions" \
-    '.schema == "flash-sass.qsa-layer-capture.v1" and .complete == true
+    '.schema == "flash-sass.qsa-layer-capture.v1"
      and .weights_origin == "original_checkpoint_safetensors_layer3"
      and .weights_revision == $revision and .positions == $positions
+     and (.weights_file_sha256|type) == "string" and (.weights_file_sha256|length) == 64
      and .production_gpu_indexer_executed == false and .full_model == false' \
     "$issue22_inputs/complete.json" > /dev/null
 
