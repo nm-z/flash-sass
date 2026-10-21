@@ -108,7 +108,7 @@ paired/chunk counters. A separate `gen 1` request has its own full-head engine
 reference; it is not a teacher-forced scalar-model comparison. `--self-test`
 checks the parser on CPU and `--plan` displays the exact request sequence.
 Actual execution requires an inherited reservation and an explicitly identified
-holder, such as those supplied by `validation/issue9/with_private_holder.sh`
+holder, such as those supplied by `validation/issue9/with_private_holder.nu`
 for the one-die fixture.
 
 ### Multi-die and variable-depth request checks
