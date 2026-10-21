@@ -1,0 +1,26 @@
+{
+  "schema": "flash-sass.issue22-original-layer3-indexer-gpu.v1",
+  "checkpoint_revision": "de4b8e4d43b917e7706784d8bb445c9af86a3540",
+  "test_source_revision": "5440dbbf31513fc160ee3e813c1fefe2aa7bb4d2",
+  "weights_sha256": "0fe8d836b886ac8942f74e835e17487f53454e96bf38263d45fb329006dde7a9",
+  "gpu": 6,
+  "positions": 9,
+  "complete_blocks": 2,
+  "budget": 1,
+  "selected_ids": [
+    0
+  ],
+  "idxqk": "bit_exact",
+  "idxscore": "bit_exact",
+  "idxsel": "bit_exact",
+  "original_layer3_indexer_weights": true,
+  "synthetic_hidden_inputs": true,
+  "source_hashes_unchanged": true,
+  "input_hashes_unchanged": true,
+  "production_gpu_indexer_ops_executed": true,
+  "production_model_dispatch_executed": false,
+  "teacher_forced": false,
+  "full_model": false,
+  "held_out_quality": false,
+  "issue22_resolved": false
+}

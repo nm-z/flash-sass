@@ -60,6 +60,40 @@ Machine-readable capture and job state are in `gpuq-run-r2/`; the compact
 metrics are in [replay-summary.json](replay-summary.json), and the full replay
 is retained as [n9-replay.json.gz](replays/n9-replay.json.gz).
 
+## Original indexer score and cutoff component
+
+The C extractor also projects the original layer-3 `index_qk_proj` and norm
+tensors from shard 82. The same nine synthetic hidden vectors feed the
+indexer query and keys; the C QSA twin produces two pooled keys, candidate
+scores, and selected IDs. The independent FP64 indexer replay ran through DSH
+build `build-3487257-1792572458629072170` and passed all six checks in the
+predeclared `model-indexer-limits.json` profile. Top-1 overlap is 1.0, exact
+tie compatibility is true, and the FP64 cutoff is unambiguous with margin
+`0.03406928`.
+
+Git history shows the numeric profile was committed in
+`04e77e181fa6195f199ab384ad19e36fb18484d5` before this run. The replay
+manifest still reports `predeclaration_attested: false`, so that field is not
+claimed as an attested fact by the replay tool.
+
+The GPUQ job `55818b8d-1b5a-4297-b0fe-28aee82465cb` then ran the production
+SASS `idxqk`, `idxscore`, and `idxsel` tests against these same original-weight
+projections. All three report `BIT-EXACT`; source and input hashes stayed
+unchanged. GPUQ again marked the job failed with exit 70 after its importer
+crashed, as tracked in [gpuq #51](https://github.com/nm-z/gpuq/issues/51).
+The test binary was built on Benji through DSH build
+`build-3499579-1792572563183695791` from `qsa_test.c` source revision
+`5440dbbf31513fc160ee3e813c1fefe2aa7bb4d2`. Recovered logs and machine-readable
+state are under `indexer-gpuq-r2/`;
+[indexer-summary.json](indexer-summary.json) and
+[n9-indexer-replay.json](indexer-replay-final/n9-indexer-replay.json) retain
+the scores, margins, metrics, and gate details.
+
+This does not run the model-level sparse dispatcher: the fixture has only two
+complete blocks and uses a budget-one override, with synthetic hidden inputs.
+The SASS operators are exercised on original layer weights, but long-context
+selector coverage and model quality remain unmeasured.
+
 ## Scope
 
 This fixture supplies original layer-3 attention weights to a deterministic

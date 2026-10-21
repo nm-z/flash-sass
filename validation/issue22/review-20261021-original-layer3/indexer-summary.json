@@ -1,0 +1,104 @@
+{
+  "schema": "flash-sass.issue22-original-layer3-indexer-summary.v1",
+  "checkpoint_revision": "de4b8e4d43b917e7706784d8bb445c9af86a3540",
+  "weights_sha256": "0fe8d836b886ac8942f74e835e17487f53454e96bf38263d45fb329006dde7a9",
+  "positions": 9,
+  "hidden_input_seed": 4242,
+  "complete_blocks": 2,
+  "budget": 1,
+  "tail": 1,
+  "candidate_selection_source": "reference_qsa_c_from_original_bf16_indexer_weights",
+  "selected_ids": [
+    0
+  ],
+  "reference_replay": {
+    "status": "numerical_gates_passed",
+    "canonical_overlap": 1,
+    "cutoff": 0.0378862094977076,
+    "cutoff_margin": 0.0340692792493508,
+    "numerical_gates": {
+      "checks": [
+        {
+          "actual": 0,
+          "applicable": true,
+          "limit": 0,
+          "metric": "raw_last_key_snapshot_vs_prefix.max_abs",
+          "passes": true,
+          "sense": "max"
+        },
+        {
+          "actual": 5.67865225953312E-8,
+          "applicable": true,
+          "limit": 0.001,
+          "metric": "candidate_raw_scores_vs_exported_inputs_fp64.max_abs",
+          "passes": true,
+          "sense": "max"
+        },
+        {
+          "actual": 0.00000236118741721346,
+          "applicable": true,
+          "limit": 0.02,
+          "metric": "candidate_scaled_scores_vs_full_fp64.max_abs",
+          "passes": true,
+          "sense": "max"
+        },
+        {
+          "actual": 4.97688255052253E-8,
+          "applicable": true,
+          "limit": 0.00001,
+          "metric": "query_exported_vs_fp64.max_abs",
+          "passes": true,
+          "sense": "max"
+        },
+        {
+          "actual": true,
+          "applicable": true,
+          "limit": true,
+          "metric": "provided_selection_vs_candidate_score_readback.exact_tie_compatible",
+          "passes": true,
+          "sense": "equals"
+        },
+        {
+          "actual": 1,
+          "applicable": true,
+          "limit": 0.99,
+          "metric": "provided_selection_vs_full_fp64.canonical_overlap_fraction",
+          "passes": true,
+          "sense": "min"
+        }
+      ],
+      "enabled": true,
+      "limits": {
+        "candidate_raw_score_max_abs": 0.001,
+        "candidate_scaled_score_max_abs": 0.02,
+        "candidate_selection_exact_ties": true,
+        "full_fp64_selection_min_overlap": 0.99,
+        "query_max_abs": 0.00001,
+        "raw_last_key_max_abs": 0,
+        "schema": "flash-sass.qsa-numerical-limits.v1"
+      },
+      "limits_sha256": "f40c61f1932be2994f198340e2c24a52fa9280abbac844327ee0f82b6a6e0806",
+      "passed": true,
+      "predeclaration_attested": false,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    }
+  },
+  "production_sass_tests": {
+    "idxqk": "bit_exact",
+    "idxscore": "bit_exact",
+    "idxsel": "bit_exact",
+    "executed": true
+  },
+  "gpuq_job": {
+    "id": "55818b8d-1b5a-4297-b0fe-28aee82465cb",
+    "status": "failed",
+    "exit_code": 70,
+    "importer_issue": "https://github.com/nm-z/gpuq/issues/51"
+  },
+  "synthetic_hidden_inputs": true,
+  "production_model_dispatch_executed": false,
+  "teacher_forced": false,
+  "full_model": false,
+  "held_out_quality": false,
+  "issue22_resolved": false
+}
