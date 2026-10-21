@@ -1,61 +1,59 @@
 {
   "schema": "flash-sass.issue22-continuation-status.v1",
-  "observed_local": "2026-10-20 10:28 PM PDT",
-  "source_revision": "c7f90f797ee634266129033d33b6a041a31949f",
-  "master_revision": "c09927306f5170843116cc49fe85088ae42e02b3",
+  "observed_local": "2026-10-20 late evening PDT",
+  "pr_branch_head_tested": "6b52888d5fd354184a2af80671be2309c92f7f3f",
+  "master_revision": "98c176a80e82cd31736ed3165a134cfbbae45338",
   "master_merges": [
     "ad2a7532c64bc22a323f1e0276518b8a7f991c4a",
-    "c7f90f797ee634266129033d33b6a041a31949f"
+    "c7f90f797ee634266129033d33b6a041a31949f",
+    "1ed9702f89482aa551ee130f261cc0af1a194b0e"
   ],
-  "merge_conflicts_resolved": [
-    ".gitignore",
-    "QSA_MODEL_TEST.md",
-    "kern/Makefile",
-    "kern/check_qsa_engine_requests.pl",
-    "kern/engine.c",
-    "kern/model_test.c",
-    "kern/test_model_cli.sh"
-  ],
-  "checks": {
-    "request_checker_self_test": {
-      "result": "PASS",
-      "checks": 93,
-      "complete_synthetic_captures": 28,
-      "corrupt_synthetic_captures": 25,
-      "cpu_only": true,
-      "gpu_validation": false
-    },
-    "model_quality_test": {
-      "result": "PASS",
-      "checks": 76,
-      "cpu_only": true,
-      "c_compilation": false
-    },
-    "make_dry_run": "PASS",
-    "shell_syntax": "PASS",
-    "perl_syntax": "PASS",
-    "full_build_and_cpu_test_suite": "BLOCKED: benji rejected SSH publickey/password; no command submitted"
+  "benji_cpu_suite": {
+    "result": "PASS",
+    "dsh_build_id": "build-2630825-1792564997771592028",
+    "source_revision": "6b52888d5fd354184a2af80671be2309c92f7f3f",
+    "steps": 25,
+    "all_steps_exit_zero": true,
+    "source_hashes_unchanged": true,
+    "synthetic_lengths": [1,2047,2048,2049,2050,2051,2052,2053,2054,2055,3100,8000,65000,262000],
+    "gpu_execution": false,
+    "original_checkpoint_quality": null
+  },
+  "dsh_artifact_delay": {
+    "prior_build_id": "build-2249351-1792561549247208895",
+    "artifact_return_seconds": 600,
+    "issue": "nm-z/nates-dsh#2998",
+    "parent_issue": "nm-z/nates-dsh#2385",
+    "compact_rerun": true
+  },
+  "gpu_preflight": {
+    "job_id": "22e69a40-8536-4fb8-ae44-0536b74dcf84",
+    "result": "PASS",
+    "free_mib": {"0":300,"1":233,"2":255,"3":220,"4":220,"5":214,"6":7547,"7":4626}
+  },
+  "gpu_attention_smoke": {
+    "job_id": "ce33eb63-7448-4b6b-9397-2a226af036aa",
+    "status": "QUEUED",
+    "device": 6,
+    "total_positions": 9,
+    "budget": 1,
+    "snapshot_lengths": [1,4,8,9],
+    "source_revision": "6b52888d5fd354184a2af80671be2309c92f7f3f"
   },
   "checkpoint_metadata": {
-    "repository": "Qwen/Qwen3.8-Flash-Next",
-    "revision": "de4b8e4d43b917e7706784d8bb445c9af86a3540",
-    "public": true,
-    "gated": false,
-    "architectures": ["Qwen4ExpForConditionalGeneration"],
-    "safetensors_shards": 131,
-    "weights_downloaded": false,
-    "weights_executed": false
-  },
-  "gpu_access": {
-    "queue_query": "BLOCKED: SSH authentication denied before gpuq",
-    "checked_documented_agent_sockets": true,
-    "authorized_identity_found_for_archy_or_benji": false,
-    "gpu_jobs_started": 0
+    "repository":"Qwen/Qwen3.8-Flash-Next",
+    "revision":"de4b8e4d43b917e7706784d8bb445c9af86a3540",
+    "public":true,
+    "gated":false,
+    "architectures":["Qwen4ExpForConditionalGeneration"],
+    "safetensors_shards":131,
+    "weights_downloaded":false,
+    "weights_executed":false
   },
   "acceptance": {
-    "criteria_1_through_6": "UNMET",
-    "criterion_7_reporting": "MET",
-    "issue22_resolved": false,
-    "ready_for_review": false
+    "criteria_1_through_6":"UNMET",
+    "criterion_7_reporting":"MET",
+    "issue22_resolved":false,
+    "ready_for_review":false
   }
 }

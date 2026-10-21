@@ -365,11 +365,12 @@ quality acceptance in issue #22 is unmet. A completed capture, successful
 replay or passing numerical profile must not set the overall issue or
 checkpoint-quality status to accepted.
 
-The October 20 continuation check merged current `master` into the PR branch
-twice as `master` advanced. The 93-case CPU-only request-checker self-test and
-the 76-case Perl model-quality test passed, along with syntax checks and a
-Makefile dry run. Required build and GPU access remain blocked because SSH
-authentication to Benji and Archy is unavailable from this engi session; the
-current evidence and host failures are recorded in
-[`validation/issue22/review-20261020/README.md`](validation/issue22/review-20261020/README.md).
+The continuation merged current `master` through commit `98c176a` and passed
+the full 25-step CPU suite on Benji via DSH, plus the 93-case request-checker
+and 76-case model-quality tests. The GPU attention fixture and cubin are built
+on Benji with pinned MaxAs and CUDA 11.4 ptxas. A one-die synthetic smoke is
+queued on Archy device 6; the six-die model run, original-checkpoint execution,
+and held-out quality remain unmeasured. Current details and artifacts are in
+[`validation/issue22/review-20261020/README.md`](validation/issue22/review-20261020/README.md)
+and [`validation/issue22/review-20261021-cpu-summary/README.md`](validation/issue22/review-20261021-cpu-summary/README.md).
 Criteria 1–6 remain unmet, and this work does not make the PR ready for review.

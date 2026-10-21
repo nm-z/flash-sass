@@ -1,0 +1,8 @@
+make: Entering directory '/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/kern'
+cp model_quality.pl model_quality
+chmod +x model_quality
+cc -std=c11 -O2 -Wall -Wextra -Werror -fno-fast-math -ffp-contract=off -o qsa_quality qsa_quality.c -lm
+cc -std=c11 -O2 -Wall -Wextra -Werror -fno-fast-math -ffp-contract=off -o qsa_attention_quality qsa_attention_quality.c -lm
+cc -std=c11 -O2 -Wall -Wextra -Werror -o model_layer_capture_test model_layer_capture_test.c
+cc -std=c11 -O2 -Wall -Wextra -Werror -o model_capture_test model_capture_test.c
+make: Leaving directory '/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/kern'
