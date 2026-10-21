@@ -483,7 +483,7 @@ ENGINE_SRC = engine.c qsa_capture.c prog.c holdc.c ../ref/qsa.c ../ref/block.c .
 
 trace_session_test: trace_session_test.c $(ENGINE_SRC) prefill.h trace_host.inc timings.h engine.h core.h prog.h hold.h dieops.h ple_read_pool.h ple_read_reload.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -UNDEBUG -pthread -o $@ trace_session_test.c $(filter-out engine.c,$(ENGINE_SRC)) -I../ref -I$(CUDA)/include -lcuda -lm
-# the commit (and -dirty when the tree differs from it) the library is built from: the engine reports it with its `config` command
+# The engine reports the current build identity with its config command.
 FLASH_REV ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)$(shell git diff --quiet HEAD -- .. 2>/dev/null || echo -dirty)
 libengine.so: qsa_capture.h trace_host.inc $(ENGINE_SRC) prefill.h prog.h hold.h core.h engine.h dieops.h ple_read_pool.h ple_read_reload.h ../ref/split.h ../ref/qsa.h ../ref/block.h ../ref/attn.h ../ref/ple.h ../ref/gguf.h ../ref/quant.h ../ref/fmath.h ../ref/hc.h ../ref/deltanet.h ../ref/router.h timings.h qsa_state.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -pthread -DFLASH_REV='"$(FLASH_REV)"' -o $@.new $(ENGINE_SRC) -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
@@ -509,6 +509,49 @@ sample_test: sample_test.c dieops.h ../ref/sample.c ../ref/sample.h ../ref/fmath
 # ---- QSA: int8 KV cache, indexer, selection, gather through the persistent kernel vs ref/qsa.c ----
 qsa_test: qsa_test.c quant_range_cases.h test_guards.h qsa_padding_test.h dieops.h ../ref/qsa.c ../ref/qsa.h ../ref/attn.c ../ref/attn.h ../ref/fmath.c ../ref/quant.c ../ref/gguf.c ../ref/checked.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ qsa_test.c ../ref/qsa.c ../ref/attn.c ../ref/fmath.c ../ref/quant.c ../ref/gguf.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+# Strict numerical validation: implicit contraction and reassociation would
+# invalidate the declared comparison with the instruction-order scalar twins.
+ORACLE_CFLAGS = -std=gnu11 -O2 -fno-fast-math -ffp-contract=off -frounding-math -Wall -Wextra -Werror
+qsa_oracle: qsa_oracle.c qsa_oracle_bridge.c ../ref/qsa.c ../ref/qsa.h ../ref/attn.c ../ref/attn.h ../ref/fmath.c ../ref/fmath.h
+	$(CC) $(ORACLE_CFLAGS) -I../ref -o $@ qsa_oracle.c qsa_oracle_bridge.c ../ref/qsa.c ../ref/attn.c ../ref/fmath.c -lm
+
+qsa_logits_check: qsa_logits_check.c
+	$(CC) $(ORACLE_CFLAGS) -o $@ $< -lm
+
+# Optional independent-model capture. Requires llama.cpp b10705-era public C
+# headers/libraries; not part of the portable oracle's default dependency set.
+LLAMA_CFLAGS ?=
+LLAMA_LIBS ?= -lllama -lggml -lggml-base
+qsa_reference_capture: qsa_reference_capture.c
+	$(CC) $(ORACLE_CFLAGS) $(LLAMA_CFLAGS) -DFLASH_REV='"$(FLASH_REV)"' -o $@ $< $(LLAMA_LIBS) -lm
+
+qsa_capture_test: qsa_capture_test.c qsa_capture.c qsa_capture.h ../ref/attn.h
+	$(CC) $(ORACLE_CFLAGS) -I../ref -o $@ qsa_capture_test.c qsa_capture.c -lm
+
+qsa_capture_prog_test: qsa_capture_prog_test.c qsa_capture.h prog.c prog.h dieops.h ../ref/quant.c ../ref/gguf.c ../ref/split.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ qsa_capture_prog_test.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I$(CUDA)/include -lm
+
+# Independent CPU full-model capture. Rebuild the adapter when the supplied
+# build directory changes; its source pin is not a source-to-binary attestation.
+LLAMA_REF_BUILD ?= $(LLAMA_REF_SRC)/build
+QSA_REFERENCE_REV = fcac19079f3f2985fe74ed845f0880e7e9a8030a
+.PHONY: qsa_model_reference
+qsa_model_reference: qsa_model_reference.c qsa_reference_trace.h
+	@test -n "$(LLAMA_REF_SRC)" || { echo 'set LLAMA_REF_SRC to the pinned independent source' >&2; exit 2; }
+	@test "$$(git -C "$(LLAMA_REF_SRC)" rev-parse HEAD)" = "$(QSA_REFERENCE_REV)" || { echo 'independent reference revision mismatch' >&2; exit 2; }
+	$(CC) $(ORACLE_CFLAGS) -DQSA_REFERENCE_REV='"$(QSA_REFERENCE_REV)"' -I$(LLAMA_REF_SRC)/include -I$(LLAMA_REF_SRC)/ggml/include -o $@ qsa_model_reference.c -L$(LLAMA_REF_BUILD)/bin -Wl,-rpath,$(LLAMA_REF_BUILD)/bin -lllama -lggml -lggml-base -ldl -lm
+
+qsa_reference_trace_test: qsa_reference_trace_test.c qsa_reference_trace.h
+	$(CC) $(ORACLE_CFLAGS) -o $@ $<
+
+# Selected logit rows, explicit prefix-position bindings, and all 48 block
+# outputs. Keep the existing full-row capture CLI and its evidence unchanged.
+.PHONY: qsa_model_selected_reference
+qsa_model_selected_reference: qsa_model_selected_reference.c
+	@test -n "$(QSA_LLAMA_DIR)" || { echo 'set QSA_LLAMA_DIR to the pinned independent source/build' >&2; exit 2; }
+	@test "$$(git -C "$(QSA_LLAMA_DIR)" rev-parse HEAD)" = "$(QSA_REFERENCE_REV)" || { echo 'independent reference revision mismatch' >&2; exit 2; }
+	$(CC) $(ORACLE_CFLAGS) -I$(QSA_LLAMA_DIR)/include -I$(QSA_LLAMA_DIR)/ggml/include -o $@ $< -L$(QSA_LLAMA_DIR)/build/bin -lllama -lggml -lggml-base -Wl,-rpath,$(QSA_LLAMA_DIR)/build/bin -lm
 
 attnpartn_unitmap: attnpartn_unitmap.c
 	$(CC) -std=gnu99 -O2 -Wall -Wextra -o $@ $<
@@ -605,6 +648,12 @@ dn_l2norm_test: dn_l2norm_test.c ../ref/deltanet.c ../ref/fmath.c
 
 ple_eos_test: ple_eos_test.c ../ref/ple.c ../ref/fmath.c
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ ple_eos_test.c ../ref/ple.c ../ref/fmath.c -I../ref -lm
+
+# Override CUDA_LIBDIR with $(CUDA)/lib64/stubs for compile-only checks.
+# Never add the CUDA stub directory to the runtime library search path.
+CUDA_LIBDIR ?= $(CUDA)/lib64
+qsa_oracle_gpu: qsa_oracle.c qsa_oracle_bridge.c qsa_oracle_gpu.c qsa_oracle_gpu.h dieops.h ../ref/qsa.c ../ref/qsa.h ../ref/attn.c ../ref/attn.h ../ref/fmath.c ../ref/fmath.h
+	$(CC) $(ORACLE_CFLAGS) -DQSA_ORACLE_TARGET -I../ref -I$(CUDA)/include -o $@ qsa_oracle.c qsa_oracle_bridge.c qsa_oracle_gpu.c ../ref/qsa.c ../ref/attn.c ../ref/fmath.c -L$(CUDA_LIBDIR) -lcuda -lm
 
 checked_test: checked_test.c ../ref/checked.c ../ref/checked.h ../ref/attn.c ../ref/qsa.c ../ref/fmath.c
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ checked_test.c ../ref/checked.c ../ref/attn.c ../ref/qsa.c ../ref/fmath.c -I../ref -lm
