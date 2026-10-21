@@ -394,8 +394,8 @@ ple: plerows.cubin plerows_ng.cubin plerows_test plegate pleconv
 
 # ---- the persistent per-die kernel (die.pl stitches the ops together) ----
 DIE_OPS = $(filter-out die.sass die_trace%.sass semtest%.sass bartest.sass fmath.sass gridbar.sass mailbox.sass xmadbench.sass, $(wildcard *.sass)) actq.pl fmath.pl
-die.sass: die.pl trace.pl $(DIE_OPS)
-	DIE_TRACE=0 perl die.pl > $@
+die.sass: die.pl trace.pl $(DIE_OPS) q6kk1536acc_bound.awk
+	DIE_TRACE=0 perl die.pl | gawk -f q6kk1536acc_bound.awk > $@.tmp && mv $@.tmp $@
 
 dieops.h: die.pl
 	perl die.pl header > $@
