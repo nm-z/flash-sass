@@ -329,7 +329,6 @@ void gemv_bf16_ref(const uint16_t *W, int rows, int K, const float *x, float *y)
 		}
 		y[r] = v[0];
 	}
-	return 0;
 }
 
 int q4_k_tile_stride(int K) { return 144 * (K / 256); }
