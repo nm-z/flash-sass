@@ -105,7 +105,10 @@ static size_t dn_bytes[MAXD][NB], conv_bytes[MAXD][NB], kcf, vcf;
 static int state_diff_enabled;
 static unsigned state_diff_hash_calls;
 static unsigned char *state_diff_ref_dn46, *state_diff_ref_conv46;
+static unsigned char *state_diff_ref_b_dn46, *state_diff_ref_b_conv46;
+static unsigned char *state_diff_prev_dn46, *state_diff_prev_conv46;
 static size_t state_diff_dn46_bytes, state_diff_conv46_bytes;
+static char state_diff_previous_name[32];
 static int kv_host = 1;                  /* FLASH_KV_HOST=0: the int8 KV caches in VRAM (small contexts) instead of pinned host memory */
 static void *h_kv;                      /* the host-resident KV caches of all attention layers */
 /* Validation-only raw group maxima. The ordinary cubin has no trace instructions. */
@@ -241,8 +244,8 @@ static void state_diff_measure(const unsigned char *reference,
 	}
 }
 
-/* Opt-in comparison of the first fresh-A state with save-512-A. Layer 46 was
- * the first mismatching state record in the captured kv0-scalar failures. */
+/* Opt-in comparison of layer 46 recurrent state against the matching fresh
+ * request and the immediately previous request in the issue-110 plan. */
 static void state_diff_capture_reference(void) {
 	if (nlayers_run <= 46 || BLK_IS_ATTN(46) || !dst_dn[0][46] || !dst_conv[0][46]) {
 		fprintf(stderr, "STATE_DIFF capture=skipped reason=layer46-not-recurrent\n");
@@ -262,41 +265,153 @@ static void state_diff_capture_reference(void) {
 	CK(cuCtxSetCurrent(ctx[0]));
 	CK(cuMemcpyDtoH(state_diff_ref_dn46, dst_dn[0][46], state_diff_dn46_bytes));
 	CK(cuMemcpyDtoH(state_diff_ref_conv46, dst_conv[0][46], state_diff_conv46_bytes));
-	fprintf(stderr, "STATE_DIFF capture=fresh-A pair_target=save-512-A die=0 layer=46 dn_bytes=%zu conv_bytes=%zu\n",
+	fprintf(stderr, "STATE_DIFF capture=fresh-A die=0 layer=46 dn_bytes=%zu conv_bytes=%zu\n",
 	        state_diff_dn46_bytes, state_diff_conv46_bytes);
 }
 
-static void state_diff_compare_save512a(void) {
-	if (!state_diff_ref_dn46 || !state_diff_ref_conv46 ||
+static void state_diff_capture_b_reference(void) {
+	if (!state_diff_ref_dn46 || !state_diff_ref_conv46) return;
+	state_diff_ref_b_dn46 = malloc(state_diff_dn46_bytes);
+	state_diff_ref_b_conv46 = malloc(state_diff_conv46_bytes);
+	if (!state_diff_ref_b_dn46 || !state_diff_ref_b_conv46) {
+		free(state_diff_ref_b_dn46); free(state_diff_ref_b_conv46);
+		state_diff_ref_b_dn46 = state_diff_ref_b_conv46 = NULL;
+		fprintf(stderr, "STATE_DIFF capture=fresh-B failed reason=host-allocation\n");
+		return;
+	}
+	CK(cuCtxSetCurrent(ctx[0]));
+	CK(cuMemcpyDtoH(state_diff_ref_b_dn46, dst_dn[0][46], state_diff_dn46_bytes));
+	CK(cuMemcpyDtoH(state_diff_ref_b_conv46, dst_conv[0][46], state_diff_conv46_bytes));
+	fprintf(stderr, "STATE_DIFF capture=fresh-B die=0 layer=46\n");
+}
+
+static void state_diff_capture_previous(const char *name) {
+	if (!state_diff_ref_dn46 || !state_diff_ref_conv46) return;
+	state_diff_previous_name[0] = '\0';
+	free(state_diff_prev_dn46); state_diff_prev_dn46 = NULL;
+	free(state_diff_prev_conv46); state_diff_prev_conv46 = NULL;
+	state_diff_prev_dn46 = malloc(state_diff_dn46_bytes);
+	state_diff_prev_conv46 = malloc(state_diff_conv46_bytes);
+	if (!state_diff_prev_dn46 || !state_diff_prev_conv46) {
+		free(state_diff_prev_dn46); free(state_diff_prev_conv46);
+		state_diff_prev_dn46 = state_diff_prev_conv46 = NULL;
+		fprintf(stderr, "STATE_DIFF previous=capture-failed reason=host-allocation\n");
+		return;
+	}
+	CK(cuCtxSetCurrent(ctx[0]));
+	CK(cuMemcpyDtoH(state_diff_prev_dn46, dst_dn[0][46], state_diff_dn46_bytes));
+	CK(cuMemcpyDtoH(state_diff_prev_conv46, dst_conv[0][46], state_diff_conv46_bytes));
+	snprintf(state_diff_previous_name, sizeof state_diff_previous_name, "%s", name);
+	fprintf(stderr, "STATE_DIFF previous=%s die=0 layer=46\n", state_diff_previous_name);
+}
+
+static size_t state_diff_find_float(const unsigned char *data, size_t bytes,
+				    const unsigned char *value, long long *first) {
+	size_t matches = 0;
+	if (first) *first = -1;
+	if (!data) return 0;
+	for (size_t at = 0; at + sizeof(float) <= bytes; at += sizeof(float))
+		if (!memcmp(data + at, value, sizeof(float))) {
+			if (first && *first < 0) *first = (long long)(at / sizeof(float));
+			matches++;
+		}
+	return matches;
+}
+
+static void state_diff_print_first(const char *name, const unsigned char *reference,
+				   const unsigned char *previous,
+				   const unsigned char *snapshot,
+				   const unsigned char *current, size_t bytes,
+				   const char *reference_name, const char *previous_name,
+				   int dn_state) {
+	if (!reference || !current || bytes < sizeof(float)) return;
+	for (size_t at = 0; at + sizeof(float) <= bytes; at += sizeof(float)) {
+		if (!memcmp(reference + at, current + at, sizeof(float))) continue;
+		float a, p = 0.0f, b;
+		uint32_t a_bits, p_bits = 0, b_bits;
+		memcpy(&a, reference + at, sizeof a);
+		memcpy(&b, current + at, sizeof b);
+		int previous_same = previous && !memcmp(previous + at, current + at, sizeof(float));
+		int snapshot_same = snapshot && !memcmp(snapshot + at, current + at, sizeof(float));
+		long long previous_index, reference_index, snapshot_index;
+		size_t previous_matches = state_diff_find_float(previous, bytes, current + at, &previous_index);
+		size_t reference_matches = state_diff_find_float(reference, bytes, current + at, &reference_index);
+		size_t snapshot_matches = state_diff_find_float(snapshot, bytes, current + at, &snapshot_index);
+		if (previous && at + sizeof(float) <= bytes) memcpy(&p, previous + at, sizeof p);
+		memcpy(&a_bits, reference + at, sizeof a_bits);
+		memcpy(&b_bits, current + at, sizeof b_bits);
+		if (previous && at + sizeof(float) <= bytes) memcpy(&p_bits, previous + at, sizeof p_bits);
+		if (dn_state) {
+			size_t index = at / sizeof(float), matrix_index = index % 16384u;
+			fprintf(stderr,
+			        "STATE_DIFF_FIRST buffer=%s die=0 layer=46 final_position=%d flat_index=%zu head=%zu row=%zu col=%zu "
+			        "reference=%s:%.9g(0x%08x) previous=%s:%.9g(0x%08x) current=%.9g(0x%08x) "
+			        "previous_same_index=%s previous_first_index=%lld previous_matches=%zu "
+			        "reference_first_index=%lld reference_matches=%zu snapshot_same_index=%s snapshot_first_index=%lld snapshot_matches=%zu\n",
+			        name, last_positions > 0 ? last_positions - 1 : -1, index, index / 16384u,
+			        matrix_index / 128u, matrix_index % 128u, reference_name, a, a_bits,
+			        previous_name ? previous_name : "none", p, p_bits, b, b_bits,
+			        previous_same ? "yes" : "no", previous_index, previous_matches,
+			        reference_index, reference_matches, snapshot_same ? "yes" : "no", snapshot_index, snapshot_matches);
+		} else {
+			size_t index = at / sizeof(float), nloc = SPLIT_NLOC(&sp[0][46]);
+			fprintf(stderr,
+			        "STATE_DIFF_FIRST buffer=%s die=0 layer=46 final_position=%d flat_index=%zu conv_window_slot=%zu lane=%zu "
+			        "reference=%s:%.9g(0x%08x) previous=%s:%.9g(0x%08x) current=%.9g(0x%08x) "
+			        "previous_same_index=%s previous_first_index=%lld previous_matches=%zu "
+			        "reference_first_index=%lld reference_matches=%zu snapshot_same_index=%s snapshot_first_index=%lld snapshot_matches=%zu\n",
+			        name, last_positions > 0 ? last_positions - 1 : -1, index,
+			        nloc ? index / nloc : 0, nloc ? index % nloc : index, reference_name, a, a_bits,
+			        previous_name ? previous_name : "none", p, p_bits, b, b_bits,
+			        previous_same ? "yes" : "no", previous_index, previous_matches,
+			        reference_index, reference_matches, snapshot_same ? "yes" : "no", snapshot_index, snapshot_matches);
+		}
+		return;
+	}
+}
+
+static void state_diff_compare_request(const char *name, const char *reference_name,
+				       const unsigned char *reference_dn,
+				       const unsigned char *reference_conv) {
+	if (!reference_dn || !reference_conv ||
 	    state_diff_dn46_bytes != dn_bytes[0][46] || state_diff_conv46_bytes != conv_bytes[0][46]) {
-		fprintf(stderr, "STATE_DIFF compare=skipped reason=reference-unavailable\n");
+		fprintf(stderr, "STATE_DIFF compare=%s skipped reason=reference-unavailable\n", name);
 		return;
 	}
 	unsigned char *current_dn = malloc(state_diff_dn46_bytes);
 	unsigned char *current_conv = malloc(state_diff_conv46_bytes);
+	unsigned char *snapshot_dn = snap_dn && snap_dn[0][46] ? malloc(state_diff_dn46_bytes) : NULL;
+	unsigned char *snapshot_conv = snap_conv && snap_conv[0][46] ? malloc(state_diff_conv46_bytes) : NULL;
 	if (!current_dn || !current_conv) {
-		free(current_dn); free(current_conv);
+		free(current_dn); free(current_conv); free(snapshot_dn); free(snapshot_conv);
 		fprintf(stderr, "STATE_DIFF compare=failed reason=host-allocation\n");
 		return;
 	}
 	CK(cuCtxSetCurrent(ctx[0]));
 	CK(cuMemcpyDtoH(current_dn, dst_dn[0][46], state_diff_dn46_bytes));
 	CK(cuMemcpyDtoH(current_conv, dst_conv[0][46], state_diff_conv46_bytes));
+	if (snapshot_dn) CK(cuMemcpyDtoH(snapshot_dn, snap_dn[0][46], state_diff_dn46_bytes));
+	if (snapshot_conv) CK(cuMemcpyDtoH(snapshot_conv, snap_conv[0][46], state_diff_conv46_bytes));
 	state_diff_metric dn = {0}, conv = {0};
-	state_diff_measure(state_diff_ref_dn46, current_dn, state_diff_dn46_bytes, &dn);
-	state_diff_measure(state_diff_ref_conv46, current_conv, state_diff_conv46_bytes, &conv);
+	state_diff_measure(reference_dn, current_dn, state_diff_dn46_bytes, &dn);
+	state_diff_measure(reference_conv, current_conv, state_diff_conv46_bytes, &conv);
 	double max_abs = fmax(dn.max_abs, conv.max_abs);
 	double max_rel = fmax(dn.max_rel, conv.max_rel);
 	fprintf(stderr,
-	        "STATE_DIFF pair=fresh-A/save-512-A die=0 layer=46 metric=fp32-denom=max_abs_reference_or_current "
+	        "STATE_DIFF pair=%s/reference=%s/previous=%s die=0 layer=46 metric=fp32-denom=max_abs_reference_or_current "
 	        "dn_values=%zu dn_diff=%zu dn_max_abs=%.9g dn_max_rel=%.9g "
 	        "conv_values=%zu conv_diff=%zu conv_max_abs=%.9g conv_max_rel=%.9g "
 	        "combined_values=%zu combined_diff=%zu combined_max_abs=%.9g combined_max_rel=%.9g nonfinite=%zu\n",
+	        name, reference_name, state_diff_previous_name[0] ? state_diff_previous_name : "none",
 	        dn.values, dn.differing, dn.max_abs, dn.max_rel,
 	        conv.values, conv.differing, conv.max_abs, conv.max_rel,
 	        dn.values + conv.values, dn.differing + conv.differing, max_abs, max_rel,
 	        dn.nonfinite + conv.nonfinite);
-	free(current_dn); free(current_conv);
+	state_diff_print_first("dst_dn", reference_dn, state_diff_prev_dn46, snapshot_dn,
+	                        current_dn, state_diff_dn46_bytes, reference_name, state_diff_previous_name, 1);
+	state_diff_print_first("dst_conv", reference_conv, state_diff_prev_conv46, snapshot_conv,
+	                        current_conv, state_diff_conv46_bytes, reference_name, state_diff_previous_name, 0);
+	free(current_dn); free(current_conv); free(snapshot_dn); free(snapshot_conv);
 }
 
 static void state_hashes(FILE *out) {
@@ -304,7 +419,32 @@ static void state_hashes(FILE *out) {
 	if (state_diff_enabled) {
 		state_diff_hash_calls++;
 		if (state_diff_hash_calls == 1) state_diff_capture_reference();
-		else if (state_diff_hash_calls == 3) state_diff_compare_save512a();
+		else if (state_diff_hash_calls == 2) {
+			state_diff_capture_b_reference();
+			state_diff_capture_previous("fresh-B");
+		} else {
+			const char *name = NULL, *reference_name = NULL;
+			const unsigned char *reference_dn = NULL, *reference_conv = NULL;
+			switch (state_diff_hash_calls) {
+			case 3: name = "save-512-A"; reference_name = "fresh-A"; break;
+			case 4: name = "resume-512-A"; reference_name = "fresh-A"; break;
+			case 5: name = "reset-512-B"; reference_name = "fresh-B"; break;
+			case 6: name = "save-515-A"; reference_name = "fresh-A"; break;
+			case 7: name = "resume-515-A"; reference_name = "fresh-A"; break;
+			case 8: name = "reset-515-B"; reference_name = "fresh-B"; break;
+			case 9: name = "final-A"; reference_name = "fresh-A"; break;
+			default: name = "other"; break;
+			}
+			if (!strcmp(reference_name ? reference_name : "", "fresh-A")) {
+				reference_dn = state_diff_ref_dn46; reference_conv = state_diff_ref_conv46;
+			} else if (!strcmp(reference_name ? reference_name : "", "fresh-B")) {
+				reference_dn = state_diff_ref_b_dn46; reference_conv = state_diff_ref_b_conv46;
+			}
+			if (reference_dn && reference_conv)
+				state_diff_compare_request(name, reference_name, reference_dn, reference_conv);
+			if (state_diff_hash_calls < 10 && name && strcmp(name, "other"))
+				state_diff_capture_previous(name);
+		}
 	}
 	fprintf(out, "statehash positions=%d paired_positions=%d prefill_chunks=%d\n", last_positions, last_paired_positions, last_prefill_chunks);
 	for (int d = 0; d < nd; d++) {
@@ -964,8 +1104,12 @@ int engine_init(core_t *c) {
 	core = c; in_init = 1;
 	free(state_diff_ref_dn46); state_diff_ref_dn46 = NULL;
 	free(state_diff_ref_conv46); state_diff_ref_conv46 = NULL;
+	free(state_diff_ref_b_dn46); state_diff_ref_b_dn46 = NULL;
+	free(state_diff_ref_b_conv46); state_diff_ref_b_conv46 = NULL;
+	free(state_diff_prev_dn46); state_diff_prev_dn46 = NULL;
+	free(state_diff_prev_conv46); state_diff_prev_conv46 = NULL;
 	state_diff_dn46_bytes = state_diff_conv46_bytes = 0;
-	state_diff_hash_calls = 0;
+	state_diff_hash_calls = 0; state_diff_previous_name[0] = '\0';
 	const char *state_diff_env = getenv("FLASH_STATE_DIFF");
 	if (state_diff_env && strcmp(state_diff_env, "0") && strcmp(state_diff_env, "1")) {
 		fprintf(stderr, "FLASH_STATE_DIFF must be 0 or 1\n");
@@ -1220,8 +1364,12 @@ void engine_fini(void) {
 	ple_cache_path[0]=0;ple_cache_active=0;
 	free(state_diff_ref_dn46); state_diff_ref_dn46 = NULL;
 	free(state_diff_ref_conv46); state_diff_ref_conv46 = NULL;
+	free(state_diff_ref_b_dn46); state_diff_ref_b_dn46 = NULL;
+	free(state_diff_ref_b_conv46); state_diff_ref_b_conv46 = NULL;
+	free(state_diff_prev_dn46); state_diff_prev_dn46 = NULL;
+	free(state_diff_prev_conv46); state_diff_prev_conv46 = NULL;
 	state_diff_dn46_bytes = state_diff_conv46_bytes = 0;
-	state_diff_hash_calls = 0; state_diff_enabled = 0;
+	state_diff_hash_calls = 0; state_diff_enabled = 0; state_diff_previous_name[0] = '\0';
 	if (!core) return;
 	for (int d = 0; d < nd; d++) { if (pollst[d]) { cuCtxSetCurrent(ctx[d]); cuStreamDestroy(pollst[d]); pollst[d] = 0; } }
 	cuCtxSetCurrent(ctx[0]);
