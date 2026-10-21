@@ -3,6 +3,7 @@
 
 /* Known positions per host chunk; device programs remain B1 or B2. */
 #define FLASH_PREFILL_CHUNK_MAX 4096
+#define FLASH_PREFILL_AUTO_THRESHOLD FLASH_PREFILL_CHUNK_MAX
 typedef struct {
     int begin;
     int end;      /* exclusive; excludes the final prompt position */
@@ -23,6 +24,15 @@ static inline int prefill_parse_chunk(const char *text, int *size) {
     }
     *size = value;
     return 0;
+}
+
+/* Keep an unchunked kernel bounded for long uncached prompts. An explicit
+ * chunk size always wins; an explicit zero disables the automatic policy. */
+static inline int prefill_effective_chunk(int configured, int automatic,
+                                          int pending_positions) {
+    if (configured > 0) return configured;
+    return automatic && pending_positions > FLASH_PREFILL_AUTO_THRESHOLD
+        ? FLASH_PREFILL_CHUNK_MAX : 0;
 }
 
 /* Plan [position,min(until,nprompt-1)), stopping exactly at snapshots.

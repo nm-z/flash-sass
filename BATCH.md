@@ -39,12 +39,15 @@ independent; no expert-union optimization is claimed.
 
 ## Implemented chunked prefill
 
-`FLASH_PREFILL_CHUNK=N` bounds each host submission to at most N known prompt
-positions. An absent setting or `0` disables it; decimal sizes `1..4096` are
-accepted and malformed or out-of-range settings fail engine initialization.
-Sizes above one enable the paired pass by default. An explicit
-`FLASH_TWO_POSITION=0` selects scalar microbatches within the same headless chunks;
-`FLASH_TWO_POSITION=1` retains pairing even when chunking is disabled.
+With `FLASH_PREFILL_CHUNK` unset, prompts with more than 4096 uncached known
+positions are automatically split into chunks of at most 4096. Shorter prompts
+keep the single-launch path. Set it to `0` to disable automatic chunking, or use
+a decimal size from `1..4096` to choose a chunk size explicitly; malformed or
+out-of-range settings fail engine initialization. Explicit sizes above one enable
+the paired pass by default. An explicit `FLASH_TWO_POSITION=0` selects scalar
+microbatches within chunks; `FLASH_TWO_POSITION=1` retains pairing even when
+chunking is disabled. Automatic chunks keep the configured pairing setting,
+which remains scalar by default.
 
 For requests that generate tokens, the prefix program omits the vocabulary head
 and sampler. It consumes only `[resume, nprompt-1)`, splitting chunks at exact

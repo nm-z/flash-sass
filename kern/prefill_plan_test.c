@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 static void parse_tests(void) {
     struct { const char *text; int expected; } ok[] = {
@@ -18,6 +19,15 @@ static void parse_tests(void) {
         assert(prefill_parse_chunk(bad[i],&size)==-1 && size==77);
     }
     assert(prefill_parse_chunk("64",NULL)==-1);
+}
+static void selection_tests(void) {
+    assert(prefill_effective_chunk(0,1,4096)==0);
+    assert(prefill_effective_chunk(0,1,4097)==4096);
+    assert(prefill_effective_chunk(0,1,41500)==4096);
+    assert(prefill_effective_chunk(0,0,41500)==0);
+    assert(prefill_effective_chunk(64,1,41500)==64);
+    assert(prefill_effective_chunk(1,1,41500)==1);
+    assert(prefill_effective_chunk(4096,0,41500)==4096);
 }
 static int collect(int pos,int nprompt,int until,int size,int paired,
                    int *seen,int *chunks,int cancel_after) {
@@ -92,8 +102,20 @@ static void edge_tests(void) {
     assert(prefill_plan_chunk(0,2,2,4097,1,&c)==-1);
     assert(prefill_plan_chunk(0,2,2,64,1,NULL)==-1);
 }
+static void long_prompt_auto_plan_test(void) {
+    const int nprompt=41500;
+    int chunk=prefill_effective_chunk(0,1,nprompt);
+    int *seen=calloc((size_t)nprompt,sizeof *seen);
+    assert(seen && chunk==4096);
+    int chunks=0;
+    assert(collect(0,nprompt,nprompt,chunk,0,seen,&chunks,0)==nprompt-1);
+    assert(chunks==11);
+    for(int p=0;p<nprompt-1;p++)assert(seen[p]==1);
+    assert(seen[nprompt-1]==0); /* the final prompt position uses the full B1 head */
+    free(seen);
+}
 int main(void) {
-    parse_tests();range_tests();snapshot_cancel_tests();edge_tests();
-    puts("prefill planner: configuration, exhaustive boundaries, snapshot, cancellation, overflow PASS");
+    parse_tests();selection_tests();range_tests();snapshot_cancel_tests();edge_tests();long_prompt_auto_plan_test();
+    puts("prefill planner: configuration, automatic selection, exhaustive boundaries, snapshot, cancellation, overflow PASS");
     return 0;
 }

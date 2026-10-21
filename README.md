@@ -29,6 +29,11 @@ stay B1. Set `FLASH_PREFILL_CHUNK=0` to disable chunking, or set it to a size fr
 scalar microbatches for any chunk size. Set `FLASH_TWO_POSITION=1` to use paired execution
 even when chunking is disabled. See [BATCH.md](BATCH.md) and [PAIR_TESTING.md](PAIR_TESTING.md).
 
+For direct engine loads with `FLASH_PREFILL_CHUNK` unset, requests with more
+than 4096 positions still to run from the prefix-cache resume point automatically
+use chunks of at most 4096. Prompt-only requests use the headless prefix chunks
+too; the final prompt position still runs the full B1 head.
+
 `FLASH_ATTN_Q_SPLIT=1` distributes the 12,288-row attention query projection
 across dies with space for local weight slices. At engine initialization it
 copies those slices from the resident weight arenas. With at least three
