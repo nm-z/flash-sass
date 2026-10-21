@@ -2,7 +2,7 @@
 #define FLASH_PREFILL_H
 
 /* Known positions per host chunk; device programs remain B1 or B2. */
-#define FLASH_PREFILL_CHUNK_MAX 4096
+#define FLASH_PREFILL_CHUNK_MAX 16384
 typedef struct {
     int begin;
     int end;      /* exclusive; excludes the final prompt position */

@@ -9,9 +9,9 @@ static split_t mtp_splits[MAXD];
 static mtp_buffers_t mtp_buffers[MAXD];
 static xchg_t mtp_exchange[MAXD];
 static CUmodule mtp_module[MAXD];static CUfunction mtp_function[MAXD];
-static CUdeviceptr mtp_control[MAXD],mtp_hidden[MAXD],mtp_device_program[3][MAXD];
-static prog_t mtp_programs[3][MAXD];
-static unsigned mtp_phases[3][MAXD],mtp_cache_positions;
+static CUdeviceptr mtp_control[MAXD],mtp_hidden[MAXD],mtp_device_program[4][MAXD];
+static prog_t mtp_programs[4][MAXD];
+static unsigned mtp_phases[4][MAXD],mtp_cache_positions,mtp_drafts=1;
 static char mtp_model_path[1024],mtp_cubin_path[1024];static uint64_t mtp_cubin_fnv;
 static unsigned mtp_steps,mtp_proposals,mtp_matches;
 static unsigned mtp_full_positions,mtp_full_batches;
@@ -54,7 +54,7 @@ static void mtp_inspect_program(int d,const prog_t *program,const uint32_t contr
 static void mtp_fini(void) {
     if(core) for(int d=0;d<nd;d++) {
         if(mtp_module[d]) { cuCtxSetCurrent(ctx[d]);cuModuleUnload(mtp_module[d]); }
-        for(int h=0;h<3;h++)prog_free(&mtp_programs[h][d]);
+        for(int h=0;h<4;h++)prog_free(&mtp_programs[h][d]);
     }
     if(mtp_file_live)gguf_close(&mtp_file);
     memset(&mtp_file,0,sizeof mtp_file);mtp_file_live=0;mtp_embedding=NULL;mtp_enabled=0;
@@ -68,12 +68,17 @@ static void mtp_fini(void) {
 static void mtp_init(void) {
     const char *option=getenv("FLASH_MTP_AUDIT");
     if(!option || !strcmp(option,"0"))return;
+#ifdef FLASH_DFLASH_NATIVE
+    if(!strcmp(option,"4")) { mtp_enabled=4;mtp_drafts=1;return; }
+#endif
+    mtp_drafts=getenv("FLASH_MTP_DRAFTS")?(unsigned)atoi(getenv("FLASH_MTP_DRAFTS")):1;
+    if(mtp_drafts!=1 && mtp_drafts!=4) { fprintf(stderr,"engine: MTP drafts must be1 or4\n");longjmp(init_jb,1); }
+    if(mtp_drafts==4 && exact_width!=5) { fprintf(stderr,"engine: four drafts require five-position target mode\n");longjmp(init_jb,1); }
     if((strcmp(option,"1") && strcmp(option,"2") && strcmp(option,"3")) || nd!=6 || nlayers_run!=48 || nblk_qsa!=512) {
         fprintf(stderr,"engine: MTP requires mode1(shadow) or2(unchecked rollout), six dies, full48/B512\n");longjmp(init_jb,1);
     }
     if((getenv("FLASH_FUSED_MOE") && atoi(getenv("FLASH_FUSED_MOE"))) ||
-       (getenv("FLASH_FAST_EXCHANGE") && atoi(getenv("FLASH_FAST_EXCHANGE"))) ||
-       (getenv("FLASH_CHUNK_PREFILL") && atoi(getenv("FLASH_CHUNK_PREFILL")))) {
+       (getenv("FLASH_FAST_EXCHANGE") && atoi(getenv("FLASH_FAST_EXCHANGE")))) {
         fprintf(stderr,"engine: MTP audit requires ordinary target phases\n");longjmp(init_jb,1);
     }
     const char *model=getenv("FLASH_MTP_MODEL"),*cubin=getenv("FLASH_MTP_CUBIN");
@@ -140,12 +145,12 @@ static void mtp_init(void) {
             pkt=dalloc((size_t)mtp_cache_positions/128*8192);ring=dalloc(2048);
         }
         qsa_bind_layer(b,nblk_qsa,kq,ks,vq,vs,pkt,ring);b->kv_rawmax=0;
-        for(int head=0;head<3;head++) {
+        for(int head=0;head<4;head++) {
             prog_t *p=&mtp_programs[head][d];prog_init(p);p->loop=1;p->end=mtp_control[d]+0x14;
-            if(mtp_program(p,&split,x,&mtp_weights[d],mb,mtp_hidden[d],0,0,eps,head==1) || p->n>512) {
+            if(mtp_program(p,&split,x,&mtp_weights[d],mb,mtp_hidden[d],0,0,eps,head==1 || head==3) || p->n>512) {
                 fprintf(stderr,"engine: cannot build MTP program on die%d\n",d);longjmp(init_jb,1);
             }
-            if(head==2) {
+            if(head>=2) {
                 /* Reuse selection across speculative steps. Keep IDXQK to
                  * append pooled keys/ring state; omit scoring and top-k. */
                 int n=0;
@@ -219,9 +224,9 @@ static uint32_t mtp_step(unsigned position,uint32_t token,int head) {
         bad+=mtp_check_completed("draft",d,control,position+1,mtp_expected_xgen[d],&mtp_exchange[d]);
     }
     if(bad)longjmp(run_jb,1);
-    if(head==1) { CK(cuCtxSetCurrent(ctx[0]));CK(cuMemcpyDtoH(&prediction,mtp_buffers[0].base.toks+4u*position,4)); }
-    double ms=(now()-begin)*1e3;mtp_total_ms+=ms;if(head==1)mtp_head_ms+=ms;mtp_steps++;
-    mtp_index_reuses+=head==2;
+    if(head==1 || head==3) { CK(cuCtxSetCurrent(ctx[0]));CK(cuMemcpyDtoH(&prediction,mtp_buffers[0].base.toks+4u*position,4)); }
+    double ms=(now()-begin)*1e3;mtp_total_ms+=ms;if(head==1 || head==3)mtp_head_ms+=ms;mtp_steps++;
+    mtp_index_reuses+=head>=2;
     return prediction;
 }
 
@@ -234,7 +239,11 @@ static void mtp_target_step(runctx *r,const unsigned phases[MAXD],unsigned end,c
     for(int d=0;d<nd;d++) { CK(cuCtxSetCurrent(ctx[d]));CK(cuMemsetD32(dCTL[d]+0x2c,0,1)); }
     for(int d=0;d<nd;d++) {
         CK(cuCtxSetCurrent(ctx[d]));void *args[]={&dPROG[d],(void *)&phases[d],&dCTL[d],&end};
-        CK(cuLaunchKernel(fn[d],16,1,1,256,1,1,0,0,args,NULL));
+        CUfunction target=fn[d];
+#ifdef FLASH_EXACT_BATCH
+        if(exact_width && active_program_positions>1)target=exact_fn[d];
+#endif
+        CK(cuLaunchKernel(target,16,1,1,256,1,1,0,0,args,NULL));
     }
     for(;;) {
         int done=1;
@@ -281,7 +290,73 @@ static void mtp_target_step(runctx *r,const unsigned phases[MAXD],unsigned end,c
 /* MTP supplies the next input to a two-position invocation of the production
  * full model. Both positions run every layer and the target output head.
  * This deliberately has no proposal comparison, acceptance, or state rewind. */
+#ifdef FLASH_CHUNK_NATIVE
+static void mtp_chunk_seed(unsigned start,unsigned count,unsigned stride) {
+    float *slab=malloc(4ull*10240*stride),hidden[10240];
+    if(!slab) { fprintf(stderr,"engine: MTP chunk hidden allocation\n");longjmp(run_jb,1); }
+    CK(cuCtxSetCurrent(ctx[0]));CK(cuMemcpyDtoH(slab,cbuf[0].S,4ull*10240*stride));
+    for(unsigned p=0;p<count;p++) {
+        mtp_step(start+p,h_ids[start+p],0);
+        for(unsigned row=0;row<10240;row++)hidden[row]=slab[(size_t)row*stride+p];
+        for(int d=0;d<nd;d++) { CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyHtoD(mtp_hidden[d],hidden,sizeof hidden)); }
+    }
+    free(slab);
+}
+#endif
+
+static void mtp_four_run(runctx *r,const prog_t *full,const prog_t *prefix,const uint32_t stop[2]) {
+    mtp_reset();unsigned phases[MAXD];prog_t *wide[6]={0};
+    const uint32_t no_stop[2]={UINT32_MAX,UINT32_MAX};
+    for(unsigned width=2;width<=5;width++) {
+        wide[width]=new_request_programs();if(!wide[width]) { fprintf(stderr,"engine: MTP wide program allocation failed\n");longjmp(run_jb,1); }
+        for(int d=0;d<nd;d++) {
+            prog_t one[5]={{0}};const prog_t *positions[5];
+            for(unsigned p=0;p<width;p++) { model_program(&one[p],d,p,UINT32_MAX,no_stop,0,1,1,1,0);positions[p]=&one[p]; }
+            prog_init(&wide[width][d]);int rc=prog_group_aliased(&wide[width][d],positions,width);
+            for(unsigned p=0;p<width;p++)prog_free(&one[p]);
+            if(rc) { fprintf(stderr,"engine: MTP wide target construction failed\n");longjmp(run_jb,1); }
+            if(width==2)prog_pair_fuse_bf16(&wide[width][d],1);
+        }
+    }
+#ifdef FLASH_CHUNK_NATIVE
+    if(chunk_ldx) { chunk_on_hidden=mtp_chunk_seed;chunk_prefill(r,r->nprompt-1,0);chunk_on_hidden=NULL; }
+#endif
+    upload_programs(prefix,phases,1);
+    while(!r->aborted && r->count<r->nprompt-1) {
+        unsigned p=(unsigned)r->count;ple_pump(r,8);mtp_step(p,h_ids[p],0);
+        mtp_target_step(r,phases,p+1,prefix);
+        for(int d=0;d<nd;d++) { CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoD(mtp_hidden[d],db[d].S,4*10240)); }
+    }
+    unsigned uploaded=0;
+    while(!r->aborted && !r->ended && r->count<r->T) {
+        unsigned p=(unsigned)r->count,width=(unsigned)(r->T-r->count);if(width>5)width=5;
+        uint32_t input[5]={p<(unsigned)r->nprompt?h_ids[p]:h_toks[p-1],0,0,0,0};
+        for(unsigned j=0;j+1<width;j++) {
+            input[j+1]=mtp_step(p+j,input[j],j?3:1);mtp_proposals++;
+            for(int d=0;d<nd;d++) { CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoD(mtp_hidden[d],mtp_buffers[d].base.S,4*10240)); }
+        }
+        for(int d=0;d<nd;d++) { CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyHtoD(db[d].ids+4ull*p,input,4u*width)); }
+        for(unsigned j=0;j<width;j++)ple_seq[p+j]=input[j];
+        runctx staging=*r;staging.nprompt=(int)(p+width);ple_pump(&staging,(int)width);
+        const prog_t *program=width==1?full:wide[width];
+        if(uploaded!=width) { upload_programs(program,phases,width);uploaded=width; }
+        runctx pending=*r;pending.sent=(int)(p+width);pending.cb=NULL;
+        mtp_target_step(&pending,phases,p+width,program);
+        if(width>1)for(int d=0;d<nd;d++) { CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoD(mtp_hidden[d],position_buf(d,width-2)->S,4*10240)); }
+        mtp_step(p+width-1,input[width-1],width>1?2:0);
+        for(int d=0;d<nd;d++) { CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoD(mtp_hidden[d],position_buf(d,width-1)->S,4*10240)); }
+        CK(cuCtxSetCurrent(ctx[0]));CK(cuMemcpyDtoH(h_toks+p,db[0].toks+4ull*p,4u*width));
+        mtp_full_positions+=width;mtp_full_batches++;r->count=(int)(p+width);trace_completed=p+width;
+        last_timing.completed=r->count;last_timing.counts_known=1;last_timing.run_ms=(now()-timing_run_start)*1e3;
+        if(!r->tfirst)r->tfirst=now();
+        last_timing.first_valid=1;last_timing.first_ms=(r->tfirst-timing_run_start)*1e3;
+        for(;r->sent<r->count && !r->aborted && !r->ended;r->sent++) { uint32_t token=h_toks[r->sent];r->ended=token==stop[0]||token==stop[1];deliver_token(r,r->sent,token); }
+        if(!r->aborted && r->cb && r->cb->alive && r->cb->alive(r->cb->arg))r->aborted=1;
+    }
+}
+
 static void mtp_full_run(runctx *r,const prog_t *full,const prog_t *prefix,const uint32_t stop[2]) {
+    if(mtp_drafts==4) { mtp_four_run(r,full,prefix,stop);return; }
     mtp_reset();unsigned phases[MAXD];
     prog_t *paired=new_request_programs();
     if(!paired) { fprintf(stderr,"engine: MTP paired program allocation failed\n");longjmp(run_jb,1); }
@@ -389,8 +464,13 @@ static void mtp_audit_run(runctx *r,const prog_t *full,const prog_t *prefix,cons
 
 static void mtp_stats(FILE *out) {
     if(mtp_enabled==3) {
-        fprintf(out,"mtpstats mode=full_model_unchecked enabled=3 draft_steps=%u proposals=%u target_generated_positions=%u target_batches=%u target_layers=48 batch_width=2 draft_ms=%.6f qsa_index_reuse_steps=%u comparisons=0 acceptance=0 recovery=0 fallback=0\n",
-                mtp_steps,mtp_proposals,mtp_full_positions,mtp_full_batches,mtp_total_ms,mtp_index_reuses);
+        fprintf(out,"mtpstats mode=full_model_unchecked enabled=3 draft_steps=%u proposals=%u target_generated_positions=%u target_batches=%u target_layers=48 batch_width=%u drafts_per_batch=%u draft_ms=%.6f qsa_index_reuse_steps=%u comparisons=0 acceptance=0 recovery=0 fallback=0",
+                mtp_steps,mtp_proposals,mtp_full_positions,mtp_full_batches,mtp_drafts+1,mtp_drafts,mtp_total_ms,mtp_index_reuses);
+#ifdef FLASH_CHUNK_NATIVE
+        fprintf(out," prefill_batched_positions=%d prefill_tile=%u prefill_chunk=%d prefill_kernel_ms=%.6f",chunk_positions,chunk_ldx,prefill_chunk,chunk_ms);
+#endif
+        fprintf(out," gr_write_read_fusions_per_position=%u",gr_fusions);
+        fputc('\n',out);
         fflush(out);return;
     }
     fprintf(out,"mtpstats shadow=%d enabled=%d steps=%u one_step_proposals=%u one_step_matches=%u draft_ms=%.6f head_draft_ms=%.6f rollout_tokens=%u target_verified=0\n",

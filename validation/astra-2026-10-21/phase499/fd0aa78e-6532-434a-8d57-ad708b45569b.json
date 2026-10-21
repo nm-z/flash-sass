@@ -1,0 +1,57 @@
+[
+  {
+    "id": 125102,
+    "job_id": "fd0aa78e-6532-434a-8d57-ad708b45569b",
+    "kind": "collector_error",
+    "source": "engine",
+    "ordinal": 0,
+    "observed_ns": "1792623329359395600",
+    "bytes": 33,
+    "sha256": "1c835d1474a0ba13b2b65c263538f62a76d41505746178a70d420565ea159e77",
+    "text": "Timeout::Error: execution expired"
+  },
+  {
+    "id": 125103,
+    "job_id": "fd0aa78e-6532-434a-8d57-ad708b45569b",
+    "kind": "collector_error",
+    "source": "gpu",
+    "ordinal": 0,
+    "observed_ns": "1792623349499529212",
+    "bytes": 53,
+    "sha256": "577d17f982c9776eed2ab6a2956cec7cdef2d6e97ad1af48ea2e3e4d95c4ff32",
+    "text": "RuntimeError: collector command timed out: nvidia-smi"
+  },
+  {
+    "id": 125104,
+    "job_id": "fd0aa78e-6532-434a-8d57-ad708b45569b",
+    "kind": "collector_error",
+    "source": "process",
+    "ordinal": 0,
+    "observed_ns": "1792623349507177675",
+    "bytes": 95,
+    "sha256": "e206ca75437f19ceed15dc6be6bd97d7d393f30b7dc3bd513dd786a143330701",
+    "text": "RuntimeError: process exited before a tree sample; waited resource usage is recorded separately"
+  },
+  {
+    "id": 125106,
+    "job_id": "fd0aa78e-6532-434a-8d57-ad708b45569b",
+    "kind": "collector_error",
+    "source": "engine",
+    "ordinal": 1,
+    "observed_ns": "1792623349519908411",
+    "bytes": 72,
+    "sha256": "883f3a9f8c1f3cfbcd6e7aaafe5799d3e9ff40bfdf3e4db3582e37fd1297d41a",
+    "text": "Errno::ECONNREFUSED: Connection refused - connect(2) for /tmp/flash.sock"
+  },
+  {
+    "id": 125107,
+    "job_id": "fd0aa78e-6532-434a-8d57-ad708b45569b",
+    "kind": "collector_error",
+    "source": "trace",
+    "ordinal": 0,
+    "observed_ns": "1792623349521786516",
+    "bytes": 103,
+    "sha256": "30349a93d1d8c356fb6dc81ab296392e83b76d83f2b7e22d67e7a50c1df4d6d1",
+    "text": "RuntimeError: resident engine has no enabled trace producer; raw job-provided traces are still imported"
+  }
+]

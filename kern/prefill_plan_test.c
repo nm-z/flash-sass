@@ -5,14 +5,14 @@
 
 static void parse_tests(void) {
     struct { const char *text; int expected; } ok[] = {
-        {NULL,0},{"0",0},{"1",1},{"2",2},{"64",64},{"00064",64},{"4096",4096}
+        {NULL,0},{"0",0},{"1",1},{"2",2},{"64",64},{"00064",64},{"4096",4096},{"16384",16384}
     };
     for (unsigned i=0;i<sizeof ok/sizeof ok[0];i++) {
         int size=-1;
         assert(prefill_parse_chunk(ok[i].text,&size)==0);
         assert(size==ok[i].expected);
     }
-    const char *bad[]={"","-1","+1"," 2","2 ","2x","1.5","4097","2147483647","999999999999999999999999"};
+    const char *bad[]={"","-1","+1"," 2","2 ","2x","1.5","16385","2147483647","999999999999999999999999"};
     for(unsigned i=0;i<sizeof bad/sizeof bad[0];i++) {
         int size=77;
         assert(prefill_parse_chunk(bad[i],&size)==-1 && size==77);
@@ -89,7 +89,7 @@ static void edge_tests(void) {
     assert(prefill_plan_chunk(1,2,0,64,1,&c)==-1);
     assert(prefill_plan_chunk(0,2,3,64,1,&c)==-1);
     assert(prefill_plan_chunk(0,2,2,0,1,&c)==-1);
-    assert(prefill_plan_chunk(0,2,2,4097,1,&c)==-1);
+    assert(prefill_plan_chunk(0,2,2,16385,1,&c)==-1);
     assert(prefill_plan_chunk(0,2,2,64,1,NULL)==-1);
 }
 int main(void) {

@@ -24,3 +24,9 @@ mtp_load_test: mtp/load_test.c mtp/load.c mtp/load.h mtp/model.h mtp_ops.h prog.
 
 libengine_mtp.so: $(ENGINE_SRC) $(MTP_ENGINE_SRC) mtp/engine_mtp.c mtp/model.h mtp/load.h mtp/prog.h mtp_ops.h exact_ops.h exactbatch/prog_group.c exactbatch/prog_group.h prog.h engine.h core.h prefill.h trace_host.inc timings.h qsa_state.h ple_read_pool.h ple_read_reload.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -pthread -DFLASH_EXACT_BATCH -DFLASH_MTP_NATIVE -DFLASH_REV='"$(FLASH_REV)-mtp"' -o $@.new $(ENGINE_SRC) $(MTP_ENGINE_SRC) exactbatch/prog_group.c -I. -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
+
+libengine_dflash.so: $(ENGINE_SRC) $(MTP_ENGINE_SRC) mtp/engine_mtp.c dflash/engine_dflash.c json.c json.h chunk_ops.h exact_ops.h exactbatch/prog_group.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -pthread -DFLASH_EXACT_BATCH -DFLASH_MTP_NATIVE -DFLASH_DFLASH_NATIVE -DFLASH_REV='"$(FLASH_REV)-dflash2"' -o $@.new $(ENGINE_SRC) $(MTP_ENGINE_SRC) exactbatch/prog_group.c json.c -I. -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
+
+libengine_mtp_chunk.so: $(ENGINE_SRC) $(MTP_ENGINE_SRC) mtp/engine_mtp.c chunk/engine_chunk.c chunk/prog_chunk.c chunk_ops.h exact_ops.h exactbatch/prog_group.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -pthread -DFLASH_EXACT_BATCH -DFLASH_MTP_NATIVE -DFLASH_CHUNK_NATIVE -DFLASH_REV='"$(FLASH_REV)-mtp-chunk"' -o $@.new $(ENGINE_SRC) $(MTP_ENGINE_SRC) exactbatch/prog_group.c chunk/prog_chunk.c -I. -Ichunk -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@

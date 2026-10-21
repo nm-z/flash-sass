@@ -5,6 +5,47 @@ die_exact.cubin: die_exact.sass die_exact.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ die_exact.ptx
 	$(MAXAS) -i die_exact.sass $@
 
+die_gr.sass: die.sass die_exact.sass gr/link.lua
+	$(LUA) gr/link.lua die.sass die_exact.sass $@
+die_gr.cubin: die_gr.sass die_gr.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ die_gr.ptx
+	$(MAXAS) -i die_gr.sass $@
+
+die_phase.sass: die.sass die_gr.sass phase/quant.lua phase/local.lua phase/publish.lua phase/gdn.lua phase/moe.lua phase/router.lua phase/chain.lua phase/attention.lua phase/quant_emit.lua phase/select.lua phase/shared.lua phase/score_select.lua phase/part_merge.lua phase/ple.lua phase/ple_rows.lua phase/edges.lua die_fused.sass
+	$(LUA) phase/quant.lua die.sass die_gr.sass $@.quant
+	$(LUA) phase/local.lua die.sass $@.quant $@.local
+	$(LUA) phase/gdn.lua die.sass $@.local $@.gdn
+	$(LUA) phase/publish.lua $@.gdn $@.publish
+	$(LUA) phase/moe.lua die_fused.sass $@.publish $@.moe
+	$(LUA) phase/router.lua die.sass $@.moe $@.router
+	$(LUA) phase/attention.lua die.sass $@.router $@.attention
+	$(LUA) phase/select.lua die.sass $@.attention $@.select
+	$(LUA) phase/shared.lua $@.select $@.shared
+	$(LUA) phase/score_select.lua die.sass $@.shared $@.score
+	$(LUA) phase/part_merge.lua die.sass $@.score $@.part
+	$(LUA) phase/ple.lua die.sass $@.part $@.ple
+	$(LUA) phase/ple_rows.lua die.sass $@.ple $@.plerows
+	$(LUA) phase/edges.lua $@.plerows $@.edges
+	$(LUA) phase/chain.lua $@.edges $@
+die_phase.cubin: die_phase.sass die_phase.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ die_phase.ptx
+	$(MAXAS) -i die_phase.sass $@
+
+libengine.so libengine_exact.so libengine_mtp.so libengine_mtp_chunk.so libengine_dflash.so libengine_verify.so libengine_chunk.so: phase/plan.h phase/ownership.h
+
+die_gr_fp8.sass: die_gr.sass fp8/link.lua
+	$(LUA) fp8/link.lua $< $@
+die_chunk_fp8.sass: die_chunk.sass fp8/link.lua
+	$(LUA) fp8/link.lua $< $@
+die_gr_fp8.cubin: die_gr_fp8.sass die_gr_fp8.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ die_gr_fp8.ptx
+	$(MAXAS) -i die_gr_fp8.sass $@
+die_chunk_fp8.cubin: die_chunk_fp8.sass die_chunk_fp8.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ die_chunk_fp8.ptx
+	$(MAXAS) -i die_chunk_fp8.sass $@
+
+libengine.so libengine_exact.so libengine_mtp.so libengine_mtp_chunk.so libengine_dflash.so libengine_verify.so libengine_chunk.so: fp8/storage.h
+
 EXACT_TEST_SRC = exactbatch/prog_group.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c
 libengine_exact.so: $(ENGINE_SRC) exactbatch/prog_group.c exactbatch/prog_group.h exact_ops.h prog.h engine.h core.h prefill.h trace_host.inc timings.h qsa_state.h ple_read_pool.h ple_read_reload.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -pthread -DFLASH_EXACT_BATCH -DFLASH_REV='"$(FLASH_REV)-exact"' -o $@.new $(ENGINE_SRC) exactbatch/prog_group.c -I. -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
@@ -26,3 +67,7 @@ verify_state_test: pair_state_test.c exact_ops.h exactbatch/prog_group.h $(EXACT
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -DFLASH_EXACT_STATE -DFLASH_VERIFY_STATE -o $@ pair_state_test.c $(EXACT_TEST_SRC) -I. -Iexactbatch -I../ref -I$(CUDA)/include -lcuda -lm
 libengine_verify.so: $(ENGINE_SRC) exactbatch/prog_group.c exactbatch/prog_group.h exactbatch/engine_verify.c exact_ops.h prog.h engine.h core.h prefill.h trace_host.inc timings.h qsa_state.h ple_read_pool.h ple_read_reload.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -pthread -DFLASH_EXACT_BATCH -DFLASH_VERIFY_NATIVE -DFLASH_REV='"$(FLASH_REV)-verify"' -o $@.new $(ENGINE_SRC) exactbatch/prog_group.c -I. -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
+
+# Descriptor compilation only: deliberately no CUDA library and no model math.
+phase_schedule: phase/schedule.c phase/schedule_symbols.inc engine.c phase/plan.h phase/ownership.h prog.c prog.h holdc.c hold.h ../ref/split.c ../ref/quant.c ../ref/gguf.c
+	$(CC) -std=gnu99 -O2 -ffunction-sections -fdata-sections -Wl,--gc-sections -I$(CUDA)/include -I. -I../ref -o $@ phase/schedule.c prog.c holdc.c ../ref/split.c ../ref/quant.c ../ref/gguf.c -lm

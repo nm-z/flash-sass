@@ -1,0 +1,90 @@
+[
+  {
+    "id": 124711,
+    "job_id": "dc62bc91-b446-462e-a7dc-4f76c29c8229",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 0,
+    "observed_ns": "1792622708424772707",
+    "bytes": 594,
+    "sha256": "63276b2d9f3d3b4e9b9eb2dcca5a38ab766967b8527532183a73873c08320714",
+    "text": "before: config rev=5a17b72-dirty-exact kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf maxt=32768 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=1 rope_owner=5 trace_tokens=0 two_position=0 prefill_chunk=64 attn_q_split=1 attn_q_mask=3f cubin=/home/nate/work/flash-phase500-20261021-v1/die_phase.cubin cubin_fnv=ec86bfb87da4d0c1 phase_batch=0 exact_cubin=none exact_cubin_fnv=0000000000000000\n"
+  },
+  {
+    "id": 124713,
+    "job_id": "dc62bc91-b446-462e-a7dc-4f76c29c8229",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 1,
+    "observed_ns": "1792622709819057224",
+    "bytes": 20,
+    "sha256": "e80d8cf2d54f04b5a3644b53d2d1ea1efad068eee899b798f3f524237cb4e606",
+    "text": "ok: engine reloaded\n"
+  },
+  {
+    "id": 124714,
+    "job_id": "dc62bc91-b446-462e-a7dc-4f76c29c8229",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 2,
+    "observed_ns": "1792622709826048107",
+    "bytes": 1023,
+    "sha256": "ce1d91ca74a5c906eeb33ce63a572f2abe9b4b65751b0160b1ceef9d215e461d",
+    "text": "{\"arm\":\"kernel-candidate\",\"workload\":\"decode-repeatability\",\"prompt_tokens\":64,\"generated_tokens\":16,\"warmup_runs\":1,\"baseline_compared\":false,\"reference_kind\":\"first_run\"}\nconfig rev=5a17b72-dirty-exact kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf maxt=32768 layers=48/48 nblk=512 dies=6 attn_dies=0,1,2,3,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=1 rope_owner=5 trace_tokens=0 two_position=0 prefill_chunk=64 attn_q_split=1 attn_q_mask=3f cubin=/home/nate/work/flash-phase499-20261021-v6/die_phase.cubin cubin_fnv=dc13bcbfd7a62106 runtime_attn_map=0,1,2,3,4,5,0,1,2,3,4,5 balanced=1 residual_storage=fp32 fused_gr=1 producer_quant=1 matrix_group=1 phase_batch=0 exact_cubin=none exact_cubin_fnv=0000000000000000\nok: stop -1 -1\nok: sample seed 7 temp 0 top_k 20 top_p 0.95 (greedy)\nok: timings 1\n{\"arm\":\"kernel-candidate\",\"run\":0,\"kept\":0,\"warmup\":true}\n"
+  },
+  {
+    "id": 124965,
+    "job_id": "dc62bc91-b446-462e-a7dc-4f76c29c8229",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 3,
+    "observed_ns": "1792623006376956370",
+    "bytes": 1147,
+    "sha256": "c04dcb4a27d1d30b942de3d2de816c7e5aed33882203fee1ca75ef74e6225fe4",
+    "text": "timings {\"schema_version\":1,\"request_id\":\"1\",\"clock\":\"CLOCK_MONOTONIC\",\"prompt_tokens\":64,\"resumed_positions\":0,\"positions_completed\":0,\"positions_executed\":0,\"prompt_positions_processed\":0,\"generated_tokens\":0,\"decode_intervals\":0,\"counts_known\":true,\"counts_final\":false,\"error_code\":-2,\"counter_semantics\":\"last_observed_completed_positions\",\"stop_token_observed\":null,\"aborted\":false,\"build_ms\":18.435422010952607,\"run_ms\":296539.21281298972,\"first_observed_ms\":null,\"post_first_ms\":null,\"prompt_positions_per_second\":null,\"decode_tokens_per_second\":null,\"device_clock\":\"SR_GLOBALTIMER\",\"device_origin\":\"first_generated_position_start\",\"device_first_start_ns\":null,\"device_first_publish_ns\":null,\"device_last_traced_publish_ns\":null,\"device_traced_tokens\":0,\"device_first_publish_ms\":null,\"device_decode_ms\":null,\"device_decode_tokens_per_second\":null,\"prompt_n\":64,\"cache_n\":0,\"prompt_ms\":null,\"prompt_per_second\":null,\"predicted_n\":0,\"predicted_ms\":null,\"predicted_per_second\":null,\"decode_ms\":null}\nerror: device fault; the core rebuilds the contexts and the engine; request=1 status=device_error aborted=0 ended=0 completed=0 requested=79\n"
+  },
+  {
+    "id": 124966,
+    "job_id": "dc62bc91-b446-462e-a7dc-4f76c29c8229",
+    "kind": "stderr",
+    "source": "stderr",
+    "ordinal": 0,
+    "observed_ns": "1792623006377107236",
+    "bytes": 31,
+    "sha256": "70ed56f7a726cc0861477bc872d8ce1324e322e19206f2f8f886c3afc349b439",
+    "text": "decode benchmark: engine error\n"
+  },
+  {
+    "id": 124969,
+    "job_id": "dc62bc91-b446-462e-a7dc-4f76c29c8229",
+    "kind": "stderr",
+    "source": "stderr",
+    "ordinal": 1,
+    "observed_ns": "1792623010161146340",
+    "bytes": 23,
+    "sha256": "b47347c26363d7333a53c63fd6d1a1eda4f55574ad8fa541227bd1e47fb1f7a8",
+    "text": "RESTORE FAILED: reload\n"
+  },
+  {
+    "id": 124971,
+    "job_id": "dc62bc91-b446-462e-a7dc-4f76c29c8229",
+    "kind": "collector_error",
+    "source": "engine",
+    "ordinal": 0,
+    "observed_ns": "1792623010393053230",
+    "bytes": 72,
+    "sha256": "883f3a9f8c1f3cfbcd6e7aaafe5799d3e9ff40bfdf3e4db3582e37fd1297d41a",
+    "text": "Errno::ECONNREFUSED: Connection refused - connect(2) for /tmp/flash.sock"
+  },
+  {
+    "id": 124972,
+    "job_id": "dc62bc91-b446-462e-a7dc-4f76c29c8229",
+    "kind": "collector_error",
+    "source": "trace",
+    "ordinal": 0,
+    "observed_ns": "1792623010393989403",
+    "bytes": 103,
+    "sha256": "30349a93d1d8c356fb6dc81ab296392e83b76d83f2b7e22d67e7a50c1df4d6d1",
+    "text": "RuntimeError: resident engine has no enabled trace producer; raw job-provided traces are still imported"
+  }
+]

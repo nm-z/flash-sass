@@ -176,28 +176,31 @@ int main(int argc,char **argv) {
     int native_chunk=getenv("BENCH_NATIVE_CHUNK")?atoi(getenv("BENCH_NATIVE_CHUNK")):0;
     int exact_batch=getenv("BENCH_EXACT_BATCH")?atoi(getenv("BENCH_EXACT_BATCH")):0;
     int mtp_audit=getenv("BENCH_MTP_AUDIT")?atoi(getenv("BENCH_MTP_AUDIT")):0;
+    int repetitions=getenv("BENCH_RUNS")?atoi(getenv("BENCH_RUNS")):4;
+    if(repetitions<1 || repetitions>4)fail("BENCH_RUNS must be1..4");
     int verify_rollback=getenv("BENCH_VERIFY_ROLLBACK")?atoi(getenv("BENCH_VERIFY_ROLLBACK")):0;
     int verify_states=getenv("BENCH_VERIFY_STATES")?atoi(getenv("BENCH_VERIFY_STATES")):1;
     int verify_matrix=getenv("BENCH_VERIFY_MATRIX")?atoi(getenv("BENCH_VERIFY_MATRIX")):0;
     int kernel_only=getenv("BENCH_KERNEL_ONLY")?atoi(getenv("BENCH_KERNEL_ONLY")):0;
+    int plain_decode=getenv("BENCH_NO_MTP") && atoi(getenv("BENCH_NO_MTP"));
     int separate_chunk=getenv("BENCH_SEPARATE_CHUNK") && atoi(getenv("BENCH_SEPARATE_CHUNK"));
     if(exact_batch && (exact_batch!=8 || !resident || native_chunk || pair_cost || candidate_only || prefix_hash))
         fail("exact batch requires resident matched A/B mode with width 8");
-    if(mtp_audit && ((mtp_audit<1 || mtp_audit>3) || !resident || exact_batch || native_chunk || pair_cost || (candidate_only && mtp_audit<2) || prefix_hash))
+    if(mtp_audit && ((mtp_audit<1 || mtp_audit>4) || !resident || exact_batch || native_chunk || pair_cost || (candidate_only && mtp_audit<2) || prefix_hash))
         fail("MTP audit requires resident matched A/B mode");
     if(mtp_audit>=2 && (reference || verify_stream))fail("unchecked rollout does not use a reference or stream verification");
     if(verify_rollback && (verify_rollback<1 || verify_rollback>8 || !resident || exact_batch || mtp_audit || native_chunk || pair_cost || candidate_only || prefix_hash || (verify_states!=0 && verify_states!=1)))
         fail("rollback audit requires resident matched mode, kept1..8 and state check0/1");
     if(verify_matrix && (verify_matrix!=1 || verify_rollback!=1))fail("rollback matrix starts with BENCH_VERIFY_ROLLBACK=1");
-    if(kernel_only && (kernel_only!=1 || !resident || native_chunk || exact_batch || mtp_audit || verify_rollback || pair_cost || candidate_only))fail("kernel-only comparison requires ordinary resident matched mode");
+    if(kernel_only && (kernel_only!=1 || !resident || native_chunk || exact_batch || mtp_audit || verify_rollback || pair_cost || (candidate_only && !plain_decode)))fail("kernel-only comparison requires ordinary resident matched mode");
     if(native_chunk && (pair_cost || !resident || native_chunk<128 || native_chunk>1024 || (native_chunk&(native_chunk-1)))) fail("native chunk requires resident mode and power-of-two size 128..1024");
-    if(candidate_only && !native_chunk && mtp_audit<2) fail("candidate-only requires native chunk or unchecked MTP rollout");
+    if(candidate_only && !native_chunk && mtp_audit<2 && !plain_decode) fail("candidate-only requires native chunk, plain decode or unchecked MTP");
     if(separate_chunk && !native_chunk) fail("separate chunk module requires native chunk mode");
     if(pair_cost && !resident) fail("paired cost mode requires the resident path");
     int copies=getenv("BENCH_PAIR_PROMPT_COPIES")?atoi(getenv("BENCH_PAIR_PROMPT_COPIES")):4;
     if(copies<1||copies>4) fail("prompt copies must be 1..4");
-    int prompt_copies=(native_chunk || exact_batch || mtp_audit || verify_rollback)?(getenv("BENCH_PROMPT_COPIES")?atoi(getenv("BENCH_PROMPT_COPIES")):4):1;
-    if(prompt_copies<1 || prompt_copies>128) fail("prompt copies must be 1..128");
+    int prompt_copies=plain_decode?(getenv("BENCH_PROMPT_COPIES")?atoi(getenv("BENCH_PROMPT_COPIES")):1):(native_chunk || exact_batch || mtp_audit || verify_rollback)?(getenv("BENCH_PROMPT_COPIES")?atoi(getenv("BENCH_PROMPT_COPIES")):4):1;
+    if(prompt_copies<1 || prompt_copies>256) fail("prompt copies must be 1..256");
     int positions=pair_cost?64*copies:generate;
     unsigned expected[256]; int have=0;
     if(reference) {
@@ -239,6 +242,32 @@ int main(int argc,char **argv) {
         snprintf(restore_command,sizeof restore_command,"reload %s FLASH_CUBIN=%s FLASH_ENGINE_MAXT=%s FLASH_MAXIMG=%s FLASH_ROPE_OWNER=%s FLASH_TWO_POSITION=%s FLASH_PREFILL_CHUNK=%s FLASH_ATTN_Q_SPLIT=%s FLASH_TRACE=%s FLASH_PLE_FILE=%s FLASH_FUSED_MOE=0 FLASH_FAST_EXCHANGE=0 FLASH_CHUNK_PREFILL=0 FLASH_VERIFY_STREAM=0",argv[6],argv[7],maxt,img,rope,pairs,chunk,qs,trace,ple);
         size_t rused=strlen(restore_command);
         snprintf(restore_command+rused,sizeof restore_command-rused," FLASH_PREFIX_HASH=0 FLASH_CHUNK_CUBIN= FLASH_PHASE_BATCH=0 FLASH_EXACT_CUBIN= FLASH_MTP_AUDIT=0 FLASH_MTP_MODEL= FLASH_MTP_CUBIN= FLASH_VERIFY_AUDIT=0 FLASH_VERIFY_STATE_CHECK=1 FLASH_LAYERS=%d FLASH_NBLK=%s FLASH_KV_HOST=%s FLASH_PLE_READERS=%s",atoi(layers),blocks,kv,readers);
+        char old_gr[16];value(before_config,"fused_gr","0",old_gr,sizeof old_gr);
+        rused=strlen(restore_command);snprintf(restore_command+rused,sizeof restore_command-rused," FLASH_FUSED_GR=%s",old_gr);
+        char old_residual[64];value(before_config,"residual_storage","fp32",old_residual,sizeof old_residual);
+        rused=strlen(restore_command);snprintf(restore_command+rused,sizeof restore_command-rused," FLASH_RESIDUAL_FP8=%d",!strncmp(old_residual,"fp8",3));
+        char old_producer[16],old_group[16],old_balance[16];
+        value(before_config,"producer_quant","0",old_producer,sizeof old_producer);
+        value(before_config,"matrix_group","0",old_group,sizeof old_group);
+        value(before_config,"balanced","0",old_balance,sizeof old_balance);
+        rused=strlen(restore_command);snprintf(restore_command+rused,sizeof restore_command-rused," FLASH_PRODUCER_QUANT=%s FLASH_MATRIX_GROUP=%s FLASH_ATTN_BALANCE=%s FLASH_PHASE_WATCH=0 FLASH_WATCHDOG_S=600",old_producer,old_group,old_balance);
+        char old_mode[16],old_model[1024],old_cubin[1024];
+        value(before_config,"mtp_mode","0",old_mode,sizeof old_mode);
+        if(atoi(old_mode)) {
+            value(before_config,"mtp_model","",old_model,sizeof old_model);value(before_config,"mtp_cubin","",old_cubin,sizeof old_cubin);
+            size_t used=strlen(restore_command);
+            snprintf(restore_command+used,sizeof restore_command-used," FLASH_MTP_AUDIT=%s FLASH_MTP_MODEL=%s FLASH_MTP_CUBIN=%s",old_mode,old_model,old_cubin);
+            char old_drafts[16],old_width[16],old_exact[1024];
+            value(before_config,"mtp_drafts","1",old_drafts,sizeof old_drafts);value(before_config,"phase_batch","0",old_width,sizeof old_width);
+            value(before_config,"exact_cubin","",old_exact,sizeof old_exact);if(!strcmp(old_exact,"none"))old_exact[0]=0;
+            used=strlen(restore_command);
+            snprintf(restore_command+used,sizeof restore_command-used," FLASH_MTP_DRAFTS=%s FLASH_PHASE_BATCH=%s FLASH_EXACT_CUBIN=%s",old_drafts,old_width,old_exact);
+            char old_tile[16],old_cache[16],old_chunk_module[1024];
+            value(before_config,"native_chunk","0",old_tile,sizeof old_tile);value(before_config,"chunk_maxt","16384",old_cache,sizeof old_cache);
+            value(before_config,"chunk_cubin","",old_chunk_module,sizeof old_chunk_module);if(!strcmp(old_chunk_module,"none"))old_chunk_module[0]=0;
+            used=strlen(restore_command);
+            snprintf(restore_command+used,sizeof restore_command-used," FLASH_CHUNK_PREFILL=%s FLASH_CHUNK_MAXT=%s FLASH_CHUNK_CUBIN=%s",old_tile,old_cache,old_chunk_module);
+        }
         fclose(active); active=NULL; restore_pending=1;
     }
     unsigned completed_runs=0;
@@ -258,20 +287,66 @@ int main(int argc,char **argv) {
             if(verify_rollback) {
                 snprintf(cmd,sizeof cmd,"reload %s FLASH_CUBIN=%s FLASH_EXACT_CUBIN=%s FLASH_PHASE_BATCH=%d FLASH_VERIFY_AUDIT=%d FLASH_VERIFY_STATE_CHECK=%d FLASH_MTP_AUDIT=0 FLASH_ENGINE_MAXT=16384 FLASH_MAXIMG=1 FLASH_ROPE_OWNER=%s FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=64 FLASH_ATTN_Q_SPLIT=%s FLASH_TRACE=0 FLASH_KV_TRACE=0 FLASH_KV_HOST=0 FLASH_LAYERS=48 FLASH_NBLK=512 FLASH_PLE_READERS=1 FLASH_PLE_FILE=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf FLASH_FUSED_MOE=0 FLASH_FAST_EXCHANGE=0 FLASH_CHUNK_PREFILL=0 FLASH_PREFIX_HASH=0 FLASH_VERIFY_STREAM=%d",argv[3],argv[4],arm?argv[5]:"",arm?8:0,arm?verify_rollback:0,verify_states,rope,qs,verify_stream);
             }
+            { size_t used=strlen(cmd);snprintf(cmd+used,sizeof cmd-used," FLASH_FUSED_GR=0"); }
+            if(mtp_audit==4) {
+                const char *model=getenv("FLASH_DFLASH_MODEL"),*module=getenv("FLASH_DFLASH_CUBIN");
+                if(!model || !module)fail("DFlash2 requires checkpoint and SASS module paths");
+                size_t used=strlen(cmd);
+                snprintf(cmd+used,sizeof cmd-used," FLASH_DFLASH_MODEL=%s FLASH_DFLASH_CUBIN=%s FLASH_DFLASH_DEVICE=6",model,module);
+            }
+            if(mtp_audit==3 && getenv("BENCH_MTP_DRAFTS") && atoi(getenv("BENCH_MTP_DRAFTS"))==4) {
+                const char *module=getenv("FLASH_EXACT_CUBIN");if(!module)fail("four-draft MTP requires target batch module");
+                size_t used=strlen(cmd);snprintf(cmd+used,sizeof cmd-used," FLASH_MTP_DRAFTS=4 FLASH_PHASE_BATCH=5 FLASH_EXACT_CUBIN=%s",module);
+            } else if(mtp_audit) {
+                size_t used=strlen(cmd);snprintf(cmd+used,sizeof cmd-used," FLASH_MTP_DRAFTS=1");
+            }
+            if(mtp_audit==3 && getenv("BENCH_MTP_PREFILL") && atoi(getenv("BENCH_MTP_PREFILL"))) {
+                const char *module=getenv("FLASH_CHUNK_CUBIN");if(!module)fail("MTP chunk prefill requires chunk module");
+                unsigned tile=(unsigned)atoi(getenv("BENCH_MTP_PREFILL"));
+                size_t used=strlen(cmd);
+                snprintf(cmd+used,sizeof cmd-used," FLASH_CHUNK_PREFILL=%u FLASH_CHUNK_CUBIN=%s FLASH_CHUNK_MAXT=16384 FLASH_ENGINE_MAXT=32768 FLASH_PREFILL_CHUNK=16384",tile,module);
+            }
+            if(mtp_audit==3 && getenv("BENCH_FUSED_GR") && atoi(getenv("BENCH_FUSED_GR"))) {
+                size_t used=strlen(cmd);snprintf(cmd+used,sizeof cmd-used," FLASH_FUSED_GR=1");
+            }
+            { size_t used=strlen(cmd);snprintf(cmd+used,sizeof cmd-used," FLASH_RESIDUAL_FP8=%d",getenv("BENCH_RESIDUAL_FP8") && atoi(getenv("BENCH_RESIDUAL_FP8"))); }
+            if(plain_decode) {
+                size_t used=strlen(cmd);
+                snprintf(cmd+used,sizeof cmd-used," FLASH_MTP_AUDIT=0 FLASH_MTP_DRAFTS=1 FLASH_PHASE_BATCH=0 FLASH_EXACT_CUBIN= FLASH_TWO_POSITION=1 FLASH_PREFILL_CHUNK=64 FLASH_CHUNK_PREFILL=0 FLASH_CHUNK_CUBIN= FLASH_RESIDUAL_FP8=0");
+                used=strlen(cmd);snprintf(cmd+used,sizeof cmd-used," FLASH_FUSED_GR=%d FLASH_PRODUCER_QUANT=%d FLASH_MATRIX_GROUP=%d",
+                    arm && getenv("BENCH_FUSED_GR") && atoi(getenv("BENCH_FUSED_GR")),
+                    arm && getenv("BENCH_PRODUCER_QUANT") && atoi(getenv("BENCH_PRODUCER_QUANT")),
+                    arm && getenv("BENCH_MATRIX_GROUP") && atoi(getenv("BENCH_MATRIX_GROUP")));
+                used=strlen(cmd);snprintf(cmd+used,sizeof cmd-used," FLASH_ATTN_BALANCE=%d",arm && getenv("BENCH_PRODUCER_QUANT") && atoi(getenv("BENCH_PRODUCER_QUANT")));
+                if(getenv("BENCH_SCALAR_PREFIX") && atoi(getenv("BENCH_SCALAR_PREFIX"))) {
+                    used=strlen(cmd);snprintf(cmd+used,sizeof cmd-used," FLASH_TWO_POSITION=0");
+                }
+            }
+            if(getenv("BENCH_CONTEXT")) {
+                unsigned context=(unsigned)atoi(getenv("BENCH_CONTEXT"));
+                if(!context || context>262144)fail("invalid BENCH_CONTEXT");
+                size_t used=strlen(cmd);snprintf(cmd+used,sizeof cmd-used," FLASH_ENGINE_MAXT=%u FLASH_MAXIMG=1",context);
+            }
+            if(getenv("BENCH_PHASE_WATCH") && atoi(getenv("BENCH_PHASE_WATCH"))) {
+                size_t used=strlen(cmd);snprintf(cmd+used,sizeof cmd-used," FLASH_PHASE_WATCH=1 FLASH_WATCHDOG_S=30");
+            }
             command(active,cmd); fclose(active); active=NULL;
             f=connect_core(); if(!f) fail("post-reload connection"); active=f;
         } else { f=start(argv[1],argv[2],argv[3+arm],arm); active=f; }
-        const char *name=kernel_only?(arm?"kernel-candidate":"baseline"):verify_rollback?(arm?"rollback-audit":"baseline"):mtp_audit?(arm?(mtp_audit==3?"mtp-full-model":mtp_audit==2?"mtp-rollout":"mtp-shadow"):"baseline"):pair_cost?(arm?"paired-full-head":"scalar-full-head"):exact_batch?(arm?"exact-b8":"production-b2"):(arm?(native_chunk?"native-chunk":"fused"):"baseline");
-        const char *workload=mtp_audit==3?"mtp-full-model-unchecked":mtp_audit==2?"mtp-unchecked-rollout":verify_rollback?"rollback-state-diagnostic":mtp_audit?"draft-shadow-diagnostic":pair_cost?"teacher_forced":candidate_only?(generate==1&&prefix_hash?"native-prefix-repeatability":"decode-repeatability"):"decode";
+        const char *name=kernel_only?(arm?"kernel-candidate":"baseline"):verify_rollback?(arm?"rollback-audit":"baseline"):mtp_audit?(arm?(mtp_audit==4?"dflash2-full-model":mtp_audit==3?"mtp-full-model":mtp_audit==2?"mtp-rollout":"mtp-shadow"):"baseline"):pair_cost?(arm?"paired-full-head":"scalar-full-head"):exact_batch?(arm?"exact-b8":"production-b2"):(arm?(native_chunk?"native-chunk":"fused"):"baseline");
+        const char *workload=mtp_audit==4?"dflash2-full-model-unchecked":mtp_audit==3?"mtp-full-model-unchecked":mtp_audit==2?"mtp-unchecked-rollout":verify_rollback?"rollback-state-diagnostic":mtp_audit?"draft-shadow-diagnostic":pair_cost?"teacher_forced":candidate_only?(generate==1&&prefix_hash?"native-prefix-repeatability":"decode-repeatability"):"decode";
         if(getenv("BENCH_CUDA_DEBUG") && atoi(getenv("BENCH_CUDA_DEBUG")))workload="cuda-debug-diagnostic";
         printf("{\"arm\":\"%s\",\"workload\":\"%s\",\"prompt_tokens\":%d,\"generated_tokens\":%d,\"warmup_runs\":%d,\"baseline_compared\":%s,\"reference_kind\":\"%s\"}\n",name,workload,pair_cost?positions:64*prompt_copies,pair_cost?1:generate,arm&&verify_matrix?8:1,candidate_only?"false":"true",mtp_audit>=2?"none":reference?"frozen_scalar":"first_run");
         if(mtp_audit>=2)command(f,"config");
         else check_scope(f,mtp_audit?arm:-1,verify_rollback?(arm?verify_rollback:0):-1);
-        command(f,"stop"); command(f,"sample 7 0 20 0.95"); command(f,"timings 1");
+        command(f,"stop");
+        if(getenv("BENCH_SAMPLING") && atoi(getenv("BENCH_SAMPLING")))command(f,"sample 7 1 20 0.95");
+        else command(f,"sample 7 0 20 0.95");
+        command(f,"timings 1");
         for(int round=0;round<(arm&&verify_matrix?8:1);round++) {
         int current_keep=arm&&verify_matrix?round+1:verify_rollback;
         if(arm&&verify_matrix) { char selection[48];snprintf(selection,sizeof selection,"verifykeep %d",current_keep);command(f,selection); }
-        for(int run=0;run<4;run++) {
+        for(int run=0;run<repetitions;run++) {
             int run_id=4*round+run;
             printf("{\"arm\":\"%s\",\"run\":%d,\"kept\":%d,\"warmup\":%s}\n",name,run_id,arm?current_keep:0,run?"false":"true"); fflush(stdout);
             if(pair_cost) { fputs("gen 0",f); for(int i=0;i<copies;i++) fprintf(f," %s",prompt); fputc('\n',f); }
@@ -353,6 +428,12 @@ int main(int argc,char **argv) {
             have=1;completed_runs++;
         }
         }
+        if(getenv("BENCH_PROFILE") && atoi(getenv("BENCH_PROFILE")))for(int d=0;d<6;d++) {
+            printf("profile arm=%s die=%d\n",name,d);fprintf(f,"prof %d all\n",d);fflush(f);
+            char *row=NULL;size_t capacity=0;
+            while(getline(&row,&capacity,f)>0) { fputs(row,stdout);if(!strncmp(row,"  longest:",10))break; }
+            free(row);
+        }
         if(!resident) { fputs("quit\n",f); fflush(f); }
         fclose(f); active=NULL;
         if(!resident) {
@@ -360,7 +441,7 @@ int main(int argc,char **argv) {
             if(!WIFEXITED(status)||WEXITSTATUS(status)) fail("private core exit");
         }
     }
-    if(getenv("BENCH_KEEP_LOADED") && atoi(getenv("BENCH_KEEP_LOADED")) && mtp_audit==3 && candidate_only) { restore_pending=0;puts("deployment: full-model MTP remains loaded"); }
+    if(getenv("BENCH_KEEP_LOADED") && atoi(getenv("BENCH_KEEP_LOADED")) && (mtp_audit>=3 || plain_decode) && candidate_only) { restore_pending=0;puts("deployment: measured full-model engine remains loaded"); }
     if(restore()) return 1;
     if(prefix_mismatches) { fprintf(stderr,"resident_decode_bench: FAILED, %u prefix-state mismatches\n",prefix_mismatches);return 1; }
     if(mismatches) { fprintf(stderr,"resident_decode_bench: FAILED, %u output mismatches; timings are diagnostic only\n",mismatches); return 1; }

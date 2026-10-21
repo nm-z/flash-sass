@@ -389,7 +389,7 @@ plegate: plegate.cubin plegate_test
 ple: plerows.cubin plerows_ng.cubin plerows_test plegate pleconv
 
 # ---- the persistent per-die kernel (die.pl stitches the ops together) ----
-DIE_OPS = $(filter-out die.sass die_fused.sass die_chunk.sass die_exact.sass die_verify.sass die_mtp.sass die_collective.sass mtp_q8_%.sass die_trace%.sass semtest%.sass bartest.sass fmath.sass gridbar.sass mailbox.sass xmadbench.sass, $(wildcard *.sass)) actq.pl fmath.pl
+DIE_OPS = $(filter-out die.sass die_fused.sass die_chunk.sass die_chunk_fp8.sass die_exact.sass die_gr.sass die_phase.sass die_gr_fp8.sass die_verify.sass die_mtp.sass die_collective.sass mtp_q8_%.sass die_trace%.sass semtest%.sass bartest.sass fmath.sass gridbar.sass mailbox.sass xmadbench.sass, $(wildcard *.sass)) actq.pl fmath.pl
 die.sass: die.pl trace.pl $(DIE_OPS)
 	DIE_TRACE=0 perl die.pl > $@
 

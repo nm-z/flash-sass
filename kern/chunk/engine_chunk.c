@@ -39,6 +39,10 @@ static uint64_t chunk_cubin_fnv;
 static uint64_t chunk_hash_ref[MAXD][NB + 2], chunk_hash_key;
 static int chunk_hash_have;
 static unsigned chunk_last_npos;
+static CUdeviceptr chunk_residual_encoded[MAXD];
+#ifdef FLASH_MTP_NATIVE
+static void (*chunk_on_hidden)(unsigned,unsigned,unsigned);
+#endif
 static char chunk_hash_report[384];
 
 static uint64_t chunk_host_hash(const void *p, size_t n, uint64_t h) {
@@ -195,6 +199,7 @@ static void chunk_init(void) {
 			}
 		}
 		fprintf(stderr, "engine: chunked prefill die %d: ldx %u, %u heads, %.1f MB\n", d, ldx, nh, (double)(alloc_bytes - before) / 1e6);
+		if(residual_fp8)chunk_residual_encoded[d]=dalloc(fp8_bytes(10240u*ldx));
 		if (getenv("FLASH_CHUNK_PROF")) {   /* the buffers the attention ops address, for fault reports */
 			fprintf(stderr, "engine:   die %d LQ %#llx LAO %#llx CS %#llx SN %#llx inbox %#llx+2x%#x CB %#llx\n", d, (unsigned long long)c->LQ, (unsigned long long)c->LAO,
 			        (unsigned long long)c->CS, (unsigned long long)c->SN, (unsigned long long)x->inbox, cslot, (unsigned long long)c->CB);
@@ -294,6 +299,7 @@ static double chunk_launch(unsigned t0, unsigned npos, const unsigned *nph) {
 static void chunk_upload(prog_t *P, unsigned *nph) {
 	prog_chunk_xh_patch(P, cxch, nd);
 	for (int d = 0; d < nd; d++) {
+		if(residual_fp8) { CUdeviceptr work=cbuf[d].S;fp8_program(&P[d],&work,&chunk_residual_encoded[d],1,10240u*chunk_ldx,1,NULL); }
 		if ((unsigned)P[d].n > cprog_cap) { fprintf(stderr, "engine: chunk program of %d phases (capacity %u)\n", P[d].n, cprog_cap); longjmp(run_jb, 1); }
 		nph[d] = (unsigned)P[d].n;
 		CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(cprog[d], P[d].p, sizeof(phase_t) * (size_t)P[d].n));
@@ -434,6 +440,9 @@ if (k == 0 && getenv("FLASH_CHUNK_PROF") && atoi(getenv("FLASH_CHUNK_PROF"))) { 
 		}
 	}
 }
+#ifdef FLASH_MTP_NATIVE
+if(chunk_on_hidden)chunk_on_hidden(t0,npos,ldx);
+#endif
 chunk_positions += (int)npos;
 for (int d = 0; d < nd; d++) {
 	uint32_t got; CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyDtoH(&got, dCTL[d] + 0x8, 4));
@@ -451,9 +460,13 @@ static void chunk_prefill(runctx *r, int end, int nimg) {
 	int k = 0;
 	while (!r->aborted && end - r->count >= CHUNK_MIN) {
 		unsigned t0 = (unsigned)r->count, npos = (unsigned)(end - r->count) < chunk_ldx ? (unsigned)(end - r->count) : chunk_ldx;
+		unsigned logical=prefill_chunk?(unsigned)prefill_chunk:16384;
+		unsigned left=logical-t0%logical;if(npos>left)npos=left;
 		if (t0 + npos > chunk_maxt) break;
 		if (r->cb && r->cb->alive && r->cb->alive(r->cb->arg)) { r->aborted = 1; break; }
 		chunk_one(r, t0, npos, k);
+		r->batched_positions+=(int)npos;
+		if(t0%logical==0)r->prefill_chunks++;
 		k++;
 	}
 	if (k & 1) for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyDtoD(dst_ple[d], cple_alt[d], 4 * 10 * 10240)); }   /* the last chunk wrote the second ring */

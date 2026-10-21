@@ -325,7 +325,8 @@ static void ph_moe_half(prog_t *P, const split_t *s, const xchg_t *x, const dn_w
 	ph_bf16(P, OP_BF16K2560, w->ffn_gate_inp_x, Z, b->r, 513, 0);
 	ph_router(P, b->r, b->r + 512 * 4, b->idx, b->w, b->s);
 	ph_moesel(P, b->idx, b->w, w->emap, b->lidx, b->lw, b->ne, b->part);
-	int fused_moe = getenv("FLASH_FUSED_MOE") && atoi(getenv("FLASH_FUSED_MOE"));
+	int fused_moe = (getenv("FLASH_FUSED_MOE") && atoi(getenv("FLASH_FUSED_MOE"))) ||
+        (getenv("FLASH_PRODUCER_QUANT") && atoi(getenv("FLASH_PRODUCER_QUANT")));
 	ph_q2(P, OP_Q2MOEGN, w->ffn_gate_exps, b->zq, b->zs32, b->g, 640, b->lidx, b->zas, fused_moe ? b->gu : 0, b->ne);
 	if (fused_moe) {
 		phase_t *p = &P->p[P->n - 1];
