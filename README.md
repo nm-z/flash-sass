@@ -169,6 +169,11 @@ bounded by context capacity. The `vision-all` and `vision-core` Make launch
 targets supply `FLASH_MAXIMG=16384`; this is an aggregate limit across images.
 Cached embeddings use a new `16mp-` filename prefix so entries produced
 with the previous resolution limit are not reused.
+When `FLASHVIS_SOCK` enables vision in the HTTP frontend, the default
+whole-request deadline is 2,400 seconds to allow a maximum-size image to finish
+encoding and prompt processing after the configured queue wait. Text-only
+service keeps its 300-second default. `FLASHD_REQUEST_MAX_S` overrides either
+default; set it to `0` to disable the deadline.
 
 The C adapter targets the installed llama.cpp CUDA ABI at
 `fcac19079f3f2985fe74ed845f0880e7e9a8030a`. Build using headers and libraries

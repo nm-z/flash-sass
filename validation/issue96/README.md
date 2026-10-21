@@ -290,6 +290,11 @@ malformed/oversized inputs, a reported encode failure, native GPU abort and a no
 then requires another successful GPU FA response on the same daemon.
 The fault interposer is test-only and is not linked into the service.
 
+With `FLASHVIS_SOCK` set, `flashd` defaults to a 2,400-second whole-request
+deadline. This allows a 16,777,216-pixel request to include encoder work, the
+default queue window, and engine prompt processing. Text-only service keeps its
+300-second default; `FLASHD_REQUEST_MAX_S` overrides either value.
+
 The Make `identity` target records source commits, compiler versions and executable,
 cubin and installed-library hashes. The C `compare` and `retained` commands
 perform numerical and retained-output checks. The C supervisor runner uses a
