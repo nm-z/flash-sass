@@ -1,0 +1,42 @@
+{
+  "before_gpuq_job": "7f781111-6a43-42f4-8a63-0c0a4ba7143f",
+  "after_gpuq_job": "fb84f561-1c92-4a13-814b-9e6129c48434",
+  "qsa_binary_sha256": "246caa8f78d65579b7d6cdc8005a69357972b5b911702d5a67f0243df03af892",
+  "die_cubin_sha256": "aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423",
+  "nu_runner_sha256": "188cbd850a025d8a318d714a737da9c5b48975abcaeb008085699855b95822fb",
+  "captured_id_helper_sha256": "62e59c0dc40f4852b50df36517d3f89b0716f8d826997ee2258d7a5760661777",
+  "stable_result_fields_equal": true,
+  "per_row_selection_and_output_signatures_equal": true,
+  "all_arms_preflight_verified": true,
+  "selection_table_fnv1a64": "82f446fa0725f0e9",
+  "selection_and_output_rows": [
+    {
+      "iteration": 0,
+      "selection_fnv1a64": "963cec86ff4615fe",
+      "verified_output_fnv1a64": "9bc0d7e6086b5a76"
+    },
+    {
+      "iteration": 1,
+      "selection_fnv1a64": "f1a76199f5a84e25",
+      "verified_output_fnv1a64": "aec30a0cef12e8e4"
+    },
+    {
+      "iteration": 2,
+      "selection_fnv1a64": "c3eb74ae9bf43109",
+      "verified_output_fnv1a64": "7f20fd2c38e106e7"
+    },
+    {
+      "iteration": 3,
+      "selection_fnv1a64": "ba39034e9a4e856e",
+      "verified_output_fnv1a64": "e0e1b518ee477c12"
+    }
+  ],
+  "before_p50_us": {
+    "host0": 203.199997544,
+    "host1": 3517.440080643
+  },
+  "after_p50_us": {
+    "host0": 200.064003468,
+    "host1": 3520.384073257
+  }
+}

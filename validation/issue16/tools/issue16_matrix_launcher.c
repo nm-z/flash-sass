@@ -152,8 +152,22 @@ int main(void) {
         return 2;
     }
 
+    const char *nu_bin = getenv("NU_BIN");
+    if (!nu_bin || !*nu_bin) {
+        const char *home = getenv("HOME");
+        static char default_nu[PATH_MAX];
+        if (!home || !*home) home = "/home/nate";
+        if (snprintf(default_nu, sizeof default_nu, "%s/.local/bin/nu", home) >=
+            (int)sizeof default_nu) {
+            fprintf(stderr, "Nu executable path is too long\n");
+            (void)remove_tree(work);
+            return 2;
+        }
+        nu_bin = default_nu;
+    }
     char *const command[] = {
-        "perl", "run_qsa_gather_pair.pl", "--out", out, "--nv", "2000",
+        (char *)nu_bin, "--no-config-file", "run_qsa_gather_pair.nu",
+        "--out", out, "--nv", "2000",
         "--iterations", "8", "--matrix", NULL
     };
     int run_rc = run_to_files(command, stdout_path, stderr_path);
