@@ -366,8 +366,10 @@ replay or passing numerical profile must not set the overall issue or
 checkpoint-quality status to accepted.
 
 The October 20 continuation check merged current `master` into the PR branch
-and passed the CPU-only request-checker self-test (93 cases), syntax checks, and
-a Makefile dry run. Required build and GPU access were unavailable from this
-engi session; the current evidence and host failures are recorded in
+twice as `master` advanced. The 93-case CPU-only request-checker self-test and
+the 76-case Perl model-quality test passed, along with syntax checks and a
+Makefile dry run. Required build and GPU access remain blocked because SSH
+authentication to Benji and Archy is unavailable from this engi session; the
+current evidence and host failures are recorded in
 [`validation/issue22/review-20261020/README.md`](validation/issue22/review-20261020/README.md).
 Criteria 1–6 remain unmet, and this work does not make the PR ready for review.

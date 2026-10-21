@@ -1,8 +1,12 @@
 {
   "schema": "flash-sass.issue22-continuation-status.v1",
-  "observed_local": "2026-10-20 7:01 PM PDT",
-  "source_revision": "ad2a7532c64bc22a323f1e0276518b8a7f991c4a",
-  "master_revision": "270aa639dd9dc86eb16db698e318aaa7e7d3fd2c",
+  "observed_local": "2026-10-20 10:28 PM PDT",
+  "source_revision": "c7f90f797ee634266129033d33b6a041a31949f",
+  "master_revision": "c09927306f5170843116cc49fe85088ae42e02b3",
+  "master_merges": [
+    "ad2a7532c64bc22a323f1e0276518b8a7f991c4a",
+    "c7f90f797ee634266129033d33b6a041a31949f"
+  ],
   "merge_conflicts_resolved": [
     ".gitignore",
     "QSA_MODEL_TEST.md",
@@ -21,10 +25,16 @@
       "cpu_only": true,
       "gpu_validation": false
     },
+    "model_quality_test": {
+      "result": "PASS",
+      "checks": 76,
+      "cpu_only": true,
+      "c_compilation": false
+    },
     "make_dry_run": "PASS",
     "shell_syntax": "PASS",
     "perl_syntax": "PASS",
-    "full_build_and_cpu_test_suite": "BLOCKED: benji SSH banner timeout; no command submitted"
+    "full_build_and_cpu_test_suite": "BLOCKED: benji rejected SSH publickey/password; no command submitted"
   },
   "checkpoint_metadata": {
     "repository": "Qwen/Qwen3.8-Flash-Next",
@@ -38,6 +48,8 @@
   },
   "gpu_access": {
     "queue_query": "BLOCKED: SSH authentication denied before gpuq",
+    "checked_documented_agent_sockets": true,
+    "authorized_identity_found_for_archy_or_benji": false,
     "gpu_jobs_started": 0
   },
   "acceptance": {
