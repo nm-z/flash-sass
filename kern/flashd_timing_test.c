@@ -9,6 +9,34 @@ static char *read_pair(int fd) {
 }
 static int helper_tests(void) {
     int p[2];char *wire;assert(socketpair(AF_UNIX,SOCK_STREAM,0,p)==0);
+    int hdr=0;double waited=-1;
+    assert(!QBUSY && !QHEAD && !QLEN);
+    assert(queue_enter(p[0],0,&hdr,&waited,http_clock_ms()-1)==-4);
+    assert(!QBUSY && !QHEAD && !QLEN && waited==0);
+    assert(queue_enter(p[0],0,&hdr,&waited,http_clock_ms()+1000)==0);
+    queue_leave();assert(!QBUSY && !QHEAD && !QLEN);
+    int send_buffer=4096;
+    assert(setsockopt(p[0],SOL_SOCKET,SO_SNDBUF,&send_buffer,sizeof send_buffer)==0);
+    size_t size=4u<<20;char *large=malloc(size);assert(large);memset(large,'x',size);
+    double started=http_clock_ms();
+    alarm(2);
+    assert(wr_until(p[0],large,size,started+80)==-1 && errno==ETIMEDOUT);
+    alarm(0);
+    double elapsed=http_clock_ms()-started;
+    assert(elapsed>=60 && elapsed<1000);
+    char pending[8192];ssize_t received=recv(p[1],pending,sizeof pending,MSG_DONTWAIT);
+    assert(received>0); /* the write actually filled the socket before expiring */
+    free(large);close(p[0]);close(p[1]);
+    assert(socketpair(AF_UNIX,SOCK_STREAM,0,p)==0);
+    request_deadline=http_clock_ms()-1;
+    timed_out(p[0],0,0);
+    assert(shutdown(p[0],SHUT_WR)==0);wire=read_pair(p[1]);
+    assert(strstr(wire,"HTTP/1.1 504 Gateway Timeout\r\n")==wire);
+    assert(strstr(wire,"\"type\":\"request_timeout\""));
+    assert(request_deadline<http_clock_ms()); /* reporting did not renew the request */
+    request_deadline=0;
+    free(wire);close(p[0]);close(p[1]);
+    assert(socketpair(AF_UNIX,SOCK_STREAM,0,p)==0);
     char expected_pid[32]; snprintf(expected_pid,sizeof expected_pid,"%ld",(long)getpid());
     assert(setenv("FLASHD_EXPECT_CORE_PID",expected_pid,1)==0);
     assert(engine_peer_matches(p[0]));

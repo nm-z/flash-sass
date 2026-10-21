@@ -1,0 +1,22 @@
+PASS stream ends with request_timeout
+PASS stream cancelled after about 5 s
+PASS non-streaming request gets 504
+PASS queued request times out on its own deadline
+PASS core saw the running request hang up
+PASS a request whose deadline passed in the queue never reaches the core
+PASS flashd logged the cancellations
+PASS a quick request still completes with 200
+plain.status: 504 5.001142
+queued.status: 504 5.001110
+quick.status: 200 0.001513
+stream.status: 200 6.269427
+closed chat=0 after 0.0 s
+closed chat=1 after 0.0 s
+closed chat=0 after 0.0 s
+closed chat=1 after 6.3 s
+flashd: Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass, 65536 positions, sampling defaults from the GGUF: temp 1 top_k 20 top_p 0.95, listening on 127.0.0.1:18813
+flashd: 53 prompt (0 from the cache, snapshot at 0) + 1 generated tokens, 12.5 ms (first 10.0), stop, pp 5300.0 decode 0.0 tok/s, queued 0.0 s
+flashd: Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass, 65536 positions, sampling defaults from the GGUF: temp 1 top_k 20 top_p 0.95, listening on 127.0.0.1:18786
+flashd: the request reached FLASHD_REQUEST_MAX_S (5 s) while queued (5.0 s): cancelled
+flashd: the request reached FLASHD_REQUEST_MAX_S (5 s) while queued (5.0 s): cancelled
+flashd: the request reached FLASHD_REQUEST_MAX_S (5 s) after 0.0 s queued and 0 reasoning + 0 answer tokens: cancelled, the engine is told to stop

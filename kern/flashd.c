@@ -15,13 +15,14 @@
  * others wait in a FIFO queue (see "the request queue"; GET endpoints never wait).
  *
  *   flashd <shard-1.gguf> <flash-socket> <host:port>      env FLASHD_NAME, FLASHD_THINKING (0: off by default),
- *   FLASHD_QUEUE_MAX (waiting requests, default 8), FLASHD_QUEUE_WAIT_S (default 600) */
+ *   FLASHD_QUEUE_MAX (waiting requests, default 8), FLASHD_QUEUE_WAIT_S (default 600), FLASHD_REQUEST_MAX_S (default 300) */
 #define _GNU_SOURCE
 #include "jinja.h"
 #include "timings.h"
 #include "tok.h"
 #include <arpa/inet.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <netinet/in.h>
 #include <poll.h>
@@ -64,14 +65,56 @@ static void http_write_log(unsigned long long request_id,double origin,int attem
 }
 
 /* ---- output ---- */
+/* Each HTTP worker owns one absolute budget. Partial I/O never renews it. */
+static __thread double request_deadline;
+static int deadline_expired(double deadline) {
+    return deadline > 0 && http_clock_ms() >= deadline;
+}
+static int io_ready(int fd, short events, double deadline) {
+    for (;;) {
+        double left = deadline - http_clock_ms();
+        if (left <= 0) { errno = ETIMEDOUT; return -1; }
+        int wait_ms = left >= INT_MAX ? INT_MAX : (int)ceil(left);
+        struct pollfd p = { .fd = fd, .events = events };
+        int ready = poll(&p, 1, wait_ms);
+        if (ready > 0) return 0;
+        if (ready < 0 && errno == EINTR) continue;
+        if (!ready) errno = ETIMEDOUT;
+        return -1;
+    }
+}
+static int wr_until(int fd, const char *s, size_t n, double deadline) {
+    while (n) {
+        if (deadline_expired(deadline)) { errno = ETIMEDOUT; return -1; }
+        ssize_t k = send(fd, s, n, MSG_NOSIGNAL | (deadline > 0 ? MSG_DONTWAIT : 0));
+        if (k > 0) { s += k; n -= (size_t)k; continue; }
+        if (k < 0 && errno == EINTR) continue;
+        if (k < 0 && deadline > 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+            if (!io_ready(fd, POLLOUT, deadline)) continue;
+        }
+        return -1;
+    }
+    return 0;
+}
 static int wr(int fd, const char *s, size_t n) {
-	while (n) { ssize_t k = send(fd, s, n, MSG_NOSIGNAL); if (k <= 0) return -1; s += k; n -= (size_t)k; }
-	return 0;
+    return wr_until(fd, s, n, request_deadline);
+}
+static ssize_t rd(int fd, void *buf, size_t n) {
+    for (;;) {
+        if (deadline_expired(request_deadline)) { errno = ETIMEDOUT; return -1; }
+        ssize_t got = recv(fd, buf, n, request_deadline > 0 ? MSG_DONTWAIT : 0);
+        if (got >= 0) return got;
+        if (errno == EINTR) continue;
+        if (request_deadline > 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+            if (!io_ready(fd, POLLIN, request_deadline)) continue;
+        }
+        return -1;
+    }
 }
 static int wrs(int fd, const char *s) { return wr(fd, s, strlen(s)); }
 static int chunk(int fd, const char *s, size_t n) { char h[24]; int k = snprintf(h, sizeof h, "%zx\r\n", n); return wr(fd, h, (size_t)k) || wr(fd, s, n) || wr(fd, "\r\n", 2); }
 static int reply(int fd, int status, const char *ctype, const char *body, size_t n) {
-	char h[256]; const char *r = status == 200 ? "OK" : status == 400 ? "Bad Request" : status == 404 ? "Not Found" : status == 413 ? "Payload Too Large" : "Internal Server Error";
+	char h[256]; const char *r = status == 200 ? "OK" : status == 400 ? "Bad Request" : status == 404 ? "Not Found" : status == 413 ? "Payload Too Large" : status == 504 ? "Gateway Timeout" : "Internal Server Error";
 	int k = snprintf(h, sizeof h, "HTTP/1.1 %d %s\r\nContent-Type: %s\r\nCache-Control: no-store\r\nContent-Length: %zu\r\nConnection: close\r\n\r\n", status, r, ctype, n);
 	return wr(fd, h, (size_t)k) || wr(fd, body, n) ? -1 : 0;
 }
@@ -97,10 +140,12 @@ static void admitted_error(int fd, int headers_sent, int status, const char *msg
 /* ---- the request queue ----
    The engine runs one sequence, so one request runs at a time and the others wait here in arrival order. A request whose client goes away
    leaves the queue (or, running, stops the engine) instead of being served to nobody; a full queue or a long wait is a 503 with Retry-After.
-   FLASHD_QUEUE_MAX (waiting requests, default 8), FLASHD_QUEUE_WAIT_S (default 600). GET /queue shows the depth. */
+   FLASHD_QUEUE_MAX (waiting requests, default 8), FLASHD_QUEUE_WAIT_S (default 600). GET /queue shows the depth.
+   FLASHD_REQUEST_MAX_S (default 300, 0: no limit) bounds a whole request from its arrival, the wait and the run together: a request still waiting
+   leaves the queue, a running one closes its engine connection (the core aborts the turn when its client goes) and the next one starts. */
 typedef struct waiter { struct waiter *next; } waiter;
 static pthread_mutex_t QM = PTHREAD_MUTEX_INITIALIZER; static pthread_cond_t QC = PTHREAD_COND_INITIALIZER;
-static waiter *QHEAD, *QTAIL; static int QBUSY, QLEN, QMAX = 8, QWAIT_S = 600;
+static waiter *QHEAD, *QTAIL; static int QBUSY, QLEN, QMAX = 8, QWAIT_S = 600, REQ_MAX_S = 300;
 static int client_gone(int fd) {   /* the peer closed or reset its end */
 	struct pollfd p = { .fd = fd, .events = POLLRDHUP };
 	return poll(&p, 1, 0) > 0 && (p.revents & (POLLRDHUP | POLLHUP | POLLERR));
@@ -110,22 +155,33 @@ static void q_remove(waiter *w) {   /* QM held */
 }
 static double mono_ms(void) { struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t); return t.tv_sec * 1e3 + t.tv_nsec / 1e6; }
 static int try_send(int fd, const char *s, size_t n) { return send(fd, s, n, MSG_NOSIGNAL | MSG_DONTWAIT) == (ssize_t)n ? 0 : -1; }
-/* 0: the engine is yours (queue_leave when done); -1: the client left; -2: the queue is full; -3: waited too long. *hdr is set once SSE headers have gone out while waiting. */
-static int queue_enter(int fd, int stream, int *hdr, double *waited_ms) {
+/* 0: the engine is yours (queue_leave when done); -1: the client left; -2: the queue is full; -3: waited too long; -4: the request deadline
+   (mono_ms, 0: none) passed. *hdr is set once SSE headers have gone out while waiting. */
+static int queue_enter(int fd, int stream, int *hdr, double *waited_ms, double deadline) {
 	double t0 = mono_ms(), last_note = t0; waiter me = { 0 };
 	pthread_mutex_lock(&QM);
+    if (deadline_expired(deadline)) { pthread_mutex_unlock(&QM); *waited_ms = 0; return -4; }
 	if (!QBUSY && !QHEAD) { QBUSY = 1; pthread_mutex_unlock(&QM); *waited_ms = 0; return 0; }
 	if (QLEN >= QMAX) { pthread_mutex_unlock(&QM); *waited_ms = 0; return -2; }
 	if (QTAIL) QTAIL->next = &me; else QHEAD = &me;
 	QTAIL = &me; QLEN++;
 	int rc = 0;
 	while (!(QHEAD == &me && !QBUSY)) {
-		struct timespec ts; clock_gettime(CLOCK_REALTIME, &ts); ts.tv_sec += 1;
+        double wait_ms = 1000.;
+        if (deadline > 0) {
+            double left = deadline - mono_ms();
+            if (left <= 0) { rc = -4; break; }
+            if (left < wait_ms) wait_ms = left;
+        }
+		struct timespec ts; clock_gettime(CLOCK_REALTIME, &ts);
+        ts.tv_nsec += (long)(wait_ms * 1e6);
+        ts.tv_sec += ts.tv_nsec / 1000000000L; ts.tv_nsec %= 1000000000L;
 		pthread_cond_timedwait(&QC, &QM, &ts);
 		if (QHEAD == &me && !QBUSY) break;
 		double now = mono_ms();
 		if (client_gone(fd)) { rc = -1; break; }
 		if (QWAIT_S > 0 && now - t0 > QWAIT_S * 1e3) { rc = -3; break; }
+		if (deadline > 0 && now >= deadline) { rc = -4; break; }
 		if (stream && now - last_note > 10e3) {   /* keep the connection open through proxies, and say where it stands */
 			int pos = 1; for (waiter *x = QHEAD; x && x != &me; x = x->next) pos++;
 			char c[160], m[96]; int mn = snprintf(m, sizeof m, ": queued, position %d\n\n", pos), k = 0;
@@ -135,6 +191,7 @@ static int queue_enter(int fd, int stream, int *hdr, double *waited_ms) {
 			*hdr = 1; last_note = now;
 		}
 	}
+	if (!rc && deadline > 0 && mono_ms() >= deadline) rc = -4;   /* its turn came too late: leave rather than start a cancelled run */
 	if (rc) q_remove(&me);
 	else { QHEAD = me.next; if (!QHEAD) QTAIL = NULL; QLEN--; QBUSY = 1; }
 	pthread_cond_broadcast(&QC); pthread_mutex_unlock(&QM);
@@ -146,6 +203,29 @@ static void busy(int fd, const char *msg, int retry_after) {
 	sbuf b = {0}; sb_puts(&b, "{\"error\":{\"message\":"); sb_json_str(&b, msg, strlen(msg)); sb_puts(&b, ",\"code\":503}}");
 	char h[256]; int k = snprintf(h, sizeof h, "HTTP/1.1 503 Service Unavailable\r\nContent-Type: application/json\r\nRetry-After: %d\r\nCache-Control: no-store\r\nContent-Length: %zu\r\nConnection: close\r\n\r\n", retry_after, b.n);
 	wr(fd, h, (size_t)k); wr(fd, b.s, b.n); sb_free(&b);
+}
+/* FLASHD_REQUEST_MAX_S ran out: an error event ending the stream (whose headers went out once hdr is set), or a 504 */
+static void timed_out_record(int fd, int stream, int hdr, const char *timings) {
+    double saved_deadline = request_deadline;
+    request_deadline = http_clock_ms() + 1000.; /* bounded best-effort error delivery */
+	char m[96]; snprintf(m, sizeof m, "the request took longer than %d s and was cancelled", REQ_MAX_S);
+    sbuf b = {0};
+	if (stream && hdr) {
+        sb_puts(&b, "data: ");
+    }
+    sb_puts(&b, "{\"error\":{\"message\":"); sb_json_str(&b, m, strlen(m));
+    sb_puts(&b, ",\"type\":\"request_timeout\",\"code\":504}");
+    if (timings) sb_printf(&b, ",\"timings\":%s", timings);
+    sb_putc(&b, '}');
+    if (stream && hdr) {
+        sb_puts(&b, "\n\n");
+        if (!chunk(fd, b.s, b.n) && !chunk(fd, "data: [DONE]\n\n", 14)) wrs(fd, "0\r\n\r\n");
+    } else reply(fd, 504, "application/json", b.s, b.n);
+    sb_free(&b);
+    request_deadline = saved_deadline;
+}
+static void timed_out(int fd, int stream, int hdr) {
+    timed_out_record(fd, stream, hdr, NULL);
 }
 
 /* ---- the engine socket ---- */
@@ -161,12 +241,51 @@ static int engine_peer_matches(int fd) {
     return getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &peer, &size) == 0
         && size == sizeof peer && peer.pid == pid && peer.uid == getuid();
 }
+static int unix_open(const char *path) {
+    int s; struct sockaddr_un sa = { .sun_family = AF_UNIX };
+	snprintf(sa.sun_path, sizeof sa.sun_path, "%s", path);
+    for (;;) {
+        if (deadline_expired(request_deadline)) { errno = ETIMEDOUT; return -1; }
+        s = socket(AF_UNIX, SOCK_STREAM | (request_deadline > 0 ? SOCK_NONBLOCK : 0), 0);
+        if (s < 0) return -1;
+        if (!connect(s, (struct sockaddr *)&sa, sizeof sa)) break;
+        int error_code = errno;
+        if (request_deadline > 0 && (error_code == EINPROGRESS || error_code == EALREADY)) {
+            if (!io_ready(s, POLLOUT, request_deadline)) {
+                socklen_t size = sizeof error_code;
+                if (!getsockopt(s, SOL_SOCKET, SO_ERROR, &error_code, &size) && !error_code) break;
+                if (!error_code) error_code = errno;
+            } else error_code = errno;
+        }
+        close(s);
+        /* AF_UNIX EAGAIN means the listener backlog is full, not a pending
+           connection. Recreate and retry; SO_ERROR==0 would not prove connection. */
+        if (request_deadline > 0 && (error_code == EAGAIN || error_code == EWOULDBLOCK || error_code == EINTR)) {
+            double left = request_deadline - http_clock_ms();
+            if (left <= 0) { errno = ETIMEDOUT; return -1; }
+            poll(NULL, 0, left > 10. ? 10 : (int)ceil(left));
+            continue;
+        }
+        errno = error_code; return -1;
+    }
+    if (request_deadline > 0) {
+        int flags = fcntl(s, F_GETFL, 0);
+        if (flags < 0 || fcntl(s, F_SETFL, flags & ~O_NONBLOCK)) { int e = errno; close(s); errno = e; return -1; }
+    }
+    return s;
+}
 static FILE *engine_open(FILE **out) {
-	int s = socket(AF_UNIX, SOCK_STREAM, 0); struct sockaddr_un sa = { .sun_family = AF_UNIX };
-	snprintf(sa.sun_path, sizeof sa.sun_path, "%s", SOCK);
-	if (s < 0 || connect(s, (struct sockaddr *)&sa, sizeof sa)) { if (s >= 0) close(s); return NULL; }
+    *out = NULL;
+    int s = unix_open(SOCK);
+    if (s < 0) return NULL;
 	if (!engine_peer_matches(s)) { close(s); errno = EPERM; return NULL; }
-	*out = fdopen(dup(s), "w"); return fdopen(s, "r");
+    int output_fd = dup(s);
+    if (output_fd < 0) { close(s); return NULL; }
+    FILE *in = fdopen(s, "r");
+    if (!in) { close(output_fd); close(s); return NULL; }
+    *out = fdopen(output_fd, "w");
+    if (!*out) { close(output_fd); fclose(in); return NULL; }
+    return in;
 }
 
 /* Read complete protocol lines with one absolute deadline, including partial
@@ -275,17 +394,17 @@ static const char *vis_image(const unsigned char *bytes, size_t n, imgrec *r) {
 	snprintf(r->path, sizeof r->path, "%s/%016llx.bin", dir, fnv64(bytes, n));
 	FILE *f = fopen(r->path, "rb"); uint32_t hd[5];
 	if (f) { int ok = fread(hd, 4, 5, f) == 5; fclose(f); if (ok) { r->ntok = hd[0]; r->npos = hd[3]; utime(r->path, NULL); return NULL; } }
-	int s = socket(AF_UNIX, SOCK_STREAM, 0); struct sockaddr_un sa = { .sun_family = AF_UNIX }; snprintf(sa.sun_path, sizeof sa.sun_path, "%s", VIS_SOCK);
-	if (s < 0 || connect(s, (struct sockaddr *)&sa, sizeof sa)) { if (s >= 0) close(s); return "the vision encoder is not running"; }
+	int s = unix_open(VIS_SOCK);
+	if (s < 0) return "the vision encoder is not running";
 	char head[64]; int hn = snprintf(head, sizeof head, "enc %zu\n", n);
 	if (wr(s, head, (size_t)hn) || wr(s, (const char *)bytes, n)) { close(s); return "the vision encoder closed the connection"; }
 	char line[160]; size_t ll = 0;
-	while (ll + 1 < sizeof line) { char c; if (recv(s, &c, 1, 0) != 1) { close(s); return "the vision encoder closed the connection"; } if (c == '\n') break; line[ll++] = c; }
+	while (ll + 1 < sizeof line) { char c; if (rd(s, &c, 1) != 1) { close(s); return "the vision encoder closed the connection"; } if (c == '\n') break; line[ll++] = c; }
 	line[ll] = 0;
 	unsigned ntok, nx, ny, dim; long npos;
 	if (sscanf(line, "ok %u %u %u %ld %u", &ntok, &nx, &ny, &npos, &dim) != 5) { close(s); static char em[200]; snprintf(em, sizeof em, "the vision encoder: %.150s", line); return em; }
 	size_t body = (size_t)ntok * dim * 4 + (size_t)ntok * 12; unsigned char *buf = malloc(body); size_t got = 0;
-	while (got < body) { ssize_t k = recv(s, buf + got, body - got, 0); if (k <= 0) break; got += (size_t)k; }
+	while (got < body) { ssize_t k = rd(s, buf + got, body - got); if (k <= 0) break; got += (size_t)k; }
 	close(s);
 	if (got != body || dim != 2560) { free(buf); return "the vision encoder sent a short answer"; }
 	char tmp[260]; snprintf(tmp, sizeof tmp, "%s.%d.tmp", r->path, (int)getpid());
@@ -306,6 +425,8 @@ static const char *vis_image(const unsigned char *bytes, size_t n, imgrec *r) {
 static void chat(int fd, const char *body, size_t bn, double request_start_ms) {
     unsigned long long request_id = __sync_add_and_fetch(&request_sequence, 1);
     double chat_start_ms = http_clock_ms(), tokenization_ms = 0;
+    double deadline = REQ_MAX_S > 0 ? request_start_ms + REQ_MAX_S * 1e3 : 0;
+    request_deadline = deadline;
 	arena *a = arena_new(); const char *je = NULL;
 	jv *req = json_parse(a, body, bn, &je);
 	if (!req || req->k != J_DICT) { error(fd, 400, "the body is not a JSON object"); arena_free(a); return; }
@@ -337,6 +458,7 @@ static void chat(int fd, const char *body, size_t bn, double request_start_ms) {
 			unsigned char *raw = malloc(un); long rn = b64decode(comma + 1, un - (size_t)(comma + 1 - url), raw);
 			if (rn <= 0) { free(raw); error(fd, 400, "the image is not valid base64"); arena_free(a); return; }
 			const char *ie = vis_image(raw, (size_t)rn, &imgs[nim]); free(raw);
+            if (deadline_expired(deadline)) { timed_out(fd, 0, 0); arena_free(a); return; }
 			if (ie) { error(fd, 503, ie); arena_free(a); return; }
 			if (iu->k == J_DICT) jv_set(a, iu, "url", 3, jv_str(a, "", 0)); else jv_set(a, part, "image_url", 9, jv_str(a, "", 0));
 			nim++;
@@ -372,19 +494,22 @@ static void chat(int fd, const char *body, size_t bn, double request_start_ms) {
 
     double queue_start_ms = http_clock_ms();
 	int hdr = 0; double qwait = 0;
-	int qr = queue_enter(fd, stream, &hdr, &qwait);
+	int qr = queue_enter(fd, stream, &hdr, &qwait, deadline);
 	if (qr) {
 		free(prompt); arena_free(a);
 		if (qr == -1) fprintf(stderr, "flashd: the client left the queue after %.1f s\n", qwait / 1e3);
+		else if (qr == -4) { fprintf(stderr, "flashd: the request reached FLASHD_REQUEST_MAX_S (%d s) while queued (%.1f s): cancelled\n", REQ_MAX_S, qwait / 1e3); timed_out(fd, stream, hdr); }
 		else if (qr == -2) { fprintf(stderr, "flashd: queue full (%d waiting): 503\n", QMAX); busy(fd, "the request queue is full", 30); }
 		else { fprintf(stderr, "flashd: waited %.0f s in the queue: 503\n", qwait / 1e3); if (hdr) { chunk(fd, "data: {\"error\":{\"message\":\"waited too long in the request queue\",\"type\":\"queue_timeout\"}}\n\n", sizeof("data: {\"error\":{\"message\":\"waited too long in the request queue\",\"type\":\"queue_timeout\"}}\n\n") - 1); chunk(fd, "data: [DONE]\n\n", 14); wrs(fd, "0\r\n\r\n"); } else busy(fd, "waited too long in the request queue", 30); }
 		return;
 	}
 	if (client_gone(fd)) { queue_leave(); free(prompt); arena_free(a); fprintf(stderr, "flashd: the client left while queued (%.1f s); not started\n", qwait / 1e3); return; }
+    if (deadline_expired(deadline)) { queue_leave(); free(prompt); arena_free(a); timed_out(fd, stream, hdr); return; }
     double lock_acquired_ms = http_clock_ms(), encode_start_ms = lock_acquired_ms;
 	uint32_t *ids = malloc(4 * (pn + 16));
 	int np = tok_encode(V, prompt, pn, 1, ids, (int)pn + 16);
     tokenization_ms += http_clock_ms() - encode_start_ms;
+    if (deadline_expired(deadline)) { queue_leave(); free(ids); free(prompt); arena_free(a); timed_out(fd, stream, hdr); return; }
 	if (np < 1 || np + 1 >= POSITIONS) {
 		queue_leave(); free(ids); free(prompt); arena_free(a);
 		admitted_error(fd, hdr, 400, np < 1 ? "empty prompt" : "the prompt is longer than the engine's context"); return;
@@ -427,16 +552,33 @@ static void chat(int fd, const char *body, size_t bn, double request_start_ms) {
 		if (np + 1 >= POSITIONS) { queue_leave(); free(ids); free(prompt); arena_free(a); admitted_error(fd, hdr, 400, "the prompt is longer than the engine's context"); return; }
 		n_new = max_tokens - 1 < POSITIONS - np ? max_tokens - 1 : POSITIONS - np;
 	}
+    if (deadline_expired(deadline)) { queue_leave(); free(ids); free(prompt); arena_free(a); timed_out(fd, stream, hdr); return; }
 	FILE *out = NULL, *in = engine_open(&out);
-	if (!in) { queue_leave(); free(ids); free(prompt); arena_free(a); admitted_error(fd, hdr, 500, "the engine is not running"); return; }
-	fputs("timings 1\n",out);   /* opt-in record before done/error */
-    fputs("cancel_on_eof 1\n",out); /* only an exact ACK enables half-close cancellation */
-	fprintf(out, "stop %u %u\n", ID_END, tok_eos(V) == ID_END ? 0xffffffffu : tok_eos(V));
-	fprintf(out, "sample %llu %.6g %ld %.6g\n", seed, temp, topk <= 0 ? 32 : topk, topp);
-	for (int i = 0; i < nim; i++) fprintf(out, "img %s %d\n", imgs[i].path, istart[i]);
-	if (snap) fprintf(out, "snap %d\n", snap);
-	fprintf(out, "chat %ld", n_new); for (int i = 0; i < np; i++) fprintf(out, " %u", ids[i]); fputc('\n', out); fflush(out);
+	if (!in) {
+        int expired = deadline_expired(deadline) || errno == ETIMEDOUT;
+        queue_leave(); free(ids); free(prompt); arena_free(a);
+        if (expired) timed_out(fd, stream, hdr); else admitted_error(fd, hdr, 500, "the engine is not running");
+        return;
+    }
+    /* stdio can block indefinitely while flushing a large prompt to a core
+       that stopped reading. Preserve partial sends under the absolute budget. */
+    sbuf command = {0};
+    sb_puts(&command, "timings 1\ncancel_on_eof 1\n");
+	sb_printf(&command, "stop %u %u\n", ID_END, tok_eos(V) == ID_END ? 0xffffffffu : tok_eos(V));
+	sb_printf(&command, "sample %llu %.6g %ld %.6g\n", seed, temp, topk <= 0 ? 32 : topk, topp);
+	for (int i = 0; i < nim; i++) sb_printf(&command, "img %s %d\n", imgs[i].path, istart[i]);
+	if (snap) sb_printf(&command, "snap %d\n", snap);
+	sb_printf(&command, "chat %ld", n_new); for (int i = 0; i < np; i++) sb_printf(&command, " %u", ids[i]); sb_putc(&command, '\n');
+    int dispatch_failed = wr_until(fileno(out), command.s, command.n, deadline);
+    int dispatch_expired = deadline_expired(deadline) || (dispatch_failed && errno == ETIMEDOUT);
+    sb_free(&command);
 	free(ids);
+    if (dispatch_failed || dispatch_expired) {
+        shutdown(fileno(out), SHUT_WR); fclose(out); fclose(in);
+        queue_leave(); free(prompt); arena_free(a);
+        if (dispatch_expired) timed_out(fd, stream, hdr); else admitted_error(fd, hdr, 502, "the engine stopped reading the request");
+        return;
+    }
 
     double engine_submitted_ms = http_clock_ms();
 	gen g = { .fd = fd, .stream = stream, .created = (long)time(NULL), .request_start_ms = request_start_ms };
@@ -449,7 +591,7 @@ static void chat(int fd, const char *body, size_t bn, double request_start_ms) {
 		if (!g.gone && chunk(fd, b.s, b.n)) g.gone = 1;
 		sb_free(&b);
 	}
-	char line[8192]; int quiet = 0, ngen = 0, ended = 0, resumed = 0, snapped = 0, done = 0, failed = 0; double run_ms = 0, first_ms = 0;
+	char line[8192]; int quiet = 0, ngen = 0, ended = 0, resumed = 0, snapped = 0, done = 0, failed = 0, expired = 0; double run_ms = 0, first_ms = 0;
     int raw_token_events = 0, negotiating = 2, cancel_on_eof = 0;
     int cancel_requested = 0, cancel_drain_timed_out = 0;
     double cancel_start_ms = 0;
@@ -459,20 +601,25 @@ static void chat(int fd, const char *body, size_t bn, double request_start_ms) {
 	/* a long prompt takes minutes before the first token: an idle stream is cut by proxies (Cloudflare closes after 100 s), so an SSE comment goes out
 	   every 10 s while the engine is silent */
 	for (;;) {
+        if (deadline_expired(deadline)) expired = 1;
         if (!g.gone && client_gone(fd)) g.gone=1;
-        if ((g.gone || g.cap_hit) && !cancel_requested && !negotiating) {
+        if (expired && (negotiating || !cancel_on_eof)) { cancel_requested = 1; break; }
+        if ((g.gone || g.cap_hit || expired) && !cancel_requested && !negotiating) {
             cancel_requested=1;
             if (!cancel_on_eof || shutdown(fileno(out),SHUT_WR)) break;
             cancel_start_ms=http_clock_ms();
         }
-        if (cancel_start_ms && http_clock_ms()-cancel_start_ms>=CANCEL_DRAIN_MS) {
+        double cleanup_deadline = cancel_start_ms ? cancel_start_ms + CANCEL_DRAIN_MS : 0;
+        if (cleanup_deadline && deadline > 0 && deadline + 2000. < cleanup_deadline) cleanup_deadline = deadline + 2000.;
+        if (cleanup_deadline && http_clock_ms() >= cleanup_deadline) {
             cancel_drain_timed_out=1;break;
         }
-        double deadline=http_clock_ms()+2000.;
-        if(cancel_start_ms && cancel_start_ms+CANCEL_DRAIN_MS<deadline)deadline=cancel_start_ms+CANCEL_DRAIN_MS;
-        int received=engine_line(fileno(in),&reader,line,sizeof line,deadline);
+        double read_deadline=http_clock_ms()+2000.;
+        if (cleanup_deadline && cleanup_deadline < read_deadline) read_deadline = cleanup_deadline;
+        if (!expired && deadline > 0 && deadline < read_deadline) read_deadline = deadline;
+        int received=engine_line(fileno(in),&reader,line,sizeof line,read_deadline);
 		if (received<=0) {
-			if (received==-2) { if (client_gone(fd)) g.gone = 1; if (stream && !g.gone && !g.cap_hit && ++quiet >= 5) { quiet = 0; if (chunk(fd, ": keepalive\n\n", 13)) g.gone = 1; } continue; }
+			if (received==-2) { if (client_gone(fd)) g.gone = 1; if (stream && !g.gone && !g.cap_hit && !expired && ++quiet >= 5) { quiet = 0; if (chunk(fd, ": keepalive\n\n", 13)) g.gone = 1; } continue; }
 			break;
 		}
         /* These two ordered acknowledgements precede chat. Unknown-command
@@ -499,12 +646,13 @@ static void chat(int fd, const char *body, size_t bn, double request_start_ms) {
 		if (sscanf(line, "tok %u", &id) == 1) {
             last_socket_observed_ms = http_clock_ms();
             if (!raw_token_events++) first_socket_observed_ms = last_socket_observed_ms;
-            if(!g.gone && !g.cap_hit)on_token(&g, id);
+            if(!g.gone && !g.cap_hit && !expired)on_token(&g, id);
         }
 		else if (sscanf(line, "done %d %d %d %lf %lf %d %d", &ngen, &e, &npm, &r, &f, &resumed, &snapped) >= 5) { ended = e; run_ms = r; first_ms = f; done = 1; break; }
 		else if (!strncmp(line, "error", 5)) { fprintf(stderr, "flashd: engine: %s", line); failed = 1; break; }
 	}
-	if (!done && !g.gone && !g.cap_hit) failed = 1;   /* the engine's stream ended without its "done" line: the response is not complete */
+    if (deadline_expired(deadline)) expired = 1;
+	if (!done && !g.gone && !g.cap_hit && !expired) failed = 1;   /* the engine's stream ended without its "done" line: the response is not complete */
     if (!done) ngen = raw_token_events;
     if (ngen < 0) ngen = 0;
 	fclose(in); fclose(out);
@@ -515,7 +663,7 @@ static void chat(int fd, const char *body, size_t bn, double request_start_ms) {
     const char *te=NULL;jv *ej=engine_timing.s?json_parse(a,engine_timing.s,engine_timing.n,&te):NULL;
     char fallback[4096];
     flash_timing legacy={.prompt=np,.resumed=resumed,.completed=done?np-1+ngen:0,
-        .counts_known=done,.counts_final=done,.ended=ended,.aborted=g.gone||g.cap_hit,
+        .counts_known=done,.counts_final=done,.ended=ended,.aborted=g.gone||g.cap_hit||expired,
         .first_valid=done&&ngen>0,.first_ms=first_ms,.run_ms=done?run_ms:NAN,.build_ms=NAN};
     if(!ej){flash_timing_json(fallback,sizeof fallback,&legacy);ej=json_parse(a,fallback,strlen(fallback),&te);}
     jv *ea=jv_getz(ej,"aborted"),*es=jv_getz(ej,"stop_token_observed");
@@ -534,8 +682,8 @@ static void chat(int fd, const char *body, size_t bn, double request_start_ms) {
         else sb_puts(&t,"null");
     }
     sb_printf(&t,",\"schema_version\":1,\"engine\":%s,\"http\":{\"request_id\":\"%ld-%llu\",\"clock\":\"CLOCK_MONOTONIC\",\"start_event\":\"request_worker_entry\",\"complete\":%s,\"aborted\":%s,\"engine_timing_available\":%s,\"raw_token_events\":%d,\"request_read_ms\":%.17g,\"prequeue_ms\":%.17g,\"queue_ms\":%.17g,\"tokenization_ms\":%.17g,\"setup_ms\":%.17g,\"engine_submitted_ms\":%.17g,\"completion_record_created_ms\":%.17g",
-        engine_timing.s?engine_timing.s:"null",(long)getpid(),request_id,done&&!failed&&!g.gone&&!g.cap_hit&&!engine_aborted?"true":"false",
-        g.gone||g.cap_hit||engine_aborted?"true":"false",engine_timing.s?"true":"false",raw_token_events,
+        engine_timing.s?engine_timing.s:"null",(long)getpid(),request_id,done&&!failed&&!g.gone&&!g.cap_hit&&!engine_aborted&&!expired?"true":"false",
+        g.gone||g.cap_hit||engine_aborted||expired?"true":"false",engine_timing.s?"true":"false",raw_token_events,
         chat_start_ms-request_start_ms,queue_start_ms-chat_start_ms,
         qwait,tokenization_ms,engine_submitted_ms-lock_acquired_ms,
         engine_submitted_ms-request_start_ms,http_clock_ms()-request_start_ms);
@@ -548,13 +696,21 @@ static void chat(int fd, const char *body, size_t bn, double request_start_ms) {
         cancel_requested?"true":"false",cancel_drain_timed_out?"true":"false");
     if(cancel_start_ms)sb_printf(&t,"%.17g",http_clock_ms()-cancel_start_ms);else sb_puts(&t,"null");
     sb_puts(&t,",\"socket_decode_tokens_per_second\":");
-    if(done && !failed && !g.gone && !g.cap_hit && !engine_aborted && raw_token_events>1 && last_socket_observed_ms>first_socket_observed_ms)
+    if(done && !failed && !g.gone && !g.cap_hit && !engine_aborted && !expired && raw_token_events>1 && last_socket_observed_ms>first_socket_observed_ms)
         sb_printf(&t,"%.17g",1000.*(raw_token_events-1)/(last_socket_observed_ms-first_socket_observed_ms));
     else sb_puts(&t,"null");
     sb_puts(&t,",\"response_write_complete_ms\":null}}");
     /* Disconnected clients cannot receive a final record; log the same object. */
     fprintf(stderr,"flashd_timings: %s\n",t.s);
     int response_write_attempted=0;
+    if (expired) {
+        fprintf(stderr, "flashd: the request reached FLASHD_REQUEST_MAX_S (%d s); engine cancellation requested\n", REQ_MAX_S);
+        response_write_attempted = !client_gone(fd);
+        if (response_write_attempted) timed_out_record(fd, stream, stream || hdr, t.s);
+        http_write_log(request_id, request_start_ms, response_write_attempted, 1, g.gone);
+        sb_free(&engine_timing); sb_free(&t); sb_free(&g.content); sb_free(&g.reasoning); arena_free(a);
+        return;
+    }
     if (failed) {
         fprintf(stderr,"flashd: the engine failed during the response\n");
         sbuf b={0};
@@ -604,12 +760,14 @@ static void chat(int fd, const char *body, size_t bn, double request_start_ms) {
 /* ---- HTTP ---- */
 static void *serve(void *arg) {
 	double request_start_ms = http_clock_ms();
+    request_deadline = REQ_MAX_S > 0 ? request_start_ms + REQ_MAX_S * 1e3 : 0;
 	int fd = (int)(long)arg; struct timeval tv = { 30, 0 };
 	setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
 	setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof tv);   /* a client that stops reading must not hold the engine lock: a send that blocks 30 s fails and the response is dropped */
 	char *req = malloc(1 << 16); size_t n = 0; char *hend = NULL;
 	while (!hend && n < (1 << 16) - 1) {
-		ssize_t k = recv(fd, req + n, (1 << 16) - 1 - n, 0); if (k <= 0) { free(req); close(fd); return NULL; }
+		ssize_t k = rd(fd, req + n, (1 << 16) - 1 - n);
+        if (k <= 0) { if (deadline_expired(request_deadline)) timed_out(fd, 0, 0); free(req); close(fd); return NULL; }
 		n += (size_t)k; req[n] = 0; hend = strstr(req, "\r\n\r\n");
 	}
 	if (!hend) { error(fd, 400, "bad request"); free(req); close(fd); return NULL; }
@@ -618,7 +776,8 @@ static void *serve(void *arg) {
 		if (!strncasecmp(p, "content-length:", 15)) clen = (size_t)strtoull(p + 15, NULL, 10);
 	if (clen > (128u << 20)) { error(fd, 413, "request too large"); free(req); close(fd); return NULL; }
 	char *body = malloc(clen + 1); size_t have = n - hl > clen ? clen : n - hl; memcpy(body, req + hl, have);
-	while (have < clen) { ssize_t k = recv(fd, body + have, clen - have, 0); if (k <= 0) break; have += (size_t)k; }
+	while (have < clen) { ssize_t k = rd(fd, body + have, clen - have); if (k <= 0) break; have += (size_t)k; }
+    if (deadline_expired(request_deadline)) { timed_out(fd, 0, 0); free(body); free(req); close(fd); return NULL; }
 	body[have] = 0;
 	char method[16] = "", path[256] = ""; sscanf(req, "%15s %255s", method, path);
 	char *q = strchr(path, '?'); if (q) *q = 0;
@@ -649,6 +808,7 @@ int main(int argc, char **argv) {
 	if (getenv("FLASHD_THINKING")) THINK_DEFAULT = atoi(getenv("FLASHD_THINKING"));
 	if (getenv("FLASHD_QUEUE_MAX")) QMAX = atoi(getenv("FLASHD_QUEUE_MAX"));
 	if (getenv("FLASHD_QUEUE_WAIT_S")) QWAIT_S = atoi(getenv("FLASHD_QUEUE_WAIT_S"));
+	if (getenv("FLASHD_REQUEST_MAX_S")) REQ_MAX_S = atoi(getenv("FLASHD_REQUEST_MAX_S"));
 	V = tok_load(argv[1]); if (!V) return 1;
 	VIS_SOCK = getenv("FLASHVIS_SOCK"); if (getenv("FLASHD_IMGDIR")) snprintf(IMGDIR, sizeof IMGDIR, "%s", getenv("FLASHD_IMGDIR"));
 	ID_IMGPAD = tok_find(V, "<|image_pad|>");
