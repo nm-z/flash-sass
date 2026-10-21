@@ -34,6 +34,31 @@ is expected for these rejection checks. No CUDA/model execution is claimed by
 those cases. Excerpts preserve compiler arguments, relevant byte identities,
 structured results and errors; full telemetry remains in DSH's build logs.
 
+## Current-source CPU-only checks
+
+At the earlier branch head `3ec4a25d54baf755f85c734d2e0a6e3789c2b741`, DSH
+builds on Benji passed the issue9 API, CLI, fault-runner and engine-config CPU
+checks. After merging master `c099273` as branch revision
+`421a6df91afde108d4ad0aa30341010da125510d`, DSH build
+`build-661648-1792555441846020340` passed those checks again and passed the new
+`test-flashcore-prefill` target. These are CPU-only results; they do not
+complete the 2055-position oracle or the production-budget GPU matrix. See the
+[post-merge CPU check excerpt](benji-421a6df-checks.excerpt).
+
+A short local Benji run of `make -C kern checked_test` and
+`./kern/checked_test` passes at both `421a6df` and current source `b13118a`. It
+exercises the checked QSA API at positions 2050 and 2051 for B512 and remains
+CPU-only. The compile emits existing misleading-indentation warnings; full
+output and source hashes are in the corresponding excerpts.
+
+After the subsequent master merge `98c176a` at branch revision
+`b13118ad9bf81cd57dc78369b4c4b627627b6bdf`, DSH build
+`build-1072753-1792561871441815452` on Benji again passed the prefill and issue9
+CPU checks and compiled/linked `libengine.so` with pair fusion enabled. The
+task-scoped `/tmp` build root avoided a separate shared-root D-state admission
+block; the source log and limits are in the
+[latest-master check excerpt](benji-b13118a-checks.excerpt).
+
 The positive runs explicitly derive a version-2 receipt from the same version-1
 full-hash root, SHA-256
 `e7d0ff80c5b410dace18a069dcd425ab978c153af51f16845377a7c6bc700908`.
@@ -90,8 +115,31 @@ held fixed. Its initial eight-chunk routed job is
 batch, not a completed 2055-position reference. Continuation
 `build-1157614-1792515841388210491` resumes the same files for the remaining
 57 chunks, followed by full-stream validation, under a longer routed timeout.
-Its producer and source-manifest hashes match the first batch exactly. Full
-completion remains pending. The older source-36a
+Its producer and source-manifest hashes match the first batch exactly. A direct
+checkpoint read later reported `next_position=1248` and
+`record_offset=131918388` bytes. `records.bin` is 133609644 bytes, leaving
+1691256 bytes beyond the durable offset; that suffix is not committed oracle
+output and must not be counted as completed positions. The DSH build has no
+confirmed terminal result, its last captured log reports the Sentry NFS timeout,
+and its previously recorded `model_oracle` PID was absent on the later Archy
+process check. No full-stream validation or 2055-position completion is claimed.
+
+Before any continuation, the three source model shards must be copied off NFS.
+They total 78869128864 bytes. Archy had 1855864832 bytes free on `/` and
+4123766784 bytes free on `/mnt/stop-hook-hdd`, so the model shards do not fit on
+either local filesystem. The existing records, checkpoint, IDs and receipt
+total 283372362 bytes and fit on the HDD; those partial artifacts remain there.
+The optional Q8_0 MTP file is another 4137429120 bytes and is not used by this
+scalar oracle. No replacement long run was started.
+
+In this follow-up, the current shell was on Benji. Its `/mnt/sentry-nfs` path
+was an unmounted, empty directory, and its only disk had 36,785,856,512 bytes
+free. The required 78,869,128,864-byte shard set could not be copied there, so
+no oracle resume was attempted. The stock DSH profile also omitted Benji; a
+temporary build-only profile routed the CPU checks above through DSH. Archy did
+not resolve from this host, so no new GPU job was submitted.
+
+The older source-36a
 native comparison stream was retired with 96 committed positions; its data and
 checkpoints remain available as partial evidence. Its first 32-position record
 prefix and frozen checkpoint matched the O3 source-36a control through routed
@@ -136,3 +184,21 @@ The complete GPUQ export, report and child stdout/stderr are retained as
 and 3659 supplies the JSON report. These records retain the distinct request
 timing observations and do not establish a performance comparison or the
 offending instruction's identity.
+
+The count 1057 is the last observed completion count from die 0, not a precise
+faulting-token report for die 4. A bounded Archy kernel journal excerpt records
+Xid 31 for that core PID on BDF `0000:0b:00`: an MMU PDE read fault. It does
+not establish the source instruction or code cause. The excerpt, a failed
+full-segment recorder attempt that reaches the five-minute kernel limit,
+and subsequent bounded-window diagnostics are isolated in
+[draft PR #112](https://github.com/nm-z/flash-sass/pull/112). That recorder's GPU
+fixture and nine-position scalar-oracle canary pass their declared scopes;
+its long request matrix remains pending. This PR retains the canonical cubin
+and does not adopt that instrumentation as a runtime fix.
+
+The bounded-window instrumented B512 run `ff6ae989` completes its full request
+transcript without a CUDA error. Its verifier accepts two state fingerprints
+then rejects `save-2048-A` against `fresh-A`; the queue job exits 2. The
+instrumented matrix is not accepted and this outcome does not reproduce the
+original device error. Complete records and limits remain isolated in draft
+PR #112.
