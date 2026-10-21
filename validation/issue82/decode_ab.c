@@ -22,6 +22,7 @@
 #define NEW_TOKENS (GENERATED_TOKENS - 1)
 #define REPEATS 2
 #define CONNECT_TIMEOUT_MS 5000
+#define TRACE_TOKENS 3
 #define TRACE_CAP (2u * 1024u * 1024u)
 
 static const char *config_keys[] = {
@@ -369,7 +370,8 @@ static int check_rev(const char *config, const char *expected) {
 static int load_library(const char *path, const char *expected_rev) {
     char command[2 * PATH_MAX + 128], reply[LINE_CAP], config[LINE_CAP];
     int n = trace_cubin
-        ? snprintf(command, sizeof command, "reload %s FLASH_CUBIN=%s FLASH_TRACE=1", path, trace_cubin)
+        ? snprintf(command, sizeof command, "reload %s FLASH_CUBIN=%s FLASH_TRACE=%d",
+                   path, trace_cubin, TRACE_TOKENS)
         : snprintf(command, sizeof command, "reload %s", path);
     if (n < 0 || (size_t)n >= sizeof command) return -1;
     mutated = 1;
@@ -544,6 +546,7 @@ int main(int argc, char **argv) {
     printf("GPUQ_JOB_ID=%s CORE_PID=%ld CORE_START=%llu\n", job_id, (long)core_pid, core_start);
     printf("WORKLOAD prompt_tokens=%d prompt_ids=10..73 generated_tokens=%d sampler=greedy prefix_reuse=none\n",
            PROMPT_TOKENS, GENERATED_TOKENS);
+    if (trace_cubin) printf("TRACE_PROFILE cubin=%s trace_tokens=%d\n", trace_cubin, TRACE_TOKENS);
     printf("LIVE_CONFIG %s\n", config);
     fflush(stdout);
 
