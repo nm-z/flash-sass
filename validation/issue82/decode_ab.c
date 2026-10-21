@@ -39,6 +39,8 @@ static uid_t core_uid;
 static unsigned long long core_start;
 static char original_config[LINE_CAP];
 static const char *trace_cubin;
+static const char *custom_cubin;
+static const char *load_cubin;
 static int mutated;
 static volatile sig_atomic_t interrupted;
 
@@ -369,9 +371,9 @@ static int check_rev(const char *config, const char *expected) {
 
 static int load_library(const char *path, const char *expected_rev) {
     char command[2 * PATH_MAX + 128], reply[LINE_CAP], config[LINE_CAP];
-    int n = trace_cubin
+    int n = load_cubin
         ? snprintf(command, sizeof command, "reload %s FLASH_CUBIN=%s FLASH_TRACE=%d",
-                   path, trace_cubin, TRACE_TOKENS)
+                   path, load_cubin, trace_cubin ? TRACE_TOKENS : 0)
         : snprintf(command, sizeof command, "reload %s", path);
     if (n < 0 || (size_t)n >= sizeof command) return -1;
     mutated = 1;
@@ -380,7 +382,7 @@ static int load_library(const char *path, const char *expected_rev) {
         return -1;
     }
     if (get_config(config, sizeof config) || check_rev(config, expected_rev) ||
-        same_layout(original_config, config, trace_cubin != NULL)) return -1;
+        same_layout(original_config, config, load_cubin != NULL)) return -1;
     printf("CONFIG %s\n", config);
     return 0;
 }
@@ -484,7 +486,7 @@ static int restore_live(void) {
         char reply[LINE_CAP], config[LINE_CAP];
         char command[2 * PATH_MAX + 128], original_cubin[PATH_MAX];
         int n;
-        if (trace_cubin) {
+        if (load_cubin) {
             if (config_value(original_config, "cubin", original_cubin, sizeof original_cubin)) return -1;
             n = snprintf(command, sizeof command, "reload %s FLASH_CUBIN=%s FLASH_TRACE=0",
                          restore_path, original_cubin);
@@ -519,9 +521,12 @@ int main(int argc, char **argv) {
     if (strlen(argv[1]) >= sizeof socket_path || strlen(argv[2]) >= sizeof restore_path) return 2;
     strcpy(socket_path, argv[1]);
     trace_cubin = getenv("DECODE_AB_TRACE_CUBIN");
-    if (trace_cubin && (!*trace_cubin || access(trace_cubin, R_OK) ||
-                        strpbrk(trace_cubin, " \t\r\n")))
-        return fail("invalid DECODE_AB_TRACE_CUBIN"), 2;
+    custom_cubin = getenv("DECODE_AB_CUBIN");
+    if (trace_cubin && custom_cubin) return fail("choose DECODE_AB_TRACE_CUBIN or DECODE_AB_CUBIN"), 2;
+    load_cubin = trace_cubin ? trace_cubin : custom_cubin;
+    if (load_cubin && (!*load_cubin || access(load_cubin, R_OK) ||
+                       strpbrk(load_cubin, " \t\r\n")))
+        return fail("invalid custom cubin path"), 2;
     char resolved[PATH_MAX];
     if (!realpath(argv[2], resolved) || strlen(resolved) >= sizeof restore_path) return fail("missing restore library"), 2;
     strcpy(restore_path, resolved);
@@ -548,6 +553,7 @@ int main(int argc, char **argv) {
     printf("WORKLOAD prompt_tokens=%d prompt_ids=10..73 generated_tokens=%u sampler=greedy prefix_reuse=none\n",
            PROMPT_TOKENS, new_tokens + 1u);
     if (trace_cubin) printf("TRACE_PROFILE cubin=%s trace_tokens=%d\n", trace_cubin, TRACE_TOKENS);
+    else if (custom_cubin) printf("CUSTOM_CUBIN cubin=%s trace_tokens=0\n", custom_cubin);
     printf("LIVE_CONFIG %s\n", config);
     fflush(stdout);
 
