@@ -2,11 +2,14 @@
 require 'fileutils'
 require 'open3'
 
-root, source_sha, output, control_output = ARGV
-raise 'usage: run_lifecycle.rb ROOT SOURCE_SHA OUTPUT_DIRECTORY CONTROL_OUTPUT_DIRECTORY' unless root && source_sha && output && control_output
-root = File.expand_path(root)
-output = File.expand_path(output)
-control_output = File.expand_path(control_output)
+root, source_sha, output_name, control_output_name = ARGV
+raise 'usage: run_lifecycle.rb ROOT SOURCE_SHA OUTPUT_BASENAME CONTROL_OUTPUT_BASENAME' unless root && source_sha && output_name && control_output_name
+root = File.realpath(root)
+valid_name = lambda { |name| File.basename(name) == name && name.match?(/\A[A-Za-z0-9._-]+\z/) }
+raise 'output arguments must be basenames' unless valid_name.call(output_name) && valid_name.call(control_output_name)
+output_root = File.join(root, 'evidence/schema2')
+output = File.join(output_root, output_name)
+control_output = File.join(output_root, control_output_name)
 raise 'output paths must be new' if File.exist?(output) || File.exist?(control_output)
 control = File.join(root, 'evidence/schema2/control.json')
 checker = File.join(root, 'kern/trace_lifecycle_check.rb')
