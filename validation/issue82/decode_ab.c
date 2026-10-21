@@ -22,6 +22,7 @@
 #define NEW_TOKENS (GENERATED_TOKENS - 1)
 #define REPEATS 2
 #define CONNECT_TIMEOUT_MS 5000
+#define TRACE_CAP (2u * 1024u * 1024u)
 
 static const char *config_keys[] = {
     "kv_host", "ple_disk", "maxt", "layers", "nblk", "dies",
@@ -36,6 +37,7 @@ static pid_t core_pid;
 static uid_t core_uid;
 static unsigned long long core_start;
 static char original_config[LINE_CAP];
+static const char *trace_cubin;
 static int mutated;
 static volatile sig_atomic_t interrupted;
 
@@ -239,6 +241,31 @@ static int dump_profile(const char *arm, int die) {
     return 0;
 }
 
+static int dump_trace(const char *arm, int die) {
+    if (!trace_cubin) return 0;
+    char command[32];
+    char *trace = malloc(TRACE_CAP);
+    if (!trace) return fail("trace buffer allocation");
+    int fd = connect_core();
+    if (fd < 0) { free(trace); return fail("trace socket connect"); }
+    snprintf(command, sizeof command, "trace %d", die);
+    int rc = send_command(fd, command);
+    if (!rc) rc = shutdown(fd, SHUT_WR);
+    if (!rc) rc = read_to_eof(fd, trace, TRACE_CAP);
+    close(fd);
+    if (rc || !strstr(trace, "trace_begin") || !strstr(trace, "trace_end") || strstr(trace, "error:")) {
+        fprintf(stderr, "decode_ab: failed to read die %d trace\n", die);
+        free(trace);
+        return -1;
+    }
+    printf("TRACE_BEGIN arm=%s die=%d\n%s", arm, die, trace);
+    if (trace[strlen(trace) - 1] != '\n') putchar('\n');
+    printf("TRACE_END arm=%s die=%d\n", arm, die);
+    fflush(stdout);
+    free(trace);
+    return 0;
+}
+
 static int read_start_tick(pid_t pid, unsigned long long *tick) {
     char path[64], buf[4096];
     snprintf(path, sizeof path, "/proc/%ld/stat", (long)pid);
@@ -314,9 +341,12 @@ static int config_value(const char *config, const char *key, char *out, size_t c
     return -1;
 }
 
-static int same_layout(const char *expected, const char *actual) {
+static int same_layout(const char *expected, const char *actual, int allow_trace_config) {
     char a[1024], b[1024];
     for (size_t i = 0; i < sizeof config_keys / sizeof config_keys[0]; i++) {
+        if (allow_trace_config && (!strcmp(config_keys[i], "trace_tokens") ||
+                                   !strcmp(config_keys[i], "cubin") ||
+                                   !strcmp(config_keys[i], "cubin_fnv"))) continue;
         if (config_value(expected, config_keys[i], a, sizeof a) ||
             config_value(actual, config_keys[i], b, sizeof b) || strcmp(a, b)) {
             fprintf(stderr, "decode_ab: config mismatch at %s\n", config_keys[i]);
@@ -337,15 +367,18 @@ static int check_rev(const char *config, const char *expected) {
 }
 
 static int load_library(const char *path, const char *expected_rev) {
-    char command[PATH_MAX + 32], reply[LINE_CAP], config[LINE_CAP];
-    if (snprintf(command, sizeof command, "reload %s", path) >= (int)sizeof command) return -1;
+    char command[2 * PATH_MAX + 128], reply[LINE_CAP], config[LINE_CAP];
+    int n = trace_cubin
+        ? snprintf(command, sizeof command, "reload %s FLASH_CUBIN=%s FLASH_TRACE=1", path, trace_cubin)
+        : snprintf(command, sizeof command, "reload %s", path);
+    if (n < 0 || (size_t)n >= sizeof command) return -1;
     mutated = 1;
     if (control(command, reply, sizeof reply) || strncmp(reply, "ok: engine reloaded", 19)) {
         fprintf(stderr, "decode_ab: reload failed: %s\n", reply);
         return -1;
     }
     if (get_config(config, sizeof config) || check_rev(config, expected_rev) ||
-        same_layout(original_config, config)) return -1;
+        same_layout(original_config, config, trace_cubin != NULL)) return -1;
     printf("CONFIG %s\n", config);
     return 0;
 }
@@ -447,8 +480,14 @@ static int same_tokens(const run_result *a, const run_result *b) {
 static int restore_live(void) {
     for (unsigned attempt = 0; attempt < 20; attempt++) {
         char reply[LINE_CAP], config[LINE_CAP];
-        char command[PATH_MAX + 32];
-        if (snprintf(command, sizeof command, "reload %s", restore_path) >= (int)sizeof command)
+        char command[2 * PATH_MAX + 128], original_cubin[PATH_MAX];
+        int n;
+        if (trace_cubin) {
+            if (config_value(original_config, "cubin", original_cubin, sizeof original_cubin)) return -1;
+            n = snprintf(command, sizeof command, "reload %s FLASH_CUBIN=%s FLASH_TRACE=0",
+                         restore_path, original_cubin);
+        } else n = snprintf(command, sizeof command, "reload %s", restore_path);
+        if (n < 0 || (size_t)n >= sizeof command)
             return -1;
         if (!control(command, reply, sizeof reply) && !strncmp(reply, "ok: engine reloaded", 19) &&
             !get_config(config, sizeof config) && !strcmp(config, original_config)) {
@@ -477,6 +516,10 @@ int main(int argc, char **argv) {
     if (gethostname(host, sizeof host) || strcmp(host, "archy")) return fail("must run on archy"), 2;
     if (strlen(argv[1]) >= sizeof socket_path || strlen(argv[2]) >= sizeof restore_path) return 2;
     strcpy(socket_path, argv[1]);
+    trace_cubin = getenv("DECODE_AB_TRACE_CUBIN");
+    if (trace_cubin && (!*trace_cubin || access(trace_cubin, R_OK) ||
+                        strpbrk(trace_cubin, " \t\r\n")))
+        return fail("invalid DECODE_AB_TRACE_CUBIN"), 2;
     char resolved[PATH_MAX];
     if (!realpath(argv[2], resolved) || strlen(resolved) >= sizeof restore_path) return fail("missing restore library"), 2;
     strcpy(restore_path, resolved);
@@ -515,6 +558,8 @@ int main(int argc, char **argv) {
     }
     for (int die = 0; die < 6; die++)
         if (dump_profile("baseline", die)) goto cleanup;
+    for (int die = 0; die < 6; die++)
+        if (dump_trace("baseline", die)) goto cleanup;
 
     if (load_library(argv[5], argv[6])) goto cleanup;
     if (run_request("candidate", "warmup", 0, 0, &result)) goto cleanup;
@@ -524,6 +569,8 @@ int main(int argc, char **argv) {
     }
     for (int die = 0; die < 6; die++)
         if (dump_profile("candidate", die)) goto cleanup;
+    for (int die = 0; die < 6; die++)
+        if (dump_trace("candidate", die)) goto cleanup;
 
     if (load_library(argv[3], argv[4])) goto cleanup;
     if (run_request("baseline", "warmup-after", 0, 0, &result)) goto cleanup;
