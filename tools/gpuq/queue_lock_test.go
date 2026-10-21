@@ -44,7 +44,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func TestQueueLockReleasedAfterCommandLeaderExits(t *testing.T) {
+func TestRunnerTerminatesDescendantAndReleasesQueueLease(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		t.Skip("the GPUQ lock descriptor regression test requires Linux")
 	}
@@ -103,9 +103,12 @@ func TestQueueLockReleasedAfterCommandLeaderExits(t *testing.T) {
 	if childPID == 0 {
 		t.Fatalf("the lock-holding child did not start\nstdout: %s\nstderr: %s", stdout.String(), stderr.String())
 	}
+	childReleased := false
 	defer func() {
-		_ = os.WriteFile(stopPath, []byte("stop"), 0600)
-		_ = syscall.Kill(childPID, syscall.SIGKILL)
+		if !childReleased {
+			_ = os.WriteFile(stopPath, []byte("stop"), 0600)
+			_ = syscall.Kill(childPID, syscall.SIGKILL)
+		}
 	}()
 
 	select {
@@ -117,15 +120,30 @@ func TestQueueLockReleasedAfterCommandLeaderExits(t *testing.T) {
 		t.Fatalf("gpuq did not return after its command leader exited; recorded status: %s\nstdout: %s\nstderr: %s", recordedStatus(cli, cmd.Env), stdout.String(), stderr.String())
 	}
 
+	if status := recordedStatus(cli, cmd.Env); status != "capture_failed" {
+		t.Fatalf("expected a recorded descendant capture failure, got %q", status)
+	}
 	probe, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer probe.Close()
-	if err := syscall.Flock(int(probe.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
-		t.Fatalf("queue lock is still held after gpuq returned: %v", err)
+	deadline = time.Now().Add(2 * time.Second)
+	for {
+		err := syscall.Flock(int(probe.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+		if err == nil {
+			_ = syscall.Flock(int(probe.Fd()), syscall.LOCK_UN)
+			break
+		}
+		if err != syscall.EWOULDBLOCK && err != syscall.EAGAIN {
+			t.Fatalf("unexpected result waiting for descendant to release the queue lease: %v", err)
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("queue lease remained held after bounded descendant cleanup")
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
-	_ = syscall.Flock(int(probe.Fd()), syscall.LOCK_UN)
+	childReleased = true
 }
 
 func TestFixtureNoop(t *testing.T) {}
