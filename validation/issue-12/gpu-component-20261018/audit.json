@@ -1,0 +1,533 @@
+{
+  "status": "PASS",
+  "cpu_only_audit": true,
+  "gpu_executed_by_this_audit": false,
+  "source": {
+    "utc": "2026-10-18T06:00:57Z",
+    "host": "archy",
+    "gpu": "GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4",
+    "build": "/tmp/flash-sass-issue12-resume.rQdbkr/final-builds",
+    "keys": "1,1023,1024,1025,2047,2048,2049,2050,2051,2052,4095,4096,4097,8191,8192,8193",
+    "seeds": "0,77,4242",
+    "modes": "historical,matched,traced",
+    "repeats": 32,
+    "harness_source": "6ae0a092f2a5a0f6a472066152bcdd12daef8303",
+    "host_lock": "/tmp/flash-sass-engine-validation.lock",
+    "lock_shell_pid": 1002367,
+    "scope": "isolated single-GPU component; no resident-model IPC or reload",
+    "monitoring": "one-second samples; selected GPU permits only current harness PID; other GPUs must report zero utilization; samples may miss sub-second interference",
+    "whole_model": false
+  },
+  "component_cases": 144,
+  "retained_event_samples_checked": 27648,
+  "raw_cta_records_checked": 12288,
+  "negative_trace_rejection": "PASS",
+  "telemetry_samples_checked": 656,
+  "maximum_other_gpu_utilization_percent": 0,
+  "telemetry_limitation": "One-second sampled evidence cannot exclude sub-second interference.",
+  "target": {
+    "uuid": "GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4",
+    "drivers": [
+      "470.256.02"
+    ],
+    "temperature_c_range": [
+      33,
+      55
+    ],
+    "sm_clock_mhz_range": [
+      405,
+      873
+    ],
+    "memory_clock_mhz_range": [
+      324,
+      2505
+    ]
+  },
+  "physical_cta_work": {
+    "2048": {
+      "old": {
+        "nonempty_units_by_physical_cta": [
+          2,
+          2,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          2,
+          2,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "active_ctas": 4,
+        "total_nonempty_units": 8
+      },
+      "new": {
+        "nonempty_units_by_physical_cta": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "active_ctas": 8,
+        "total_nonempty_units": 8
+      }
+    },
+    "2051": {
+      "old": {
+        "nonempty_units_by_physical_cta": [
+          2,
+          2,
+          2,
+          0,
+          0,
+          0,
+          0,
+          0,
+          2,
+          2,
+          2,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "active_ctas": 6,
+        "total_nonempty_units": 12
+      },
+      "new": {
+        "nonempty_units_by_physical_cta": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0
+        ],
+        "active_ctas": 12,
+        "total_nonempty_units": 12
+      }
+    }
+  },
+  "summaries": {
+    "historical": [
+      {
+        "keys": 1,
+        "seeds": 3,
+        "old_partial_merge_us": 91.41,
+        "new_partial_merge_us": 55.929,
+        "delta_us": -35.480999999999995,
+        "reduction_percent": 38.81522809320643
+      },
+      {
+        "keys": 1023,
+        "seeds": 3,
+        "old_partial_merge_us": 238.537,
+        "new_partial_merge_us": 128.897,
+        "delta_us": -109.64000000000001,
+        "reduction_percent": 45.96351928631618
+      },
+      {
+        "keys": 1024,
+        "seeds": 3,
+        "old_partial_merge_us": 238.77,
+        "new_partial_merge_us": 128.913,
+        "delta_us": -109.857,
+        "reduction_percent": 46.00954893830883
+      },
+      {
+        "keys": 1025,
+        "seeds": 3,
+        "old_partial_merge_us": 241.398,
+        "new_partial_merge_us": 136.6,
+        "delta_us": -104.798,
+        "reduction_percent": 43.412952882791075
+      },
+      {
+        "keys": 2047,
+        "seeds": 3,
+        "old_partial_merge_us": 245.71,
+        "new_partial_merge_us": 141.246,
+        "delta_us": -104.464,
+        "reduction_percent": 42.515160148142115
+      },
+      {
+        "keys": 2048,
+        "seeds": 3,
+        "old_partial_merge_us": 245.634,
+        "new_partial_merge_us": 141.746,
+        "delta_us": -103.88799999999998,
+        "reduction_percent": 42.293819259548755
+      },
+      {
+        "keys": 2049,
+        "seeds": 3,
+        "old_partial_merge_us": 248.686,
+        "new_partial_merge_us": 154.527,
+        "delta_us": -94.15900000000002,
+        "reduction_percent": 37.862605856381144
+      },
+      {
+        "keys": 2050,
+        "seeds": 3,
+        "old_partial_merge_us": 249.069,
+        "new_partial_merge_us": 154.604,
+        "delta_us": -94.46499999999997,
+        "reduction_percent": 37.92724104565401
+      },
+      {
+        "keys": 2051,
+        "seeds": 3,
+        "old_partial_merge_us": 249.436,
+        "new_partial_merge_us": 154.74,
+        "delta_us": -94.696,
+        "reduction_percent": 37.964046889783354
+      },
+      {
+        "keys": 2052,
+        "seeds": 3,
+        "old_partial_merge_us": 249.306,
+        "new_partial_merge_us": 154.824,
+        "delta_us": -94.482,
+        "reduction_percent": 37.898004861495515
+      },
+      {
+        "keys": 4095,
+        "seeds": 3,
+        "old_partial_merge_us": 261.538,
+        "new_partial_merge_us": 175.317,
+        "delta_us": -86.221,
+        "reduction_percent": 32.96691111807844
+      },
+      {
+        "keys": 4096,
+        "seeds": 3,
+        "old_partial_merge_us": 261.58,
+        "new_partial_merge_us": 174.865,
+        "delta_us": -86.71499999999997,
+        "reduction_percent": 33.15047021943573
+      },
+      {
+        "keys": 4097,
+        "seeds": 3,
+        "old_partial_merge_us": 273.775,
+        "new_partial_merge_us": 212.013,
+        "delta_us": -61.76199999999997,
+        "reduction_percent": 22.559400967948125
+      },
+      {
+        "keys": 8191,
+        "seeds": 3,
+        "old_partial_merge_us": 338.586,
+        "new_partial_merge_us": 332.449,
+        "delta_us": -6.1370000000000005,
+        "reduction_percent": 1.8125380257896075
+      },
+      {
+        "keys": 8192,
+        "seeds": 3,
+        "old_partial_merge_us": 339.402,
+        "new_partial_merge_us": 332.463,
+        "delta_us": -6.9389999999999645,
+        "reduction_percent": 2.044478229356328
+      },
+      {
+        "keys": 8193,
+        "seeds": 3,
+        "old_partial_merge_us": 515.021,
+        "new_partial_merge_us": 367.037,
+        "delta_us": -147.98399999999998,
+        "reduction_percent": 28.73358562078051
+      }
+    ],
+    "matched": [
+      {
+        "keys": 1,
+        "seeds": 3,
+        "old_partial_merge_us": 93.775,
+        "new_partial_merge_us": 57.434,
+        "delta_us": -36.34100000000001,
+        "reduction_percent": 38.753399093575055
+      },
+      {
+        "keys": 1023,
+        "seeds": 3,
+        "old_partial_merge_us": 240.85,
+        "new_partial_merge_us": 130.452,
+        "delta_us": -110.398,
+        "reduction_percent": 45.836827901183305
+      },
+      {
+        "keys": 1024,
+        "seeds": 3,
+        "old_partial_merge_us": 240.812,
+        "new_partial_merge_us": 130.232,
+        "delta_us": -110.58000000000001,
+        "reduction_percent": 45.91963855621813
+      },
+      {
+        "keys": 1025,
+        "seeds": 3,
+        "old_partial_merge_us": 243.285,
+        "new_partial_merge_us": 137.665,
+        "delta_us": -105.62,
+        "reduction_percent": 43.41410280124134
+      },
+      {
+        "keys": 2047,
+        "seeds": 3,
+        "old_partial_merge_us": 247.131,
+        "new_partial_merge_us": 142.389,
+        "delta_us": -104.74199999999999,
+        "reduction_percent": 42.38318948250118
+      },
+      {
+        "keys": 2048,
+        "seeds": 3,
+        "old_partial_merge_us": 246.782,
+        "new_partial_merge_us": 142.328,
+        "delta_us": -104.45400000000001,
+        "reduction_percent": 42.3264257522834
+      },
+      {
+        "keys": 2049,
+        "seeds": 3,
+        "old_partial_merge_us": 249.895,
+        "new_partial_merge_us": 155.232,
+        "delta_us": -94.66300000000001,
+        "reduction_percent": 37.88111006622782
+      },
+      {
+        "keys": 2050,
+        "seeds": 3,
+        "old_partial_merge_us": 249.753,
+        "new_partial_merge_us": 155.218,
+        "delta_us": -94.535,
+        "reduction_percent": 37.85139718041425
+      },
+      {
+        "keys": 2051,
+        "seeds": 3,
+        "old_partial_merge_us": 249.834,
+        "new_partial_merge_us": 155.436,
+        "delta_us": -94.398,
+        "reduction_percent": 37.78428876774178
+      },
+      {
+        "keys": 2052,
+        "seeds": 3,
+        "old_partial_merge_us": 249.911,
+        "new_partial_merge_us": 155.163,
+        "delta_us": -94.74799999999999,
+        "reduction_percent": 37.912696920103556
+      },
+      {
+        "keys": 4095,
+        "seeds": 3,
+        "old_partial_merge_us": 262.542,
+        "new_partial_merge_us": 176.244,
+        "delta_us": -86.29799999999997,
+        "reduction_percent": 32.87016934433347
+      },
+      {
+        "keys": 4096,
+        "seeds": 3,
+        "old_partial_merge_us": 262.496,
+        "new_partial_merge_us": 176.701,
+        "delta_us": -85.79499999999999,
+        "reduction_percent": 32.68430757040107
+      },
+      {
+        "keys": 4097,
+        "seeds": 3,
+        "old_partial_merge_us": 273.464,
+        "new_partial_merge_us": 213.571,
+        "delta_us": -59.893,
+        "reduction_percent": 21.901603136061787
+      },
+      {
+        "keys": 8191,
+        "seeds": 3,
+        "old_partial_merge_us": 339.4,
+        "new_partial_merge_us": 334.327,
+        "delta_us": -5.072999999999979,
+        "reduction_percent": 1.494696523276364
+      },
+      {
+        "keys": 8192,
+        "seeds": 3,
+        "old_partial_merge_us": 339.221,
+        "new_partial_merge_us": 333.911,
+        "delta_us": -5.310000000000002,
+        "reduction_percent": 1.5653512017239506
+      },
+      {
+        "keys": 8193,
+        "seeds": 3,
+        "old_partial_merge_us": 512.18,
+        "new_partial_merge_us": 368.797,
+        "delta_us": -143.38299999999992,
+        "reduction_percent": 27.99465031824748
+      }
+    ],
+    "traced": [
+      {
+        "keys": 1,
+        "seeds": 3,
+        "old_partial_merge_us": 112.568,
+        "new_partial_merge_us": 75.807,
+        "delta_us": -36.760999999999996,
+        "reduction_percent": 32.656705280363866
+      },
+      {
+        "keys": 1023,
+        "seeds": 3,
+        "old_partial_merge_us": 257.871,
+        "new_partial_merge_us": 148.37,
+        "delta_us": -109.50099999999998,
+        "reduction_percent": 42.463479801916456
+      },
+      {
+        "keys": 1024,
+        "seeds": 3,
+        "old_partial_merge_us": 257.849,
+        "new_partial_merge_us": 148.272,
+        "delta_us": -109.577,
+        "reduction_percent": 42.496577454246484
+      },
+      {
+        "keys": 1025,
+        "seeds": 3,
+        "old_partial_merge_us": 260.268,
+        "new_partial_merge_us": 155.353,
+        "delta_us": -104.91499999999996,
+        "reduction_percent": 40.31037238538736
+      },
+      {
+        "keys": 2047,
+        "seeds": 3,
+        "old_partial_merge_us": 264.855,
+        "new_partial_merge_us": 160.104,
+        "delta_us": -104.751,
+        "reduction_percent": 39.55031998640766
+      },
+      {
+        "keys": 2048,
+        "seeds": 3,
+        "old_partial_merge_us": 264.88,
+        "new_partial_merge_us": 160.375,
+        "delta_us": -104.505,
+        "reduction_percent": 39.4537148897614
+      },
+      {
+        "keys": 2049,
+        "seeds": 3,
+        "old_partial_merge_us": 268.215,
+        "new_partial_merge_us": 171.426,
+        "delta_us": -96.78899999999999,
+        "reduction_percent": 36.086348638219334
+      },
+      {
+        "keys": 2050,
+        "seeds": 3,
+        "old_partial_merge_us": 268.149,
+        "new_partial_merge_us": 171.255,
+        "delta_us": -96.894,
+        "reduction_percent": 36.134387970866946
+      },
+      {
+        "keys": 2051,
+        "seeds": 3,
+        "old_partial_merge_us": 268.15,
+        "new_partial_merge_us": 171.37,
+        "delta_us": -96.77999999999997,
+        "reduction_percent": 36.09173969793025
+      },
+      {
+        "keys": 2052,
+        "seeds": 3,
+        "old_partial_merge_us": 268.31,
+        "new_partial_merge_us": 171.467,
+        "delta_us": -96.84299999999999,
+        "reduction_percent": 36.09369758861018
+      },
+      {
+        "keys": 4095,
+        "seeds": 3,
+        "old_partial_merge_us": 282.391,
+        "new_partial_merge_us": 192.025,
+        "delta_us": -90.36600000000001,
+        "reduction_percent": 32.00031162466227
+      },
+      {
+        "keys": 4096,
+        "seeds": 3,
+        "old_partial_merge_us": 282.157,
+        "new_partial_merge_us": 191.944,
+        "delta_us": -90.213,
+        "reduction_percent": 31.972625169675037
+      },
+      {
+        "keys": 4097,
+        "seeds": 3,
+        "old_partial_merge_us": 291.295,
+        "new_partial_merge_us": 229.023,
+        "delta_us": -62.27200000000002,
+        "reduction_percent": 21.377641222815363
+      },
+      {
+        "keys": 8191,
+        "seeds": 3,
+        "old_partial_merge_us": 354.259,
+        "new_partial_merge_us": 348.544,
+        "delta_us": -5.715000000000032,
+        "reduction_percent": 1.6132264811903245
+      },
+      {
+        "keys": 8192,
+        "seeds": 3,
+        "old_partial_merge_us": 354.383,
+        "new_partial_merge_us": 349.105,
+        "delta_us": -5.277999999999963,
+        "reduction_percent": 1.489349094059242
+      },
+      {
+        "keys": 8193,
+        "seeds": 3,
+        "old_partial_merge_us": 528.619,
+        "new_partial_merge_us": 384.273,
+        "delta_us": -144.346,
+        "reduction_percent": 27.306245140640044
+      }
+    ]
+  },
+  "whole_model_validated": false
+}

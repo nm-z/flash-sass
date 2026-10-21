@@ -101,13 +101,50 @@ request reset and snapshot copying to the executed blocks. The default remains
 labeled as partial-model results, regardless of head/logit comparisons.
 
 `kern/check_qsa_engine_requests.pl` uses the same lock/admission helpers for
-owned one-die cores. It checks fresh requests, prompt changes, snapshots at
+owned private cores. It checks fresh requests, prompt changes, snapshots at
 positions 1/2/3/5, resume counts, final state/logit fingerprints and actual
 paired/chunk counters. A separate `gen 1` request has its own full-head engine
 reference; it is not a teacher-forced scalar-model comparison. `--self-test`
 checks the parser on CPU and `--plan` displays the exact request sequence.
 Actual execution requires an inherited reservation and an explicitly identified
-holder, such as those supplied by `validation/issue9/with_private_holder.sh`.
+holder, such as those supplied by `validation/issue9/with_private_holder.sh`
+for the one-die fixture.
+
+### Multi-die and variable-depth request checks
+
+The request checker accepts one to six dies, with a repeated `--manifest` and
+`--holder-pid` for each physical device in `--cuda-visible`. Manifest order
+defines the logical die numbers in `statehash`. Multi-die runs require explicit
+`--split-shares` and `--attn-map` (or their matching environment variables);
+they must describe the supplied weight arenas, not an invented equal split.
+The reported engine `config` must match both the topology and execution flags.
+Recurrent state, PLE and vocabulary-shard fingerprints are required on every
+die; attention state is required only on that layer's mapped owner. Missing,
+duplicate, unexpected or changed remote-die records fail the comparison.
+
+Defaults remain eight blocks, nine IDs, and snapshots at 1/2/3/5. `--layers 48`
+requests all blocks. `--tokens N` supplies identical deterministic, valid IDs
+to each launch/KV-placement mode; `--snapshots` selects exact interior snapshot
+positions. For production-budget exclusion use `--nblk 512 --tokens 2052`,
+for example with `--snapshots 1,2,3,5,2048,2051`. Capacity rounds up separately
+from the requested visible length and leaves room for the separate generated
+position. This replay matrix is not a replacement for direct-at-position
+component checks at huge synthetic-cache depths.
+
+`--plan` does not access CUDA, holders or the lock. Reports use schema
+`flash-sass.private-qsa-request-check.v2` and preserve the requested die map,
+snapshot positions, token count and capacity. `requested_selection_exclusion`
+describes the plan, not a measured result. Actual runs also record every
+manifest hash, an exact source diff and optional `--weight-manifest` and
+`--build-log` identities. They retain `acceptance_complete=false`: neither a
+synthetic parser fixture nor GPU-versus-GPU fingerprints establish full-model
+CPU agreement or checkpoint lineage.
+
+`perl kern/check_qsa_engine_requests.pl --self-test` runs
+`kern/test_qsa_engine_requests.pl`, including six-die, 48-layer, 2,052-token
+synthetic captures; corruption/missing-state checks on nonzero dies; topology
+rejection; and independent chunk/snapshot accounting checks. These are CPU
+parser/planner tests, not GPU results.
 
 ## CPU tile cache export
 

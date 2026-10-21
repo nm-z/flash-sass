@@ -71,7 +71,10 @@ int main(int argc, char **argv) {
 	float xs = 1.f;
 	float *yref = malloc(sizeof(float) * rows), *y = malloc(sizeof(float) * rows);
 	double t2 = now();
-	gemv_q2_0_ref(tile, rows, K, xq, sum32, as, yref);
+	if (gemv_q2_0_ref(tile, rows, K, xq, sum32, as, yref)) {
+		fprintf(stderr, "unsupported Q2_0 reference shape K=%d\n", K);
+		return 2;
+	}
 	double t3 = now();
 	printf("repack %.1f ms (%.2f GB/s read), reference %.1f ms\n", (t1 - t0) * 1e3, (double)rows * (K / 64) * 18 / (t1 - t0) / 1e9, (t3 - t2) * 1e3);
 

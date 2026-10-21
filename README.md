@@ -31,6 +31,25 @@ Set `FLASH_PREFILL_CHUNK=64` to run known prompt positions in chunks of at most
 The final prompt position still computes the first generated token through the
 full B1 head. Unset or `0` disables chunking; valid sizes are `1..4096`.
 
+`FLASH_ATTN_Q_SPLIT=1` distributes the 12,288-row attention query projection
+across dies with space for local weight slices. At engine initialization it
+copies those slices from the resident weight arenas. With at least three
+workers available, the attention owner handles K/V and the indexer while the
+other workers compute Q. Results use the existing broadcast and synchronization
+path. The planner runs after context, image, and paired activation allocations,
+reserves 8 MiB per participating die, and rejects the reload if fewer than two
+workers fit. The default is `0`; `config` reports `attn_q_split` and the
+hexadecimal `attn_q_mask`. See [the measured results](validation/issue82/attention-q-split/README.md).
+
+## Timing measurements
+
+[TIMINGS.md](TIMINGS.md) defines the shared CLI/HTTP timing schema, counts and
+rate denominators. Enable CLI records with `timings 1`; HTTP includes the same
+record under `timings.engine` and request/transport events under `timings.http`.
+Host-observed decode, device publication intervals and complete request timing
+are separate measurements. A request with fewer than two generated outputs has
+no measured decode interval rate. Optional device tracing and its validation
+commands are documented with the schema.
 
 #### Planned: 
 - MTP head
@@ -115,9 +134,80 @@ MaxAs checkout with `maxas-patch/` applied, Perl, a C compiler, and the model fi
 the six-die split (`SPLIT_SHARES`) are set for the author's machine; read `kern/Makefile`,
 `kern/serve.sh` and `SPEC.md` before expecting it to run elsewhere.
 
+Refresh the files from `maxas-patch/` in an existing MaxAs checkout before building
+the direct-dispatch kernel; its BRX encoding and label relocation support are
+required. The default build uses `DIE_DISPATCH=jump`, `GEMV_HC_ROWS=4`, and
+`GEMV_HC_SLICE_LOOP=1`. The prior linear dispatcher and eight-row/unrolled HC
+variants remain selectable with their corresponding build variables.
+
 ```
 make -C kern die.cubin libengine.so flashcore flashd hold
 ```
+
+## PLE row reads
+
+With `FLASH_PLE_DISK=1 FLASH_PLE_READERS=16`, the engine reads a position's sixteen
+90-byte rows with a persistent pool of 16 readers. Serial reads remain the default;
+values from 2 through 16 bound the number of concurrent readers. The pool does not pin
+the full PLE file. See [PLE_READS.md](PLE_READS.md) for the lifecycle, configuration,
+and C correctness and file-I/O benchmarks.
+
+### Local PLE file cache
+
+`FLASH_PLE_FILE=/absolute/path/to/copied-shard.gguf` redirects disk-mode PLE
+row reads to a local copy. The copy must contain the entire original second
+shard, including its header; the engine keeps the core's existing table offset.
+An unavailable, non-regular, or differently sized cache falls back to the core source.
+The setting does not change the GPU kernels, staging buffers, weights, context
+capacity, or image capacity.
+
+Create the copy under a temporary name and rename it only after copying succeeds.
+The original model file remains the source of truth. File-size checking detects
+an incomplete copy; it does not identify an unrelated model with the same size.
+
+```sh
+cp --sparse=always "$GGUF2" /local/cache/flash-ple.gguf.tmp &&
+  mv /local/cache/flash-ple.gguf.tmp /local/cache/flash-ple.gguf
+```
+
+To apply it to an already resident model, use the engine's reload command:
+
+```text
+reload /absolute/path/to/libengine.so FLASH_PLE_FILE=/local/cache/flash-ple.gguf
+```
+
+The engine logs the selected file and reports `ple_file` in `config`. Reloading
+with `FLASH_PLE_FILE=` returns to the core's original file descriptor. The engine
+opens a cache descriptor for one synchronous row batch and closes it after all
+readers finish; it never keeps a RAM file alive between batches. A short or failed
+cache read is retried from the original source before publishing the rows.
+Serial and parallel reader settings remain available for either source.
+
+### RAM-backed PLE source
+
+`kern/ple_ram` copies the source into an anonymous RAM-backed file, locks each
+64 MiB chunk as it is filled, and seals the completed file against future
+writes and size changes. This avoids dirty disk writeback and does not depend
+on retaining an NFS mapping in the filesystem cache. It uses no CUDA context.
+
+```sh
+make -C kern ple_ram
+./kern/ple_ram "$GGUF2" /tmp/flash-ple-ram.ready
+```
+
+The helper remains in the foreground to keep the mapping locked. Its nonempty
+ready file appears after the copy and page-residency check finish. The first
+line is a readable `/proc/PID/fd/FD` path; use that path as `FLASH_PLE_FILE` in
+the reload command above. The following line records the byte and page counts
+and the source file identity.
+
+The loader requires the complete file size plus a 4 GiB available-memory reserve
+and checks the reserve while loading and every 20 ms afterward. It withdraws
+the cache when that reserve is crossed; serving then uses the original source. The locked-memory limit must also permit
+the allocation. A failed read, memory lock, residency check, or file seal aborts
+before publishing readiness. To release the RAM, reload the original source
+with `FLASH_PLE_FILE=` and terminate the helper. SIGTERM and SIGINT remove its
+ready file; a stale ready file must be resolved before starting another loader.
 
 ## Optional PLE file-cache warm-up
 

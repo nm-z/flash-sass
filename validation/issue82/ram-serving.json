@@ -1,0 +1,59 @@
+{
+  "config": "config rev=5601c92dc1f0180f8ae62ecae54bd4e8c184553b kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/proc/1978202/fd/4 maxt=230000 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=4096 trace_tokens=0 two_position=0 prefill_chunk=0 cubin=/home/nate/codex/flash-astra-perf-20261018/graph-small-stack/original-die.cubin cubin_fnv=ddf4c2d71eac39dd",
+  "ram_bytes": 28800138432,
+  "resident_pages": 7031284,
+  "locked_kib": 28125136,
+  "requests": [
+    {
+      "case": "request-0.json",
+      "status": "200",
+      "wall_ms": 9310.63391600037,
+      "first_text_ms": 2063.9347760006785,
+      "timings": {
+        "prompt_n": 65,
+        "cache_n": 0,
+        "prompt_ms": 1827.5,
+        "prompt_per_second": 35.57,
+        "predicted_n": 256,
+        "predicted_ms": 7246.7,
+        "predicted_per_second": 35.19,
+        "decode_intervals": 255,
+        "decode_ms": 7246.7
+      }
+    },
+    {
+      "case": "request-1.json",
+      "status": "200",
+      "wall_ms": 7370.6501179985935,
+      "first_text_ms": 1893.4548319957685,
+      "timings": {
+        "prompt_n": 67,
+        "cache_n": 0,
+        "prompt_ms": 1885.9,
+        "prompt_per_second": 35.53,
+        "predicted_n": 194,
+        "predicted_ms": 5476.9,
+        "predicted_per_second": 35.24,
+        "decode_intervals": 193,
+        "decode_ms": 5476.9
+      }
+    },
+    {
+      "case": "request-2.json",
+      "status": "200",
+      "wall_ms": 5744.639206008287,
+      "first_text_ms": 1835.8634620090015,
+      "timings": {
+        "prompt_n": 65,
+        "cache_n": 0,
+        "prompt_ms": 1828.8,
+        "prompt_per_second": 35.54,
+        "predicted_n": 139,
+        "predicted_ms": 3908.5,
+        "predicted_per_second": 35.31,
+        "decode_intervals": 138,
+        "decode_ms": 3908.5
+      }
+    }
+  ]
+}

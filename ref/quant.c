@@ -226,13 +226,16 @@ int repack_q2_0(const uint8_t *src, int rows, int K, uint8_t *dst) {
 }
 
 int q2_0_lanes_per_row(int K) {
-	int halves = K / 32;
-	return halves / 5;   /* 2560 -> 16 lanes, 640 -> 4 lanes */
+	/* Match the Q2_0 SASS instantiations currently exposed by the dispatcher. */
+	if (K == 640) return 4;
+	if (K == 2560) return 16;
+	return 0;
 }
 
-void gemv_q2_0_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, const float *as, float *y) {
-	int B = K / 64, stride = q2_0_tile_stride(K), scales = stride - 16 * B;
+int gemv_q2_0_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const int32_t *sum32, const float *as, float *y) {
 	int L = q2_0_lanes_per_row(K);
+	if (!L || rows <= 0 || !tile || !xq || !sum32 || !as || !y) return -1;
+	int B = K / 64, stride = q2_0_tile_stride(K), scales = stride - 16 * B;
 	float v[32] = { 0 }, w[32] = { 0 };
 	for (int r = 0; r < rows; r++) {
 		const uint8_t *row = tile + (size_t)r * stride;
@@ -254,6 +257,7 @@ void gemv_q2_0_ref(const uint8_t *tile, int rows, int K, const int8_t *xq, const
 		}
 		y[r] = v[0];
 	}
+	return 0;
 }
 
 void gemv_q2_0_float(const uint8_t *src, int rows, int K, const float *x, float *y) {

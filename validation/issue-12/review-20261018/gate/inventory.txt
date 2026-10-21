@@ -1,0 +1,37 @@
+2026-10-18T03:41:01Z
+archy
+ruby            4010221 FLOCK WRITE /tmp/flash-sass-engine-validation.lock
+index, uuid, name, utilization.gpu [%], memory.used [MiB], temperature.gpu, clocks.current.sm [MHz]
+0, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, Tesla M60, 100 %, 7545 MiB, 84, 1177 MHz
+1, GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, Tesla M60, 100 %, 6546 MiB, 59, 1177 MHz
+2, GPU-c767d250-4454-d181-d648-8706b5f2fb64, Tesla M60, 100 %, 7521 MiB, 77, 1177 MHz
+3, GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, Tesla M60, 100 %, 7590 MiB, 56, 1177 MHz
+4, GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, Tesla M60, 100 %, 6559 MiB, 85, 405 MHz
+5, GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, Tesla M60, 100 %, 6497 MiB, 69, 1177 MHz
+6, GPU-431371bd-b482-96b2-4b70-04f83c6d075b, Tesla M60, 0 %, 3 MiB, 41, 405 MHz
+7, GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4, Tesla M60, 0 %, 138 MiB, 34, 405 MHz
+gpu_uuid, pid, process_name, used_gpu_memory [MiB]
+GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, 974018, ./hold, 7177 MiB
+GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, 3575268, ./flashcore, 177 MiB
+GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, 974061, ./hold, 6160 MiB
+GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, 3575268, ./flashcore, 160 MiB
+GPU-c767d250-4454-d181-d648-8706b5f2fb64, 974103, ./fence, 2110 MiB
+GPU-c767d250-4454-d181-d648-8706b5f2fb64, 988060, ./hold, 5116 MiB
+GPU-c767d250-4454-d181-d648-8706b5f2fb64, 3575268, ./flashcore, 107 MiB
+GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, 988067, ./hold, 7224 MiB
+GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, 3575268, ./flashcore, 143 MiB
+GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, 988072, ./hold, 6172 MiB
+GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, 3575268, ./flashcore, 160 MiB
+GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, 988080, ./hold, 6179 MiB
+GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, 3575268, ./flashcore, 160 MiB
+ 115195  115193 Sl   ruby
+ 974018  974015 Sl   hold
+ 974061  974058 Sl   hold
+ 974103  974100 Sl   fence
+ 988060  988058 Sl   hold
+ 988067  988065 Sl   hold
+ 988072  988070 Sl   hold
+ 988080  988079 Sl   hold
+1578451       1 Ss   flashd
+3575268       1 Ssl  flashcore
+4010221       1 Sl   ruby
