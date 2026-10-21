@@ -32,16 +32,19 @@ impl Drop for Scratch {
 struct Worker(Child);
 
 impl Worker {
-    fn start(cli: &Path, db: &Path, queue: &Path, lock: &Path, label: &str, seconds: &str) -> Self {
-        let child = Command::new("ruby")
-            .arg(cli)
-            .arg("--db")
-            .arg(db)
+    fn start(
+        cli: &Path,
+        db: Option<&Path>,
+        state_home: &Path,
+        queue: &Path,
+        lock: &Path,
+        label: &str,
+        seconds: &str,
+    ) -> Self {
+        let child = cli_command(cli, db, state_home, queue, lock)
             .args(["run", "--name", label, "--exclude", "all", "--"])
             .arg("/bin/sleep")
             .arg(seconds)
-            .env("GPUQ_QUEUE", queue)
-            .env("GPUQ_LOCK", lock)
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
@@ -64,14 +67,28 @@ impl Drop for Worker {
     }
 }
 
-fn ls(cli: &Path, db: &Path, queue: &Path, lock: &Path) -> String {
-    let output = Command::new("ruby")
-        .arg(cli)
-        .arg("--db")
-        .arg(db)
-        .args(["ls", "10"])
+fn cli_command(
+    cli: &Path,
+    db: Option<&Path>,
+    state_home: &Path,
+    queue: &Path,
+    lock: &Path,
+) -> Command {
+    let mut command = Command::new("ruby");
+    command.arg(cli);
+    if let Some(db) = db {
+        command.arg("--db").arg(db);
+    }
+    command
+        .env_remove("GPUQ_DB")
+        .env("XDG_STATE_HOME", state_home)
         .env("GPUQ_QUEUE", queue)
         .env("GPUQ_LOCK", lock)
+}
+
+fn ls(cli: &Path, db: Option<&Path>, state_home: &Path, queue: &Path, lock: &Path) -> String {
+    let output = cli_command(cli, db, state_home, queue, lock)
+        .args(["ls", "10"])
         .output()
         .expect("run gpuq ls");
     assert!(
@@ -84,7 +101,8 @@ fn ls(cli: &Path, db: &Path, queue: &Path, lock: &Path) -> String {
 
 fn wait_for_status(
     cli: &Path,
-    db: &Path,
+    db: Option<&Path>,
+    state_home: &Path,
     queue: &Path,
     lock: &Path,
     label: &str,
@@ -94,7 +112,7 @@ fn wait_for_status(
     let status_field = format!("\"status\": \"{status}\"");
     let mut last = String::new();
     for _ in 0..240 {
-        last = ls(cli, db, queue, lock);
+        last = ls(cli, db, state_home, queue, lock);
         if last.contains(&label_field) && last.contains(&status_field) {
             return last;
         }
@@ -125,13 +143,22 @@ fn ls_scope_is_per_database_while_queue_tickets_are_shared() {
     let cli = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tools/gpuq/gpuq.rb");
     let queue = scratch.path("queue");
     let lock = scratch.path("lock");
+    let state_home = scratch.path("state");
     let alternate_db = scratch.path("issue9-history.sqlite3");
-    let default_db = scratch.path("history.sqlite3");
 
-    let mut alternate = Worker::start(&cli, &alternate_db, &queue, &lock, "alternate-running", "6");
+    let mut alternate = Worker::start(
+        &cli,
+        Some(&alternate_db),
+        &state_home,
+        &queue,
+        &lock,
+        "alternate-running",
+        "6",
+    );
     let alternate_listing = wait_for_status(
         &cli,
-        &alternate_db,
+        Some(&alternate_db),
+        &state_home,
         &queue,
         &lock,
         "alternate-running",
@@ -139,10 +166,19 @@ fn ls_scope_is_per_database_while_queue_tickets_are_shared() {
     );
     assert!(alternate_listing.contains("alternate-running"));
 
-    let mut default = Worker::start(&cli, &default_db, &queue, &lock, "default-waiting", "0.1");
+    let mut default = Worker::start(
+        &cli,
+        None,
+        &state_home,
+        &queue,
+        &lock,
+        "default-waiting",
+        "0.1",
+    );
     let default_listing = wait_for_status(
         &cli,
-        &default_db,
+        None,
+        &state_home,
         &queue,
         &lock,
         "default-waiting",
@@ -152,7 +188,7 @@ fn ls_scope_is_per_database_while_queue_tickets_are_shared() {
 
     assert!(wait_for_ticket(&queue) > 0);
 
-    let alternate_listing = ls(&cli, &alternate_db, &queue, &lock);
+    let alternate_listing = ls(&cli, Some(&alternate_db), &state_home, &queue, &lock);
     assert!(alternate_listing.contains("alternate-running"));
     assert!(!alternate_listing.contains("default-waiting"));
 
