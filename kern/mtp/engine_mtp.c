@@ -66,8 +66,8 @@ static void mtp_fini(void) {
 static void mtp_init(void) {
     const char *option=getenv("FLASH_MTP_AUDIT");
     if(!option || !strcmp(option,"0"))return;
-    if(strcmp(option,"1") || nd!=6 || nlayers_run!=48 || nblk_qsa!=512) {
-        fprintf(stderr,"engine: MTP audit requires mode1, six dies, full48/B512\n");longjmp(init_jb,1);
+    if((strcmp(option,"1") && strcmp(option,"2")) || nd!=6 || nlayers_run!=48 || nblk_qsa!=512) {
+        fprintf(stderr,"engine: MTP requires mode1(shadow) or2(unchecked rollout), six dies, full48/B512\n");longjmp(init_jb,1);
     }
     if((getenv("FLASH_FUSED_MOE") && atoi(getenv("FLASH_FUSED_MOE"))) ||
        (getenv("FLASH_FAST_EXCHANGE") && atoi(getenv("FLASH_FAST_EXCHANGE"))) ||
@@ -109,6 +109,7 @@ static void mtp_init(void) {
     if(!fixed_fit || total_capacity<512) {
         fprintf(stderr,"engine: MTP requires512 expert slots; capacity=%u. Draft disabled before allocation.\n",total_capacity);
         gguf_close(&mtp_file);mtp_file_live=0;mtp_embedding=NULL;mtp_cubin_fnv=0;mtp_model_path[0]=mtp_cubin_path[0]=0;
+        if(!strcmp(option,"2"))longjmp(init_jb,1); /* Never fall back to target generation. */
         return;
     }
     unsigned prefix=0,assigned=0;
@@ -150,7 +151,7 @@ static void mtp_init(void) {
     uint64_t table[12];
     for(int d=0;d<6;d++) { table[d]=mtp_exchange[d].inbox;table[6+d]=mtp_exchange[d].flags; }
     for(int d=0;d<nd;d++) { CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyHtoD(mtp_exchange[d].xtab,table,sizeof table)); }
-    CK(cuCtxSetCurrent(ctx[0]));mtp_enabled=1;
+    CK(cuCtxSetCurrent(ctx[0]));mtp_enabled=atoi(option);
 }
 
 static void mtp_reset(void) {
@@ -201,7 +202,7 @@ static uint32_t mtp_step(unsigned position,uint32_t token,int head) {
     }
     uint32_t prediction=0xffffffffu;
     int bad=0;
-    for(int d=0;d<nd;d++) {
+    for(int d=0;mtp_enabled!=2 && d<nd;d++) {
         uint32_t control[48];CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoH(control,mtp_control[d],sizeof control));
         mtp_expected_xgen[d]+=(unsigned)mtp_programs[head][d].xj;
         bad+=mtp_check_completed("draft",d,control,position+1,mtp_expected_xgen[d],&mtp_exchange[d]);
@@ -230,7 +231,7 @@ static void mtp_target_step(runctx *r,const unsigned phases[MAXD],unsigned end,c
             if(q==CUDA_ERROR_NOT_READY)done=0;
             else {
                 CK(q);
-                if(now()-begin>0.1 && !(reported&(1u<<d))) {
+                if(mtp_enabled!=2 && now()-begin>0.1 && !(reported&(1u<<d))) {
                     uint32_t control[48];CK(cuMemcpyDtoH(control,dCTL[d],sizeof control));
                     fprintf(stderr,"engine: target finished peer die=%d expected_end=%u actual_end=%u xgen=%u expected_xgen=%u grid=%u expired=%u\n",
                             d,end,control[2],control[8],mtp_target_xgen[d]+(unsigned)program[d].xj,control[1],control[11]);
@@ -244,7 +245,7 @@ static void mtp_target_step(runctx *r,const unsigned phases[MAXD],unsigned end,c
         struct timespec nap={0,50000};nanosleep(&nap,NULL);
     }
     int bad=0;
-    for(int d=0;d<nd;d++) {
+    for(int d=0;mtp_enabled!=2 && d<nd;d++) {
         uint32_t control[48];CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoH(control,dCTL[d],sizeof control));
         mtp_target_xgen[d]+=(unsigned)program[d].xj;
         bad+=mtp_check_completed("target",d,control,end,mtp_target_xgen[d],&xc[d]);
@@ -265,7 +266,7 @@ static void mtp_target_step(runctx *r,const unsigned phases[MAXD],unsigned end,c
     if(!r->aborted && r->cb && r->cb->alive && r->cb->alive(r->cb->arg))r->aborted=1;
 }
 
-static void mtp_audit_run(runctx *r,const prog_t *full,const prog_t *prefix) {
+static void mtp_audit_run(runctx *r,const prog_t *full,const prog_t *prefix,const uint32_t stop[2]) {
     mtp_reset();unsigned phases[MAXD];int uploaded=-1;
     for(int d=0;d<nd;d++) { CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoH(&mtp_target_xgen[d],dCTL[d]+0x20,4)); }
     while(!r->aborted && !r->ended && r->count<r->T) {
@@ -274,9 +275,29 @@ static void mtp_audit_run(runctx *r,const prog_t *full,const prog_t *prefix) {
         uint32_t token=position<(unsigned)r->nprompt?h_ids[position]:h_toks[position-1];
         /* A one-position launch can finish before the in-flight PLE pump runs.
          * Stage the now-known next input before admitting its target kernel. */
-        ple_pump(r,8);
+        if(!head || mtp_enabled!=2)ple_pump(r,8);
         if(position<2 || (position&15u)==15u)fprintf(stderr,"engine: MTP shadow position=%u draft begin\n",position);
         uint32_t prediction=mtp_step(position,token,head);
+        if(head && mtp_enabled==2) {
+            /* Unchecked architectural rollout. The MTP block consumes the
+             * previous hidden state plus current token embedding. Its hidden
+             * output and predicted token become the next step's inputs.
+             * No target launch, token comparison, acceptance, or replay. */
+            h_toks[position]=prediction;mtp_proposals++;
+            for(int d=0;d<nd;d++) {
+                CK(cuCtxSetCurrent(ctx[d]));
+                CK(cuMemcpyDtoD(mtp_hidden[d],mtp_buffers[d].base.S,4*10240));
+            }
+            r->count=(int)position+1;trace_completed=position+1;
+            last_timing.completed=r->count;last_timing.counts_known=1;
+            last_timing.run_ms=(now()-timing_run_start)*1e3;
+            if(!r->tfirst)r->tfirst=now();
+            last_timing.first_valid=1;last_timing.first_ms=(r->tfirst-timing_run_start)*1e3;
+            r->ended=prediction==stop[0] || prediction==stop[1];
+            deliver_token(r,(int)position,prediction);r->sent=r->count;
+            if(!r->aborted && r->cb && r->cb->alive && r->cb->alive(r->cb->arg))r->aborted=1;
+            continue;
+        }
         if(position<2 || (position&15u)==15u)fprintf(stderr,"engine: MTP shadow position=%u target begin ple_ready=%u rid=%u\n",position,ple_disk?h_rdy[position]:0,ple_rid);
         int use_full=head||!prefix;
         if(use_full!=uploaded) { upload_programs(use_full?full:prefix,phases,1);uploaded=use_full; }
@@ -289,7 +310,7 @@ static void mtp_audit_run(runctx *r,const prog_t *full,const prog_t *prefix) {
 }
 
 static void mtp_stats(FILE *out) {
-    fprintf(out,"mtpstats shadow=1 enabled=%d steps=%u one_step_proposals=%u one_step_matches=%u draft_ms=%.6f head_draft_ms=%.6f\n",
-            mtp_enabled,mtp_steps,mtp_proposals,mtp_matches,mtp_total_ms,mtp_head_ms);
+    fprintf(out,"mtpstats shadow=%d enabled=%d steps=%u one_step_proposals=%u one_step_matches=%u draft_ms=%.6f head_draft_ms=%.6f rollout_tokens=%u target_verified=0\n",
+            mtp_enabled!=2,mtp_enabled,mtp_steps,mtp_proposals,mtp_matches,mtp_total_ms,mtp_head_ms,mtp_enabled==2?mtp_proposals:0);
     fflush(out);
 }

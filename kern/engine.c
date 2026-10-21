@@ -940,7 +940,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	else {
 #endif
 #ifdef FLASH_MTP_NATIVE
-	if (mtp_enabled) mtp_audit_run(&r,P,prefix);
+	if (mtp_enabled) mtp_audit_run(&r,P,prefix,stop);
 	else {
 #endif
 #ifdef FLASH_CHUNK_NATIVE
@@ -1552,7 +1552,7 @@ int engine_session(FILE *in, FILE *out) {
 			fprintf(out, " phase_batch=%u exact_cubin=%s exact_cubin_fnv=%016llx", exact_width, exact_width ? exact_cubin_path : "none", (unsigned long long)exact_cubin_fnv);
 #endif
 #ifdef FLASH_MTP_NATIVE
-			fprintf(out," mtp_shadow=%d mtp_model=%s mtp_cubin=%s mtp_cubin_fnv=%016llx",mtp_enabled,mtp_enabled?mtp_model_path:"none",mtp_enabled?mtp_cubin_path:"none",(unsigned long long)mtp_cubin_fnv);
+			fprintf(out," mtp_shadow=%d mtp_mode=%d mtp_rollout=%d mtp_model=%s mtp_cubin=%s mtp_cubin_fnv=%016llx",mtp_enabled==1,mtp_enabled,mtp_enabled==2,mtp_enabled?mtp_model_path:"none",mtp_enabled?mtp_cubin_path:"none",(unsigned long long)mtp_cubin_fnv);
 #endif
 #ifdef FLASH_VERIFY_NATIVE
 			fprintf(out," verify_audit=%u verify_state_check=%d",verify_accept,verify_check_state);

@@ -1,5 +1,10 @@
 # Astra performance investigation: results and experimental source
 
+**Subsequent requested experiment:** [unchecked recursive MTP rollout](MTP-ROLLOUT.md)
+now runs at a measured median **269.24 MTP rollout TPS**, with no target
+verification or acceptance. This is not verified full-target decode. The
+historical report below describes the state before that new request.
+
 Published at Nate's request after roughly 13 hours of work on October 20–21,
 2026. Related performance work: [issue #82](https://github.com/nm-z/flash-sass/issues/82).
 
