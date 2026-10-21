@@ -49,7 +49,9 @@ path. Explicit sizes above one enable the paired pass by default. An explicit
 `FLASH_TWO_POSITION=0` selects scalar microbatches within chunks;
 `FLASH_TWO_POSITION=1` retains pairing even when chunking is disabled. Automatic
 direct-engine chunks keep the configured pairing setting, which is scalar by
-default.
+default. For chunked requests with `n_new == 0`, the headless prefix pass uses
+scalar B1 launches even when pairing is enabled; the fused headless pair faults
+on this path.
 
 The prefix program omits the vocabulary head and sampler. It consumes only
 `[resume, nprompt-1)`, splitting chunks at exact snapshot boundaries. Within
