@@ -33,7 +33,10 @@ run_and_record = lambda do |label, env, *command|
 end
 
 begin
-  run_and_record.call('prepare', {'FLASH_TRACE_VALIDATION_LOCK_HELD' => '1'},
+  control_env = {'FLASH_TRACE_VALIDATION_LOCK_HELD' => '1'}
+  run_and_record.call('prepare-ordinary', control_env,
+                      'ruby', controller, control, 'lifecycle-ordinary')
+  run_and_record.call('prepare-traced', control_env,
                       'ruby', controller, control, 'lifecycle')
   env = {
     'FLASH_TRACE_VALIDATION_RUNNER' => File.join(root, 'kern/trace_validation.rb'),
