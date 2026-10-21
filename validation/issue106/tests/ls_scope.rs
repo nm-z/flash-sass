@@ -83,7 +83,8 @@ fn cli_command(
         .env_remove("GPUQ_DB")
         .env("XDG_STATE_HOME", state_home)
         .env("GPUQ_QUEUE", queue)
-        .env("GPUQ_LOCK", lock)
+        .env("GPUQ_LOCK", lock);
+    command
 }
 
 fn ls(cli: &Path, db: Option<&Path>, state_home: &Path, queue: &Path, lock: &Path) -> String {
@@ -126,7 +127,7 @@ fn wait_for_ticket(queue: &Path) -> usize {
         let count = fs::read_dir(queue)
             .expect("read isolated shared FIFO")
             .filter_map(Result::ok)
-            .filter(|entry| entry.path().extension().is_some_and(|ext| ext == "job"))
+            .filter(|entry| entry.path().extension().and_then(|ext| ext.to_str()) == Some("job"))
             .count();
         if count > 0 {
             return count;
