@@ -149,6 +149,25 @@ static void reject_case(const char *command) {
     core = NULL;
 }
 
+/* Capture request rejection must not collide with master's host-allocation
+ * error code. This returns before program allocation or any device operation. */
+static void capture_rejection_uses_distinct_error_code(void) {
+    uint32_t prompt[] = {17}, stop[] = {0xffffffffu, 0xffffffffu};
+    MAXT = 32;
+    qsa_capture_mode = 1;
+    qsa_capture_ready = 4;
+    trace_request = 41;
+    trace_status = "completed";
+    assert(engine_run(prompt, 1, 1, stop, NULL, 0, NULL, 0, NULL, NULL) == -5);
+    assert(qsa_capture_ready == 0 && !in_run);
+    assert(last_timing_valid && last_timing.error_code == -5);
+    assert(last_timing.request_id == 42 && trace_request == 42);
+    assert(!strcmp(trace_status, "argument_error"));
+    assert(isfinite(last_timing.build_ms) && last_timing.build_ms >= 0);
+    assert(isnan(last_timing.run_ms));
+    qsa_capture_mode = 0;
+}
+
 /* Fail each program allocation before any snapshot restore or device launch.
  * The real session must export the failure, never a successful timing record. */
 static void program_allocation_failure(void) {
@@ -201,8 +220,9 @@ int main(void) {
     reject_case("chat 999999999999999999999999999999999999999999");
     session_options();half_close_options();
     callback_return_before_cancel();
+    capture_rejection_uses_distinct_error_code();
     program_allocation_failure();
     free(s_ids); free(s_toks); s_ids = s_toks = NULL;
-    puts("trace_session_test: request identity, timing options, half-close, callback-before-cancellation, and allocation failures PASS");
+    puts("trace_session_test: request identity, timing options, half-close, callback-before-cancellation, capture rejection, and allocation failures PASS");
     return 0;
 }
