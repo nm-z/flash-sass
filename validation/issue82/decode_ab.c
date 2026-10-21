@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 #include <errno.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <locale.h>
 #include <poll.h>
@@ -20,6 +21,7 @@
 #define GENERATED_TOKENS 40
 #define NEW_TOKENS (GENERATED_TOKENS - 1)
 #define REPEATS 2
+#define CONNECT_TIMEOUT_MS 5000
 
 static const char *config_keys[] = {
     "kv_host", "ple_disk", "maxt", "layers", "nblk", "dies",
@@ -94,14 +96,34 @@ static int read_line(int fd, char *out, size_t cap) {
 static int connect_core(void) {
     int fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (fd < 0) return -1;
-    struct timeval tv = { .tv_sec = 180, .tv_usec = 0 };
-    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
     struct sockaddr_un addr;
     memset(&addr, 0, sizeof addr);
     addr.sun_family = AF_UNIX;
     if (strlen(socket_path) >= sizeof addr.sun_path) { close(fd); return -1; }
     strcpy(addr.sun_path, socket_path);
-    if (connect(fd, (struct sockaddr *)&addr, sizeof addr) < 0) { close(fd); return -1; }
+    /* A full server accept backlog must not hold the shared GPUQ lease indefinitely. */
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags < 0 || fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) { close(fd); return -1; }
+    if (connect(fd, (struct sockaddr *)&addr, sizeof addr) < 0) {
+        if (errno != EINPROGRESS) { close(fd); return -1; }
+        struct pollfd pfd = { .fd = fd, .events = POLLOUT };
+        int ready;
+        do ready = poll(&pfd, 1, CONNECT_TIMEOUT_MS);
+        while (ready < 0 && errno == EINTR && !interrupted);
+        if (!ready) {
+            fprintf(stderr, "decode_ab: core connect timed out after %d ms\n", CONNECT_TIMEOUT_MS);
+            errno = ETIMEDOUT; close(fd); return -1;
+        }
+        if (ready < 0) { close(fd); return -1; }
+        int error = 0; socklen_t error_size = sizeof error;
+        if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &error_size) < 0 || error) {
+            if (error) errno = error;
+            close(fd); return -1;
+        }
+    }
+    if (fcntl(fd, F_SETFL, flags) < 0) { close(fd); return -1; }
+    struct timeval tv = { .tv_sec = 180, .tv_usec = 0 };
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
     struct ucred cred;
     socklen_t size = sizeof cred;
     if (getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &cred, &size) < 0 || cred.uid != getuid()) {
@@ -111,6 +133,50 @@ static int connect_core(void) {
     if (!core_pid) { core_pid = cred.pid; core_uid = cred.uid; }
     if (cred.pid != core_pid || cred.uid != core_uid) { close(fd); return -1; }
     return fd;
+}
+
+static int test_connect_timeout(void) {
+    int listener = -1, fillers[64], nf = 0, saw_full = 0, status = 1;
+    for (size_t i = 0; i < sizeof fillers / sizeof fillers[0]; i++) fillers[i] = -1;
+    snprintf(socket_path, sizeof socket_path, "/tmp/fs82-decode-ab-%ld.sock", (long)getpid());
+    unlink(socket_path);
+    listener = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (listener < 0) return fail("test listener socket"), 1;
+    struct sockaddr_un addr;
+    memset(&addr, 0, sizeof addr);
+    addr.sun_family = AF_UNIX;
+    if (strlen(socket_path) >= sizeof addr.sun_path) { fail("test socket path too long"); goto cleanup; }
+    strcpy(addr.sun_path, socket_path);
+    if (bind(listener, (struct sockaddr *)&addr, sizeof addr) || listen(listener, 0)) {
+        fail("test listener setup"); goto cleanup;
+    }
+    for (unsigned i = 0; i < sizeof fillers / sizeof fillers[0]; i++) {
+        int fd = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0);
+        if (fd < 0) { fail("test filler socket"); goto cleanup; }
+        if (!connect(fd, (struct sockaddr *)&addr, sizeof addr) || errno == EINPROGRESS) {
+            fillers[nf++] = fd;
+            continue;
+        }
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            close(fd); saw_full = 1; break;
+        }
+        close(fd); fail("test backlog fill"); goto cleanup;
+    }
+    if (!saw_full) { fail("test could not fill the Unix listener backlog"); goto cleanup; }
+    struct timespec begin, end;
+    clock_gettime(CLOCK_MONOTONIC, &begin);
+    int fd = connect_core();
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    if (fd >= 0) { close(fd); fail("connect unexpectedly passed a full listener backlog"); goto cleanup; }
+    double elapsed_ms = (end.tv_sec - begin.tv_sec) * 1000.0 + (end.tv_nsec - begin.tv_nsec) / 1e6;
+    if (elapsed_ms > CONNECT_TIMEOUT_MS + 1000.0) { fail("connect exceeded its bounded timeout"); goto cleanup; }
+    printf("decode_ab connect timeout: full Unix backlog rejected in %.3f ms PASS\n", elapsed_ms);
+    status = 0;
+cleanup:
+    for (int i = 0; i < nf; i++) close(fillers[i]);
+    if (listener >= 0) close(listener);
+    unlink(socket_path);
+    return status;
 }
 
 static int send_command(int fd, const char *command) {
@@ -355,6 +421,7 @@ static int restore_live(void) {
 int main(int argc, char **argv) {
     setlocale(LC_NUMERIC, "C");
     signal(SIGINT, on_signal); signal(SIGTERM, on_signal); signal(SIGHUP, on_signal);
+    if (argc == 2 && !strcmp(argv[1], "--test-connect")) return test_connect_timeout();
     if (argc != 7) {
         fprintf(stderr, "usage: %s SOCKET RESTORE_LIB BASE_LIB BASE_REV CANDIDATE_LIB CANDIDATE_REV\n", argv[0]);
         return 2;
