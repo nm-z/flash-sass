@@ -1096,6 +1096,9 @@ int engine_init(core_t *c) {
 		in_init = 0; return -1;
 	}
 	two_position = pair_env ? !strcmp(pair_env, "1") : prefill_chunk > 1;
+#ifdef FLASH_MTP_NATIVE
+	if(getenv("FLASH_MTP_AUDIT") && !strcmp(getenv("FLASH_MTP_AUDIT"),"3"))two_position=1;
+#endif
 #ifdef FLASH_VERIFY_NATIVE
 	const char *verify_env=getenv("FLASH_VERIFY_AUDIT");verify_accept=0;
 	if(verify_env && strcmp(verify_env,"0")) {

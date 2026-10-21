@@ -9,11 +9,13 @@ static split_t mtp_splits[MAXD];
 static mtp_buffers_t mtp_buffers[MAXD];
 static xchg_t mtp_exchange[MAXD];
 static CUmodule mtp_module[MAXD];static CUfunction mtp_function[MAXD];
-static CUdeviceptr mtp_control[MAXD],mtp_hidden[MAXD],mtp_device_program[2][MAXD];
-static prog_t mtp_programs[2][MAXD];
-static unsigned mtp_phases[2][MAXD],mtp_cache_positions;
+static CUdeviceptr mtp_control[MAXD],mtp_hidden[MAXD],mtp_device_program[3][MAXD];
+static prog_t mtp_programs[3][MAXD];
+static unsigned mtp_phases[3][MAXD],mtp_cache_positions;
 static char mtp_model_path[1024],mtp_cubin_path[1024];static uint64_t mtp_cubin_fnv;
 static unsigned mtp_steps,mtp_proposals,mtp_matches;
+static unsigned mtp_full_positions,mtp_full_batches;
+static unsigned mtp_index_reuses;
 static double mtp_total_ms,mtp_head_ms;
 static uint32_t mtp_expected_xgen[MAXD],mtp_target_xgen[MAXD];
 
@@ -52,7 +54,7 @@ static void mtp_inspect_program(int d,const prog_t *program,const uint32_t contr
 static void mtp_fini(void) {
     if(core) for(int d=0;d<nd;d++) {
         if(mtp_module[d]) { cuCtxSetCurrent(ctx[d]);cuModuleUnload(mtp_module[d]); }
-        for(int h=0;h<2;h++)prog_free(&mtp_programs[h][d]);
+        for(int h=0;h<3;h++)prog_free(&mtp_programs[h][d]);
     }
     if(mtp_file_live)gguf_close(&mtp_file);
     memset(&mtp_file,0,sizeof mtp_file);mtp_file_live=0;mtp_embedding=NULL;mtp_enabled=0;
@@ -66,7 +68,7 @@ static void mtp_fini(void) {
 static void mtp_init(void) {
     const char *option=getenv("FLASH_MTP_AUDIT");
     if(!option || !strcmp(option,"0"))return;
-    if((strcmp(option,"1") && strcmp(option,"2")) || nd!=6 || nlayers_run!=48 || nblk_qsa!=512) {
+    if((strcmp(option,"1") && strcmp(option,"2") && strcmp(option,"3")) || nd!=6 || nlayers_run!=48 || nblk_qsa!=512) {
         fprintf(stderr,"engine: MTP requires mode1(shadow) or2(unchecked rollout), six dies, full48/B512\n");longjmp(init_jb,1);
     }
     if((getenv("FLASH_FUSED_MOE") && atoi(getenv("FLASH_FUSED_MOE"))) ||
@@ -109,7 +111,7 @@ static void mtp_init(void) {
     if(!fixed_fit || total_capacity<512) {
         fprintf(stderr,"engine: MTP requires512 expert slots; capacity=%u. Draft disabled before allocation.\n",total_capacity);
         gguf_close(&mtp_file);mtp_file_live=0;mtp_embedding=NULL;mtp_cubin_fnv=0;mtp_model_path[0]=mtp_cubin_path[0]=0;
-        if(!strcmp(option,"2"))longjmp(init_jb,1); /* Never fall back to target generation. */
+        if(strcmp(option,"1"))longjmp(init_jb,1); /* Unchecked modes never fall back. */
         return;
     }
     unsigned prefix=0,assigned=0;
@@ -138,10 +140,17 @@ static void mtp_init(void) {
             pkt=dalloc((size_t)mtp_cache_positions/128*8192);ring=dalloc(2048);
         }
         qsa_bind_layer(b,nblk_qsa,kq,ks,vq,vs,pkt,ring);b->kv_rawmax=0;
-        for(int head=0;head<2;head++) {
+        for(int head=0;head<3;head++) {
             prog_t *p=&mtp_programs[head][d];prog_init(p);p->loop=1;p->end=mtp_control[d]+0x14;
-            if(mtp_program(p,&split,x,&mtp_weights[d],mb,mtp_hidden[d],0,0,eps,head) || p->n>512) {
+            if(mtp_program(p,&split,x,&mtp_weights[d],mb,mtp_hidden[d],0,0,eps,head==1) || p->n>512) {
                 fprintf(stderr,"engine: cannot build MTP program on die%d\n",d);longjmp(init_jb,1);
+            }
+            if(head==2) {
+                /* Reuse selection across speculative steps. Keep IDXQK to
+                 * append pooled keys/ring state; omit scoring and top-k. */
+                int n=0;
+                for(int i=0;i<p->n;i++)if(p->p[i].w[0]!=OP_IDXSCORE && p->p[i].w[0]!=OP_IDXSEL)p->p[n++]=p->p[i];
+                p->n=n;
             }
             mtp_phases[head][d]=(unsigned)p->n;
             mtp_device_program[head][d]=dalloc((size_t)p->n*sizeof(phase_t));
@@ -156,6 +165,8 @@ static void mtp_init(void) {
 
 static void mtp_reset(void) {
     mtp_steps=mtp_proposals=mtp_matches=0;mtp_total_ms=mtp_head_ms=0;
+    mtp_full_positions=mtp_full_batches=0;
+    mtp_index_reuses=0;
     memset(mtp_expected_xgen,0,sizeof mtp_expected_xgen);
     for(int d=0;d<nd;d++) {
         CK(cuCtxSetCurrent(ctx[d]));uint32_t header[32]={0};
@@ -202,14 +213,15 @@ static uint32_t mtp_step(unsigned position,uint32_t token,int head) {
     }
     uint32_t prediction=0xffffffffu;
     int bad=0;
-    for(int d=0;mtp_enabled!=2 && d<nd;d++) {
+    for(int d=0;mtp_enabled==1 && d<nd;d++) {
         uint32_t control[48];CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoH(control,mtp_control[d],sizeof control));
         mtp_expected_xgen[d]+=(unsigned)mtp_programs[head][d].xj;
         bad+=mtp_check_completed("draft",d,control,position+1,mtp_expected_xgen[d],&mtp_exchange[d]);
     }
     if(bad)longjmp(run_jb,1);
-    if(head) { CK(cuCtxSetCurrent(ctx[0]));CK(cuMemcpyDtoH(&prediction,mtp_buffers[0].base.toks+4u*position,4)); }
-    double ms=(now()-begin)*1e3;mtp_total_ms+=ms;if(head)mtp_head_ms+=ms;mtp_steps++;
+    if(head==1) { CK(cuCtxSetCurrent(ctx[0]));CK(cuMemcpyDtoH(&prediction,mtp_buffers[0].base.toks+4u*position,4)); }
+    double ms=(now()-begin)*1e3;mtp_total_ms+=ms;if(head==1)mtp_head_ms+=ms;mtp_steps++;
+    mtp_index_reuses+=head==2;
     return prediction;
 }
 
@@ -231,7 +243,7 @@ static void mtp_target_step(runctx *r,const unsigned phases[MAXD],unsigned end,c
             if(q==CUDA_ERROR_NOT_READY)done=0;
             else {
                 CK(q);
-                if(mtp_enabled!=2 && now()-begin>0.1 && !(reported&(1u<<d))) {
+                if(mtp_enabled==1 && now()-begin>0.1 && !(reported&(1u<<d))) {
                     uint32_t control[48];CK(cuMemcpyDtoH(control,dCTL[d],sizeof control));
                     fprintf(stderr,"engine: target finished peer die=%d expected_end=%u actual_end=%u xgen=%u expected_xgen=%u grid=%u expired=%u\n",
                             d,end,control[2],control[8],mtp_target_xgen[d]+(unsigned)program[d].xj,control[1],control[11]);
@@ -245,7 +257,7 @@ static void mtp_target_step(runctx *r,const unsigned phases[MAXD],unsigned end,c
         struct timespec nap={0,50000};nanosleep(&nap,NULL);
     }
     int bad=0;
-    for(int d=0;mtp_enabled!=2 && d<nd;d++) {
+    for(int d=0;mtp_enabled==1 && d<nd;d++) {
         uint32_t control[48];CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoH(control,dCTL[d],sizeof control));
         mtp_target_xgen[d]+=(unsigned)program[d].xj;
         bad+=mtp_check_completed("target",d,control,end,mtp_target_xgen[d],&xc[d]);
@@ -266,7 +278,73 @@ static void mtp_target_step(runctx *r,const unsigned phases[MAXD],unsigned end,c
     if(!r->aborted && r->cb && r->cb->alive && r->cb->alive(r->cb->arg))r->aborted=1;
 }
 
+/* MTP supplies the next input to a two-position invocation of the production
+ * full model. Both positions run every layer and the target output head.
+ * This deliberately has no proposal comparison, acceptance, or state rewind. */
+static void mtp_full_run(runctx *r,const prog_t *full,const prog_t *prefix,const uint32_t stop[2]) {
+    mtp_reset();unsigned phases[MAXD];
+    prog_t *paired=new_request_programs();
+    if(!paired) { fprintf(stderr,"engine: MTP paired program allocation failed\n");longjmp(run_jb,1); }
+    const uint32_t no_stop[2]={UINT32_MAX,UINT32_MAX};
+    for(int d=0;d<nd;d++) {
+        prog_t first,second;
+        model_program(&first,d,0,UINT32_MAX,no_stop,0,1.0f,1.0f,1,0);
+        model_program(&second,d,1,UINT32_MAX,no_stop,0,1.0f,1.0f,1,0);
+        prog_init(&paired[d]);
+        int rc=prog_pair(&paired[d],&first,&second);
+        prog_free(&first);prog_free(&second);
+        if(rc) { fprintf(stderr,"engine: MTP full-model pair construction failed\n");longjmp(run_jb,1); }
+        prog_pair_fuse_bf16(&paired[d],1);
+    }
+    upload_programs(prefix,phases,1);
+    while(!r->aborted && r->count<r->nprompt-1) {
+        unsigned p=(unsigned)r->count;
+        ple_pump(r,8);mtp_step(p,h_ids[p],0);
+        mtp_target_step(r,phases,p+1,prefix);
+        for(int d=0;d<nd;d++) { CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoD(mtp_hidden[d],db[d].S,4*10240)); }
+    }
+    upload_programs(paired,phases,2);
+    while(!r->aborted && !r->ended && r->count<r->T) {
+        unsigned p=(unsigned)r->count,width=r->T-r->count>=2?2u:1u;
+        uint32_t input[2]={p<(unsigned)r->nprompt?h_ids[p]:h_toks[p-1],0};
+        input[1]=mtp_step(p,input[0],width==2);
+        mtp_proposals+=width==2;
+        for(int d=0;d<nd;d++) { CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyHtoD(db[d].ids+4ull*p,input,4u*width)); }
+        /* PLE hashes follow the actual proposed inputs consumed by the model.
+         * These rows are now known; do not substitute any reference outputs. */
+        for(unsigned j=0;j<width;j++)ple_seq[p+j]=input[j];
+        runctx staging=*r;staging.nprompt=(int)(p+width);
+        ple_pump(&staging,(int)width);
+        if(width==1)upload_programs(full,phases,1);
+        runctx pending=*r;pending.sent=(int)(p+width);pending.cb=NULL;
+        mtp_target_step(&pending,phases,p+width,width==2?paired:full);
+        if(width==2) {
+            /* Advance draft cache for the second consumed input, using the
+             * first position's full-model hidden state. No token comparison. */
+            for(int d=0;d<nd;d++) { CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoD(mtp_hidden[d],db[d].S,4*10240)); }
+            mtp_step(p+1,input[1],2);
+        }
+        for(int d=0;d<nd;d++) {
+            CK(cuCtxSetCurrent(ctx[d]));
+            CK(cuMemcpyDtoD(mtp_hidden[d],position_buf(d,width-1)->S,4*10240));
+        }
+        CK(cuCtxSetCurrent(ctx[0]));CK(cuMemcpyDtoH(h_toks+p,db[0].toks+4ull*p,4u*width));
+        mtp_full_positions+=width;mtp_full_batches++;
+        r->count=(int)(p+width);trace_completed=p+width;last_timing.completed=r->count;
+        last_timing.run_ms=(now()-timing_run_start)*1e3;last_timing.counts_known=1;
+        if(!r->tfirst)r->tfirst=now();
+        last_timing.first_valid=1;last_timing.first_ms=(r->tfirst-timing_run_start)*1e3;
+        for(;r->sent<r->count && !r->aborted && !r->ended;r->sent++) {
+            uint32_t token=h_toks[r->sent];
+            r->ended=token==stop[0] || token==stop[1];
+            deliver_token(r,r->sent,token);
+        }
+        if(!r->aborted && r->cb && r->cb->alive && r->cb->alive(r->cb->arg))r->aborted=1;
+    }
+}
+
 static void mtp_audit_run(runctx *r,const prog_t *full,const prog_t *prefix,const uint32_t stop[2]) {
+    if(mtp_enabled==3) { mtp_full_run(r,full,prefix,stop);return; }
     mtp_reset();unsigned phases[MAXD];int uploaded=-1;
     for(int d=0;d<nd;d++) { CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoH(&mtp_target_xgen[d],dCTL[d]+0x20,4)); }
     while(!r->aborted && !r->ended && r->count<r->T) {
@@ -310,6 +388,11 @@ static void mtp_audit_run(runctx *r,const prog_t *full,const prog_t *prefix,cons
 }
 
 static void mtp_stats(FILE *out) {
+    if(mtp_enabled==3) {
+        fprintf(out,"mtpstats mode=full_model_unchecked enabled=3 draft_steps=%u proposals=%u target_generated_positions=%u target_batches=%u target_layers=48 batch_width=2 draft_ms=%.6f qsa_index_reuse_steps=%u comparisons=0 acceptance=0 recovery=0 fallback=0\n",
+                mtp_steps,mtp_proposals,mtp_full_positions,mtp_full_batches,mtp_total_ms,mtp_index_reuses);
+        fflush(out);return;
+    }
     fprintf(out,"mtpstats shadow=%d enabled=%d steps=%u one_step_proposals=%u one_step_matches=%u draft_ms=%.6f head_draft_ms=%.6f rollout_tokens=%u target_verified=0\n",
             mtp_enabled!=2,mtp_enabled,mtp_steps,mtp_proposals,mtp_matches,mtp_total_ms,mtp_head_ms,mtp_enabled==2?mtp_proposals:0);
     fflush(out);

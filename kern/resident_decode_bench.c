@@ -183,15 +183,15 @@ int main(int argc,char **argv) {
     int separate_chunk=getenv("BENCH_SEPARATE_CHUNK") && atoi(getenv("BENCH_SEPARATE_CHUNK"));
     if(exact_batch && (exact_batch!=8 || !resident || native_chunk || pair_cost || candidate_only || prefix_hash))
         fail("exact batch requires resident matched A/B mode with width 8");
-    if(mtp_audit && ((mtp_audit!=1 && mtp_audit!=2) || !resident || exact_batch || native_chunk || pair_cost || (candidate_only && mtp_audit!=2) || prefix_hash))
+    if(mtp_audit && ((mtp_audit<1 || mtp_audit>3) || !resident || exact_batch || native_chunk || pair_cost || (candidate_only && mtp_audit<2) || prefix_hash))
         fail("MTP audit requires resident matched A/B mode");
-    if(mtp_audit==2 && (reference || verify_stream))fail("unchecked rollout does not use a reference or stream verification");
+    if(mtp_audit>=2 && (reference || verify_stream))fail("unchecked rollout does not use a reference or stream verification");
     if(verify_rollback && (verify_rollback<1 || verify_rollback>8 || !resident || exact_batch || mtp_audit || native_chunk || pair_cost || candidate_only || prefix_hash || (verify_states!=0 && verify_states!=1)))
         fail("rollback audit requires resident matched mode, kept1..8 and state check0/1");
     if(verify_matrix && (verify_matrix!=1 || verify_rollback!=1))fail("rollback matrix starts with BENCH_VERIFY_ROLLBACK=1");
     if(kernel_only && (kernel_only!=1 || !resident || native_chunk || exact_batch || mtp_audit || verify_rollback || pair_cost || candidate_only))fail("kernel-only comparison requires ordinary resident matched mode");
     if(native_chunk && (pair_cost || !resident || native_chunk<128 || native_chunk>1024 || (native_chunk&(native_chunk-1)))) fail("native chunk requires resident mode and power-of-two size 128..1024");
-    if(candidate_only && !native_chunk && mtp_audit!=2) fail("candidate-only requires native chunk or unchecked MTP rollout");
+    if(candidate_only && !native_chunk && mtp_audit<2) fail("candidate-only requires native chunk or unchecked MTP rollout");
     if(separate_chunk && !native_chunk) fail("separate chunk module requires native chunk mode");
     if(pair_cost && !resident) fail("paired cost mode requires the resident path");
     int copies=getenv("BENCH_PAIR_PROMPT_COPIES")?atoi(getenv("BENCH_PAIR_PROMPT_COPIES")):4;
@@ -261,11 +261,11 @@ int main(int argc,char **argv) {
             command(active,cmd); fclose(active); active=NULL;
             f=connect_core(); if(!f) fail("post-reload connection"); active=f;
         } else { f=start(argv[1],argv[2],argv[3+arm],arm); active=f; }
-        const char *name=kernel_only?(arm?"kernel-candidate":"baseline"):verify_rollback?(arm?"rollback-audit":"baseline"):mtp_audit?(arm?(mtp_audit==2?"mtp-rollout":"mtp-shadow"):"baseline"):pair_cost?(arm?"paired-full-head":"scalar-full-head"):exact_batch?(arm?"exact-b8":"production-b2"):(arm?(native_chunk?"native-chunk":"fused"):"baseline");
-        const char *workload=mtp_audit==2?"mtp-unchecked-rollout":verify_rollback?"rollback-state-diagnostic":mtp_audit?"draft-shadow-diagnostic":pair_cost?"teacher_forced":candidate_only?(generate==1&&prefix_hash?"native-prefix-repeatability":"decode-repeatability"):"decode";
+        const char *name=kernel_only?(arm?"kernel-candidate":"baseline"):verify_rollback?(arm?"rollback-audit":"baseline"):mtp_audit?(arm?(mtp_audit==3?"mtp-full-model":mtp_audit==2?"mtp-rollout":"mtp-shadow"):"baseline"):pair_cost?(arm?"paired-full-head":"scalar-full-head"):exact_batch?(arm?"exact-b8":"production-b2"):(arm?(native_chunk?"native-chunk":"fused"):"baseline");
+        const char *workload=mtp_audit==3?"mtp-full-model-unchecked":mtp_audit==2?"mtp-unchecked-rollout":verify_rollback?"rollback-state-diagnostic":mtp_audit?"draft-shadow-diagnostic":pair_cost?"teacher_forced":candidate_only?(generate==1&&prefix_hash?"native-prefix-repeatability":"decode-repeatability"):"decode";
         if(getenv("BENCH_CUDA_DEBUG") && atoi(getenv("BENCH_CUDA_DEBUG")))workload="cuda-debug-diagnostic";
-        printf("{\"arm\":\"%s\",\"workload\":\"%s\",\"prompt_tokens\":%d,\"generated_tokens\":%d,\"warmup_runs\":%d,\"baseline_compared\":%s,\"reference_kind\":\"%s\"}\n",name,workload,pair_cost?positions:64*prompt_copies,pair_cost?1:generate,arm&&verify_matrix?8:1,candidate_only?"false":"true",reference?"frozen_scalar":"first_run");
-        if(mtp_audit==2)command(f,"config");
+        printf("{\"arm\":\"%s\",\"workload\":\"%s\",\"prompt_tokens\":%d,\"generated_tokens\":%d,\"warmup_runs\":%d,\"baseline_compared\":%s,\"reference_kind\":\"%s\"}\n",name,workload,pair_cost?positions:64*prompt_copies,pair_cost?1:generate,arm&&verify_matrix?8:1,candidate_only?"false":"true",mtp_audit>=2?"none":reference?"frozen_scalar":"first_run");
+        if(mtp_audit>=2)command(f,"config");
         else check_scope(f,mtp_audit?arm:-1,verify_rollback?(arm?verify_rollback:0):-1);
         command(f,"stop"); command(f,"sample 7 0 20 0.95"); command(f,"timings 1");
         for(int round=0;round<(arm&&verify_matrix?8:1);round++) {
@@ -284,7 +284,7 @@ int main(int argc,char **argv) {
                 unsigned token;
                 if(sscanf(line,"tok %u",&token)==1) {
                     if(n>=positions) fail("too many generated tokens");
-                    if(mtp_audit!=2 && have && token!=expected[n]) {
+                    if(mtp_audit<2 && have && token!=expected[n]) {
                         if(run_mismatches<3) fprintf(stderr,"arm=%d run=%d token=%d got=%u expected=%u\n",arm,run_id,n,token,expected[n]);
                         run_mismatches++; mismatches++;
                         if(!collect_mismatches) fail("output token mismatch");
@@ -307,7 +307,7 @@ int main(int argc,char **argv) {
             }
             free(line); fflush(stdout);
             if(!done||n!=positions) fail("incomplete generation");
-            if(mtp_audit==2)printf("{\"arm\":\"mtp-rollout\",\"run\":%d,\"correctness_checked\":false,\"generated_tokens\":%d}\n",run_id,n);
+            if(mtp_audit>=2)printf("{\"arm\":\"%s\",\"run\":%d,\"correctness_checked\":false,\"generated_tokens\":%d}\n",name,run_id,n);
             else printf("{\"arm\":\"%s\",\"run\":%d,\"output_mismatches\":%u,\"correct\":%s}\n",name,run_id,run_mismatches,run_mismatches?"false":"true");
             if(exact_batch) {
                 char stats[256];unsigned width;int batched;
@@ -318,7 +318,7 @@ int main(int argc,char **argv) {
                 if(width!=(unsigned)(arm?exact_batch:0) || (arm && batched<=0) || (!arm && batched))
                     fail("exact batch execution count does not match requested mode");
             }
-            if(mtp_audit==2) {
+            if(mtp_audit>=2) {
                 char stats[512];fputs("mtpstats\n",f);fflush(f);
                 if(fgets(stats,sizeof stats,f))fputs(stats,stdout);
             } else if(mtp_audit) {
@@ -360,10 +360,11 @@ int main(int argc,char **argv) {
             if(!WIFEXITED(status)||WEXITSTATUS(status)) fail("private core exit");
         }
     }
+    if(getenv("BENCH_KEEP_LOADED") && atoi(getenv("BENCH_KEEP_LOADED")) && mtp_audit==3 && candidate_only) { restore_pending=0;puts("deployment: full-model MTP remains loaded"); }
     if(restore()) return 1;
     if(prefix_mismatches) { fprintf(stderr,"resident_decode_bench: FAILED, %u prefix-state mismatches\n",prefix_mismatches);return 1; }
     if(mismatches) { fprintf(stderr,"resident_decode_bench: FAILED, %u output mismatches; timings are diagnostic only\n",mismatches); return 1; }
-    if(mtp_audit==2)printf("resident_decode_bench: unchecked MTP rollout completed; no target verification, acceptance, or output comparison\n");
+    if(mtp_audit>=2)printf("resident_decode_bench: unchecked MTP execution completed; no target verification, acceptance, or output comparison\n");
     else if(candidate_only && reference) printf("resident_decode_bench: four %d-position outputs match frozen scalar reference; no matched live A/B\n",positions);
     else if(candidate_only) printf("resident_decode_bench: candidate repeatability PASS; no independent output reference or matched live A/B\n");
     else printf("resident_decode_bench: all %u %d-position outputs match\n",completed_runs,positions);

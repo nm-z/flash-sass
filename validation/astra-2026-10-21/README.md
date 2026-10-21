@@ -1,5 +1,11 @@
 # Astra performance investigation: results and experimental source
 
+**Current combined path:** [MTP + all 48 production layers](MTP-FULL-MODEL.md)
+ran at **43.66 TPS median** without output comparisons or acceptance and remained
+loaded in the live engine. It preserves the production GDN/QSA, gated residual,
+and PLE paths, and reuses MTP QSA selection across the second speculative step.
+The 269.24-TPS experiment below was draft-only, not the combined target result.
+
 **Subsequent requested experiment:** [unchecked recursive MTP rollout](MTP-ROLLOUT.md)
 now runs at a measured median **269.24 MTP rollout TPS**, with no target
 verification or acceptance. This is not verified full-target decode. The
