@@ -45,8 +45,26 @@ static int test_moe_actq_projection_overlap(void) {
     prog_free(&p);
     return 0;
 }
+static int test_explicit_exchange_wait_clear(void) {
+    prog_t p; xchg_t x={0};
+    prog_init(&p);
+    ph_xchg(&p,&x,0,6,0x1000,1024,0,6144);
+    CHECK(p.pending_wait && (p.p[0].w[30]&1u));
+    phase_t *consumer=prog_add(&p,OP_ACTQ256,1);
+    CHECK(consumer->w[30]&2u);
+    prog_free(&p);
+
+    prog_init(&p);
+    ph_xchg(&p,&x,0,6,0x1000,1024,0,6144);
+    prog_clear_wait(&p);
+    phase_t *independent=prog_add(&p,OP_XSEND,1);
+    CHECK(!(independent->w[30]&2u) && !p.pending_wait);
+    prog_free(&p);
+    return 0;
+}
 int main(void) {
     CHECK(!test_ple_rms_barriers()); CHECK(!test_moe_actq_projection_overlap());
+    CHECK(!test_explicit_exchange_wait_clear());
     prog_t a,b,out; prog_init(&a);prog_init(&b);prog_init(&out);
     CHECK(!a.token_offset); build(&a,0);build(&b,1);
     const int tw=2+(0x160-0x140)/4;
@@ -72,5 +90,5 @@ int main(void) {
     prog_t absolute;prog_init(&absolute);absolute.token_offset=7;
     ph_conv1d(&absolute,1,2,3,4,99,1024); CHECK(absolute.p[0].w[tw]==99 && !absolute.p[0].w[31]);
     prog_free(&absolute);prog_free(&a);prog_free(&b);prog_free(&out);
-    puts("pair_prog_test: safe MoE ACTQ overlap, PLE barriers, token offsets, descriptor preservation, shape rejection, and unchanged-on-error PASS");return 0;
+    puts("pair_prog_test: safe MoE ACTQ overlap, PLE barriers, explicit exchange-wait clear, token offsets, descriptor preservation, shape rejection, and unchanged-on-error PASS");return 0;
 }

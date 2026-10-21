@@ -99,6 +99,7 @@ void prog_nobar(prog_t *P) {
 	if (p->w[30] & 1) { fprintf(stderr, "prog_nobar on a send phase\n"); exit(1); }
 	p->w[30] |= 4;
 }
+void prog_clear_wait(prog_t *P) { P->pending_wait = 0; }
 void ph_ptr(phase_t *p, int addr, CUdeviceptr v) { int w = 2 + (addr - 0x140) / 4; p->w[w] = (uint32_t)v; p->w[w + 1] = (uint32_t)(v >> 32); }
 void ph_u32(phase_t *p, int addr, uint32_t v) { p->w[2 + (addr - 0x140) / 4] = v; }
 void ph_f32(phase_t *p, int addr, float v) { uint32_t u; memcpy(&u, &v, 4); ph_u32(p, addr, u); }
@@ -410,6 +411,7 @@ void prog_attn_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weig
 		 * Z is in the previous inbox slot; this exchange writes the other one. */
 		if (here) ph_attn_kvi(P, w, b, Z);
 		QG = ph_xchg(P, x, s->d, s->n, b->qg, 4*w->attn_q_rows, 4*w->attn_q_first, 4*12288);
+		if (!here) prog_clear_wait(P); /* non-owners never read the gathered Q before sending an empty AOUT */
 	}
 	if (here) { if (b->qsa) ph_attn_qsa(P, w, b, t, eps, Z, QG); else ph_attn_core(P, w, b, t, eps); }
 	CUdeviceptr AOUT = ph_xchg(P, x, s->d, s->n, b->aout, here ? 6144 * 4 : 0, 0, 6144 * 4);
