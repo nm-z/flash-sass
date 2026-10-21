@@ -80,6 +80,7 @@ typedef struct {
     int modes_scalar;
     int modes_chunk3;
     int phase_probe;
+    int first_only;
     char *ld_library_path;
     char *cuda_device_order;
 } options_t;
@@ -281,7 +282,7 @@ static void usage(FILE *f, const char *program) {
         "--manifest FILE x6 --holder-pid PID x6 --cuda-visible CSV "
         "--split-shares CSV --attn-map CSV --tokens N [--snapshots CSV] "
         "--nblk N --lock-fd FD [--ple-off N] [--timeout SEC] "
-        "[--weight-manifest FILE ...] [--phase-probe] [--self-test]\n", program);
+        "[--weight-manifest FILE ...] [--phase-probe] [--first-only] [--self-test]\n", program);
 }
 
 static int add_arg_string(char **slot, const char *value, const char *name) {
@@ -319,7 +320,7 @@ static int parse_options(int argc, char **argv, options_t *o) {
         OPT_REPO = 1000, OPT_OUT, OPT_PLE, OPT_REVISION, OPT_MANIFEST, OPT_PID,
         OPT_WEIGHT_MANIFEST, OPT_VISIBLE, OPT_SHARES, OPT_ATTN, OPT_TOKENS,
         OPT_SNAPSHOTS, OPT_NBLK, OPT_LOCK, OPT_PLE_OFF, OPT_TIMEOUT, OPT_KV,
-        OPT_MIN_FREE, OPT_MIN_HOST, OPT_PHASE_PROBE
+        OPT_MIN_FREE, OPT_MIN_HOST, OPT_PHASE_PROBE, OPT_FIRST_ONLY
     };
     static const struct option opts[] = {
         {"repo", required_argument, NULL, OPT_REPO},
@@ -342,6 +343,7 @@ static int parse_options(int argc, char **argv, options_t *o) {
         {"min-free-mib", required_argument, NULL, OPT_MIN_FREE},
         {"min-host-mib", required_argument, NULL, OPT_MIN_HOST},
         {"phase-probe", no_argument, NULL, OPT_PHASE_PROBE},
+        {"first-only", no_argument, NULL, OPT_FIRST_ONLY},
         {NULL, 0, NULL, 0}
     };
     unsigned tmp;
@@ -398,6 +400,10 @@ static int parse_options(int argc, char **argv, options_t *o) {
         case OPT_PHASE_PROBE:
             if (o->phase_probe) return ec_fail("duplicate --phase-probe");
             o->phase_probe = 1;
+            break;
+        case OPT_FIRST_ONLY:
+            if (o->first_only) return ec_fail("duplicate --first-only");
+            o->first_only = 1;
             break;
         default: return ec_fail("unknown command-line option");
         }
@@ -960,7 +966,9 @@ static int write_report(const options_t *o, const run_result_t *runs, size_t nru
     if (!f) return ec_fail("write report %s: %s", path, strerror(errno));
     if (fprintf(f, "{\n  \"schema\":\"flash-sass.issue9.engine-check.v1\",\n  \"status\":") < 0 ||
         write_all_json_string(f, status) < 0 ||
-        fprintf(f, ",\n  \"scope\":\"full48-six-die GPU-vs-GPU request fingerprints\",\n  \"revision\":") < 0 ||
+        fprintf(f, ",\n  \"scope\":\"full48-six-die GPU-vs-GPU request fingerprints\",\n  \"run_selection\":") < 0 ||
+        write_all_json_string(f, o->first_only ? "kv0-scalar only" : "full matrix") < 0 ||
+        fprintf(f, ",\n  \"revision\":") < 0 ||
         write_all_json_string(f, o->revision) < 0 ||
         fprintf(f, ",\n  \"phase_probe\":%s,\n  \"ple_path\":", o->phase_probe ? "true" : "false") < 0 || write_all_json_string(f, o->ple) < 0 ||
         fprintf(f, ",\n  \"ple_offset\":%u,\n  \"ple_hash_provenance\":\"declared from offline checkpoints.sha256; live shard not rehashed\",\n  \"ple_receipt_manifest\":",
@@ -1189,6 +1197,7 @@ static int collect_identities(const options_t *o, file_identity_t *ids,
     if (path_join(path, sizeof path, o->repo, "kern/engine.c") < 0 || add_identity(ids, capacity, count, path) < 0) return -1;
     if (path_join(path, sizeof path, o->repo, "kern/flashcore.c") < 0 || add_identity(ids, capacity, count, path) < 0) return -1;
     if (path_join(path, sizeof path, o->repo, "kern/prog.c") < 0 || add_identity(ids, capacity, count, path) < 0) return -1;
+    if (path_join(path, sizeof path, o->repo, "kern/plerows.sass") < 0 || add_identity(ids, capacity, count, path) < 0) return -1;
     if (path_join(path, sizeof path, o->repo, "validation/issue9/engine_check.c") < 0 || add_identity(ids, capacity, count, path) < 0) return -1;
     return 0;
 }
@@ -1280,8 +1289,8 @@ int main(int argc, char **argv) {
         add_identity(identities, sizeof identities / sizeof identities[0], &identity_count, command_path) < 0) goto done;
     if (write_report(&o, runs, 0, identities, identity_count, "RUNNING", "") < 0) goto done;
     deadline = monotime() + (double)o.timeout_seconds;
-    for (unsigned kv = 0; kv < 2; kv++) {
-        for (unsigned mode_index = 0; mode_index < 2; mode_index++) {
+    for (unsigned kv = 0; kv < (o.first_only ? 1u : 2u); kv++) {
+        for (unsigned mode_index = 0; mode_index < (o.first_only ? 1u : 2u); mode_index++) {
             if (ec_interrupted) { ec_fail("engine request runner interrupted"); goto done; }
             run_result_t *run = &runs[run_count];
             const char *mode = mode_index ? "chunk3" : "scalar";

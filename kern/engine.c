@@ -104,6 +104,11 @@ static CUdeviceptr dPROG[MAXD], dCTL[MAXD], (*dst_dn)[NB], (*dst_conv)[NB], (*ds
 static size_t dn_bytes[MAXD][NB], conv_bytes[MAXD][NB], kcf, vcf;
 static int kv_host = 1;                  /* FLASH_KV_HOST=0: the int8 KV caches in VRAM (small contexts) instead of pinned host memory */
 static void *h_kv;                      /* the host-resident KV caches of all attention layers */
+static int activation_trace, activation_trace_active;
+static unsigned activation_trace_request_a, activation_trace_request_b;
+static void *h_activation_trace;
+static CUdeviceptr d_activation_trace;
+static int poison_request_state, stagger_dies;
 /* Validation-only raw group maxima. The ordinary cubin has no trace instructions. */
 static int kv_trace, kv_trace_start, kv_trace_complete;
 static uint32_t *h_kv_rawmax;
@@ -198,18 +203,31 @@ static int prof_nph[MAXD]; static unsigned prof_desc[MAXD];   /* every die's pro
 
 /* A validation-only readback, requested explicitly with `statehash`. Hash each
  * named buffer separately so paired/single passes can be compared beyond tokens. */
-static uint64_t device_fnv(CUdeviceptr p, size_t bytes, uint64_t h) {
+static uint64_t device_fnv_detail(CUdeviceptr p, size_t bytes, uint64_t h, uint64_t *detail) {
 	unsigned char buf[65536];
 	for (size_t at = 0; at < bytes; ) {
 		size_t n = bytes - at < sizeof buf ? bytes - at : sizeof buf;
 		CK(cuMemcpyDtoH(buf, p + at, n));
-		for (size_t i = 0; i < n; i++) { h ^= buf[i]; h *= 0x100000001b3ull; }
+		for (size_t i = 0; i < n; i++) {
+			h ^= buf[i]; h *= 0x100000001b3ull;
+			if (detail) { *detail ^= buf[i]; *detail *= 0x100000001b3ull; }
+		}
 		at += n;
 	}
 	return h;
 }
+static uint64_t device_fnv(CUdeviceptr p, size_t bytes, uint64_t h) {
+	return device_fnv_detail(p, bytes, h, NULL);
+}
+static uint64_t host_fnv(const void *data, size_t bytes, uint64_t h) {
+	const unsigned char *p = data;
+	for (size_t i = 0; i < bytes; i++) { h ^= p[i]; h *= 0x100000001b3ull; }
+	return h;
+}
 static void state_hashes(FILE *out) {
 	const uint64_t seed = 0xcbf29ce484222325ull;
+	const char *detail_env = getenv("QSA_STATEHASH_DETAIL");
+	int detail = detail_env && !strcmp(detail_env, "1");
 	fprintf(out, "statehash positions=%d paired_positions=%d prefill_chunks=%d\n", last_positions, last_paired_positions, last_prefill_chunks);
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
@@ -217,16 +235,28 @@ static void state_hashes(FILE *out) {
 			uint64_t h = seed;
 			if (BLK_IS_ATTN(bb)) {
 				if (!dst_kq[d][bb]) continue;
-				h = device_fnv(dst_ring[d][bb], 2048, h);
-				h = device_fnv(dst_kq[d][bb], (size_t)last_positions * 512, h);
-				h = device_fnv(dst_vq[d][bb], (size_t)last_positions * 512, h);
-				h = device_fnv(dst_ks[d][bb], (size_t)last_positions * 32, h);
-				h = device_fnv(dst_vs[d][bb], (size_t)last_positions * 32, h);
+				int layer_detail = detail && bb == 19;
+				uint64_t ring = seed, kq = seed, vq = seed, ks = seed, vs = seed, pkt = seed;
+				h = device_fnv_detail(dst_ring[d][bb], 2048, h, layer_detail ? &ring : NULL);
+				h = device_fnv_detail(dst_kq[d][bb], (size_t)last_positions * 512, h, layer_detail ? &kq : NULL);
+				h = device_fnv_detail(dst_vq[d][bb], (size_t)last_positions * 512, h, layer_detail ? &vq : NULL);
+				h = device_fnv_detail(dst_ks[d][bb], (size_t)last_positions * 32, h, layer_detail ? &ks : NULL);
+				h = device_fnv_detail(dst_vs[d][bb], (size_t)last_positions * 32, h, layer_detail ? &vs : NULL);
 				/* Full transposed tiles, including their finite zero/stale padding. */
-				h = device_fnv(dst_pkt[d][bb], ((size_t)last_positions / 4 + 31) / 32 * 8192, h);
+				h = device_fnv_detail(dst_pkt[d][bb], ((size_t)last_positions / 4 + 31) / 32 * 8192, h, layer_detail ? &pkt : NULL);
+				if (layer_detail)
+					fprintf(stderr, "STATEHASH_DETAIL die=%d layer=%d ring=%016llx kq=%016llx vq=%016llx ks=%016llx vs=%016llx pkt=%016llx\n",
+					        d, bb, (unsigned long long)ring, (unsigned long long)kq,
+						(unsigned long long)vq, (unsigned long long)ks,
+						(unsigned long long)vs, (unsigned long long)pkt);
 			} else {
-				h = device_fnv(dst_dn[d][bb], dn_bytes[d][bb], h);
-				h = device_fnv(dst_conv[d][bb], conv_bytes[d][bb], h);
+				int layer_detail = detail && bb == 20;
+				uint64_t dn = seed, conv = seed;
+				h = device_fnv_detail(dst_dn[d][bb], dn_bytes[d][bb], h, layer_detail ? &dn : NULL);
+				h = device_fnv_detail(dst_conv[d][bb], conv_bytes[d][bb], h, layer_detail ? &conv : NULL);
+				if (layer_detail)
+					fprintf(stderr, "STATEHASH_DETAIL die=%d layer=%d dn=%016llx conv=%016llx\n",
+					        d, bb, (unsigned long long)dn, (unsigned long long)conv);
 			}
 			fprintf(out, "statehash die=%d layer=%d state=%016llx\n", d, bb, (unsigned long long)h);
 		}
@@ -235,7 +265,13 @@ static void state_hashes(FILE *out) {
 		fprintf(out, "statehash die=%d ple=%016llx logits=%016llx\n", d, (unsigned long long)ple, (unsigned long long)logits);
 	}
 	CK(cuCtxSetCurrent(ctx[0]));
+	if (activation_trace_active) {
+		uint64_t h = device_fnv(d_activation_trace, 4u * 10240u, seed);
+		fprintf(stderr, "ACTIVATION_HASH request=%llu die=0 layer=33 state=%016llx\n",
+		        (unsigned long long)trace_request, (unsigned long long)h);
+	}
 	fprintf(out, "statehash done\n"); fflush(out);
+	if (detail) fflush(stderr);
 }
 
 /* Explicit validation readback; counts refer to 32-component groups, not values. */
@@ -345,6 +381,112 @@ static void state_copy(int to_snapshot) {
 	}
 }
 
+/* A fresh request must not observe any attention/indexer bytes from the prior
+ * request. Snapshot resumes keep these positional caches intact. */
+static void clear_attention_request_state(void) {
+	unsigned maxp = qsa_cache_positions((unsigned)MAXT);
+	unsigned cpos = qsa_compact_positions(nblk_qsa);
+	size_t kcf = ATTN_KC_FLOATS(cpos), vcf = (size_t)cpos * 512u;
+	if (kv_host && h_kv) memset(h_kv, 0, 12u * qsa_layer_cache_bytes(maxp));
+	for (int d = 0; d < nd; d++) {
+		if (!has_attn[d]) continue;
+		CK(cuCtxSetCurrent(ctx[d]));
+		CK(cuMemsetD8(db[d].iqk, 0, 4u * 640u));
+		CK(cuMemsetD8(db[d].iq, 0, 4u * 512u));
+		CK(cuMemsetD8(db[d].sc, 0, 4u * ((size_t)maxp / 4u + 64u)));
+		CK(cuMemsetD8(db[d].hst, 0, 4u * 1280u));
+		CK(cuMemsetD8(db[d].sel, 0, 4u * ((size_t)nblk_qsa + 8u)));
+		CK(cuMemsetD8(db[d].kc, 0, kcf * sizeof(float)));
+		CK(cuMemsetD8(db[d].vc, 0, vcf * sizeof(float)));
+		CK(cuMemsetD8(db[d].pm, 0, 4u * 24u * 8u));
+		CK(cuMemsetD8(db[d].pd, 0, 4u * 24u * 8u));
+		CK(cuMemsetD8(db[d].po, 0, 4u * 24u * 8u * 256u));
+		CK(cuMemsetD8(db[d].qo, 0, 4u * 6144u));
+		CK(cuMemsetD8(db[d].aout, 0, 4u * 6144u));
+		for (int bb = 0; bb < nlayers_run; bb++) {
+			if (!BLK_IS_ATTN(bb) || !dst_kq[d][bb]) continue;
+			if (!kv_host) {
+				CK(cuMemsetD8(dst_kq[d][bb], 0, (size_t)maxp * 512u));
+				CK(cuMemsetD8(dst_vq[d][bb], 0, (size_t)maxp * 512u));
+				CK(cuMemsetD8(dst_ks[d][bb], 0, (size_t)maxp * 32u));
+				CK(cuMemsetD8(dst_vs[d][bb], 0, (size_t)maxp * 32u));
+			}
+			CK(cuMemsetD8(dst_pkt[d][bb], 0, (size_t)(maxp / 128u) * 8192u));
+			CK(cuMemsetD8(dst_ring[d][bb], 0, 2048u));
+		}
+	}
+}
+
+/* Fill request-local device allocations before the normal request initializer.
+ * Persistent caches and snapshots are handled separately so resume semantics
+ * remain intact. */
+static void poison_registered_buffer(CUdeviceptr p) {
+	if (!p) return;
+	for (int i = 0; i < nallocs; i++) if (allocs[i].p == p) {
+		CK(cuMemsetD8(p, 0xa5, allocs[i].bytes));
+		return;
+	}
+	fprintf(stderr, "engine: poison requested for unregistered buffer 0x%llx\n",
+	        (unsigned long long)p);
+	longjmp(run_jb, 1);
+}
+
+static void poison_host_debug_buffers(void) {
+	if (activation_trace && h_activation_trace)
+		memset(h_activation_trace, 0xa5, 4u * 10240u);
+	if (kv_trace && h_kv_rawmax)
+		memset(h_kv_rawmax, 0xa5, (size_t)12 * (size_t)MAXT * KV_TRACE_WORDS * sizeof(uint32_t));
+}
+
+static void poison_ephemeral_request_buffers(void) {
+	for (int d = 0; d < nd; d++) {
+		CK(cuCtxSetCurrent(ctx[d]));
+		dn_bufs_t *b = &db[d];
+		CUdeviceptr scratch[] = {
+			b->S, b->S2, b->xh, b->t, b->ldown, b->lup, b->lz,
+			b->zq, b->zs32, b->zs16, b->zas, b->lqkv, b->lgate,
+			b->la, b->lu, b->lo, b->lon, b->oq, b->os32, b->os16,
+			b->oas, b->ly, b->r, b->idx, b->w, b->s, b->lidx,
+			b->lw, b->ne, b->part, b->g, b->gu, b->hq, b->hs32,
+			b->hs16, b->has, b->out, b->qg, b->k, b->v, b->qo,
+			b->aout, b->pm, b->pd, b->po, b->ids, b->toks, b->rnd,
+			b->pg, b->pgq, b->pgs32, b->pgs16, b->pgas, b->lk,
+			b->kn, b->qn, b->lv, b->pG, b->pgates, b->px, b->prows,
+			b->hlo, b->amo, b->apart, b->acnt, b->tokout, b->tkout,
+			b->tkpart, b->tkcnt, b->iqk, b->iq, b->sc, b->hst, b->sel,
+			b->kc, b->vc, xc[d].inbox
+		};
+		for (size_t i = 0; i < sizeof scratch / sizeof scratch[0]; i++)
+			poison_registered_buffer(scratch[i]);
+		if (dTRACE[d]) poison_registered_buffer(dTRACE[d]);
+		poison_registered_buffer(dPROG[d]);
+	}
+}
+
+static void poison_persistent_request_state(void) {
+	if (kv_host && h_kv) memset(h_kv, 0xa5, 12u * qsa_layer_cache_bytes(qsa_cache_positions((unsigned)MAXT)));
+	for (int d = 0; d < nd; d++) {
+		CK(cuCtxSetCurrent(ctx[d]));
+		poison_registered_buffer(dst_ple[d]);
+		for (int bb = 0; bb < nlayers_run; bb++) {
+			if (BLK_IS_ATTN(bb)) {
+				if (!dst_kq[d][bb]) continue;
+				if (!kv_host) {
+					poison_registered_buffer(dst_kq[d][bb]);
+					poison_registered_buffer(dst_vq[d][bb]);
+					poison_registered_buffer(dst_ks[d][bb]);
+					poison_registered_buffer(dst_vs[d][bb]);
+				}
+				poison_registered_buffer(dst_pkt[d][bb]);
+				poison_registered_buffer(dst_ring[d][bb]);
+			} else {
+				poison_registered_buffer(dst_dn[d][bb]);
+				poison_registered_buffer(dst_conv[d][bb]);
+			}
+		}
+	}
+}
+
 /* Both positions use the same layer state and positional caches, with separate
  * activations, router selections, compact gathers and exchange inboxes. */
 static void model_program(prog_t *P, int d, unsigned position, unsigned nprompt,
@@ -367,6 +509,11 @@ static void model_program(prog_t *P, int d, unsigned position, unsigned nprompt,
 		if (bb == 1) prog_ple_prefix(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
 		if (BLK_IS_ATTN(bb)) prog_attn_block(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
 		else prog_deltanet_block(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
+		if (activation_trace_active && d == 0 && !position && bb == 33) {
+			phase_t *p = prog_add(P, OP_XCOPY, 10);
+			ph_ptr(p, 0x140, b->S);
+			ph_ptr(p, 0x148, d_activation_trace);
+		}
 		if (!position) for (int p = phase_first; p < P->n && p < 4096; p++) prof_layer[d][p] = bb;
 	}
 	if (include_head) prog_head(P, &sp[d][0], x, &dw[d][0], b, eps, 0, nprompt);
@@ -468,6 +615,10 @@ static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 		CK(cuMemsetD32(dCTL[d]+0x2c,0,1));
 		unsigned ntok = (unsigned)ntok_; void *params[] = { &dPROG[d], (void *)&nph[d], &dCTL[d], &ntok };
 		CK(cuLaunchKernel(fn[d], 16, 1, 1, 256, 1, 1, 0, 0, params, NULL));
+		if (stagger_dies && d + 1 < nd) {
+			struct timespec delay = { 0, 10000000 };
+			nanosleep(&delay, NULL);
+		}
 	}
 	/* poll ctl[2] on die 0 through a non-blocking stream (the kernel runs on the legacy one), then the new tokens;
 	   once the kernel is done, one last read */
@@ -637,6 +788,10 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
     memset(trace_host,0,sizeof trace_host);
     if(!flash_timing_request_fits(nprompt,n_new,MAXT))return -1;
     int T=nprompt+n_new;
+	if (poison_request_state) poison_host_debug_buffers();
+	activation_trace_active = activation_trace && !two_position && nlayers_run > 33 &&
+	                          (!activation_trace_request_a || trace_request == activation_trace_request_a ||
+	                           trace_request == activation_trace_request_b);
     trace_status="running";
 	/* a CUDA error from here on unwinds to this point: the contexts are no longer usable, the core rebuilds them (return -2) */
 	in_run = 1;
@@ -644,6 +799,12 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
         trace_status="device_error";in_run=0;snap_s=0;last_timing.error_code=-2;last_timing.counts_final=0;
         if(timing_run_start)last_timing.run_ms=(now()-timing_run_start)*1e3;
         else last_timing.build_ms=(now()-timing_request_start)*1e3;
+		if (activation_trace_active && h_activation_trace) {
+			uint64_t h = host_fnv(h_activation_trace, 4u * 10240u, 0xcbf29ce484222325ull);
+			fprintf(stderr, "ACTIVATION_ERROR_OBS request=%llu observed_completed=%u layer=33 state=%016llx\n",
+			        (unsigned long long)trace_request, trace_completed, (unsigned long long)h);
+			fflush(stderr);
+		}
         return -2;
     }
 	if (kv_trace) {
@@ -688,16 +849,17 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
         trace_status = "allocation_error";
         in_run = 0; return -4;
     }
+	if (poison_request_state && !resume) poison_persistent_request_state();
 	if (resume) state_copy(0);
+	else if (!poison_request_state) clear_attention_request_state();
+	if (poison_request_state) poison_ephemeral_request_buffers();
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
-		/* A fresh response resets recurrent state; attention rows are overwritten
-		   before becoming visible. Snapshot resume restores recurrent state and the
-		   unfinished indexer ring, preserving prefix attention rows. Reset the end
-		   flag and abort count in either case. */
-		if (!resume) {
+		/* A fresh response resets recurrent and attention state. Snapshot resume
+		   restores recurrent state and the unfinished indexer ring, preserving the
+		   prefix attention rows. Reset the end flag and abort count in either case. */
+		if (!resume && !poison_request_state) {
 			for (int bb = 0; bb < nlayers_run; bb++) {
-				/* the int8 caches, the indexer pool and the ring of an attention layer need no reset: positions are written before they are read */
 				if (BLK_IS_ATTN(bb)) continue;
 				else { CK(cuMemsetD8(dst_dn[d][bb], 0, dn_bytes[d][bb])); CK(cuMemsetD8(dst_conv[d][bb], 0, conv_bytes[d][bb])); }
 			}
@@ -882,6 +1044,49 @@ int engine_init(core_t *c) {
 		in_init = 0; return -1;
 	}
 	two_position = pair_env ? !strcmp(pair_env, "1") : prefill_chunk > 1;
+	const char *activation_trace_env = getenv("QSA_ACT_TRACE");
+	if (activation_trace_env && strcmp(activation_trace_env, "0") && strcmp(activation_trace_env, "1")) {
+		fprintf(stderr, "engine: QSA_ACT_TRACE must be 0 or 1\n");
+		longjmp(init_jb, 1);
+	}
+	activation_trace = activation_trace_env && !strcmp(activation_trace_env, "1");
+	activation_trace_active = 0;
+	activation_trace_request_a = activation_trace_request_b = 0;
+	const char *activation_request_env = getenv("QSA_ACT_TRACE_REQUESTS");
+	if (activation_request_env) {
+		char *end, *end2;
+		unsigned long request = strtoul(activation_request_env, &end, 10);
+		if (!*activation_request_env || !request || request > 1000000ul) {
+			fprintf(stderr, "engine: QSA_ACT_TRACE_REQUESTS must contain one or two positive integers\n");
+			longjmp(init_jb, 1);
+		}
+		activation_trace_request_a = (unsigned)request;
+		if (*end == ',') {
+			unsigned long second = strtoul(end + 1, &end2, 10);
+			if (!second || second > 1000000ul || *end2) {
+				fprintf(stderr, "engine: QSA_ACT_TRACE_REQUESTS must contain one or two positive integers\n");
+				longjmp(init_jb, 1);
+			}
+			activation_trace_request_b = (unsigned)second;
+		} else if (*end) {
+			fprintf(stderr, "engine: QSA_ACT_TRACE_REQUESTS must contain one or two positive integers\n");
+			longjmp(init_jb, 1);
+		}
+	}
+	const char *poison_env = getenv("QSA_POISON_REQUEST_STATE");
+	if (poison_env && strcmp(poison_env, "0") && strcmp(poison_env, "1")) {
+		fprintf(stderr, "engine: QSA_POISON_REQUEST_STATE must be 0 or 1\n");
+		longjmp(init_jb, 1);
+	}
+	poison_request_state = poison_env && !strcmp(poison_env, "1");
+	const char *stagger_env = getenv("QSA_STAGGER_DIES");
+	if (stagger_env && strcmp(stagger_env, "0") && strcmp(stagger_env, "1")) {
+		fprintf(stderr, "engine: QSA_STAGGER_DIES must be 0 or 1\n");
+		longjmp(init_jb, 1);
+	}
+	stagger_dies = stagger_env && !strcmp(stagger_env, "1");
+	if (poison_request_state || stagger_dies)
+		fprintf(stderr, "engine: request_poison=%d stagger_dies=%d\n", poison_request_state, stagger_dies);
 	if (ple_read_parse_readers(getenv("FLASH_PLE_READERS"), &ple_readers)) {
 		fprintf(stderr, "engine: FLASH_PLE_READERS must be a decimal integer from 1 to 16\n");
 		longjmp(init_jb, 1);
@@ -900,6 +1105,12 @@ int engine_init(core_t *c) {
 	size_t kv_layer = qsa_layer_cache_bytes(maxp);   /* K, V int8 [pos][2][256] and their fp16 scales [pos][2][8] */
 	if (kv_host) {   /* DEVICEMAP | PORTABLE: every die reads/writes over PCIe. Initially zeroed; reuse/rollback correctness relies on logical masks, not tail contents. */
 		CK(cuCtxSetCurrent(ctx[0])); CK(cuMemHostAlloc(&h_kv, 12 * kv_layer, CU_MEMHOSTALLOC_DEVICEMAP | CU_MEMHOSTALLOC_PORTABLE)); memset(h_kv, 0, 12 * kv_layer);
+	}
+	if (activation_trace) {
+		CK(cuCtxSetCurrent(ctx[0]));
+		CK(cuMemHostAlloc(&h_activation_trace, 4u * 10240u, CU_MEMHOSTALLOC_DEVICEMAP | CU_MEMHOSTALLOC_PORTABLE));
+		memset(h_activation_trace, 0, 4u * 10240u);
+		CK(cuMemHostGetDevicePointer(&d_activation_trace, h_activation_trace, 0));
 	}
 	if (kv_trace) {
 		CK(cuCtxSetCurrent(ctx[0]));
@@ -1109,6 +1320,9 @@ void engine_fini(void) {
 	if (!core) return;
 	for (int d = 0; d < nd; d++) { if (pollst[d]) { cuCtxSetCurrent(ctx[d]); cuStreamDestroy(pollst[d]); pollst[d] = 0; } }
 	cuCtxSetCurrent(ctx[0]);
+	if (h_activation_trace) { cuMemFreeHost(h_activation_trace); h_activation_trace = NULL; d_activation_trace = 0; }
+	activation_trace = activation_trace_active = 0;
+	activation_trace_request_a = activation_trace_request_b = 0;
 	if (h_kv) { cuCtxSetCurrent(ctx[0]); cuMemFreeHost(h_kv); h_kv = NULL; }
 	if (h_kv_rawmax) { cuCtxSetCurrent(ctx[0]); cuMemFreeHost(h_kv_rawmax); h_kv_rawmax = NULL; }
 	memset(d_kv_rawmax, 0, sizeof d_kv_rawmax);
