@@ -327,11 +327,13 @@ int main(int argc, char **argv) {
         "\"rope_base\":10000000,\"rope_table_generator\":\"fp64_libm_cast_f32\","
         "\"evidence_kind\":\"synthetic_gpu_fixture\",\"selection_source\":\"supplied_fixture_ids\","
         "\"production_sparse_selector_executed\":false,\"full_model\":false,\"seed\":4242,"
-        "\"generator\":\"fixed_projection_lcg_v1\",\"build_revision\":\"%s\","
+        "\"generator\":\"%s\",\"build_revision\":\"%s\","
         "\"kv_dtype\":\"int8_with_fp16_group32_scales\",\"upstream_activation_quantization_isolated\":false,"
         "\"normalized_k_available\":true,\"prequant_k_source\":\"separate_gpu_fp32_append\","
         "\"independent_checkpoint_evidence\":false,\"quality_validation\":false,\"snapshot_lengths\":[",
-        total,budget,(double)eps,pci_bus_id,driver_version,FLASH_REV)<0) fail("completion write failed");
+        total,budget,(double)eps,pci_bus_id,driver_version,
+        frozen_root ? "original_layer3_bf16_projection_from_synthetic_hidden" : "fixed_projection_lcg_v1",
+        FLASH_REV)<0) fail("completion write failed");
     for (unsigned i=0;i<nlengths;i++) if (fprintf(f,"%s%u",i ? "," : "",lengths[i])<0) fail("completion write failed");
     if (fputs("]",f)==EOF) fail("completion write failed");
     if (frozen_root && fprintf(f,",\"weights_origin\":\"original_checkpoint_safetensors_layer3\","
