@@ -73,10 +73,17 @@ separate PCIe estimate to it.
 ## Host event meanings
 
 Host samples use `CLOCK_MONOTONIC`. PLE staging spans row selection, advisory
-cache hints and the `pread` loop; read start/end isolates that loop. These
-durations include cache hits and do not establish physical disk latency.
-The readiness store is between `ple_ready_start_ns` and `ple_ready_ns`.
-Bytes read and incomplete-row counts are reported per traced token.
+cache hints, the reader-pool batch, and any retry from the original file after
+a short cache read. Read start/end bounds the batch and its fallback; it does
+not sum worker thread times. These durations include cache hits and do not
+establish physical disk latency. The readiness store follows every reader and
+is between `ple_ready_start_ns` and `ple_ready_ns`. Bytes read and incomplete-
+row counts are reported per traced token.
+
+The phase trace and CTA remap trace use separate control-memory ABIs. Their
+build modes reject `DIE_TRACE` and `DIE_CTA_TRACE` together because both use
+`ctl+0xd0..0xe4`; the schema-2 phase image exports 128-byte records, while the
+CTA remap image keeps its independent 64-byte records.
 
 For a delivered batch, polling samples bracket the stream/count query and
 readback samples bracket the token transfer. Multiple tokens may share a batch:

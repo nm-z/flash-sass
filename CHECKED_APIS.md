@@ -2,8 +2,11 @@
 
 ref/checked.h provides checked scalar entry points. They return 0 on success and
 1 for invalid input; rejected calls preserve outputs and output counts/sizes.
-The original instruction-order *_gpu twins retain their signatures and require
-valid caller-supplied bounds.
+The instruction-order attention decode/partials twins return 0 on success and
+1 for a zero count or a count above `UINT_MAX-8191`, before touching inputs or
+outputs. The checked decode wrapper propagates that status. Other pointer and
+capacity bounds remain caller duties in the raw twins. The scalar size domain
+does not enlarge the SASS address domain; see [ATTENTION_PADDING.md](ATTENTION_PADDING.md).
 
 An attention key count is nonzero. Size checks occur before unsigned rounding
 and size_t byte multiplication. A zero-based QSA position must be below physical
@@ -13,7 +16,9 @@ be valid, unique and ascending when complete blocks exceed the budget.
 Destination float capacities include every physically gathered row.
 
 These are scalar layout/bounds checks. They do not establish SASS prefetch
-allocation bounds or support arbitrary nonfinite padding; see #18/#19.
+allocation bounds. Masked attention supports arbitrary bits in readable invalid
+rows under [ATTENTION_PADDING.md](ATTENTION_PADDING.md); valid-input numerical
+preconditions remain the caller's responsibility.
 
 Both attention test CLIs accept unsigned decimal digits only. They reject
 empty/signed/malformed/overflowing arguments, unknown modes, extra arguments,

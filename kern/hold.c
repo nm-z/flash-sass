@@ -44,8 +44,10 @@ CUresult cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev);
 #define CK(x) do { CUresult r_ = (x); if (r_ != CUDA_SUCCESS) { const char *s_ = "?"; cuGetErrorString(r_, &s_); \
 	fprintf(stderr, "%s:%d: %s -> %s\n", __FILE__, __LINE__, #x, s_); exit(1); } } while (0)
 
+#ifndef HOLD_CACHE_ONLY
 static volatile sig_atomic_t stop;
 static void onsig(int s) { (void)s; stop = 1; }
+#endif
 
 /* tile stride for a quantised matrix row of K elements, 0 for raw types */
 /* Q6_K rows of K = 6144 do not fit the GEMV's registers: they are held as four K = 1536 column
@@ -151,17 +153,26 @@ static void select_rows(const char *name, int rows, int experts, sel_t *s) {
 	else if (!strcmp(x, "ffn_gate_exps.weight") || !strcmp(x, "ffn_up_exps.weight") || !strcmp(x, "ffn_down_exps.weight")) { s->nr = 1; s->r[0] = (range_t){ p->e0, p->en }; }
 }
 
-static FILE *m; static const char *cache; static CUdeviceptr arena; static size_t off;
+static FILE *m; static const char *cache; static size_t off;
+#ifndef HOLD_CACHE_ONLY
+static CUdeviceptr arena;
+#endif
 static size_t cap; static uint8_t *buf;
 static void need(size_t bytes) { if (bytes > cap) { free(buf); cap = bytes; buf = malloc(cap); } }
 static void emit(const char *name, const uint8_t *img, size_t bytes, uint32_t type, int rows, int K, int st, int experts) {
 	off = (off + 255) & ~(size_t)255;
+#ifndef HOLD_CACHE_ONLY
 	if (bytes) CK(cuMemcpyHtoD(arena + off, img, bytes));
+#endif
 	if (cache) {
 		char fn[512]; snprintf(fn, sizeof fn, "%s/%s", cache, name);
+#ifdef HOLD_CACHE_ONLY
+		FILE *cf = fopen(fn, "wx");
+#else
 		FILE *cf = fopen(fn, "wb");
+#endif
 		if (!cf || fwrite(img, 1, bytes, cf) != bytes) { perror(fn); exit(1); }
-		fclose(cf);
+		if (fclose(cf)) { perror(fn); exit(1); }
 	}
 	fprintf(m, "%s %zu %zu %u %d %d %d %d\n", name, off, bytes, type, rows, K, st, experts);
 	fprintf(stderr, "  %-40s %8.1f MB  %s%s\n", name, bytes / 1e6, gguf_type_name(type), st ? " tiles" : "");
@@ -224,7 +235,13 @@ int main(int argc, char **argv) {
 		if (!strncmp(argv[i], "cache=", 6)) cache = argv[i] + 6;
 		if (!strncmp(argv[i], "split=", 6)) { if (sscanf(argv[i] + 6, "%d/%d", &sd, &sn) != 2 || sn < 1 || sn > 6 || sd < 0 || sd >= sn) { fprintf(stderr, "bad split %s\n", argv[i]); return 2; } split_on = 1; }
 	}
-	{ char rp[600]; snprintf(rp, sizeof rp, "%s.ready", mpath); unlink(rp); }   /* a restarted holder is not ready until it says so */
+#ifdef HOLD_CACHE_ONLY
+	if (!cache || !*cache) { fprintf(stderr, "hold_cache requires cache=<new directory>\n"); return 2; }
+	if (split_on) { fprintf(stderr, "hold_cache requires unsplit packing\n"); return 2; }
+#else
+	/* A restarted holder is not ready until it says so. */
+	{ char rp[600]; snprintf(rp, sizeof rp, "%s.ready", mpath); unlink(rp); }
+#endif
 	gguf_file g;
 	if (gguf_open(&g, path)) { fprintf(stderr, "cannot open %s\n", path); return 1; }
 	/* pass 1: sizes (per block, the split depends on the block for the shared expert only) */
@@ -258,6 +275,12 @@ int main(int argc, char **argv) {
 	total = ((total + 255) & ~(size_t)255) + (4u << 20);
 	fprintf(stderr, "hold: %d tensors, %.2f GB on die %d%s\n", count, total / 1e9, die, split_on ? " (split)" : "");
 	if (getenv("HOLD_DRY")) return 0;   /* sizes only: tune SPLIT_SHARES / ATTN_MAP without loading */
+#ifdef HOLD_CACHE_ONLY
+	char cm[1024]; int cn = snprintf(cm, sizeof cm, "%s.new", mpath);
+	if (cn < 0 || (size_t)cn >= sizeof cm) { fprintf(stderr, "manifest path too long\n"); return 2; }
+	m = fopen(cm, "wx"); if (!m) { perror(cm); return 1; }
+	fprintf(m, "cache-only tile export; NOT A CUDA IPC MANIFEST\n");
+#else
 	CK(cuInit(0));
 	CUdevice dev; CUcontext ctx;
 	/* HOLD_VISIBLE=1: the holder runs under CUDA_VISIBLE_DEVICES=<die> (so it holds no other GPU open and a
@@ -272,6 +295,7 @@ int main(int argc, char **argv) {
 	fprintf(m, "arena %zu die %d handle ", total, die);
 	for (size_t i = 0; i < sizeof h; i++) fprintf(m, "%02x", ((unsigned char *)&h)[i]);
 	fprintf(m, "\n");
+#endif
 	/* pass 2: load */
 	for (int i = 0; i < g.ntensors; i++) {
 		const gguf_tensor *t = &g.t[i];
@@ -304,12 +328,21 @@ int main(int argc, char **argv) {
 		char name[128]; snprintf(name, sizeof name, "blk.%d.emap", b);
 		emit(name, (const uint8_t *)emap, sizeof emap, GG_F32, 512, 1, 0, 1);
 	}
+#ifdef HOLD_CACHE_ONLY
+	if (ferror(m)) { fclose(m); fprintf(stderr, "cache manifest write failed\n"); return 1; }
+	if (fclose(m)) { fprintf(stderr, "cache manifest close failed\n"); return 1; }
+#else
 	fclose(m);
+#endif
 	gguf_close(&g);
+#ifdef HOLD_CACHE_ONLY
+	return 0;
+#else
 	{ char rp[600]; snprintf(rp, sizeof rp, "%s.ready", mpath); FILE *rf = fopen(rp, "w"); if (rf) { fputs("ready\n", rf); fclose(rf); } }   /* the core waits for this */
 	fprintf(stderr, "hold: ready (%s); holding until SIGTERM\n", mpath);
 	signal(SIGTERM, onsig); signal(SIGINT, onsig);
 	while (!stop) pause();
 	CK(cuMemFree(arena));
 	return 0;
+#endif
 }

@@ -31,6 +31,123 @@ my $PAIR_DESC_OFF = 0xbe80; # second position's unchanged 128-byte descriptor
 my $STEP_OFF = 0xbf50;     # physical descriptors consumed by this phase (1 or 2)
 my $PAIR_MODE_OFF = 0xbf54; # word 30 bits 3/4: generic paired / fused paired body
 my $FLAGS_OFF = 0xbf58;    # primary descriptor's exchange / barrier flags
+my $T0_OFF = 0xbf5c;      # %globaltimer.hi at launch (u32), per CTA; a phase that starts 70 units (4.29 s each, 300 s) later ends the kernel
+my $EXP_OFF = 0xbf60;     # set by thread 0 when the 300 s are up
+$ENV{DIE_T0_OFF} = $T0_OFF; $ENV{DIE_EXP_OFF} = $EXP_OFF;   # the op bodies' waits (xchg.sass) check the same limit
+
+my $CTA_TRACE = $ENV{DIE_CTA_TRACE} || 0;
+die "DIE_CTA_TRACE must be 0 or 1\n" unless $CTA_TRACE =~ /\A[01]\z/;
+die "DIE_TRACE and DIE_CTA_TRACE cannot both be enabled: overlapping ctl+0xd0..0xe4 trace ABI\n" if $CTA_TRACE && $ENV{DIE_TRACE};
+my $WORK_OFF = 0xbf6c;
+# DIE_CTA_TRACE ABI only (mutually exclusive with DIE_TRACE): ctl+d0 pointer;
+# d8 first token; dc token capacity;
+# e0 CTA count (16); e4 launch nonce. Records are [token][phase][CTA], 64 B.
+# u64[0..4]: exchange-start/end, body-start/end, phase-end.
+# u32[10..15]: token, phase, physical CTA, opcode, nonempty units, nonce.
+# Only framework/dead op scratch is used at these phase boundaries. The stage-2
+# barrier holds all warps until the body-start stamp has been captured.
+sub cta_trace_code {
+    my ($stage, $suffix) = @_;
+    return '' unless $CTA_TRACE;
+    my $label = defined($suffix) ? $stage . '_' . $suffix : "$stage";
+    my $off = sprintf '0x%x', 8 * $stage;
+    my $tok = sprintf '0x%x', $TOK_OFF;
+    my $work = sprintf '0x%x', $WORK_OFF;
+    my $desc = sprintf '0x%x', $DESC_OFF;
+    my $start_barrier = $stage == 2 ? "--:-:-:-:6      BAR.SYNC 0x1;\n" : '';
+    my $reset = $stage == 0 ? <<"SASS" : '';
+--:-:-:-:6      ISETP.EQ.U32.AND P4, PT, tid, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:1:-:-:6  \@P4 STS [RZ+$work], RZ;
+01:-:-:-:6      NOP;
+SASS
+    my $meta = $stage == 4 ? <<"SASS" : '';
+--:-:2:-:2      LDS bar_t, [RZ+$tok];
+02:1:-:-:6  \@P4 STG.E [bar_cp+0x28], bar_t;
+--:1:-:-:6  \@P4 STG.E [bar_cp+0x2c], pidx;
+--:1:-:-:6  \@P4 STG.E [bar_cp+0x30], cta;
+--:-:2:-:2      LDS bar_old, [RZ+$desc];
+02:1:-:-:6  \@P4 STG.E [bar_cp+0x34], bar_old;
+01:-:2:-:2      LDS bar_t, [RZ+$work];
+02:1:-:-:6  \@P4 STG.E [bar_cp+0x38], bar_t;
+01:-:2:-:2      LDG.E bar_t, [fw+0xe4];
+02:1:-:-:6  \@P4 STG.E [bar_cp+0x3c], bar_t;
+SASS
+    return <<"SASS";
+3f:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.NE.U32.AND P4, PT, warp, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P4 BRA CTA_TRACE_DONE_$label;
+$reset--:-:-:-:6      MOV fw0, ctl0;
+--:-:-:-:6      MOV fw1, ctl1;
+# Records describe one scalar position per pass. Paired-prefix passes use a
+# different descriptor schedule and must leave the cleared trace unwritten.
+--:-:2:-:2      LDG.E bar_one, [fw+0x24];
+02:-:-:-:6      ISETP.GE.U32.AND P4, PT, bar_one, 0x2, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P4 BRA CTA_TRACE_DONE_$label;
+--:-:2:-:2      LDG.E bar_old, [fw+0xe0];
+02:-:-:-:6      ISETP.EQ.U32.AND P4, PT, bar_old, 0x10, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6 \@!P4 BRA CTA_TRACE_DONE_$label;
+--:-:1:-:2      LDG.E.64 bar_cp0, [fw+0xd0];
+01:-:-:-:6      LOP.OR bar_g, bar_cp0, bar_cp1;
+--:-:-:-:6      ISETP.EQ.U32.AND P4, PT, bar_g, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P4 BRA CTA_TRACE_DONE_$label;
+--:-:2:-:1      LDG.E bar_old, [fw+0xd8];
+--:-:2:-:1      LDG.E bar_one, [fw+0xdc];
+--:-:2:-:2      LDS bar_t, [RZ+$tok];
+02:-:-:-:6      IADD bar_t, bar_t, -bar_old;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, bar_t, bar_one, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6 \@!P4 BRA CTA_TRACE_DONE_$label;
+--:-:-:-:6      XMAD bar_t, bar_t, nph, pidx;
+--:-:-:-:6      SHL bar_t, bar_t, 0x4;
+--:-:-:-:6      IADD bar_t, bar_t, cta;
+--:-:-:-:6      SHL bar_t, bar_t, 0x6;
+--:-:-:-:6      IADD bar_cp0.CC, bar_cp0, bar_t;
+--:-:-:-:6      IADD.X bar_cp1, bar_cp1, RZ;
+CTA_TRACE_CLOCK_$label:
+--:-:6:-:1      S2R bar_g2, SR_GLOBALTIMERHI;
+--:-:6:-:1      S2R bar_g, SR_GLOBALTIMERLO;
+--:-:6:-:2      S2R bar_old, SR_GLOBALTIMERHI;
+20:-:-:-:6      ISETP.NE.U32.AND P4, PT, bar_g2, bar_old, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P4 BRA CTA_TRACE_CLOCK_$label;
+--:-:-:-:6      ISETP.EQ.U32.AND P4, PT, tid, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:1:-:-:6  \@P4 STG.E.64 [bar_cp+$off], cta_traceclock0;
+$meta
+CTA_TRACE_DONE_$label:
+3f:-:-:-:6      NOP;
+--:-:-:-:6      MOV bar_cp0, ctl0;
+--:-:-:-:6      MOV bar_cp1, ctl1;
+--:-:-:-:6      IADD bar_t, cta, tid;
+--:-:-:-:6      ISETP.EQ.U32.AND P4, PT, bar_t, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+$start_barrier
+SASS
+}
+
 
 # opcode = index. tag, file, unit kind, environment for the generator
 my @OPS = (
@@ -50,7 +167,7 @@ my @OPS = (
     [ 'hcmix',      'hcops.sass',       'cta',  { HC_OP => 'mix' } ],
     [ 'hcmixx',     'hcops.sass',       'cta',  { HC_OP => 'mix', HC_XOUT => 1 } ],
     [ 'hcwrite',    'hcops.sass',       'cta',  { HC_OP => 'write' } ],
-    [ 'hcwsum',     'hcops.sass',       'cta',  { HC_OP => 'write', HC_SUMN => 1 } ],   # the MoE partials' fixed-order sum fused into the write
+    [ 'hcwsum',     'hcops.sass',       'cta',  { HC_OP => 'write', HC_SUMN => 1, HC_COLS => 160 } ],   # the MoE partials' fixed-order sum fused into the write; all 16 SMs participate
     [ 'conv1d',     'conv1d.sass',      'cta',  {} ],
     [ 'dnstep',     'dnstep.sass',      'cta',  { DN_TILED => 1 } ],   # local value head j reads local key head j % 16 (value head h pairs with key head h % 16)
     [ 'dnnorm',     'dnnorm.sass',      'warp', {} ],
@@ -216,9 +333,25 @@ require './trace.pl';
 my $maps = '';
 my $body = '';
 my $dispatch = '';
+my $dispatch_mode = $ENV{DIE_DISPATCH} // 'jump';
+die "DIE_DISPATCH must be linear, tree, or jump\n" unless $dispatch_mode =~ /\A(?:linear|tree|jump)\z/;
 for my $k (0 .. $#OPS) {
     my ($tag, $file, $kind, $env) = @{$OPS[$k]};
     my $op = load_op($tag, $file, $env);
+    if ($CTA_TRACE && $tag eq 'attnpartn') {
+        my $count = <<'SASS';
+--:-:-:-:6      ISETP.EQ.U32.AND P4, PT, tid, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:1:-:2  @P4 LDS attnpartn_u1, [RZ+0xbf6c];
+01:-:-:-:6  @P4 IADD attnpartn_u1, attnpartn_u1, 0x1;
+--:1:-:-:6  @P4 STS [RZ+0xbf6c], attnpartn_u1;
+01:-:-:-:6      NOP;
+SASS
+        $op->{code} =~ s/(^.*\@P4 BRA attnpartn_FINAL;\n)/$1$count/m
+            or die "ATTNPARTN empty-chunk branch missing\n";
+    }
     if ($tag eq 'plerows' && $ENV{DIE_TRACE}) {
         # Hash inputs in R18..R25 are dead here; the wait's live pointers and
         # predicates use other registers. Keep the standalone op unchanged.
@@ -234,6 +367,7 @@ for my $k (0 .. $#OPS) {
     my $step = $kind eq 'cta' ? $NCTA : 8 * $NCTA;
     $body .= "\n${tag}_SETUP:\n";
     $body .= trace_code(8, $TOK_OFF, "8_${tag}");
+    $body .= cta_trace_code(2, $tag);
     if ($kind eq 'cta') {
         $body .= "--:-:-:-:6      MOV vid, cta;\n";
         $body .= "--:-:-:-:6      MOV vtid, tid;\n";
@@ -259,9 +393,47 @@ for my $k (0 .. $#OPS) {
     $body .= "--:-:-:-:6      BRA POSITION_END;\n";
 }
 
+my @cta_trace = map { cta_trace_code($_) } 0..4;
+my $cta_trace_map = $CTA_TRACE ? "    18,19 : cta_traceclock<0-1>\n" : '';
 my @trace = map { trace_code($_, $TOK_OFF, undef, $FLAGS_OFF) } 0..10;
 my $unknown_body = trace_code(8, $TOK_OFF, '8_unknown');
 my $trace_send_fence = $ENV{DIE_TRACE} ? "02:-:-:-:6  \@P4 MEMBAR.SYS;\n" : '';
+# All lanes see the same descriptor opcode. A range tree bounds dispatch by
+# ceil(log2(OP_COUNT)) comparisons instead of scanning every preceding opcode.
+# Keep the linear emitter available for matched measurements. Invalid opcodes
+# retain the existing skip behavior, rather than falling into the last leaf.
+if ($dispatch_mode eq 'tree') {
+    my $tree;
+    $tree = sub {
+        my ($lo, $hi) = @_;
+        return "--:-:-:-:6      BRA $OPS[$lo][0]_SETUP;\n" if $lo == $hi;
+        my $mid = int(($lo + $hi + 1) / 2);
+        my $label = "DISPATCH_RANGE_${lo}_${mid}";
+        my $code = sprintf "--:-:-:-:6      ISETP.LT.U32.AND P6, PT, op, 0x%x, PT;\n", $mid;
+        $code .= "--:-:-:-:6      NOP;\n" x 3;
+        $code .= "--:-:-:-:6  \@P6 BRA $label;\n";
+        return $code . $tree->($mid, $hi) . "$label:\n" . $tree->($lo, $mid - 1);
+    };
+    $dispatch = sprintf "--:-:-:-:6      ISETP.GE.U32.AND P6, PT, op, 0x%x, PT;\n", scalar @OPS;
+    $dispatch .= "--:-:-:-:6      NOP;\n" x 3;
+    $dispatch .= "--:-:-:-:6  \@P6 BRA POSITION_END;\n";
+    $dispatch .= $tree->(0, $#OPS);
+}
+elsif ($dispatch_mode eq 'jump') {
+    # Three instructions occupy one 32-byte Maxwell control bundle. Every
+    # entry therefore has the same alignment and can be indexed by op << 5.
+    # fw0 is dead dispatcher scratch. BRX preserves the descriptor opcode.
+    $dispatch = sprintf "--:-:-:-:6      ISETP.GE.U32.AND P6, PT, op, 0x%x, PT;\n", scalar @OPS;
+    $dispatch .= "--:-:-:-:6      SHL fw0, op, 0x5;\n";
+    $dispatch .= "--:-:-:-:6      NOP;\n" x 2;
+    $dispatch .= "--:-:-:-:6  \@P6 BRA POSITION_END;\n";
+    $dispatch .= "--:-:-:-:6      BRX fw0 DISPATCH_TABLE;\n";
+    $dispatch .= "DISPATCH_TABLE:\n";
+    for my $op (@OPS) {
+        $dispatch .= "--:-:-:-:6      BRA $op->[0]_SETUP;\n";
+        $dispatch .= "--:-:-:-:6      NOP;\n" x 2;
+    }
+}
 print <<"EOF";
 # Kernel: die
 #
@@ -314,7 +486,7 @@ print <<"EOF";
     40    : tr_old
     41    : tr_t
     42    : tr_one
-$maps</REGISTER_MAPPING>
+$maps$cta_trace_map</REGISTER_MAPPING>
 
 --:-:6:-:1      S2R tid, SR_TID.X;
 --:-:6:-:1      S2R cta, SR_CTAID.X;
@@ -338,6 +510,15 @@ $maps</REGISTER_MAPPING>
 # and the grid barrier generation (GEN), seeded from ctl[1]
 02:-:1:-:2      LDG.E op, [fw+0x4];
 01:2:-:-:6      STS [RZ+0x@{[sprintf '%x', $GEN_OFF]}], op;
+# the 300 s limit: thread 0 of every CTA keeps the launch %globaltimer.hi
+--:-:-:-:6      ISETP.EQ.U32.AND P5, PT, tid, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:6:-:2  \@P5 S2R op, SR_GLOBALTIMERHI;
+20:2:-:-:6  \@P5 STS [RZ+0x@{[sprintf q{%x}, $T0_OFF]}], op;
+02:2:-:-:6  \@P5 STS [RZ+0x@{[sprintf q{%x}, $EXP_OFF]}], RZ;
+02:-:-:-:6      NOP;
 # launch timestamp -> ctl[15]
 02:-:-:-:6      IADD op, cta, tid;
 --:-:-:-:6      ISETP.EQ.U32.AND P4, PT, op, RZ, PT;
@@ -358,6 +539,21 @@ $maps</REGISTER_MAPPING>
 
 PHASE:
 $trace[0]# descriptor -> smem (warp 0, lane = word; the words were prefetched); word 31 is a
+# 300 s since launch: thread 0 flags it; every thread reads the flag after the descriptor barrier and exits
+--:-:-:-:6      ISETP.EQ.U32.AND P5, PT, tid, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:6:-:2  \@P5 S2R bar_g2, SR_GLOBALTIMERHI;
+--:-:6:-:2  \@P5 LDS bar_old, [RZ+0x@{[sprintf q{%x}, $T0_OFF]}];
+20:-:-:-:6  \@P5 IADD bar_g2, bar_g2, -bar_old;
+--:-:-:-:6      ISETP.GE.U32.AND P5, PT, bar_g2, 0x46, P5;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P5 MOV32I bar_old, 0x1;
+--:2:-:-:6  \@P5 STS [RZ+0x@{[sprintf q{%x}, $EXP_OFF]}], bar_old;
+# descriptor -> smem (warp 0, lane = word; the words were prefetched); word 31 is a
 # mask of the parameter words that get the token counter added
 01:-:-:-:6      ISETP.LT.U32.AND P6, PT, tid, 0x20, PT;
 --:-:-:-:6      SHL op, lane, 0x2;
@@ -372,6 +568,12 @@ $trace[0]# descriptor -> smem (warp 0, lane = word; the words were prefetched); 
 --:-:-:-:6  \@P5 IADD vtid, vtid, bar_t;
 --:2:-:-:6  \@P6 STS [units], vtid;
 02:-:-:-:6      BAR.SYNC 0x1;
+--:-:1:-:2      LDS bar_old, [RZ+0x@{[sprintf q{%x}, $EXP_OFF]}];
+01:-:-:-:6      ISETP.NE.U32.AND P5, PT, bar_old, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P5 BRA EXPIRED;
 --:-:1:-:1      LDS op, [RZ+0x@{[sprintf '%x', $DESC_OFF]}];
 --:-:1:-:2      LDS units, [RZ+0x@{[sprintf '%x', $DESC_OFF + 4]}];
 01:-:-:-:6      NOP;
@@ -417,7 +619,7 @@ PAIR_LOADED:
 --:-:1:-:1      LDS op, [RZ+0x@{[sprintf '%x', $DESC_OFF]}];
 --:-:1:-:2      LDS units, [RZ+0x@{[sprintf '%x', $DESC_OFF + 4]}];
 01:-:-:-:6      NOP;
-$trace[1]# ---- exchange wait (descriptor word 30 bit 1): warp 0 of every CTA polls this die's
+$cta_trace[0]$trace[1]# ---- exchange wait (descriptor word 30 bit 1): warp 0 of every CTA polls this die's
 # flags (ctl[28..29] -> u32[6][16], one per sending die and CTA; absent dies hold ~0;
 # lane l reads words l, l + 32, l + 64) until all 96 read >= the exchange count (XG
 # in shared memory), invalidates L1, and the CTA syncs ----
@@ -448,12 +650,36 @@ XWSPIN:
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
+# 300 s since launch: leave the wait (VOTE.ANY keeps the warp together)
+02:-:6:-:2      S2R bar_t, SR_GLOBALTIMERHI;
+--:-:6:-:2      LDS bar_old, [RZ+0x@{[sprintf q{%x}, $T0_OFF]}];
+20:-:-:-:6      IADD bar_t, bar_t, -bar_old;
+--:-:-:-:6      ISETP.GE.U32.AND P5, PT, bar_t, 0x46, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      VOTE.ANY P5, P5;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P5 BRA XWEXP;
 --:-:-:-:6 \@!P4 BRA XWSPIN;
 --:-:-:-:6      MEMBAR.GL.IVALLD;
+--:-:-:-:6      BRA XWBAR;
+XWEXP:
+--:-:-:-:6      MOV32I bar_old, 0x1;
+--:2:-:-:6      STS [RZ+0x@{[sprintf q{%x}, $EXP_OFF]}], bar_old;
+02:-:-:-:6      NOP;
 XWBAR:
 --:-:-:-:6      BAR.SYNC 0x1;
+--:-:1:-:2      LDS bar_old, [RZ+0x@{[sprintf q{%x}, $EXP_OFF]}];
+01:-:-:-:6      ISETP.NE.U32.AND P5, PT, bar_old, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P5 BRA EXPIRED;
 XWDONE:
-$trace[2]OP_DISPATCH:
+$cta_trace[1]$trace[2]OP_DISPATCH:
 $dispatch$unknown_body--:-:-:-:6      BRA POSITION_END;
 $body
 POSITION_END:
@@ -490,7 +716,7 @@ $trace[3]# Body completion precedes the framework's position and grid barriers.
 PHASE_END:
 # ---- grid barrier (warp 0 counts in; everyone waits at BAR 1) ----
 --:-:-:-:6      BAR.SYNC 0x1;
---:-:-:-:6      ISETP.GE.U32.AND P6, PT, tid, 0x20, PT;
+$cta_trace[3]--:-:-:-:6      ISETP.GE.U32.AND P6, PT, tid, 0x20, PT;
 --:-:-:-:6      ISETP.NE.U32.AND P5, PT, tid, RZ, PT;
 # prefetch the next logical phase (skip a pair's second descriptor)
 --:-:1:-:2      LDS bar_t, [RZ+0x@{[sprintf '%x', $STEP_OFF]}];
@@ -591,6 +817,19 @@ BSPIN:
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
+# 300 s since launch: leave the wait (VOTE.ANY keeps the warp together)
+02:-:6:-:2      S2R bar_t, SR_GLOBALTIMERHI;
+--:-:6:-:2      LDS bar_old, [RZ+0x@{[sprintf q{%x}, $T0_OFF]}];
+20:-:-:-:6      IADD bar_t, bar_t, -bar_old;
+--:-:-:-:6      ISETP.GE.U32.AND P5, PT, bar_t, 0x46, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      VOTE.ANY P5, P5;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P5 BRA BEXP;
 --:-:-:-:6 \@!P4 BRA BSPIN;
 --:-:-:-:6      MEMBAR.GL.IVALLD;
 02:-:-:-:6      IADD bar_t, cta, tid;
@@ -599,9 +838,13 @@ BSPIN:
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
 --:2:-:-:6  \@P4 STG.E [bar_cp+0x4], bar_g;
+--:-:-:-:6      BRA BDONE;
+BEXP:
+--:-:-:-:6      MOV32I bar_old, 0x1;
+--:2:-:-:6      STS [RZ+0x@{[sprintf q{%x}, $EXP_OFF]}], bar_old;
 BDONE:
 02:-:-:-:6      BAR.SYNC 0x1;
-# ---- phase timestamp: CTA 0 thread 0 writes %globaltimer.lo to ctl[16 + pidx] ----
+$cta_trace[4]# ---- phase timestamp: CTA 0 thread 0 writes %globaltimer.lo to ctl[16 + pidx] ----
 --:-:-:-:6      IADD bar_t, cta, tid;
 --:-:-:-:6      ISETP.EQ.U32.AND P4, PT, bar_t, RZ, PT;
 --:-:-:-:6      SHL bar_g, pidx, 0x2;
@@ -662,4 +905,11 @@ $trace[7]# publication sample uses the completed position and last phase slot
 --:-:-:-:6      NOP;
 --:-:-:-:6  \@P6 BRA PHASE;
 --:-:-:-:f      EXIT;
+EXPIRED:
+# ctl[11] = 1 tells the host the kernel hit its 300 s limit
+--:-:-:-:6      MOV bar_cp0, ctl0;
+--:-:-:-:6      MOV bar_cp1, ctl1;
+--:-:-:-:6      MOV32I bar_old, 0x1;
+--:2:-:-:6      STG.E [bar_cp+0x2c], bar_old;
+02:-:-:-:f      EXIT;
 EOF

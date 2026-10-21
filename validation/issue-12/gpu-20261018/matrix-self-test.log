@@ -1,0 +1,46 @@
+ok 1 - idle inventory accepted
+ok 2 - failed smi query rejects
+ok 3 - failed ps query rejects
+ok 4 - malformed smi query rejects
+ok 5 - resident hold process blocks
+ok 6 - runner harness argument does not block itself
+Waiting for idle GPU host: compute app: GPU-aaaa, 123, flashcore, 100
+ok 7 - busy host waits then releases
+Waiting for idle GPU host: compute app: GPU-aaaa, 123, flashcore, 100
+ok 8 - busy host ends BLOCKED_BUSY
+ok 9 - explicit idle off-device residents accepted
+ok 10 - default policy still blocks resident contexts
+ok 11 - target compute context still blocks
+ok 12 - unrecognized off-device compute worker blocks
+ok 13 - off-device compute activity blocks
+ok 14 - off-device memory activity blocks
+ok 15 - queue running blocks
+ok 16 - queue waiting blocks
+ok 17 - failed queue query rejects
+ok 18 - failed all_gpu_load query rejects
+ok 19 - malformed queue rejects
+ok 20 - fractional queue count rejects
+ok 21 - unknown utilization rejects
+ok 22 - missing target utilization rejects
+ok 23 - duplicate utilization rejects
+ok 24 - unknown compute-app GPU rejects
+ok 25 - resident identity mismatch rejects
+ok 26 - resident disappearing from ps rejects
+ok 27 - different daemon queue still blocks
+ok 28 - worker without context still blocks
+Queued for shared GPU lock: /tmp/m_1EVuInAS/test-0.lock (timeout 0.05s)
+ok 29 - queued lock times out without stealing
+Queued for shared GPU lock: /tmp/m_1EVuInAS/test-1.lock (timeout 2s)
+ok 30 - queued lock acquires after release
+ok 31 - eager CPU-only preflight accepted
+ok 32 - driver ABI loader failure rejects before lock
+ok 33 - invalid eager preflight JSON rejects
+ok 34 - non-CPU-only preflight rejects
+ok 35 - untraced complete result accepted
+ok 36 - missing canaries rejects
+ok 37 - missing requested trace rejects
+ok 38 - unexpected traced timing rejects
+ok 39 - verified traced result accepted
+ok 40 - child stdout and failure retained
+ok 41 - only own child is timed out
+{"gpu_executed":false,"status":"PASS","tests":41}
