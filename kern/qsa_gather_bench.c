@@ -6,6 +6,7 @@
 #define main qsa_component_main
 #include "qsa_test.c"
 #undef main
+#include <cudaProfiler.h>
 #ifndef FLASH_REV
 #define FLASH_REV "unknown"
 #endif
