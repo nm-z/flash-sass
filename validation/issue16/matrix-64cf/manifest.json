@@ -60,9 +60,11 @@
     },
     "interpretation_limit": "gather microbench only; does not attribute the whole-model decode slowdown"
   },
-  "raw_results": "matrix/",
-  "stdout": "runner.stdout",
-  "stderr": "runner.stderr",
+  "raw_results_archive": "raw-results.tar.gz",
+  "raw_results_archive_bytes": 72050,
+  "raw_results_archive_sha256": "8b5d1c8d81a095ecd8bcc7b9435b7a279c292bfcb1ad79461ed7f35a24c4d6b4",
+  "raw_archive_contents": ["matrix/", "runner.stdout", "runner.stderr"],
+  "runner_logs_in_archive": true,
   "nvidia_smi": "matrix/nvidia-smi.txt",
   "report": "matrix/report.json",
   "provenance": "matrix/provenance.json"
