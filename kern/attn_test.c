@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
 	attn_merge_gpu(pm, pd, po, gate, out);
 	printf("n=%u: reference %.2f s\n", n, now() - t0);
 
-	
+
     const char *poison_k_mode = getenv("ATTN_POISON_K");
     const char *poison_v_mode = getenv("ATTN_POISON_V");
     if (!poison_k_mode) poison_k_mode = getenv("ATTN_POISON_PADDING");

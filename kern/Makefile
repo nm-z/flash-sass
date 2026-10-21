@@ -115,7 +115,7 @@ test-gemv: all
 	./gemv_test $(SHARD1) blk.4.ffn_down_exps.weight 0 20
 
 clean:
-	rm -f *.cubin *.dis *.so *.so.new die.sass die_trace.sass die_trace16.sass dieops.h flashcore flashd flashvis hold memtest fence *_test ple_read_bench ple_read_audit
+	rm -f *.cubin *.cubin.new *.dis *.so *.so.new die.sass die_trace.sass die_trace16.sass dieops.h flashcore flashd flashvis hold memtest fence *_test ple_read_bench ple_read_audit
 
 .PHONY: all test test-gemv clean
 
@@ -384,7 +384,7 @@ ple: plerows.cubin plerows_ng.cubin plerows_test plegate pleconv
 # ---- the persistent per-die kernel (die.pl stitches the ops together) ----
 DIE_OPS = $(filter-out die.sass die_trace%.sass semtest%.sass bartest.sass fmath.sass gridbar.sass mailbox.sass xmadbench.sass, $(wildcard *.sass)) actq.pl fmath.pl
 die.sass: die.pl trace.pl $(DIE_OPS)
-	DIE_TRACE=0 perl die.pl > $@
+	DIE_TRACE=0 DIE_CTA_TRACE=0 perl die.pl > $@
 
 dieops.h: die.pl
 	perl die.pl header > $@
@@ -485,11 +485,16 @@ trace_session_test: trace_session_test.c $(ENGINE_SRC) prefill.h trace_host.inc 
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -UNDEBUG -pthread -o $@ trace_session_test.c $(filter-out engine.c,$(ENGINE_SRC)) -I../ref -I$(CUDA)/include -lcuda -lm
 # the commit (and -dirty when the tree differs from it) the library is built from: the engine reports it with its `config` command
 FLASH_REV ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)$(shell git diff --quiet HEAD -- .. 2>/dev/null || echo -dirty)
-libengine.so: trace_host.inc $(ENGINE_SRC) prefill.h prog.h hold.h core.h engine.h dieops.h ple_read_pool.h ple_read_reload.h ../ref/split.h ../ref/qsa.h ../ref/block.h ../ref/attn.h ../ref/ple.h ../ref/gguf.h ../ref/quant.h ../ref/fmath.h ../ref/hc.h ../ref/deltanet.h ../ref/router.h timings.h qsa_state.h
+libengine.so: trace_host.inc $(ENGINE_SRC) prefill.h prog.h hold.h core.h engine.h request_meta.h dieops.h ple_read_pool.h ple_read_reload.h timings.h qsa_state.h ../ref/split.h ../ref/qsa.h ../ref/block.h ../ref/attn.h ../ref/ple.h ../ref/gguf.h ../ref/quant.h ../ref/fmath.h ../ref/hc.h ../ref/deltanet.h ../ref/router.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -pthread -DFLASH_REV='"$(FLASH_REV)"' -o $@.new $(ENGINE_SRC) -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
 
 flashcore: flashcore.c flashcore_prefill.h core.h hold.h holdc.c ../ref/gguf.c ../ref/gguf.h
 	$(CC) -std=gnu99 -O2 -Wall -o $@ flashcore.c holdc.c ../ref/gguf.c -I../ref -I$(CUDA)/include -lcuda -ldl -lm
+
+# CPU-only lifecycle/export integration. The test includes engine.c and mocks
+# every CUDA call on its exercised paths; SDK stubs can satisfy unused symbols.
+bench_engine_trace_test: bench_engine_trace_test.c trace_host.inc $(ENGINE_SRC) engine.h request_meta.h dieops.h
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -ffunction-sections -fdata-sections -Wl,--gc-sections -pthread -o $@ bench_engine_trace_test.c $(filter-out engine.c,$(ENGINE_SRC)) -I../ref -I$(CUDA)/include -lcuda -lm
 
 flashcore_prefill_test: flashcore_prefill_test.c flashcore_prefill.h
 	$(CC) -std=gnu99 -O2 -Wall -Wextra -Werror -UNDEBUG -o $@ $<
@@ -497,6 +502,17 @@ flashcore_prefill_test: flashcore_prefill_test.c flashcore_prefill.h
 .PHONY: test-flashcore-prefill
 test-flashcore-prefill: flashcore_prefill_test
 	./flashcore_prefill_test
+
+timings_test: timings_test.c timings.h
+	$(CC) -std=gnu99 -O2 -Wall -Wextra -UNDEBUG -o $@ timings_test.c -lm
+
+flashd_timing_test: flashd_timing_test.c flashd.c timings.h tok.c tok.h jinja.c jinja.h json.c json.h ucd.h ../ref/gguf.c ../ref/gguf.h
+	$(CC) -std=gnu99 -O2 -Wall -UNDEBUG -o $@ flashd_timing_test.c tok.c jinja.c json.c ../ref/gguf.c -I../ref -lm -lpthread
+
+.PHONY: test-flashd-deadline
+test-flashd-deadline: flashd flashd_timing_test
+	./flashd_timing_test --unit
+	perl flashd_deadline_test.pl ./flashd
 
 nullengine.so: nullengine.c core.h
 	$(CC) -std=gnu99 -O2 -Wall -fPIC -shared -o $@.new nullengine.c -I../ref -I$(CUDA)/include && mv -f $@.new $@
@@ -572,26 +588,19 @@ pair_bf16_plan_test: pair_bf16_plan_test.c prog.c prog.h dieops.h ../ref/quant.c
 
 # Profiling images use separate generated files; changing a shell variable cannot leave a stale production image.
 die_trace.sass: die.pl trace.pl $(DIE_OPS)
-	DIE_TRACE=1 perl die.pl > $@
+	DIE_TRACE=1 DIE_CTA_TRACE=0 perl die.pl > $@
 die_trace16.sass: die.pl trace.pl $(DIE_OPS)
-	DIE_TRACE=16 perl die.pl > $@
+	DIE_TRACE=16 DIE_CTA_TRACE=0 perl die.pl > $@
 die_trace.cubin: die_trace.sass skel_die.cubin
-	cp skel_die.cubin $@
-	$(MAXAS) -i die_trace.sass $@
+	cp skel_die.cubin $@.new
+	$(MAXAS) -i die_trace.sass $@.new && mv -f $@.new $@
 die_trace16.cubin: die_trace16.sass skel_die.cubin
-	cp skel_die.cubin $@
-	$(MAXAS) -i die_trace16.sass $@
+	cp skel_die.cubin $@.new
+	$(MAXAS) -i die_trace16.sass $@.new && mv -f $@.new $@
 
-timings_test: timings_test.c timings.h
-	$(CC) -std=gnu99 -O2 -Wall -Wextra -UNDEBUG -o $@ timings_test.c -lm
+trace_layout_test: trace_layout_test.c dieops.h
+	$(CC) -std=gnu99 -O2 -Wall -Wextra -o $@ $< -I$(CUDA)/include -lcuda
 
-flashd_timing_test: flashd_timing_test.c flashd.c timings.h tok.c tok.h jinja.c jinja.h json.c json.h ucd.h ../ref/gguf.c ../ref/gguf.h
-	$(CC) -std=gnu99 -O2 -Wall -UNDEBUG -o $@ flashd_timing_test.c tok.c jinja.c json.c ../ref/gguf.c -I../ref -lm -lpthread
-
-.PHONY: test-flashd-deadline
-test-flashd-deadline: flashd flashd_timing_test
-	./flashd_timing_test --unit
-	perl flashd_deadline_test.pl ./flashd
 # This planner test needs only a C compiler.
 prefill_plan_test: prefill_plan_test.c prefill.h
 	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -o $@ prefill_plan_test.c

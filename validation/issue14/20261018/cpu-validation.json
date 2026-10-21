@@ -1,0 +1,224 @@
+{
+   "commands" : [
+      {
+         "argv" : [
+            "prove",
+            "-v",
+            "kern/paired_depth_bench_test.pl",
+            "kern/bench_manifest_test.pl",
+            "kern/bench_trace_test.pl",
+            "kern/bench_acceptance_test.pl"
+         ],
+         "exit" : 0,
+         "identity" : {
+            "bytes" : 16440,
+            "mtime_ns" : 1792291979349336818,
+            "path" : "/home/nate/codex/flash-issue14-20261018/validation/issue14/20261018/perl-tests.log",
+            "sha256" : "131b8409c1783e18249b066b66122427007a1cc0da1dfc8ab8f85f3cbfc9d9e3"
+         },
+         "log" : "perl-tests.log"
+      },
+      {
+         "argv" : [
+            "cc",
+            "-std=c11",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-pedantic",
+            "kern/request_meta_test.c",
+            "-o",
+            "/tmp/flash-issue14-request-meta-test"
+         ],
+         "exit" : 0,
+         "identity" : {
+            "bytes" : 160,
+            "mtime_ns" : 1792291979407402969,
+            "path" : "/home/nate/codex/flash-issue14-20261018/validation/issue14/20261018/requestmeta-build.log",
+            "sha256" : "82ef37ebf2443e4f684980f182c19c5fd1517f9aa7fa5f4fe13095a431f851d6"
+         },
+         "log" : "requestmeta-build.log"
+      },
+      {
+         "argv" : [
+            "/tmp/flash-issue14-request-meta-test"
+         ],
+         "exit" : 0,
+         "identity" : {
+            "bytes" : 94,
+            "mtime_ns" : 1792291979416682577,
+            "path" : "/home/nate/codex/flash-issue14-20261018/validation/issue14/20261018/requestmeta-test.log",
+            "sha256" : "b39392eb2b3a4369f3512d803c867a7b314aaffb1ad39008aeb25005e43e20db"
+         },
+         "log" : "requestmeta-test.log"
+      },
+      {
+         "argv" : [
+            "make",
+            "-B",
+            "-C",
+            "kern",
+            "dieops.h"
+         ],
+         "exit" : 0,
+         "identity" : {
+            "bytes" : 241,
+            "mtime_ns" : 1792291979436707431,
+            "path" : "/home/nate/codex/flash-issue14-20261018/validation/issue14/20261018/generate-header.log",
+            "sha256" : "d9c13551a93704eed8a770fca3434905ca67c781074e83dace41e80cb4c864d1"
+         },
+         "log" : "generate-header.log"
+      },
+      {
+         "argv" : [
+            "cc",
+            "-std=gnu99",
+            "-O2",
+            "-ffp-contract=off",
+            "-Wall",
+            "-Werror",
+            "-fsyntax-only",
+            "-Iref",
+            "-Ikern",
+            "-I/opt/cuda/include",
+            "kern/engine.c"
+         ],
+         "exit" : 0,
+         "identity" : {
+            "bytes" : 166,
+            "mtime_ns" : 1792291979529136218,
+            "path" : "/home/nate/codex/flash-issue14-20261018/validation/issue14/20261018/engine-syntax.log",
+            "sha256" : "55bf2fdc927e8dedbfb7f868a5e5727289796ef36f8050dbe9181e96dd9f05b4"
+         },
+         "log" : "engine-syntax.log"
+      },
+      {
+         "argv" : [
+            "make",
+            "-B",
+            "-C",
+            "kern",
+            "libengine.so",
+            "CC=cc -L/opt/cuda/lib64/stubs"
+         ],
+         "exit" : 0,
+         "identity" : {
+            "bytes" : 2604,
+            "mtime_ns" : 1792291983141739235,
+            "path" : "/home/nate/codex/flash-issue14-20261018/validation/issue14/20261018/engine-stub-link.log",
+            "sha256" : "a67b1d33ed859d605394d4ebdb48bd754a39283fabe790bb60cc7f557176baa1"
+         },
+         "log" : "engine-stub-link.log"
+      },
+      {
+         "argv" : [
+            "git",
+            "diff",
+            "--check"
+         ],
+         "exit" : 0,
+         "identity" : {
+            "bytes" : 56,
+            "mtime_ns" : 1792291983148185014,
+            "path" : "/home/nate/codex/flash-issue14-20261018/validation/issue14/20261018/diff-check.log",
+            "sha256" : "f1603812dd7b17fcd342dbb98eaed8aad6d7c030ad937c7958d62aca00022291"
+         },
+         "log" : "diff-check.log"
+      }
+   ],
+   "cpu_link_artifact" : {
+      "bytes" : 169784,
+      "mtime_ns" : 1792291983138307271,
+      "path" : "/home/nate/codex/flash-issue14-20261018/kern/libengine.so",
+      "sha256" : "5b88b36db99dfd832834ba301ffc754a3427ef824ece99b2ab618596a6c65315"
+   },
+   "cuda_link_mode" : "SDK stub library; no NVIDIA driver or target-GPU execution on engi",
+   "files" : {
+      "BENCHMARK.md" : {
+         "bytes" : 16448,
+         "mtime_ns" : 1792291452661348202,
+         "path" : "/home/nate/codex/flash-issue14-20261018/BENCHMARK.md",
+         "sha256" : "d6063159815ff8d3a52f143440e0c7abfa5941a92f13b578cd68339ebf8539c4"
+      },
+      "kern/BenchAcceptance.pm" : {
+         "bytes" : 24307,
+         "mtime_ns" : 1792291559050031802,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/BenchAcceptance.pm",
+         "sha256" : "dcb331db0828225903ee835215a2e9f05a4a81f8a8867d257a81f419c02abbaf"
+      },
+      "kern/BenchManifest.pm" : {
+         "bytes" : 19310,
+         "mtime_ns" : 1792290476989883606,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/BenchManifest.pm",
+         "sha256" : "0a633cbe1901f53731409a0c52a7a7815f953c8586726c614a4bac51017ed9c2"
+      },
+      "kern/BenchTrace.pm" : {
+         "bytes" : 6511,
+         "mtime_ns" : 1792290566784040125,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/BenchTrace.pm",
+         "sha256" : "ac1286580219932b7f15a44a0f0b0109e1480ed92ffe0ce02c332f69e9ea5ec1"
+      },
+      "kern/Makefile" : {
+         "bytes" : 23708,
+         "mtime_ns" : 1792290410145278966,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/Makefile",
+         "sha256" : "8c09bb6edb8def4090b3615ea7ba802691b400580475ca72991ecb9748825d34"
+      },
+      "kern/bench_acceptance_test.pl" : {
+         "bytes" : 14742,
+         "mtime_ns" : 1792291559050031802,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/bench_acceptance_test.pl",
+         "sha256" : "afdaf6280d2a14a7a24247eac72314425a94922d491229b25f2dffdfa9398e33"
+      },
+      "kern/bench_manifest_test.pl" : {
+         "bytes" : 9459,
+         "mtime_ns" : 1792290821166154058,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/bench_manifest_test.pl",
+         "sha256" : "c1d9dd4cc7013d1d3e19c2cde68788ec4b2737b8f85700207d2107c69f581e9d"
+      },
+      "kern/bench_trace_test.pl" : {
+         "bytes" : 4383,
+         "mtime_ns" : 1792290631581596914,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/bench_trace_test.pl",
+         "sha256" : "37411c64f7c202d3c029dcb01c28cb0eb25661081bc7d454166040fcccd69af6"
+      },
+      "kern/engine.c" : {
+         "bytes" : 61034,
+         "mtime_ns" : 1792291000770473692,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/engine.c",
+         "sha256" : "22bb29377b7165ca91e5f15881cfab4c417a6d9d6e716821ee3405c7f7041374"
+      },
+      "kern/paired_depth_bench.pl" : {
+         "bytes" : 31509,
+         "mtime_ns" : 1792291724875901283,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/paired_depth_bench.pl",
+         "sha256" : "c89fb1dfcbd3989b186e97d6741d312bc16995255192d8284692ed2a42346a5d"
+      },
+      "kern/request_meta.h" : {
+         "bytes" : 2213,
+         "mtime_ns" : 1792290066860051779,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/request_meta.h",
+         "sha256" : "9d3f01c78caa518d22b198ff31b572cfcef9c6a98541c8b309d58a011d08818c"
+      },
+      "kern/request_meta_test.c" : {
+         "bytes" : 2771,
+         "mtime_ns" : 1792290631018583385,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/request_meta_test.c",
+         "sha256" : "9f75aa3e55e6a30445d97060c3e604cb8283ef70b369ffb1b75ee48cad40da36"
+      }
+   },
+   "scope" : "CPU tests, syntax and SDK-stub link verification only; no GPU or benchmark run",
+   "source_sha" : "9db8780e1caf16897db9d45c1ab2b36234080fb3",
+   "source_status_before" : {
+      "argv" : [
+         "git",
+         "status",
+         "--porcelain"
+      ],
+      "exit" : 0,
+      "stderr" : "",
+      "stdout" : ""
+   },
+   "status" : "PASS_CPU_ONLY",
+   "utc" : "2026-10-18T02:52:58Z"
+}

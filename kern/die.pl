@@ -366,6 +366,7 @@ SASS
     my $step = $kind eq 'cta' ? $NCTA : 8 * $NCTA;
     $body .= "\n${tag}_SETUP:\n";
     $body .= cta_trace_code(2, $tag);
+    $body .= trace_code(8, $TOK_OFF, "8_${tag}");
     if ($kind eq 'cta') {
         $body .= "--:-:-:-:6      MOV vid, cta;\n";
         $body .= "--:-:-:-:6      MOV vtid, tid;\n";
@@ -391,13 +392,12 @@ SASS
     $body .= "--:-:-:-:6      BRA POSITION_END;\n";
 }
 
-my @cta_trace = map { cta_trace_code($_) } 0..4;
-my $cta_trace_map = $CTA_TRACE ? "    18,19 : cta_traceclock<0-1>\n" : '';
-my @trace = map { trace_code($_, $TOK_OFF, $STEP_OFF) } 0..7;
-# All lanes see the same descriptor opcode. A range tree bounds dispatch by
-# ceil(log2(OP_COUNT)) comparisons instead of scanning every preceding opcode.
-# Keep the linear emitter available for matched measurements. Invalid opcodes
-# retain the existing skip behavior, rather than falling into the last leaf.
+my @cta_trace = map {
+    my $code = cta_trace_code($_);
+    $code =~ s/cta_traceclock/traceclock/g;
+    $code;
+} 0..4;
+
 if ($dispatch_mode eq 'tree') {
     my $tree;
     $tree = sub {
@@ -431,6 +431,9 @@ elsif ($dispatch_mode eq 'jump') {
     }
 }
 
+my @trace = map { trace_code($_, $TOK_OFF, undef, $FLAGS_OFF) } 0..10;
+my $unknown_body = trace_code(8, $TOK_OFF, '8_unknown');
+my $trace_send_fence = $ENV{DIE_TRACE} ? "02:-:-:-:6  \@P4 MEMBAR.SYS;\n" : '';
 print <<"EOF";
 # Kernel: die
 #
@@ -477,7 +480,13 @@ print <<"EOF";
     28,29 : xg<0-1>
     30,31 : xh<0-1>
     32,33 : xi<0-1>
-$maps$cta_trace_map</REGISTER_MAPPING>
+    34,35 : tr_fw<0-1>
+    36,37 : tr_cp<0-1>
+    38,39 : tr_clock<0-1>
+    40    : tr_old
+    41    : tr_t
+    42    : tr_one
+$maps</REGISTER_MAPPING>
 
 --:-:6:-:1      S2R tid, SR_TID.X;
 --:-:6:-:1      S2R cta, SR_CTAID.X;
@@ -530,21 +539,6 @@ $maps$cta_trace_map</REGISTER_MAPPING>
 
 PHASE:
 $trace[0]# descriptor -> smem (warp 0, lane = word; the words were prefetched); word 31 is a
-# 300 s since launch: thread 0 flags it; every thread reads the flag after the descriptor barrier and exits
---:-:-:-:6      ISETP.EQ.U32.AND P5, PT, tid, RZ, PT;
---:-:-:-:6      NOP;
---:-:-:-:6      NOP;
---:-:-:-:6      NOP;
---:-:6:-:2  \@P5 S2R bar_g2, SR_GLOBALTIMERHI;
---:-:6:-:2  \@P5 LDS bar_old, [RZ+0x@{[sprintf q{%x}, $T0_OFF]}];
-20:-:-:-:6  \@P5 IADD bar_g2, bar_g2, -bar_old;
---:-:-:-:6      ISETP.GE.U32.AND P5, PT, bar_g2, 0x46, P5;
---:-:-:-:6      NOP;
---:-:-:-:6      NOP;
---:-:-:-:6      NOP;
---:-:-:-:6  \@P5 MOV32I bar_old, 0x1;
---:2:-:-:6  \@P5 STS [RZ+0x@{[sprintf q{%x}, $EXP_OFF]}], bar_old;
-# descriptor -> smem (warp 0, lane = word; the words were prefetched); word 31 is a
 # mask of the parameter words that get the token counter added
 01:-:-:-:6      ISETP.LT.U32.AND P6, PT, tid, 0x20, PT;
 --:-:-:-:6      SHL op, lane, 0x2;
@@ -610,7 +604,7 @@ PAIR_LOADED:
 --:-:1:-:1      LDS op, [RZ+0x@{[sprintf '%x', $DESC_OFF]}];
 --:-:1:-:2      LDS units, [RZ+0x@{[sprintf '%x', $DESC_OFF + 4]}];
 01:-:-:-:6      NOP;
-$cta_trace[0]$trace[1]# ---- exchange wait (descriptor word 30 bit 1): warp 0 of every CTA polls this die's
+$trace[1]# ---- exchange wait (descriptor word 30 bit 1): warp 0 of every CTA polls this die's
 # flags (ctl[28..29] -> u32[6][16], one per sending die and CTA; absent dies hold ~0;
 # lane l reads words l, l + 32, l + 64) until all 96 read >= the exchange count (XG
 # in shared memory), invalidates L1, and the CTA syncs ----
@@ -670,10 +664,11 @@ XWBAR:
 --:-:-:-:6      NOP;
 --:-:-:-:6  \@P5 BRA EXPIRED;
 XWDONE:
-$cta_trace[1]$trace[2]OP_DISPATCH:
-$dispatch--:-:-:-:6      BRA POSITION_END;
+$trace[2]OP_DISPATCH:
+$dispatch$unknown_body--:-:-:-:6      BRA POSITION_END;
 $body
 POSITION_END:
+$trace[3]# Body completion precedes the framework's position and grid barriers.
 # Units of a stateful op belong to the same CTA for both positions. Finish every
 # unit and make its writes visible before replaying this op with position 1.
 # Independent ops also take this path; the grid barrier and peer flags happen
@@ -787,6 +782,7 @@ $cta_trace[3]--:-:-:-:6      ISETP.GE.U32.AND P6, PT, tid, 0x20, PT;
 --:-:-:-:6      IADD xi0.CC, xi0, units;
 --:-:-:-:6      IADD.X xi1, xi1, RZ;
 --:-:-:-:6      ISETP.EQ.U32.AND P2, PT, cta, RZ, P4;
+$trace[9]# Profiling brackets the six flag stores without clobbering live peer pointers.
 --:2:-:-:1  \@P4 STG.E.WT [xc], op;
 --:2:-:-:1  \@P4 STG.E.WT [xd], op;
 --:2:-:-:1  \@P4 STG.E.WT [xf], op;
@@ -795,6 +791,7 @@ $cta_trace[3]--:-:-:-:6      ISETP.GE.U32.AND P6, PT, tid, 0x20, PT;
 --:2:-:-:1  \@P4 STG.E.WT [xi], op;
 --:2:-:-:1  \@P4 STS [RZ+0x@{[sprintf '%x', $XG_OFF]}], op;
 --:2:-:-:6  \@P2 STG.E [bar_cp+0x20], op;
+$trace_send_fence$trace[10]# The profiling-only system fence completes publication before the upper bracket.
 BSPIN:
 --:-:1:-:2  \@P3 LDG.E.CV bar_g2, [xa+0x80];
 01:-:-:-:6      ISETP.GE.U32.AND P4, PT, bar_g2, bar_g, PT;

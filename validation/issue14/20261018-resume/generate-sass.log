@@ -1,0 +1,10 @@
+argv: ["make","-B","-C","kern","die.sass","die_trace.sass","die_trace16.sass"]
+exit: 0
+stdout:
+make: Entering directory '/home/nate/codex/flash-issue14-20261018/kern'
+perl die.pl > die.sass
+DIE_TRACE=1 perl die.pl > die_trace.sass
+DIE_TRACE=16 perl die.pl > die_trace16.sass
+make: Leaving directory '/home/nate/codex/flash-issue14-20261018/kern'
+
+stderr:

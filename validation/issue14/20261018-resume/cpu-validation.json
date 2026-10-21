@@ -1,0 +1,444 @@
+{
+   "artifacts" : {
+      "kern/bench_engine_trace_test" : {
+         "bytes" : 95072,
+         "mtime_ns" : 1792302250905677682,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/bench_engine_trace_test",
+         "sha256" : "1221b5129b378ed72b5c7505d8126551dcab548dd7865be40d9771263c46ab16"
+      },
+      "kern/die.sass" : {
+         "bytes" : 3068669,
+         "mtime_ns" : 1792302251652657838,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/die.sass",
+         "sha256" : "5f759a8fcb59b972af390deba03b6992046a56d0f30958bac7e2fee12a6dcc03"
+      },
+      "kern/die_trace.sass" : {
+         "bytes" : 3237047,
+         "mtime_ns" : 1792302251797660499,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/die_trace.sass",
+         "sha256" : "957c17a847f5e94fb06fb054a0178ad1d92ffeac0bd6d4cc26b2fac908699035"
+      },
+      "kern/die_trace16.sass" : {
+         "bytes" : 3231942,
+         "mtime_ns" : 1792302251944663196,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/die_trace16.sass",
+         "sha256" : "5981e2cb3f527774f9646b45e9a62eb6cf0e8cc46e22503122a1eb1d465a0bee"
+      },
+      "kern/libengine.so" : {
+         "bytes" : 183048,
+         "mtime_ns" : 1792302254403708353,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/libengine.so",
+         "sha256" : "e91cdcb608ec60975ab029a727fa7a5c6a85bc74906d6868f8b5a07d50ae3815"
+      }
+   },
+   "commands" : [
+      {
+         "argv" : [
+            "prove",
+            "-v",
+            "kern/paired_depth_bench_test.pl",
+            "kern/bench_manifest_test.pl",
+            "kern/bench_trace_test.pl",
+            "kern/bench_acceptance_test.pl"
+         ],
+         "exit" : 0,
+         "identity" : {
+            "bytes" : 17703,
+            "mtime_ns" : 1792302246924571195,
+            "path" : "/home/nate/codex/flash-issue14-evidence-20261018/resume/final-cpu/perl-tests.log",
+            "sha256" : "a3eeeb83b22d0f63aaae57dd04529dd7567c79eacc24189542f9dbe9d44b3384"
+         },
+         "log" : "perl-tests.log"
+      },
+      {
+         "argv" : [
+            "cc",
+            "-std=c11",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-pedantic",
+            "kern/request_meta_test.c",
+            "-o",
+            "/home/nate/codex/flash-issue14-evidence-20261018/resume/final-cpu/request_meta_test"
+         ],
+         "exit" : 0,
+         "identity" : {
+            "bytes" : 207,
+            "mtime_ns" : 1792302246977453282,
+            "path" : "/home/nate/codex/flash-issue14-evidence-20261018/resume/final-cpu/requestmeta-build.log",
+            "sha256" : "410ee3211945bb3949d9797140802cce51072f1f2ee32bfff65be187160707d4"
+         },
+         "log" : "requestmeta-build.log"
+      },
+      {
+         "argv" : [
+            "/home/nate/codex/flash-issue14-evidence-20261018/resume/final-cpu/request_meta_test"
+         ],
+         "exit" : 0,
+         "identity" : {
+            "bytes" : 141,
+            "mtime_ns" : 1792302246983958707,
+            "path" : "/home/nate/codex/flash-issue14-evidence-20261018/resume/final-cpu/requestmeta-test.log",
+            "sha256" : "d91623e74d249198ef1c153c2e5a6d8d850095190e30001334a7a26687326cae"
+         },
+         "log" : "requestmeta-test.log"
+      },
+      {
+         "argv" : [
+            "make",
+            "-B",
+            "-C",
+            "kern",
+            "dieops.h"
+         ],
+         "exit" : 0,
+         "identity" : {
+            "bytes" : 241,
+            "mtime_ns" : 1792302247015607780,
+            "path" : "/home/nate/codex/flash-issue14-evidence-20261018/resume/final-cpu/generate-header.log",
+            "sha256" : "d9c13551a93704eed8a770fca3434905ca67c781074e83dace41e80cb4c864d1"
+         },
+         "log" : "generate-header.log"
+      },
+      {
+         "argv" : [
+            "cc",
+            "-std=gnu99",
+            "-O2",
+            "-ffp-contract=off",
+            "-Wall",
+            "-Werror",
+            "-fsyntax-only",
+            "-Iref",
+            "-Ikern",
+            "-I/opt/cuda/include",
+            "kern/engine.c"
+         ],
+         "exit" : 0,
+         "identity" : {
+            "bytes" : 166,
+            "mtime_ns" : 1792302247145124189,
+            "path" : "/home/nate/codex/flash-issue14-evidence-20261018/resume/final-cpu/engine-syntax.log",
+            "sha256" : "55bf2fdc927e8dedbfb7f868a5e5727289796ef36f8050dbe9181e96dd9f05b4"
+         },
+         "log" : "engine-syntax.log"
+      },
+      {
+         "argv" : [
+            "make",
+            "-B",
+            "-C",
+            "kern",
+            "bench_engine_trace_test",
+            "CC=cc -L/opt/cuda/lib64/stubs"
+         ],
+         "exit" : 0,
+         "identity" : {
+            "bytes" : 676,
+            "mtime_ns" : 1792302250908029298,
+            "path" : "/home/nate/codex/flash-issue14-evidence-20261018/resume/final-cpu/engine-integration-build.log",
+            "sha256" : "2901bff9f8ed2ed35a327c24370e9b5fe5dab126f9c4d4c4fbb83883e27e0303"
+         },
+         "log" : "engine-integration-build.log"
+      },
+      {
+         "argv" : [
+            "env",
+            "LD_LIBRARY_PATH=/home/nate/codex/flash-issue14-evidence-20261018/resume/final-cpu/cuda-stub",
+            "/home/nate/codex/flash-issue14-20261018/kern/bench_engine_trace_test",
+            "/home/nate/codex/flash-issue14-evidence-20261018/resume/final-cpu/engine-cpu-trace.txt"
+         ],
+         "exit" : 0,
+         "identity" : {
+            "bytes" : 321,
+            "mtime_ns" : 1792302250915061874,
+            "path" : "/home/nate/codex/flash-issue14-evidence-20261018/resume/final-cpu/engine-integration-test.log",
+            "sha256" : "e664c80c02bcd3e73fb9c3819f9f65d0a2fb7250f1d7dc8a41a1b70da8970767"
+         },
+         "log" : "engine-integration-test.log"
+      },
+      {
+         "argv" : [
+            "perl",
+            "-Ikern",
+            "-e",
+            "\n        require \"paired_depth_bench.pl\";\n        my @lines=split /\\n/,PairedDepthBench::read_text($ARGV[0]);\n        my $meta=PairedDepthBench::fields(shift @lines);\n        die \"missing footer\\n\" unless pop(@lines) eq \"trace_end\";\n        my @columns=split /,/,shift @lines;\n        my @rows=map {my @v=split /,/;die \"columns\\n\" unless @v==@columns;\n            my %r;@r{@columns}=@v;\\%r} @lines;\n        my $s=PairedDepthBench::phase_summary(\\@rows,$meta);\n        die \"export window\\n\" unless $meta->{count}==129 && @rows==258;\n        die \"decode interval total\\n\" unless $s->{decode_ms}==0.128;\n        print \"Actual C export parsed: 129 outputs, 128 intervals, 258 phase rows; exact 0.128 ms CPU fixture span\\n\";\n    ",
+            "/home/nate/codex/flash-issue14-evidence-20261018/resume/final-cpu/engine-cpu-trace.txt"
+         ],
+         "exit" : 0,
+         "identity" : {
+            "bytes" : 1004,
+            "mtime_ns" : 1792302250982174666,
+            "path" : "/home/nate/codex/flash-issue14-evidence-20261018/resume/final-cpu/engine-export-parser.log",
+            "sha256" : "de2300d012093bcc3107d888d0102fb937002a1049e3dabba5186d144c14f3a4"
+         },
+         "log" : "engine-export-parser.log"
+      },
+      {
+         "argv" : [
+            "ruby",
+            "kern/trace_reconcile_test.rb"
+         ],
+         "exit" : 0,
+         "identity" : {
+            "bytes" : 399,
+            "mtime_ns" : 1792302251480627341,
+            "path" : "/home/nate/codex/flash-issue14-evidence-20261018/resume/final-cpu/trace-reconcile-tests.log",
+            "sha256" : "51886cc579001a83ce1bf70c83f7a2698197c8c4436daf1f29a264067e831c78"
+         },
+         "log" : "trace-reconcile-tests.log"
+      },
+      {
+         "argv" : [
+            "make",
+            "-B",
+            "-C",
+            "kern",
+            "die.sass",
+            "die_trace.sass",
+            "die_trace16.sass"
+         ],
+         "exit" : 0,
+         "identity" : {
+            "bytes" : 355,
+            "mtime_ns" : 1792302251946093866,
+            "path" : "/home/nate/codex/flash-issue14-evidence-20261018/resume/final-cpu/generate-sass.log",
+            "sha256" : "6702515e3fc4d84ca21abc4c321260234d74825cdc8cb839512d8e6c143f54af"
+         },
+         "log" : "generate-sass.log"
+      },
+      {
+         "argv" : [
+            "make",
+            "-B",
+            "-C",
+            "kern",
+            "libengine.so",
+            "CC=cc -L/opt/cuda/lib64/stubs"
+         ],
+         "exit" : 0,
+         "identity" : {
+            "bytes" : 2604,
+            "mtime_ns" : 1792302254407041557,
+            "path" : "/home/nate/codex/flash-issue14-evidence-20261018/resume/final-cpu/engine-stub-link.log",
+            "sha256" : "b99cdb3180ec781c6e22052d9d8fa4fb885c9aa44a16a6db15b79b06c446255f"
+         },
+         "log" : "engine-stub-link.log"
+      },
+      {
+         "argv" : [
+            "git",
+            "diff",
+            "--check"
+         ],
+         "exit" : 0,
+         "identity" : {
+            "bytes" : 56,
+            "mtime_ns" : 1792302254411989413,
+            "path" : "/home/nate/codex/flash-issue14-evidence-20261018/resume/final-cpu/diff-check.log",
+            "sha256" : "f1603812dd7b17fcd342dbb98eaed8aad6d7c030ad937c7958d62aca00022291"
+         },
+         "log" : "diff-check.log"
+      }
+   ],
+   "cuda_link_mode" : "SDK stub only; the C integration test mocks the exercised CUDA calls with CPU memcpy",
+   "cuda_stub" : {
+      "bytes" : 74464,
+      "mtime_ns" : 1789758494000000000,
+      "path" : "/opt/cuda/targets/x86_64-linux/lib/stubs/libcuda.so",
+      "sha256" : "9dad01139581eb27fede9410c0e7112558cc518b36af2f7b73773fcb9d392a2d"
+   },
+   "files" : {
+      "BENCHMARK.md" : {
+         "bytes" : 17918,
+         "mtime_ns" : 1792301897893529358,
+         "path" : "/home/nate/codex/flash-issue14-20261018/BENCHMARK.md",
+         "sha256" : "d34e1f117f32bc7be8f30aee18cc4da4e8a2d26aea4a1b96f5385a6f34b32c60"
+      },
+      "docs/phase-trace.md" : {
+         "bytes" : 13203,
+         "mtime_ns" : 1792301601942258971,
+         "path" : "/home/nate/codex/flash-issue14-20261018/docs/phase-trace.md",
+         "sha256" : "b2f3158f53bc3acaeef39d3d0fa7a8801c2adf913a71f494a2b221033dfdf0b0"
+      },
+      "kern/BenchAcceptance.pm" : {
+         "bytes" : 26639,
+         "mtime_ns" : 1792302170902209994,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/BenchAcceptance.pm",
+         "sha256" : "09d7225594c45f0e212bdc3b2d9085bdd47a62fcce3bcee58febf41af15aa8d5"
+      },
+      "kern/BenchManifest.pm" : {
+         "bytes" : 19310,
+         "mtime_ns" : 1792290476989883606,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/BenchManifest.pm",
+         "sha256" : "0a633cbe1901f53731409a0c52a7a7815f953c8586726c614a4bac51017ed9c2"
+      },
+      "kern/BenchTrace.pm" : {
+         "bytes" : 6511,
+         "mtime_ns" : 1792290566784040125,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/BenchTrace.pm",
+         "sha256" : "ac1286580219932b7f15a44a0f0b0109e1480ed92ffe0ce02c332f69e9ea5ec1"
+      },
+      "kern/Makefile" : {
+         "bytes" : 24914,
+         "mtime_ns" : 1792301715319044342,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/Makefile",
+         "sha256" : "c8d08f981d170feb58407f6cebc23348feedbea9be308659394118a334067255"
+      },
+      "kern/bench_acceptance_test.pl" : {
+         "bytes" : 17802,
+         "mtime_ns" : 1792302170903210011,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/bench_acceptance_test.pl",
+         "sha256" : "86b41d245e0077d3add21633f87087ad858eefde729d53302c8995ad6efcfb52"
+      },
+      "kern/bench_engine_trace_test.c" : {
+         "bytes" : 10426,
+         "mtime_ns" : 1792302039735013519,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/bench_engine_trace_test.c",
+         "sha256" : "49f6b6b55aed937b2fe347602cf373f87b419bc58126449b96dd4c8acd84005c"
+      },
+      "kern/bench_manifest_test.pl" : {
+         "bytes" : 9459,
+         "mtime_ns" : 1792290821166154058,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/bench_manifest_test.pl",
+         "sha256" : "c1d9dd4cc7013d1d3e19c2cde68788ec4b2737b8f85700207d2107c69f581e9d"
+      },
+      "kern/bench_trace_test.pl" : {
+         "bytes" : 4383,
+         "mtime_ns" : 1792290631581596914,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/bench_trace_test.pl",
+         "sha256" : "37411c64f7c202d3c029dcb01c28cb0eb25661081bc7d454166040fcccd69af6"
+      },
+      "kern/die.pl" : {
+         "bytes" : 32486,
+         "mtime_ns" : 1792300832593348328,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/die.pl",
+         "sha256" : "ff9d8336a05ea6edb43346ee3ea224aa04fb79e2abc5374688bc33a7c4b4b0b9"
+      },
+      "kern/engine.c" : {
+         "bytes" : 66857,
+         "mtime_ns" : 1792301601938258872,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/engine.c",
+         "sha256" : "b4cc2d3d0f72160c387632bae758717e67e8585da6df74e709eac4289a821d1c"
+      },
+      "kern/engine.h" : {
+         "bytes" : 2317,
+         "mtime_ns" : 1792301601939258897,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/engine.h",
+         "sha256" : "07c8f144649192ca15a4557c45e22060476fcdbe1da69760a6b1ee493d1a24bb"
+      },
+      "kern/paired_depth_bench.pl" : {
+         "bytes" : 31509,
+         "mtime_ns" : 1792291724875901283,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/paired_depth_bench.pl",
+         "sha256" : "c89fb1dfcbd3989b186e97d6741d312bc16995255192d8284692ed2a42346a5d"
+      },
+      "kern/request_meta.h" : {
+         "bytes" : 2213,
+         "mtime_ns" : 1792290066860051779,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/request_meta.h",
+         "sha256" : "9d3f01c78caa518d22b198ff31b572cfcef9c6a98541c8b309d58a011d08818c"
+      },
+      "kern/request_meta_test.c" : {
+         "bytes" : 2771,
+         "mtime_ns" : 1792290631018583385,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/request_meta_test.c",
+         "sha256" : "9f75aa3e55e6a30445d97060c3e604cb8283ef70b369ffb1b75ee48cad40da36"
+      },
+      "kern/trace.pl" : {
+         "bytes" : 5035,
+         "mtime_ns" : 1792300832593348328,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/trace.pl",
+         "sha256" : "2bbdbfe01ad17b6955c274d1b6da78c09606aa02a67894dd2284fcb9702fbc2d"
+      },
+      "kern/trace_host.inc" : {
+         "bytes" : 5154,
+         "mtime_ns" : 1792301601936258823,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/trace_host.inc",
+         "sha256" : "a0af7359f2f6c8a80de85a430d27c823a31a74a45278d0ed47b4ee22aabc4d3e"
+      },
+      "kern/trace_reconcile.rb" : {
+         "bytes" : 19657,
+         "mtime_ns" : 1792300832594348352,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/trace_reconcile.rb",
+         "sha256" : "41bababc1a9e76265f40379b175e78ec204af82f31e2071654cfecb050f71a89"
+      },
+      "kern/trace_reconcile_test.rb" : {
+         "bytes" : 5228,
+         "mtime_ns" : 1792300832594348352,
+         "path" : "/home/nate/codex/flash-issue14-20261018/kern/trace_reconcile_test.rb",
+         "sha256" : "e7e3ecbe759289dab4b9a96e5ec636cdf653aca836543ad982e6e8556d4f0cea"
+      }
+   },
+   "lock" : {
+      "acquired" : true,
+      "path" : "/tmp/flash-sass-engine-validation.lock",
+      "released" : true
+   },
+   "preflight" : [
+      {
+         "argv" : [
+            "hostname"
+         ],
+         "exit" : 0,
+         "identity" : {
+            "bytes" : 49,
+            "mtime_ns" : 1792302245774478693,
+            "path" : "/home/nate/codex/flash-issue14-evidence-20261018/resume/final-cpu/hostname.log",
+            "sha256" : "fdbec107b4960f1c6e22b9313d5de3bc34791970472aa83c11d200eea81950da"
+         },
+         "log" : "hostname.log"
+      },
+      {
+         "argv" : [
+            "bash",
+            "-c",
+            "nvidia-smi"
+         ],
+         "exit" : 127,
+         "identity" : {
+            "bytes" : 104,
+            "mtime_ns" : 1792302245780957418,
+            "path" : "/home/nate/codex/flash-issue14-evidence-20261018/resume/final-cpu/nvidia-smi.log",
+            "sha256" : "eb2e07a12a6b301dfa11d732455e29b343cec2c08f7f259b87fece0eea4651f6"
+         },
+         "log" : "nvidia-smi.log"
+      },
+      {
+         "argv" : [
+            "ps",
+            "-eo",
+            "pid,ppid,stat,comm"
+         ],
+         "exit" : 0,
+         "identity" : {
+            "bytes" : 42152,
+            "mtime_ns" : 1792302245838551325,
+            "path" : "/home/nate/codex/flash-issue14-evidence-20261018/resume/final-cpu/processes.log",
+            "sha256" : "cda4e0218b787c6936532dab2370dd9ed867e8a6e97754466a6ef2e097c61d5f"
+         },
+         "log" : "processes.log"
+      }
+   ],
+   "scope" : "CPU regressions, C syntax, generated SASS and CUDA SDK-stub linkage only; no GPU or benchmark run",
+   "source_sha" : "83644519f87c9f8c9f005b596feb1cba3d2534a3",
+   "source_status_before" : {
+      "argv" : [
+         "git",
+         "status",
+         "--porcelain"
+      ],
+      "exit" : 0,
+      "stderr" : "",
+      "stdout" : ""
+   },
+   "status" : "PASS_CPU_ONLY",
+   "utc" : "2026-10-18T05:44:05Z",
+   "validator" : {
+      "bytes" : 5418,
+      "mtime_ns" : 1792302245089537628,
+      "path" : "/home/nate/codex/flash-issue14-evidence-20261018/resume/verify-cpu.pl",
+      "sha256" : "080604ab4f469a3b8e35398bc09fbec3df36373c040b2f0a8c9ebb4982024637"
+   }
+}

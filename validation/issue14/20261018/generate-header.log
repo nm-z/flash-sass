@@ -1,0 +1,8 @@
+argv: ["make","-B","-C","kern","dieops.h"]
+exit: 0
+stdout:
+make: Entering directory '/home/nate/codex/flash-issue14-20261018/kern'
+perl die.pl header > dieops.h
+make: Leaving directory '/home/nate/codex/flash-issue14-20261018/kern'
+
+stderr:
