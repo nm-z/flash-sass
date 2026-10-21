@@ -42,6 +42,9 @@ static int test_moe_actq_projection_overlap(void) {
     CHECK(!(p.p[i+1].w[30]&4u));
     CHECK(ptr_at(&p.p[i],0x140)==ptr_at(&p.p[i+1],0x148));
     CHECK(ptr_at(&p.p[i],0x148)!=ptr_at(&p.p[i+1],0x150));
+    int h=-1;
+    for (int j=0;j<p.n;j++) if (p.p[j].w[0]==OP_HCWSUM) { h=j; break; }
+    CHECK(h>=0 && (p.p[h].w[30]&0x22u)==0x22u);
     prog_free(&p);
     return 0;
 }
