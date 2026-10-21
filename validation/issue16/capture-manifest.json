@@ -1,0 +1,88 @@
+{
+  "schema": "flash.issue16.capture-manifest.v1",
+  "status": "PREPARATION_ONLY",
+  "pr": {
+    "number": 43,
+    "head": "84cd2b7e9cabf5c799090858fc53a970bdc4c23d",
+    "code_source_revision": "a62303283f993acb8a13188941b00f5bc9ef340b"
+  },
+  "artifact_staging": {
+    "status": "NOT_STAGED; SSH authentication to Archy fails",
+    "destination": "/tmp/fs16-issue16",
+    "copy_only": [
+      {
+        "name": "qsa_test",
+        "bytes": 112792,
+        "sha256": "00520ee0aff6a8b49e7dbc6721005aa08f1259d7808456ba980bf52931eefa9a"
+      },
+      {
+        "name": "qsa_gather_bench",
+        "bytes": 129792,
+        "sha256": "f982b117724816c7d910a8188d585e1ef5f51c75322e21f9175b0ef6fb2b6ecc"
+      },
+      {
+        "name": "die.cubin",
+        "bytes": 465384,
+        "sha256": "aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423"
+      }
+    ],
+    "total_bytes": 707968,
+    "source_tree_or_cuda_toolchain_to_copy": false,
+    "selection_ids_generated_inside_gpuq_job": true
+  },
+  "op_idxsel_fixture_capture": {
+    "status": "NOT_RUN",
+    "command_template": "env QSA_HOSTKV=0 DIE_CUBIN=$GPUQ_RUN_DIR/die.cubin QSA_CAPTURE_IDS=$GPUQ_RUN_DIR/op-idxsel-nv2000-pos7999.ids.u32 $GPUQ_RUN_DIR/qsa_test idxfull 2000 512 0",
+    "qsa_test_arguments": {
+      "mode": "idxfull",
+      "nv": 2000,
+      "block_budget": 512,
+      "iterations": 0,
+      "selection_position": 7999,
+      "visible_positions": 8000,
+      "logical_keys": 2048
+    },
+    "output": {
+      "path": "$GPUQ_RUN_DIR/op-idxsel-nv2000-pos7999.ids.u32",
+      "rows": 1,
+      "ids_per_row": 512,
+      "bytes": 2048,
+      "encoding": "little-endian uint32",
+      "validation": "strictly increasing, unique, each ID in [0,2000); qsa_test verifies GPU output against its C twin before writing"
+    },
+    "selection_origin": "Verified OP_IDXSEL output from qsa_test idxfull's synthetic query/key/pool fixture; not a checkpoint-derived model selection",
+    "preserve_binary_ids_as_gpuq_document": "base64 -w0 $GPUQ_RUN_DIR/op-idxsel-nv2000-pos7999.ids.u32 | gpuq put issue16.op_idxsel_ids.base64"
+  },
+  "captured_gather_pair": {
+    "status": "NOT_RUN",
+    "position_match": "nv=2000, tail=0 gives gather position 7999, matching idxfull's selection position",
+    "iterations": 8,
+    "seed": 4242,
+    "pattern": "captured",
+    "input_rows": 1,
+    "one_row_behavior": "GATHER_IDS repeats the same captured row for each fixed-position launch",
+    "host0_command_template": "env GATHER_IDS=$GPUQ_RUN_DIR/op-idxsel-nv2000-pos7999.ids.u32 DIE_CUBIN=$GPUQ_RUN_DIR/die.cubin $GPUQ_RUN_DIR/qsa_gather_bench 2000 0 8 captured 0 $GPUQ_RUN_DIR/captured-host0.csv 4242",
+    "host1_command_template": "env GATHER_IDS=$GPUQ_RUN_DIR/op-idxsel-nv2000-pos7999.ids.u32 DIE_CUBIN=$GPUQ_RUN_DIR/die.cubin $GPUQ_RUN_DIR/qsa_gather_bench 2000 0 8 captured 1 $GPUQ_RUN_DIR/captured-host1.csv 4242",
+    "pair_checks": [
+      "both result JSON records have preflight_verified_all=true",
+      "cache_fnv1a64, selections_fnv1a64, logical key count, physical rows, selection changes and verified output signature changes match",
+      "each CSV row has matching selection_fnv1a64 and verified_output_fnv1a64"
+    ],
+    "runner_note": "run_qsa_gather_pair.pl matrix mode replaces GATHER_IDS with its generated fixture; external captures use the direct qsa_gather_bench arm commands above"
+  },
+  "captured_token_rows": {
+    "status": "SOURCE_NOT_AVAILABLE",
+    "required_format": "iterations rows, each 512 little-endian uint32 IDs, strictly increasing and unique within each row",
+    "required_bytes_for_eight_iterations": 16384,
+    "qsa_gather_pattern": "captured-token",
+    "limitation": "The current qsa_test QSA_CAPTURE_IDS path writes one idxfull row per invocation at position 4*nv-1. It does not export a checkpoint-derived row for every production token position. The issue-10 archive has no accepted checkpoint-derived selection lineage."
+  },
+  "issue10_archive_review": "validation/issue16/issue10-offline-review.md",
+  "queue": {
+    "required_route": "ssh archy gpuq run -- ...",
+    "status": "BLOCKED_BEFORE_GPUQ",
+    "error": "Permission denied (publickey,password)",
+    "gpu_job_submitted": false,
+    "issue": "https://github.com/nm-z/gpuq/issues/25"
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "schema": "flash.issue16.profile-manifest.v1",
+  "status": "PREPARED_NOT_RUN_ON_CURRENT_HEAD",
+  "current_code_source_revision": "a62303283f993acb8a13188941b00f5bc9ef340b",
+  "current_die_cubin_sha256": "aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423",
+  "gpu": "Tesla M60, GPU-431371bd-b482-96b2-4b70-04f83c6d075b",
+  "profiler": "CUDA 11.4 nvprof; run each metric group separately for each KV placement",
+  "profile_range": {
+    "environment": "QSA_PROFILE_FIRST=1",
+    "nvprof_option": "--profile-from-start off",
+    "kernel_filter": "--kernels die",
+    "scope": "only the first timed qsa_gather_bench launch, excluding preflight and ten warmups"
+  },
+  "base_case": {
+    "nv": 2000,
+    "tail": 0,
+    "iterations": 8,
+    "pattern": "captured",
+    "seed": 4242,
+    "block_budget": 512,
+    "selection_position": 7999,
+    "gather_ids": "$GPUQ_RUN_DIR/op-idxsel-nv2000-pos7999.ids.u32"
+  },
+  "metric_groups_from_archived_issue10_discovery": {
+    "traffic": [
+      "sysmem_read_bytes",
+      "sysmem_write_bytes",
+      "dram_read_bytes",
+      "dram_write_bytes"
+    ],
+    "transactions": [
+      "sysmem_read_transactions",
+      "sysmem_write_transactions",
+      "dram_read_transactions",
+      "dram_write_transactions"
+    ],
+    "stalls": [
+      "stall_memory_dependency",
+      "stall_memory_throttle",
+      "stall_sync"
+    ],
+    "occupancy": [
+      "achieved_occupancy",
+      "eligible_warps_per_cycle"
+    ]
+  },
+  "command_template": "env CUDA_VISIBLE_DEVICES=GPU-431371bd-b482-96b2-4b70-04f83c6d075b DIE_CUBIN=$GPUQ_RUN_DIR/die.cubin GATHER_IDS=$GPUQ_RUN_DIR/op-idxsel-nv2000-pos7999.ids.u32 QSA_PROFILE_FIRST=1 /opt/cuda/bin/nvprof --profile-from-start off --devices 0 --kernels die --csv --metrics <metric-list> --log-file $GPUQ_RUN_DIR/nvprof-<group>-host<host>.csv $GPUQ_RUN_DIR/qsa_gather_bench 2000 0 8 captured <host> $GPUQ_RUN_DIR/gather-<group>-host<host>.csv 4242",
+  "execution_matrix": "for each metric group, run one nvprof invocation with host=0 and one with host=1; use identical capture file, cache inputs, nv/tail/position, seed, iterations and cubin",
+  "archived_issue10_crosswalk": {
+    "source_revision": "7c6f34d4372567fd97f1cef9b609d3dc0c81b0d3",
+    "qsa_gather_bench_sha256": "126ba2ed56f7623a0ee1eeb5f658d719e057ef3c3f54eb1d5d2746f8776523b8",
+    "die_cubin_sha256": "0fa2a17fa41c07aac507f9bc218a777601719a8e2b6eb8b40ec93867d4768027",
+    "scope": "Confirms M60 metric availability and historical separate profile groups; its artifact identities differ from the current head and do not satisfy current-head profiling"
+  },
+  "queue_access": {
+    "required_route": "ssh archy gpuq run -- ...",
+    "status": "BLOCKED_BEFORE_GPUQ",
+    "error": "Permission denied (publickey,password)",
+    "gpu_job_submitted": false
+  }
+}
