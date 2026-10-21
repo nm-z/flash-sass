@@ -399,6 +399,28 @@ typedef struct {
 	const engine_cb *cb;
 } runctx;
 
+/* A PLE read failure is a terminal request error, not a completed timing
+ * record. Keep the partial position count, but invalidate success rates and
+ * expose a terminal trace status to later trace/hosttrace queries. */
+static void ple_io_failure_state(runctx *r) {
+    snap_s = 0;
+    trace_status = "ple_io_error";
+    trace_completed = (unsigned)r->count;
+    trace_aborted = r->aborted != 0;
+    trace_ended = r->ended != 0;
+    last_timing.completed = r->count;
+    last_timing.aborted = r->aborted;
+    last_timing.counts_known = 1;
+    last_timing.counts_final = 0;
+    last_timing.stop_known = 0;
+    last_timing.error_code = -5;
+    if (timing_run_start)
+        last_timing.run_ms = (now() - timing_run_start) * 1e3;
+    else
+        last_timing.build_ms = (now() - timing_request_start) * 1e3;
+    last_timing_valid = 1;
+}
+
 static void abort_run(runctx *r) {
 	/* the client is gone: every die ends the turn when its token count reaches a value a few tokens ahead of all of
 	   them (the dies are within one token of each other), so they stop together */
@@ -890,7 +912,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
     in_run = 0;
     return 0;
 ple_io_failed:
-    snap_s = 0;
+    ple_io_failure_state(&r);
     last_positions = r.count; last_paired_positions = r.paired_positions; last_prefill_chunks = r.prefill_chunks;
 #ifdef FLASH_PLE_IO_TEST
     ple_io_failure_ms = ple_failed_at ? (now() - ple_failed_at) * 1e3 : 0;

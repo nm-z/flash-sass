@@ -104,6 +104,31 @@ static void completed_case(int failed, unsigned delay) {
     printf("PASS simulated CUDA %s: all six streams completed before sync; %.3f ms\n",
            failed ? "delayed failure" : "healthy", elapsed * 1e3);
 }
+static void terminal_error_case(void) {
+    runctx r = {.T = 8, .count = 5};
+    timing_request_start = now() - .050;
+    timing_run_start = now() - .010;
+    last_timing = (flash_timing){
+        .request_id = 9, .prompt = 8, .completed = 4,
+        .counts_known = 1, .counts_final = 1, .error_code = 0,
+        .run_ms = 4.0
+    };
+    last_timing_valid = 1;
+    snap_s = 13;
+    trace_status = "running";
+    trace_completed = trace_aborted = trace_ended = 0;
+    ple_io_failure_state(&r);
+    assert(snap_s == 0);
+    assert(!strcmp(trace_status, "ple_io_error"));
+    assert(trace_completed == 5 && !trace_aborted && !trace_ended);
+    assert(last_timing_valid && last_timing.error_code == -5);
+    assert(last_timing.completed == 5 && last_timing.counts_known);
+    assert(!last_timing.counts_final && !last_timing.stop_known);
+    assert(isfinite(last_timing.run_ms) && last_timing.run_ms >= 0);
+    flash_timing_values values = flash_timing_derive(&last_timing);
+    assert(!values.prompt_rate_valid && !values.decode_rate_valid && !values.device_rate_valid);
+    puts("PASS PLE I/O terminal metadata: error code, partial counts and failed trace status");
+}
 static void stuck_case(void) {
     unsigned nph[TEST_DIES] = {0};
     runctx r = {.T = 1};
@@ -146,6 +171,7 @@ int main(void) {
     assert(!setenv("FLASH_WATCHDOG_S", "0.03", 1));
     completed_case(0, 0);
     completed_case(1, 8);
+    terminal_error_case();
     stuck_case();
     chunk_failure_case();
     puts("ple_io_wait_test: CPU simulation only; GPU termination remains unmeasured");

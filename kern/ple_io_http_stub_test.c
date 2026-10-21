@@ -65,6 +65,8 @@ static void *test_core(void *unused) {
                 struct timespec delay = {3, 0};
                 while (nanosleep(&delay, &delay) < 0 && errno == EINTR) {}
             } else {
+                if (test_detail && !strncmp(test_detail, "PLE I/O", 7))
+                    fputs("timings {\"schema_version\":1,\"error_code\":-5,\"counts_known\":true,\"counts_final\":false}\n", out);
                 fprintf(out, "error: %s\n", test_detail); fflush(out);
             }
             test_core_ok = 1; break;
@@ -120,6 +122,8 @@ static void check_sse(const char *body, int expect_tokens) {
                 done++; REQUIRE(failed, "[DONE] precedes error");
             } else if (strstr(payload, "\"error\"")) {
                 errors++; failed = 1;
+                if (test_detail && !strncmp(test_detail, "PLE I/O", 7))
+                    REQUIRE(strstr(payload, "\"error_code\":-5"), "engine PLE error code in SSE timings");
             } else {
                 REQUIRE(!failed, "SSE data after error");
                 if (strstr(payload, "hello") || strstr(payload, " world")) got_content = 1;
@@ -184,6 +188,8 @@ static void test_case(const char *name, int streaming, int tokens,
         REQUIRE(!strstr(body, "\"choices\"") && !strstr(body, "\"usage\"")
                 && !strstr(body, "\"finish_reason\""), "no success JSON fields");
         REQUIRE(strstr(body, "\"complete\":false"), "error timings must be incomplete");
+        if (detail && !strncmp(detail, "PLE I/O", 7))
+            REQUIRE(strstr(body, "\"error_code\":-5"), "engine PLE error code in JSON timings");
         if (detail) REQUIRE(strstr(body, detail), "JSON lost core metadata");
     }
     free(response); alarm(0);
