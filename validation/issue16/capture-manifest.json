@@ -29,7 +29,13 @@
     "total_bytes": 707968,
     "source_tree_or_cuda_toolchain_to_copy": false,
     "selection_ids_generated_inside_gpuq_job": true,
-    "staged_total_bytes": 707968
+    "staged_total_bytes": 707968,
+    "corrected_qsa_binaries": {
+      "status": "BUILT_NOT_STAGED",
+      "qsa_gather_bench_sha256": "119fad2c1bcb15faa662c09961dafc822ccb398073c085d60fa67485e4122bfe",
+      "qsa_test_sha256": "a2fc60e13dd71523de740cef0a1da4f60809a1c2ecbdeeeb9928cc63b19ead07",
+      "makefile_commit": "461c119a954667e6ad2097d9a47afa45e55e0fce"
+    }
   },
   "op_idxsel_fixture_capture": {
     "status": "NOT_RUN",
@@ -81,7 +87,7 @@
   "issue10_archive_review": "validation/issue16/issue10-offline-review.md",
   "queue": {
     "required_route": "ssh archy gpuq run -- ...",
-    "status": "REPEATED_LOST_BEFORE_QUEUE_START",
+    "status": "OLD_ABI_SMOKE_QUEUED; CORRECTED_BINARIES_WAITING",
     "successful_jobs": [
       {
         "id": "b68ef825-8db8-4869-bf67-3855ac9af1dd",

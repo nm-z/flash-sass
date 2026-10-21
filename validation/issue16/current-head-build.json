@@ -131,5 +131,51 @@
     "status": "succeeded",
     "artifact_sha256": "6be1b38397d7108846519481b00d4ec570ccbf35cbfb01ddedeb6c1d72279406",
     "purpose": "Temporary C launcher reads GPUQ_RUN_DIR and execs existing Perl matrix runner."
+  },
+  "runtime_abi_diagnosis": {
+    "prior_binary_sha256": "f982b117724816c7d910a8188d585e1ef5f51c75322e21f9175b0ef6fb2b6ecc",
+    "prior_gpuq_job_id": "77b3da64-aec0-4573-8de4-f6f83c6d839c",
+    "prior_error_document_id": 76441,
+    "error": "undefined symbol: cuEventElapsedTime_v2",
+    "driver": "Tesla M60 driver 470.256.02",
+    "cause": "The first build used CUDA 13.4 driver headers, which mapped cuEventElapsedTime to an entry point absent from driver 470."
+  },
+  "driver_api_compat_rebuild": {
+    "source_commit": "461c119a954667e6ad2097d9a47afa45e55e0fce",
+    "dsh_build_id": "build-1971674-1792565150310447305",
+    "dsh_host": "azb1",
+    "status": "succeeded",
+    "command": "dsh build --require-tool cc --require-tool make -- make -C kern CUDA_DRIVER_API=<staged CUDA 11.4 headers> CUDA_DRIVER_STUBS=<staged CUDA 11.4 stub> FLASH_REV=461c119 qsa_gather_bench qsa_test",
+    "api_compatibility_inputs": {
+      "cuda_cudart_redist": "CUDA 11.4.148",
+      "cuda_cudart_archive_sha256": "36bd6f1ea8711f69405ebd0b26d1f791a6ef6eb01cc3f01ba4231eb8ec09c208",
+      "cuda_nvprof_headers_redist": "CUDA 11.4.120",
+      "cuda_nvprof_archive_sha256": "bcf705c8f25f3423014b4182741e91676c4858b1b055a314911e24787a2d3129",
+      "cuda_h_sha256": "deb15013ce354e204edf03c7704cd1a78122070ae89205317a06375b47390698",
+      "cudaProfiler_h_sha256": "a06db96a93a4984dd47a6763798fed0d68d3d80331c70db51fa9b26729326945",
+      "cuda_profiler_api_h_sha256": "dc929b32b9abe20608556ed5538f83af42247b8d8f0eb4ce938e657240742d09",
+      "libcuda_stub_sha256": "b9953d66a7e861bf04edc462af7c961f7f0968ba6b663ab98815d85b8c5ee8ee"
+    },
+    "imported_driver_symbol": "cuEventElapsedTime",
+    "artifact_sha256": {
+      "qsa_gather_bench": "119fad2c1bcb15faa662c09961dafc822ccb398073c085d60fa67485e4122bfe",
+      "qsa_test": "a2fc60e13dd71523de740cef0a1da4f60809a1c2ecbdeeeb9928cc63b19ead07",
+      "die_cubin_unchanged": "aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423"
+    },
+    "runtime_smoke": "pending GPUQ abi114 smoke job"
+  },
+  "compatibility_smoke_test": {
+    "id": "77b3da64-aec0-4573-8de4-f6f83c6d839c",
+    "status": "failed_before_kernel_launch",
+    "exit_code": 1,
+    "stderr_document_id": 76441,
+    "error": "undefined symbol: cuEventElapsedTime_v2",
+    "explanation": "The binary built with CUDA 13.4 driver headers imported a symbol unavailable on driver 470.256."
+  },
+  "corrected_binary_smoke_pending": {
+    "qsa_gather_bench_sha256": "119fad2c1bcb15faa662c09961dafc822ccb398073c085d60fa67485e4122bfe",
+    "qsa_test_sha256": "a2fc60e13dd71523de740cef0a1da4f60809a1c2ecbdeeeb9928cc63b19ead07",
+    "makefile_fix_commit": "461c119a954667e6ad2097d9a47afa45e55e0fce",
+    "staged_copy_status": "not yet copied to Archy; old-binary smoke is queued"
   }
 }
