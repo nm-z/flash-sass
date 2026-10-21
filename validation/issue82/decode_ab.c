@@ -194,6 +194,51 @@ static int control(const char *command, char *reply, size_t cap) {
     return rc ? -1 : 0;
 }
 
+static int read_to_eof(int fd, char *out, size_t cap) {
+    size_t used = 0;
+    while (used + 1 < cap) {
+        struct pollfd pfd = { .fd = fd, .events = POLLIN };
+        int ready = poll(&pfd, 1, 180000);
+        if (ready < 0 && errno == EINTR) {
+            if (interrupted) return -1;
+            continue;
+        }
+        if (ready <= 0) return -1;
+        ssize_t n = recv(fd, out + used, cap - used - 1, 0);
+        if (n < 0 && errno == EINTR) {
+            if (interrupted) return -1;
+            continue;
+        }
+        if (n < 0) return -1;
+        if (!n) {
+            out[used] = 0;
+            return used ? 0 : -1;
+        }
+        used += (size_t)n;
+    }
+    return -1;
+}
+
+static int dump_profile(const char *arm, int die) {
+    char command[32], profile[LINE_CAP * 2];
+    int fd = connect_core();
+    if (fd < 0) return -1;
+    snprintf(command, sizeof command, "prof %d all", die);
+    int rc = send_command(fd, command);
+    if (!rc) rc = shutdown(fd, SHUT_WR);
+    if (!rc) rc = read_to_eof(fd, profile, sizeof profile);
+    close(fd);
+    if (rc) {
+        fprintf(stderr, "decode_ab: failed to read die %d phase profile\n", die);
+        return -1;
+    }
+    printf("PROFILE_BEGIN arm=%s die=%d\n%s", arm, die, profile);
+    if (profile[strlen(profile) - 1] != '\n') putchar('\n');
+    printf("PROFILE_END arm=%s die=%d\n", arm, die);
+    fflush(stdout);
+    return 0;
+}
+
 static int read_start_tick(pid_t pid, unsigned long long *tick) {
     char path[64], buf[4096];
     snprintf(path, sizeof path, "/proc/%ld/stat", (long)pid);
@@ -468,6 +513,8 @@ int main(int argc, char **argv) {
         if (run_request("baseline", "pre", rep + 1, NEW_TOKENS, &base_ref[rep])) goto cleanup;
         if (rep && !same_tokens(&base_ref[0], &base_ref[rep])) { fail("baseline output IDs changed between repeats"); goto cleanup; }
     }
+    for (int die = 0; die < 6; die++)
+        if (dump_profile("baseline", die)) goto cleanup;
 
     if (load_library(argv[5], argv[6])) goto cleanup;
     if (run_request("candidate", "warmup", 0, 0, &result)) goto cleanup;
@@ -475,6 +522,8 @@ int main(int argc, char **argv) {
         if (run_request("candidate", "measure", rep + 1, NEW_TOKENS, &result)) goto cleanup;
         if (!same_tokens(&base_ref[0], &result)) { fail("candidate output IDs differ from baseline"); goto cleanup; }
     }
+    for (int die = 0; die < 6; die++)
+        if (dump_profile("candidate", die)) goto cleanup;
 
     if (load_library(argv[3], argv[4])) goto cleanup;
     if (run_request("baseline", "warmup-after", 0, 0, &result)) goto cleanup;

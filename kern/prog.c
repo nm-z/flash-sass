@@ -314,6 +314,7 @@ static void ph_moe_half(prog_t *P, const split_t *s, const xchg_t *x, const dn_w
 	   the MoE end writes S from S2); 0: the write already happened (S2 = S, in place) */
 	CUdeviceptr Z = ph_hc_read(P, s, x, w->hc_ffn_norm, w->hc_ffn_dj, w->hc_ffn_up, b, eps, Y, inj);
 	CUdeviceptr SIN = Y ? b->S2 : b->S;
+	prog_nobar(P);   /* actq writes quantized scratch; this projection independently reads Z */
 	ph_bf16(P, OP_BF16K2560, w->ffn_gate_inp_x, Z, b->r, 513, 0);
 	ph_router(P, b->r, b->r + 512 * 4, b->idx, b->w, b->s);
 	ph_moesel(P, b->idx, b->w, w->emap, b->lidx, b->lw, b->ne, b->part);

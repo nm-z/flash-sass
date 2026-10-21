@@ -1,8 +1,13 @@
 #include "prog.h"
+#include "gguf.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #define CHECK(x) do { if (!(x)) { fprintf(stderr,"%s:%d: %s failed\n",__FILE__,__LINE__,#x); return 1; } } while (0)
+static unsigned long long ptr_at(const phase_t *p, int addr) {
+    int w = 2 + (addr - 0x140) / 4;
+    return p->w[w] | ((unsigned long long)p->w[w + 1] << 32);
+}
 static void build(prog_t *p,unsigned off) {
     p->loop=1; p->token_offset=off;
     ph_conv1d(p,0x1000+off*0x100,0x2000,0x3000,0x4000+off*0x100,99,1024);
@@ -22,8 +27,26 @@ static int test_ple_rms_barriers(void) {
     prog_free(&p);
     return 0;
 }
+static int test_moe_actq_projection_overlap(void) {
+    prog_t p; split_t s; xchg_t x={0}; dn_weights_t w={0}; dn_bufs_t b={0};
+    prog_init(&p); split_of(&s,0,6,1); unsetenv("PROG_NONOBAR");
+    unsetenv("PROG_NOHCUP"); unsetenv("PROG_NORMSFUSE"); unsetenv("PROG_NORMSW");
+    x.inbox=0x1000000; b.zq=0x2000000; b.r=0x3000000;
+    w.attn_qkv_type=GG_Q4_K; w.attn_gate_type=GG_Q4_K; w.ssm_out_type=GG_Q4_K;
+    prog_deltanet_block(&p,&s,&x,&w,&b,0,1e-5f);
+    int i;
+    for(i=0;i+1<p.n;i++)
+        if(p.p[i].w[0]==OP_ACTQ256 && p.p[i+1].w[0]==OP_BF16K2560) break;
+    CHECK(i+1<p.n);
+    CHECK(p.p[i].w[30]&4u);
+    CHECK(!(p.p[i+1].w[30]&4u));
+    CHECK(ptr_at(&p.p[i],0x140)==ptr_at(&p.p[i+1],0x148));
+    CHECK(ptr_at(&p.p[i],0x148)!=ptr_at(&p.p[i+1],0x150));
+    prog_free(&p);
+    return 0;
+}
 int main(void) {
-    CHECK(!test_ple_rms_barriers());
+    CHECK(!test_ple_rms_barriers()); CHECK(!test_moe_actq_projection_overlap());
     prog_t a,b,out; prog_init(&a);prog_init(&b);prog_init(&out);
     CHECK(!a.token_offset); build(&a,0);build(&b,1);
     const int tw=2+(0x160-0x140)/4;
@@ -49,5 +72,5 @@ int main(void) {
     prog_t absolute;prog_init(&absolute);absolute.token_offset=7;
     ph_conv1d(&absolute,1,2,3,4,99,1024); CHECK(absolute.p[0].w[tw]==99 && !absolute.p[0].w[31]);
     prog_free(&absolute);prog_free(&a);prog_free(&b);prog_free(&out);
-    puts("pair_prog_test: token offsets, descriptor preservation, shape rejection, and unchanged-on-error PASS");return 0;
+    puts("pair_prog_test: safe MoE ACTQ overlap, PLE barriers, token offsets, descriptor preservation, shape rejection, and unchanged-on-error PASS");return 0;
 }
