@@ -279,6 +279,7 @@ static void write_indexer_capture(const char *output_directory,
     int n=snprintf(root,sizeof root,"%s/indexer-capture",output_directory);
     if(n<0||(size_t)n>=sizeof root||mkdir(root,0700)) fail("cannot create indexer capture");
     write_bytes(root,"raw_ik.f32",raw,raw_count*sizeof *raw);
+    write_bytes(root,"qk_projected.f32",projected,projected_count*sizeof *projected);
     write_bytes(root,"rope_cs.f32",cs,rope_count*sizeof *cs);
     write_bytes(root,"rope_sn.f32",sn,rope_count*sizeof *sn);
     write_bytes(root,"iqn.f32",iqn,sizeof iqn);
