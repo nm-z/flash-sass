@@ -231,8 +231,9 @@ class LifecycleCheck
     common = nil; validation = []
     captures.each do |line,meta,file,kind,die|
       need(line.start_with?('error:') == error, 'wrong trace availability: ' + line)
-      need(meta['status'] == status && meta['aborted'] == aborted.to_s && meta['ended'] == ended.to_s,
-           'wrong lifecycle: ' + line)
+      need(meta['status'] == status && meta['aborted'] == aborted.to_s &&
+           (ended.nil? || meta['ended'] == ended.to_s), 'wrong lifecycle: ' + line)
+      need(%w[0 1].include?(meta['ended']), 'invalid ended flag: ' + line)
       need(number(meta,'requested') == requested, 'wrong requested positions: ' + line)
       actual = number(meta,'completed')
       need(completed.nil? ? (first_position + 1 <= actual && actual < requested) : actual == completed,
@@ -294,7 +295,10 @@ class LifecycleCheck
     end
     log('< client disconnected after first token >')
     session do |core|
-      collect(core,'disconnect','aborted',1,1,42)
+      # Host cancellation can race the device's normal stop bit. The aborted
+      # status is authoritative; ended may be either value but must agree on
+      # every die and the host trace.
+      collect(core,'disconnect','aborted',1,nil,42)
       need(@results.last[:headers].last.include?('abort_reason=callback'),
            'disconnect did not exercise callback-triggered cancellation')
       need(@results.last[:validation].any? { |v| v[:cancellation_callback_checked] },
