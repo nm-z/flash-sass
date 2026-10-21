@@ -492,8 +492,12 @@ trace_session_test: trace_session_test.c $(ENGINE_SRC) prefill.h trace_host.inc 
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -UNDEBUG -pthread -o $@ trace_session_test.c $(filter-out engine.c,$(ENGINE_SRC)) -I../ref -I$(CUDA)/include -lcuda -lm
 # the commit (and -dirty when the tree differs from it) the library is built from: the engine reports it with its `config` command
 FLASH_REV ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)$(shell git diff --quiet HEAD -- .. 2>/dev/null || echo -dirty)
-libengine.so: vision.h trace_host.inc $(ENGINE_SRC) prefill.h prog.h hold.h core.h engine.h dieops.h ple_read_pool.h ple_read_reload.h ../ref/split.h ../ref/qsa.h ../ref/block.h ../ref/attn.h ../ref/ple.h ../ref/gguf.h ../ref/quant.h ../ref/fmath.h ../ref/hc.h ../ref/deltanet.h ../ref/router.h timings.h qsa_state.h
+libengine.so: vision.h trace_host.inc $(ENGINE_SRC) prefill.h prog.h hold.h core.h engine.h ple_io.h dieops.h ple_read_pool.h ple_read_reload.h ../ref/split.h ../ref/qsa.h ../ref/block.h ../ref/attn.h ../ref/ple.h ../ref/gguf.h ../ref/quant.h ../ref/fmath.h ../ref/hc.h ../ref/deltanet.h ../ref/router.h timings.h qsa_state.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -pthread -DFLASH_REV='"$(FLASH_REV)"' -o $@.new $(ENGINE_SRC) -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
+
+# Fault injection is compiled only into this test library.
+libengine_pleiotest.so: vision.h trace_host.inc $(ENGINE_SRC) prefill.h prog.h hold.h core.h engine.h ple_io.h dieops.h ple_read_pool.h ple_read_reload.h ../ref/split.h ../ref/qsa.h ../ref/block.h ../ref/attn.h ../ref/ple.h ../ref/gguf.h ../ref/quant.h ../ref/fmath.h ../ref/hc.h ../ref/deltanet.h ../ref/router.h timings.h qsa_state.h
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -pthread -DFLASH_PLE_IO_TEST=1 -DFLASH_REV='"$(FLASH_REV)"' -o $@.new $(ENGINE_SRC) -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
 
 flashcore: flashcore.c flashcore_prefill.h core.h hold.h holdc.c ../ref/gguf.c ../ref/gguf.h
 	$(CC) -std=gnu99 -O2 -Wall -o $@ flashcore.c holdc.c ../ref/gguf.c -I../ref -I$(CUDA)/include -lcuda -ldl -lm
@@ -565,6 +569,29 @@ ple_read_bench: ple_read_bench.c ple_read_pool.h
 
 ple_read_audit: ple_read_bench.c ple_read_pool.h
 	$(CC) -std=gnu99 -O2 -Wall -Wextra -pthread -DPLE_READ_AUDIT -DFLASH_REV='"$(FLASH_REV)"' -o $@ $<
+
+ple_io_test: ple_io_test.c ple_io.h
+	$(CC) -std=gnu99 -O2 -Wall -Wextra -UNDEBUG -o $@ $<
+
+# CPU-only checks. CUDA calls in the wait test are supplied by its local mock.
+ple_io_wait_test: ple_io_wait_test.c engine.c engine.h core.h prefill.h prog.h ple_io.h ple_read_pool.h ple_read_reload.h dieops.h trace_host.inc timings.h qsa_state.h ../ref/ple.c ../ref/fmath.c
+	$(CC) -std=gnu99 -O2 -Wall -UNDEBUG -ffunction-sections -fdata-sections -pthread -o $@ $< ../ref/ple.c ../ref/fmath.c -I../ref -I$(CUDA)/include -Wl,--gc-sections -lm
+
+ple_io_http_stub_test: ple_io_http_stub_test.c flashd.c tok.h jinja.c jinja.h json.c json.h timings.h
+	$(CC) -std=gnu99 -O2 -Wall -UNDEBUG -ffunction-sections -fdata-sections -o $@ $< jinja.c json.c -Wl,--gc-sections -lm -lpthread
+
+test-ple-io-cpu: ple_io_test pair_prog_test pair_bf16_plan_test prefill_plan_test ple_io_wait_test ple_io_http_stub_test
+	./ple_io_test
+	./pair_prog_test
+	./pair_bf16_plan_test
+	./prefill_plan_test
+	./ple_io_wait_test
+	perl SocketEvidence_test.pl
+	perl -c ple_io_check.pl
+	perl -c ple_io_http_check.pl
+	./ple_io_http_stub_test
+
+.PHONY: test-ple-io-cpu
 
 qsa_direct_test: qsa_direct_test.c qsa_direct_projection.h qsa_direct_fixtures.h qsa_test.c quant_range_cases.h test_guards.h qsa_padding_test.h prog.c prog.h dieops.h ../ref/qsa.c ../ref/qsa.h ../ref/block.c ../ref/block.h ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c ../ref/checked.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -DFLASH_REV='"$(FLASH_REV)"' -o $@ qsa_direct_test.c prog.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I$(CUDA)/include -lcuda -lm

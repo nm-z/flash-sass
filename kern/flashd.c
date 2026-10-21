@@ -598,7 +598,8 @@ static void chat(int fd, const char *body, size_t bn, double request_start_ms) {
 		if (!g.gone && chunk(fd, b.s, b.n)) g.gone = 1;
 		sb_free(&b);
 	}
-	char line[8192]; int quiet = 0, ngen = 0, ended = 0, resumed = 0, snapped = 0, done = 0, failed = 0, expired = 0; double run_ms = 0, first_ms = 0;
+	char line[8192], engine_error[256] = "the engine failed during the response";
+	int quiet = 0, ngen = 0, ended = 0, resumed = 0, snapped = 0, done = 0, failed = 0, expired = 0; double run_ms = 0, first_ms = 0;
     int raw_token_events = 0, negotiating = 2, cancel_on_eof = 0;
     int cancel_requested = 0, cancel_drain_timed_out = 0;
     double cancel_start_ms = 0;
@@ -656,7 +657,15 @@ static void chat(int fd, const char *body, size_t bn, double request_start_ms) {
             if(!g.gone && !g.cap_hit && !expired)on_token(&g, id);
         }
 		else if (sscanf(line, "done %d %d %d %lf %lf %d %d", &ngen, &e, &npm, &r, &f, &resumed, &snapped) >= 5) { ended = e; run_ms = r; first_ms = f; done = 1; break; }
-		else if (!strncmp(line, "error", 5)) { fprintf(stderr, "flashd: engine: %s", line); failed = 1; break; }
+		else if (!strncmp(line, "error", 5)) {
+			fprintf(stderr, "flashd: engine: %s", line);
+			char *detail = line + 5;
+			if (*detail == ':') detail++;
+			while (*detail == ' ' || *detail == '\t') detail++;
+			detail[strcspn(detail, "\r\n")] = 0;
+			if (*detail) snprintf(engine_error, sizeof engine_error, "%s", detail);
+			failed = 1; break;
+		}
 	}
     if (deadline_expired(deadline)) expired = 1;
 	if (!done && !g.gone && !g.cap_hit && !expired) failed = 1;   /* the engine's stream ended without its "done" line: the response is not complete */
@@ -719,17 +728,21 @@ static void chat(int fd, const char *body, size_t bn, double request_start_ms) {
         return;
     }
     if (failed) {
-        fprintf(stderr,"flashd: the engine failed during the response\n");
+        fprintf(stderr,"flashd: the engine failed during the response: %s\n",engine_error);
         sbuf b={0};
         if(stream) {
             if(!g.gone) {
                 response_write_attempted=1;
-                sb_printf(&b,"data: {\"error\":{\"message\":\"the engine failed during the response\",\"type\":\"engine_error\"},\"timings\":%s}\n\n",t.s);
+                sb_puts(&b,"data: {\"error\":{\"message\":");
+                sb_json_str(&b,engine_error,strlen(engine_error));
+                sb_printf(&b,",\"type\":\"engine_error\"},\"timings\":%s}\n\n",t.s);
                 if(chunk(fd,b.s,b.n)||chunk(fd,"data: [DONE]\n\n",14)||wrs(fd,"0\r\n\r\n"))g.gone=1;
             }
         } else {
             response_write_attempted=1;
-            sb_printf(&b,"{\"error\":{\"message\":\"the engine failed during the response\",\"code\":502},\"timings\":%s}",t.s);
+            sb_puts(&b,"{\"error\":{\"message\":");
+            sb_json_str(&b,engine_error,strlen(engine_error));
+            sb_printf(&b,",\"code\":502},\"timings\":%s}",t.s);
             if(reply(fd,502,"application/json",b.s,b.n))g.gone=1;
         }
         http_write_log(request_id,request_start_ms,response_write_attempted,1,g.gone);

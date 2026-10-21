@@ -1,0 +1,45 @@
+2026-10-18T00:31:47Z
+index, memory.used [MiB], memory.free [MiB], utilization.gpu [%]
+0, 7566 MiB, 52 MiB, 0 %
+1, 7602 MiB, 16 MiB, 0 %
+2, 7541 MiB, 77 MiB, 0 %
+3, 7611 MiB, 7 MiB, 0 %
+4, 7615 MiB, 3 MiB, 0 %
+5, 7553 MiB, 65 MiB, 0 %
+6, 3 MiB, 7615 MiB, 0 %
+7, 7003 MiB, 615 MiB, 0 %
+pid, process_name, used_gpu_memory [MiB]
+974018, ./hold, 7177 MiB
+1575007, ./flashcore, 200 MiB
+974061, ./hold, 6160 MiB
+1575007, ./flashcore, 1218 MiB
+974103, ./fence, 2110 MiB
+988060, ./hold, 5116 MiB
+1575007, ./flashcore, 129 MiB
+988067, ./hold, 7224 MiB
+1575007, ./flashcore, 166 MiB
+988072, ./hold, 6172 MiB
+1575007, ./flashcore, 1218 MiB
+988080, ./hold, 6179 MiB
+1575007, ./flashcore, 1218 MiB
+3263314, /tmp/flash-pr35-4429cbd/source/kern/hold, 6755 MiB
+3271450, /tmp/flash-pr35-4429cbd/source/kern/model_test, 107 MiB
+ 974015    17:46:21 flock -s -n /home/nate/codex/asm-port/GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974018    17:46:21 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974058    17:46:21 flock -s -n /home/nate/codex/asm-port/GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974061    17:46:21 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974100    17:46:21 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./fence 2 2 2750-3769
+ 974103    17:46:21 ./fence 2 2 2750-3769
+ 988058    17:46:05 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988060    17:46:05 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988065    17:46:05 flock -s -n /home/nate/codex/asm-port/GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988067    17:46:05 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988070    17:46:05 flock -s -n /home/nate/codex/asm-port/GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988072    17:46:05 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988079    17:46:05 flock -s -n /home/nate/codex/asm-port/GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+ 988080    17:46:05 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+1575007    04:19:05 ./flashcore /home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf /home/nate/claude/flash-sass-live/kern/libengine.so /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+1578451    04:19:01 ./flashd /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf /tmp/flash.sock 127.0.0.1:18090
+3263314       01:50 /tmp/flash-pr35-4429cbd/source/kern/hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 7 0 8 /tmp/flash-pr35-4429cbd/evidence/first-model/holder.manifest token_embd output split=0/1
+3271209       00:25 bash /tmp/pr45-attention.qsog2y/engine-acceptance.sh --repo /tmp/pr45-attention.qsog2y/candidate --control-cubin /tmp/pr45-attention.qsog2y/control/kern/die.cubin --restore-lib /home/nate/claude/flash-sass-live/kern/libengine.so --socket /tmp/flash.sock --engine-lock /tmp/flash-sass-engine-validation.lock --component-lock /home/nate/codex/asm-port/GPU-431371bd-b482-96b2-4b70-04f83c6d075b.lock --out /tmp/pr45-attention.qsog2y/evidence/engine
+3271450       00:22 /tmp/flash-pr35-4429cbd/source/kern/model_test /home/nate/codex/flash-pr35-cache-20261017/tensors 0 8 9 eh /tmp/flash-pr35-4429cbd/evidence/first-model/holder.manifest

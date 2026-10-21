@@ -9,6 +9,9 @@
 #include <stdint.h>
 
 typedef struct { uint32_t w[32]; } phase_t;
+/* Descriptor word 30: bits 3/4 belong to paired execution. Bit 5 requests
+ * a grid-wide PLE failure check before the following phase. */
+#define PHASE_PLE_CHECK 32u
 typedef struct { phase_t *p; int n, cap; int xj; int loop; unsigned token_offset; int pending_wait; uint32_t stop[2]; CUdeviceptr end; int samp_k; float samp_topp, samp_invT; } prog_t;   /* stop[2], end: a generated token equal to stop[0] or stop[1] sets *end (ctl[5]) = 0x80000000 and the kernel exits after that token (0xffffffff: none) */
    /* pending_wait: the next phase consumes an exchange */   /* xj: exchanges issued (slot parity); loop: token-relative
  * parameters are marked for the kernel's token loop instead of taking the position literally */
@@ -139,7 +142,7 @@ typedef struct {
 	CUdeviceptr imap, img;   /* image input: imap[position] = a row of img (fp16 [row][2560]) or 0xffffffff for a token; 0: no images */
 	CUdeviceptr ids, ple_pc, ple_tab, pg, pgq, pgs32, pgs16, pgas, lk, kn, qn, lv, pG, pgates, px, ple_state, prows;
 	unsigned ple_compact;   /* 1: ple_tab holds the 16 rows of every position (16 pos + h), not the hashed table */
-	CUdeviceptr ple_rdy; unsigned ple_rid;   /* ple_rid != 0: plerows waits until the u32 ple_rdy[pos] equals ple_rid (the host stages the rows of each position and then sets it: FLASH_PLE_DISK) */
+	CUdeviceptr ple_rdy, ple_error; unsigned ple_rid;   /* ple_rid != 0: plerows waits until the u32 ple_rdy[pos] equals ple_rid (the host stages the rows of each position and then sets it: FLASH_PLE_DISK) */
 	/* head: this die's logits, its argmax (idx, max bits) + partials/counter, the gathered pairs, the token (u32 idx, u32 max bits) */
 	CUdeviceptr hlo, amo, apart, acnt, tokout, toks;   /* toks: u32[positions], the generated tokens */
 	CUdeviceptr tkout, tkpart, tkcnt, rnd;   /* sampling: this die top-K list (32 x {idx, value bits}), the CTA lists, the counter, u[positions] floats */

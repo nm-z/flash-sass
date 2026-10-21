@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 use strict;use warnings;use FindBin;use lib $FindBin::Bin;
-use SocketEvidence qw(connect_unix send_text read_line close_socket monotonic);
+use SocketEvidence qw(connect_unix send_text read_line close_socket monotonic begin_request end_request);
 use IO::Socket::UNIX;use Socket 'SOCK_STREAM';use File::Temp 'tempdir';
 use POSIX '_exit';use Time::HiRes 'sleep';use Test::More;
 my $tmp=tempdir(CLEANUP=>1);my $seq=0;my @children;
@@ -39,4 +39,18 @@ pipe(my $hold_r,my $hold_w) or die $!;
 close $hold_r;$c=connect_unix($path,.2);$start=monotonic();$ok=eval{send_text($c,'x'x4_000_000);1};$elapsed=monotonic()-$start;
 ok(!$ok && $@=~/socket write timeout/,'blocked large write times out');
 ok($elapsed>=.15 && $elapsed<2,'nonblocking write deadline is bounded');close_socket($c);syswrite($hold_w,'G')==1 or die $!;close $hold_w;reaped($pid,'write deadline server completed');
+($path,$pid)=server(sub{
+ my($s)=@_;local $SIG{PIPE}='IGNORE';
+ for(1..40){last unless syswrite($s,"valid line\n");sleep .01;}
+});
+$c=connect_unix($path,1);begin_request($c,.15);$start=monotonic();my $lines=0;
+$ok=eval{while(defined(my $line=read_line($c))){die "changed line\n" unless $line eq "valid line\n";$lines++;}1};
+$elapsed=monotonic()-$start;
+ok(!$ok && $@=~/socket read timeout/,'regular valid lines cannot extend whole-request deadline');
+ok($lines>2 && $elapsed<.8,'total request duration bounded despite progress');
+$c->{buffer}="buffered\0line\n";$c->{deadline}=monotonic()-1;
+$ok=eval{read_line($c);1};ok(!$ok && $@=~/timeout/,'expired request rejects complete buffered line');
+$ok=eval{send_text($c,'');1};ok(!$ok && $@=~/timeout/,'expired request rejects even empty send');
+end_request($c);is(read_line($c),"buffered\0line\n",'deadline rejection preserves buffered bytes');
+close_socket($c);reaped($pid,'total-deadline server completed');
 done_testing;
