@@ -1,0 +1,3 @@
+make: Entering directory '/home/nate/claude/flash-sass-prs/issue-9/kern'
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -o model_test model_test.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm
+make: Leaving directory '/home/nate/claude/flash-sass-prs/issue-9/kern'

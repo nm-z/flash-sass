@@ -5,7 +5,7 @@
 
 /* temp <= 0 or top_k <= 1: greedy. Otherwise top-k (<= 32) -> top-p -> temperature, the draw for position t from seed (kern/sample.sass) */
 typedef struct { uint64_t seed; float temp, topp; int top_k; } sampling;
-typedef struct { int ntok; int ended; unsigned nph; int resumed, snapshot; double build_ms, run_ms, first_ms; } run_stats;
+typedef struct { int ntok; int ended; unsigned nph; int resumed, snapshot; double build_ms, run_ms, first_ms; int paired_positions, prefill_chunks; } run_stats;
 /* token: every generated token as soon as die 0 has it (t = its position, from nprompt - 1; nonzero return: the
  * client is gone); alive: polled every ~20 ms, also while the prompt runs (nonzero: the client is gone) */
 typedef struct { int (*token)(void *arg, int t, uint32_t tok); int (*alive)(void *arg); void *arg; } engine_cb;
@@ -18,8 +18,9 @@ typedef struct { int s; char path[240]; } engine_img;
  * cb->token; stop[2] are the end-of-turn ids (0xffffffff: none). snap_at > 0: take a prefix-cache snapshot after that
  * many positions (the response then runs as two launches; snap_at <= nprompt - 1), and a later response whose prompt
  * starts with the same tokens resumes from it. Returns -1 on bad sizes, -2 after a CUDA error (the contexts need
- * rebuilding). Images: snapshots stop before the first one. */
-int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], const sampling *sm, int snap_at, const engine_img *imgs, int nimg, const engine_cb *cb, run_stats *st);   /* -3: a bad image file or too many image tokens */
+ * rebuilding), -3 on bad image data, and -4 if host program allocation fails.
+ * Images: snapshots stop before the first one. */
+int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], const sampling *sm, int snap_at, const engine_img *imgs, int nimg, const engine_cb *cb, run_stats *st);
 int engine_positions(void);          /* FLASH_MAXT: prompt + reply positions per response */
 
 #endif

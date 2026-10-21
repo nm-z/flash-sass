@@ -1,0 +1,48 @@
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv0-token-layer.stdout:MODEL_INJECT=layer reached at b0.S.d0
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv0-token-layer.stdout:  b0.S.d0    MISMATCH 1 of 10240 (first at 0: gpu -0.00043268883 ref -0.000432688801)
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv0-token-layer.stdout:token   0: id     10 ->    220 264 phases; twin 4.41 s, dies 13.416 ms  MISMATCH
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv0-token-layer.stdout:FAIL: 0 of 1 tokens exact; mean 13.416 ms per token
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv1-token-logits.stdout:MODEL_INJECT=logits reached at logits.d0
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv1-token-logits.stdout:  logits.d0  MISMATCH 1 of 248320 (first at 0: gpu 2.92822385 ref 2.92822361)
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv1-token-logits.stdout:token   0: id     10 ->    220 264 phases; twin 4.34 s, dies 13.440 ms  MISMATCH
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv1-token-logits.stdout:FAIL: 0 of 1 tokens exact; mean 13.440 ms per token
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv0-token-dn.stdout:MODEL_INJECT=dn reached at b0.dn_state.d0
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv0-token-dn.stdout:  b0.dn_state.d0 MISMATCH 1 of 786432 (first at 0: gpu 2.24765768e-06 ref 2.24765745e-06)
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv0-token-dn.stdout:token   0: id     10 ->    220 264 phases; twin 4.35 s, dies 13.424 ms  MISMATCH
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv0-token-dn.stdout:FAIL: 0 of 1 tokens exact; mean 13.424 ms per token
+validation/issue9/review-4429cbd/model-batch/matrices/selection9/b1-kv1-token-selection.stdout:MODEL_INJECT=selection reached at b3.selected_ids
+validation/issue9/review-4429cbd/model-batch/matrices/selection9/b1-kv1-token-selection.stdout:  b3.selected_ids MISMATCH 1 of 1 (first at 0: gpu 1.40129846e-45 ref 0)
+validation/issue9/review-4429cbd/model-batch/matrices/selection9/b1-kv1-token-selection.stdout:token   7: id     17 ->  97421 264 phases; twin 4.29 s, dies 13.505 ms  MISMATCH
+validation/issue9/review-4429cbd/model-batch/matrices/selection9/b1-kv1-token-selection.stdout:FAIL: 8 of 9 tokens exact; mean 13.425 ms per token
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv1-token-ple.stdout:MODEL_INJECT=ple reached at b1.ple_state.d0
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv1-token-ple.stdout:  b1.ple_state.d0 MISMATCH 1 of 102400 (first at 0: gpu -0.035302341 ref -0.0353023447)
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv1-token-ple.stdout:token   0: id     10 ->    220 264 phases; twin 4.42 s, dies 13.431 ms  MISMATCH
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv1-token-ple.stdout:FAIL: 0 of 1 tokens exact; mean 13.431 ms per token
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv1-token-dn.stdout:MODEL_INJECT=dn reached at b0.dn_state.d0
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv1-token-dn.stdout:  b0.dn_state.d0 MISMATCH 1 of 786432 (first at 0: gpu 2.24765768e-06 ref 2.24765745e-06)
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv1-token-dn.stdout:token   0: id     10 ->    220 264 phases; twin 4.60 s, dies 13.443 ms  MISMATCH
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv1-token-dn.stdout:FAIL: 0 of 1 tokens exact; mean 13.443 ms per token
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv0-token-logits.stdout:MODEL_INJECT=logits reached at logits.d0
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv0-token-logits.stdout:  logits.d0  MISMATCH 1 of 248320 (first at 0: gpu 2.92822385 ref 2.92822361)
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv0-token-logits.stdout:token   0: id     10 ->    220 264 phases; twin 4.37 s, dies 13.394 ms  MISMATCH
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv0-token-logits.stdout:FAIL: 0 of 1 tokens exact; mean 13.394 ms per token
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv1-token-layer.stdout:MODEL_INJECT=layer reached at b0.S.d0
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv1-token-layer.stdout:  b0.S.d0    MISMATCH 1 of 10240 (first at 0: gpu -0.00043268883 ref -0.000432688801)
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv1-token-layer.stdout:token   0: id     10 ->    220 264 phases; twin 4.38 s, dies 13.449 ms  MISMATCH
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv1-token-layer.stdout:FAIL: 0 of 1 tokens exact; mean 13.449 ms per token
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv0-token-ple.stdout:MODEL_INJECT=ple reached at b1.ple_state.d0
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv0-token-ple.stdout:  b1.ple_state.d0 MISMATCH 1 of 102400 (first at 0: gpu -0.035302341 ref -0.0353023447)
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv0-token-ple.stdout:token   0: id     10 ->    220 264 phases; twin 4.51 s, dies 13.389 ms  MISMATCH
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv0-token-ple.stdout:FAIL: 0 of 1 tokens exact; mean 13.389 ms per token
+validation/issue9/review-4429cbd/model-batch/matrices/selection9/b1-kv0-token-selection.stdout:MODEL_INJECT=selection reached at b3.selected_ids
+validation/issue9/review-4429cbd/model-batch/matrices/selection9/b1-kv0-token-selection.stdout:  b3.selected_ids MISMATCH 1 of 1 (first at 0: gpu 1.40129846e-45 ref 0)
+validation/issue9/review-4429cbd/model-batch/matrices/selection9/b1-kv0-token-selection.stdout:token   7: id     17 ->  97421 264 phases; twin 4.30 s, dies 13.476 ms  MISMATCH
+validation/issue9/review-4429cbd/model-batch/matrices/selection9/b1-kv0-token-selection.stdout:FAIL: 8 of 9 tokens exact; mean 13.397 ms per token
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv0-token-conv.stdout:MODEL_INJECT=conv reached at b0.conv_state.d0
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv0-token-conv.stdout:  b0.conv_state.d0 MISMATCH 1 of 40960 (first at 0: gpu -1.16765261 ref -1.16765273)
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv0-token-conv.stdout:token   0: id     10 ->    220 264 phases; twin 4.56 s, dies 13.407 ms  MISMATCH
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv0-token-conv.stdout:FAIL: 0 of 1 tokens exact; mean 13.407 ms per token
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv1-token-conv.stdout:MODEL_INJECT=conv reached at b0.conv_state.d0
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv1-token-conv.stdout:  b0.conv_state.d0 MISMATCH 1 of 40960 (first at 0: gpu -1.16765261 ref -1.16765273)
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv1-token-conv.stdout:token   0: id     10 ->    220 264 phases; twin 4.69 s, dies 13.450 ms  MISMATCH
+validation/issue9/review-4429cbd/model-batch/matrices/control1/b1-kv1-token-conv.stdout:FAIL: 0 of 1 tokens exact; mean 13.450 ms per token

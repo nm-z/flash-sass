@@ -9,18 +9,23 @@
 #include <stdint.h>
 
 typedef struct { uint32_t w[32]; } phase_t;
-typedef struct { phase_t *p; int n, cap; int xj; int loop; int pending_wait; uint32_t stop[2]; CUdeviceptr end; int samp_k; float samp_topp, samp_invT; } prog_t;   /* stop[2], end: a generated token equal to stop[0] or stop[1] sets *end (ctl[5]) = 0x80000000 and the kernel exits after that token (0xffffffff: none) */
+typedef struct { phase_t *p; int n, cap; int xj; int loop; unsigned token_offset; int pending_wait; uint32_t stop[2]; CUdeviceptr end; int samp_k; float samp_topp, samp_invT; } prog_t;   /* stop[2], end: a generated token equal to stop[0] or stop[1] sets *end (ctl[5]) = 0x80000000 and the kernel exits after that token (0xffffffff: none) */
    /* pending_wait: the next phase consumes an exchange */   /* xj: exchanges issued (slot parity); loop: token-relative
  * parameters are marked for the kernel's token loop instead of taking the position literally */
 
 void prog_init(prog_t *P);
+/* Pair consecutive known positions. out is initialized; unchanged on failure. */
+int prog_pair(prog_t *out, const prog_t *a, const prog_t *b);
+/* Fuse validated BF16 pairs. disjoint_xout asserts that both peer-inbox tables
+ * point to separate output storage, also disjoint from inputs and weights. */
+int prog_pair_fuse_bf16(prog_t *P, int disjoint_xout);
 void prog_free(prog_t *P);
 void prog_nobar(prog_t *P);   /* no grid barrier after the last phase (independent next phase) */
 phase_t *prog_add(prog_t *P, int op, unsigned units);
 void ph_ptr(phase_t *p, int addr, CUdeviceptr v);
 void ph_u32(phase_t *p, int addr, uint32_t v);
 void ph_f32(phase_t *p, int addr, float v);
-/* a token-relative u32 parameter: base + tok (the die's token counter) when the program loops in the kernel, else value */
+/* a token-relative u32 parameter: base + token_offset + tok (the die's token counter) when the program loops in the kernel, else value */
 void ph_tokv(prog_t *P, phase_t *p, int addr, uint32_t base, uint32_t value);
 
 /* ---- one phase per op (pointers are device addresses) ---- */
@@ -89,6 +94,7 @@ void split_of(split_t *s, int d, int n, int blk);
  * ssm_ab_bias = dt_bias ++ zeros, emap = global expert -> local index or 0xffffffff) */
 typedef struct {
 	CUdeviceptr hc_attn_norm, hc_attn_dj, hc_attn_up;
+	unsigned attn_q_split, attn_q_first, attn_q_rows;
 	CUdeviceptr hc_ffn_norm, hc_ffn_dj, hc_ffn_up;
 	CUdeviceptr attn_qkv, attn_gate, ssm_ab, ssm_ab_bias, ssm_conv1d, ssm_a, ssm_norm, ssm_out;
 	uint32_t attn_qkv_type, attn_gate_type, ssm_out_type;
@@ -124,7 +130,7 @@ typedef struct {
 	CUdeviceptr out;                  /* 2560 (the reduced MoE output) */
 	CUdeviceptr conv_state, dn_state; /* 4 x nloc ring, hn x 128 x 128 */
 	/* attention (die 0): qg 24 x [q 256 | gate 256], k/v 512, qo 6144, caches (ref/attn.h
-	 * layouts, zero-filled, >= n + 8192 + 64 positions), partials pm/pd [24][8], po
+	 * layouts, readable >= n + 8192 + 64 positions; invalid rows need not be zero), partials pm/pd [24][8], po
 	 * [24][8][256], aout 6144, RoPE tables cs/sn [positions][32] */
 	CUdeviceptr qg, k, v, qo, kc, vc, pm, pd, po, aout, rope_cs, rope_sn;
 	/* PLE (block 1): token ids (u32[positions]), the constants block (plerows PC layout),
@@ -144,6 +150,9 @@ typedef struct {
 	 * the ones above; nblk: blocks of 4 keys attended at most (QSA_NBLK, 512) */
 	int qsa; unsigned nblk;
 	CUdeviceptr kq, ks, vq, vs, pkt, ring, iqk, iq, sc, hst, sel;
+	/* Validation-only raw pre-clamp maxima: u32[position][K/V][2 heads][8 groups].
+	 * Null normally; only a QSA_KV_TRACE=1 cubin consumes this descriptor field. */
+	CUdeviceptr kv_rawmax;
 } dn_bufs_t;
 
 void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps);

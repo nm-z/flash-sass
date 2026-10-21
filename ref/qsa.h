@@ -25,6 +25,11 @@ uint16_t qsa_f2h(float f);        /* fp32 -> fp16, round to nearest even, subnor
 float qsa_h2f(uint16_t h);
 
 /* the KV cache of one layer: token t, kv head h, dim d: q at (t * 2 + h) * 256 + d, scale at (t * 2 + h) * 8 + d / 32 */
+/* Finite components are clipped before both codes and scales are computed.
+ * 65504 * 127 exactly. Underflow remains explicitly lossy; overflow is bounded. */
+#define QSA_KV_MAX_ABS 8319008.0f
+/* Reject nonfinite/null inputs or a rounding mode other than FE_TONEAREST before any output change. */
+int kv_quant32_checked(const float *x, int8_t *q, uint16_t *s16);
 void kv_quant32_gpu(const float *x, int8_t *q, uint16_t *s16);   /* 32 values: gmax = max(max|x|, 2^-100); inv = rcp(gmax) * 127; q = rint(x inv); s = f16(gmax / 127) */
 float kv_deq_gpu(int8_t q, uint16_t s16);                         /* (float)q * f32(s16) */
 

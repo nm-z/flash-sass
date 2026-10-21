@@ -5,9 +5,84 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
-void prog_init(prog_t *P) { P->cap = 64; P->n = 0; P->xj = 0; P->loop = 0; P->pending_wait = 0; P->stop[0] = P->stop[1] = 0xffffffffu; P->end = 0; P->samp_k = 0; P->samp_topp = 1.0f; P->samp_invT = 1.0f; P->p = malloc(sizeof(phase_t) * P->cap); }
+void prog_init(prog_t *P) { P->cap = 64; P->n = 0; P->xj = 0; P->loop = 0; P->token_offset = 0; P->pending_wait = 0; P->stop[0] = P->stop[1] = 0xffffffffu; P->end = 0; P->samp_k = 0; P->samp_topp = 1.0f; P->samp_invT = 1.0f; P->p = malloc(sizeof(phase_t) * P->cap); }
 void prog_free(prog_t *P) { free(P->p); P->p = NULL; P->n = P->cap = 0; }
+int prog_pair(prog_t *out, const prog_t *a, const prog_t *b) {
+    /* Validate before changing out. Parameters name separate activations and
+       consecutive causal positions; logical exchanges are published once. */
+    if (!out || !a || !b || out == a || out == b || a->n <= 0 || a->n != b->n ||
+        a->n > INT_MAX / 2 || !a->p || !b->p || a->xj != b->xj ||
+        a->loop != b->loop || a->pending_wait != b->pending_wait ||
+        a->stop[0] != b->stop[0] || a->stop[1] != b->stop[1] || a->end != b->end ||
+        a->samp_k != b->samp_k || a->samp_topp != b->samp_topp ||
+        a->samp_invT != b->samp_invT ||
+        (a->loop && (a->token_offset == UINT32_MAX || b->token_offset != a->token_offset + 1u)))
+        return -1;
+    for (int i = 0; i < a->n; i++) {
+        const phase_t *x = &a->p[i], *y = &b->p[i];
+        if (x->w[0] != y->w[0] || x->w[1] != y->w[1] || x->w[30] != y->w[30] ||
+            (x->w[30] & 24u)) return -1;
+    }
+    size_t n = (size_t)a->n * 2u;
+    if (n > SIZE_MAX / sizeof(phase_t)) return -2;
+    phase_t *p = malloc(n * sizeof *p);
+    if (!p) return -2;
+    for (int i = 0; i < a->n; i++) {
+        p[2*i] = a->p[i]; p[2*i+1] = b->p[i];
+        p[2*i].w[30] |= 8u;
+    }
+    free(out->p);
+    *out = *a;
+    out->p = p; out->n = out->cap = (int)n;
+    return 0;
+}
+static uint64_t desc_ptr(const phase_t *p, int word) {
+    return p->w[word] | ((uint64_t)p->w[word + 1] << 32);
+}
+static int overlaps(uint64_t a, uint64_t an, uint64_t b, uint64_t bn) {
+    return an && bn && (a <= b ? b - a < an : a - b < bn);
+}
+int prog_pair_fuse_bf16(prog_t *P, int disjoint_xout) {
+    int fused = 0;
+    for (int i = 0; i + 1 < P->n; i++) {
+        phase_t *a = &P->p[i], *b = a + 1;
+        if ((a->w[30] & 24u) != 8u) continue;
+        i++;
+        if (a->w[0] != b->w[0] || a->w[1] != b->w[1] ||
+            desc_ptr(a, 2) != desc_ptr(b, 2) || a->w[8] != b->w[8] ||
+            a->w[31] || b->w[31]) continue;
+        int op, k = 2560, slices = 1, bias = 0, xout = 0;
+        switch (a->w[0]) {
+        case OP_BF16BIAS: op = OP_BF16BIASP; bias = 1; break;
+        case OP_BF16K2560: op = OP_BF16K2560P; break;
+        case OP_BF16K320: op = OP_BF16K320P; k = 320; break;
+        case OP_BF16HC: op = OP_BF16HCP; slices = 4; break;
+        case OP_BF16HCX: op = OP_BF16HCXP; slices = 4; xout = 1; break;
+        default: continue;
+        }
+        if (xout && !disjoint_xout) continue;
+        if (!xout) {
+            uint64_t yn = 4ull * a->w[8], xn = 4ull * k * slices;
+            uint64_t wn = 2ull * k * slices * a->w[8];
+            uint64_t y[2] = { desc_ptr(a, 6), desc_ptr(b, 6) };
+            int alias = overlaps(y[0], yn, y[1], yn);
+            for (int j = 0; j < 2; j++) {
+                alias |= overlaps(y[j], yn, desc_ptr(a, 2), wn);
+                alias |= overlaps(y[j], yn, desc_ptr(a, 4), xn);
+                alias |= overlaps(y[j], yn, desc_ptr(b, 4), xn);
+                if (bias) {
+                    alias |= overlaps(y[j], yn, desc_ptr(a, 10), yn);
+                    alias |= overlaps(y[j], yn, desc_ptr(b, 10), yn);
+                }
+            }
+            if (alias) continue;
+        }
+        a->w[0] = (uint32_t)op; a->w[30] |= 16u; fused++;
+    }
+    return fused;
+}
 phase_t *prog_add(prog_t *P, int op, unsigned units) {
 	if (P->n == P->cap) { P->cap *= 2; P->p = realloc(P->p, sizeof(phase_t) * P->cap); }
 	phase_t *p = &P->p[P->n++];
@@ -28,7 +103,7 @@ void ph_ptr(phase_t *p, int addr, CUdeviceptr v) { int w = 2 + (addr - 0x140) / 
 void ph_u32(phase_t *p, int addr, uint32_t v) { p->w[2 + (addr - 0x140) / 4] = v; }
 void ph_f32(phase_t *p, int addr, float v) { uint32_t u; memcpy(&u, &v, 4); ph_u32(p, addr, u); }
 void ph_tokv(prog_t *P, phase_t *p, int addr, uint32_t base, uint32_t value) {
-	if (P->loop) { ph_u32(p, addr, base); p->w[31] |= 1u << (2 + (addr - 0x140) / 4); } else ph_u32(p, addr, value);   /* descriptor word 2 + i */
+	if (P->loop) { ph_u32(p, addr, base + P->token_offset); p->w[31] |= 1u << (2 + (addr - 0x140) / 4); } else ph_u32(p, addr, value);   /* descriptor word 2 + i */
 }
 
 void ph_rms(prog_t *P, int op, CUdeviceptr X, CUdeviceptr W, CUdeviceptr Y, float eps, unsigned vectors) {
@@ -257,25 +332,32 @@ static void ph_moe_half(prog_t *P, const split_t *s, const xchg_t *x, const dn_w
 	if (s->shexp) ph_gemv_any(P, w->ffn_down_shexp_type, 640, w->ffn_down_shexp, b->hq + 10 * 640 * 2, b->hs32 + 10 * 20 * 4, b->hs16 + 10 * 40 * 4, b->part, 2560, b->has + 10 * 20 * 4, 1, b->s);
 	CUdeviceptr PARTS = ph_xchg(P, x, s->d, s->n, b->part, 2560 * 4, 2560u * 4u * (unsigned)s->d, 2560u * 4u * (unsigned)s->n);
 	/* out = the fixed-order sum of the parts (sumn's order), fused into the stream write */
-	phase_t *p = prog_add(P, OP_HCWSUM, 10);
+	phase_t *p = prog_add(P, OP_HCWSUM, 16);   /* 160 columns per CTA: all sixteen SMs */
 	ph_ptr(p, 0x140, inj); ph_ptr(p, 0x148, PARTS); ph_ptr(p, 0x150, b->S); ph_u32(p, 0x158, 2560); ph_u32(p, 0x15c, 2560 * 4); ph_u32(p, 0x164, (unsigned)s->n); ph_ptr(p, 0x168, b->out); ph_ptr(p, 0x170, SIN);
 }
 
 /* QSA attention (ref/qsa.h): the q/k/v projections of z and the indexer projections (Z, the gathered fp32 z), the int8 KV append,
  * the indexer (q norm + rope, key ring, pooled keys, scores, 5 selection passes), the gather of the attended blocks into the compact
  * caches and flash-decoding over them (n keys from the token position, see ref/qsa.h qsa_nkeys), then the merge with the output gate */
-static void ph_attn_qsa(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps, CUdeviceptr Z) {
-	ph_gemv_any(P, w->attn_q_type, 2560, w->attn_q, b->zq, b->zs32, b->zs16, b->qg, 12288, b->zas, 0, 0);
-	prog_nobar(P);
+static void ph_attn_kvi(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, CUdeviceptr Z) {
 	ph_gemv_any(P, w->attn_k_type, 2560, w->attn_k, b->zq, b->zs32, b->zs16, b->k, 512, b->zas, 0, 0);
 	prog_nobar(P);
 	ph_gemv_any(P, w->attn_v_type, 2560, w->attn_v, b->zq, b->zs32, b->zs16, b->v, 512, b->zas, 0, 0);
 	prog_nobar(P);
 	ph_bf16(P, OP_BF16K2560, w->indexer_x, Z, b->iqk, 640, 0);   /* iq (512) ++ ik (128) */
+}
+static void ph_attn_qsa(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps, CUdeviceptr Z, CUdeviceptr QG) {
+	if (!QG) {
+		ph_gemv_any(P, w->attn_q_type, 2560, w->attn_q, b->zq, b->zs32, b->zs16, b->qg, 12288, b->zas, 0, 0);
+		prog_nobar(P);
+		ph_attn_kvi(P, w, b, Z);
+		QG = b->qg;
+	}
 	phase_t *p = prog_add(P, OP_ATTNQKQ, 26);
-	ph_ptr(p, 0x140, b->qg); ph_ptr(p, 0x148, b->k); ph_ptr(p, 0x150, b->v); ph_ptr(p, 0x158, w->attn_q_norm); ph_ptr(p, 0x160, w->attn_k_norm);
+	ph_ptr(p, 0x140, QG); ph_ptr(p, 0x148, b->k); ph_ptr(p, 0x150, b->v); ph_ptr(p, 0x158, w->attn_q_norm); ph_ptr(p, 0x160, w->attn_k_norm);
 	ph_ptr(p, 0x168, b->rope_cs); ph_ptr(p, 0x170, b->rope_sn); ph_ptr(p, 0x178, b->qo); ph_ptr(p, 0x180, b->kq); ph_ptr(p, 0x188, b->vq);
 	ph_tokv(P, p, 0x190, 0, t); ph_f32(p, 0x194, eps); ph_ptr(p, 0x198, b->ks); ph_ptr(p, 0x1a0, b->vs);
+	ph_ptr(p, 0x1a8, b->kv_rawmax);
 	prog_nobar(P);   /* the indexer does not read what the cache append writes */
 	p = prog_add(P, OP_IDXQK, 6);
 	ph_ptr(p, 0x140, b->iqk); ph_ptr(p, 0x148, w->indexer_qn); ph_ptr(p, 0x150, w->indexer_kn); ph_ptr(p, 0x158, b->rope_cs); ph_ptr(p, 0x160, b->rope_sn); ph_ptr(p, 0x168, b->iq);
@@ -292,7 +374,7 @@ static void ph_attn_qsa(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, un
 	p = prog_add(P, OP_ATTNPARTN, 32);
 	ph_ptr(p, 0x140, b->qo); ph_ptr(p, 0x148, b->kc); ph_ptr(p, 0x150, b->vc); ph_ptr(p, 0x158, b->pm); ph_ptr(p, 0x160, b->pd); ph_ptr(p, 0x168, b->po); ph_tokv(P, p, 0x170, 1, t + 1); ph_u32(p, 0x174, b->nblk);
 	p = prog_add(P, OP_ATTNMERGE, 24);
-	ph_ptr(p, 0x140, b->pm); ph_ptr(p, 0x148, b->pd); ph_ptr(p, 0x150, b->po); ph_ptr(p, 0x158, b->qg); ph_ptr(p, 0x160, b->aout);
+	ph_ptr(p, 0x140, b->pm); ph_ptr(p, 0x148, b->pd); ph_ptr(p, 0x150, b->po); ph_ptr(p, 0x158, QG); ph_ptr(p, 0x160, b->aout);
 }
 
 /* attention proper on die 0 (v1): q/k/v GEMVs, per-head norm + RoPE + cache append,
@@ -317,7 +399,18 @@ void prog_attn_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weig
 	CUdeviceptr inj = b->t + 320 * 4;
 	CUdeviceptr Z = ph_hc_read(P, s, x, w->hc_attn_norm, w->hc_attn_dj, w->hc_attn_up, b, eps, 0, 0);
 	int here = b->qsa ? b->kq != 0 : s->d == attn_die();   /* the die that runs this layer: the one holding its KV cache (QSA), else attn_die() */
-	if (here) { if (b->qsa) ph_attn_qsa(P, w, b, t, eps, Z); else ph_attn_core(P, w, b, t, eps); }
+	CUdeviceptr QG = 0;
+	if (b->qsa && w->attn_q_split) {
+		if (w->attn_q_rows) {
+			ph_gemv_any(P, w->attn_q_type, 2560, w->attn_q, b->zq, b->zs32, b->zs16, b->qg, w->attn_q_rows, b->zas, 0, 0);
+			if (here) prog_nobar(P);
+		}
+		/* The owner computes K/V/indexer while other dies finish their Q rows.
+		 * Z is in the previous inbox slot; this exchange writes the other one. */
+		if (here) ph_attn_kvi(P, w, b, Z);
+		QG = ph_xchg(P, x, s->d, s->n, b->qg, 4*w->attn_q_rows, 4*w->attn_q_first, 4*12288);
+	}
+	if (here) { if (b->qsa) ph_attn_qsa(P, w, b, t, eps, Z, QG); else ph_attn_core(P, w, b, t, eps); }
 	CUdeviceptr AOUT = ph_xchg(P, x, s->d, s->n, b->aout, here ? 6144 * 4 : 0, 0, 6144 * 4);
 	ph_actq(P, OP_ACTQ256, AOUT, b->oq, b->os32, b->os16, b->oas, 256, 24);
 	ph_gemv_any(P, w->attn_output_type, 6144, w->attn_output, b->oq, b->os32, b->os16, b->ly, (unsigned)s->yn, b->oas, 0, 0);

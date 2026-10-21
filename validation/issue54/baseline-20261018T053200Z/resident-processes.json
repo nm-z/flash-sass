@@ -1,0 +1,42 @@
+{
+  "core": {
+    "pid": 3575268,
+    "start_ticks": "6963540",
+    "exe": "/home/nate/claude/flash-sass-live/kern/flashcore",
+    "exe_sha256": "0257e1fbf4a6505bc54ed230b93abe22d5f21ed66daa22345a85b73f6a673d06",
+    "cwd": "/home/nate/claude/flash-sass-live/kern",
+    "argv": [
+      "./flashcore",
+      "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+      "/home/nate/claude/flash-sass-live/kern/libengine.so",
+      "/tmp/hold-h0.manifest",
+      "/tmp/hold-h1.manifest",
+      "/tmp/hold-h2.manifest",
+      "/tmp/hold-h3.manifest",
+      "/tmp/hold-h4.manifest",
+      "/tmp/hold-h5.manifest"
+    ],
+    "comm": "flashcore"
+  },
+  "frontend": {
+    "pid": 753710,
+    "start_ticks": "8276117",
+    "exe": "/home/nate/claude/flash-sass-live/kern/flashd",
+    "exe_sha256": "96b8266f325f0a2aa77f6c0814fdf0d0ef8eb0d4701bea9e60ba6cf644b3154a",
+    "cwd": "/home/nate/claude/flash-sass-live/kern",
+    "argv": [
+      "./flashd",
+      "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf",
+      "/tmp/flash.sock",
+      "127.0.0.1:18090"
+    ],
+    "comm": "flashd"
+  },
+  "engine": {
+    "path": "/tmp/flashcore-3575268-gen21.so",
+    "inode": 85548,
+    "size": 169704,
+    "mtime_ns": 1792300590110834771,
+    "sha256": "e0ce409d7f23f8ee924cf312c77eac4fbce89bfca6d180c6328f55b12e771eb2"
+  }
+}
