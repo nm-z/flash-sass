@@ -9,6 +9,7 @@ issue22_weight_revision=${ISSUE22_WEIGHT_REVISION:?ISSUE22_WEIGHT_REVISION is re
 issue22_inputs=${QSA_INDEXER_INPUT_DIR:?QSA_INDEXER_INPUT_DIR is required}
 issue22_positions=${QSA_INDEXER_POSITIONS:?QSA_INDEXER_POSITIONS is required}
 issue22_budget=${ISSUE22_INDEXER_BUDGET:-1}
+issue22_lengths=${ISSUE22_INDEXER_LENGTHS:-$issue22_positions}
 issue22_weights_sha=$(jq -er '.weights_file_sha256' "$issue22_inputs/complete.json")
 issue22_out=${GPUQ_RUN_DIR:?GPUQ_RUN_DIR is required}/issue22-layer3-indexer
 issue22_lock=/tmp/flash-sass-engine-validation.lock
@@ -21,7 +22,7 @@ issue22_lock=/tmp/flash-sass-engine-validation.lock
     printf 'GPUQ descriptor 9 does not reference %s\n' "$issue22_lock" >&2
     exit 2
 }
-[[ $issue22_gpu =~ ^[0-9]+$ && $issue22_positions =~ ^[1-9][0-9]*$ && $issue22_budget =~ ^[1-9][0-9]*$ ]] || exit 2
+[[ $issue22_gpu =~ ^[0-9]+$ && $issue22_positions =~ ^[1-9][0-9]*$ && $issue22_budget =~ ^[1-9][0-9]*$ && $issue22_lengths =~ ^[0-9]+(,[0-9]+)*$ ]] || exit 2
 (( issue22_budget <= 512 )) || exit 2
 [[ $issue22_test_revision =~ ^[0-9a-f]{40}$ && $issue22_weight_revision =~ ^[0-9a-f]{40}$ ]] || exit 2
 [[ -x $issue22_test && -f ${DIE_CUBIN:?DIE_CUBIN is required} ]] || {
@@ -29,11 +30,13 @@ issue22_lock=/tmp/flash-sass-engine-validation.lock
     exit 2
 }
 jq -e --arg revision "$issue22_weight_revision" --argjson positions "$issue22_positions" \
-    --argjson budget "$issue22_budget" \
+    --argjson budget "$issue22_budget" --argjson lengths "$(jq -cn --arg s "$issue22_lengths" '$s|split(",")|map(tonumber)')" \
     '.schema == "flash-sass.qsa-layer-capture.v1" and .complete == true
      and .weights_origin == "original_checkpoint_safetensors_layer3"
      and .weights_revision == $revision and .positions == $positions and .budget == $budget
      and (.weights_file_sha256|type) == "string" and (.weights_file_sha256|length) == 64
+     and ($lengths|index($positions)) != null
+     and (.snapshot_lengths as $declared | all($lengths[]; . as $n | ($declared|index($n)) != null))
      and .production_gpu_indexer_executed == false and .full_model == false' \
     "$issue22_inputs/complete.json" > /dev/null
 
@@ -72,11 +75,28 @@ sha256sum "$issue22_test" "$DIE_CUBIN" "${BASH_SOURCE[0]}" > "$issue22_out/sourc
     find . -type f -print0 | sort -z | xargs -0 sha256sum
 ) > "$issue22_out/inputs-before.sha256"
 "$issue22_test" idxqk "$issue22_positions" > "$issue22_out/idxqk.stdout" 2> "$issue22_out/idxqk.stderr"
-"$issue22_test" idxscore "$issue22_nv" "$issue22_budget" > "$issue22_out/idxscore.stdout" 2> "$issue22_out/idxscore.stderr"
-"$issue22_test" idxsel "$issue22_nv" "$issue22_budget" 0 5 > "$issue22_out/idxsel.stdout" 2> "$issue22_out/idxsel.stderr"
 rg -q "idxqk: $issue22_positions tokens: BIT-EXACT" "$issue22_out/idxqk.stdout"
-rg -q "idxscore: nv $issue22_nv NBLK $issue22_budget: BIT-EXACT" "$issue22_out/idxscore.stdout"
-rg -q "idxsel: nv $issue22_nv NBLK $issue22_budget mode 0: BIT-EXACT" "$issue22_out/idxsel.stdout"
+IFS=, read -r -a issue22_test_lengths <<< "$issue22_lengths"
+for issue22_length in "${issue22_test_lengths[@]}"; do
+    issue22_blocks=$((issue22_length / 4))
+    QSA_INDEXER_POSITIONS=$issue22_length "$issue22_test" idxscore \
+        "$issue22_blocks" "$issue22_budget" \
+        > "$issue22_out/idxscore-n${issue22_length}.stdout" \
+        2> "$issue22_out/idxscore-n${issue22_length}.stderr"
+    rg -q "idxscore: nv $issue22_blocks NBLK $issue22_budget: BIT-EXACT" \
+        "$issue22_out/idxscore-n${issue22_length}.stdout"
+    if (( issue22_blocks > issue22_budget )); then
+        QSA_INDEXER_POSITIONS=$issue22_length "$issue22_test" idxsel \
+            "$issue22_blocks" "$issue22_budget" 0 5 \
+            > "$issue22_out/idxsel-n${issue22_length}.stdout" \
+            2> "$issue22_out/idxsel-n${issue22_length}.stderr"
+        rg -q "idxsel: nv $issue22_blocks NBLK $issue22_budget mode 0: BIT-EXACT" \
+            "$issue22_out/idxsel-n${issue22_length}.stdout"
+    else
+        printf 'idxsel not dispatched for dense prefix N=%s\n' "$issue22_length" \
+            > "$issue22_out/idxsel-n${issue22_length}.stdout"
+    fi
+done
 nvidia-smi > "$issue22_out/gpu-after.txt"
 sha256sum "$issue22_test" "$DIE_CUBIN" "${BASH_SOURCE[0]}" > "$issue22_out/source-after.sha256"
 cmp -- "$issue22_out/source-before.sha256" "$issue22_out/source-after.sha256"
@@ -85,18 +105,25 @@ cmp -- "$issue22_out/source-before.sha256" "$issue22_out/source-after.sha256"
     find . -type f -print0 | sort -z | xargs -0 sha256sum
 ) > "$issue22_out/inputs-after.sha256"
 cmp -- "$issue22_out/inputs-before.sha256" "$issue22_out/inputs-after.sha256"
-issue22_selected_id=$(od -An -tu4 -N4 "$issue22_inputs/n$issue22_positions/selected_ids.u32" | tr -d ' ')
+issue22_test_length_json=$(jq -cn --arg values "$issue22_lengths" '$values|split(",")|map(tonumber)')
+issue22_test_results_json=$(jq -cn --argjson lengths "$issue22_test_length_json" \
+    --argjson budget "$issue22_budget" \
+    '$lengths|map(. as $n|{length:$n,complete_blocks:($n/4|floor),tail:($n%4),
+      idxscore:"bit_exact",idxsel:(if ($n/4|floor)>$budget then "bit_exact" else "not_dispatched_dense" end)})')
 jq -n --arg weight_revision "$issue22_weight_revision" \
     --arg test_revision "$issue22_test_revision" \
     --arg weights_sha "$issue22_weights_sha" \
     --argjson gpu "$issue22_gpu" --argjson positions "$issue22_positions" \
     --argjson blocks "$issue22_nv" --argjson budget "$issue22_budget" \
+    --argjson lengths "$issue22_test_length_json" \
+    --argjson test_results "$issue22_test_results_json" \
     --argjson selected_ids "$issue22_selected_ids" \
     '{schema:"flash-sass.issue22-original-layer3-indexer-gpu.v1",
       checkpoint_revision:$weight_revision,test_source_revision:$test_revision,
       weights_sha256:$weights_sha,
       gpu:$gpu,positions:$positions,complete_blocks:$blocks,budget:$budget,
-      selected_ids:$selected_ids,selected_blocks:($selected_ids|length),idxqk:"bit_exact",idxscore:"bit_exact",idxsel:"bit_exact",
+      lengths_tested:$lengths,indexer_results:$test_results,
+      selected_ids_at_max:$selected_ids,selected_blocks_at_max:($selected_ids|length),idxqk:"bit_exact",
       original_layer3_indexer_weights:true,synthetic_hidden_inputs:true,
       source_hashes_unchanged:true,input_hashes_unchanged:true,
       production_gpu_indexer_ops_executed:true,production_model_dispatch_executed:false,
