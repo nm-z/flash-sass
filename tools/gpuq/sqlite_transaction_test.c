@@ -38,7 +38,8 @@ static char read_byte(int fd) {
 
 static sqlite3 *open_db(const char *path) {
     sqlite3 *db = NULL;
-    int rc = sqlite3_open_v2(path, &db, SQLITE_OPEN_READWRITE, NULL);
+    int rc = sqlite3_open_v2(path, &db,
+                             SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
     if (rc != SQLITE_OK) {
         child_fail("sqlite3_open_v2", rc, db);
     }
