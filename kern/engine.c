@@ -102,6 +102,10 @@ static int two_position, prefill_chunk, prefill_auto; /* opt-in paired pass; aut
 static int last_positions, last_paired_positions, last_prefill_chunks;
 static CUdeviceptr dPROG[MAXD], dCTL[MAXD], (*dst_dn)[NB], (*dst_conv)[NB], (*dst_kq)[NB], (*dst_ks)[NB], (*dst_vq)[NB], (*dst_vs)[NB], (*dst_pkt)[NB], (*dst_ring)[NB], (*snap_ring)[NB], dst_ple[MAXD];
 static size_t dn_bytes[MAXD][NB], conv_bytes[MAXD][NB], kcf, vcf;
+static int state_diff_enabled;
+static unsigned state_diff_hash_calls;
+static unsigned char *state_diff_ref_dn46, *state_diff_ref_conv46;
+static size_t state_diff_dn46_bytes, state_diff_conv46_bytes;
 static int kv_host = 1;                  /* FLASH_KV_HOST=0: the int8 KV caches in VRAM (small contexts) instead of pinned host memory */
 static void *h_kv;                      /* the host-resident KV caches of all attention layers */
 /* Validation-only raw group maxima. The ordinary cubin has no trace instructions. */
@@ -208,8 +212,100 @@ static uint64_t device_fnv(CUdeviceptr p, size_t bytes, uint64_t h) {
 	}
 	return h;
 }
+
+typedef struct {
+	size_t values, differing, nonfinite;
+	double max_abs, max_rel;
+} state_diff_metric;
+
+static void state_diff_measure(const unsigned char *reference,
+			       const unsigned char *current, size_t bytes,
+			       state_diff_metric *metric) {
+	for (size_t at = 0; at + sizeof(float) <= bytes; at += sizeof(float)) {
+		float a, b;
+		memcpy(&a, reference + at, sizeof a);
+		memcpy(&b, current + at, sizeof b);
+		metric->values++;
+		if (memcmp(reference + at, current + at, sizeof(float))) metric->differing++;
+		if (!isfinite(a) || !isfinite(b)) {
+			metric->nonfinite++;
+			metric->max_abs = INFINITY;
+			metric->max_rel = INFINITY;
+			continue;
+		}
+		double delta = fabs((double)a - (double)b);
+		double scale = fmax(fabs((double)a), fabs((double)b));
+		double relative = scale > 0.0 ? delta / scale : 0.0;
+		if (delta > metric->max_abs) metric->max_abs = delta;
+		if (relative > metric->max_rel) metric->max_rel = relative;
+	}
+}
+
+/* Opt-in comparison of the first fresh-A state with save-512-A. Layer 46 was
+ * the first mismatching state record in the captured kv0-scalar failures. */
+static void state_diff_capture_reference(void) {
+	if (nlayers_run <= 46 || BLK_IS_ATTN(46) || !dst_dn[0][46] || !dst_conv[0][46]) {
+		fprintf(stderr, "STATE_DIFF capture=skipped reason=layer46-not-recurrent\n");
+		return;
+	}
+	state_diff_dn46_bytes = dn_bytes[0][46];
+	state_diff_conv46_bytes = conv_bytes[0][46];
+	state_diff_ref_dn46 = malloc(state_diff_dn46_bytes);
+	state_diff_ref_conv46 = malloc(state_diff_conv46_bytes);
+	if (!state_diff_ref_dn46 || !state_diff_ref_conv46) {
+		free(state_diff_ref_dn46); free(state_diff_ref_conv46);
+		state_diff_ref_dn46 = state_diff_ref_conv46 = NULL;
+		state_diff_dn46_bytes = state_diff_conv46_bytes = 0;
+		fprintf(stderr, "STATE_DIFF capture=failed reason=host-allocation\n");
+		return;
+	}
+	CK(cuCtxSetCurrent(ctx[0]));
+	CK(cuMemcpyDtoH(state_diff_ref_dn46, dst_dn[0][46], state_diff_dn46_bytes));
+	CK(cuMemcpyDtoH(state_diff_ref_conv46, dst_conv[0][46], state_diff_conv46_bytes));
+	fprintf(stderr, "STATE_DIFF capture=fresh-A pair_target=save-512-A die=0 layer=46 dn_bytes=%zu conv_bytes=%zu\n",
+	        state_diff_dn46_bytes, state_diff_conv46_bytes);
+}
+
+static void state_diff_compare_save512a(void) {
+	if (!state_diff_ref_dn46 || !state_diff_ref_conv46 ||
+	    state_diff_dn46_bytes != dn_bytes[0][46] || state_diff_conv46_bytes != conv_bytes[0][46]) {
+		fprintf(stderr, "STATE_DIFF compare=skipped reason=reference-unavailable\n");
+		return;
+	}
+	unsigned char *current_dn = malloc(state_diff_dn46_bytes);
+	unsigned char *current_conv = malloc(state_diff_conv46_bytes);
+	if (!current_dn || !current_conv) {
+		free(current_dn); free(current_conv);
+		fprintf(stderr, "STATE_DIFF compare=failed reason=host-allocation\n");
+		return;
+	}
+	CK(cuCtxSetCurrent(ctx[0]));
+	CK(cuMemcpyDtoH(current_dn, dst_dn[0][46], state_diff_dn46_bytes));
+	CK(cuMemcpyDtoH(current_conv, dst_conv[0][46], state_diff_conv46_bytes));
+	state_diff_metric dn = {0}, conv = {0};
+	state_diff_measure(state_diff_ref_dn46, current_dn, state_diff_dn46_bytes, &dn);
+	state_diff_measure(state_diff_ref_conv46, current_conv, state_diff_conv46_bytes, &conv);
+	double max_abs = fmax(dn.max_abs, conv.max_abs);
+	double max_rel = fmax(dn.max_rel, conv.max_rel);
+	fprintf(stderr,
+	        "STATE_DIFF pair=fresh-A/save-512-A die=0 layer=46 metric=fp32-denom=max_abs_reference_or_current "
+	        "dn_values=%zu dn_diff=%zu dn_max_abs=%.9g dn_max_rel=%.9g "
+	        "conv_values=%zu conv_diff=%zu conv_max_abs=%.9g conv_max_rel=%.9g "
+	        "combined_values=%zu combined_diff=%zu combined_max_abs=%.9g combined_max_rel=%.9g nonfinite=%zu\n",
+	        dn.values, dn.differing, dn.max_abs, dn.max_rel,
+	        conv.values, conv.differing, conv.max_abs, conv.max_rel,
+	        dn.values + conv.values, dn.differing + conv.differing, max_abs, max_rel,
+	        dn.nonfinite + conv.nonfinite);
+	free(current_dn); free(current_conv);
+}
+
 static void state_hashes(FILE *out) {
 	const uint64_t seed = 0xcbf29ce484222325ull;
+	if (state_diff_enabled) {
+		state_diff_hash_calls++;
+		if (state_diff_hash_calls == 1) state_diff_capture_reference();
+		else if (state_diff_hash_calls == 3) state_diff_compare_save512a();
+	}
 	fprintf(out, "statehash positions=%d paired_positions=%d prefill_chunks=%d\n", last_positions, last_paired_positions, last_prefill_chunks);
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
@@ -866,6 +962,16 @@ int engine_init(core_t *c) {
 	if (trace_n > 256) { fprintf(stderr, "FLASH_TRACE must be 0..256\n"); return -1; }
 	if (c->abi != CORE_ABI) { fprintf(stderr, "engine: the core speaks ABI %d, this library was built for %d\n", c->abi, CORE_ABI); return -1; }
 	core = c; in_init = 1;
+	free(state_diff_ref_dn46); state_diff_ref_dn46 = NULL;
+	free(state_diff_ref_conv46); state_diff_ref_conv46 = NULL;
+	state_diff_dn46_bytes = state_diff_conv46_bytes = 0;
+	state_diff_hash_calls = 0;
+	const char *state_diff_env = getenv("FLASH_STATE_DIFF");
+	if (state_diff_env && strcmp(state_diff_env, "0") && strcmp(state_diff_env, "1")) {
+		fprintf(stderr, "FLASH_STATE_DIFF must be 0 or 1\n");
+		in_init = 0; return -1;
+	}
+	state_diff_enabled = state_diff_env && !strcmp(state_diff_env, "1");
 	if (setjmp(init_jb)) { in_init = 0; engine_fini(); return -1; }
 	MAXT = c->maxt;
 	last_positions = last_paired_positions = last_prefill_chunks = 0;
@@ -1112,6 +1218,10 @@ void engine_fini(void) {
 	phase_probe_destroy();
 	ple_read_pool_destroy(&ple_reads);
 	ple_cache_path[0]=0;ple_cache_active=0;
+	free(state_diff_ref_dn46); state_diff_ref_dn46 = NULL;
+	free(state_diff_ref_conv46); state_diff_ref_conv46 = NULL;
+	state_diff_dn46_bytes = state_diff_conv46_bytes = 0;
+	state_diff_hash_calls = 0; state_diff_enabled = 0;
 	if (!core) return;
 	for (int d = 0; d < nd; d++) { if (pollst[d]) { cuCtxSetCurrent(ctx[d]); cuStreamDestroy(pollst[d]); pollst[d] = 0; } }
 	cuCtxSetCurrent(ctx[0]);

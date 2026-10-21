@@ -83,6 +83,7 @@ typedef struct {
     int first_only;
     int scalar_only;
     int kv1_only;
+    int state_diff;
     char *ld_library_path;
     char *cuda_device_order;
 } options_t;
@@ -284,7 +285,7 @@ static void usage(FILE *f, const char *program) {
         "--manifest FILE x6 --holder-pid PID x6 --cuda-visible CSV "
         "--split-shares CSV --attn-map CSV --tokens N [--snapshots CSV] "
         "--nblk N --lock-fd FD [--ple-off N] [--timeout SEC] "
-        "[--weight-manifest FILE ...] [--phase-probe] [--first-only] [--scalar-only] [--kv1-only] [--self-test]\n", program);
+        "[--weight-manifest FILE ...] [--phase-probe] [--first-only] [--scalar-only] [--kv1-only] [--state-diff] [--self-test]\n", program);
 }
 
 static int add_arg_string(char **slot, const char *value, const char *name) {
@@ -323,7 +324,7 @@ static int parse_options(int argc, char **argv, options_t *o) {
         OPT_WEIGHT_MANIFEST, OPT_VISIBLE, OPT_SHARES, OPT_ATTN, OPT_TOKENS,
         OPT_SNAPSHOTS, OPT_NBLK, OPT_LOCK, OPT_PLE_OFF, OPT_TIMEOUT, OPT_KV,
         OPT_MIN_FREE, OPT_MIN_HOST, OPT_PHASE_PROBE, OPT_FIRST_ONLY, OPT_SCALAR_ONLY,
-        OPT_KV1_ONLY
+        OPT_KV1_ONLY, OPT_STATE_DIFF
     };
     static const struct option opts[] = {
         {"repo", required_argument, NULL, OPT_REPO},
@@ -349,6 +350,7 @@ static int parse_options(int argc, char **argv, options_t *o) {
         {"first-only", no_argument, NULL, OPT_FIRST_ONLY},
         {"scalar-only", no_argument, NULL, OPT_SCALAR_ONLY},
         {"kv1-only", no_argument, NULL, OPT_KV1_ONLY},
+        {"state-diff", no_argument, NULL, OPT_STATE_DIFF},
         {NULL, 0, NULL, 0}
     };
     unsigned tmp;
@@ -417,6 +419,10 @@ static int parse_options(int argc, char **argv, options_t *o) {
         case OPT_KV1_ONLY:
             if (o->kv1_only) return ec_fail("duplicate --kv1-only");
             o->kv1_only = 1;
+            break;
+        case OPT_STATE_DIFF:
+            if (o->state_diff) return ec_fail("duplicate --state-diff");
+            o->state_diff = 1;
             break;
         default: return ec_fail("unknown command-line option");
         }
@@ -987,7 +993,8 @@ static int write_report(const options_t *o, const run_result_t *runs, size_t nru
         write_all_json_string(f, o->kv1_only ? "kv1-scalar only" : o->first_only ? "kv0-scalar only" : o->scalar_only ? "kv0+kv1 scalar" : "full matrix") < 0 ||
         fprintf(f, ",\n  \"revision\":") < 0 ||
         write_all_json_string(f, o->revision) < 0 ||
-        fprintf(f, ",\n  \"phase_probe\":%s,\n  \"ple_path\":", o->phase_probe ? "true" : "false") < 0 || write_all_json_string(f, o->ple) < 0 ||
+        fprintf(f, ",\n  \"phase_probe\":%s,\n  \"state_diff_probe\":%s,\n  \"ple_path\":",
+                o->phase_probe ? "true" : "false", o->state_diff ? "true" : "false") < 0 || write_all_json_string(f, o->ple) < 0 ||
         fprintf(f, ",\n  \"ple_offset\":%u,\n  \"ple_hash_provenance\":\"declared from offline checkpoints.sha256; live shard not rehashed\",\n  \"ple_receipt_manifest\":",
                 o->ple_off) < 0 || write_all_json_string(f, o->ple_receipt_path) < 0 ||
         fprintf(f, ",\n  \"ple_receipt_identity_sha256\":") < 0 ||
@@ -1128,7 +1135,8 @@ static int run_private_core(const options_t *o, const char *mode, unsigned kv_ho
         if (out_fd != STDOUT_FILENO) close(out_fd);
         if (err_fd != STDERR_FILENO) close(err_fd);
         if (remove_inherited_engine_overrides() < 0) _exit(126);
-        if (setenv("FLASH_PHASE_PROBE", o->phase_probe ? "1" : "0", 1)) _exit(126);
+        if (setenv("FLASH_PHASE_PROBE", o->phase_probe ? "1" : "0", 1) ||
+            setenv("FLASH_STATE_DIFF", o->state_diff ? "1" : "0", 1)) _exit(126);
         if ((o->ld_library_path && setenv("LD_LIBRARY_PATH", o->ld_library_path, 1)) ||
             (o->cuda_device_order && setenv("CUDA_DEVICE_ORDER", o->cuda_device_order, 1)) ||
             setenv("CUDA_VISIBLE_DEVICES", o->visible_csv, 1) ||
@@ -1478,7 +1486,7 @@ static int kv1_option_self_test(int conflict) {
         "--split-shares", "112,97,81,116,97,97",
         "--attn-map", "1,1,1,1,4,4,4,4,5,5,5,5",
         "--tokens", "800", "--snapshots", "512,515", "--nblk", "512",
-        "--lock-fd", "9", "--kv1-only"
+        "--lock-fd", "9", "--kv1-only", "--state-diff"
     };
     char *argv[sizeof base / sizeof base[0] + 2];
     options_t parsed = {0};
@@ -1493,9 +1501,9 @@ static int kv1_option_self_test(int conflict) {
     if (conflict)
         ok = rc < 0 && strstr(ec_error, "cannot be combined") != NULL;
     else
-        ok = rc == 0 && parsed.kv1_only && !parsed.first_only && !parsed.scalar_only;
+        ok = rc == 0 && parsed.kv1_only && parsed.state_diff && !parsed.first_only && !parsed.scalar_only;
     if (ok)
-        printf("PASS %s\n", conflict ? "--kv1-only conflicts with --first-only" : "--kv1-only selects kv1 scalar");
+        printf("PASS %s\n", conflict ? "--kv1-only conflicts with --first-only" : "--kv1-only and --state-diff options parsed");
     else
         fprintf(stderr, "FAIL %s: %s\n", conflict ? "--kv1-only conflict" : "--kv1-only selection",
                 ec_error[0] ? ec_error : (rc == 0 ? "selection flags are inconsistent" : "option parse failed"));
