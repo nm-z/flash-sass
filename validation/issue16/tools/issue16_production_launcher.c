@@ -266,7 +266,7 @@ int main(int argc, char **argv) {
 	char model_copy[PATH_MAX], gather_copy[PATH_MAX], helper_copy[PATH_MAX], cubin_copy[PATH_MAX], launcher_bin_copy[PATH_MAX];
 	if (!run_rc && (snprintf(model_copy, sizeof model_copy, "%s/model_test", work) >= (int)sizeof model_copy ||
 			snprintf(gather_copy, sizeof gather_copy, "%s/qsa_gather_bench", work) >= (int)sizeof gather_copy ||
-			snprintf(helper_copy, sizeof helper_copy, "%s/production_prompt_ids", work) >= (int)sizeof helper_copy ||
+				snprintf(helper_copy, sizeof helper_copy, "%s/issue16_production_prompt_ids", work) >= (int)sizeof helper_copy ||
 			snprintf(cubin_copy, sizeof cubin_copy, "%s/die.cubin", work) >= (int)sizeof cubin_copy ||
 			snprintf(launcher_bin_copy, sizeof launcher_bin_copy, "%s/issue16_production_launcher", work) >= (int)sizeof launcher_bin_copy)) {
 		fprintf(stderr, "binary bundle path is too long\n"); run_rc = 2;
@@ -284,7 +284,7 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "failed copying production input or source into result bundle\n"); run_rc = 1;
 	}
 	if (!run_rc && (copy_file("./qsa_gather_bench", gather_copy) ||
-			copy_file("./production_prompt_ids", helper_copy) ||
+			copy_file("./issue16_production_prompt_ids", helper_copy) ||
 			copy_file("./die.cubin", cubin_copy))) {
 		fprintf(stderr, "failed copying binary inputs into result bundle\n"); run_rc = 1;
 	}
@@ -302,7 +302,7 @@ int main(int argc, char **argv) {
 		    snprintf(render_err, sizeof render_err, "%s/tokenizer.stderr", work) >= (int)sizeof render_err) {
 			fprintf(stderr, "tokenizer log path is too long\n"); run_rc = 2;
 		} else {
-			char *const token_argv[] = {"./production_prompt_ids", tokenizer_path, (char *)"./production-prompt.txt", rendered, ids_txt, NULL};
+			char *const token_argv[] = {"./issue16_production_prompt_ids", tokenizer_path, (char *)"./production-prompt.txt", rendered, ids_txt, NULL};
 			run_rc = run_to_files(token_argv, render_out, render_err);
 			if (!run_rc && count_token_lines(ids_txt, &prompt_tokens)) run_rc = 1;
 			if (!run_rc && prompt_tokens <= CAPTURE_POSITION) {
