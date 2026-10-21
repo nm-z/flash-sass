@@ -82,6 +82,7 @@ typedef struct {
     int phase_probe;
     int first_only;
     int scalar_only;
+    int kv1_only;
     char *ld_library_path;
     char *cuda_device_order;
 } options_t;
@@ -283,7 +284,7 @@ static void usage(FILE *f, const char *program) {
         "--manifest FILE x6 --holder-pid PID x6 --cuda-visible CSV "
         "--split-shares CSV --attn-map CSV --tokens N [--snapshots CSV] "
         "--nblk N --lock-fd FD [--ple-off N] [--timeout SEC] "
-        "[--weight-manifest FILE ...] [--phase-probe] [--first-only] [--scalar-only] [--self-test]\n", program);
+        "[--weight-manifest FILE ...] [--phase-probe] [--first-only] [--scalar-only] [--kv1-only] [--self-test]\n", program);
 }
 
 static int add_arg_string(char **slot, const char *value, const char *name) {
@@ -321,7 +322,8 @@ static int parse_options(int argc, char **argv, options_t *o) {
         OPT_REPO = 1000, OPT_OUT, OPT_PLE, OPT_REVISION, OPT_MANIFEST, OPT_PID,
         OPT_WEIGHT_MANIFEST, OPT_VISIBLE, OPT_SHARES, OPT_ATTN, OPT_TOKENS,
         OPT_SNAPSHOTS, OPT_NBLK, OPT_LOCK, OPT_PLE_OFF, OPT_TIMEOUT, OPT_KV,
-        OPT_MIN_FREE, OPT_MIN_HOST, OPT_PHASE_PROBE, OPT_FIRST_ONLY, OPT_SCALAR_ONLY
+        OPT_MIN_FREE, OPT_MIN_HOST, OPT_PHASE_PROBE, OPT_FIRST_ONLY, OPT_SCALAR_ONLY,
+        OPT_KV1_ONLY
     };
     static const struct option opts[] = {
         {"repo", required_argument, NULL, OPT_REPO},
@@ -346,6 +348,7 @@ static int parse_options(int argc, char **argv, options_t *o) {
         {"phase-probe", no_argument, NULL, OPT_PHASE_PROBE},
         {"first-only", no_argument, NULL, OPT_FIRST_ONLY},
         {"scalar-only", no_argument, NULL, OPT_SCALAR_ONLY},
+        {"kv1-only", no_argument, NULL, OPT_KV1_ONLY},
         {NULL, 0, NULL, 0}
     };
     unsigned tmp;
@@ -411,12 +414,18 @@ static int parse_options(int argc, char **argv, options_t *o) {
             if (o->scalar_only) return ec_fail("duplicate --scalar-only");
             o->scalar_only = 1;
             break;
+        case OPT_KV1_ONLY:
+            if (o->kv1_only) return ec_fail("duplicate --kv1-only");
+            o->kv1_only = 1;
+            break;
         default: return ec_fail("unknown command-line option");
         }
     }
     if (optind != argc) return ec_fail("unexpected positional arguments");
     if (o->first_only && o->scalar_only)
         return ec_fail("--first-only and --scalar-only cannot be combined");
+    if (o->kv1_only && (o->first_only || o->scalar_only))
+        return ec_fail("--kv1-only cannot be combined with --first-only or --scalar-only");
     if (!o->snapshots_csv) o->snapshots_csv = string_dup("1,2,3,5");
     if (!o->kv_csv) o->kv_csv = string_dup("0,1");
     if (!o->repo || !o->out || !o->ple || !o->revision || !o->visible_csv ||
@@ -975,7 +984,7 @@ static int write_report(const options_t *o, const run_result_t *runs, size_t nru
     if (fprintf(f, "{\n  \"schema\":\"flash-sass.issue9.engine-check.v1\",\n  \"status\":") < 0 ||
         write_all_json_string(f, status) < 0 ||
         fprintf(f, ",\n  \"scope\":\"full48-six-die GPU-vs-GPU request fingerprints\",\n  \"run_selection\":") < 0 ||
-        write_all_json_string(f, o->first_only ? "kv0-scalar only" : o->scalar_only ? "kv0+kv1 scalar" : "full matrix") < 0 ||
+        write_all_json_string(f, o->kv1_only ? "kv1-scalar only" : o->first_only ? "kv0-scalar only" : o->scalar_only ? "kv0+kv1 scalar" : "full matrix") < 0 ||
         fprintf(f, ",\n  \"revision\":") < 0 ||
         write_all_json_string(f, o->revision) < 0 ||
         fprintf(f, ",\n  \"phase_probe\":%s,\n  \"ple_path\":", o->phase_probe ? "true" : "false") < 0 || write_all_json_string(f, o->ple) < 0 ||
@@ -1297,8 +1306,8 @@ int main(int argc, char **argv) {
         add_identity(identities, sizeof identities / sizeof identities[0], &identity_count, command_path) < 0) goto done;
     if (write_report(&o, runs, 0, identities, identity_count, "RUNNING", "") < 0) goto done;
     deadline = monotime() + (double)o.timeout_seconds;
-    for (unsigned kv = 0; kv < (o.first_only ? 1u : 2u); kv++) {
-        for (unsigned mode_index = 0; mode_index < ((o.first_only || o.scalar_only) ? 1u : 2u); mode_index++) {
+    for (unsigned kv = o.kv1_only ? 1u : 0u; kv < (o.first_only ? 1u : 2u); kv++) {
+        for (unsigned mode_index = 0; mode_index < ((o.first_only || o.scalar_only || o.kv1_only) ? 1u : 2u); mode_index++) {
             if (ec_interrupted) { ec_fail("engine request runner interrupted"); goto done; }
             run_result_t *run = &runs[run_count];
             const char *mode = mode_index ? "chunk3" : "scalar";
@@ -1455,6 +1464,47 @@ static int config_fixture_check(const options_t *o, const char *name,
     return -1;
 }
 
+static int kv1_option_self_test(int conflict) {
+    static char *const base[] = {
+        "engine_check", "--repo", "/tmp/repo", "--out", "/tmp/out",
+        "--ple", "/tmp/ple", "--revision", "0123456789abcdef0123456789abcdef01234567",
+        "--manifest", "/tmp/manifest0", "--manifest", "/tmp/manifest1",
+        "--manifest", "/tmp/manifest2", "--manifest", "/tmp/manifest3",
+        "--manifest", "/tmp/manifest4", "--manifest", "/tmp/manifest5",
+        "--holder-pid", "101", "--holder-pid", "102", "--holder-pid", "103",
+        "--holder-pid", "104", "--holder-pid", "105", "--holder-pid", "106",
+        "--weight-manifest", "/tmp/weights.sha256",
+        "--cuda-visible", "0,1,2,3,4,5",
+        "--split-shares", "112,97,81,116,97,97",
+        "--attn-map", "1,1,1,1,4,4,4,4,5,5,5,5",
+        "--tokens", "800", "--snapshots", "512,515", "--nblk", "512",
+        "--lock-fd", "9", "--kv1-only"
+    };
+    char *argv[sizeof base / sizeof base[0] + 2];
+    options_t parsed = {0};
+    int saved_opterr = opterr;
+    size_t argc = sizeof base / sizeof base[0];
+    int rc, ok;
+    memcpy(argv, base, sizeof base);
+    if (conflict) argv[argc++] = "--first-only";
+    argv[argc] = NULL;
+    optind = 0; opterr = 0; ec_error[0] = '\0';
+    rc = parse_options((int)argc, argv, &parsed);
+    if (conflict)
+        ok = rc < 0 && strstr(ec_error, "cannot be combined") != NULL;
+    else
+        ok = rc == 0 && parsed.kv1_only && !parsed.first_only && !parsed.scalar_only;
+    if (ok)
+        printf("PASS %s\n", conflict ? "--kv1-only conflicts with --first-only" : "--kv1-only selects kv1 scalar");
+    else
+        fprintf(stderr, "FAIL %s: %s\n", conflict ? "--kv1-only conflict" : "--kv1-only selection",
+                ec_error[0] ? ec_error : (rc == 0 ? "selection flags are inconsistent" : "option parse failed"));
+    options_free(&parsed);
+    ec_error[0] = '\0';
+    opterr = saved_opterr;
+    return ok ? 0 : -1;
+}
+
 static int engine_check_self_test(void) {
     static const char revision40[] = "0123456789abcdef0123456789abcdef01234567";
     static const char *const shares = "112,97,81,116,97,97";
@@ -1464,6 +1514,10 @@ static int engine_check_self_test(void) {
     char revision_field[64];
     unsigned checks = 0;
     int failed = 0;
+    if (kv1_option_self_test(0) < 0) failed++;
+    checks++;
+    if (kv1_option_self_test(1) < 0) failed++;
+    checks++;
     fixture.revision = (char *)revision40;
     fixture.maxt = 2176;
     fixture.budget = 512;
