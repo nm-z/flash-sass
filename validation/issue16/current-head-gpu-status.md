@@ -1,20 +1,27 @@
 # Current-head GPU verification status
 
-Source revision: `a62303283f993acb8a13188941b00f5bc9ef340b`.
+Implementation source revision: `a62303283f993acb8a13188941b00f5bc9ef340b`. PR #43 currently includes the merged master and validation commits.
 
-The current-head C/CUDA build completed on Benji through DSH. The exact build log, DSH configuration, toolchain hashes, and returned artifact hashes are in `build-current-head.log` and `build-current-head.json`.
+The current-head C/CUDA build completed on Benji through DSH. Its DSH request, task-local build root, ptxas/MaxAs inputs, artifact hashes, and raw build log are recorded in `build-current-head.json` and `build-current-head.log`.
 
-No current-head GPU matrix or profiler job has run. The required Archy queue access failed before `gpuq` started:
+A GPUQ inventory job completed successfully. It found an idle Tesla M60 `GPU-431371bd-b482-96b2-4b70-04f83c6d075b` (driver `470.256.02`, 7,547 MiB free at the inventory sample). A short GPUQ test ran `QSA_HOSTKV=2` and returned the expected status 2 with `QSA_HOSTKV must be exactly 0 or 1`.
 
-```text
-ssh archy gpuq search --help
-Permission denied, please try again.
-Permission denied, please try again.
-nate@192.168.1.218: Permission denied (publickey,password).
-```
+## Matrix attempts
 
-This is tracked in [gpuq #25](https://github.com/nm-z/gpuq/issues/25), a sub-issue of #12. A fresh KWin session attempt also exceeded its 20-second host-scan limit and is recorded in [kwin-mcp #722](https://github.com/nm-z/kwin-mcp/issues/722), a sub-issue of #704.
+No paired matrix has completed on the current head.
 
-The checked-in 40-pair matrix uses source revision `7c6f34d4372567fd97f1cef9b609d3dc0c81b0d3`; its captured-format IDs are generated fixtures. It does not verify this head's per-token conditions or production-captured selections. The matrix report marks `hardware_counter_gate` as `not_run`. The earlier profiler probe exited 124 with `CUDA profiling error` and collected no counters.
+- The first matrix request (`a34b0f45-b983-447e-8be4-67056e8d7161`) ended `lost` with `started_ns=null`, `ticket=null`, and `exit_code=null`; its logs are empty.
+- A staged-script retry (`5f97798e-3bd5-49df-a80d-efbb9c3d4b6e`) also ended `lost` before start, with no ticket or child logs.
+- A later `bash -c` submission returned exit 2. The following read-only history query failed with `database is locked`, so that attempt's final state is unconfirmed.
 
-Next step: restore authenticated Archy queue access through the viewer, query GPUQ history for reusable runs, then run the current-head paired matrix and separate Maxwell-compatible system-memory/VRAM byte, transaction, and stall profiles. Keep the PR draft until these results are recorded.
+All queue failures are recorded in [gpuq #35](https://github.com/nm-z/gpuq/issues/35). No more GPU jobs are being submitted while the queue history is locked or the latest job's state is uncertain.
+
+The binaries, source identity files, Perl runner, and CUDA 11.4.120 `nvprof`/CUPTI libraries are staged under `/dev/shm/fs16-a623032`. NVProf 11.4.120 reports its version on Archy, but no current-head metric query or counter profile has run.
+
+## Remaining acceptance evidence
+
+- Current-head 40-pair matrix across both placements, all tails and layouts.
+- A verified `OP_IDXSEL` capture from `qsa_test idxfull` and the paired pinned-host/VRAM gather run. The available capture path uses synthetic scores; it is not checkpoint-derived model output.
+- Separate current-head system-memory/VRAM byte, transaction, and stall profiles on Maxwell.
+
+The PR remains draft. Historical issue #10 profiles and the older matrix are labelled with their own source, binary, and cubin identities.

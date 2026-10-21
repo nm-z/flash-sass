@@ -78,9 +78,9 @@
   "gpuq_matrix_retry": {
     "id": "5f97798e-3bd5-49df-a80d-efbb9c3d4b6e",
     "label": "fs16-a623032-matrix-retry",
-    "status": "queued",
+    "status": "lost",
     "started_ns": null,
-    "ended_ns": null,
+    "ended_ns": "1792563523163418441",
     "ticket": null,
     "exit_code": null,
     "gpu_execution_confirmed": false
@@ -90,5 +90,20 @@
     "nvprof_archive_sha256": "bcf705c8f25f3423014b4182741e91676c4858b1b055a314911e24787a2d3129",
     "cupti_archive_sha256": "e589bd0955dc59cf7871dad3446e583316623dd899b67c34b808fbe14cde0209",
     "staged_bundle_sha256": "64facb7a90932915ff67408cd442154794f60cda6085009ee4525c536e0106e6"
-  }
+  },
+  "gpuq_matrix_final_attempt": {
+    "label": "fs16-a623032-matrix-final",
+    "command_form": "bash -c",
+    "ssh_exit_code": 2,
+    "history_query": "database is locked",
+    "final_status": "unconfirmed",
+    "gpu_execution_confirmed": false
+  },
+  "auto_routed_dsh_smoke": {
+    "build_id": "build-1501353-1792563210829679402",
+    "selected_host": "azb1",
+    "command_status": "failed before CUDA initialization",
+    "diagnostic": "libcuda.so.1 not found on azb1; the GPUQ strict-value check returned the expected status 2 on Archy."
+  },
+  "gpuq_database_lock_issue": "nm-z/gpuq#35"
 }

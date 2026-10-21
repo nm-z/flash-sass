@@ -7,8 +7,8 @@
     "code_source_revision": "a62303283f993acb8a13188941b00f5bc9ef340b"
   },
   "artifact_staging": {
-    "status": "NOT_STAGED; SSH authentication to Archy fails",
-    "destination": "/tmp/fs16-issue16",
+    "status": "STAGED_IN_ARCHY_TMPFS",
+    "destination": "/dev/shm/fs16-a623032",
     "copy_only": [
       {
         "name": "qsa_test",
@@ -28,7 +28,8 @@
     ],
     "total_bytes": 707968,
     "source_tree_or_cuda_toolchain_to_copy": false,
-    "selection_ids_generated_inside_gpuq_job": true
+    "selection_ids_generated_inside_gpuq_job": true,
+    "staged_total_bytes": 707968
   },
   "op_idxsel_fixture_capture": {
     "status": "NOT_RUN",
@@ -80,9 +81,49 @@
   "issue10_archive_review": "validation/issue16/issue10-offline-review.md",
   "queue": {
     "required_route": "ssh archy gpuq run -- ...",
-    "status": "BLOCKED_BEFORE_GPUQ",
-    "error": "Permission denied (publickey,password)",
-    "gpu_job_submitted": false,
-    "issue": "https://github.com/nm-z/gpuq/issues/25"
+    "status": "INTERMITTENT_LOST_AND_DATABASE_LOCK",
+    "successful_jobs": [
+      {
+        "id": "b68ef825-8db8-4869-bf67-3855ac9af1dd",
+        "label": "fs16-a623032-inventory"
+      },
+      {
+        "id": "24d4f257-eea7-48d9-8feb-44e38d811ac2",
+        "label": "fs16-a623032-invalid-hostkv",
+        "exit_code": 2,
+        "stderr_document_id": 76333
+      }
+    ],
+    "matrix_attempts": [
+      {
+        "id": "a34b0f45-b983-447e-8be4-67056e8d7161",
+        "status": "lost",
+        "started_ns": null,
+        "ticket": null,
+        "exit_code": null
+      },
+      {
+        "id": "5f97798e-3bd5-49df-a80d-efbb9c3d4b6e",
+        "status": "lost",
+        "started_ns": null,
+        "ticket": null,
+        "exit_code": null
+      },
+      {
+        "label": "fs16-a623032-matrix-final",
+        "ssh_exit_code": 2,
+        "history_read": "database is locked",
+        "final_state": "unconfirmed"
+      },
+      {
+        "label": "fs16-a623032-matrix-final",
+        "status": "history_unconfirmed",
+        "ssh_exit_code": 2,
+        "started_ns": null,
+        "exit_code": null,
+        "history_error": "database is locked"
+      }
+    ],
+    "issue": "https://github.com/nm-z/gpuq/issues/35"
   }
 }

@@ -1,10 +1,10 @@
 {
   "schema": "flash.issue16.profile-manifest.v1",
-  "status": "PREPARED_NOT_RUN_ON_CURRENT_HEAD",
+  "status": "TOOLS_STAGED_NOT_RUN_ON_CURRENT_HEAD",
   "current_code_source_revision": "a62303283f993acb8a13188941b00f5bc9ef340b",
   "current_die_cubin_sha256": "aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423",
   "gpu": "Tesla M60, GPU-431371bd-b482-96b2-4b70-04f83c6d075b",
-  "profiler": "CUDA 11.4 nvprof; run each metric group separately for each KV placement",
+  "profiler": "NVIDIA CUDA 11.4.120 nvprof/CUPTI redist; staged under /dev/shm/fs16-a623032/tools/nvprof114",
   "profile_range": {
     "environment": "QSA_PROFILE_FIRST=1",
     "nvprof_option": "--profile-from-start off",
@@ -44,7 +44,7 @@
       "eligible_warps_per_cycle"
     ]
   },
-  "command_template": "env CUDA_VISIBLE_DEVICES=GPU-431371bd-b482-96b2-4b70-04f83c6d075b DIE_CUBIN=$GPUQ_RUN_DIR/die.cubin GATHER_IDS=$GPUQ_RUN_DIR/op-idxsel-nv2000-pos7999.ids.u32 QSA_PROFILE_FIRST=1 /opt/cuda/bin/nvprof --profile-from-start off --devices 0 --kernels die --csv --metrics <metric-list> --log-file $GPUQ_RUN_DIR/nvprof-<group>-host<host>.csv $GPUQ_RUN_DIR/qsa_gather_bench 2000 0 8 captured <host> $GPUQ_RUN_DIR/gather-<group>-host<host>.csv 4242",
+  "command_template": "env CUDA_VISIBLE_DEVICES=GPU-431371bd-b482-96b2-4b70-04f83c6d075b DIE_CUBIN=/dev/shm/fs16-a623032/kern/die.cubin QSA_PROFILE_FIRST=1 LD_LIBRARY_PATH=/dev/shm/fs16-a623032/tools/nvprof114/lib /dev/shm/fs16-a623032/tools/nvprof114/bin/nvprof --profile-from-start off --metrics <metric-list> --log-file $GPUQ_RUN_DIR/profile.csv /dev/shm/fs16-a623032/kern/qsa_gather_bench 2000 3 1 random <host> $GPUQ_RUN_DIR/timing.csv 4242",
   "execution_matrix": "for each metric group, run one nvprof invocation with host=0 and one with host=1; use identical capture file, cache inputs, nv/tail/position, seed, iterations and cubin",
   "archived_issue10_crosswalk": {
     "source_revision": "7c6f34d4372567fd97f1cef9b609d3dc0c81b0d3",
@@ -54,8 +54,8 @@
   },
   "queue_access": {
     "required_route": "ssh archy gpuq run -- ...",
-    "status": "BLOCKED_BEFORE_GPUQ",
-    "error": "Permission denied (publickey,password)",
-    "gpu_job_submitted": false
+    "status": "NOT_RUN_ON_CURRENT_HEAD; GPUQ MATRIX ADMISSION UNRELIABLE",
+    "issue": "https://github.com/nm-z/gpuq/issues/35",
+    "current_head_counter_values_collected": false
   }
 }
