@@ -132,6 +132,81 @@ MaxAs checkout with `maxas-patch/` applied, Perl, a C compiler, and the model fi
 the six-die split (`SPLIT_SHARES`) are set for the author's machine; read `kern/Makefile`,
 `kern/serve.sh` and `SPEC.md` before expecting it to run elsewhere.
 
+### Image encoder
+
+`flashvis` requires a CUDA GPU and GPU Flash Attention. It selects the visible
+GPU with the most free memory, or the ggml GPU name in `FLASHVIS_DEVICE` (for
+example, `CUDA6`). `auto` selects a GPU; it does not select a CPU or disable FA.
+A missing GPU, invalid device, unsupported attention shape, failed GPU encode,
+or non-finite embedding produces an explicit error. There is no CPU mode,
+CPU retry, or standard-attention path in the service.
+
+A parent process starts before CUDA initialization and supervises a persistent
+fork+exec GPU worker. It buffers the complete successful response before
+publishing it. A native CUDA abort, truncated response or worker EOF returns
+`err GPU encoder worker terminated` for that image. The image is not resubmitted.
+After an error, the next request starts a fresh GPU worker.
+
+The M60's installed FA tile kernel fails with a partial KV tile. The encoder
+uses a C/PTX online-softmax FlashAttention kernel for those lengths and the
+validated installed GPU FA kernel for KV lengths divisible by 256. This is a
+fixed choice by tensor shape; execution errors do not change kernels. Both
+paths visit every key and use GPU Flash Attention. The PTX path keeps tile
+scores, probabilities, maxima, sums and PV accumulators in FP32 and does not
+allocate a global attention matrix. A graph callback checks every compute
+operation's actual GPU buffer and verifies that each FA operation reached the
+required dispatch. Output is checked for finite values before publication.
+
+The encoder uses the model's 65,536–16,777,216 pixel preprocessing policy:
+64–16,384 image tokens with patch size 16 and spatial merge size 2. A
+4096 × 4096 image produces all 16,384 tokens and a 128 × 128 M-RoPE grid.
+The model's patch alignment still applies. Inputs above 16,777,216 pixels are
+rejected explicitly. Image resolution and token counts are not reduced to fit
+GPU memory. The engine's default image capacity is 16,384 tokens per response,
+bounded by context capacity. The `vision-all` and `vision-core` Make launch
+targets supply `FLASH_MAXIMG=16384`; this is an aggregate limit across images.
+Cached embeddings use a new `16mp-` filename prefix so entries produced
+with the previous resolution limit are not reused.
+When `FLASHVIS_SOCK` enables vision in the HTTP frontend, the default
+whole-request deadline is 2,400 seconds to allow a maximum-size image to finish
+encoding and prompt processing after the configured queue wait. Text-only
+service keeps its 300-second default. `FLASHD_REQUEST_MAX_S` overrides either
+default; set it to `0` to disable the deadline.
+
+The C adapter targets the installed llama.cpp CUDA ABI at
+`fcac19079f3f2985fe74ed845f0880e7e9a8030a`. Build using headers and libraries
+from that checkout; the prebuilt libraries are reused. The default tree is
+`~/claude/llama.cpp-cuda`; `LLAMA_CPP` and `LLAMA_BUILD` select another matching
+source/build directory. A CUDA 11.4 `ptxas` assembles `vis_fa.cubin` for sm_52.
+The binary records its build's absolute module/backend paths, so rebuild it
+when moving the checkout. The FA dispatch check rejects a missing or bypassed
+hook; other dependency builds remain unverified.
+
+```console
+dsh build --host archy --require-tool cargo --require-tool cc -- make -f /home/nate/work/fs96-sol/validation/issue96/Makefile all cpu-check --artifact vision-artifacts
+ssh archy env FLASHVIS_DEVICE=CUDA6 /home/nate/work/fs96-sol/kern/flashvis /path/to/mmproj.gguf /path/to/text.gguf /tmp/flashvis.sock 10
+```
+
+For complete engine startup, the Make targets `vision-all` and `vision-core`
+in `kern/Makefile` supply the 16,384-token image capacity to the inherited
+launcher. The engine's C default is also 16,384, bounded by context capacity.
+
+`CUDA_VISIBLE_DEVICES` affects the ggml GPU names. Image file decoding and the
+model's image preprocessing run on the host; projector computation and attention
+run on the selected GPU. CUDA graph capture is disabled for the synchronous
+C driver adapter. No setting disables GPU FA or enables CPU execution.
+
+The daemon logs the FA implementation, actual GPU, shape, GPU event interval,
+observed compute/FA counts, and sampled device memory usage. Those device memory
+samples include other allocations on that GPU; they are not an isolated process
+peak. The installed FA kernel's scratch/shared/register counts are unmeasured;
+the C/PTX kernel uses zero global workspace, 25,376 shared bytes and 86 registers
+per thread in the tested build. See [issue #96 validation](validation/issue96/README.md)
+for uncached image timings, numerical references, failure checks, and exact
+queue/build identities. The CPU numerical oracle is a separate test executable.
+
+### Text engine
+
 Refresh the files from `maxas-patch/` in an existing MaxAs checkout before building
 the direct-dispatch kernel; its BRX encoding and label relocation support are
 required. The default build uses `DIE_DISPATCH=jump`, `GEMV_HC_ROWS=4`, and
