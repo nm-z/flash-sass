@@ -2,6 +2,7 @@
 #include "attn.h"
 #include "fmath.h"
 #include <math.h>
+#include <fenv.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -35,6 +36,15 @@ float qsa_h2f(uint16_t h) {
 }
 
 void kv_quant32_gpu(const float *x, int8_t *q, uint16_t *s16) {
+    float bounded[32];
+    for (int e=0;e<32;e++) {
+        float v=x[e];
+        if(v>QSA_KV_MAX_ABS)v=QSA_KV_MAX_ABS;
+        if(v<-QSA_KV_MAX_ABS)v=-QSA_KV_MAX_ABS;
+        bounded[e]=v;
+    }
+    x=bounded;
+
 	const float tiny = 7.8886090522101180541e-31f;   /* 2^-100 */
 	float gmax = 0.f;
 	for (int e = 0; e < 32; e++) { float a = fabsf(x[e]); if (a > gmax) gmax = a; }
@@ -134,4 +144,11 @@ unsigned idx_select_gpu(const float *score, unsigned nv, unsigned nblk, uint32_t
 	qsort(sel, k, 4, cmp_u32);
 	free(a);
 	return k;
+}
+
+int kv_quant32_checked(const float *x,int8_t *q,uint16_t *s16) {
+    if(!x||!q||!s16||fegetround()!=FE_TONEAREST)return 1;
+    for(int i=0;i<32;i++)if(!isfinite(x[i]))return 1;
+    int8_t tq[32];uint16_t ts;kv_quant32_gpu(x,tq,&ts);
+    memcpy(q,tq,sizeof tq);*s16=ts;return 0;
 }

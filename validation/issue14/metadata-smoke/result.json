@@ -1,0 +1,53 @@
+{
+  "status": "PASS",
+  "scope": "Current runner metadata-query and launch-record parser smoke only; no model forward or performance acceptance claimed.",
+  "runner_source_revision": "ec86562bdbdec08f2f79e2f39aaa87eefd1c467f",
+  "runner": {
+    "path": "/home/nate/claude/flash-sass-prs/metadata-smoke-ec86562/paired_depth_bench.py",
+    "bytes": 16480,
+    "mtime_ns": 1792267016074868634,
+    "sha256": "c1e048a55be6eeee8504821d42c1f0e69a1f38ec4d2231d0f59a6a3a756a35dc"
+  },
+  "driver_query": {
+    "argv": [
+      "nvidia-smi",
+      "-q",
+      "-x"
+    ],
+    "exit": 0,
+    "xml_gpu_count": 8
+  },
+  "gpu_query": {
+    "argv": [
+      "nvidia-smi",
+      "--query-gpu=index,uuid,driver_version,pci.bus_id,memory.used,memory.free,utilization.gpu,temperature.gpu,clocks.current.sm,clocks.current.memory,ecc.mode.current,pcie.link.gen.current,pcie.link.width.current,clocks_throttle_reasons.active,clocks_throttle_reasons.sw_power_cap,clocks_throttle_reasons.sw_thermal_slowdown,power.draw,power.limit",
+      "--format=csv"
+    ],
+    "exit": 0
+  },
+  "current_core_pid": 1023383,
+  "record_keys": [
+    "host",
+    "vram"
+  ],
+  "files": {
+    "nvidia-smi.xml": {
+      "path": "/home/nate/claude/flash-sass-prs/metadata-smoke-ec86562/results/nvidia-smi.xml",
+      "bytes": 89444,
+      "mtime_ns": 1792267049149293031,
+      "sha256": "06bf80c440df6d3ad5978192c78627fe18954a607b270441e8fab4d6ee92b8fa"
+    },
+    "gpu.csv": {
+      "path": "/home/nate/claude/flash-sass-prs/metadata-smoke-ec86562/results/gpu.csv",
+      "bytes": 1985,
+      "mtime_ns": 1792267049296205440,
+      "sha256": "00e89c3b1bd732aa1c2e5ac6267a8337bcfe94b74982982c7134a43219f7acf9"
+    },
+    "job4-supplemental-core-records.json": {
+      "path": "/home/nate/claude/flash-sass-prs/metadata-smoke-ec86562/results/job4-supplemental-core-records.json",
+      "bytes": 2921,
+      "mtime_ns": 1792267051137386248,
+      "sha256": "0b0669c0595e99ceb391111e2b7f555dd7cecebdf695ca261ddfb115f66e1a0f"
+    }
+  }
+}

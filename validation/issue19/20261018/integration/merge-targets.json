@@ -1,0 +1,60 @@
+{
+  "source_revision": "d46d188a435c5d959993f16dc1f78c837cc9f70d",
+  "results": [
+    {
+      "name": "merge-target-build",
+      "command": [
+        "make",
+        "-C",
+        "/home/nate/codex/flash-pr44-integration-evidence-20261018/build/bounded/kern",
+        "CUDA=/opt/cuda",
+        "FLASH_REV=d46d188a435c5d959993f16dc1f78c837cc9f70d",
+        "qsa_direct_test",
+        "prefill_plan_test",
+        "checked_test"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-integration-evidence-20261018",
+      "exit_code": 0,
+      "seconds": 18.437285469990456,
+      "stdout": "merge-target-build.stdout",
+      "stderr": "merge-target-build.stderr",
+      "stdout_sha256": "a595fd1a0afa9e2caf6191c7b92f7846bf3adfba58b3c51df859d3579d354515",
+      "stderr_sha256": "f7e082e1af44127903cbd5ecbb7f73b115e852e01e2904b460b9797b6011506c",
+      "passes": true
+    },
+    {
+      "name": "prefill-plan",
+      "command": [
+        "/home/nate/codex/flash-pr44-integration-evidence-20261018/build/bounded/kern/prefill_plan_test"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-integration-evidence-20261018",
+      "exit_code": 0,
+      "seconds": 0.0630094630032545,
+      "stdout": "prefill-plan.stdout",
+      "stderr": "prefill-plan.stderr",
+      "stdout_sha256": "66fc5063ed9345bb47922e3270f2da6d0dfa28cc82dc64407fdf5473a629b750",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "passes": true
+    },
+    {
+      "name": "checked-inputs",
+      "command": [
+        "/home/nate/codex/flash-pr44-integration-evidence-20261018/build/bounded/kern/checked_test"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-integration-evidence-20261018",
+      "exit_code": 0,
+      "seconds": 0.049134254004457034,
+      "stdout": "checked-inputs.stdout",
+      "stderr": "checked-inputs.stderr",
+      "stdout_sha256": "b12712554ce9da95005833ba71d401ceca53a20b2d2756a73a4469f93ca6d869",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "passes": true
+    }
+  ],
+  "artifacts": {
+    "qsa_direct_test": "e7fe238d5581b05b60c589431cec752caa715837da123ab4c48fa8ce505c3968",
+    "prefill_plan_test": "36c07b4aeee51ad49fabbaf6cc1424b50d3bb319dcc19d32e2db23a204753695",
+    "checked_test": "5cf1e99b10cd533278632cc5511c3aa0b9164f154bc03d72a43db411ef0b438a"
+  },
+  "status": "PASS"
+}

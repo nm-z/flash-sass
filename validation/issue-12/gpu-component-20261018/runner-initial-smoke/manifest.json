@@ -1,0 +1,96 @@
+{
+   "arguments" : {
+      "check_only" : null,
+      "gpu" : "GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4",
+      "harness" : "kern/attnpartn_regress.native",
+      "harness_source" : "6ae0a092f2a5a0f6a472066152bcdd12daef8303",
+      "host_lock" : "/tmp/flash-sass-engine-validation.lock",
+      "host_lock_fd" : 9,
+      "idle_resident_queue" : "http://127.0.0.1:18090/queue",
+      "instrumentation" : "none",
+      "keys" : "2048,2051,8193",
+      "lock_dir" : "/tmp/flash-sass-gpu-locks",
+      "new" : "images/historical-new/die.cubin",
+      "new_library" : "images/historical-new/libengine.so",
+      "new_source" : "66725432f86cc193b75cd51230216aed44c60d3f",
+      "old" : "images/historical-old/die.cubin",
+      "old_library" : "images/historical-old/libengine.so",
+      "old_source" : "c6d3de8180d8b87caf0d2f61fa52edc9247daded",
+      "out" : "results/settle-smoke",
+      "poll_seconds" : 1,
+      "repeats" : 32,
+      "seeds" : "77",
+      "self_test" : null,
+      "settle_seconds" : 5,
+      "trace" : 0,
+      "wait_seconds" : 10
+   },
+   "compiler" : {
+      "argv" : [
+         "cc",
+         "--version"
+      ],
+      "exit" : 0,
+      "stderr" : "",
+      "stdout" : "cc (GCC) 16.2.1 20260810\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
+   },
+   "environment" : {
+      "CUDA_DEVICE_ORDER" : "PCI_BUS_ID",
+      "CUDA_VISIBLE_DEVICES" : "GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4"
+   },
+   "harness" : {
+      "bytes" : 43728,
+      "path" : "/tmp/flash-sass-issue12-gpu.5FjSBgAq/kern/attnpartn_regress.native",
+      "sha256" : "8c2f6e696b7bb1206c3539e231a7528d7d787905213ef7869c979ed54c284efb"
+   },
+   "helper" : {
+      "bytes" : 4566,
+      "path" : "/tmp/flash-sass-issue12-gpu.5FjSBgAq/kern/QsaEvidence.pm",
+      "sha256" : "41942d2671cf4dc5ab8a01e62505a7c6d0788aa0330a47bf1e00079f54f0bc0a"
+   },
+   "input" : "finite fixed-seed FP32 values; seed0 has zero query; padding finite zero",
+   "locking" : {
+      "gpu_dir" : "/tmp/flash-sass-gpu-locks",
+      "host" : "/tmp/flash-sass-engine-validation.lock",
+      "inherited_host_fd" : 9
+   },
+   "measurement_mode" : "untraced-performance",
+   "new_cubin" : {
+      "bytes" : 444840,
+      "path" : "/tmp/flash-sass-issue12-gpu.5FjSBgAq/images/historical-new/die.cubin",
+      "sha256" : "3db7b276e9eb5fd5372b1fc226a3f05d4cc2a040951c33c3b778006a4be264e1"
+   },
+   "new_library" : {
+      "bytes" : 160224,
+      "path" : "/tmp/flash-sass-issue12-gpu.5FjSBgAq/images/historical-new/libengine.so",
+      "sha256" : "70a9322178084e0f147c8b07850d861c1a390bfe9011d7f765283b7fc61a686d"
+   },
+   "old_cubin" : {
+      "bytes" : 444840,
+      "path" : "/tmp/flash-sass-issue12-gpu.5FjSBgAq/images/historical-old/die.cubin",
+      "sha256" : "179f451d49694327c6e5af36c35396a5d8dd88c453affefd6129ca9c98276eaa"
+   },
+   "old_library" : {
+      "bytes" : 160224,
+      "path" : "/tmp/flash-sass-issue12-gpu.5FjSBgAq/images/historical-old/libengine.so",
+      "sha256" : "78f767493ef01695bcf91c7d867dd3a229636eeebf700812842871e4d5ceeb08"
+   },
+   "ptxas" : {
+      "argv" : [
+         "/opt/cuda-11.4/bin/ptxas",
+         "--version"
+      ],
+      "exit" : 0,
+      "stderr" : "",
+      "stdout" : "ptxas: NVIDIA (R) Ptx optimizing assembler\nCopyright (c) 2005-2021 NVIDIA Corporation\nBuilt on Mon_Oct_11_21:26:15_PDT_2021\nCuda compilation tools, release 11.4, V11.4.152\nBuild cuda_11.4.r11.4/compiler.30521435_0\n"
+   },
+   "resident_policy" : "Explicit off-device idle residents: target has no reported compute app; all-device utilization and loopback queue counts must be zero before each case and after bounded settling of the owned target. Immediate post-run telemetry is retained; target contexts, other-device activity, and queued requests always reject. This does not authorize whole-model core reuse.",
+   "runner" : {
+      "bytes" : 31911,
+      "path" : "/tmp/flash-sass-issue12-gpu.5FjSBgAq/kern/cta_remap_matrix.settle.pl",
+      "sha256" : "547debf4bee1f23b391306ea1dec1e2b751c5a2cca6b1febd3196af7bf6db27c"
+   },
+   "timing" : "64 positions per persistent launch, four warmup pairs, balanced alternating old/new order; one-phase partial and two-phase partial+merge programs; GPU events exclude allocation/upload and CPU checks",
+   "trace_requested" : false,
+   "utc" : "2026-10-18T06:33:37Z"
+}

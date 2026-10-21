@@ -1,0 +1,80 @@
+{
+  "arguments": {
+    "old": "../../cta-parent/kern/die.cubin",
+    "new": "../../cta-remap/kern/die.cubin",
+    "old_library": "../../cta-parent/kern/libengine.so",
+    "new_library": "../../cta-remap/kern/libengine.so",
+    "old_source": "c6d3de8180d8b87caf0d2f61fa52edc9247daded",
+    "new_source": "66725432f86cc193b75cd51230216aed44c60d3f",
+    "harness": "./attnpartn_regress",
+    "harness_source": "4aa4fc2aa7477e8491e50fb2094e8beff4626d71",
+    "gpu": "GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4",
+    "out": "../matrix-verified",
+    "keys": "1,1023,1024,1025,2047,2048,2049,2050,2051,2052,4095,4096,4097,8191,8192,8193",
+    "seeds": "0,77,4242",
+    "repeats": 32,
+    "instrumentation": "none"
+  },
+  "utc": "2026-10-17T09:20:22Z",
+  "old_cubin": {
+    "path": "/home/nate/claude/flash-sass-prs/cta-parent/kern/die.cubin",
+    "sha256": "179f451d49694327c6e5af36c35396a5d8dd88c453affefd6129ca9c98276eaa",
+    "bytes": 444840
+  },
+  "new_cubin": {
+    "path": "/home/nate/claude/flash-sass-prs/cta-remap/kern/die.cubin",
+    "sha256": "3db7b276e9eb5fd5372b1fc226a3f05d4cc2a040951c33c3b778006a4be264e1",
+    "bytes": 444840
+  },
+  "old_library": {
+    "path": "/home/nate/claude/flash-sass-prs/cta-parent/kern/libengine.so",
+    "sha256": "48ee691938c0f39b5be63831a664a9adc32a7251cd5ce3d79860738d7ed36f14",
+    "bytes": 160224
+  },
+  "new_library": {
+    "path": "/home/nate/claude/flash-sass-prs/cta-remap/kern/libengine.so",
+    "sha256": "48ee691938c0f39b5be63831a664a9adc32a7251cd5ce3d79860738d7ed36f14",
+    "bytes": 160224
+  },
+  "harness": {
+    "path": "/home/nate/claude/flash-sass-prs/issue-12/kern/attnpartn_regress",
+    "sha256": "0518e06a91900a686dfc8e2e8ccfa75da9c35d82f5ad76d0249b755e9cb5ba58",
+    "bytes": 30896
+  },
+  "gpu_before": {
+    "argv": [
+      "nvidia-smi",
+      "-i",
+      "GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4",
+      "--query-gpu=uuid,name,driver_version,pci.bus_id,temperature.gpu,clocks.current.sm,clocks.current.memory,utilization.gpu,memory.used,ecc.mode.current,pcie.link.gen.current,pcie.link.width.current",
+      "--format=csv"
+    ],
+    "exit": 0,
+    "stdout": "uuid, name, driver_version, pci.bus_id, temperature.gpu, clocks.current.sm [MHz], clocks.current.memory [MHz], utilization.gpu [%], memory.used [MiB], ecc.mode.current, pcie.link.gen.current, pcie.link.width.current\nGPU-7ed9f65b-0233-0113-dfc1-05f4039decb4, Tesla M60, 470.256.02, 00000000:13:00.0, 35, 405 MHz, 324 MHz, 0 %, 3 MiB, Enabled, 1, 16\n",
+    "stderr": ""
+  },
+  "compiler": {
+    "argv": [
+      "cc",
+      "--version"
+    ],
+    "exit": 0,
+    "stdout": "cc (GCC) 16.2.1 20260810\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+    "stderr": ""
+  },
+  "ptxas": {
+    "argv": [
+      "/opt/cuda-11.4/bin/ptxas",
+      "--version"
+    ],
+    "exit": 0,
+    "stdout": "ptxas: NVIDIA (R) Ptx optimizing assembler\nCopyright (c) 2005-2021 NVIDIA Corporation\nBuilt on Mon_Oct_11_21:26:15_PDT_2021\nCuda compilation tools, release 11.4, V11.4.152\nBuild cuda_11.4.r11.4/compiler.30521435_0\n",
+    "stderr": ""
+  },
+  "environment": {
+    "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
+    "CUDA_VISIBLE_DEVICES": "GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4"
+  },
+  "timing": "64 positions per persistent launch, four warmup pairs, balanced alternating old/new order; one-phase partial and two-phase partial+merge programs; GPU events exclude allocation/upload and CPU checks",
+  "input": "finite fixed-seed FP32 values; seed0 has zero query; padding finite zero"
+}

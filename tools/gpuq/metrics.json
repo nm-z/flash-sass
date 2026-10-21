@@ -1,0 +1,296 @@
+[
+  {
+    "name": "gpu.utilization_percent",
+    "unit": "percent",
+    "collector": "gpu",
+    "description": "Timestamped whole-device observation; concurrent workloads are included."
+  },
+  {
+    "name": "gpu.memory_utilization_percent",
+    "unit": "percent",
+    "collector": "gpu",
+    "description": "Timestamped whole-device observation; concurrent workloads are included."
+  },
+  {
+    "name": "gpu.memory_used_mib",
+    "unit": "MiB",
+    "collector": "gpu",
+    "description": "Timestamped whole-device observation; concurrent workloads are included."
+  },
+  {
+    "name": "gpu.memory_total_mib",
+    "unit": "MiB",
+    "collector": "gpu",
+    "description": "Timestamped whole-device observation; concurrent workloads are included."
+  },
+  {
+    "name": "gpu.temperature_c",
+    "unit": "C",
+    "collector": "gpu",
+    "description": "Timestamped whole-device observation; concurrent workloads are included."
+  },
+  {
+    "name": "gpu.sm_clock_mhz",
+    "unit": "MHz",
+    "collector": "gpu",
+    "description": "Timestamped whole-device observation; concurrent workloads are included."
+  },
+  {
+    "name": "gpu.memory_clock_mhz",
+    "unit": "MHz",
+    "collector": "gpu",
+    "description": "Timestamped whole-device observation; concurrent workloads are included."
+  },
+  {
+    "name": "gpu.power_w",
+    "unit": "W",
+    "collector": "gpu",
+    "description": "Timestamped whole-device observation; concurrent workloads are included."
+  },
+  {
+    "name": "gpu.power_limit_w",
+    "unit": "W",
+    "collector": "gpu",
+    "description": "Timestamped whole-device observation; concurrent workloads are included."
+  },
+  {
+    "name": "gpu.pcie_generation",
+    "unit": "generation",
+    "collector": "gpu",
+    "description": "Timestamped whole-device observation; concurrent workloads are included."
+  },
+  {
+    "name": "gpu.pcie_width",
+    "unit": "lanes",
+    "collector": "gpu",
+    "description": "Timestamped whole-device observation; concurrent workloads are included."
+  },
+  {
+    "name": "gpu.throttle_mask",
+    "unit": "bitmask",
+    "collector": "gpu",
+    "description": "Timestamped whole-device observation; concurrent workloads are included."
+  },
+  {
+    "name": "decode.engine.tokens_s",
+    "unit": "tokens/s",
+    "collector": "timing",
+    "description": "Producer-reported request metric. Engine, client and legacy reported clocks remain distinct."
+  },
+  {
+    "name": "decode.client.tokens_s",
+    "unit": "tokens/s",
+    "collector": "timing",
+    "description": "Producer-reported request metric. Engine, client and legacy reported clocks remain distinct."
+  },
+  {
+    "name": "decode.reported.tokens_s",
+    "unit": "tokens/s",
+    "collector": "timing",
+    "description": "Producer-reported request metric. Engine, client and legacy reported clocks remain distinct."
+  },
+  {
+    "name": "prefill.reported.tokens_s",
+    "unit": "tokens/s",
+    "collector": "timing",
+    "description": "Producer-reported request metric. Engine, client and legacy reported clocks remain distinct."
+  },
+  {
+    "name": "prefill.engine.first_ms",
+    "unit": "ms",
+    "collector": "timing",
+    "description": "Producer-reported request metric. Engine, client and legacy reported clocks remain distinct."
+  },
+  {
+    "name": "request.engine.run_ms",
+    "unit": "ms",
+    "collector": "timing",
+    "description": "Producer-reported request metric. Engine, client and legacy reported clocks remain distinct."
+  },
+  {
+    "name": "request.client.first_ms",
+    "unit": "ms",
+    "collector": "timing",
+    "description": "Producer-reported request metric. Engine, client and legacy reported clocks remain distinct."
+  },
+  {
+    "name": "request.client.wall_ms",
+    "unit": "ms",
+    "collector": "timing",
+    "description": "Producer-reported request metric. Engine, client and legacy reported clocks remain distinct."
+  },
+  {
+    "name": "prefill.reported.ms",
+    "unit": "ms",
+    "collector": "timing",
+    "description": "Producer-reported request metric. Engine, client and legacy reported clocks remain distinct."
+  },
+  {
+    "name": "decode.reported.ms",
+    "unit": "ms",
+    "collector": "timing",
+    "description": "Producer-reported request metric. Engine, client and legacy reported clocks remain distinct."
+  },
+  {
+    "name": "decode.intervals",
+    "unit": "count",
+    "collector": "timing",
+    "description": "Producer-reported request metric. Engine, client and legacy reported clocks remain distinct."
+  },
+  {
+    "name": "request.prompt_tokens",
+    "unit": "count",
+    "collector": "timing",
+    "description": "Producer-reported request metric. Engine, client and legacy reported clocks remain distinct."
+  },
+  {
+    "name": "request.generated_tokens",
+    "unit": "count",
+    "collector": "timing",
+    "description": "Producer-reported request metric. Engine, client and legacy reported clocks remain distinct."
+  },
+  {
+    "name": "request.cached_tokens",
+    "unit": "count",
+    "collector": "timing",
+    "description": "Producer-reported request metric. Engine, client and legacy reported clocks remain distinct."
+  },
+  {
+    "name": "job.command_wall_ns",
+    "unit": "ns",
+    "collector": "timing",
+    "description": "Monotonic interval; queue/setup/collection time is separate from command execution."
+  },
+  {
+    "name": "job.queue_wait_ns",
+    "unit": "ns",
+    "collector": "identity",
+    "description": "Monotonic interval; queue/setup/collection time is separate from command execution."
+  },
+  {
+    "name": "collection.prepare_ns",
+    "unit": "ns",
+    "collector": "identity",
+    "description": "Monotonic interval; queue/setup/collection time is separate from command execution."
+  },
+  {
+    "name": "collection.finish_ns",
+    "unit": "ns",
+    "collector": "identity",
+    "description": "Monotonic interval; queue/setup/collection time is separate from command execution."
+  },
+  {
+    "name": "collector.command_ns",
+    "unit": "ns",
+    "collector": "identity",
+    "description": "Monotonic interval; queue/setup/collection time is separate from command execution."
+  },
+  {
+    "name": "process.user_s",
+    "unit": "s",
+    "collector": "process",
+    "description": "Waited resource usage or explicitly labelled observed process-tree sample."
+  },
+  {
+    "name": "process.system_s",
+    "unit": "s",
+    "collector": "process",
+    "description": "Waited resource usage or explicitly labelled observed process-tree sample."
+  },
+  {
+    "name": "process.max_rss_kib",
+    "unit": "KiB",
+    "collector": "process",
+    "description": "Waited resource usage or explicitly labelled observed process-tree sample."
+  },
+  {
+    "name": "process.major_faults",
+    "unit": "count",
+    "collector": "process",
+    "description": "Waited resource usage or explicitly labelled observed process-tree sample."
+  },
+  {
+    "name": "process.minor_faults",
+    "unit": "count",
+    "collector": "process",
+    "description": "Waited resource usage or explicitly labelled observed process-tree sample."
+  },
+  {
+    "name": "process.fs_inputs",
+    "unit": "count",
+    "collector": "process",
+    "description": "Waited resource usage or explicitly labelled observed process-tree sample."
+  },
+  {
+    "name": "process.fs_outputs",
+    "unit": "count",
+    "collector": "process",
+    "description": "Waited resource usage or explicitly labelled observed process-tree sample."
+  },
+  {
+    "name": "process.voluntary_switches",
+    "unit": "count",
+    "collector": "process",
+    "description": "Waited resource usage or explicitly labelled observed process-tree sample."
+  },
+  {
+    "name": "process.involuntary_switches",
+    "unit": "count",
+    "collector": "process",
+    "description": "Waited resource usage or explicitly labelled observed process-tree sample."
+  },
+  {
+    "name": "process.tree_rss_bytes",
+    "unit": "bytes",
+    "collector": "process",
+    "description": "Waited resource usage or explicitly labelled observed process-tree sample."
+  },
+  {
+    "name": "process.tree_cpu_ticks",
+    "unit": "ticks",
+    "collector": "process",
+    "description": "Waited resource usage or explicitly labelled observed process-tree sample."
+  },
+  {
+    "name": "process.tree_read_bytes",
+    "unit": "bytes",
+    "collector": "process",
+    "description": "Waited resource usage or explicitly labelled observed process-tree sample."
+  },
+  {
+    "name": "process.tree_write_bytes",
+    "unit": "bytes",
+    "collector": "process",
+    "description": "Waited resource usage or explicitly labelled observed process-tree sample."
+  },
+  {
+    "name": "phase.dispatch_ns",
+    "unit": "ns",
+    "collector": "trace",
+    "description": "Per-phase interval within one device clock. Not summed across concurrent dies; PLE wait is a subset of body time."
+  },
+  {
+    "name": "phase.exchange_wait_ns",
+    "unit": "ns",
+    "collector": "trace",
+    "description": "Per-phase interval within one device clock. Not summed across concurrent dies; PLE wait is a subset of body time."
+  },
+  {
+    "name": "phase.body_ns",
+    "unit": "ns",
+    "collector": "trace",
+    "description": "Per-phase interval within one device clock. Not summed across concurrent dies; PLE wait is a subset of body time."
+  },
+  {
+    "name": "phase.barrier_ns",
+    "unit": "ns",
+    "collector": "trace",
+    "description": "Per-phase interval within one device clock. Not summed across concurrent dies; PLE wait is a subset of body time."
+  },
+  {
+    "name": "phase.ple_wait_ns",
+    "unit": "ns",
+    "collector": "trace",
+    "description": "Per-phase interval within one device clock. Not summed across concurrent dies; PLE wait is a subset of body time."
+  }
+]

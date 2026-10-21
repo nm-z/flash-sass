@@ -1,0 +1,108 @@
+
+SOURCE LOG: /home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/builds/historical-new.build.log
+make: Entering directory '/home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/builds/historical-new/kern'
+perl die.pl > die.sass
+/home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/toolchain/ptxas -arch=sm_52 -o skel_die.cubin die.ptx
+cp skel_die.cubin die.cubin
+PATH=/opt/cuda/bin:$PATH perl -I../maxas/lib ../maxas/bin/maxas.pl -i die.sass die.cubin
+perl die.pl header > dieops.h
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -DFLASH_REV='"66725432f86cc193b75cd51230216aed44c60d3f"' -o libengine.so.new engine.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm && mv -f libengine.so.new libengine.so
+../ref/quant.c:315:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:379:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:443:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:529:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:622:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:681:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+make: Leaving directory '/home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/builds/historical-new/kern'
+
+SOURCE LOG: /home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/builds/historical-old.build.log
+make: Entering directory '/home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/builds/historical-old/kern'
+perl die.pl > die.sass
+/home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/toolchain/ptxas -arch=sm_52 -o skel_die.cubin die.ptx
+cp skel_die.cubin die.cubin
+PATH=/opt/cuda/bin:$PATH perl -I../maxas/lib ../maxas/bin/maxas.pl -i die.sass die.cubin
+perl die.pl header > dieops.h
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -DFLASH_REV='"c6d3de8180d8b87caf0d2f61fa52edc9247daded"' -o libengine.so.new engine.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm && mv -f libengine.so.new libengine.so
+../ref/quant.c:315:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:379:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:443:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:529:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:622:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:681:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+make: Leaving directory '/home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/builds/historical-old/kern'
+
+SOURCE LOG: /home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/builds/matched-new.build.log
+make: Entering directory '/home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/builds/matched-new/kern'
+perl die.pl > die.sass
+/home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/toolchain/ptxas -arch=sm_52 -o skel_die.cubin die.ptx
+cp skel_die.cubin die.cubin
+PATH=/opt/cuda/bin:$PATH perl -I../maxas/lib ../maxas/bin/maxas.pl -i die.sass die.cubin
+perl die.pl header > dieops.h
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -DFLASH_REV='"9e3050ba3e9f6c1fe53d16e9fe7f2179e3974aa4"' -o libengine.so.new engine.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm && mv -f libengine.so.new libengine.so
+../ref/quant.c:315:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:379:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:443:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:529:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:622:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:681:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+make: Leaving directory '/home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/builds/matched-new/kern'
+make: Entering directory '/home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/builds/matched-new/kern'
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -o attnpartn_regress attnpartn_regress.c ../ref/attn.c ../ref/fmath.c -I../ref -I/opt/cuda/include -lcuda -lm
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -DFLASH_REV='"9e3050ba3e9f6c1fe53d16e9fe7f2179e3974aa4"' -o libengine_cta_remap.so.new cta_remap_bench.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm && mv -f libengine_cta_remap.so.new libengine_cta_remap.so
+../ref/quant.c:315:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:379:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:443:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:529:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:622:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:681:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+cc -std=gnu99 -O2 -Wall -o flashcore flashcore.c holdc.c ../ref/gguf.c -I../ref -I/opt/cuda/include -lcuda -ldl -lm
+cc -std=gnu99 -O2 -Wall -o hold hold.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm
+make: Leaving directory '/home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/builds/matched-new/kern'
+
+SOURCE LOG: /home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/builds/matched-old.build.log
+make: Entering directory '/home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/builds/matched-old/kern'
+perl die.pl > die.sass
+/home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/toolchain/ptxas -arch=sm_52 -o skel_die.cubin die.ptx
+cp skel_die.cubin die.cubin
+PATH=/opt/cuda/bin:$PATH perl -I../maxas/lib ../maxas/bin/maxas.pl -i die.sass die.cubin
+perl die.pl header > dieops.h
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -DFLASH_REV='"9e3050ba3e9f6c1fe53d16e9fe7f2179e3974aa4"' -o libengine.so.new engine.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm && mv -f libengine.so.new libengine.so
+../ref/quant.c:315:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:379:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:443:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:529:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:622:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:681:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+make: Leaving directory '/home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/builds/matched-old/kern'
+
+SOURCE LOG: /home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/builds/trace-new.build.log
+make: Entering directory '/home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/builds/trace-new/kern'
+perl die.pl > die.sass
+/home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/toolchain/ptxas -arch=sm_52 -o skel_die.cubin die.ptx
+cp skel_die.cubin die.cubin
+PATH=/opt/cuda/bin:$PATH perl -I../maxas/lib ../maxas/bin/maxas.pl -i die.sass die.cubin
+perl die.pl header > dieops.h
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -DFLASH_REV='"9e3050ba3e9f6c1fe53d16e9fe7f2179e3974aa4"' -o libengine.so.new engine.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm && mv -f libengine.so.new libengine.so
+../ref/quant.c:315:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:379:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:443:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:529:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:622:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:681:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+make: Leaving directory '/home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/builds/trace-new/kern'
+
+SOURCE LOG: /home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/builds/trace-old.build.log
+make: Entering directory '/home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/builds/trace-old/kern'
+perl die.pl > die.sass
+/home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/toolchain/ptxas -arch=sm_52 -o skel_die.cubin die.ptx
+cp skel_die.cubin die.cubin
+PATH=/opt/cuda/bin:$PATH perl -I../maxas/lib ../maxas/bin/maxas.pl -i die.sass die.cubin
+perl die.pl header > dieops.h
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -DFLASH_REV='"9e3050ba3e9f6c1fe53d16e9fe7f2179e3974aa4"' -o libengine.so.new engine.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm && mv -f libengine.so.new libengine.so
+../ref/quant.c:315:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:379:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:443:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:529:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:622:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+../ref/quant.c:681:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+make: Leaving directory '/home/nate/codex/flash-sass-pr29-20261017/resume-20261018.rqrKTU/builds/trace-old/kern'
