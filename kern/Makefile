@@ -489,8 +489,15 @@ FLASH_BF16_PAIR_FUSE ?= 1
 libengine.so: trace_host.inc $(ENGINE_SRC) prefill.h prog.h hold.h core.h engine.h dieops.h ple_read_pool.h ple_read_reload.h ../ref/split.h ../ref/qsa.h ../ref/block.h ../ref/attn.h ../ref/ple.h ../ref/gguf.h ../ref/quant.h ../ref/fmath.h ../ref/hc.h ../ref/deltanet.h ../ref/router.h timings.h qsa_state.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -pthread -DFLASH_REV='"$(FLASH_REV)"' -DFLASH_BF16_PAIR_FUSE=$(FLASH_BF16_PAIR_FUSE) -o $@.new $(ENGINE_SRC) -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
 
-flashcore: flashcore.c core.h hold.h holdc.c ../ref/gguf.c ../ref/gguf.h
+flashcore: flashcore.c flashcore_prefill.h core.h hold.h holdc.c ../ref/gguf.c ../ref/gguf.h
 	$(CC) -std=gnu99 -O2 -Wall -o $@ flashcore.c holdc.c ../ref/gguf.c -I../ref -I$(CUDA)/include -lcuda -ldl -lm
+
+flashcore_prefill_test: flashcore_prefill_test.c flashcore_prefill.h
+	$(CC) -std=gnu99 -O2 -Wall -Wextra -Werror -UNDEBUG -o $@ $<
+
+.PHONY: test-flashcore-prefill
+test-flashcore-prefill: flashcore_prefill_test
+	./flashcore_prefill_test
 
 nullengine.so: nullengine.c core.h
 	$(CC) -std=gnu99 -O2 -Wall -fPIC -shared -o $@.new nullengine.c -I../ref -I$(CUDA)/include && mv -f $@.new $@
