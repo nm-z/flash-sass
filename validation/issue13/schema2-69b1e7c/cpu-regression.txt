@@ -1,0 +1,10 @@
+Source commit: a327663e574bf2c1db10913864d435b1e273b41a
+DSH build: build-3432057-1792571963603921362 (host benji)
+Command: dsh --config /tmp/fs13-dsh-build.toml build --host benji --command-timeout 120 -- ruby kern/trace_reconcile_test.rb
+Exit status: 0
+
+PASS exact per-CTA/token and same-die reconciliation; grid joins; known makespan bounds
+PASS independent epoch shifts above 2^53 preserve durations and causal bounds
+PASS single-position scope keeps earlier-token time outside its first bucket
+PASS incomplete CTA coverage rejected
+PASS inconsistent generation coverage rejected
