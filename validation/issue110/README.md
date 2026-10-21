@@ -142,8 +142,9 @@ segment check after the limit check, with the host-only exit-72 dump described
 above. The GPU fixture now covers enabled but filtered copies before/after the
 window, a pair straddling its lower boundary, both scalar endpoints, generic
 second-body decoding, null-pointer dispatch inside the window and fused BF16.
-These changes require a fresh routed build and GPU checks; no successful fault
-reproduction or runtime fix is claimed.
+The bounded-window and deliberate handler sections below retain the routed
+build and GPU results for these changes. They do not reproduce the canonical
+fault or establish a runtime fix.
 
 ## Bounded-window build and GPU gate
 
