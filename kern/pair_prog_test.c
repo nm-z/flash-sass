@@ -1,15 +1,110 @@
 #include "prog.h"
+#include "gguf.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #define CHECK(x) do { if (!(x)) { fprintf(stderr,"%s:%d: %s failed\n",__FILE__,__LINE__,#x); return 1; } } while (0)
+static unsigned long long ptr_at(const phase_t *p, int addr) {
+    int w = 2 + (addr - 0x140) / 4;
+    return p->w[w] | ((unsigned long long)p->w[w + 1] << 32);
+}
 static void build(prog_t *p,unsigned off) {
     p->loop=1; p->token_offset=off;
     ph_conv1d(p,0x1000+off*0x100,0x2000,0x3000,0x4000+off*0x100,99,1024);
     ph_actq(p,OP_ACTQ256,0x4000+off*0x100,0x5000+off*0x100,0x6000+off*0x100,0x7000+off*0x100,0x8000+off*0x100,256,4);
     p->xj=2;
 }
+static int test_ple_rms_barriers(void) {
+    prog_t p; split_t s; xchg_t x={0}; dn_weights_t w={0}; dn_bufs_t b={0};
+    prog_init(&p); split_of(&s,0,6,1); unsetenv("PROG_NONOBAR");
+    prog_ple_prefix(&p,&s,&x,&w,&b,0,1e-5f);
+    int i;
+    for(i=0;i+2<p.n;i++)
+        if(p.p[i].w[0]==OP_RMS2560 && p.p[i+1].w[0]==OP_RMS2560 && p.p[i+2].w[0]==OP_BF16K2560) break;
+    CHECK(i+2<p.n);
+    CHECK(p.p[i].w[30]&4u); CHECK(p.p[i+1].w[30]&4u);
+    CHECK(!(p.p[i+2].w[30]&4u));
+    prog_free(&p);
+    return 0;
+}
+static int test_moe_actq_projection_overlap(void) {
+    prog_t p; split_t s; xchg_t x={0}; dn_weights_t w={0}; dn_bufs_t b={0};
+    prog_init(&p); split_of(&s,0,6,1); unsetenv("PROG_NONOBAR");
+    unsetenv("PROG_NOHCUP"); unsetenv("PROG_NORMSFUSE"); unsetenv("PROG_NORMSW");
+    x.inbox=0x1000000; b.zq=0x2000000; b.r=0x3000000;
+    w.attn_qkv_type=GG_Q4_K; w.attn_gate_type=GG_Q4_K; w.ssm_out_type=GG_Q4_K;
+    prog_deltanet_block(&p,&s,&x,&w,&b,0,1e-5f);
+    int i;
+    for(i=0;i+1<p.n;i++)
+        if(p.p[i].w[0]==OP_ACTQ256 && p.p[i+1].w[0]==OP_BF16K2560) break;
+    CHECK(i+1<p.n);
+    CHECK(p.p[i].w[30]&4u);
+    CHECK(!(p.p[i+1].w[30]&4u));
+    CHECK(ptr_at(&p.p[i],0x140)==ptr_at(&p.p[i+1],0x148));
+    CHECK(ptr_at(&p.p[i],0x148)!=ptr_at(&p.p[i+1],0x150));
+    int h=-1;
+    for (int j=0;j<p.n;j++) if (p.p[j].w[0]==OP_HCWSUM) { h=j; break; }
+    CHECK(h>=0 && (p.p[h].w[30]&0x22u)==0x22u);
+    prog_free(&p);
+    return 0;
+}
+static int test_explicit_exchange_wait_clear(void) {
+    prog_t p; xchg_t x={0};
+    prog_init(&p);
+    ph_xchg(&p,&x,0,6,0x1000,1024,0,6144);
+    CHECK(p.pending_wait && (p.p[0].w[30]&1u));
+    phase_t *consumer=prog_add(&p,OP_ACTQ256,1);
+    CHECK(consumer->w[30]&2u);
+    prog_free(&p);
+
+    prog_init(&p);
+    ph_xchg(&p,&x,0,6,0x1000,1024,0,6144);
+    prog_clear_wait(&p);
+    phase_t *independent=prog_add(&p,OP_XSEND,1);
+    CHECK(!(independent->w[30]&2u) && !p.pending_wait);
+    prog_free(&p);
+    return 0;
+}
+static int test_hcwsum_range_wait_flag(void) {
+    prog_t p; xchg_t x={0};
+    prog_init(&p);
+    ph_xchg(&p,&x,0,6,0x1000,10240,0,61440);
+    ph_hc(&p,OP_HCWSUM,0x2000,0x3000,0x4000,2560,10240,16);
+    CHECK((p.p[1].w[30]&0x22u)==0x22u);
+    prog_free(&p);
+
+    prog_init(&p);
+    ph_hc(&p,OP_HCWRITE,0x2000,0x3000,0x4000,2560,10240,10);
+    CHECK(!(p.p[0].w[30]&0x20u));
+    prog_free(&p);
+    return 0;
+}
+static int test_deltanet_bias_conv_overlap(void) {
+    prog_t p; split_t s; xchg_t x={0}; dn_weights_t w={0}; dn_bufs_t b={0};
+    prog_init(&p); split_of(&s,0,6,1); unsetenv("PROG_NONOBAR");
+    unsetenv("PROG_NOHCUP"); unsetenv("PROG_NORMSFUSE"); unsetenv("PROG_NORMSW");
+    x.inbox=0x1000000; b.zq=0x2000000; b.la=0x3000000; b.lqkv=0x4000000;
+    b.conv_state=0x5000000; b.lu=0x6000000;
+    w.ssm_ab=0x7000000; w.ssm_ab_bias=0x8000000; w.ssm_conv1d=0x9000000;
+    w.attn_qkv_type=GG_Q4_K; w.attn_gate_type=GG_Q4_K; w.ssm_out_type=GG_Q4_K;
+    prog_deltanet_block(&p,&s,&x,&w,&b,0,1e-5f);
+    int i;
+    for(i=0;i+1<p.n;i++)
+        if(p.p[i].w[0]==OP_BF16BIAS && p.p[i+1].w[0]==OP_CONV1D) break;
+    CHECK(i+1<p.n);
+    CHECK(p.p[i].w[30]&4u);
+    CHECK(!(p.p[i+1].w[30]&4u));
+    CHECK(ptr_at(&p.p[i],0x150)==0x3000000);
+    CHECK(ptr_at(&p.p[i+1],0x140)==0x4000000);
+    CHECK(ptr_at(&p.p[i+1],0x148)==0x5000000);
+    CHECK(ptr_at(&p.p[i+1],0x158)==0x6000000);
+    prog_free(&p);
+    return 0;
+}
 int main(void) {
+    CHECK(!test_ple_rms_barriers()); CHECK(!test_moe_actq_projection_overlap());
+    CHECK(!test_explicit_exchange_wait_clear()); CHECK(!test_hcwsum_range_wait_flag());
+    CHECK(!test_deltanet_bias_conv_overlap());
     prog_t a,b,out; prog_init(&a);prog_init(&b);prog_init(&out);
     CHECK(!a.token_offset); build(&a,0);build(&b,1);
     const int tw=2+(0x160-0x140)/4;
@@ -35,5 +130,5 @@ int main(void) {
     prog_t absolute;prog_init(&absolute);absolute.token_offset=7;
     ph_conv1d(&absolute,1,2,3,4,99,1024); CHECK(absolute.p[0].w[tw]==99 && !absolute.p[0].w[31]);
     prog_free(&absolute);prog_free(&a);prog_free(&b);prog_free(&out);
-    puts("pair_prog_test: token offsets, descriptor preservation, shape rejection, and unchanged-on-error PASS");return 0;
+    puts("pair_prog_test: safe MoE ACTQ overlap, DeltaNet bias/conv overlap, HCWSUM range wait, PLE barriers, explicit exchange-wait clear, token offsets, descriptor preservation, shape rejection, and unchanged-on-error PASS");return 0;
 }

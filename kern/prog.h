@@ -21,6 +21,7 @@ int prog_pair(prog_t *out, const prog_t *a, const prog_t *b);
 int prog_pair_fuse_bf16(prog_t *P, int disjoint_xout);
 void prog_free(prog_t *P);
 void prog_nobar(prog_t *P);   /* no grid barrier after the last phase (independent next phase) */
+void prog_clear_wait(prog_t *P); /* next phase does not consume the pending exchange */
 phase_t *prog_add(prog_t *P, int op, unsigned units);
 void ph_ptr(phase_t *p, int addr, CUdeviceptr v);
 void ph_u32(phase_t *p, int addr, uint32_t v);

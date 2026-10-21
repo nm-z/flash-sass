@@ -99,6 +99,7 @@ void prog_nobar(prog_t *P) {
 	if (p->w[30] & 1) { fprintf(stderr, "prog_nobar on a send phase\n"); exit(1); }
 	p->w[30] |= 4;
 }
+void prog_clear_wait(prog_t *P) { P->pending_wait = 0; }
 void ph_ptr(phase_t *p, int addr, CUdeviceptr v) { int w = 2 + (addr - 0x140) / 4; p->w[w] = (uint32_t)v; p->w[w + 1] = (uint32_t)(v >> 32); }
 void ph_u32(phase_t *p, int addr, uint32_t v) { p->w[2 + (addr - 0x140) / 4] = v; }
 void ph_f32(phase_t *p, int addr, float v) { uint32_t u; memcpy(&u, &v, 4); ph_u32(p, addr, u); }
@@ -117,6 +118,7 @@ void ph_bf16(prog_t *P, int op, CUdeviceptr W, CUdeviceptr X, CUdeviceptr Y, uns
 void ph_hc(prog_t *P, int op, CUdeviceptr P0, CUdeviceptr P1, CUdeviceptr P2, unsigned n, unsigned us, unsigned units) {
 	phase_t *p = prog_add(P, op, units);
 	ph_ptr(p, 0x140, P0); ph_ptr(p, 0x148, P1); ph_ptr(p, 0x150, P2); ph_u32(p, 0x158, n); ph_u32(p, 0x15c, us);
+	if (op == OP_HCWSUM) p->w[30] |= 0x20u; /* each CTA sums only its contiguous 160-column slice */
 }
 void ph_actq(prog_t *P, int op, CUdeviceptr X, CUdeviceptr Q, CUdeviceptr S32, CUdeviceptr S16, CUdeviceptr AS, unsigned n, unsigned vectors) {
 	phase_t *p = prog_add(P, op, vectors);
@@ -314,6 +316,7 @@ static void ph_moe_half(prog_t *P, const split_t *s, const xchg_t *x, const dn_w
 	   the MoE end writes S from S2); 0: the write already happened (S2 = S, in place) */
 	CUdeviceptr Z = ph_hc_read(P, s, x, w->hc_ffn_norm, w->hc_ffn_dj, w->hc_ffn_up, b, eps, Y, inj);
 	CUdeviceptr SIN = Y ? b->S2 : b->S;
+	prog_nobar(P);   /* actq writes quantized scratch; this projection independently reads Z */
 	ph_bf16(P, OP_BF16K2560, w->ffn_gate_inp_x, Z, b->r, 513, 0);
 	ph_router(P, b->r, b->r + 512 * 4, b->idx, b->w, b->s);
 	ph_moesel(P, b->idx, b->w, w->emap, b->lidx, b->lw, b->ne, b->part);
@@ -333,6 +336,7 @@ static void ph_moe_half(prog_t *P, const split_t *s, const xchg_t *x, const dn_w
 	CUdeviceptr PARTS = ph_xchg(P, x, s->d, s->n, b->part, 2560 * 4, 2560u * 4u * (unsigned)s->d, 2560u * 4u * (unsigned)s->n);
 	/* out = the fixed-order sum of the parts (sumn's order), fused into the stream write */
 	phase_t *p = prog_add(P, OP_HCWSUM, 16);   /* 160 columns per CTA: all sixteen SMs */
+	p->w[30] |= 0x20u;   /* each CTA sums only its contiguous 160-column slice */
 	ph_ptr(p, 0x140, inj); ph_ptr(p, 0x148, PARTS); ph_ptr(p, 0x150, b->S); ph_u32(p, 0x158, 2560); ph_u32(p, 0x15c, 2560 * 4); ph_u32(p, 0x164, (unsigned)s->n); ph_ptr(p, 0x168, b->out); ph_ptr(p, 0x170, SIN);
 }
 
@@ -409,6 +413,7 @@ void prog_attn_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weig
 		 * Z is in the previous inbox slot; this exchange writes the other one. */
 		if (here) ph_attn_kvi(P, w, b, Z);
 		QG = ph_xchg(P, x, s->d, s->n, b->qg, 4*w->attn_q_rows, 4*w->attn_q_first, 4*12288);
+		if (!here) prog_clear_wait(P); /* non-owners never read the gathered Q before sending an empty AOUT */
 	}
 	if (here) { if (b->qsa) ph_attn_qsa(P, w, b, t, eps, Z, QG); else ph_attn_core(P, w, b, t, eps); }
 	CUdeviceptr AOUT = ph_xchg(P, x, s->d, s->n, b->aout, here ? 6144 * 4 : 0, 0, 6144 * 4);
@@ -468,7 +473,9 @@ void prog_ple_prefix(prog_t *P, const split_t *s, const xchg_t *x, const dn_weig
 	ph_gemv_any(P, GG_Q2_0, 2560, w->ple_key, b->pgq, b->pgs32, b->pgs16, b->lk, (unsigned)s->pkn, b->pgas, 0, 0);
 	CUdeviceptr K = ph_xchg(P, x, s->d, s->n, b->lk, 4u * (unsigned)s->pkn, 4u * (unsigned)s->pk0, 4 * 10240);
 	ph_rms(P, OP_RMS2560, K, w->ple_norm_key, b->kn, eps, 4);
+	prog_nobar(P);   /* the key norm and query norm write separate buffers */
 	ph_rms(P, OP_RMS2560, b->S, w->ple_norm_query, b->qn, eps, 4);
+	prog_nobar(P);   /* PLE value reads pg; the following exchange still synchronizes its writes */
 	ph_bf16(P, OP_BF16K2560, w->ple_value, b->pg, b->lv, (unsigned)s->yn, 0);
 	CUdeviceptr V = ph_xchg(P, x, s->d, s->n, b->lv, 4u * (unsigned)s->yn, 4u * (unsigned)s->y0, 4 * 2560);
 	p = prog_add(P, OP_PLEGATE, 4);
@@ -488,6 +495,7 @@ void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_
 	ph_gemv_any(P, w->attn_gate_type, 2560, w->attn_gate, b->zq, b->zs32, b->zs16, b->lgate, hrows, b->zas, 0, 0);
 	prog_nobar(P);   /* qkv, gate and the alpha/beta rows all read z only */
 	ph_bf16(P, OP_BF16BIAS, w->ssm_ab, Z, b->la, 2u * (unsigned)s->hn, w->ssm_ab_bias);
+	prog_nobar(P);   /* alpha/beta projection and convolution use disjoint outputs and inputs */
 	ph_conv1d(P, b->lqkv, b->conv_state, w->ssm_conv1d, b->lu, t, nloc);
 	ph_dnstep(P, b->dn_state, b->lu, b->lu + 512u * (unsigned)s->nk, b->lu + 1024u * (unsigned)s->nk, b->la, b->la + 4u * (unsigned)s->hn, w->ssm_a, b->lo, eps, (unsigned)s->h0, (unsigned)s->klo, (unsigned)s->hn);
 	CUdeviceptr ON = ph_dnnormx(P, x, b->lo, w->ssm_norm, b->lgate, eps, (unsigned)s->hn, 4u * 128u * (unsigned)s->h0);

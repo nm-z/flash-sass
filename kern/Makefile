@@ -126,7 +126,7 @@ test-gemv: all
 	./gemv_test $(SHARD1) blk.4.ffn_down_exps.weight 0 20
 
 clean:
-	rm -f *.cubin *.dis *.so *.so.new die.sass die_trace.sass die_trace16.sass dieops.h flashcore flashd flashvis hold memtest fence *_test ple_read_bench ple_read_audit
+	rm -f *.cubin *.dis *.so *.so.new die.sass die_trace.sass die_trace16.sass die.sass.raw die_trace.sass.raw die_trace16.sass.raw dieops.h flashcore flashd flashvis hold memtest fence *_test ple_read_bench ple_read_audit
 
 .PHONY: all test test-gemv clean
 
@@ -394,8 +394,10 @@ ple: plerows.cubin plerows_ng.cubin plerows_test plegate pleconv
 
 # ---- the persistent per-die kernel (die.pl stitches the ops together) ----
 DIE_OPS = $(filter-out die.sass die_trace%.sass semtest%.sass bartest.sass fmath.sass gridbar.sass mailbox.sass xmadbench.sass, $(wildcard *.sass)) actq.pl fmath.pl
-die.sass: die.pl trace.pl $(DIE_OPS)
-	DIE_TRACE=0 perl die.pl > $@
+die.sass: die.pl trace.pl die_wait_mask.awk $(DIE_OPS)
+	DIE_TRACE=0 perl die.pl > $@.raw
+	awk -f die_wait_mask.awk $@.raw > $@
+	rm $@.raw
 
 dieops.h: die.pl
 	perl die.pl header > $@
@@ -596,10 +598,14 @@ pair_bf16_plan_test: pair_bf16_plan_test.c prog.c prog.h dieops.h ../ref/quant.c
 	$(CC) -std=gnu99 -O2 -Wall -o $@ pair_bf16_plan_test.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I$(CUDA)/include -lm
 
 # Profiling images use separate generated files; changing a shell variable cannot leave a stale production image.
-die_trace.sass: die.pl trace.pl $(DIE_OPS)
-	DIE_TRACE=1 perl die.pl > $@
-die_trace16.sass: die.pl trace.pl $(DIE_OPS)
-	DIE_TRACE=16 perl die.pl > $@
+die_trace.sass: die.pl trace.pl die_wait_mask.awk $(DIE_OPS)
+	DIE_TRACE=1 perl die.pl > $@.raw
+	awk -f die_wait_mask.awk $@.raw > $@
+	rm $@.raw
+die_trace16.sass: die.pl trace.pl die_wait_mask.awk $(DIE_OPS)
+	DIE_TRACE=16 perl die.pl > $@.raw
+	awk -f die_wait_mask.awk $@.raw > $@
+	rm $@.raw
 die_trace.cubin: die_trace.sass skel_die.cubin
 	cp skel_die.cubin $@
 	$(MAXAS) -i die_trace.sass $@
