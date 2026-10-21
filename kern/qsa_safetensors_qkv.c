@@ -226,24 +226,21 @@ static void write_json(const char *directory, const char *sha256, unsigned posit
     write_bytes(directory, "projection-complete.json", json, (size_t)length);
 }
 
+
 static void write_indexer_capture(const char *output_directory,
                                   const unsigned char *data,const float *hidden,
                                   unsigned positions,unsigned budget,const char *sha256)
 {
-    const unsigned blocks=positions/4;
-    const unsigned selected=blocks<budget?blocks:budget;
+    unsigned first_snapshot=(positions>=2047 && budget==512)?2047:positions;
+    unsigned blocks=positions/4;
     size_t projected_count=(size_t)positions*INDEX_ROWS;
     size_t raw_count=(size_t)positions*INDEX_DIM;
     size_t rope_count=(size_t)positions*32u;
     float *projected=malloc(projected_count*sizeof *projected);
     float *raw=malloc(raw_count*sizeof *raw);
     float *cs=malloc(rope_count*sizeof *cs),*sn=malloc(rope_count*sizeof *sn);
-    uint16_t *pool=malloc((size_t)blocks*INDEX_DIM*sizeof *pool);
-    float *scores=malloc((size_t)blocks*sizeof *scores);
-    uint32_t *ids=malloc((size_t)selected*sizeof *ids);
-    float *iq=malloc(INDEX_HEADS*INDEX_DIM*sizeof *iq);
-    if(!projected||!raw||!cs||!sn||!pool||!scores||!ids||!iq)
-        fail("indexer capture allocation failed");
+    uint16_t *pool=malloc((size_t)(blocks?blocks:1)*INDEX_DIM*sizeof *pool);
+    if(!projected||!raw||!cs||!sn||!pool) fail("indexer capture allocation failed");
     for(unsigned position=0;position<positions;position++) {
         project(data,INDEX_QK.offset,INDEX_ROWS,
                 hidden+(size_t)position*HIDDEN,projected+(size_t)position*INDEX_ROWS);
@@ -259,40 +256,23 @@ static void write_indexer_capture(const char *output_directory,
     float iqn[INDEX_DIM],ikn[INDEX_DIM];
     load_index_norm(data,INDEX_Q_NORM.offset,iqn);
     load_index_norm(data,INDEX_K_NORM.offset,ikn);
-    const float *iqk=projected+(size_t)(positions-1)*INDEX_ROWS;
-    for(unsigned h=0;h<INDEX_HEADS;h++)
-        idx_norm_rope_gpu(iqk+(size_t)h*INDEX_DIM,iqn,1e-6f,
-            cs+(size_t)(positions-1)*32,sn+(size_t)(positions-1)*32,
-            iq+(size_t)h*INDEX_DIM);
     for(unsigned block=0;block<blocks;block++)
         idx_pool_gpu(raw+(size_t)block*4*INDEX_DIM,ikn,1e-6f,
             cs+(size_t)block*4*32,sn+(size_t)block*4*32,
             pool+(size_t)block*INDEX_DIM);
-    if(blocks) idx_scores_gpu(iq,pool,blocks,scores);
-    unsigned count=idx_select_gpu(scores,blocks,budget,ids);
-    if(count!=selected) fail("indexer reference returned an unexpected selection count");
-    for(size_t i=0;i<(size_t)blocks*INDEX_DIM;i++)
-        if(!isfinite(qsa_h2f(pool[i]))) fail("non-finite FP16 indexer pool");
-    for(unsigned i=0;i<blocks;i++) if(!isfinite(scores[i])) fail("non-finite indexer score");
 
-    char root[4096],snapshot[4096],path[4096];
-    int n=snprintf(root,sizeof root,"%s/indexer-capture",output_directory);
-    if(n<0||(size_t)n>=sizeof root||mkdir(root,0700)) fail("cannot create indexer capture");
+    char root[4096],path[4096];
+    int length=snprintf(root,sizeof root,"%s/indexer-capture",output_directory);
+    if(length<0||(size_t)length>=sizeof root||mkdir(root,0700)) fail("cannot create indexer capture");
     write_bytes(root,"raw_ik.f32",raw,raw_count*sizeof *raw);
     write_bytes(root,"qk_projected.f32",projected,projected_count*sizeof *projected);
     write_bytes(root,"rope_cs.f32",cs,rope_count*sizeof *cs);
     write_bytes(root,"rope_sn.f32",sn,rope_count*sizeof *sn);
     write_bytes(root,"iqn.f32",iqn,sizeof iqn);
     write_bytes(root,"ikn.f32",ikn,sizeof ikn);
-    n=snprintf(snapshot,sizeof snapshot,"%s/n%u",root,positions);
-    if(n<0||(size_t)n>=sizeof snapshot||mkdir(snapshot,0700)) fail("cannot create indexer snapshot");
-    write_bytes(snapshot,"iqk.f32",iqk,INDEX_ROWS*sizeof *iqk);
-    write_bytes(snapshot,"iq.f32",iq,INDEX_HEADS*INDEX_DIM*sizeof *iq);
-    write_bytes(snapshot,"pool.f16",pool,(size_t)blocks*INDEX_DIM*sizeof *pool);
-    write_bytes(snapshot,"selected_ids.u32",ids,(size_t)selected*sizeof *ids);
-    if(blocks>budget) write_bytes(snapshot,"scores.f32",scores,(size_t)blocks*sizeof *scores);
-    n=snprintf(path,sizeof path,"%s/complete.json",root);
-    if(n<0||(size_t)n>=sizeof path) fail("indexer completion path too long");
+
+    length=snprintf(path,sizeof path,"%s/complete.json",root);
+    if(length<0||(size_t)length>=sizeof path) fail("indexer completion path too long");
     int fd=open(path,O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW,0600);
     if(fd<0) fail("cannot create indexer completion metadata");
     FILE *f=fdopen(fd,"w");
@@ -300,33 +280,66 @@ static void write_indexer_capture(const char *output_directory,
     if(fprintf(f,"{\"schema\":\"flash-sass.qsa-layer-capture.v1\",\"complete\":true,"
         "\"positions\":%u,\"budget\":%u,\"epsilon\":1e-6,\"byte_order\":\"little\","
         "\"teacher_forced\":false,\"layer\":3,\"die\":0,\"FLASH_KV_HOST\":0,"
-        "\"pool_dtype\":\"fp16\",\"rope_base\":10000000,\"snapshot_lengths\":[%u],"
-        "\"evidence_kind\":\"synthetic_cpu_fixture\",\"weights_origin\":\"original_checkpoint_safetensors_layer3\","
+        "\"pool_dtype\":\"fp16\",\"rope_base\":10000000,\"snapshot_lengths\":[",
+        positions,budget)<0) fail("indexer completion write failed");
+    for(unsigned n=first_snapshot;n<=positions;n++)
+        if(fprintf(f,"%s%u",n==first_snapshot?"":",",n)<0) fail("indexer completion write failed");
+    if(fprintf(f,"],\"evidence_kind\":\"synthetic_cpu_fixture\","
+        "\"weights_origin\":\"original_checkpoint_safetensors_layer3\","
         "\"weights_revision\":\"%s\",\"weights_file_sha256\":\"%s\","
-        "\"hidden_input_generator\":\"fixed_lcg_fp32_v1\",\"hidden_input_seed\":4242,"
-        "\"indexer_projection\":\"original_bf16_index_qk_proj\",\"selection_source\":\"reference_qsa_c\","
-        "\"production_gpu_indexer_executed\":false,\"full_model\":false}\n",
-        positions,budget,positions,CHECKPOINT_REV,sha256)<0) fail("indexer completion write failed");
+        "\"indexer_projection\":\"original_bf16_index_qk_proj\","
+        "\"selection_source\":\"reference_qsa_c\",\"hidden_input_generator\":\"fixed_lcg_fp32_v1\","
+        "\"hidden_input_seed\":4242,\"production_gpu_indexer_executed\":false,"
+        "\"full_model\":false}\n",CHECKPOINT_REV,sha256)<0)
+        fail("indexer completion write failed");
     if(fflush(f)||fclose(f)) fail("cannot close indexer completion metadata");
-    n=snprintf(path,sizeof path,"%s/snapshot.json",snapshot);
-    if(n<0||(size_t)n>=sizeof path) fail("indexer snapshot path too long");
-    fd=open(path,O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW,0600);
-    if(fd<0) fail("cannot create indexer snapshot metadata");
-    f=fdopen(fd,"w");
-    if(!f) fail("cannot open indexer snapshot stream");
-    if(fprintf(f,"{\"schema\":\"flash-sass.qsa-layer-snapshot.v1\","
-        "\"length\":%u,\"position\":%u,\"budget\":%u,\"complete_blocks\":%u,"
-        "\"selected_blocks\":%u,\"tail\":%u,\"attended_keys\":%u,"
-        "\"sparse_exclusion\":%s,\"layer\":3,\"die\":0,"
-        "\"evidence_kind\":\"synthetic_cpu_fixture\",\"teacher_forced\":false,"
-        "\"scores_source\":\"reference_qsa_c\",\"selected_ids_source\":\"reference_qsa_c\"}\n",
-        positions,positions-1,budget,blocks,selected,positions%4,
-        selected*4+positions%4,blocks>budget?"true":"false")<0)
-        fail("indexer snapshot metadata write failed");
-    if(fflush(f)||fclose(f)) fail("cannot close indexer snapshot metadata");
-    free(iq);free(ids);free(scores);free(pool);free(sn);free(cs);free(raw);free(projected);
-}
 
+    for(unsigned n=first_snapshot;n<=positions;n++) {
+        unsigned nblocks=n/4, selected=nblocks<budget?nblocks:budget;
+        float *scores=calloc(nblocks?nblocks:1,sizeof *scores);
+        uint32_t *ids=calloc(selected?selected:1,sizeof *ids);
+        float iq[INDEX_HEADS*INDEX_DIM];
+        const float *iqk=projected+(size_t)(n-1)*INDEX_ROWS;
+        if(!scores||!ids) fail("indexer snapshot allocation failed");
+        for(unsigned h=0;h<INDEX_HEADS;h++)
+            idx_norm_rope_gpu(iqk+(size_t)h*INDEX_DIM,iqn,1e-6f,
+                cs+(size_t)(n-1)*32,sn+(size_t)(n-1)*32,
+                iq+(size_t)h*INDEX_DIM);
+        if(nblocks) idx_scores_gpu(iq,pool,nblocks,scores);
+        unsigned count=idx_select_gpu(scores,nblocks,budget,ids);
+        if(count!=selected) fail("indexer reference returned an unexpected selection count");
+        for(size_t i=0;i<(size_t)nblocks*INDEX_DIM;i++)
+            if(!isfinite(qsa_h2f(pool[i]))) fail("non-finite FP16 indexer pool");
+        for(unsigned i=0;i<nblocks;i++) if(!isfinite(scores[i]) || scores[i]<0)
+            fail("non-finite or negative indexer score");
+        char snapshot[4096];
+        length=snprintf(snapshot,sizeof snapshot,"%s/n%u",root,n);
+        if(length<0||(size_t)length>=sizeof snapshot||mkdir(snapshot,0700))
+            fail("cannot create indexer snapshot");
+        write_bytes(snapshot,"iqk.f32",iqk,INDEX_ROWS*sizeof *iqk);
+        write_bytes(snapshot,"iq.f32",iq,sizeof iq);
+        write_bytes(snapshot,"pool.f16",pool,(size_t)nblocks*INDEX_DIM*sizeof *pool);
+        write_bytes(snapshot,"selected_ids.u32",ids,(size_t)selected*sizeof *ids);
+        if(nblocks>budget) write_bytes(snapshot,"scores.f32",scores,(size_t)nblocks*sizeof *scores);
+        length=snprintf(path,sizeof path,"%s/snapshot.json",snapshot);
+        if(length<0||(size_t)length>=sizeof path) fail("indexer snapshot path too long");
+        fd=open(path,O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW,0600);
+        if(fd<0) fail("cannot create indexer snapshot metadata");
+        f=fdopen(fd,"w");
+        if(!f) fail("cannot open indexer snapshot stream");
+        if(fprintf(f,"{\"schema\":\"flash-sass.qsa-layer-snapshot.v1\","
+            "\"length\":%u,\"position\":%u,\"budget\":%u,\"complete_blocks\":%u,"
+            "\"selected_blocks\":%u,\"tail\":%u,\"attended_keys\":%u,"
+            "\"sparse_exclusion\":%s,\"layer\":3,\"die\":0,"
+            "\"evidence_kind\":\"synthetic_cpu_fixture\",\"teacher_forced\":false,"
+            "\"scores_source\":\"reference_qsa_c\",\"selected_ids_source\":\"reference_qsa_c\"}\n",
+            n,n-1,budget,nblocks,selected,n%4,selected*4+n%4,
+            nblocks>budget?"true":"false")<0) fail("indexer snapshot metadata write failed");
+        if(fflush(f)||fclose(f)) fail("cannot close indexer snapshot metadata");
+        free(ids);free(scores);
+    }
+    free(pool);free(sn);free(cs);free(raw);free(projected);
+}
 
 int main(int argc, char **argv)
 {
