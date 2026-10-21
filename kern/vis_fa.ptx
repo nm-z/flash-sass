@@ -1,0 +1,291 @@
+// Dense FlashAttention for Qwen vision: 72 dimensions, 16 heads.
+// 128 threads / CTA, 16 queries x 32 keys. Every key is visited.
+// QK, P, m, l and unnormalized PV are FP32. K/V loads convert F16
+// directly to F32. No score/probability matrix in global memory.
+//
+// For each tile: m'=max(m,max(S)); a=exp(m-m'); P=exp(S-m');
+// l'=a*l+sum(P); O'=a*O+P*V. Normalize O/l after the final tile.
+// Partial query/key tiles are predicated. The first tile has valid keys
+// because the launcher rejects nk==0, so initial m=-inf is safe.
+.version 7.4
+.target sm_52
+.address_size 64
+
+.visible .entry vis_fa_d72_f32(
+    .param .u64 pq, .param .u64 pk, .param .u64 pv, .param .u64 po,
+    .param .u64 qd, .param .u64 qt, .param .u64 qh,
+    .param .u64 kd, .param .u64 kt, .param .u64 kh,
+    .param .u64 vd, .param .u64 vt, .param .u64 vh,
+    .param .u64 od, .param .u64 ot, .param .u64 oh,
+    .param .u32 nq, .param .u32 nk, .param .f32 scale)
+.reqntid 128, 1, 1
+{
+    .shared .align 16 .f32 Q[1152];
+    // K transposed with a 33-float pitch avoids bank conflicts in the
+    // cooperative transpose and gives contiguous reads across key lanes.
+    .shared .align 16 .f32 K[2376];
+    .shared .align 16 .f32 V[2304];
+    .shared .align 16 .f32 P[512];
+
+    .reg .pred %valid, %loop, %tail, %qvalid;
+    .reg .b16 %half;
+    .reg .u32 %thr, %lane, %warp, %qb, %head, %nq, %nk;
+    .reg .u32 %i, %d, %j, %row, %tok, %kb, %ki;
+    .reg .u32 %sq, %sk, %sv, %sp, %addr, %addr2, %qrow, %prow;
+    .reg .u32 %kptr, %qptr, %vptr, %pptr, %voff, %poff;
+    .reg .u64 %q, %k, %v, %o, %qd, %qt, %qh, %kd, %kt, %kh;
+    .reg .u64 %vd, %vt, %vh, %od, %ot, %oh, %x, %y, %z, %g;
+    .reg .f32 %scale, %xq, %xk, %xv, %v0, %v1, %v2, %tmp;
+    .reg .f32 %s0, %s1, %s2, %s3;
+    .reg .f32 %m0, %m1, %m2, %m3, %l0, %l1, %l2, %l3;
+    .reg .f32 %t0, %t1, %t2, %t3, %a0, %a1, %a2, %a3;
+    .reg .f32 %p0, %p1, %p2, %p3;
+    .reg .f32 %o00, %o01, %o02, %o10, %o11, %o12;
+    .reg .f32 %o20, %o21, %o22, %o30, %o31, %o32;
+
+    ld.param.u64 %q, [pq]; ld.param.u64 %k, [pk];
+    ld.param.u64 %v, [pv]; ld.param.u64 %o, [po];
+    ld.param.u64 %qd, [qd]; ld.param.u64 %qt, [qt]; ld.param.u64 %qh, [qh];
+    ld.param.u64 %kd, [kd]; ld.param.u64 %kt, [kt]; ld.param.u64 %kh, [kh];
+    ld.param.u64 %vd, [vd]; ld.param.u64 %vt, [vt]; ld.param.u64 %vh, [vh];
+    ld.param.u64 %od, [od]; ld.param.u64 %ot, [ot]; ld.param.u64 %oh, [oh];
+    ld.param.u32 %nq, [nq]; ld.param.u32 %nk, [nk];
+    ld.param.f32 %scale, [scale];
+    mov.u32 %thr, %tid.x;
+    and.b32 %lane, %thr, 31;
+    shr.u32 %warp, %thr, 5;
+    mov.u32 %qb, %ctaid.x;
+    shl.b32 %qb, %qb, 4;
+    mov.u32 %head, %ctaid.y;
+    cvt.u64.u32 %x, %head;
+    mul.lo.u64 %y, %x, %qh; add.u64 %q, %q, %y;
+    mul.lo.u64 %y, %x, %kh; add.u64 %k, %k, %y;
+    mul.lo.u64 %y, %x, %vh; add.u64 %v, %v, %y;
+    mul.lo.u64 %y, %x, %oh; add.u64 %o, %o, %y;
+    mov.u32 %sq, Q; mov.u32 %sk, K; mov.u32 %sv, V; mov.u32 %sp, P;
+    mul.lo.u32 %qrow, %warp, 1152;
+    add.u32 %qrow, %sq, %qrow;
+    shl.b32 %prow, %warp, 9;
+    add.u32 %prow, %sp, %prow;
+
+    // Cooperative query tile load, honoring all byte strides.
+    mov.u32 %i, %thr;
+L_Q:
+    div.u32 %row, %i, 72;
+    rem.u32 %d, %i, 72;
+    add.u32 %tok, %qb, %row;
+    setp.lt.u32 %valid, %tok, %nq;
+    cvt.u64.u32 %x, %tok; mul.lo.u64 %x, %x, %qt;
+    cvt.u64.u32 %y, %d; mul.lo.u64 %y, %y, %qd;
+    add.u64 %g, %q, %x; add.u64 %g, %g, %y;
+    mov.f32 %xq, 0f00000000;
+    @%valid ld.global.f32 %xq, [%g];
+    mad.lo.u32 %addr, %i, 4, %sq;
+    st.shared.f32 [%addr], %xq;
+    add.u32 %i, %i, 128;
+    setp.lt.u32 %loop, %i, 1152;
+    @%loop bra L_Q;
+
+    mov.f32 %m0, 0fff800000; mov.f32 %m1, 0fff800000;
+    mov.f32 %m2, 0fff800000; mov.f32 %m3, 0fff800000;
+    mov.f32 %l0, 0f00000000; mov.f32 %l1, 0f00000000;
+    mov.f32 %l2, 0f00000000; mov.f32 %l3, 0f00000000;
+    mov.f32 %o00, 0f00000000; mov.f32 %o01, 0f00000000; mov.f32 %o02, 0f00000000;
+    mov.f32 %o10, 0f00000000; mov.f32 %o11, 0f00000000; mov.f32 %o12, 0f00000000;
+    mov.f32 %o20, 0f00000000; mov.f32 %o21, 0f00000000; mov.f32 %o22, 0f00000000;
+    mov.f32 %o30, 0f00000000; mov.f32 %o31, 0f00000000; mov.f32 %o32, 0f00000000;
+    setp.lt.u32 %tail, %lane, 8;
+    mov.u32 %kb, 0;
+
+L_TILE:
+    mov.u32 %i, %thr;
+L_KV:
+    div.u32 %j, %i, 72;
+    rem.u32 %d, %i, 72;
+    add.u32 %tok, %kb, %j;
+    setp.lt.u32 %valid, %tok, %nk;
+    cvt.u64.u32 %x, %tok;
+    mul.lo.u64 %y, %x, %kt;
+    cvt.u64.u32 %z, %d; mul.lo.u64 %z, %z, %kd;
+    add.u64 %g, %k, %y; add.u64 %g, %g, %z;
+    mov.b16 %half, 0;
+    @%valid ld.global.b16 %half, [%g];
+    cvt.f32.f16 %xk, %half;
+    mad.lo.u32 %addr, %d, 33, %j;
+    mad.lo.u32 %addr, %addr, 4, %sk;
+    st.shared.f32 [%addr], %xk;
+    mul.lo.u64 %y, %x, %vt;
+    cvt.u64.u32 %z, %d; mul.lo.u64 %z, %z, %vd;
+    add.u64 %g, %v, %y; add.u64 %g, %g, %z;
+    mov.b16 %half, 0;
+    @%valid ld.global.b16 %half, [%g];
+    cvt.f32.f16 %xv, %half;
+    mad.lo.u32 %addr, %i, 4, %sv;
+    st.shared.f32 [%addr], %xv;
+    add.u32 %i, %i, 128;
+    setp.lt.u32 %loop, %i, 2304;
+    @%loop bra L_KV;
+    bar.sync 0;
+
+    // Each warp computes four rows; each lane owns one key's scores.
+    mov.f32 %s0, 0f00000000; mov.f32 %s1, 0f00000000;
+    mov.f32 %s2, 0f00000000; mov.f32 %s3, 0f00000000;
+    mad.lo.u32 %kptr, %lane, 4, %sk;
+    mov.u32 %qptr, %qrow;
+    mov.u32 %d, 0;
+L_DOT:
+    ld.shared.f32 %xk, [%kptr];
+    ld.shared.f32 %xq, [%qptr];
+    fma.rn.f32 %s0, %xq, %xk, %s0;
+    ld.shared.f32 %xq, [%qptr+288];
+    fma.rn.f32 %s1, %xq, %xk, %s1;
+    ld.shared.f32 %xq, [%qptr+576];
+    fma.rn.f32 %s2, %xq, %xk, %s2;
+    ld.shared.f32 %xq, [%qptr+864];
+    fma.rn.f32 %s3, %xq, %xk, %s3;
+    add.u32 %kptr, %kptr, 132;
+    add.u32 %qptr, %qptr, 4;
+    add.u32 %d, %d, 1;
+    setp.lt.u32 %loop, %d, 72;
+    @%loop bra L_DOT;
+    mul.f32 %s0, %s0, %scale; mul.f32 %s1, %s1, %scale;
+    mul.f32 %s2, %s2, %scale; mul.f32 %s3, %s3, %scale;
+    add.u32 %tok, %kb, %lane;
+    setp.ge.u32 %valid, %tok, %nk;
+    @%valid mov.f32 %s0, 0fff800000; @%valid mov.f32 %s1, 0fff800000;
+    @%valid mov.f32 %s2, 0fff800000; @%valid mov.f32 %s3, 0fff800000;
+
+    mov.f32 %t0, %s0; mov.f32 %t1, %s1;
+    mov.f32 %t2, %s2; mov.f32 %t3, %s3;
+    mov.u32 %i, 16;
+L_MAX:
+    shfl.sync.bfly.b32 %tmp, %t0, %i, 31, -1;
+    max.f32 %t0, %t0, %tmp;
+    shfl.sync.bfly.b32 %tmp, %t1, %i, 31, -1;
+    max.f32 %t1, %t1, %tmp;
+    shfl.sync.bfly.b32 %tmp, %t2, %i, 31, -1;
+    max.f32 %t2, %t2, %tmp;
+    shfl.sync.bfly.b32 %tmp, %t3, %i, 31, -1;
+    max.f32 %t3, %t3, %tmp;
+    shr.u32 %i, %i, 1;
+    setp.ne.u32 %loop, %i, 0;
+    @%loop bra L_MAX;
+    max.f32 %t0, %t0, %m0; max.f32 %t1, %t1, %m1;
+    max.f32 %t2, %t2, %m2; max.f32 %t3, %t3, %m3;
+    sub.f32 %a0, %m0, %t0; sub.f32 %a1, %m1, %t1;
+    sub.f32 %a2, %m2, %t2; sub.f32 %a3, %m3, %t3;
+    mul.f32 %a0, %a0, 0f3fb8aa3b; mul.f32 %a1, %a1, 0f3fb8aa3b;
+    mul.f32 %a2, %a2, 0f3fb8aa3b; mul.f32 %a3, %a3, 0f3fb8aa3b;
+    ex2.approx.ftz.f32 %a0, %a0; ex2.approx.ftz.f32 %a1, %a1;
+    ex2.approx.ftz.f32 %a2, %a2; ex2.approx.ftz.f32 %a3, %a3;
+    sub.f32 %p0, %s0, %t0; sub.f32 %p1, %s1, %t1;
+    sub.f32 %p2, %s2, %t2; sub.f32 %p3, %s3, %t3;
+    mul.f32 %p0, %p0, 0f3fb8aa3b; mul.f32 %p1, %p1, 0f3fb8aa3b;
+    mul.f32 %p2, %p2, 0f3fb8aa3b; mul.f32 %p3, %p3, 0f3fb8aa3b;
+    ex2.approx.ftz.f32 %p0, %p0; ex2.approx.ftz.f32 %p1, %p1;
+    ex2.approx.ftz.f32 %p2, %p2; ex2.approx.ftz.f32 %p3, %p3;
+    mov.f32 %m0, %t0; mov.f32 %m1, %t1;
+    mov.f32 %m2, %t2; mov.f32 %m3, %t3;
+    mad.lo.u32 %addr, %lane, 4, %prow;
+    st.shared.f32 [%addr], %p0; st.shared.f32 [%addr+128], %p1;
+    st.shared.f32 [%addr+256], %p2; st.shared.f32 [%addr+384], %p3;
+    mov.u32 %i, 16;
+L_SUM:
+    shfl.sync.bfly.b32 %tmp, %p0, %i, 31, -1;
+    add.f32 %p0, %p0, %tmp;
+    shfl.sync.bfly.b32 %tmp, %p1, %i, 31, -1;
+    add.f32 %p1, %p1, %tmp;
+    shfl.sync.bfly.b32 %tmp, %p2, %i, 31, -1;
+    add.f32 %p2, %p2, %tmp;
+    shfl.sync.bfly.b32 %tmp, %p3, %i, 31, -1;
+    add.f32 %p3, %p3, %tmp;
+    shr.u32 %i, %i, 1;
+    setp.ne.u32 %loop, %i, 0;
+    @%loop bra L_SUM;
+    fma.rn.f32 %l0, %l0, %a0, %p0; fma.rn.f32 %l1, %l1, %a1, %p1;
+    fma.rn.f32 %l2, %l2, %a2, %p2; fma.rn.f32 %l3, %l3, %a3, %p3;
+    mul.f32 %o00, %o00, %a0; mul.f32 %o01, %o01, %a0; mul.f32 %o02, %o02, %a0;
+    mul.f32 %o10, %o10, %a1; mul.f32 %o11, %o11, %a1; mul.f32 %o12, %o12, %a1;
+    mul.f32 %o20, %o20, %a2; mul.f32 %o21, %o21, %a2; mul.f32 %o22, %o22, %a2;
+    mul.f32 %o30, %o30, %a3; mul.f32 %o31, %o31, %a3; mul.f32 %o32, %o32, %a3;
+    bar.sync 0;
+
+    // Switch ownership: lane now owns output dimensions lane,+32,+64.
+    // V stays in [key][dimension] layout for contiguous shared reads.
+    mad.lo.u32 %vptr, %lane, 4, %sv;
+    mov.u32 %pptr, %prow;
+    mov.u32 %j, 0;
+L_PV:
+    ld.shared.f32 %v0, [%vptr];
+    ld.shared.f32 %v1, [%vptr+128];
+    mov.f32 %v2, 0f00000000;
+    @%tail ld.shared.f32 %v2, [%vptr+256];
+    ld.shared.f32 %p0, [%pptr]; ld.shared.f32 %p1, [%pptr+128];
+    ld.shared.f32 %p2, [%pptr+256]; ld.shared.f32 %p3, [%pptr+384];
+    fma.rn.f32 %o00, %p0, %v0, %o00;
+    fma.rn.f32 %o01, %p0, %v1, %o01;
+    fma.rn.f32 %o02, %p0, %v2, %o02;
+    fma.rn.f32 %o10, %p1, %v0, %o10;
+    fma.rn.f32 %o11, %p1, %v1, %o11;
+    fma.rn.f32 %o12, %p1, %v2, %o12;
+    fma.rn.f32 %o20, %p2, %v0, %o20;
+    fma.rn.f32 %o21, %p2, %v1, %o21;
+    fma.rn.f32 %o22, %p2, %v2, %o22;
+    fma.rn.f32 %o30, %p3, %v0, %o30;
+    fma.rn.f32 %o31, %p3, %v1, %o31;
+    fma.rn.f32 %o32, %p3, %v2, %o32;
+    add.u32 %vptr, %vptr, 288;
+    add.u32 %pptr, %pptr, 4;
+    add.u32 %j, %j, 1;
+    setp.lt.u32 %loop, %j, 32;
+    @%loop bra L_PV;
+    // All warps must finish reading this tile before it is overwritten.
+    bar.sync 0;
+    add.u32 %kb, %kb, 32;
+    setp.lt.u32 %loop, %kb, %nk;
+    @%loop bra L_TILE;
+
+    // Final division is FP32 round-to-nearest; no F16 accumulation/output.
+    div.rn.f32 %o00, %o00, %l0; div.rn.f32 %o01, %o01, %l0; div.rn.f32 %o02, %o02, %l0;
+    div.rn.f32 %o10, %o10, %l1; div.rn.f32 %o11, %o11, %l1; div.rn.f32 %o12, %o12, %l1;
+    div.rn.f32 %o20, %o20, %l2; div.rn.f32 %o21, %o21, %l2; div.rn.f32 %o22, %o22, %l2;
+    div.rn.f32 %o30, %o30, %l3; div.rn.f32 %o31, %o31, %l3; div.rn.f32 %o32, %o32, %l3;
+    shl.b32 %row, %warp, 2;
+    add.u32 %tok, %qb, %row;
+    cvt.u64.u32 %x, %tok; mul.lo.u64 %x, %x, %ot;
+    cvt.u64.u32 %y, %lane; mul.lo.u64 %y, %y, %od;
+    add.u64 %g, %o, %x; add.u64 %g, %g, %y;
+    mul.lo.u64 %z, %od, 32;
+    setp.lt.u32 %qvalid, %tok, %nq;
+    @%qvalid st.global.f32 [%g], %o00;
+    add.u64 %x, %g, %z;
+    @%qvalid st.global.f32 [%x], %o01;
+    add.u64 %x, %x, %z;
+    and.pred %valid, %qvalid, %tail;
+    @%valid st.global.f32 [%x], %o02;
+    add.u32 %tok, %tok, 1; add.u64 %g, %g, %ot;
+    setp.lt.u32 %qvalid, %tok, %nq;
+    @%qvalid st.global.f32 [%g], %o10;
+    add.u64 %x, %g, %z;
+    @%qvalid st.global.f32 [%x], %o11;
+    add.u64 %x, %x, %z;
+    and.pred %valid, %qvalid, %tail;
+    @%valid st.global.f32 [%x], %o12;
+    add.u32 %tok, %tok, 1; add.u64 %g, %g, %ot;
+    setp.lt.u32 %qvalid, %tok, %nq;
+    @%qvalid st.global.f32 [%g], %o20;
+    add.u64 %x, %g, %z;
+    @%qvalid st.global.f32 [%x], %o21;
+    add.u64 %x, %x, %z;
+    and.pred %valid, %qvalid, %tail;
+    @%valid st.global.f32 [%x], %o22;
+    add.u32 %tok, %tok, 1; add.u64 %g, %g, %ot;
+    setp.lt.u32 %qvalid, %tok, %nq;
+    @%qvalid st.global.f32 [%g], %o30;
+    add.u64 %x, %g, %z;
+    @%qvalid st.global.f32 [%x], %o31;
+    add.u64 %x, %x, %z;
+    and.pred %valid, %qvalid, %tail;
+    @%valid st.global.f32 [%x], %o32;
+    ret;
+}
