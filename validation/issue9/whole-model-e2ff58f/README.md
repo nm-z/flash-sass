@@ -34,6 +34,16 @@ is expected for these rejection checks. No CUDA/model execution is claimed by
 those cases. Excerpts preserve compiler arguments, relevant byte identities,
 structured results and errors; full telemetry remains in DSH's build logs.
 
+## Current-source CPU-only checks
+
+After merging current `master`, DSH builds on Benji at branch head
+`3ec4a25d54baf755f85c734d2e0a6e3789c2b741` passed `oracle-check cpu-check`
+(oracle API checks and 46 pre-CUDA boundary checks), plus the 12-case fault
+runner and 20-case engine configuration self-tests. These verify current-source
+CPU and input-gate behavior only; they do not complete the 2055-position oracle
+or the production-budget GPU matrix. See the
+[current-source CPU check excerpt](benji-cpu-checks.excerpt).
+
 The positive runs explicitly derive a version-2 receipt from the same version-1
 full-hash root, SHA-256
 `e7d0ff80c5b410dace18a069dcd425ab978c153af51f16845377a7c6bc700908`.
@@ -106,6 +116,13 @@ either local filesystem. The existing records, checkpoint, IDs and receipt
 total 283372362 bytes and fit on the HDD; those partial artifacts remain there.
 The optional Q8_0 MTP file is another 4137429120 bytes and is not used by this
 scalar oracle. No replacement long run was started.
+
+In this follow-up, the current shell was on Benji. Its `/mnt/sentry-nfs` path
+was an unmounted, empty directory, and its only disk had 36,785,856,512 bytes
+free. The required 78,869,128,864-byte shard set could not be copied there, so
+no oracle resume was attempted. The stock DSH profile also omitted Benji; a
+temporary build-only profile routed the CPU checks above through DSH. Archy did
+not resolve from this host, so no new GPU job was submitted.
 
 The older source-36a
 native comparison stream was retired with 96 committed positions; its data and

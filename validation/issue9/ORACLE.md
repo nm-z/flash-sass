@@ -126,6 +126,8 @@ stay under their owners' control.
 
 | Evidence | Observed result | Scope |
 | --- | --- | --- |
+| DSH `build-604008-1792554960906070300` on Benji at source `3ec4a25` | `oracle-check cpu-check` exited 0; 17 oracle API checks and 46 CPU boundary checks passed | `cuInit` intercepted; no GPU validation. Full summary and binary identities: [current-source CPU checks](whole-model-e2ff58f/benji-cpu-checks.excerpt). |
+| DSH `build-620717-1792555110098571991` on Benji at source `3ec4a25` | 12 fault-runner fixtures and 20 engine-config parser checks passed; exit 0 | CPU-only; `gpu_calls=0`, no numerical GPU validation. Same excerpt. |
 | DSH `build-2688266-1792494343255683276` on Archy | 9 public API cases passed; producer and consumer built | Valid raw/digest comparison; one-bit, size, type and shape mismatch; missing, duplicate and extra labels; empty-record rejection. No CUDA execution. |
 | Same routed build | 46 boundary checks passed | Argument/capture/oracle scope and empty/missing receipt rejection before CUDA; positive controls intercepted `cuInit`. No numerical model validation. |
 | DSH `build-2802738-1792494998585080917` on Archy | 11 API/CLI checks and 46 boundary checks passed | Adds concurrent-writer exclusion before verification and preservation of existing record bytes after failed verification. Builds the consumer with shared reader locking. No CUDA execution. |

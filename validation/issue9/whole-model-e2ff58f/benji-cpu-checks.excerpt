@@ -1,0 +1,32 @@
+Current-source CPU checks after the master merge
+================================================
+
+Source revision: 3ec4a25d54baf755f85c734d2e0a6e3789c2b741
+Build host: benji (x86_64-unknown-linux-gnu)
+
+DSH build-604008-1792554960906070300
+Command: make -f validation/issue9/Makefile oracle-check cpu-check
+Result: exit 0
+17 oracle API checks passed
+OK: 46 CPU boundary checks; cuInit intercepted, no GPU validation
+
+Binary SHA-256:
+  model_oracle   733b1dd649035bd7a0d15c0bc1ef4d54a956352f395011856457694a88cfc41c
+  oracle_test    56b089c2a0671d76c6f66b758cd49e55540679f8a6ae11a73d0b6e9a610a20cc
+  model_test     f6886482c0dc1bda26cb745e95798bfbd7913c4f19c09b0fb7209610f03977a6
+  model_cli_test 4d8c34d8886a8f969aef450f6948a10f986475235be95b65db7c8b2f3e558190
+  cuinit_probe.so c2009433f6ebe8059b186dacc4d6fc231233f54d89e4ed00a930d77cbe9d7f93
+
+DSH build-620717-1792555110098571991
+Command: make -f validation/issue9/Makefile oracle-fault-check engine-check
+Result: exit 0
+ORACLE_FAULT_SELF_TEST_RESULT {passed: 12, failed: 0, gpu_calls: 0}
+ENGINE_CHECK_SELF_TEST_PASSED checks=20 scope=config-parser-only gpu=not-run numerical=not-claimed
+
+Binary SHA-256:
+  oracle_fault_matrix 1293d4c93e4852459a6d3a0f3619517c568144cbe80d0827dd2ae2a22b70ff83
+  engine_check        594c55c9716a52462ef0f908b6ff769f89ce0fc9083f0a31c34dce7e23104554
+
+These are CPU build, API, CLI-boundary, fault-runner and configuration-parser
+checks only. They do not complete the 2055-position CPU reference or pass the
+production-budget GPU request matrix.
