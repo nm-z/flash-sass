@@ -1,0 +1,94 @@
+{
+  "source_commit": "a62303283f993acb8a13188941b00f5bc9ef340b",
+  "base_commit": "c09927306f5170843116cc49fe85088ae42e02b3",
+  "build_request": "build-997048-1792562010826565005",
+  "build_host": "benji",
+  "build_status": "succeeded",
+  "build_configuration": {
+    "max_jobs": 1,
+    "host_jobs": 1,
+    "root": "/home/nate/agent-builds/fs16-issue16-a623032",
+    "target_directory": "/home/nate/agent-builds/fs16-issue16-a623032/targets",
+    "cargo_home": "/home/nate/agent-builds/fs16-issue16-a623032/cargo-home",
+    "timeout_seconds": 600
+  },
+  "command": "make -C kern PTXAS11=/home/nate/agent-builds/toolchains/fs16-ptxas-11.4-75f2219/ptxas qsa_gather_bench qsa_test die.cubin",
+  "toolchain": {
+    "ptxas": "/home/nate/agent-builds/toolchains/fs16-ptxas-11.4-75f2219/ptxas",
+    "ptxas_sha256": "6180efbc0877b5cf127bc99c5d51be6a779d98a03811cc1c24ef61621dc20976",
+    "maxas_upstream_commit": "54eda7af086a46c9dae1688b691968235d560164",
+    "maxas_patch_sha256": {
+      "Cubin.pm": "0fa8cb6989248b38ee44b27f0ef6a14809b06c1f7f332df12a587412998fe3ad",
+      "MaxAs.pm": "399e954359e0163fc181f19a315ae19c8c81572e1baf08b1e14c3b684e24e219",
+      "MaxAsGrammar.pm": "9698b546ad5af6da6aefccaa9944c50e5fa42aa0f95da8cfa995100e544818d3"
+    }
+  },
+  "source_sha256": {
+    "kern/qsa_gather_bench.c": "88657f80a2ac6fb38e0a7652c1a92b22305e2e26aa6305d42a7e3b366a02a78c",
+    "kern/qsa_test.c": "d81db6bece8c69d06bd2fe35272421bf4d8ac8ee3247e1ecf9e1612981857179",
+    "ref/qsa.c": "5d63aa53fae30d50addba450d1bd132c5c01aa67af279b2cd8925c0b523d5c21",
+    "ref/attn.c": "653521378d9bad2d2860696a6e3acde9b0316215923c6bd8eaff6a987983fa18",
+    "ref/fmath.c": "69bbf4dbb4201dd24056f29183d289910ac7067722c3214a79b3de3ffdf8f462"
+  },
+  "artifact_sha256": {
+    "qsa_gather_bench": "f982b117724816c7d910a8188d585e1ef5f51c75322e21f9175b0ef6fb2b6ecc",
+    "qsa_test": "00520ee0aff6a8b49e7dbc6721005aa08f1259d7808456ba980bf52931eefa9a",
+    "die.cubin": "aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423"
+  },
+  "notes": [
+    "The DSH build used an isolated task-local Benji root after shared-root admission was refused for another Cargo process in D state.",
+    "No GPU execution is represented by this build record."
+  ],
+  "gpu_inventory_job": {
+    "id": "b68ef825-8db8-4869-bf67-3855ac9af1dd",
+    "status": "succeeded",
+    "stdout_document_ids": [
+      76329,
+      76330
+    ],
+    "selected_device": {
+      "uuid": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b",
+      "model": "Tesla M60",
+      "driver": "470.256.02",
+      "total_memory_mib": 7618,
+      "free_memory_mib": 7547,
+      "utilization_percent": 0
+    }
+  },
+  "strict_qsa_hostkv_job": {
+    "id": "24d4f257-eea7-48d9-8feb-44e38d811ac2",
+    "label": "fs16-a623032-invalid-hostkv",
+    "status": "failed",
+    "exit_code": 2,
+    "stderr_document_id": 76333,
+    "stderr": "QSA_HOSTKV must be exactly 0 or 1",
+    "interpretation": "Expected rejection of invalid placement value before CUDA initialization."
+  },
+  "gpuq_matrix_initial_attempt": {
+    "id": "a34b0f45-b983-447e-8be4-67056e8d7161",
+    "label": "fs16-a623032-matrix",
+    "status": "lost",
+    "started_ns": null,
+    "ended_ns": "1792563064854309844",
+    "ticket": null,
+    "exit_code": null,
+    "gpu_execution_confirmed": false,
+    "issue": "nm-z/gpuq#35"
+  },
+  "gpuq_matrix_retry": {
+    "id": "5f97798e-3bd5-49df-a80d-efbb9c3d4b6e",
+    "label": "fs16-a623032-matrix-retry",
+    "status": "queued",
+    "started_ns": null,
+    "ended_ns": null,
+    "ticket": null,
+    "exit_code": null,
+    "gpu_execution_confirmed": false
+  },
+  "profiler_package": {
+    "version": "11.4.120",
+    "nvprof_archive_sha256": "bcf705c8f25f3423014b4182741e91676c4858b1b055a314911e24787a2d3129",
+    "cupti_archive_sha256": "e589bd0955dc59cf7871dad3446e583316623dd899b67c34b808fbe14cde0209",
+    "staged_bundle_sha256": "64facb7a90932915ff67408cd442154794f60cda6085009ee4525c536e0106e6"
+  }
+}
