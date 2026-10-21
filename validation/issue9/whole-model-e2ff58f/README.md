@@ -90,8 +90,24 @@ held fixed. Its initial eight-chunk routed job is
 batch, not a completed 2055-position reference. Continuation
 `build-1157614-1792515841388210491` resumes the same files for the remaining
 57 chunks, followed by full-stream validation, under a longer routed timeout.
-Its producer and source-manifest hashes match the first batch exactly. Full
-completion remains pending. The older source-36a
+Its producer and source-manifest hashes match the first batch exactly. A direct
+checkpoint read later reported `next_position=1248` and
+`record_offset=131918388` bytes. `records.bin` is 133609644 bytes, leaving
+1691256 bytes beyond the durable offset; that suffix is not committed oracle
+output and must not be counted as completed positions. The DSH build has no
+confirmed terminal result, its last captured log reports the Sentry NFS timeout,
+and its previously recorded `model_oracle` PID was absent on the later Archy
+process check. No full-stream validation or 2055-position completion is claimed.
+
+Before any continuation, the three source model shards must be copied off NFS.
+They total 78869128864 bytes. Archy had 1855864832 bytes free on `/` and
+4123766784 bytes free on `/mnt/stop-hook-hdd`, so the model shards do not fit on
+either local filesystem. The existing records, checkpoint, IDs and receipt
+total 283372362 bytes and fit on the HDD; those partial artifacts remain there.
+The optional Q8_0 MTP file is another 4137429120 bytes and is not used by this
+scalar oracle. No replacement long run was started.
+
+The older source-36a
 native comparison stream was retired with 96 committed positions; its data and
 checkpoints remain available as partial evidence. Its first 32-position record
 prefix and frozen checkpoint matched the O3 source-36a control through routed
