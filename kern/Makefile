@@ -136,8 +136,8 @@ qsa_quality: qsa_quality.c
 qsa_attention_quality: qsa_attention_quality.c
 	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -fno-fast-math -ffp-contract=off -o $@ $< -lm
 
-qsa_safetensors_qkv: qsa_safetensors_qkv.c
-	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -fno-fast-math -ffp-contract=off -DFLASH_REV='"$(FLASH_REV)"' -o $@ $< -lm
+qsa_safetensors_qkv: qsa_safetensors_qkv.c ../ref/qsa.c ../ref/qsa.h ../ref/fmath.c ../ref/fmath.h
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -fno-fast-math -ffp-contract=off -DFLASH_REV='"$(FLASH_REV)"' -I../ref -o $@ qsa_safetensors_qkv.c ../ref/qsa.c ../ref/fmath.c -lm
 
 # Fixed-projection GPU fixtures; supplied selection, no model/indexer claim.
 qsa_attention_gpu: qsa_attention_gpu.c dieops.h

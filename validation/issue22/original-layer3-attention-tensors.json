@@ -59,6 +59,37 @@
         1706665472,
         1706665984
       ]
+    },
+    "index_qk_proj": {
+      "dtype": "BF16",
+      "shape": [
+        640,
+        2560
+      ],
+      "data_offsets": [
+        1703388160,
+        1706664960
+      ]
+    },
+    "index_q_norm": {
+      "dtype": "BF16",
+      "shape": [
+        128
+      ],
+      "data_offsets": [
+        1706665216,
+        1706665472
+      ]
+    },
+    "index_k_norm": {
+      "dtype": "BF16",
+      "shape": [
+        128
+      ],
+      "data_offsets": [
+        1706664960,
+        1706665216
+      ]
     }
   }
 }

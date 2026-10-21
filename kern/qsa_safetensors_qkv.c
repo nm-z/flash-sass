@@ -2,6 +2,7 @@
  * This is a layer-component input generator, not a model forward or quality run. */
 #define _POSIX_C_SOURCE 200809L
 #include <errno.h>
+#include <fenv.h>
 #include <fcntl.h>
 #include <math.h>
 #include <stdint.h>
@@ -11,6 +12,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "qsa.h"
 
 #ifndef FLASH_REV
 #define FLASH_REV "unknown"
@@ -23,6 +25,9 @@
 #define Q_ROWS 12288u
 #define KV_ROWS 512u
 #define NORM_SIZE 256u
+#define INDEX_DIM 128u
+#define INDEX_HEADS 4u
+#define INDEX_ROWS 640u
 #define MAX_POSITIONS 256u
 #define CHECKPOINT_REV "de4b8e4d43b917e7706784d8bb445c9af86a3540"
 
@@ -59,6 +64,36 @@ static const tensor_spec K_NORM = {
     "model.language_model.layers.3.self_attn.k_norm.weight",
     "\"shape\":[256]", "\"data_offsets\":[1706665472,1706665984]",
     UINT64_C(1706665472), 256u, 1u
+};
+static const tensor_spec INDEX_QK = {
+    "model.language_model.layers.3.self_attn.indexer.index_qk_proj.weight",
+    "\"shape\":[640,2560]", "\"data_offsets\":[1703388160,1706664960]",
+    UINT64_C(1703388160), 640u, 2560u
+};
+static const tensor_spec INDEX_Q_NORM = {
+    "model.language_model.layers.3.self_attn.indexer.q_layernorm.weight",
+    "\"shape\":[128]", "\"data_offsets\":[1706665216,1706665472]",
+    UINT64_C(1706665216), 128u, 1u
+};
+static const tensor_spec INDEX_K_NORM = {
+    "model.language_model.layers.3.self_attn.indexer.k_layernorm.weight",
+    "\"shape\":[128]", "\"data_offsets\":[1706664960,1706665216]",
+    UINT64_C(1706664960), 128u, 1u
+};
+static const tensor_spec INDEX_QK = {
+    "model.language_model.layers.3.self_attn.indexer.index_qk_proj.weight",
+    "\"shape\":[640,2560]", "\"data_offsets\":[1703388160,1706664960]",
+    UINT64_C(1703388160), 640u, 2560u
+};
+static const tensor_spec INDEX_Q_NORM = {
+    "model.language_model.layers.3.self_attn.indexer.q_layernorm.weight",
+    "\"shape\":[128]", "\"data_offsets\":[1706665216,1706665472]",
+    UINT64_C(1706665216), 128u, 1u
+};
+static const tensor_spec INDEX_K_NORM = {
+    "model.language_model.layers.3.self_attn.indexer.k_layernorm.weight",
+    "\"shape\":[128]", "\"data_offsets\":[1706664960,1706665216]",
+    UINT64_C(1706664960), 128u, 1u
 };
 
 static void fail(const char *message)
@@ -156,6 +191,24 @@ static void load_norm(const unsigned char *data, uint64_t offset, float *output)
     }
 }
 
+static void load_index_norm(const unsigned char *data, uint64_t offset, float *output)
+{
+    const unsigned char *weights = data + offset;
+    for (size_t i = 0; i < INDEX_DIM; ++i) {
+        output[i] = bf16_to_float(weights + i * 2u);
+        if (!isfinite(output[i])) fail("non-finite BF16 indexer norm weight");
+    }
+}
+
+static void load_index_norm(const unsigned char *data, uint64_t offset, float *output)
+{
+    const unsigned char *weights = data + offset;
+    for (size_t i = 0; i < INDEX_DIM; ++i) {
+        output[i] = bf16_to_float(weights + i * 2u);
+        if (!isfinite(output[i])) fail("non-finite BF16 indexer norm weight");
+    }
+}
+
 static void write_bytes(const char *directory, const char *leaf,
                         const void *data, size_t bytes)
 {
@@ -187,12 +240,114 @@ static void write_json(const char *directory, const char *sha256, unsigned posit
         "\"positions\":%u,\"hidden_size\":2560,\"query_projection_rows\":12288,"
         "\"kv_projection_rows\":512,\"hidden_input_generator\":\"fixed_lcg_fp32_v1\","
         "\"hidden_input_seed\":4242,\"teacher_forced\":false,"
-        "\"model_forward\":false,\"production_indexer_executed\":false,"
+        "\"model_forward\":false,\"indexer_reference_capture_generated\":true,"
+        "\"production_indexer_executed\":false,"
         "\"selection\":\"provided_fixture_ids\",\"full_model\":false}\n",
         CHECKPOINT_REV, sha256, (unsigned long long)FILE_BYTES, positions);
     if (length < 0 || (size_t)length >= sizeof json) fail("metadata too long");
     write_bytes(directory, "projection-complete.json", json, (size_t)length);
 }
+
+static void write_indexer_capture(const char *output_directory,
+                                  const unsigned char *data,const float *hidden,
+                                  unsigned positions,const char *sha256)
+{
+    const unsigned budget=1;
+    const unsigned blocks=positions/4;
+    const unsigned selected=blocks<budget?blocks:budget;
+    size_t projected_count=(size_t)positions*INDEX_ROWS;
+    size_t raw_count=(size_t)positions*INDEX_DIM;
+    size_t rope_count=(size_t)positions*32u;
+    float *projected=malloc(projected_count*sizeof *projected);
+    float *raw=malloc(raw_count*sizeof *raw);
+    float *cs=malloc(rope_count*sizeof *cs),*sn=malloc(rope_count*sizeof *sn);
+    uint16_t *pool=malloc((size_t)blocks*INDEX_DIM*sizeof *pool);
+    float *scores=malloc((size_t)blocks*sizeof *scores);
+    uint32_t *ids=malloc((size_t)selected*sizeof *ids);
+    float *iq=malloc(INDEX_HEADS*INDEX_DIM*sizeof *iq);
+    if(!projected||!raw||!cs||!sn||!pool||!scores||!ids||!iq)
+        fail("indexer capture allocation failed");
+    for(unsigned position=0;position<positions;position++) {
+        project(data,INDEX_QK.offset,INDEX_ROWS,
+                hidden+(size_t)position*HIDDEN,projected+(size_t)position*INDEX_ROWS);
+        memcpy(raw+(size_t)position*INDEX_DIM,
+               projected+(size_t)position*INDEX_ROWS+INDEX_HEADS*INDEX_DIM,
+               INDEX_DIM*sizeof *raw);
+        for(unsigned d=0;d<32;d++) {
+            double angle=(double)position*pow(10000000.0,-(double)d/32.0);
+            cs[(size_t)position*32+d]=(float)cos(angle);
+            sn[(size_t)position*32+d]=(float)sin(angle);
+        }
+    }
+    float iqn[INDEX_DIM],ikn[INDEX_DIM];
+    load_index_norm(data,INDEX_Q_NORM.offset,iqn);
+    load_index_norm(data,INDEX_K_NORM.offset,ikn);
+    const float *iqk=projected+(size_t)(positions-1)*INDEX_ROWS;
+    for(unsigned h=0;h<INDEX_HEADS;h++)
+        idx_norm_rope_gpu(iqk+(size_t)h*INDEX_DIM,iqn,1e-6f,
+            cs+(size_t)(positions-1)*32,sn+(size_t)(positions-1)*32,
+            iq+(size_t)h*INDEX_DIM);
+    for(unsigned block=0;block<blocks;block++)
+        idx_pool_gpu(raw+(size_t)block*4*INDEX_DIM,ikn,1e-6f,
+            cs+(size_t)block*4*32,sn+(size_t)block*4*32,
+            pool+(size_t)block*INDEX_DIM);
+    if(blocks) idx_scores_gpu(iq,pool,blocks,scores);
+    unsigned count=idx_select_gpu(scores,blocks,budget,ids);
+    if(count!=selected) fail("indexer reference returned an unexpected selection count");
+    for(size_t i=0;i<(size_t)blocks*INDEX_DIM;i++)
+        if(!isfinite(qsa_h2f(pool[i]))) fail("non-finite FP16 indexer pool");
+    for(unsigned i=0;i<blocks;i++) if(!isfinite(scores[i])) fail("non-finite indexer score");
+
+    char root[4096],snapshot[4096],path[4096];
+    int n=snprintf(root,sizeof root,"%s/indexer-capture",output_directory);
+    if(n<0||(size_t)n>=sizeof root||mkdir(root,0700)) fail("cannot create indexer capture");
+    write_bytes(root,"raw_ik.f32",raw,raw_count*sizeof *raw);
+    write_bytes(root,"rope_cs.f32",cs,rope_count*sizeof *cs);
+    write_bytes(root,"rope_sn.f32",sn,rope_count*sizeof *sn);
+    write_bytes(root,"iqn.f32",iqn,sizeof iqn);
+    write_bytes(root,"ikn.f32",ikn,sizeof ikn);
+    n=snprintf(snapshot,sizeof snapshot,"%s/n%u",root,positions);
+    if(n<0||(size_t)n>=sizeof snapshot||mkdir(snapshot,0700)) fail("cannot create indexer snapshot");
+    write_bytes(snapshot,"iqk.f32",iqk,INDEX_ROWS*sizeof *iqk);
+    write_bytes(snapshot,"iq.f32",iq,INDEX_HEADS*INDEX_DIM*sizeof *iq);
+    write_bytes(snapshot,"pool.f16",pool,(size_t)blocks*INDEX_DIM*sizeof *pool);
+    write_bytes(snapshot,"selected_ids.u32",ids,(size_t)selected*sizeof *ids);
+    if(blocks>budget) write_bytes(snapshot,"scores.f32",scores,(size_t)blocks*sizeof *scores);
+    n=snprintf(path,sizeof path,"%s/complete.json",root);
+    if(n<0||(size_t)n>=sizeof path) fail("indexer completion path too long");
+    int fd=open(path,O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW,0600);
+    if(fd<0) fail("cannot create indexer completion metadata");
+    FILE *f=fdopen(fd,"w");
+    if(!f) fail("cannot open indexer completion stream");
+    if(fprintf(f,"{\"schema\":\"flash-sass.qsa-layer-capture.v1\","
+        "\"positions\":%u,\"budget\":%u,\"epsilon\":1e-6,\"byte_order\":\"little\","
+        "\"teacher_forced\":false,\"layer\":3,\"die\":0,\"FLASH_KV_HOST\":0,"
+        "\"pool_dtype\":\"fp16\",\"rope_base\":10000000,\"snapshot_lengths\":[%u],"
+        "\"evidence_kind\":\"synthetic_cpu_fixture\",\"weights_origin\":\"original_checkpoint_safetensors_layer3\","
+        "\"weights_revision\":\"%s\",\"weights_file_sha256\":\"%s\","
+        "\"indexer_projection\":\"original_bf16_index_qk_proj\",\"selection_source\":\"reference_qsa_c\","
+        "\"production_gpu_indexer_executed\":false,\"full_model\":false}\n",
+        positions,budget,positions,CHECKPOINT_REV,sha256)<0) fail("indexer completion write failed");
+    if(fflush(f)||fclose(f)) fail("cannot close indexer completion metadata");
+    n=snprintf(path,sizeof path,"%s/snapshot.json",snapshot);
+    if(n<0||(size_t)n>=sizeof path) fail("indexer snapshot path too long");
+    fd=open(path,O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW,0600);
+    if(fd<0) fail("cannot create indexer snapshot metadata");
+    f=fdopen(fd,"w");
+    if(!f) fail("cannot open indexer snapshot stream");
+    if(fprintf(f,"{\"schema\":\"flash-sass.qsa-layer-snapshot.v1\","
+        "\"length\":%u,\"position\":%u,\"budget\":%u,\"complete_blocks\":%u,"
+        "\"selected_blocks\":%u,\"tail\":%u,\"attended_keys\":%u,"
+        "\"sparse_exclusion\":%s,\"layer\":3,\"die\":0,"
+        "\"evidence_kind\":\"synthetic_cpu_fixture\",\"teacher_forced\":false,"
+        "\"scores_source\":\"reference_qsa_c\",\"selected_ids_source\":\"reference_qsa_c\"}\n",
+        positions,positions-1,budget,blocks,selected,positions%4,
+        selected*4+positions%4,blocks>budget?"true":"false")<0)
+        fail("indexer snapshot metadata write failed");
+    if(fflush(f)||fclose(f)) fail("cannot close indexer snapshot metadata");
+    free(iq);free(ids);free(scores);free(pool);free(sn);free(cs);free(raw);free(projected);
+}
+
 
 int main(int argc, char **argv)
 {
@@ -225,7 +380,10 @@ int main(int argc, char **argv)
     if (!header) fail("header allocation failed");
     memcpy(header, mapping + 8, (size_t)HEADER_BYTES);
     header[HEADER_BYTES] = '\0';
-    const tensor_spec *specs[] = {&Q_PROJ, &K_PROJ, &V_PROJ, &Q_NORM, &K_NORM};
+    const tensor_spec *specs[] = {
+        &Q_PROJ, &K_PROJ, &V_PROJ, &Q_NORM, &K_NORM,
+        &INDEX_QK, &INDEX_Q_NORM, &INDEX_K_NORM
+    };
     for (size_t i = 0; i < sizeof specs / sizeof specs[0]; ++i)
         check_tensor_header(header, specs[i]);
     free(header);
@@ -239,6 +397,10 @@ int main(int argc, char **argv)
     if (Q_NORM.offset + NORM_SIZE * 2u > FILE_BYTES - DATA_START ||
         K_NORM.offset + NORM_SIZE * 2u > FILE_BYTES - DATA_START)
         fail("normalization tensor exceeds safetensors data region");
+    if (INDEX_QK.offset + INDEX_ROWS * HIDDEN * 2u > FILE_BYTES - DATA_START ||
+        INDEX_Q_NORM.offset + INDEX_DIM * 2u > FILE_BYTES - DATA_START ||
+        INDEX_K_NORM.offset + INDEX_DIM * 2u > FILE_BYTES - DATA_START)
+        fail("indexer tensor exceeds safetensors data region");
 
     char *output_directory = argv[4];
     if (mkdir(output_directory, 0700)) fail("output directory must be new");
@@ -268,11 +430,12 @@ int main(int argc, char **argv)
     write_bytes(output_directory, "qn.f32", qn, sizeof qn);
     write_bytes(output_directory, "kn.f32", kn, sizeof kn);
     write_json(output_directory, sha256, positions);
+    write_indexer_capture(output_directory,data,hidden,positions,sha256);
     printf("{\"schema\":\"flash-sass.issue22-original-layer3-qkv-result.v1\","
            "\"complete\":true,\"positions\":%u,\"hidden_size\":%u,"
            "\"query_projection_values\":%u,\"kv_projection_values_per_position\":%u,"
            "\"checkpoint_revision\":\"%s\",\"activation_source\":\"fixed_lcg_fp32_v1\","
-           "\"full_model\":false,\"quality\":false}\n",
+           "\"indexer_reference_capture_generated\":true,\"full_model\":false,\"quality\":false}\n",
            positions, HIDDEN, Q_ROWS, KV_ROWS, CHECKPOINT_REV);
     free(values); free(keys); free(qg); free(hidden);
     if (munmap((void *)mapping, (size_t)FILE_BYTES)) fail("cannot unmap safetensors file");
