@@ -18,10 +18,11 @@ typedef struct { int s; char path[240]; } engine_img;
  * cb->token; stop[2] are the end-of-turn ids (0xffffffff: none). snap_at > 0: take a prefix-cache snapshot after that
  * many positions (the response then runs as two launches; snap_at <= nprompt - 1), and a later response whose prompt
  * starts with the same tokens resumes from it. Returns -1 on bad sizes, -2 after a CUDA error (the contexts need
- * rebuilding). Images: snapshots stop before the first one. In the opt-in
- * FLASH_QSA_CAPTURE mode, -4 rejects requests other than fresh, full-model,
- * teacher-forced text with no stops, sampling, images, or snapshots. */
-int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], const sampling *sm, int snap_at, const engine_img *imgs, int nimg, const engine_cb *cb, run_stats *st);   /* -3: a bad image file or too many image tokens */
+ * rebuilding), -3 on bad image data, -4 if host program allocation fails, and
+ * -5 when opt-in FLASH_QSA_CAPTURE rejects a request that is not fresh,
+ * full-model, teacher-forced text with valid IDs and no stops, sampling,
+ * images, or snapshots. Images: snapshots stop before the first one. */
+int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], const sampling *sm, int snap_at, const engine_img *imgs, int nimg, const engine_cb *cb, run_stats *st);
 int engine_positions(void);          /* FLASH_MAXT: prompt + reply positions per response */
 
 #endif

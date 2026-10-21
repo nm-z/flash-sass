@@ -1,0 +1,4 @@
+make: Entering directory '/home/nate/claude/flash-sass-prs/issue-9/kern'
+perl die.pl header > dieops.h
+cc -std=gnu99 -O2 -Wall -DHOLD_CACHE_ONLY -o hold_cache hold.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I/opt/cuda/include -lm
+make: Leaving directory '/home/nate/claude/flash-sass-prs/issue-9/kern'

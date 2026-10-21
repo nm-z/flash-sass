@@ -1,0 +1,12 @@
+2026-10-18T03:15:06Z
+engi
+3d57d734d63aa74f167a6b5a02c616ddc018d2ff
+Command: ssh archy; acquire /tmp/flash-sass-engine-validation.lock with flock -n; report lock and resident processes
+archy
+2026-10-18T03:15:06Z
+LOCK_BUSY
+4010221 ruby            WRITE /tmp/flash-sass-engine-validation.lock
+1578451    07:02:20 ./flashd /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf /tmp/flash.sock 127.0.0.1:18090
+3575268    01:49:09 ./flashcore /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf /home/nate/claude/flash-sass-live/kern/libengine.so /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+4010221       40:02 ruby validation/issue19/run.rb --mode model --out /home/nate/codex/flash-pr44-evidence-20261018 --core-pid 3575268 --socket /tmp/flash.sock --checkpoint /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf --lock-dir /home/nate/codex/asm-port --engine-lock /tmp/flash-sass-engine-validation.lock --positions 128,32768,65536
+exit_code=75
