@@ -1,0 +1,99 @@
+{
+  "schema": "flash-sass.issue22-original-layer3-indexer-cutoff.v1",
+  "checkpoint_revision": "de4b8e4d43b917e7706784d8bb445c9af86a3540",
+  "weights_sha256": "0fe8d836b886ac8942f74e835e17487f53454e96bf38263d45fb329006dde7a9",
+  "positions": 2053,
+  "budget": 512,
+  "complete_blocks": 513,
+  "tail_tokens": [
+    2052
+  ],
+  "attended_keys": 2049,
+  "exclusions": null,
+  "exclusion_count": 1,
+  "selected_blocks": 512,
+  "fp64_cutoff": 0.000820170511447149,
+  "fp64_cutoff_margin": 0.000820170511447149,
+  "cutoff_ambiguous": false,
+  "selection_overlap": 512,
+  "selection_exact_tie_compatible": true,
+  "numerical_gates": {
+    "checks": [
+      {
+        "actual": 0,
+        "applicable": true,
+        "limit": 0,
+        "metric": "raw_last_key_snapshot_vs_prefix.max_abs",
+        "passes": true,
+        "sense": "max"
+      },
+      {
+        "actual": 6.24174264274302E-7,
+        "applicable": true,
+        "limit": 0.001,
+        "metric": "candidate_raw_scores_vs_exported_inputs_fp64.max_abs",
+        "passes": true,
+        "sense": "max"
+      },
+      {
+        "actual": 0.0000268299362622126,
+        "applicable": true,
+        "limit": 0.02,
+        "metric": "candidate_scaled_scores_vs_full_fp64.max_abs",
+        "passes": true,
+        "sense": "max"
+      },
+      {
+        "actual": 3.00590561330694E-8,
+        "applicable": true,
+        "limit": 0.00001,
+        "metric": "query_exported_vs_fp64.max_abs",
+        "passes": true,
+        "sense": "max"
+      },
+      {
+        "actual": true,
+        "applicable": true,
+        "limit": true,
+        "metric": "provided_selection_vs_candidate_score_readback.exact_tie_compatible",
+        "passes": true,
+        "sense": "equals"
+      },
+      {
+        "actual": 1,
+        "applicable": true,
+        "limit": 0.99,
+        "metric": "provided_selection_vs_full_fp64.canonical_overlap_fraction",
+        "passes": true,
+        "sense": "min"
+      }
+    ],
+    "enabled": true,
+    "limits": {
+      "candidate_raw_score_max_abs": 0.001,
+      "candidate_scaled_score_max_abs": 0.02,
+      "candidate_selection_exact_ties": true,
+      "full_fp64_selection_min_overlap": 0.99,
+      "query_max_abs": 0.00001,
+      "raw_last_key_max_abs": 0,
+      "schema": "flash-sass.qsa-numerical-limits.v1"
+    },
+    "limits_sha256": "f40c61f1932be2994f198340e2c24a52fa9280abbac844327ee0f82b6a6e0806",
+    "passed": true,
+    "predeclaration_attested": false,
+    "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+  },
+  "predeclared_profile_commit": "04e77e181fa6195f199ab384ad19e36fb18484d5",
+  "profile_attestation": false,
+  "projection_dsh_build": "build-3635578-1792573848926883475",
+  "replay_dsh_build": "build-3640384-1792573895949705691",
+  "gpuq_job_id": "3a717105-29dd-4f61-be19-a9d882bf8385",
+  "gpuq_label": "fs22-layer3-indexer-cutoff-n2053-r1",
+  "gpuq_status": "queued",
+  "synthetic_hidden_inputs": true,
+  "production_gpu_indexer_test_pending": true,
+  "production_model_dispatch_executed": false,
+  "full_model": false,
+  "held_out_quality": false,
+  "issue22_resolved": false
+}
