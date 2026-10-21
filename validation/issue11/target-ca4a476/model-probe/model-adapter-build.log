@@ -1,0 +1,4 @@
+make: Entering directory '/tmp/flash-sass-issue11-target.bxveBAYD/model-adapter/kern'
+perl die.pl header > dieops.h
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -DFLASH_REV='"d02d057"' -o model_test model_test.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm
+make: Leaving directory '/tmp/flash-sass-issue11-target.bxveBAYD/model-adapter/kern'

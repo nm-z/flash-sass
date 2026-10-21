@@ -1,0 +1,3 @@
+attention mode: qsa (production INT8 QSA; instruction-order twin)
+FLASH_NBLK=512 FLASH_KV_HOST=1; cache positions=128 compact positions=4128
+PLE table /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf mapped for the twin; 4 prompt positions x 16 rows staged for the GPU

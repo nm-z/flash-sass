@@ -1,0 +1,1473 @@
+{
+   "checker" : {
+      "path" : "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+      "sha256" : "49be2e3103887940d7f2869ff2e9818370e40173bf2014c880e34a312ac869d9"
+   },
+   "completed_utc" : "2026-10-18T05:49:42Z",
+   "failures" : 0,
+   "harness" : {
+      "path" : "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check_test.pl",
+      "perl_version" : "5.042002",
+      "sha256" : "f39850d64d0734edd4578dc2ca01cc917458b49f8017cc1cf837eae0dfdab7dd"
+   },
+   "independent_checkpoint_evidence" : false,
+   "passed" : true,
+   "schema" : "flash-sass.qsa-logits-checker-regression.v1",
+   "scope" : "synthetic CPU numerical-checker regression only",
+   "started_utc" : "2026-10-18T05:49:42Z",
+   "test_count" : 32,
+   "tests" : [
+      {
+         "actual_exit" : 0,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 8,
+               "sha256" : "2fcd151b8295e8b3bf8ec64ede173523417960a8db6cbc569de9a25a458f9135"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 32,
+               "sha256" : "af7de0621354bafceb193edf0fcf5d421cf21de7146580062fff53c7907f54e5"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 8,
+               "sha256" : "2fcd151b8295e8b3bf8ec64ede173523417960a8db6cbc569de9a25a458f9135"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 32,
+               "sha256" : "af7de0621354bafceb193edf0fcf5d421cf21de7146580062fff53c7907f54e5"
+            },
+            "result.json" : {
+               "bytes" : 997,
+               "sha256" : "744a5e55b4dfa9ec84125f62e865cca0d2b439723d8204655b106888018defba"
+            },
+            "stderr.log" : {
+               "bytes" : 74,
+               "sha256" : "f38c29d0a7355194c14644f77f8234f9e5482dbcd0ecd48d845b2ca2bceea9e5"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/identical/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/identical/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/identical/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/identical/candidate_logits.f32",
+            "2",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/identical/result.json"
+         ],
+         "expected_exit" : 0,
+         "name" : "identical",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 0,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "374708fff7719dd5979ec875d56cd2286f6d3cf7ec317a3b25632aab28ec37bb"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "374708fff7719dd5979ec875d56cd2286f6d3cf7ec317a3b25632aab28ec37bb"
+            },
+            "result.json" : {
+               "bytes" : 768,
+               "sha256" : "002a6ee0b947063b551648a2eb53a4350ba26dcf21d4c710aeba36f7d50c9316"
+            },
+            "stderr.log" : {
+               "bytes" : 74,
+               "sha256" : "ff0c6321ca8ed4c0ec374b185cc52a6c57eea0611cedc8470e41f81f2ba093be"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero/candidate_logits.f32",
+            "1",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero/result.json"
+         ],
+         "expected_exit" : 0,
+         "name" : "zero",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 0,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "8a561c8a599c39bbd7c1b5600c9d4d41219a79727f9e7a093f738e4bd9cf5456"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "8a5f16f43d7be9d5da1bb71656fa69fcc035482b234cfd571954d046f0ca954a"
+            },
+            "result.json" : {
+               "bytes" : 768,
+               "sha256" : "002a6ee0b947063b551648a2eb53a4350ba26dcf21d4c710aeba36f7d50c9316"
+            },
+            "stderr.log" : {
+               "bytes" : 74,
+               "sha256" : "ff0c6321ca8ed4c0ec374b185cc52a6c57eea0611cedc8470e41f81f2ba093be"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/signed_zero/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/signed_zero/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/signed_zero/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/signed_zero/candidate_logits.f32",
+            "1",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/signed_zero/result.json"
+         ],
+         "expected_exit" : 0,
+         "name" : "signed_zero",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 0,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "0f609e62e84aee8a33a99889634db61eff8aca8c61331f8dc84ebed974724e6e"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "beca39ea48a7a8e3e46775d302848fb64a367509e7465020ca4890f3384a5923"
+            },
+            "result.json" : {
+               "bytes" : 983,
+               "sha256" : "30709af7e48b968b651ab035a4af72966663d99a98f3a61e54cc4889268abb58"
+            },
+            "stderr.log" : {
+               "bytes" : 98,
+               "sha256" : "5396e77b96100d6464bac9c16fd81a7acdf9bc7adf928cbfab53e511c47948a2"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/below_thresholds/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/below_thresholds/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/below_thresholds/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/below_thresholds/candidate_logits.f32",
+            "1",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/below_thresholds/result.json"
+         ],
+         "expected_exit" : 0,
+         "name" : "below_thresholds",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 0,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "5d1f81922b1624a1b4110968e0abef05cc849dc47b6d94d14953bcb7ec31cbd1"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "374708fff7719dd5979ec875d56cd2286f6d3cf7ec317a3b25632aab28ec37bb"
+            },
+            "result.json" : {
+               "bytes" : 952,
+               "sha256" : "cb3dcc85d2e3b0eb395bd517af064ae594c3c1a013460e42e276516d84c8a880"
+            },
+            "stderr.log" : {
+               "bytes" : 99,
+               "sha256" : "cdd25dfe9ee03ff330d3c64ea7753d4aa67bfcaa161c8799ca7ab4e0d3a0b6bc"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero_floor_pass/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero_floor_pass/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero_floor_pass/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero_floor_pass/candidate_logits.f32",
+            "1",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero_floor_pass/result.json"
+         ],
+         "expected_exit" : 0,
+         "name" : "zero_floor_pass",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 3,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "a50fb411509d0dd4274f65a05dc0ce724ed6bc955d9effd85dacda2d7e4b16d7"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ce01496f8a4adcfa660c10c1e7d7c763f73b975f2d2f10d2e8dd5e89a5e090c7"
+            },
+            "result.json" : {
+               "bytes" : 867,
+               "sha256" : "56793610e4a1f0c234de208420787fbf4b25785ac4e08f10912e13d677bf44c1"
+            },
+            "stderr.log" : {
+               "bytes" : 85,
+               "sha256" : "923d86b460dd38a4838e38355d63c7ab89d1d2c220e2f2f12203683de608ef99"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/absolute_only/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/absolute_only/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/absolute_only/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/absolute_only/candidate_logits.f32",
+            "1",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/absolute_only/result.json"
+         ],
+         "expected_exit" : 3,
+         "name" : "absolute_only",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 3,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "05683a5507a44a461748c27c446f000ee43f65532ace62e819bcafedb29a9a2c"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "f6bb1294da2f78cd935b01c7656280df5eaa0439e9d97bc03775825a41a508e4"
+            },
+            "result.json" : {
+               "bytes" : 941,
+               "sha256" : "d440bae10d5ff63fbb5cee1b4c60cedd6365d1ba8a56ec36d7dd2d519d93f69d"
+            },
+            "stderr.log" : {
+               "bytes" : 96,
+               "sha256" : "3ce961b372184133b285c15a959c1d8f4a4e9e55bda552a7981df1a5af30e6e2"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/nrms_only/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/nrms_only/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/nrms_only/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/nrms_only/candidate_logits.f32",
+            "1",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/nrms_only/result.json"
+         ],
+         "expected_exit" : 3,
+         "name" : "nrms_only",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 3,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "4361b55dbdfbdf71cd04a8b22bbcb2b0706fcb25ca0587ad395ad13d7f6af349"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "374708fff7719dd5979ec875d56cd2286f6d3cf7ec317a3b25632aab28ec37bb"
+            },
+            "result.json" : {
+               "bytes" : 949,
+               "sha256" : "fc6a0555ca94b4b3eb1a8b3ddb17c67232a5f5c0401bd5002e53ce9207c4b418"
+            },
+            "stderr.log" : {
+               "bytes" : 98,
+               "sha256" : "28f22f5253d663797ae95344489de106c02ff08b227f38c21db6eb858c6f96d7"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero_floor_fail/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero_floor_fail/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero_floor_fail/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero_floor_fail/candidate_logits.f32",
+            "1",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero_floor_fail/result.json"
+         ],
+         "expected_exit" : 3,
+         "name" : "zero_floor_fail",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 3,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 4096,
+               "sha256" : "6bd34b50a373e3b65c9bda3a465ac7e773bb0766c875a2a0231d094b882e5e7f"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 4096,
+               "sha256" : "f7e4b7df98e2b9533216f4a9c1261224bda07083b93fe9357ea76c0f83477cee"
+            },
+            "result.json" : {
+               "bytes" : 953,
+               "sha256" : "84763c22230adbfa072f7962dcb47601ad417617f3895b41d7f80edbfea9c1be"
+            },
+            "stderr.log" : {
+               "bytes" : 96,
+               "sha256" : "bf5a7312ab9e5c9a635a402913dd5e6502885531433b7efecc6843511a61172d"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/largest_score_hides_nrms/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/largest_score_hides_nrms/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/largest_score_hides_nrms/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/largest_score_hides_nrms/candidate_logits.f32",
+            "1",
+            "1024",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/largest_score_hides_nrms/result.json"
+         ],
+         "expected_exit" : 3,
+         "name" : "largest_score_hides_nrms",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 3,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 8,
+               "sha256" : "01acecb507abfe1a354aa8064f4af5d3f1acd019e37db3c11c97523b71c76e9d"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 32,
+               "sha256" : "b62d37e3c8e96a86bf8f9375c257a5cd327e34ce49a40d4e8c0c34d886d89f72"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 8,
+               "sha256" : "01acecb507abfe1a354aa8064f4af5d3f1acd019e37db3c11c97523b71c76e9d"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 32,
+               "sha256" : "92012910f5ff91813607fcc551869dba240651bc9fdbe9229771733a06d91d13"
+            },
+            "result.json" : {
+               "bytes" : 1139,
+               "sha256" : "d2750224e200e78ee1065033620480052b5d1cdbdb7f0d6f0302cb0e2572f84a"
+            },
+            "stderr.log" : {
+               "bytes" : 97,
+               "sha256" : "15d4391cb14b91029468a6e2abfb73be7c4575b371c11ec70c3e60b68293b878"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/bad_row_hidden_by_aggregate/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/bad_row_hidden_by_aggregate/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/bad_row_hidden_by_aggregate/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/bad_row_hidden_by_aggregate/candidate_logits.f32",
+            "2",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/bad_row_hidden_by_aggregate/result.json"
+         ],
+         "expected_exit" : 3,
+         "name" : "bad_row_hidden_by_aggregate",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 2,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "stderr.log" : {
+               "bytes" : 56,
+               "sha256" : "5ac8f4f8a57f060067fd4529cc08157906b899ca748c02490332702d901c78f8"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/different_ids/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/different_ids/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/different_ids/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/different_ids/candidate_logits.f32",
+            "1",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/different_ids/result.json"
+         ],
+         "expected_exit" : 2,
+         "name" : "different_ids",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 2,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "fb5e512425fc9449316ec95969ebe71e2d576dbab833d61e2a5b9330fd70ee02"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "fb5e512425fc9449316ec95969ebe71e2d576dbab833d61e2a5b9330fd70ee02"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "stderr.log" : {
+               "bytes" : 57,
+               "sha256" : "6be61218187cf8005339a3e65e37a78f3b5cfa195f9884f9530c04415d8396de"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/id_outside_vocabulary/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/id_outside_vocabulary/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/id_outside_vocabulary/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/id_outside_vocabulary/candidate_logits.f32",
+            "1",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/id_outside_vocabulary/result.json"
+         ],
+         "expected_exit" : 2,
+         "name" : "id_outside_vocabulary",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 2,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 3,
+               "sha256" : "709e80c88487a2411e1ee4dfb9f22a861492d20c4765150c0c794abd70f8147c"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "stderr.log" : {
+               "bytes" : 160,
+               "sha256" : "fb4ecd957de70f2f4d2869262cf37fea84647cf54ca6724bcd6262573cf63bfc"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/short_reference_ids/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/short_reference_ids/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/short_reference_ids/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/short_reference_ids/candidate_logits.f32",
+            "1",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/short_reference_ids/result.json"
+         ],
+         "expected_exit" : 2,
+         "name" : "short_reference_ids",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 2,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 8,
+               "sha256" : "01acecb507abfe1a354aa8064f4af5d3f1acd019e37db3c11c97523b71c76e9d"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "stderr.log" : {
+               "bytes" : 166,
+               "sha256" : "57fc44b1585007aa69491d9cd3a16a799c83564c5579d5f6eb7bcb403c5f38bd"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/extra_candidate_ids/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/extra_candidate_ids/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/extra_candidate_ids/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/extra_candidate_ids/candidate_logits.f32",
+            "1",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/extra_candidate_ids/result.json"
+         ],
+         "expected_exit" : 2,
+         "name" : "extra_candidate_ids",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 2,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 15,
+               "sha256" : "df94980b8e648ca5c4f8ae85c2b2f48c30586f2fcfe8fd01a1b720913839a622"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "stderr.log" : {
+               "bytes" : 174,
+               "sha256" : "2f2cc61043f89f4eb5f0fb3db6af907cd80d44918c1ab797bc205abb34a0ce3a"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/short_candidate_logits/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/short_candidate_logits/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/short_candidate_logits/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/short_candidate_logits/candidate_logits.f32",
+            "1",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/short_candidate_logits/result.json"
+         ],
+         "expected_exit" : 2,
+         "name" : "short_candidate_logits",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 2,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 17,
+               "sha256" : "61784416afbf3d7cb26b76bd24f7d6c672b0885d762bd6bc038526cca924557d"
+            },
+            "stderr.log" : {
+               "bytes" : 168,
+               "sha256" : "e97fd732320bde2e86e6bf3e380e010fe0d256cd69bffeb89652123a0e8e6965"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/extra_reference_logits/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/extra_reference_logits/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/extra_reference_logits/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/extra_reference_logits/candidate_logits.f32",
+            "1",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/extra_reference_logits/result.json"
+         ],
+         "expected_exit" : 2,
+         "name" : "extra_reference_logits",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 2,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "stderr.log" : {
+               "bytes" : 161,
+               "sha256" : "6b24b550ceffa652911648f4851148503a2b1913d8d77dd4340a074a08ac19e0"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/empty_logit_file/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/empty_logit_file/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/empty_logit_file/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/empty_logit_file/candidate_logits.f32",
+            "1",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/empty_logit_file/result.json"
+         ],
+         "expected_exit" : 2,
+         "name" : "empty_logit_file",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 2,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "stderr.log" : {
+               "bytes" : 40,
+               "sha256" : "10105338c10d0f1a743174f254387634a9adbea3f2e6be541830e0c23c60d185"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero_rows/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero_rows/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero_rows/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero_rows/candidate_logits.f32",
+            "0",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero_rows/result.json"
+         ],
+         "expected_exit" : 2,
+         "name" : "zero_rows",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 2,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "stderr.log" : {
+               "bytes" : 41,
+               "sha256" : "e77563f06a5790a5569aea4f22adf861b4902e513b08b42537c2f971b8b5fc63"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero_vocab/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero_vocab/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero_vocab/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero_vocab/candidate_logits.f32",
+            "1",
+            "0",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/zero_vocab/result.json"
+         ],
+         "expected_exit" : 2,
+         "name" : "zero_vocab",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 2,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "stderr.log" : {
+               "bytes" : 58,
+               "sha256" : "0689fecab0ff12b8ccab1f7f19e2db438aa15cf861f602db87e5c271dcd88424"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/empty_rows_argument/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/empty_rows_argument/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/empty_rows_argument/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/empty_rows_argument/candidate_logits.f32",
+            "",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/empty_rows_argument/result.json"
+         ],
+         "expected_exit" : 2,
+         "name" : "empty_rows_argument",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 2,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "stderr.log" : {
+               "bytes" : 35,
+               "sha256" : "c44b5e677082f8c26d4c43d254f8236cc7ccd55dcc5beb9f91b0c519cda12f20"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/negative_rows/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/negative_rows/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/negative_rows/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/negative_rows/candidate_logits.f32",
+            "-1",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/negative_rows/result.json"
+         ],
+         "expected_exit" : 2,
+         "name" : "negative_rows",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 2,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "stderr.log" : {
+               "bytes" : 35,
+               "sha256" : "ceee1329eaba929d311786146566bc3770cf00a69a9d7fd5ed3a5f14f3c9176f"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/trailing_junk_rows/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/trailing_junk_rows/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/trailing_junk_rows/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/trailing_junk_rows/candidate_logits.f32",
+            "1x",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/trailing_junk_rows/result.json"
+         ],
+         "expected_exit" : 2,
+         "name" : "trailing_junk_rows",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 2,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "stderr.log" : {
+               "bytes" : 40,
+               "sha256" : "a5bb316b6abe3a9f758cbca8259746ce5b64bc63a6a6ffa7e7eb4457203289dd"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/decimal_overflow/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/decimal_overflow/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/decimal_overflow/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/decimal_overflow/candidate_logits.f32",
+            "18446744073709551616",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/decimal_overflow/result.json"
+         ],
+         "expected_exit" : 2,
+         "name" : "decimal_overflow",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 2,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "stderr.log" : {
+               "bytes" : 39,
+               "sha256" : "8ac3e6c7ab6c87c632c9da37f7ad02c729839538a71da546e11fe581ac6f90c5"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/logit_size_overflow/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/logit_size_overflow/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/logit_size_overflow/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/logit_size_overflow/candidate_logits.f32",
+            "1152921504606846976",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/logit_size_overflow/result.json"
+         ],
+         "expected_exit" : 2,
+         "name" : "logit_size_overflow",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 2,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "stderr.log" : {
+               "bytes" : 54,
+               "sha256" : "f7b7405319a9a79c181f1af85f48a37f20f43d897241a2f6a203cd72c8151fb7"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/vocab_range_overflow/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/vocab_range_overflow/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/vocab_range_overflow/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/vocab_range_overflow/candidate_logits.f32",
+            "1",
+            "4294967296",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/vocab_range_overflow/result.json"
+         ],
+         "expected_exit" : 2,
+         "name" : "vocab_range_overflow",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 2,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "result.json" : {
+               "bytes" : 42,
+               "sha256" : "9baeae3ee5ac2143c3888a57225bc5798bfdb25f50743b0350ee9e4b71054569"
+            },
+            "stderr.log" : {
+               "bytes" : 170,
+               "sha256" : "6203255e810ef276a6348a62b0c94e0929e318cbe522988d331d966b03696557"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/existing_report/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/existing_report/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/existing_report/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/existing_report/candidate_logits.f32",
+            "1",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/existing_report/result.json"
+         ],
+         "expected_exit" : 2,
+         "name" : "existing_report",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 2,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "2ffb157a90d8b58f6114acbdf9474af21dee3cfabfe507dc0f3c29b02170423f"
+            },
+            "stderr.log" : {
+               "bytes" : 52,
+               "sha256" : "864f1a8ef7e1a29bcbb2dce88b06ae9568386144e6704a91096e9ee0bdb7f286"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/ref_nan/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/ref_nan/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/ref_nan/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/ref_nan/candidate_logits.f32",
+            "1",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/ref_nan/result.json"
+         ],
+         "expected_exit" : 2,
+         "name" : "ref_nan",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 2,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "be5d1ebab6ac45c643a51ffc14e8a08b77362c9bbf6ba013ae37fcb8a50c4646"
+            },
+            "stderr.log" : {
+               "bytes" : 52,
+               "sha256" : "864f1a8ef7e1a29bcbb2dce88b06ae9568386144e6704a91096e9ee0bdb7f286"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/ref_positive_inf/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/ref_positive_inf/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/ref_positive_inf/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/ref_positive_inf/candidate_logits.f32",
+            "1",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/ref_positive_inf/result.json"
+         ],
+         "expected_exit" : 2,
+         "name" : "ref_positive_inf",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 2,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "19be2be7abcc4c8545b4b29077bcd36068b4f8fdb7fcce8ac81dc51226924d41"
+            },
+            "stderr.log" : {
+               "bytes" : 52,
+               "sha256" : "864f1a8ef7e1a29bcbb2dce88b06ae9568386144e6704a91096e9ee0bdb7f286"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/ref_negative_inf/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/ref_negative_inf/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/ref_negative_inf/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/ref_negative_inf/candidate_logits.f32",
+            "1",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/ref_negative_inf/result.json"
+         ],
+         "expected_exit" : 2,
+         "name" : "ref_negative_inf",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 2,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "2ffb157a90d8b58f6114acbdf9474af21dee3cfabfe507dc0f3c29b02170423f"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "stderr.log" : {
+               "bytes" : 52,
+               "sha256" : "864f1a8ef7e1a29bcbb2dce88b06ae9568386144e6704a91096e9ee0bdb7f286"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/candidate_nan/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/candidate_nan/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/candidate_nan/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/candidate_nan/candidate_logits.f32",
+            "1",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/candidate_nan/result.json"
+         ],
+         "expected_exit" : 2,
+         "name" : "candidate_nan",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 2,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "be5d1ebab6ac45c643a51ffc14e8a08b77362c9bbf6ba013ae37fcb8a50c4646"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "stderr.log" : {
+               "bytes" : 52,
+               "sha256" : "864f1a8ef7e1a29bcbb2dce88b06ae9568386144e6704a91096e9ee0bdb7f286"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/candidate_positive_inf/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/candidate_positive_inf/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/candidate_positive_inf/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/candidate_positive_inf/candidate_logits.f32",
+            "1",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/candidate_positive_inf/result.json"
+         ],
+         "expected_exit" : 2,
+         "name" : "candidate_positive_inf",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      },
+      {
+         "actual_exit" : 2,
+         "artifacts" : {
+            "candidate_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "candidate_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "19be2be7abcc4c8545b4b29077bcd36068b4f8fdb7fcce8ac81dc51226924d41"
+            },
+            "ref_ids.u32" : {
+               "bytes" : 4,
+               "sha256" : "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+            },
+            "ref_logits.f32" : {
+               "bytes" : 16,
+               "sha256" : "ad73b9acd6e4a74b2f5bb5386658ce3bb146cd040a1867646ab3b973fb6632b1"
+            },
+            "stderr.log" : {
+               "bytes" : 52,
+               "sha256" : "864f1a8ef7e1a29bcbb2dce88b06ae9568386144e6704a91096e9ee0bdb7f286"
+            },
+            "stdout.log" : {
+               "bytes" : 0,
+               "sha256" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+         },
+         "command" : [
+            "/home/nate/codex/flash-pr31-logits-20261018-0520/kern/qsa_logits_check",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/candidate_negative_inf/ref_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/candidate_negative_inf/candidate_ids.u32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/candidate_negative_inf/ref_logits.f32",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/candidate_negative_inf/candidate_logits.f32",
+            "1",
+            "4",
+            "/home/nate/codex/flash-pr31-logits-evidence-20261018-0523/source-438d2b6/logit-checks/candidate_negative_inf/result.json"
+         ],
+         "expected_exit" : 2,
+         "name" : "candidate_negative_inf",
+         "passed" : true,
+         "problems" : [],
+         "signal" : 0
+      }
+   ]
+}

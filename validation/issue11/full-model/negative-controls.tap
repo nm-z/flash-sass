@@ -1,0 +1,8 @@
+ok 1 - historical capture requires an explicit diagnostic flag
+ok 2 - matching selected tokens cannot conceal a different earlier prefix
+ok 3 - incomplete native capture is rejected
+ok 4 - a consistent total count cannot conceal a missing QSA layer output
+ok 5 - truncated attention output is rejected
+ok 6 - a future position cannot enter the selection diagnostic
+ok 7 - candidate logits must match their frozen identity
+1..7

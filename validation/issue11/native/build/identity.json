@@ -1,0 +1,60 @@
+{
+   "artifacts" : {
+      "kern/Makefile" : {
+         "bytes" : 22885,
+         "sha256" : "407654a7eacd6217b6acba7c72b02c004962008ce3d10e8f2cf0b8fdd7fec0ff"
+      },
+      "kern/die.cubin" : {
+         "bytes" : 444968,
+         "sha256" : "0fa2a17fa41c07aac507f9bc218a777601719a8e2b6eb8b40ec93867d4768027"
+      },
+      "kern/dieops.h" : {
+         "bytes" : 2626,
+         "sha256" : "963fcba726d2479d6b64318c2addc8252a3199f4b0162c4e590e6c9dfdae60d5"
+      },
+      "kern/qsa_logits_check" : {
+         "bytes" : 21456,
+         "sha256" : "49be2e3103887940d7f2869ff2e9818370e40173bf2014c880e34a312ac869d9"
+      },
+      "kern/qsa_oracle.c" : {
+         "bytes" : 41412,
+         "sha256" : "d6463105f895c2334bed41935b48ce7a9d24770ed14957a0136639031df6ab9f"
+      },
+      "kern/qsa_oracle_gpu" : {
+         "bytes" : 88144,
+         "sha256" : "f71f1e7ffaca027c2e92cb94dd785035845de4e13ea5c02208286345236f98eb"
+      },
+      "kern/qsa_oracle_gpu.c" : {
+         "bytes" : 16452,
+         "sha256" : "40e4d24bbe6d659615679d27c39005f933c9bf91a1932dadd78a62f76aefc3ba"
+      },
+      "kern/qsa_oracle_gpu.h" : {
+         "bytes" : 1156,
+         "sha256" : "98979ea410f35e7977abc4e0a5edb212de961b4eb20343900073aaf697f1f668"
+      }
+   },
+   "command" : [
+      "make",
+      "-B",
+      "-C",
+      "kern",
+      "qsa_oracle_gpu",
+      "qsa_logits_check",
+      "CUDA_LIBDIR=/opt/cuda/lib64/stubs"
+   ],
+   "compiler" : {
+      "command" : [
+         "cc",
+         "--version"
+      ],
+      "exit_code" : 0,
+      "ok" : true,
+      "output" : "cc (GCC) 16.2.1 20260810\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
+   },
+   "cuda_stub_link_only" : true,
+   "gpu_executed" : false,
+   "host" : "engi",
+   "image_assembly_identity" : "../cubin-build.json",
+   "source_commit" : "8ea6b4aebcc1b069037e8dd49807982650dba67e",
+   "status" : "BUILD_ONLY"
+}

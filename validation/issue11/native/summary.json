@@ -1,0 +1,83 @@
+{
+   "archive_cpu" : {
+      "frozen_fixtures" : 71,
+      "invocations" : 114,
+      "max_normalized_score_rms" : 0.000160764298943595,
+      "provenance_consistent" : true,
+      "status" : "PASS_NATIVE_SYNTHETIC"
+   },
+   "gpu" : {
+      "build" : "PASS_BUILD_ONLY",
+      "gpu_executed" : false,
+      "runtime" : "BLOCKED_BUSY"
+   },
+   "independent_checkpoint_logits" : "NOT_MEASURED",
+   "logits_checker_regressions" : {
+      "failures" : 0,
+      "independent_checkpoint_evidence" : false,
+      "tests" : 32
+   },
+   "negative_score_control" : {
+      "expected_exit" : 3,
+      "normalized_rms" : 0.00692820323027551,
+      "observed_exit" : 3
+   },
+   "portable_cpu" : {
+      "coverage" : {
+         "frozen_fixtures" : 13,
+         "index_and_sparse_lengths" : [
+            1,
+            2047,
+            2048,
+            2049,
+            2050,
+            2051,
+            2052,
+            3100,
+            3101,
+            3102,
+            3103,
+            8000,
+            8001,
+            8002,
+            8003,
+            65000,
+            65001,
+            65002,
+            65003,
+            262000,
+            262001,
+            262002,
+            262003
+         ],
+         "negative_control_exit_expected" : 3,
+         "same_ID_attention_lengths" : [
+            1,
+            2,
+            3,
+            4,
+            1023,
+            1024,
+            1025,
+            1026,
+            1027,
+            2047,
+            2048,
+            2049,
+            2050,
+            2051,
+            2052,
+            8191,
+            8192,
+            8193
+         ]
+      },
+      "invocations" : 56,
+      "provenance_consistent" : true,
+      "status" : "PASS_NATIVE_SYNTHETIC"
+   },
+   "python_oracle_removed" : true,
+   "score_limit" : 0.005,
+   "source_commit" : "8ea6b4aebcc1b069037e8dd49807982650dba67e",
+   "status" : "PARTIAL_REMAINS_DRAFT"
+}

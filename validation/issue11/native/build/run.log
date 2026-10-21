@@ -1,0 +1,5 @@
+make: Entering directory '/home/nate/codex/flash-pr31-20261017/kern'
+perl die.pl header > dieops.h
+cc -std=gnu11 -O2 -fno-fast-math -ffp-contract=off -frounding-math -Wall -Wextra -Werror -DQSA_ORACLE_TARGET -I../ref -I/opt/cuda/include -o qsa_oracle_gpu qsa_oracle.c qsa_oracle_bridge.c qsa_oracle_gpu.c ../ref/qsa.c ../ref/attn.c ../ref/fmath.c -L/opt/cuda/lib64/stubs -lcuda -lm
+cc -std=gnu11 -O2 -fno-fast-math -ffp-contract=off -frounding-math -Wall -Wextra -Werror -o qsa_logits_check qsa_logits_check.c -lm
+make: Leaving directory '/home/nate/codex/flash-pr31-20261017/kern'

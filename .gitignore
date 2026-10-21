@@ -20,5 +20,12 @@ kern/ple_read_audit
 kern/hold
 kern/flashcore
 kern/flashd
+kern/qsa_oracle
+kern/qsa_oracle_gpu
+kern/qsa_logits_check
+kern/qsa_reference_capture
+
+kern/qsa_model_reference
+kern/qsa_model_selected_reference
 
 kern/ple_ram

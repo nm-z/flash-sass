@@ -1,0 +1,4 @@
+make: Entering directory '/tmp/flash-sass-issue11-f6c54db-gpu/kern'
+perl die.pl header > dieops.h
+cc -std=gnu11 -O2 -fno-fast-math -ffp-contract=off -frounding-math -Wall -Wextra -Werror -DQSA_ORACLE_TARGET -I../ref -I/opt/cuda/include -o qsa_oracle_gpu qsa_oracle.c qsa_oracle_bridge.c qsa_oracle_gpu.c ../ref/qsa.c ../ref/attn.c ../ref/fmath.c -L/usr/lib -lcuda -lm
+make: Leaving directory '/tmp/flash-sass-issue11-f6c54db-gpu/kern'

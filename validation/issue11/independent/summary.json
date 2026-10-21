@@ -1,0 +1,51 @@
+{
+   "current_target_gpu_execution" : false,
+   "filtered_capture" : {
+      "exit" : 0,
+      "logits_byte_identical" : true,
+      "positions" : 4,
+      "trace_rows" : 2
+   },
+   "final_source" : "3f8a00f2803db6eafc53491856c8eae0eda415f2",
+   "full_capture_source" : "9809e6d9d93f85c5a8eb3956c110f5adbdb1f55e",
+   "historical_candidate_source" : "06968d1a5d6d7fdaf12106236cc39a1cb5cdf389",
+   "historical_comparison" : {
+      "aggregate" : {
+         "failing_rows" : 4,
+         "matching_top1_rows" : 3,
+         "max_abs" : 1.80798524618149,
+         "max_relative" : 197037.8125,
+         "max_row_normalized_rms" : 0.140654487245235,
+         "normalized_rms" : 0.0927949412289462,
+         "reference_rms" : 2.5387300886461,
+         "rms" : 0.235581309372072
+      },
+      "exit" : 3,
+      "limits" : {
+         "max_abs" : 0.1,
+         "normalized_rms" : 0.01,
+         "relative_denominator_floor" : 1e-08,
+         "rms_denominator_floor" : 1e-08,
+         "scope" : "each row and aggregate"
+      },
+      "pass" : false
+   },
+   "host" : "engi",
+   "independent_cpu_full_model" : {
+      "exit" : 0,
+      "positions" : 4,
+      "qsa_layers_per_row" : 12,
+      "tensors" : 1008,
+      "trace_rows" : 4,
+      "vocabulary" : 248320
+   },
+   "logit_regression_cases" : 32,
+   "long_sparse_full_model_matrix_measured" : false,
+   "native_expected_outcomes" : 58,
+   "original_checkpoint_conformance" : false,
+   "ready_for_review" : false,
+   "reference_source" : "fcac19079f3f2985fe74ed845f0880e7e9a8030a",
+   "schema" : "flash-sass.issue11-independent-followup.v1",
+   "trace_sanitizer_checks" : 156,
+   "trace_unit_checks" : 156
+}

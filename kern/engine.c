@@ -14,6 +14,7 @@
 #include "prog.h"
 #include "split.h"
 #include "qsa.h"
+#include "qsa_capture.h"
 #include "qsa_state.h"
 #include <math.h>
 #include <fenv.h>
@@ -150,6 +151,65 @@ static float *h_rnd;                /* pinned: u[position] for the sampler */
 static uint32_t *h_tok;             /* pinned: ctl[2] (count, bit 31 = the turn ended) */
 static CUstream pollst[MAXD];       /* per die, non-blocking: the kernel runs on the legacy stream, these do not wait for it */
 static uint32_t *h_abort;           /* pinned: the abort count written to every die */
+
+/* Opt-in observation keeps each QSA layer's final-token tensors alive without
+ * inserting device operations into the production program. This changes buffer
+ * placement and must be compared against capture-disabled runs on the target. */
+static int qsa_capture_mode, qsa_capture_ready;
+static dn_bufs_t qsa_capture_scratch[MAXD][NB];
+static void qsa_capture_alloc(int d) {
+	for (int bb = 3; bb < NB; bb += 4) if (dst_kq[d][bb]) {
+		dn_bufs_t *saved = &qsa_capture_scratch[d][bb];
+#define CAPTURE_CLONE(field) saved->field = scratch_like(db[d].field);
+		QSA_CAPTURE_SCRATCH_FIELDS(CAPTURE_CLONE)
+#undef CAPTURE_CLONE
+	}
+}
+static void qsa_capture_bind(dn_bufs_t *layer, int d, int bb) {
+	if (!qsa_capture_mode || !BLK_IS_ATTN(bb) || !dst_kq[d][bb]) return;
+	const dn_bufs_t *saved = &qsa_capture_scratch[d][bb];
+#define CAPTURE_BIND(field) layer->field = saved->field;
+	QSA_CAPTURE_SCRATCH_FIELDS(CAPTURE_BIND)
+#undef CAPTURE_BIND
+}
+static int qsa_capture_readback(void *arg, unsigned d, uint64_t address, void *out, size_t bytes) {
+	(void)arg;
+	if (d >= (unsigned)nd) return -1;
+	CUresult result = cuCtxSetCurrent(ctx[d]);
+	if (result == CUDA_SUCCESS) result = cuMemcpyDtoH(out, (CUdeviceptr)address, bytes);
+	if (result != CUDA_SUCCESS) {
+		const char *message = "unknown CUDA error"; cuGetErrorString(result, &message);
+		fprintf(stderr, "QSA capture readback: %s\n", message); return -1;
+	}
+	return 0;
+}
+static int qsa_capture_export(const char *directory, char *error, size_t error_size) {
+	if (!qsa_capture_mode || !qsa_capture_ready) {
+		snprintf(error, error_size, "requires FLASH_QSA_CAPTURE=1 and a completed fresh full-model gen 0 request"); return -1;
+	}
+	qsa_capture_plan plan = { .visible = (unsigned)qsa_capture_ready, .nblk = nblk_qsa,
+		.dies = (unsigned)nd, .kv_host = kv_host, .ple_disk = ple_disk, .ids = h_ids,
+		.revision = FLASH_REV, .cubin_fnv = cubin_fnv };
+	for (int d = 0; d < nd; d++) plan.die[d] = (qsa_capture_die){
+		.offset = (unsigned)sp[d][0].o0, .count = (unsigned)sp[d][0].on,
+		.logits = db[d].hlo, .ids = db[d].ids };
+	for (unsigned i = 0; i < QSA_CAPTURE_LAYERS; i++) {
+		int bb = (int)(4*i + 3), d = attn_die_of(bb);
+		if (d < 0 || d >= nd) { snprintf(error, error_size, "QSA layer %d has no owner", bb); return -1; }
+		qsa_capture_layer *l = &plan.layer[i];
+		const dn_bufs_t *saved = &qsa_capture_scratch[d][bb];
+		l->layer = (unsigned)bb; l->die = (unsigned)d;
+#define CAPTURE_ADDRESS(field) l->field = saved->field;
+		QSA_CAPTURE_SCRATCH_FIELDS(CAPTURE_ADDRESS)
+#undef CAPTURE_ADDRESS
+		l->pkt = dst_pkt[d][bb]; l->ring = dst_ring[d][bb];
+		l->kq = dst_kq[d][bb]; l->vq = dst_vq[d][bb];
+		l->ks = dst_ks[d][bb]; l->vs = dst_vs[d][bb];
+		l->qnorm = dw[d][bb].attn_q_norm; l->knorm = dw[d][bb].attn_k_norm;
+		l->iqnorm = dw[d][bb].indexer_qn; l->iknorm = dw[d][bb].indexer_kn;
+	}
+	return qsa_capture_write(&plan, qsa_capture_readback, NULL, directory, error, error_size);
+}
 
 void engine_fini(void);
 int engine_positions(void) { return MAXT; }
@@ -355,6 +415,7 @@ static void model_program(prog_t *P, int d, unsigned position, unsigned nprompt,
 		qsa_bind_layer(&layer, nblk_qsa, dst_kq[d][bb], dst_ks[d][bb], dst_vq[d][bb], dst_vs[d][bb], dst_pkt[d][bb], dst_ring[d][bb]);
 		layer.kv_rawmax = kv_trace && layer.kq
 		    ? d_kv_rawmax[d] + (size_t)((bb - 3) / 4) * (size_t)MAXT * KV_TRACE_WORDS * sizeof(uint32_t) : 0;
+		qsa_capture_bind(&layer, d, bb);
 		if (bb == 1) prog_ple_prefix(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
 		if (BLK_IS_ATTN(bb)) prog_attn_block(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
 		else prog_deltanet_block(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
@@ -612,17 +673,29 @@ static int prepare_images(const engine_img *imgs, int nimg, int nprompt, int T) 
 }
 
 int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], const sampling *sm, int snap_at, const engine_img *imgs, int nimg, const engine_cb *cb, run_stats *st) {
-    kv_trace_complete = 0;
-    timing_request_start=now();timing_run_start=0;
-    trace_request++;
-    last_timing=(flash_timing){.request_id=trace_request,.prompt=nprompt,.error_code=-1,.build_ms=NAN,.run_ms=NAN};
-    last_timing_valid=1;
-    trace_first=nprompt>0?(unsigned)(nprompt-1):0;
-    trace_valid=trace_completed=trace_aborted=trace_ended=0;
-    trace_requested=nprompt>0 && n_new>=0?(uint64_t)(unsigned)nprompt+(unsigned)n_new:0;
-    trace_status="argument_error";
-    memset(trace_host,0,sizeof trace_host);
-    if(!flash_timing_request_fits(nprompt,n_new,MAXT))return -1;
+	qsa_capture_ready = 0;
+	kv_trace_complete = 0;
+	timing_request_start = now(); timing_run_start = 0;
+	trace_request++;
+	last_timing = (flash_timing){.request_id=trace_request,.prompt=nprompt,.error_code=-1,.build_ms=NAN,.run_ms=NAN};
+	last_timing_valid = 1;
+	trace_first = nprompt > 0 ? (unsigned)(nprompt - 1) : 0;
+	trace_valid = trace_completed = trace_aborted = trace_ended = 0;
+	trace_requested = nprompt > 0 && n_new >= 0 ? (uint64_t)(unsigned)nprompt + (unsigned)n_new : 0;
+	trace_status = "argument_error";
+	memset(trace_host, 0, sizeof trace_host);
+	if (!flash_timing_request_fits(nprompt, n_new, MAXT)) return -1;
+	if (qsa_capture_mode) {
+		if (!ids || n_new || nimg || snap_at || !stop || stop[0] != UINT32_MAX || stop[1] != UINT32_MAX ||
+		    (sm && sm->temp > 0.f) || (unsigned)nprompt > QSA_CAPTURE_MAX_VISIBLE) {
+			last_timing.error_code = -5; last_timing.build_ms = (now() - timing_request_start) * 1e3;
+			return -5;
+		}
+		for (int i = 0; i < nprompt; i++) if (ids[i] >= QSA_CAPTURE_VOCAB) {
+			last_timing.error_code = -5; last_timing.build_ms = (now() - timing_request_start) * 1e3;
+			return -5;
+		}
+	}
     int T=nprompt+n_new;
     trace_status="running";
 	/* a CUDA error from here on unwinds to this point: the contexts are no longer usable, the core rebuilds them (return -2) */
@@ -650,6 +723,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	/* the prefix cache: resume from the snapshot if the prompt starts with its tokens (at least one prompt token must
 	   still run, to produce the logits of the last one) */
 	int resume = (snap_s > 0 && snap_s <= nprompt - 1 && !memcmp(ids, snap_ids, 4 * (size_t)snap_s)) ? snap_s : 0;
+	if (qsa_capture_mode) resume = 0;
     last_timing.resumed=resume;last_timing.completed=resume;last_timing.counts_known=1;last_timing.error_code=0;
 	kv_trace_start = resume;
 	if (snap_at > nprompt - 1) snap_at = nprompt - 1;
@@ -741,6 +815,8 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	trace_completed = (unsigned)r.count; trace_aborted = r.aborted != 0; trace_ended = r.ended != 0;
 	trace_status = r.aborted ? "aborted" : "completed";
 	last_positions = r.count; last_paired_positions = r.paired_positions; last_prefill_chunks = r.prefill_chunks;
+	if (qsa_capture_mode && r.count == T && !r.aborted && !r.ended && !ple_short_reads)
+		qsa_capture_ready = T;
 	kv_trace_complete = !r.aborted && r.count == T && resume == 0;
 	if (trace_n && r.count > (int)trace_first) { trace_valid = (unsigned)r.count - trace_first; if (trace_valid > trace_n) trace_valid = trace_n; }
 	if (st) { st->ntok = r.count; st->ended = r.ended; st->nph = nph[0]; st->resumed = resume; st->snapshot = snap_at; st->build_ms = (t1 - timing_request_start) * 1e3; st->run_ms = (t2 - t1) * 1e3; st->first_ms = r.tfirst ? (r.tfirst - t1) * 1e3 : 0; st->paired_positions = r.paired_positions; st->prefill_chunks = r.prefill_chunks; }
@@ -849,6 +925,13 @@ int engine_init(core_t *c) {
 	core = c; in_init = 1;
 	if (setjmp(init_jb)) { in_init = 0; engine_fini(); return -1; }
 	MAXT = c->maxt;
+	qsa_capture_ready = qsa_capture_mode = 0;
+	ple_short_reads = 0;
+	const char *capture_env = getenv("FLASH_QSA_CAPTURE");
+	if (capture_env && strcmp(capture_env, "0") && strcmp(capture_env, "1")) {
+		fprintf(stderr, "engine: FLASH_QSA_CAPTURE must be 0 or 1\n"); in_init = 0; return -1;
+	}
+	qsa_capture_mode = capture_env && !strcmp(capture_env, "1");
 	last_positions = last_paired_positions = last_prefill_chunks = 0;
 	const char *trace_env = getenv("FLASH_KV_TRACE");
 	if (trace_env && strcmp(trace_env, "0") && strcmp(trace_env, "1")) {
@@ -879,6 +962,11 @@ int engine_init(core_t *c) {
 	nlayers_run = getenv("FLASH_LAYERS") ? atoi(getenv("FLASH_LAYERS")) : NB; if (nlayers_run < 1 || nlayers_run > NB) nlayers_run = NB;
 	if (getenv("FLASH_NBLK")) nblk_qsa = (unsigned)atoi(getenv("FLASH_NBLK"));
 	if (nblk_qsa < 1 || nblk_qsa > 4096) { fprintf(stderr, "engine: FLASH_NBLK %u out of range\n", nblk_qsa); return -1; }
+	if (qsa_capture_mode && (two_position || prefill_chunk || nlayers_run != NB || nblk_qsa != QSA_NBLK ||
+	                         (c->ple_compact && !c->ple_disk))) {
+		fprintf(stderr, "engine: QSA capture needs 48 layers, nblk=512, real PLE, and no paired/headless prefill\n");
+		in_init = 0; return -1;
+	}
 	unsigned cpos = qsa_compact_positions(nblk_qsa);   /* compact caches: the attended keys (4 per block + the partial one) and the kernels' stray prefetch past them */
 	kcf = ATTN_KC_FLOATS(cpos); vcf = (size_t)cpos * 512;
 	unsigned maxp = qsa_cache_positions((unsigned)MAXT);   /* positions of the int8 caches and the pool: whole groups of 32 blocks */
@@ -1046,6 +1134,7 @@ int engine_init(core_t *c) {
 		dPROG[d] = dalloc(128 * 4096); dCTL[d] = dalloc(0x100 + 4 * 4096);
 		x->xgen = dCTL[d] + 0x20;
 		if (two_position) alloc_second_position(d);
+		if (qsa_capture_mode) qsa_capture_alloc(d);
 	}
 	embed_die = -1; for (int d = 0; d < nd; d++) if (dw[d][0].token_embd) { embed_die = d; break; }
 	if (embed_die < 0) { fprintf(stderr, "engine: no die holds token_embd\n"); if (in_init) longjmp(init_jb, 1); exit(1); }
@@ -1101,6 +1190,7 @@ void engine_fini(void) {
 	memset(db, 0, sizeof db); memset(xc, 0, sizeof xc); memset(dPROG, 0, sizeof dPROG); memset(dCTL, 0, sizeof dCTL); memset(dst_ple, 0, sizeof dst_ple);
 	memset(dTRACE, 0, sizeof dTRACE); trace_n = trace_valid = 0;
 	memset(db_pair, 0, sizeof db_pair); memset(xc_pair, 0, sizeof xc_pair); two_position = prefill_chunk = 0;
+	memset(qsa_capture_scratch, 0, sizeof qsa_capture_scratch); qsa_capture_mode = qsa_capture_ready = 0;
 	core = NULL;
 }
 
@@ -1128,6 +1218,8 @@ static int client_gone(void *arg) {
  *   snap <s>                 take a prefix-cache snapshot after s positions of the next response; a later response
  *                            whose prompt starts with the same s tokens resumes there instead of from 0
  *   info                     "info <positions> <image token capacity>"
+ *   qsa_capture <NEW_DIR>    save full-vocabulary final logits and every QSA
+ *                            layer after gen 0; requires FLASH_QSA_CAPTURE=1
  *   timings [0|1]            retrieve the last record or disable/enable per-run records
  *   cancel_on_eof <0|1>      opt in to socket half-close cancellation, retaining the reply
  *   cubin <path>             reload the kernel on every die
@@ -1210,6 +1302,14 @@ int engine_session(FILE *in, FILE *out) {
 			fprintf(out, "\n"); fflush(out); free(ts); continue;
 		}
 		if (!strncmp(p, "statehash", 9)) { state_hashes(out); continue; }
+		if (!strncmp(p, "qsa_capture", 11) && (p[11] == ' ' || p[11] == '\t')) {
+			char directory[2048], extra, error[256];
+			if (sscanf(p + 11, "%2047s %c", directory, &extra) != 1)
+				fprintf(out, "error: qsa_capture <NEW_DIR> (no whitespace in path)\n");
+			else if (qsa_capture_export(directory, error, sizeof error)) fprintf(out, "error: QSA capture: %s\n", error);
+			else fprintf(out, "qsa_capture CAPTURED_NOT_VALIDATED %s\n", directory);
+			fflush(out); continue;
+		}
 		if (!strncmp(p, "kvstats", 7)) { kv_stats(out); continue; }
 		if (!strncmp(p, "info", 4)) { fprintf(out, "info %d %u\n", MAXT, img_rows_max); fflush(out); continue; }
 		if (!strncmp(p, "config", 6)) {   /* what this engine is: the identity to attach to a measurement (the commit it was built from, where the KV lives, the layers it runs, the kernel image) */
@@ -1220,6 +1320,7 @@ int engine_session(FILE *in, FILE *out) {
 			fflush(out); continue;
 		}
 		if (!strncmp(p, "cubin", 5)) {
+			qsa_capture_ready = 0;
 			char path[512]; if (sscanf(p + 5, "%511s", path) != 1) { fprintf(out, "error: cubin <path>\n"); fflush(out); continue; }
 			for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuModuleUnload(mod[d])); CK(cuModuleLoad(&mod[d], path)); CK(cuModuleGetFunction(&fn[d], mod[d], "die")); }
 			snprintf(cubin_path, sizeof cubin_path, "%s", path); cubin_fnv = file_fnv(path);
@@ -1267,6 +1368,7 @@ int engine_session(FILE *in, FILE *out) {
         if(emit_timing && last_timing_valid){char json[4096];if(!flash_timing_json(json,sizeof json,&last_timing))fprintf(out,"timings %s\n",json);}
 		snap_req = 0; npend = 0;
 		if (rc == -3) { fprintf(out, "error: bad image data (a file, a position or too many image tokens)\n"); fflush(out); continue; }
+		if (rc == -5) { fprintf(out, "error: QSA capture accepts only fresh full-model gen 0 text requests with valid IDs, no stops/sampling/images/snapshot\n"); fflush(out); continue; }
 		if (rc == -4) { fprintf(out, "error: host program allocation failed\n"); fflush(out); continue; }
 		if (rc == -2) {
 		fprintf(out, "error: device fault; the core rebuilds the contexts and the engine; request=%llu", (unsigned long long)trace_request);

@@ -1,0 +1,18 @@
+{
+"schema":"flash-sass.qsa-logits-numerical.v1",
+"comparison_scope":"supplied teacher-forced arrays only",
+"independent_checkpoint_evidence":false,
+"provenance_status":"not_verified",
+"byte_order":"little",
+"rows":4,"vocab":248320,
+"limits":{"max_abs":0.10,"normalized_rms":0.01,"rms_denominator_floor":1e-8,"relative_denominator_floor":1e-8,"scope":"each row and aggregate"},
+"per_row":[
+{"position":0,"input_id":10,"max_abs":1.129252552986145,"max_relative":39736.150000000001,"rms":0.16533153501852244,"reference_rms":2.9444633363741168,"normalized_rms":0.056149972382442931,"reference_top1":18,"candidate_top1":18,"top1_equal":true,"limits_pass":false},
+{"position":1,"input_id":11,"max_abs":1.1895020008087158,"max_relative":36274.135416666664,"rms":0.22963171761209986,"reference_rms":2.5794210038693399,"normalized_rms":0.089024520335235585,"reference_top1":220,"candidate_top1":220,"top1_equal":true,"limits_pass":false},
+{"position":2,"input_id":12,"max_abs":0.87231707572937012,"max_relative":125521.65625,"rms":0.15686553385646079,"reference_rms":2.2645165719802738,"normalized_rms":0.069271091144758129,"reference_top1":198,"candidate_top1":198,"top1_equal":true,"limits_pass":false},
+{"position":3,"input_id":13,"max_abs":0.95725536346435547,"max_relative":51140.425000000003,"rms":0.18701051871063987,"reference_rms":2.2888046926129753,"normalized_rms":0.081706630239884059,"reference_top1":271,"candidate_top1":271,"top1_equal":true,"limits_pass":false}
+],
+"aggregate":{"max_abs":1.1895020008087158,"max_relative":125521.65625,"rms":0.18684550571632644,"reference_rms":2.5342621845496853,"normalized_rms":0.073727772467838459,"max_row_normalized_rms":0.089024520335235585,"matching_top1_rows":4,"failing_rows":4},
+"numerical_limits_pass":false,
+"complete":true
+}

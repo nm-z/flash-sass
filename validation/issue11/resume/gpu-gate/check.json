@@ -1,0 +1,95 @@
+{
+   "command" : [
+      "bash",
+      "qsa_oracle_gpu_gate.sh",
+      "--out",
+      "NEW_DIR",
+      "--wait",
+      "30",
+      "--check"
+   ],
+   "exit_code" : 75,
+   "gate_sha256" : "3e7a2f6f9e65d9596af96ca0bbaed2188154aee0e29f1d80c155a4f4fc69a949",
+   "gpu_command_started" : false,
+   "host" : "archy",
+   "last_check_utc" : "2026-10-18T03:36:32Z",
+   "lock_owner_observed_utc" : "2026-10-18T03:37:26Z",
+   "note" : "Only PID, parent PID and command names are published from ps. Full command lines remain local. The gate did not start a GPU command.",
+   "observed_lock_owners" : [
+      {
+         "command" : "ruby",
+         "mode" : "WRITE",
+         "path" : "/tmp/flash-sass-engine-validation.lock",
+         "pid" : 4010221,
+         "type" : "FLOCK"
+      }
+   ],
+   "processes" : [
+      {
+         "command" : "llama-server",
+         "pid" : 628,
+         "ppid" : 576
+      },
+      {
+         "command" : "hold",
+         "pid" : 974018,
+         "ppid" : 974015
+      },
+      {
+         "command" : "hold",
+         "pid" : 974061,
+         "ppid" : 974058
+      },
+      {
+         "command" : "fence",
+         "pid" : 974103,
+         "ppid" : 974100
+      },
+      {
+         "command" : "hold",
+         "pid" : 988060,
+         "ppid" : 988058
+      },
+      {
+         "command" : "hold",
+         "pid" : 988067,
+         "ppid" : 988065
+      },
+      {
+         "command" : "hold",
+         "pid" : 988072,
+         "ppid" : 988070
+      },
+      {
+         "command" : "hold",
+         "pid" : 988080,
+         "ppid" : 988079
+      },
+      {
+         "command" : "flashd",
+         "pid" : 1578451,
+         "ppid" : 1
+      },
+      {
+         "command" : "llama-server",
+         "pid" : 2805936,
+         "ppid" : 576
+      },
+      {
+         "command" : "llama-server",
+         "pid" : 2871085,
+         "ppid" : 576
+      },
+      {
+         "command" : "flashcore",
+         "pid" : 3575268,
+         "ppid" : 1
+      }
+   ],
+   "requested_wait_seconds" : 30,
+   "schema" : "flash-sass.issue11-gpu-gate.v1",
+   "shared_lock" : "/tmp/flash-sass-engine-validation.lock",
+   "start_utc" : "2026-10-18T03:36:01Z",
+   "status" : "BLOCKED_BUSY",
+   "tested_source_commit" : "705f16640e499c1ffc3a7f3fd1015471b64e221f"
+}

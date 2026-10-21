@@ -1,0 +1,25 @@
+{
+  "status": "BUILD_ONLY",
+  "gpu_executed": false,
+  "host": "engi",
+  "utc": "2026-10-17T23:13:35Z",
+  "source_commit": "e5bdc5823df741cced70b42c0bf977af2a8e487d",
+  "source_kernel_tree": "6ed9978c9923b8712d5aaf58d77c7cb951348839",
+  "ptxas": {
+    "version": "11.4.152",
+    "sha256": "6180efbc0877b5cf127bc99c5d51be6a779d98a03811cc1c24ef61621dc20976"
+  },
+  "maxas": {
+    "commit": "54eda7af086a46c9dae1688b691968235d560164",
+    "patch_tree": "8af047b8a1d2c3bb87d38ecbf8346c046412cf45"
+  },
+  "artifacts": {
+    "die.cubin": "0fa2a17fa41c07aac507f9bc218a777601719a8e2b6eb8b40ec93867d4768027",
+    "die.sass": "631a75bebcd246615db218adbe9238a6fede345b2c02db435b3e6ee5fea85aa4",
+    "dieops.h": "963fcba726d2479d6b64318c2addc8252a3199f4b0162c4e590e6c9dfdae60d5"
+  },
+  "commands": [
+    "make -C kern die.cubin PTXAS11=/home/nate/codex/flash-pr31-evidence-20261017/toolchain/ptxas11",
+    "make -C kern dieops.h"
+  ]
+}
