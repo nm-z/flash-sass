@@ -62,6 +62,20 @@ static int test_explicit_exchange_wait_clear(void) {
     prog_free(&p);
     return 0;
 }
+static int test_hcwsum_range_wait_flag(void) {
+    prog_t p; xchg_t x={0};
+    prog_init(&p);
+    ph_xchg(&p,&x,0,6,0x1000,10240,0,61440);
+    ph_hc(&p,OP_HCWSUM,0x2000,0x3000,0x4000,2560,10240,16);
+    CHECK((p.p[1].w[30]&0x22u)==0x22u);
+    prog_free(&p);
+
+    prog_init(&p);
+    ph_hc(&p,OP_HCWRITE,0x2000,0x3000,0x4000,2560,10240,10);
+    CHECK(!(p.p[0].w[30]&0x20u));
+    prog_free(&p);
+    return 0;
+}
 static int test_deltanet_bias_conv_overlap(void) {
     prog_t p; split_t s; xchg_t x={0}; dn_weights_t w={0}; dn_bufs_t b={0};
     prog_init(&p); split_of(&s,0,6,1); unsetenv("PROG_NONOBAR");
@@ -86,7 +100,8 @@ static int test_deltanet_bias_conv_overlap(void) {
 }
 int main(void) {
     CHECK(!test_ple_rms_barriers()); CHECK(!test_moe_actq_projection_overlap());
-    CHECK(!test_explicit_exchange_wait_clear()); CHECK(!test_deltanet_bias_conv_overlap());
+    CHECK(!test_explicit_exchange_wait_clear()); CHECK(!test_hcwsum_range_wait_flag());
+    CHECK(!test_deltanet_bias_conv_overlap());
     prog_t a,b,out; prog_init(&a);prog_init(&b);prog_init(&out);
     CHECK(!a.token_offset); build(&a,0);build(&b,1);
     const int tw=2+(0x160-0x140)/4;
@@ -112,5 +127,5 @@ int main(void) {
     prog_t absolute;prog_init(&absolute);absolute.token_offset=7;
     ph_conv1d(&absolute,1,2,3,4,99,1024); CHECK(absolute.p[0].w[tw]==99 && !absolute.p[0].w[31]);
     prog_free(&absolute);prog_free(&a);prog_free(&b);prog_free(&out);
-    puts("pair_prog_test: safe MoE ACTQ overlap, DeltaNet bias/conv overlap, PLE barriers, explicit exchange-wait clear, token offsets, descriptor preservation, shape rejection, and unchanged-on-error PASS");return 0;
+    puts("pair_prog_test: safe MoE ACTQ overlap, DeltaNet bias/conv overlap, HCWSUM range wait, PLE barriers, explicit exchange-wait clear, token offsets, descriptor preservation, shape rejection, and unchanged-on-error PASS");return 0;
 }
