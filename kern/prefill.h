@@ -3,13 +3,14 @@
 
 /* Known positions per host chunk; device programs remain B1 or B2. */
 #define FLASH_PREFILL_CHUNK_MAX 4096
+#define FLASH_PREFILL_AUTO_THRESHOLD FLASH_PREFILL_CHUNK_MAX
 typedef struct {
     int begin;
     int end;      /* exclusive; excludes the final prompt position */
     int pair_end; /* [begin,pair_end) uses B2; an odd tail uses B1 */
 } prefill_chunk_t;
 
-/* Absent/zero disables. Malformed settings must not silently select a path. */
+/* Absence and zero parse as size 0; the caller selects the default policy. */
 static inline int prefill_parse_chunk(const char *text, int *size) {
     if (!size) return -1;
     if (!text) { *size = 0; return 0; }
@@ -23,6 +24,21 @@ static inline int prefill_parse_chunk(const char *text, int *size) {
     }
     *size = value;
     return 0;
+}
+
+/* Keep an unchunked kernel bounded for long uncached prompts. An explicit
+ * chunk size always wins; an explicit zero disables the automatic policy. */
+static inline int prefill_effective_chunk(int configured, int automatic,
+                                          int pending_positions) {
+    if (configured > 0) return configured;
+    return automatic && pending_positions > FLASH_PREFILL_AUTO_THRESHOLD
+        ? FLASH_PREFILL_CHUNK_MAX : 0;
+}
+
+/* The fused headless pair faults for chunked prompt-only requests. */
+static inline int prefill_pair_enabled(int two_position, int chunk_size,
+                                       int n_new) {
+    return two_position && !(chunk_size > 0 && n_new == 0);
 }
 
 /* Plan [position,min(until,nprompt-1)), stopping exactly at snapshots.

@@ -12,6 +12,7 @@
 #include "ple.h"
 #include "hold.h"
 #include "prog.h"
+#include "phase_probe.h"
 #include "split.h"
 #include "qsa.h"
 #include "qsa_state.h"
@@ -54,7 +55,7 @@ static __thread double timing_request_start, timing_run_start;
 CUresult cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev);
 /* during engine_init a failure unwinds to it (the core and its weights and table stay up); later ones are fatal */
 static jmp_buf init_jb, run_jb; static int in_init, in_run;
-#define CK(x) do { CUresult r_ = (x); if (r_ != CUDA_SUCCESS) { const char *s_ = "?"; cuGetErrorString(r_, &s_); fprintf(stderr, "engine.c:%d: %s -> %s\n", __LINE__, #x, s_); if (in_init) longjmp(init_jb, 1); if (in_run) longjmp(run_jb, 1); exit(1); } } while (0)
+#define CK(x) do { CUresult r_ = (x); if (r_ != CUDA_SUCCESS) { phase_probe_fault(r_, #x, __LINE__); const char *s_ = "?"; cuGetErrorString(r_, &s_); fprintf(stderr, "engine.c:%d: %s -> %s\n", __LINE__, #x, s_); if (in_init) longjmp(init_jb, 1); if (in_run) longjmp(run_jb, 1); exit(1); } } while (0)
 static double now(void) { struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts); return ts.tv_sec + ts.tv_nsec * 1e-9; }
 
 #define MAXD CORE_MAXD
@@ -97,10 +98,26 @@ static CUmodule mod[MAXD]; static CUfunction fn[MAXD];
 static uint32_t *s_ids, *s_toks;   /* engine_session scratch (positions each) */
 static dn_weights_t (*dw)[NB]; static dn_bufs_t db[MAXD]; static xchg_t xc[MAXD]; static split_t (*sp)[NB];
 static dn_bufs_t db_pair[MAXD]; static xchg_t xc_pair[MAXD];
-static int two_position, prefill_chunk;       /* opt-in causal forward over two known prompt ids */
+static int two_position, prefill_chunk, prefill_auto; /* opt-in paired pass; auto chunks protect long prompt kernels */
 static int last_positions, last_paired_positions, last_prefill_chunks;
 static CUdeviceptr dPROG[MAXD], dCTL[MAXD], (*dst_dn)[NB], (*dst_conv)[NB], (*dst_kq)[NB], (*dst_ks)[NB], (*dst_vq)[NB], (*dst_vs)[NB], (*dst_pkt)[NB], (*dst_ring)[NB], (*snap_ring)[NB], dst_ple[MAXD];
 static size_t dn_bytes[MAXD][NB], conv_bytes[MAXD][NB], kcf, vcf;
+static int state_diff_enabled;
+static unsigned state_diff_hash_calls;
+static int reset_sync_enabled;
+static unsigned char *state_diff_ref_dn46, *state_diff_ref_conv46;
+static unsigned char *state_diff_ref_b_dn46, *state_diff_ref_b_conv46;
+static unsigned char *state_diff_prev_dn46, *state_diff_prev_conv46;
+static size_t state_diff_dn46_bytes, state_diff_conv46_bytes;
+static char state_diff_previous_name[32];
+typedef struct {
+	unsigned char *dn, *conv;
+	size_t dn_bytes, conv_bytes;
+	unsigned request_index;
+	int valid;
+	char previous_name[32];
+} state_diff_reset_record;
+static state_diff_reset_record state_diff_reset_previous[MAXD];
 static int kv_host = 1;                  /* FLASH_KV_HOST=0: the int8 KV caches in VRAM (small contexts) instead of pinned host memory */
 static void *h_kv;                      /* the host-resident KV caches of all attention layers */
 /* Validation-only raw group maxima. The ordinary cubin has no trace instructions. */
@@ -207,8 +224,367 @@ static uint64_t device_fnv(CUdeviceptr p, size_t bytes, uint64_t h) {
 	}
 	return h;
 }
+
+typedef struct {
+	size_t values, differing, nonfinite;
+	double max_abs, max_rel;
+} state_diff_metric;
+
+static void state_diff_measure(const unsigned char *reference,
+			       const unsigned char *current, size_t bytes,
+			       state_diff_metric *metric) {
+	for (size_t at = 0; at + sizeof(float) <= bytes; at += sizeof(float)) {
+		float a, b;
+		memcpy(&a, reference + at, sizeof a);
+		memcpy(&b, current + at, sizeof b);
+		metric->values++;
+		if (memcmp(reference + at, current + at, sizeof(float))) metric->differing++;
+		if (!isfinite(a) || !isfinite(b)) {
+			metric->nonfinite++;
+			metric->max_abs = INFINITY;
+			metric->max_rel = INFINITY;
+			continue;
+		}
+		double delta = fabs((double)a - (double)b);
+		double scale = fmax(fabs((double)a), fabs((double)b));
+		double relative = scale > 0.0 ? delta / scale : 0.0;
+		if (delta > metric->max_abs) metric->max_abs = delta;
+		if (relative > metric->max_rel) metric->max_rel = relative;
+	}
+}
+
+static size_t state_diff_nonzero_bytes(const unsigned char *data, size_t bytes) {
+	size_t nonzero = 0;
+	for (size_t at = 0; at < bytes; at++) nonzero += data[at] != 0;
+	return nonzero;
+}
+
+static void state_diff_reset_records_free(void) {
+	for (int d = 0; d < MAXD; d++) {
+		free(state_diff_reset_previous[d].dn);
+		free(state_diff_reset_previous[d].conv);
+		memset(&state_diff_reset_previous[d], 0, sizeof state_diff_reset_previous[d]);
+	}
+}
+
+/* In the opt-in state-diff run, retain the old recurrent layer-46 buffers just
+ * before a fresh-request reset. The matching after-reset record verifies every
+ * byte before the model can write the new request's state. */
+static void state_diff_reset_capture_before(int d, int layer) {
+	if (!state_diff_enabled || layer != 46) return;
+	if (d < 0 || d >= nd || layer >= nlayers_run || !dst_dn[d][layer] || !dst_conv[d][layer]) {
+		fprintf(stderr, "RESET_AUDIT phase=before request_index=%u die=%d layer=%d status=fail reason=unavailable\n",
+		        state_diff_hash_calls + 1, d, layer);
+		fflush(stderr); _Exit(74);
+	}
+	state_diff_reset_record *record = &state_diff_reset_previous[d];
+	if (record->dn_bytes != dn_bytes[d][layer] || !record->dn) {
+		free(record->dn); record->dn = malloc(dn_bytes[d][layer]);
+		record->dn_bytes = record->dn ? dn_bytes[d][layer] : 0;
+	}
+	if (record->conv_bytes != conv_bytes[d][layer] || !record->conv) {
+		free(record->conv); record->conv = malloc(conv_bytes[d][layer]);
+		record->conv_bytes = record->conv ? conv_bytes[d][layer] : 0;
+	}
+	if (!record->dn || !record->conv) {
+		record->valid = 0;
+		fprintf(stderr, "RESET_AUDIT phase=before request_index=%u die=%d layer=%d status=fail reason=allocation\n",
+		        state_diff_hash_calls + 1, d, layer);
+		fflush(stderr); _Exit(74);
+	}
+	CK(cuCtxSetCurrent(ctx[d]));
+	CK(cuMemcpyDtoH(record->dn, dst_dn[d][layer], record->dn_bytes));
+	CK(cuMemcpyDtoH(record->conv, dst_conv[d][layer], record->conv_bytes));
+	const split_t *split = &sp[d][layer];
+	record->request_index = state_diff_hash_calls + 1;
+	snprintf(record->previous_name, sizeof record->previous_name, "%s",
+	         state_diff_previous_name[0] ? state_diff_previous_name : "unknown");
+	record->valid = 1;
+	fprintf(stderr,
+	        "RESET_AUDIT phase=before request_index=%u previous_request=%s die=%d layer=%d "
+	        "head_start=%d head_count=%d local_channels=%u dn_bytes=%zu conv_bytes=%zu "
+	        "dn_nonzero_bytes=%zu conv_nonzero_bytes=%zu\n",
+	        record->request_index, record->previous_name, d, layer, split->h0, split->hn,
+	        SPLIT_NLOC(split), record->dn_bytes, record->conv_bytes,
+	        state_diff_nonzero_bytes(record->dn, record->dn_bytes),
+	        state_diff_nonzero_bytes(record->conv, record->conv_bytes));
+}
+
+static void state_diff_reset_capture_after(int d, int layer) {
+	if (!state_diff_enabled || layer != 46) return;
+	state_diff_reset_record *record = &state_diff_reset_previous[d];
+	if (!record->valid || !record->dn || !record->conv) {
+		fprintf(stderr, "RESET_AUDIT phase=after request_index=%u die=%d layer=%d status=fail reason=unverified\n",
+		        state_diff_hash_calls + 1, d, layer);
+		fflush(stderr); _Exit(74);
+	}
+	unsigned char *dn = malloc(record->dn_bytes), *conv = malloc(record->conv_bytes);
+	if (!dn || !conv) {
+		free(dn); free(conv);
+		fprintf(stderr, "RESET_AUDIT phase=after request_index=%u die=%d layer=%d status=fail reason=allocation\n",
+		        record->request_index, d, layer);
+		fflush(stderr); _Exit(74);
+	}
+	CK(cuCtxSetCurrent(ctx[d]));
+	CK(cuMemcpyDtoH(dn, dst_dn[d][layer], record->dn_bytes));
+	CK(cuMemcpyDtoH(conv, dst_conv[d][layer], record->conv_bytes));
+	state_diff_metric dn_diff = {0}, conv_diff = {0};
+	state_diff_measure(record->dn, dn, record->dn_bytes, &dn_diff);
+	state_diff_measure(record->conv, conv, record->conv_bytes, &conv_diff);
+	size_t dn_nonzero = state_diff_nonzero_bytes(dn, record->dn_bytes);
+	size_t conv_nonzero = state_diff_nonzero_bytes(conv, record->conv_bytes);
+	const char *status = dn_nonzero || conv_nonzero ? "fail" : "pass";
+	const split_t *split = &sp[d][layer];
+	fprintf(stderr,
+	        "RESET_AUDIT phase=after request_index=%u previous_request=%s die=%d layer=%d "
+	        "head_start=%d head_count=%d local_channels=%u dn_post_nonzero_bytes=%zu "
+	        "conv_post_nonzero_bytes=%zu dn_diff_from_previous=%zu conv_diff_from_previous=%zu status=%s\n",
+	        record->request_index, record->previous_name, d, layer, split->h0, split->hn,
+	        SPLIT_NLOC(split), dn_nonzero, conv_nonzero, dn_diff.differing,
+	        conv_diff.differing, status);
+	free(dn); free(conv);
+	if (dn_nonzero || conv_nonzero) {
+		fflush(stderr); _Exit(73);
+	}
+}
+
+/* Opt-in comparison of layer 46 recurrent state against the matching fresh
+ * request and the immediately previous request in the issue-110 plan. */
+static void state_diff_capture_reference(void) {
+	if (nlayers_run <= 46 || BLK_IS_ATTN(46) || !dst_dn[0][46] || !dst_conv[0][46]) {
+		fprintf(stderr, "STATE_DIFF capture=skipped reason=layer46-not-recurrent\n");
+		return;
+	}
+	state_diff_dn46_bytes = dn_bytes[0][46];
+	state_diff_conv46_bytes = conv_bytes[0][46];
+	state_diff_ref_dn46 = malloc(state_diff_dn46_bytes);
+	state_diff_ref_conv46 = malloc(state_diff_conv46_bytes);
+	if (!state_diff_ref_dn46 || !state_diff_ref_conv46) {
+		free(state_diff_ref_dn46); free(state_diff_ref_conv46);
+		state_diff_ref_dn46 = state_diff_ref_conv46 = NULL;
+		state_diff_dn46_bytes = state_diff_conv46_bytes = 0;
+		fprintf(stderr, "STATE_DIFF capture=failed reason=host-allocation\n");
+		return;
+	}
+	CK(cuCtxSetCurrent(ctx[0]));
+	CK(cuMemcpyDtoH(state_diff_ref_dn46, dst_dn[0][46], state_diff_dn46_bytes));
+	CK(cuMemcpyDtoH(state_diff_ref_conv46, dst_conv[0][46], state_diff_conv46_bytes));
+	fprintf(stderr, "STATE_DIFF capture=fresh-A die=0 layer=46 dn_bytes=%zu conv_bytes=%zu\n",
+	        state_diff_dn46_bytes, state_diff_conv46_bytes);
+}
+
+static void state_diff_capture_b_reference(void) {
+	if (!state_diff_ref_dn46 || !state_diff_ref_conv46) return;
+	state_diff_ref_b_dn46 = malloc(state_diff_dn46_bytes);
+	state_diff_ref_b_conv46 = malloc(state_diff_conv46_bytes);
+	if (!state_diff_ref_b_dn46 || !state_diff_ref_b_conv46) {
+		free(state_diff_ref_b_dn46); free(state_diff_ref_b_conv46);
+		state_diff_ref_b_dn46 = state_diff_ref_b_conv46 = NULL;
+		fprintf(stderr, "STATE_DIFF capture=fresh-B failed reason=host-allocation\n");
+		return;
+	}
+	CK(cuCtxSetCurrent(ctx[0]));
+	CK(cuMemcpyDtoH(state_diff_ref_b_dn46, dst_dn[0][46], state_diff_dn46_bytes));
+	CK(cuMemcpyDtoH(state_diff_ref_b_conv46, dst_conv[0][46], state_diff_conv46_bytes));
+	fprintf(stderr, "STATE_DIFF capture=fresh-B die=0 layer=46\n");
+}
+
+static void state_diff_capture_previous(const char *name) {
+	if (!state_diff_ref_dn46 || !state_diff_ref_conv46) return;
+	state_diff_previous_name[0] = '\0';
+	free(state_diff_prev_dn46); state_diff_prev_dn46 = NULL;
+	free(state_diff_prev_conv46); state_diff_prev_conv46 = NULL;
+	state_diff_prev_dn46 = malloc(state_diff_dn46_bytes);
+	state_diff_prev_conv46 = malloc(state_diff_conv46_bytes);
+	if (!state_diff_prev_dn46 || !state_diff_prev_conv46) {
+		free(state_diff_prev_dn46); free(state_diff_prev_conv46);
+		state_diff_prev_dn46 = state_diff_prev_conv46 = NULL;
+		fprintf(stderr, "STATE_DIFF previous=capture-failed reason=host-allocation\n");
+		return;
+	}
+	CK(cuCtxSetCurrent(ctx[0]));
+	CK(cuMemcpyDtoH(state_diff_prev_dn46, dst_dn[0][46], state_diff_dn46_bytes));
+	CK(cuMemcpyDtoH(state_diff_prev_conv46, dst_conv[0][46], state_diff_conv46_bytes));
+	snprintf(state_diff_previous_name, sizeof state_diff_previous_name, "%s", name);
+	fprintf(stderr, "STATE_DIFF previous=%s die=0 layer=46\n", state_diff_previous_name);
+}
+
+static size_t state_diff_find_float(const unsigned char *data, size_t bytes,
+				    const unsigned char *value, long long *first) {
+	size_t matches = 0;
+	if (first) *first = -1;
+	if (!data) return 0;
+	for (size_t at = 0; at + sizeof(float) <= bytes; at += sizeof(float))
+		if (!memcmp(data + at, value, sizeof(float))) {
+			if (first && *first < 0) *first = (long long)(at / sizeof(float));
+			matches++;
+		}
+	return matches;
+}
+
+static void state_diff_print_first(const char *name, const unsigned char *reference,
+				   const unsigned char *previous,
+				   const unsigned char *snapshot,
+				   const unsigned char *current, size_t bytes,
+				   const char *reference_name, const char *previous_name,
+				   int dn_state) {
+	if (!reference || !current || bytes < sizeof(float)) return;
+	for (size_t at = 0; at + sizeof(float) <= bytes; at += sizeof(float)) {
+		if (!memcmp(reference + at, current + at, sizeof(float))) continue;
+		float a, p = 0.0f, b;
+		uint32_t a_bits, p_bits = 0, b_bits;
+		memcpy(&a, reference + at, sizeof a);
+		memcpy(&b, current + at, sizeof b);
+		int previous_same = previous && !memcmp(previous + at, current + at, sizeof(float));
+		int snapshot_same = snapshot && !memcmp(snapshot + at, current + at, sizeof(float));
+		long long previous_index, reference_index, snapshot_index;
+		size_t previous_matches = state_diff_find_float(previous, bytes, current + at, &previous_index);
+		size_t reference_matches = state_diff_find_float(reference, bytes, current + at, &reference_index);
+		size_t snapshot_matches = state_diff_find_float(snapshot, bytes, current + at, &snapshot_index);
+		if (previous && at + sizeof(float) <= bytes) memcpy(&p, previous + at, sizeof p);
+		memcpy(&a_bits, reference + at, sizeof a_bits);
+		memcpy(&b_bits, current + at, sizeof b_bits);
+		if (previous && at + sizeof(float) <= bytes) memcpy(&p_bits, previous + at, sizeof p_bits);
+		if (dn_state) {
+			size_t index = at / sizeof(float), matrix_index = index % 16384u;
+			fprintf(stderr,
+			        "STATE_DIFF_FIRST buffer=%s die=0 layer=46 final_position=%d flat_index=%zu head=%zu row=%zu col=%zu "
+			        "reference=%s:%.9g(0x%08x) previous=%s:%.9g(0x%08x) current=%.9g(0x%08x) "
+			        "previous_same_index=%s previous_first_index=%lld previous_matches=%zu "
+			        "reference_first_index=%lld reference_matches=%zu snapshot_same_index=%s snapshot_first_index=%lld snapshot_matches=%zu\n",
+			        name, last_positions > 0 ? last_positions - 1 : -1, index, index / 16384u,
+			        matrix_index / 128u, matrix_index % 128u, reference_name, a, a_bits,
+			        previous_name ? previous_name : "none", p, p_bits, b, b_bits,
+			        previous_same ? "yes" : "no", previous_index, previous_matches,
+			        reference_index, reference_matches, snapshot_same ? "yes" : "no", snapshot_index, snapshot_matches);
+		} else {
+			size_t index = at / sizeof(float), nloc = SPLIT_NLOC(&sp[0][46]);
+			fprintf(stderr,
+			        "STATE_DIFF_FIRST buffer=%s die=0 layer=46 final_position=%d flat_index=%zu conv_window_slot=%zu lane=%zu "
+			        "reference=%s:%.9g(0x%08x) previous=%s:%.9g(0x%08x) current=%.9g(0x%08x) "
+			        "previous_same_index=%s previous_first_index=%lld previous_matches=%zu "
+			        "reference_first_index=%lld reference_matches=%zu snapshot_same_index=%s snapshot_first_index=%lld snapshot_matches=%zu\n",
+			        name, last_positions > 0 ? last_positions - 1 : -1, index,
+			        nloc ? index / nloc : 0, nloc ? index % nloc : index, reference_name, a, a_bits,
+			        previous_name ? previous_name : "none", p, p_bits, b, b_bits,
+			        previous_same ? "yes" : "no", previous_index, previous_matches,
+			        reference_index, reference_matches, snapshot_same ? "yes" : "no", snapshot_index, snapshot_matches);
+		}
+		return;
+	}
+}
+
+static void state_diff_compare_pre_reset(const char *name) {
+	for (int d = 0; d < nd; d++) {
+		state_diff_reset_record *record = &state_diff_reset_previous[d];
+		if (!record->valid || record->request_index != state_diff_hash_calls ||
+		    record->dn_bytes != dn_bytes[d][46] || record->conv_bytes != conv_bytes[d][46]) {
+			fprintf(stderr, "STATE_DIFF_STALE pair=%s die=%d layer=46 status=unavailable\n", name, d);
+			continue;
+		}
+		unsigned char *dn = malloc(record->dn_bytes), *conv = malloc(record->conv_bytes);
+		if (!dn || !conv) {
+			free(dn); free(conv);
+			fprintf(stderr, "STATE_DIFF_STALE pair=%s die=%d layer=46 status=allocation-failed\n", name, d);
+			continue;
+		}
+		CK(cuCtxSetCurrent(ctx[d]));
+		CK(cuMemcpyDtoH(dn, dst_dn[d][46], record->dn_bytes));
+		CK(cuMemcpyDtoH(conv, dst_conv[d][46], record->conv_bytes));
+		state_diff_metric dn_diff = {0}, conv_diff = {0};
+		state_diff_measure(record->dn, dn, record->dn_bytes, &dn_diff);
+		state_diff_measure(record->conv, conv, record->conv_bytes, &conv_diff);
+		const split_t *split = &sp[d][46];
+		fprintf(stderr,
+		        "STATE_DIFF_STALE pair=%s pre_request=%s die=%d layer=46 head_start=%d head_count=%d "
+		        "local_channels=%u dn_values=%zu dn_diff=%zu conv_values=%zu conv_diff=%zu "
+		        "pre_dn_nonzero_bytes=%zu pre_conv_nonzero_bytes=%zu\n",
+		        name, record->previous_name, d, split->h0, split->hn, SPLIT_NLOC(split),
+		        dn_diff.values, dn_diff.differing, conv_diff.values, conv_diff.differing,
+		        state_diff_nonzero_bytes(record->dn, record->dn_bytes),
+		        state_diff_nonzero_bytes(record->conv, record->conv_bytes));
+		free(dn); free(conv);
+	}
+}
+
+static void state_diff_compare_request(const char *name, const char *reference_name,
+				       const unsigned char *reference_dn,
+				       const unsigned char *reference_conv) {
+	if (!reference_dn || !reference_conv ||
+	    state_diff_dn46_bytes != dn_bytes[0][46] || state_diff_conv46_bytes != conv_bytes[0][46]) {
+		fprintf(stderr, "STATE_DIFF compare=%s skipped reason=reference-unavailable\n", name);
+		return;
+	}
+	unsigned char *current_dn = malloc(state_diff_dn46_bytes);
+	unsigned char *current_conv = malloc(state_diff_conv46_bytes);
+	unsigned char *snapshot_dn = snap_dn && snap_dn[0][46] ? malloc(state_diff_dn46_bytes) : NULL;
+	unsigned char *snapshot_conv = snap_conv && snap_conv[0][46] ? malloc(state_diff_conv46_bytes) : NULL;
+	if (!current_dn || !current_conv) {
+		free(current_dn); free(current_conv); free(snapshot_dn); free(snapshot_conv);
+		fprintf(stderr, "STATE_DIFF compare=failed reason=host-allocation\n");
+		return;
+	}
+	CK(cuCtxSetCurrent(ctx[0]));
+	CK(cuMemcpyDtoH(current_dn, dst_dn[0][46], state_diff_dn46_bytes));
+	CK(cuMemcpyDtoH(current_conv, dst_conv[0][46], state_diff_conv46_bytes));
+	if (snapshot_dn) CK(cuMemcpyDtoH(snapshot_dn, snap_dn[0][46], state_diff_dn46_bytes));
+	if (snapshot_conv) CK(cuMemcpyDtoH(snapshot_conv, snap_conv[0][46], state_diff_conv46_bytes));
+	state_diff_metric dn = {0}, conv = {0};
+	state_diff_measure(reference_dn, current_dn, state_diff_dn46_bytes, &dn);
+	state_diff_measure(reference_conv, current_conv, state_diff_conv46_bytes, &conv);
+	double max_abs = fmax(dn.max_abs, conv.max_abs);
+	double max_rel = fmax(dn.max_rel, conv.max_rel);
+	fprintf(stderr,
+	        "STATE_DIFF pair=%s/reference=%s/previous=%s die=0 layer=46 metric=fp32-denom=max_abs_reference_or_current "
+	        "dn_values=%zu dn_diff=%zu dn_max_abs=%.9g dn_max_rel=%.9g "
+	        "conv_values=%zu conv_diff=%zu conv_max_abs=%.9g conv_max_rel=%.9g "
+	        "combined_values=%zu combined_diff=%zu combined_max_abs=%.9g combined_max_rel=%.9g nonfinite=%zu\n",
+	        name, reference_name, state_diff_previous_name[0] ? state_diff_previous_name : "none",
+	        dn.values, dn.differing, dn.max_abs, dn.max_rel,
+	        conv.values, conv.differing, conv.max_abs, conv.max_rel,
+	        dn.values + conv.values, dn.differing + conv.differing, max_abs, max_rel,
+	        dn.nonfinite + conv.nonfinite);
+	state_diff_print_first("dst_dn", reference_dn, state_diff_prev_dn46, snapshot_dn,
+	                        current_dn, state_diff_dn46_bytes, reference_name, state_diff_previous_name, 1);
+	state_diff_print_first("dst_conv", reference_conv, state_diff_prev_conv46, snapshot_conv,
+	                        current_conv, state_diff_conv46_bytes, reference_name, state_diff_previous_name, 0);
+	free(current_dn); free(current_conv); free(snapshot_dn); free(snapshot_conv);
+}
+
 static void state_hashes(FILE *out) {
 	const uint64_t seed = 0xcbf29ce484222325ull;
+	if (state_diff_enabled) {
+		state_diff_hash_calls++;
+		if (state_diff_hash_calls == 1) state_diff_capture_reference();
+		else if (state_diff_hash_calls == 2) {
+			state_diff_capture_b_reference();
+			state_diff_capture_previous("fresh-B");
+		} else {
+			const char *name = NULL, *reference_name = NULL;
+			const unsigned char *reference_dn = NULL, *reference_conv = NULL;
+			switch (state_diff_hash_calls) {
+			case 3: name = "save-512-A"; reference_name = "fresh-A"; break;
+			case 4: name = "resume-512-A"; reference_name = "fresh-A"; break;
+			case 5: name = "reset-512-B"; reference_name = "fresh-B"; break;
+			case 6: name = "save-515-A"; reference_name = "fresh-A"; break;
+			case 7: name = "resume-515-A"; reference_name = "fresh-A"; break;
+			case 8: name = "reset-515-B"; reference_name = "fresh-B"; break;
+			case 9: name = "final-A"; reference_name = "fresh-A"; break;
+			default: name = "other"; break;
+			}
+			if (!strcmp(reference_name ? reference_name : "", "fresh-A")) {
+				reference_dn = state_diff_ref_dn46; reference_conv = state_diff_ref_conv46;
+			} else if (!strcmp(reference_name ? reference_name : "", "fresh-B")) {
+				reference_dn = state_diff_ref_b_dn46; reference_conv = state_diff_ref_b_conv46;
+			}
+			if (reference_dn && reference_conv)
+				state_diff_compare_request(name, reference_name, reference_dn, reference_conv);
+			if (name && !strncmp(name, "reset-", 6))
+				state_diff_compare_pre_reset(name);
+			if (state_diff_hash_calls < 10 && name && strcmp(name, "other"))
+				state_diff_capture_previous(name);
+		}
+	}
 	fprintf(out, "statehash positions=%d paired_positions=%d prefill_chunks=%d\n", last_positions, last_paired_positions, last_prefill_chunks);
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
@@ -373,10 +749,12 @@ static void model_program(prog_t *P, int d, unsigned position, unsigned nprompt,
 }
 
 static void upload_programs(const prog_t *P, unsigned *nph, unsigned positions) {
+	phase_probe_upload_begin();
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
 		nph[d] = (unsigned)P[d].n;
 		if (nph[d] > 4096) { fprintf(stderr, "program too long (%u descriptors)\n", nph[d]); longjmp(run_jb, 1); }
+		if (phase_probe_program((unsigned)d, &P[d])) { fprintf(stderr, "PHASE_PROBE_INVALID_PROGRAM die=%d\n", d); fflush(NULL); _Exit(71); }
         prof_desc[d] = nph[d]; prof_nph[d] = 0;
         for (int i = 0; i < P[d].n; i += (P[d].p[i].w[30] & 8u) ? 2 : 1) {
             int j = prof_nph[d]++;
@@ -459,6 +837,7 @@ static void ple_pump(runctx *r, int budget) {
 /* launch the program on every die for tokens up to ntok and wait for it, streaming the generated tokens */
 static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 	r->ntok = ntok_;
+	phase_probe_launch(trace_request, (uint32_t)r->count, (uint32_t)ntok_);
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
 		CK(cuMemsetD32(dCTL[d]+0x2c,0,1));
@@ -511,8 +890,9 @@ static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuCtxSynchronize()); }
 	for (int d=0;d<nd;d++) {
 		uint32_t limit=0;CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoH(&limit,dCTL[d]+0x2c,4));
-		if (limit) {fprintf(stderr,"engine: die %d reached the kernel time limit\n",d);longjmp(run_jb,1);}
+		if (limit) {fprintf(stderr,"engine: die %d reached the kernel time limit\n",d);phase_probe_limit(__LINE__);longjmp(run_jb,1);}
 	}
+	phase_probe_done();
 }
 
 /* The paired program may only consume known ids. Stop before the last prompt
@@ -537,7 +917,8 @@ static void run_known_prefix(runctx *r, const prog_t *single, const prog_t *pair
  * Poll at every host boundary, even if a fast GPU launch finished before its
  * in-flight poll ran. No generated ID is admitted to this program. */
 static void run_prefill_prefix(runctx *r, const prog_t *full,
-                               const prog_t *prefix, const prog_t *pair, int end) {
+                               const prog_t *prefix, const prog_t *pair,
+                               int chunk_size, int end) {
     if (!prefix) { run_known_prefix(r, full, pair, end); return; }
     while (!r->aborted && r->count < end) {
         if (r->cb && r->cb->alive && r->cb->alive(r->cb->arg)) {
@@ -545,7 +926,7 @@ static void run_prefill_prefix(runctx *r, const prog_t *full,
             break;
         }
         prefill_chunk_t chunk;
-        if (prefill_plan_chunk(r->count, r->nprompt, end, prefill_chunk,
+        if (prefill_plan_chunk(r->count, r->nprompt, end, chunk_size,
                                pair != NULL, &chunk) != 1) {
             fprintf(stderr, "engine: invalid prefill boundary at %d of %d\n", r->count, end);
             longjmp(run_jb, 1);
@@ -658,6 +1039,9 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	/* the prefix cache: resume from the snapshot if the prompt starts with its tokens (at least one prompt token must
 	   still run, to produce the logits of the last one) */
 	int resume = (snap_s > 0 && snap_s <= nprompt - 1 && !memcmp(ids, snap_ids, 4 * (size_t)snap_s)) ? snap_s : 0;
+    int run_prefill_chunk = prefill_effective_chunk(prefill_chunk, prefill_auto,
+                                                    nprompt - resume);
+    int run_pair = prefill_pair_enabled(two_position, run_prefill_chunk, n_new);
     last_timing.resumed=resume;last_timing.completed=resume;last_timing.counts_known=1;last_timing.error_code=0;
 	kv_trace_start = resume;
 	if (snap_at > nprompt - 1) snap_at = nprompt - 1;
@@ -670,10 +1054,10 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 		for (int d = 0; d < nd; d++) { db[d].ple_rid = ple_rid; db_pair[d].ple_rid = ple_rid; }
 	}
 	prog_t *P = calloc(MAXD, sizeof *P); unsigned nph[MAXD];
-	prog_t *pair = two_position ? calloc(MAXD, sizeof *pair) : NULL;
+	prog_t *pair = run_pair ? calloc(MAXD, sizeof *pair) : NULL;
     /* gen 0 is the existing teacher-forced, full-head diagnostic interface. */
-    prog_t *prefix = prefill_chunk && n_new > 0 ? calloc(MAXD, sizeof *prefix) : NULL;
-    if (!P || (two_position && !pair) || (prefill_chunk && n_new > 0 && !prefix)) {
+    prog_t *prefix = run_prefill_chunk ? calloc(MAXD, sizeof *prefix) : NULL;
+	if (!P || (run_pair && !pair) || (run_prefill_chunk && !prefix)) {
         free(P); free(pair); free(prefix);
         /* No snapshot has been restored or current-request counter observed.
            Allocation failure must not retain the provisional success record. */
@@ -694,9 +1078,17 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 			for (int bb = 0; bb < nlayers_run; bb++) {
 				/* the int8 caches, the indexer pool and the ring of an attention layer need no reset: positions are written before they are read */
 				if (BLK_IS_ATTN(bb)) continue;
-				else { CK(cuMemsetD8(dst_dn[d][bb], 0, dn_bytes[d][bb])); CK(cuMemsetD8(dst_conv[d][bb], 0, conv_bytes[d][bb])); }
+				state_diff_reset_capture_before(d, bb);
+				CK(cuMemsetD8(dst_dn[d][bb], 0, dn_bytes[d][bb]));
+				CK(cuMemsetD8(dst_conv[d][bb], 0, conv_bytes[d][bb]));
+				state_diff_reset_capture_after(d, bb);
 			}
 			CK(cuMemsetD8(dst_ple[d], 0, 4 * 10 * 10240));
+			if (reset_sync_enabled) {
+				CK(cuCtxSynchronize());
+				fprintf(stderr, "RESET_SYNC phase=after-state-reset request=%llu die=%d method=cuCtxSynchronize\n",
+				        (unsigned long long)trace_request, d);
+			}
 		}
 		CK(cuMemsetD32(dCTL[d] + 0x8, (unsigned)resume, 1)); CK(cuMemsetD32(dCTL[d] + 0x14, 0, 2));   /* token count, end flag, abort count */
 		CK(cuMemcpyHtoD(db[d].ids, h_ids, 4 * ((size_t)T + 2)));
@@ -739,13 +1131,13 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	 * serialized cold prompt I/O with all of the prompt's compute. */
 	ple_pump(&r, 1);
 	if (snap_at) {   /* run the prompt up to the snapshot position, copy the states, go on */
-		run_prefill_prefix(&r, P, prefix, pair, snap_at);
+		run_prefill_prefix(&r, P, prefix, pair, run_prefill_chunk, snap_at);
 		if (!r.aborted && r.count == snap_at) {
 			state_copy(1);
 			memcpy(snap_ids, ids, 4 * (size_t)snap_at); snap_s = snap_at;
 		}
 	}
-	if ((pair || prefix) && !r.aborted) run_prefill_prefix(&r, P, prefix, pair, nprompt - 1);
+	if ((pair || prefix) && !r.aborted) run_prefill_prefix(&r, P, prefix, pair, run_prefill_chunk, nprompt - 1);
 	if (!r.aborted) { upload_programs(P, nph, 1); run_segment(&r, nph, T); }
 	double t2 = now();
 	trace_completed = (unsigned)r.count; trace_aborted = r.aborted != 0; trace_ended = r.ended != 0;
@@ -857,6 +1249,27 @@ int engine_init(core_t *c) {
 	if (trace_n > 256) { fprintf(stderr, "FLASH_TRACE must be 0..256\n"); return -1; }
 	if (c->abi != CORE_ABI) { fprintf(stderr, "engine: the core speaks ABI %d, this library was built for %d\n", c->abi, CORE_ABI); return -1; }
 	core = c; in_init = 1;
+	free(state_diff_ref_dn46); state_diff_ref_dn46 = NULL;
+	free(state_diff_ref_conv46); state_diff_ref_conv46 = NULL;
+	free(state_diff_ref_b_dn46); state_diff_ref_b_dn46 = NULL;
+	free(state_diff_ref_b_conv46); state_diff_ref_b_conv46 = NULL;
+	free(state_diff_prev_dn46); state_diff_prev_dn46 = NULL;
+	free(state_diff_prev_conv46); state_diff_prev_conv46 = NULL;
+	state_diff_reset_records_free();
+	state_diff_dn46_bytes = state_diff_conv46_bytes = 0;
+	state_diff_hash_calls = 0; state_diff_previous_name[0] = '\0';
+	const char *state_diff_env = getenv("FLASH_STATE_DIFF");
+	if (state_diff_env && strcmp(state_diff_env, "0") && strcmp(state_diff_env, "1")) {
+		fprintf(stderr, "FLASH_STATE_DIFF must be 0 or 1\n");
+		in_init = 0; return -1;
+	}
+	state_diff_enabled = state_diff_env && !strcmp(state_diff_env, "1");
+	const char *reset_sync_env = getenv("FLASH_RESET_SYNC");
+	if (reset_sync_env && strcmp(reset_sync_env, "0") && strcmp(reset_sync_env, "1")) {
+		fprintf(stderr, "FLASH_RESET_SYNC must be 0 or 1\n");
+		in_init = 0; return -1;
+	}
+	reset_sync_enabled = reset_sync_env && !strcmp(reset_sync_env, "1");
 	if (setjmp(init_jb)) { in_init = 0; engine_fini(); return -1; }
 	MAXT = c->maxt;
 	last_positions = last_paired_positions = last_prefill_chunks = 0;
@@ -867,7 +1280,9 @@ int engine_init(core_t *c) {
 	}
 	kv_trace = trace_env && !strcmp(trace_env, "1");
 	kv_trace_start = kv_trace_complete = 0;
-	if (prefill_parse_chunk(getenv("FLASH_PREFILL_CHUNK"), &prefill_chunk)) {
+	const char *prefill_env = getenv("FLASH_PREFILL_CHUNK");
+	prefill_auto = prefill_env == NULL;
+	if (prefill_parse_chunk(prefill_env, &prefill_chunk)) {
 		fprintf(stderr, "engine: FLASH_PREFILL_CHUNK must be 0..%d\n", FLASH_PREFILL_CHUNK_MAX);
 		in_init = 0; return -1;
 	}
@@ -1078,14 +1493,38 @@ int engine_init(core_t *c) {
 	CK(cuCtxSetCurrent(ctx[0]));
 	CK(cuMemAllocHost((void **)&h_ids, 4 * ((size_t)MAXT + 2))); CK(cuMemAllocHost((void **)&h_toks, 4 * ((size_t)MAXT + 2))); CK(cuMemAllocHost((void **)&h_rnd, 4 * ((size_t)MAXT + 2)));
 	CK(cuMemAllocHost((void **)&h_tok, 64)); CK(cuMemHostAlloc((void **)&h_abort, 64, CU_MEMHOSTALLOC_PORTABLE));
+	const char *probe_option = getenv("FLASH_PHASE_PROBE");
+	if (probe_option && strcmp(probe_option, "0") && strcmp(probe_option, "1")) {
+		fprintf(stderr, "FLASH_PHASE_PROBE must be 0 or 1\n"); longjmp(init_jb, 1);
+	}
+	if (probe_option && !strcmp(probe_option, "1")) {
+		if (!getenv("GPUQ_JOB_ID")) { fprintf(stderr, "phase probe requires GPUQ\n"); longjmp(init_jb, 1); }
+		CK(phase_probe_create(ctx, (unsigned)nd));
+		for (int d = 0; d < nd; d++) {
+			CUdeviceptr pointer = phase_probe_pointer((unsigned)d);
+			CK(cuCtxSetCurrent(ctx[d]));
+			CK(cuMemcpyHtoD(dCTL[d] + PHASE_PROBE_CTL_OFFSET, &pointer, sizeof pointer));
+		}
+		CK(cuCtxSetCurrent(ctx[0]));
+	}
 	in_init = 0;
 	fprintf(stderr, "engine: %d dies, %d/%d blocks, up to %d positions, %.0f MB of buffers per die, ready in %.1f s\n", nd, nlayers_run, NB, MAXT, (double)alloc_bytes / nd / 1e6, now() - ts0);
 	return 0;
 }
 
 void engine_fini(void) {
+	phase_probe_destroy();
 	ple_read_pool_destroy(&ple_reads);
 	ple_cache_path[0]=0;ple_cache_active=0;
+	free(state_diff_ref_dn46); state_diff_ref_dn46 = NULL;
+	free(state_diff_ref_conv46); state_diff_ref_conv46 = NULL;
+	free(state_diff_ref_b_dn46); state_diff_ref_b_dn46 = NULL;
+	free(state_diff_ref_b_conv46); state_diff_ref_b_conv46 = NULL;
+	free(state_diff_prev_dn46); state_diff_prev_dn46 = NULL;
+	free(state_diff_prev_conv46); state_diff_prev_conv46 = NULL;
+	state_diff_reset_records_free();
+	state_diff_dn46_bytes = state_diff_conv46_bytes = 0;
+	state_diff_hash_calls = 0; state_diff_enabled = 0; reset_sync_enabled = 0; state_diff_previous_name[0] = '\0';
 	if (!core) return;
 	for (int d = 0; d < nd; d++) { if (pollst[d]) { cuCtxSetCurrent(ctx[d]); cuStreamDestroy(pollst[d]); pollst[d] = 0; } }
 	cuCtxSetCurrent(ctx[0]);
@@ -1110,7 +1549,7 @@ void engine_fini(void) {
 	free(h_imap); h_imap = NULL; imap_dirty = rope_dirty_T = 0;
 	memset(db, 0, sizeof db); memset(xc, 0, sizeof xc); memset(dPROG, 0, sizeof dPROG); memset(dCTL, 0, sizeof dCTL); memset(dst_ple, 0, sizeof dst_ple);
 	memset(dTRACE, 0, sizeof dTRACE); trace_n = trace_valid = 0;
-	memset(db_pair, 0, sizeof db_pair); memset(xc_pair, 0, sizeof xc_pair); two_position = prefill_chunk = 0;
+	memset(db_pair, 0, sizeof db_pair); memset(xc_pair, 0, sizeof xc_pair); two_position = prefill_chunk = prefill_auto = 0;
 	core = NULL;
 }
 
@@ -1225,8 +1664,8 @@ int engine_session(FILE *in, FILE *out) {
 		if (!strncmp(p, "config", 6)) {   /* what this engine is: the identity to attach to a measurement (the commit it was built from, where the KV lives, the layers it runs, the kernel image) */
 			char ad[64] = ""; for (int d = 0; d < nd; d++) if (has_attn[d]) { char one[8]; snprintf(one, sizeof one, "%s%d", ad[0] ? "," : "", d); strncat(ad, one, sizeof ad - strlen(ad) - 1); }
 			const char *sh = getenv("SPLIT_SHARES"), *am = getenv("ATTN_MAP");
-			fprintf(out, "config rev=%s kv_host=%d kv_trace=%d ple_disk=%d ple_readers=%u ple_file=%s ple_cache=%s maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u rope_owner=%d trace_tokens=%u two_position=%d bf16_pair_fuse=%d prefill_chunk=%d attn_q_split=%u attn_q_mask=%x cubin=%s cubin_fnv=%016llx\n",
-			        FLASH_REV, kv_host, kv_trace, ple_disk, ple_disk ? ple_readers : 0, ple_cache_active ? ple_cache_path : "core", ple_cache_path[0] ? ple_cache_path : "core", MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, rope_owner, trace_n, two_position, FLASH_BF16_PAIR_FUSE, prefill_chunk, attn_q_split_mode, attn_q_split_mask, cubin_path, (unsigned long long)cubin_fnv);
+			fprintf(out, "config rev=%s kv_host=%d kv_trace=%d ple_disk=%d ple_readers=%u ple_file=%s ple_cache=%s maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u rope_owner=%d trace_tokens=%u two_position=%d bf16_pair_fuse=%d reset_sync=%d prefill_chunk=%d prefill_auto=%d attn_q_split=%u attn_q_mask=%x cubin=%s cubin_fnv=%016llx phase_probe=%d\n",
+			        FLASH_REV, kv_host, kv_trace, ple_disk, ple_disk ? ple_readers : 0, ple_cache_active ? ple_cache_path : "core", ple_cache_path[0] ? ple_cache_path : "core", MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, rope_owner, trace_n, two_position, FLASH_BF16_PAIR_FUSE, reset_sync_enabled, prefill_chunk, prefill_auto, attn_q_split_mode, attn_q_split_mask, cubin_path, (unsigned long long)cubin_fnv, phase_probe_enabled());
 			fflush(out); continue;
 		}
 		if (!strncmp(p, "cubin", 5)) {

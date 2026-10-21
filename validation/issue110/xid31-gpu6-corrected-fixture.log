@@ -1,0 +1,12 @@
+source=Archy kernel journal (read-only), bounded to the corrected GPUQ fixture run
+gpuq_job=542de01c-c88e-451f-a95d-741d9f637aca
+source_commit=18bd65ec71f4c27f0f38fc41ce44385e7c105014
+fixture=phase-failure-gpu, CUDA_VISIBLE_DEVICES=6
+gpu6_uuid=GPU-431371bd-b482-96b2-4b70-04f83c6d075b
+nvml_pre_document=68226
+nvml_post_document=68293
+ecc_pre_post=volatile single-bit total 0; volatile double-bit total 0; aggregate single-bit total 0; aggregate double-bit total 0
+retired_pre_post=multiple-single-bit retirement 0; double-bit retirement 0; pending retirement No; pending blacklist No
+1792531631.164508 archy kernel: NVRM: Xid (PCI:0000:12:00): 31, pid=3867373, Ch 00000018, intr 10000000. MMU Fault: ENGINE GRAPHICS GPCCLIENT_T1_0 faulted @ 0x0_00000000. Fault is of type FAULT_PDE ACCESS_TYPE_READ
+interpretation=the deliberate fixture reads address zero on the selected GPU and returns CUDA error 700; the journal PID is not joined directly to the fixture child
+bounded_post_run_journal=no Xid 79 or fallen-off-bus line observed; GPU remained listed at NVML index 6, zero utilization, 7547 MiB free; no reset required

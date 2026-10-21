@@ -1,0 +1,7 @@
+source=archy kernel journal (read-only)
+query=journalctl -k --since="@1792522001" --until="@1792522483" --no-pager -o short-unix
+window=the bounded interval requested for GPUQ epoch fe513
+matched_lines=1
+1792522477.212058 archy kernel: NVRM: Xid (PCI:0000:0b:00): 31, pid=3003319, Ch 00000028, intr 10000000. MMU Fault: ENGINE GRAPHICS GPCCLIENT_T1_5 faulted @ 0xf_bb9ce000. Fault is of type FAULT_PDE ACCESS_TYPE_READ
+
+Interpretation boundary: this records an Xid 31 GPU MMU PDE read fault on BDF 0000:0b:00 for PID 3003319 during the interval. It does not identify a source instruction or establish the underlying code cause.

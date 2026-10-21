@@ -1,0 +1,13 @@
+{
+  "schema": "flash.issue16.historical-matrix-archive.v1",
+  "archive": "historical-matrix-20261017.tar.gz",
+  "archive_bytes": 126675,
+  "archive_sha256": "b003f3f905f19b4c255921e2b616cc5314a59d61451ce03e35445837a7fc415c",
+  "entry_count": 346,
+  "preserved_paths": ["matrix/", "perl-matrix/"],
+  "source_commit": "7c6f34d4372567fd97f1cef9b609d3dc0c81b0d3",
+  "qsa_gather_bench_sha256": "126ba2ed56f7623a0ee1eeb5f658d719e057ef3c3f54eb1d5d2746f8776523b8",
+  "die_cubin_sha256": "0fa2a17fa41c07aac507f9bc218a777601719a8e2b6eb8b40ec93867d4768027",
+  "status": "historical-only; these measurements predate the issue-16 branch head",
+  "purpose": "retain both prior raw matrix runs while keeping the current PR diff below GitHub's 300-file diff limit"
+}
