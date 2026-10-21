@@ -1,0 +1,214 @@
+ready
+config rev=4429cbd0e40c9338cb9e5cf809afd52cb71e0a5e kv_host=0 ple_disk=1 maxt=128 layers=8/48 nblk=512 dies=1 attn_dies=0 split=1 attn_map=0,0,0,0,0,0,0,0,0,0,0,0 img_rows=0 two_position=1 prefill_chunk=3 cubin=die.cubin cubin_fnv=669dbb2e43186b1a
+tokens: 220 226355 102345 58460 4508 19483 145502 97421 123350
+time: 111.9 ms for 9 positions run (0 from the snapshot; 12.43 ms per position run; first token 111.9 ms; 256 phases; programs 0 ms; 8 paired positions; 0 prefill chunks)
+statehash positions=9 paired_positions=8 prefill_chunks=0
+statehash die=0 layer=0 state=f46f32681279a381
+statehash die=0 layer=1 state=a071be549fc37d87
+statehash die=0 layer=2 state=f7b47c6e1b6af405
+statehash die=0 layer=3 state=83f9c11fa303820c
+statehash die=0 layer=4 state=3d3647463516d010
+statehash die=0 layer=5 state=53ddc0fce6877742
+statehash die=0 layer=6 state=d37245a172e8f121
+statehash die=0 layer=7 state=53e8fc0d7811c950
+statehash die=0 ple=c34302f227f73e6e logits=0788d74b417df48e
+statehash done
+tokens: 104357 226080 1862 47432 154293 106830 96029 9594 24465
+time: 111.8 ms for 9 positions run (0 from the snapshot; 12.42 ms per position run; first token 111.8 ms; 256 phases; programs 0 ms; 8 paired positions; 0 prefill chunks)
+statehash positions=9 paired_positions=8 prefill_chunks=0
+statehash die=0 layer=0 state=75c2768b6681b0e9
+statehash die=0 layer=1 state=0e9f68a4debbd701
+statehash die=0 layer=2 state=b6f9d2aabc84578a
+statehash die=0 layer=3 state=fdde0acf4a6796cd
+statehash die=0 layer=4 state=238620fe82650ef8
+statehash die=0 layer=5 state=2f2f81a528629be7
+statehash die=0 layer=6 state=6677ffb49ea043e2
+statehash die=0 layer=7 state=9ccd97ab6ba82041
+statehash die=0 ple=193faffafe4ebe6d logits=ee86e748c8a64b0d
+statehash done
+ok: snap 1
+tokens: 220 226355 102345 58460 4508 19483 145502 97421 123350
+time: 115.7 ms for 9 positions run (0 from the snapshot; 12.86 ms per position run; first token 115.7 ms; 256 phases; programs 0 ms; 6 paired positions; 0 prefill chunks)
+statehash positions=9 paired_positions=6 prefill_chunks=0
+statehash die=0 layer=0 state=f46f32681279a381
+statehash die=0 layer=1 state=a071be549fc37d87
+statehash die=0 layer=2 state=f7b47c6e1b6af405
+statehash die=0 layer=3 state=83f9c11fa303820c
+statehash die=0 layer=4 state=3d3647463516d010
+statehash die=0 layer=5 state=53ddc0fce6877742
+statehash die=0 layer=6 state=d37245a172e8f121
+statehash die=0 layer=7 state=53e8fc0d7811c950
+statehash die=0 ple=c34302f227f73e6e logits=0788d74b417df48e
+statehash done
+tokens: 0 226355 102345 58460 4508 19483 145502 97421 123350
+time: 101.8 ms for 8 positions run (1 from the snapshot; 12.73 ms per position run; first token 101.8 ms; 256 phases; programs 0 ms; 6 paired positions; 0 prefill chunks)
+statehash positions=9 paired_positions=6 prefill_chunks=0
+statehash die=0 layer=0 state=f46f32681279a381
+statehash die=0 layer=1 state=a071be549fc37d87
+statehash die=0 layer=2 state=f7b47c6e1b6af405
+statehash die=0 layer=3 state=83f9c11fa303820c
+statehash die=0 layer=4 state=3d3647463516d010
+statehash die=0 layer=5 state=53ddc0fce6877742
+statehash die=0 layer=6 state=d37245a172e8f121
+statehash die=0 layer=7 state=53e8fc0d7811c950
+statehash die=0 ple=c34302f227f73e6e logits=0788d74b417df48e
+statehash done
+tokens: 104357 226080 1862 47432 154293 106830 96029 9594 24465
+time: 111.8 ms for 9 positions run (0 from the snapshot; 12.42 ms per position run; first token 111.8 ms; 256 phases; programs 0 ms; 8 paired positions; 0 prefill chunks)
+statehash positions=9 paired_positions=8 prefill_chunks=0
+statehash die=0 layer=0 state=75c2768b6681b0e9
+statehash die=0 layer=1 state=0e9f68a4debbd701
+statehash die=0 layer=2 state=b6f9d2aabc84578a
+statehash die=0 layer=3 state=fdde0acf4a6796cd
+statehash die=0 layer=4 state=238620fe82650ef8
+statehash die=0 layer=5 state=2f2f81a528629be7
+statehash die=0 layer=6 state=6677ffb49ea043e2
+statehash die=0 layer=7 state=9ccd97ab6ba82041
+statehash die=0 ple=193faffafe4ebe6d logits=ee86e748c8a64b0d
+statehash done
+ok: snap 2
+tokens: 220 226355 102345 58460 4508 19483 145502 97421 123350
+time: 113.5 ms for 9 positions run (0 from the snapshot; 12.61 ms per position run; first token 113.5 ms; 256 phases; programs 0 ms; 8 paired positions; 0 prefill chunks)
+statehash positions=9 paired_positions=8 prefill_chunks=0
+statehash die=0 layer=0 state=f46f32681279a381
+statehash die=0 layer=1 state=a071be549fc37d87
+statehash die=0 layer=2 state=f7b47c6e1b6af405
+statehash die=0 layer=3 state=83f9c11fa303820c
+statehash die=0 layer=4 state=3d3647463516d010
+statehash die=0 layer=5 state=53ddc0fce6877742
+statehash die=0 layer=6 state=d37245a172e8f121
+statehash die=0 layer=7 state=53e8fc0d7811c950
+statehash die=0 ple=c34302f227f73e6e logits=0788d74b417df48e
+statehash done
+tokens: 0 0 102345 58460 4508 19483 145502 97421 123350
+time: 88.4 ms for 7 positions run (2 from the snapshot; 12.62 ms per position run; first token 88.4 ms; 256 phases; programs 1 ms; 6 paired positions; 0 prefill chunks)
+statehash positions=9 paired_positions=6 prefill_chunks=0
+statehash die=0 layer=0 state=f46f32681279a381
+statehash die=0 layer=1 state=a071be549fc37d87
+statehash die=0 layer=2 state=f7b47c6e1b6af405
+statehash die=0 layer=3 state=83f9c11fa303820c
+statehash die=0 layer=4 state=3d3647463516d010
+statehash die=0 layer=5 state=53ddc0fce6877742
+statehash die=0 layer=6 state=d37245a172e8f121
+statehash die=0 layer=7 state=53e8fc0d7811c950
+statehash die=0 ple=c34302f227f73e6e logits=0788d74b417df48e
+statehash done
+tokens: 104357 226080 1862 47432 154293 106830 96029 9594 24465
+time: 111.7 ms for 9 positions run (0 from the snapshot; 12.42 ms per position run; first token 111.7 ms; 256 phases; programs 0 ms; 8 paired positions; 0 prefill chunks)
+statehash positions=9 paired_positions=8 prefill_chunks=0
+statehash die=0 layer=0 state=75c2768b6681b0e9
+statehash die=0 layer=1 state=0e9f68a4debbd701
+statehash die=0 layer=2 state=b6f9d2aabc84578a
+statehash die=0 layer=3 state=fdde0acf4a6796cd
+statehash die=0 layer=4 state=238620fe82650ef8
+statehash die=0 layer=5 state=2f2f81a528629be7
+statehash die=0 layer=6 state=6677ffb49ea043e2
+statehash die=0 layer=7 state=9ccd97ab6ba82041
+statehash die=0 ple=193faffafe4ebe6d logits=ee86e748c8a64b0d
+statehash done
+ok: snap 3
+tokens: 220 226355 102345 58460 4508 19483 145502 97421 123350
+time: 115.8 ms for 9 positions run (0 from the snapshot; 12.87 ms per position run; first token 115.8 ms; 256 phases; programs 0 ms; 6 paired positions; 0 prefill chunks)
+statehash positions=9 paired_positions=6 prefill_chunks=0
+statehash die=0 layer=0 state=f46f32681279a381
+statehash die=0 layer=1 state=a071be549fc37d87
+statehash die=0 layer=2 state=f7b47c6e1b6af405
+statehash die=0 layer=3 state=83f9c11fa303820c
+statehash die=0 layer=4 state=3d3647463516d010
+statehash die=0 layer=5 state=53ddc0fce6877742
+statehash die=0 layer=6 state=d37245a172e8f121
+statehash die=0 layer=7 state=53e8fc0d7811c950
+statehash die=0 ple=c34302f227f73e6e logits=0788d74b417df48e
+statehash done
+tokens: 0 0 0 58460 4508 19483 145502 97421 123350
+time: 77.1 ms for 6 positions run (3 from the snapshot; 12.85 ms per position run; first token 77.1 ms; 256 phases; programs 0 ms; 4 paired positions; 0 prefill chunks)
+statehash positions=9 paired_positions=4 prefill_chunks=0
+statehash die=0 layer=0 state=f46f32681279a381
+statehash die=0 layer=1 state=a071be549fc37d87
+statehash die=0 layer=2 state=f7b47c6e1b6af405
+statehash die=0 layer=3 state=83f9c11fa303820c
+statehash die=0 layer=4 state=3d3647463516d010
+statehash die=0 layer=5 state=53ddc0fce6877742
+statehash die=0 layer=6 state=d37245a172e8f121
+statehash die=0 layer=7 state=53e8fc0d7811c950
+statehash die=0 ple=c34302f227f73e6e logits=0788d74b417df48e
+statehash done
+tokens: 104357 226080 1862 47432 154293 106830 96029 9594 24465
+time: 111.8 ms for 9 positions run (0 from the snapshot; 12.42 ms per position run; first token 111.7 ms; 256 phases; programs 0 ms; 8 paired positions; 0 prefill chunks)
+statehash positions=9 paired_positions=8 prefill_chunks=0
+statehash die=0 layer=0 state=75c2768b6681b0e9
+statehash die=0 layer=1 state=0e9f68a4debbd701
+statehash die=0 layer=2 state=b6f9d2aabc84578a
+statehash die=0 layer=3 state=fdde0acf4a6796cd
+statehash die=0 layer=4 state=238620fe82650ef8
+statehash die=0 layer=5 state=2f2f81a528629be7
+statehash die=0 layer=6 state=6677ffb49ea043e2
+statehash die=0 layer=7 state=9ccd97ab6ba82041
+statehash die=0 ple=193faffafe4ebe6d logits=ee86e748c8a64b0d
+statehash done
+ok: snap 5
+tokens: 220 226355 102345 58460 4508 19483 145502 97421 123350
+time: 115.4 ms for 9 positions run (0 from the snapshot; 12.82 ms per position run; first token 115.4 ms; 256 phases; programs 0 ms; 6 paired positions; 0 prefill chunks)
+statehash positions=9 paired_positions=6 prefill_chunks=0
+statehash die=0 layer=0 state=f46f32681279a381
+statehash die=0 layer=1 state=a071be549fc37d87
+statehash die=0 layer=2 state=f7b47c6e1b6af405
+statehash die=0 layer=3 state=83f9c11fa303820c
+statehash die=0 layer=4 state=3d3647463516d010
+statehash die=0 layer=5 state=53ddc0fce6877742
+statehash die=0 layer=6 state=d37245a172e8f121
+statehash die=0 layer=7 state=53e8fc0d7811c950
+statehash die=0 ple=c34302f227f73e6e logits=0788d74b417df48e
+statehash done
+tokens: 0 0 0 0 0 19483 145502 97421 123350
+time: 52.4 ms for 4 positions run (5 from the snapshot; 13.09 ms per position run; first token 52.4 ms; 256 phases; programs 0 ms; 2 paired positions; 0 prefill chunks)
+statehash positions=9 paired_positions=2 prefill_chunks=0
+statehash die=0 layer=0 state=f46f32681279a381
+statehash die=0 layer=1 state=a071be549fc37d87
+statehash die=0 layer=2 state=f7b47c6e1b6af405
+statehash die=0 layer=3 state=83f9c11fa303820c
+statehash die=0 layer=4 state=3d3647463516d010
+statehash die=0 layer=5 state=53ddc0fce6877742
+statehash die=0 layer=6 state=d37245a172e8f121
+statehash die=0 layer=7 state=53e8fc0d7811c950
+statehash die=0 ple=c34302f227f73e6e logits=0788d74b417df48e
+statehash done
+tokens: 104357 226080 1862 47432 154293 106830 96029 9594 24465
+time: 111.6 ms for 9 positions run (0 from the snapshot; 12.40 ms per position run; first token 111.6 ms; 256 phases; programs 0 ms; 8 paired positions; 0 prefill chunks)
+statehash positions=9 paired_positions=8 prefill_chunks=0
+statehash die=0 layer=0 state=75c2768b6681b0e9
+statehash die=0 layer=1 state=0e9f68a4debbd701
+statehash die=0 layer=2 state=b6f9d2aabc84578a
+statehash die=0 layer=3 state=fdde0acf4a6796cd
+statehash die=0 layer=4 state=238620fe82650ef8
+statehash die=0 layer=5 state=2f2f81a528629be7
+statehash die=0 layer=6 state=6677ffb49ea043e2
+statehash die=0 layer=7 state=9ccd97ab6ba82041
+statehash die=0 ple=193faffafe4ebe6d logits=ee86e748c8a64b0d
+statehash done
+tokens: 220 226355 102345 58460 4508 19483 145502 97421 123350
+time: 111.8 ms for 9 positions run (0 from the snapshot; 12.42 ms per position run; first token 111.8 ms; 256 phases; programs 0 ms; 8 paired positions; 0 prefill chunks)
+statehash positions=9 paired_positions=8 prefill_chunks=0
+statehash die=0 layer=0 state=f46f32681279a381
+statehash die=0 layer=1 state=a071be549fc37d87
+statehash die=0 layer=2 state=f7b47c6e1b6af405
+statehash die=0 layer=3 state=83f9c11fa303820c
+statehash die=0 layer=4 state=3d3647463516d010
+statehash die=0 layer=5 state=53ddc0fce6877742
+statehash die=0 layer=6 state=d37245a172e8f121
+statehash die=0 layer=7 state=53e8fc0d7811c950
+statehash die=0 ple=c34302f227f73e6e logits=0788d74b417df48e
+statehash done
+tokens: 123350 48419
+time: 97.0 ms for 10 positions run (0 from the snapshot; 9.70 ms per position run; first token 83.8 ms; 256 phases; programs 0 ms; 6 paired positions; 3 prefill chunks)
+statehash positions=10 paired_positions=6 prefill_chunks=3
+statehash die=0 layer=0 state=729e8f3a8df7a20e
+statehash die=0 layer=1 state=adb55f1b4e6da87c
+statehash die=0 layer=2 state=70b175ec310639c1
+statehash die=0 layer=3 state=c8c7871f900f7d5a
+statehash die=0 layer=4 state=5e2d5dde45df3544
+statehash die=0 layer=5 state=473e69db8dc2e8a0
+statehash die=0 layer=6 state=009cc5915228d928
+statehash die=0 layer=7 state=62c58ee81be7f81c
+statehash die=0 ple=9b45367a86d18a91 logits=a3ffe491154e8cd9
+statehash done

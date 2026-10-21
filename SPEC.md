@@ -1841,3 +1841,77 @@ So expect 1.3x to 1.5x, 44 to 52 tok/s: worth it, not a doubling. p is unknown; 
 - **M3, tune.** Overlap the draft with the next pass, drop phases, rebalance (the main split is unchanged: the MTP block lives on die 6 and costs the main dies no memory).
 
 **Risks.** The second position makes `attnpartn` and the indexer chain run for two positions (about 0.25 ms per layer each at depth, SPEC); acceptance is unknown until M0 and lower at temperature 1; the MoE union of two tokens' experts is up to 20 reads per layer instead of 10 (the weights streaming share, 4.5 ms of the 28.9 ms, grows toward 9 ms in the worst case, which is included in the 3.5 ms est. only on average).
+
+## Six-die balance experiment (#54)
+
+The production placement remains `SPLIT_SHARES=112,97,81,116,97,97` and
+`ATTN_MAP=1,1,1,1,4,4,4,4,5,5,5,5`. The historical profile attached to
+[#54](https://github.com/nm-z/flash-sass/issues/54), from revision `52d268d`,
+reported the following `actq256` totals for the last token of a short greedy reply.
+These are the issue's prior measurements, not a new validation run:
+
+| Die | 0 | 1 | 2 | 3 | 4 | 5 |
+|---|---:|---:|---:|---:|---:|---:|
+| `actq256` time, ms | 4.98 | 3.63 | 5.81 | 4.84 | 3.57 | 3.51 |
+
+Their spread is 2.30 ms. The required limit is 0.50 ms, together with at least
+35.9 decode tokens/s on the `linkmatrix_test.sh` request protocol and unchanged
+output token IDs. No replacement split has yet been selected or validated here.
+
+`kern/die_balance_capture.rb` captures one loaded placement under the shared
+`/tmp/flash-sass-engine-validation.lock`: one warm-up and at least three measured
+HTTP requests, exact prompt/output token IDs, runtime identity, and all six raw
+profiles for each response. `kern/die_balance.rb` compares compatible captures
+and ranks accepted candidates by the busiest die's profiled token time. It does
+not add parallel die durations or declare an unmeasured candidate successful.
+
+The [experiment procedure](docs/die-balance.md) records the fixed request, capture
+and comparison commands, expert boundaries, memory checks, and the evidence to
+retain before replacing this section with a measured decision. A split change
+requires compatible weight holders; the resident weights cannot be moved by an
+engine-library reload. The current PR supplies the measurement path and the baseline below; #54
+remains unresolved until an actual candidate passes all three acceptance gates.
+
+### Resident baseline captured 2026-10-18
+
+A capture beginning at **05:32:00 UTC** acquired the shared validation lock and
+ran one warmup plus three measured requests on archy. The collector used the
+resident engine and an owned copy of the resident HTTP frontend. No holder,
+engine placement, or PCIe setting was changed. The complete token IDs, raw
+profiles, protocol transcript, source identities, and telemetry are retained in
+[the baseline evidence](validation/issue54/baseline-20261018T053200Z/README.md).
+
+The loaded placement is still `SPLIT_SHARES=112,97,81,116,97,97` and
+`ATTN_MAP=1,1,1,1,4,4,4,4,5,5,5,5`. Runtime `config` reports `rev=edc66d9`,
+`kv_host=0`, `ple_disk=1`, `maxt=230000`, `layers=48/48`, `nblk=512`,
+`img_rows=4096`, `two_position=0`, and `prefill_chunk=0`. The kernel identity is
+`cubin_fnv=669dbb2e43186b1a`. The mapped engine generation's SHA-256 is
+`e0ce409d7f23f8ee924cf312c77eac4fbce89bfca6d180c6328f55b12e771eb2`.
+Root ports remained at `00:01.0 8GT/s x8`, `00:02.0 8GT/s x16`, and
+`00:03.0 5GT/s x16`. These conditions must be matched for a placement comparison.
+
+Measured `actq256` totals for each response's last token, in milliseconds:
+
+| Run | Die 0 | Die 1 | Die 2 | Die 3 | Die 4 | Die 5 | Spread | Decode tok/s |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 5.0975 | 3.7478 | 5.8358 | 4.9807 | 3.6280 | 3.6506 | 2.2078 | 35.77 |
+| 2 | 5.0606 | 3.7458 | 5.8880 | 4.9715 | 3.5953 | 3.6280 | 2.2927 | 35.77 |
+| 3 | 5.0698 | 3.7089 | 5.8880 | 4.9531 | 3.6076 | 3.6004 | 2.2876 | 35.79 |
+
+Each run has phase counts `1154,1214,1154,1154,1214,1214` across dies 0–5,
+including 146 `actq256` phases per die. Every die's total profile span is
+28.10 ms in run 1, 28.09 ms in run 2, and 28.08 ms in run 3; the measured
+busiest-die objective is therefore **28.10 ms**. The one excluded warmup is
+retained in the capture (11.72 tok/s and a 135.94 ms final-token span).
+
+All four requests have the same 64 input IDs and 38 output IDs, including the
+reasoning and stop tokens; the rendered answer is `Paris`. This establishes
+repeatability within the baseline. Baseline/candidate token equality has not
+yet been tested.
+
+The baseline's **2.2927 ms** worst spread exceeds 0.50 ms, and its arithmetic
+mean **35.7767 tok/s** is below 35.9. The analyzer reports `PENDING` because no
+candidate is supplied. A replacement placement remains unmeasured: loading
+compatible holders requires changing the resident layout, which the user's
+standing instruction prohibits. No winning split or acceptance result is
+claimed by this baseline.

@@ -1,0 +1,62 @@
+ok 1 - idle inventory accepted
+ok 2 - failed smi query rejects
+ok 3 - failed ps query rejects
+ok 4 - malformed smi query rejects
+ok 5 - resident hold process blocks
+ok 6 - runner harness argument does not block itself
+ok 7 - busy host waits then releases
+ok 8 - busy host ends BLOCKED_BUSY
+ok 9 - explicit idle off-device residents accepted
+ok 10 - default policy still blocks resident contexts
+ok 11 - target compute context still blocks
+ok 12 - unrecognized off-device compute worker blocks
+ok 13 - off-device compute activity blocks
+ok 14 - off-device memory activity blocks
+ok 15 - queue running blocks
+ok 16 - queue waiting blocks
+ok 17 - failed queue query rejects
+ok 18 - failed all_gpu_load query rejects
+ok 19 - malformed queue rejects
+ok 20 - fractional queue count rejects
+ok 21 - unknown utilization rejects
+ok 22 - missing target utilization rejects
+ok 23 - duplicate utilization rejects
+ok 24 - unknown compute-app GPU rejects
+ok 25 - resident identity mismatch rejects
+ok 26 - resident disappearing from ps rejects
+ok 27 - different daemon queue still blocks
+ok 28 - worker without context still blocks
+ok 29 - CPU-configured llama accepted: --n-gpu-layers 0
+ok 30 - CPU-configured llama accepted: -ngl 0
+ok 31 - CPU-configured llama accepted: --gpu-layers=0
+ok 32 - ambiguous/GPU llama still blocks: --n-gpu-layers 1
+ok 33 - ambiguous/GPU llama still blocks: --n-gpu-layers 0 -ngl 5
+ok 34 - ambiguous/GPU llama still blocks: --n-gpu-layers auto
+ok 35 - ambiguous/GPU llama still blocks: --model weights
+ok 36 - CPU flag cannot hide a reported GPU context
+ok 37 - strict policy still blocks CPU-configured llama
+ok 38 - initial target utilization still blocks
+ok 39 - owned target utilization settles without false rejection
+ok 40 - target utilization settling is bounded
+ok 41 - target context still rejects during settling
+ok 42 - off-device activity still rejects during settling
+ok 43 - new request rejects while target settles
+ok 44 - failed settling query fails closed
+ok 45 - queued lock times out without stealing
+ok 46 - queued lock acquires after release
+ok 47 - inherited reservation is shared without nested locking
+ok 48 - different inherited file rejects
+ok 49 - unlocked inherited descriptor rejects
+ok 50 - independent descriptor cannot impersonate caller lock
+ok 51 - eager CPU-only preflight accepted
+ok 52 - driver ABI loader failure rejects before lock
+ok 53 - invalid eager preflight JSON rejects
+ok 54 - non-CPU-only preflight rejects
+ok 55 - untraced complete result accepted
+ok 56 - missing canaries rejects
+ok 57 - missing requested trace rejects
+ok 58 - unexpected traced timing rejects
+ok 59 - verified traced result accepted
+ok 60 - child stdout and failure retained
+ok 61 - only own child is timed out
+{"gpu_executed":false,"status":"PASS","tests":61}
