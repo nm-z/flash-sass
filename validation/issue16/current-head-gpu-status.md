@@ -1,12 +1,14 @@
 # Current-head GPU verification status
 
-Implementation source revision: `a62303283f993acb8a13188941b00f5bc9ef340b`; Makefile driver-API fix commit: `461c119a954667e6ad2097d9a47afa45e55e0fce`.
+Implementation source revision: `a62303283f993acb8a13188941b00f5bc9ef340b`; Makefile driver-API fix commit: `461c119a954667e6ad2097d9a47afa45e55e0fce`. PR branch now merges master `98c176a80e82cd31736ed3165a134cfbbae45338` at `64cf729d87e6d51718f32b05b0b6d52842dacdd2`.
 
 The current-head C/CUDA build completed through DSH on Benji. The original binary was built with CUDA 13.4 headers and ptxas 11.4; an M60 smoke attempt failed before a kernel launch because driver 470.256 does not export `cuEventElapsedTime_v2`. The error is in GPUQ job `77b3da64-aec0-4573-8de4-f6f83c6d839c`, document 76441.
 
-The QSA Makefile targets now use CUDA 11.4 driver headers and link stubs. Rebuilding through plain DSH routing succeeded on azb1 with staged CUDA 11.4.148 `cuda.h` and the matching stub. `nm -D` confirms both rebuilt binaries import legacy `cuEventElapsedTime`; hashes are in `current-head-build.json`.
+The QSA Makefile targets now use CUDA 11.4 driver headers and link stubs. Rebuilding through plain DSH routing succeeded on Benji at the merged head with staged CUDA 11.4.148 `cuda.h`, the matching stub, ptxas 11.4.152, and patched MaxAs. `nm -D` confirms both rebuilt binaries import legacy `cuEventElapsedTime`; hashes, input identities, and the raw DSH log are in [current-head-build-64cf.json](current-head-build-64cf.json) and [build-current-head-64cf.log](build-current-head-64cf.log). The earlier compatibility rebuild record is retained in `current-head-build.json`.
 
-The old queued smoke request has completed with `/dev/null: File exists` before CUDA initialization. The corrected one-launch smoke is now queued as `94cf312f-88b8-4577-b579-a52ad34a878f`, behind earlier GPUQ jobs. The updated binaries are staged under `/dev/shm/fs16-a623032/kern`. No matrix, capture, or counter profile has run yet.
+The old queued smoke request has completed with `/dev/null: File exists` before CUDA initialization. The corrected pre-merge smoke `94cf312f-88b8-4577-b579-a52ad34a878f` later succeeded with exit 0 using the ABI-correct binary from `461c119`; it does not by itself verify merged source revision `64cf729`.
+
+A one-launch merged-head smoke ran through GPUQ as `33205075-1c6b-46e1-a995-100540f50727` and succeeded with exit 0. Its raw JSON output is in [current-head-smoke-64cf.json](current-head-smoke-64cf.json); it reports source revision `64cf729`, strict VRAM placement, `preflight_verified_all: true`, and 41.024 microseconds for the one measured launch. The CSV output is not retained; the GPUQ stdout JSON contains the complete one-launch summary. The remaining matrix, captured-selection pair, and counter profiles have not run. After this smoke finished, `gpuq ls` showed `FS22-attn-smoke-r3` running, so I am waiting again before submitting another GPU job.
 
 The GPUQ inventory found an idle Tesla M60 (`GPU-431371bd-b482-96b2-4b70-04f83c6d075b`, driver `470.256.02`, 7,547 MiB free at the inventory sample). A short GPUQ negative test confirmed `QSA_HOSTKV=2` is rejected with status 2 and the expected message.
 
