@@ -28,7 +28,8 @@
 #define INDEX_DIM 128u
 #define INDEX_HEADS 4u
 #define INDEX_ROWS 640u
-#define MAX_POSITIONS 256u
+#define MAX_POSITIONS 4096u
+#define MAX_QKV_POSITIONS 256u
 #define CHECKPOINT_REV "de4b8e4d43b917e7706784d8bb445c9af86a3540"
 
 typedef struct {
@@ -227,9 +228,8 @@ static void write_json(const char *directory, const char *sha256, unsigned posit
 
 static void write_indexer_capture(const char *output_directory,
                                   const unsigned char *data,const float *hidden,
-                                  unsigned positions,const char *sha256)
+                                  unsigned positions,unsigned budget,const char *sha256)
 {
-    const unsigned budget=1;
     const unsigned blocks=positions/4;
     const unsigned selected=blocks<budget?blocks:budget;
     size_t projected_count=(size_t)positions*INDEX_ROWS;
@@ -297,12 +297,13 @@ static void write_indexer_capture(const char *output_directory,
     if(fd<0) fail("cannot create indexer completion metadata");
     FILE *f=fdopen(fd,"w");
     if(!f) fail("cannot open indexer completion stream");
-    if(fprintf(f,"{\"schema\":\"flash-sass.qsa-layer-capture.v1\","
+    if(fprintf(f,"{\"schema\":\"flash-sass.qsa-layer-capture.v1\",\"complete\":true,"
         "\"positions\":%u,\"budget\":%u,\"epsilon\":1e-6,\"byte_order\":\"little\","
         "\"teacher_forced\":false,\"layer\":3,\"die\":0,\"FLASH_KV_HOST\":0,"
         "\"pool_dtype\":\"fp16\",\"rope_base\":10000000,\"snapshot_lengths\":[%u],"
         "\"evidence_kind\":\"synthetic_cpu_fixture\",\"weights_origin\":\"original_checkpoint_safetensors_layer3\","
         "\"weights_revision\":\"%s\",\"weights_file_sha256\":\"%s\","
+        "\"hidden_input_generator\":\"fixed_lcg_fp32_v1\",\"hidden_input_seed\":4242,"
         "\"indexer_projection\":\"original_bf16_index_qk_proj\",\"selection_source\":\"reference_qsa_c\","
         "\"production_gpu_indexer_executed\":false,\"full_model\":false}\n",
         positions,budget,positions,CHECKPOINT_REV,sha256)<0) fail("indexer completion write failed");
@@ -329,11 +330,15 @@ static void write_indexer_capture(const char *output_directory,
 
 int main(int argc, char **argv)
 {
-    if (argc != 5) {
-        fprintf(stderr, "usage: %s SAFETENSORS SHA256 POSITIONS NEW_DIRECTORY\n", argv[0]);
+    int indexer_only = argc == 7 && !strcmp(argv[5], "--indexer-only");
+    if ((!indexer_only && argc != 5) || (indexer_only && argc != 7)) {
+        fprintf(stderr, "usage: %s SAFETENSORS SHA256 POSITIONS NEW_DIRECTORY [--indexer-only BUDGET]\n", argv[0]);
         return 2;
     }
     unsigned positions = parse_unsigned(argv[3], 1, MAX_POSITIONS);
+    unsigned indexer_budget = indexer_only ? parse_unsigned(argv[6], 1, 512) : 1;
+    if (!indexer_only && positions > MAX_QKV_POSITIONS)
+        fail("QKV projection mode is limited to 256 positions");
     const char *sha256 = argv[2];
     if (strlen(sha256) != 64) fail("weights SHA-256 must have 64 hexadecimal digits");
     for (size_t i = 0; i < 64; ++i)
@@ -383,14 +388,26 @@ int main(int argc, char **argv)
     char *output_directory = argv[4];
     if (mkdir(output_directory, 0700)) fail("output directory must be new");
     size_t hidden_count = (size_t)positions * HIDDEN;
-    size_t kv_count = (size_t)positions * KV_ROWS;
     float *hidden = malloc(hidden_count * sizeof *hidden);
+    if (!hidden) fail("hidden input allocation failed");
+    uint32_t random_state = 4242u;
+    for (size_t i = 0; i < hidden_count; ++i) hidden[i] = hidden_value(&random_state);
+    if (indexer_only) {
+        write_indexer_capture(output_directory,data,hidden,positions,indexer_budget,sha256);
+        printf("{\"schema\":\"flash-sass.issue22-original-layer3-indexer-result.v1\","
+               "\"complete\":true,\"positions\":%u,\"budget\":%u,"
+               "\"checkpoint_revision\":\"%s\",\"activation_source\":\"fixed_lcg_fp32_v1\","
+               "\"production_model_dispatch_executed\":false,\"quality\":false}\n",
+               positions,indexer_budget,CHECKPOINT_REV);
+        free(hidden);
+        if (munmap((void *)mapping, (size_t)FILE_BYTES)) fail("cannot unmap safetensors file");
+        return 0;
+    }
+    size_t kv_count = (size_t)positions * KV_ROWS;
     float *qg = malloc(Q_ROWS * sizeof *qg);
     float *keys = malloc(kv_count * sizeof *keys);
     float *values = malloc(kv_count * sizeof *values);
-    if (!hidden || !qg || !keys || !values) fail("projection allocation failed");
-    uint32_t random_state = 4242u;
-    for (size_t i = 0; i < hidden_count; ++i) hidden[i] = hidden_value(&random_state);
+    if (!qg || !keys || !values) fail("QKV projection allocation failed");
     project(data, Q_PROJ.offset, Q_ROWS,
             hidden + (size_t)(positions - 1u) * HIDDEN, qg);
     for (unsigned position = 0; position < positions; ++position) {
@@ -408,7 +425,7 @@ int main(int argc, char **argv)
     write_bytes(output_directory, "qn.f32", qn, sizeof qn);
     write_bytes(output_directory, "kn.f32", kn, sizeof kn);
     write_json(output_directory, sha256, positions);
-    write_indexer_capture(output_directory,data,hidden,positions,sha256);
+    write_indexer_capture(output_directory,data,hidden,positions,indexer_budget,sha256);
     printf("{\"schema\":\"flash-sass.issue22-original-layer3-qkv-result.v1\","
            "\"complete\":true,\"positions\":%u,\"hidden_size\":%u,"
            "\"query_projection_values\":%u,\"kv_projection_values_per_position\":%u,"
