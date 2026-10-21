@@ -3,6 +3,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include <errno.h>
 #include <fcntl.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -114,7 +115,8 @@ static void check_tensor_header(const char *header, const tensor_spec *spec)
 
 static float bf16_to_float(const unsigned char *bytes)
 {
-    uint32_t bits = (uint32_t)bytes[0] << 24 | (uint32_t)bytes[1] << 16;
+    uint16_t bf16 = (uint16_t)bytes[0] | (uint16_t)((uint16_t)bytes[1] << 8);
+    uint32_t bits = (uint32_t)bf16 << 16;
     float value;
     memcpy(&value, &bits, sizeof value);
     return value;
@@ -140,6 +142,7 @@ static void project(const unsigned char *data, uint64_t offset, size_t rows,
         float sum = 0.0f;
         for (size_t column = 0; column < HIDDEN; ++column)
             sum = sum + bf16_to_float(weight_row + column * 2u) * input[column];
+        if (!isfinite(sum)) fail("non-finite BF16 projection result");
         output[row] = sum;
     }
 }
@@ -147,7 +150,10 @@ static void project(const unsigned char *data, uint64_t offset, size_t rows,
 static void load_norm(const unsigned char *data, uint64_t offset, float *output)
 {
     const unsigned char *weights = data + offset;
-    for (size_t i = 0; i < NORM_SIZE; ++i) output[i] = bf16_to_float(weights + i * 2u);
+    for (size_t i = 0; i < NORM_SIZE; ++i) {
+        output[i] = bf16_to_float(weights + i * 2u);
+        if (!isfinite(output[i])) fail("non-finite BF16 norm weight");
+    }
 }
 
 static void write_bytes(const char *directory, const char *leaf,
@@ -213,6 +219,8 @@ int main(int argc, char **argv)
     if (close(fd)) fail("cannot close safetensors descriptor");
     uint64_t header_bytes = little_u64(mapping);
     if (header_bytes != HEADER_BYTES) fail("unexpected pinned safetensors header size");
+    uint16_t endian_check = 1;
+    if (*(const unsigned char *)&endian_check != 1) fail("little-endian host required");
     char *header = malloc((size_t)HEADER_BYTES + 1u);
     if (!header) fail("header allocation failed");
     memcpy(header, mapping + 8, (size_t)HEADER_BYTES);
