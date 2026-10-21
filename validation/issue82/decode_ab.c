@@ -40,6 +40,8 @@ static unsigned long long core_start;
 static char original_config[LINE_CAP];
 static const char *trace_cubin;
 static const char *custom_cubin;
+static const char *base_cubin;
+static const char *candidate_cubin;
 static const char *load_cubin;
 static int mutated;
 static volatile sig_atomic_t interrupted;
@@ -369,11 +371,13 @@ static int check_rev(const char *config, const char *expected) {
     return 0;
 }
 
-static int load_library(const char *path, const char *expected_rev) {
+static int load_library(const char *path, const char *expected_rev,
+                        const char *cubin_override) {
     char command[2 * PATH_MAX + 128], reply[LINE_CAP], config[LINE_CAP];
-    int n = load_cubin
+    const char *cubin = cubin_override ? cubin_override : load_cubin;
+    int n = cubin
         ? snprintf(command, sizeof command, "reload %s FLASH_CUBIN=%s FLASH_TRACE=%d",
-                   path, load_cubin, trace_cubin ? TRACE_TOKENS : 0)
+                   path, cubin, trace_cubin ? TRACE_TOKENS : 0)
         : snprintf(command, sizeof command, "reload %s", path);
     if (n < 0 || (size_t)n >= sizeof command) return -1;
     mutated = 1;
@@ -382,7 +386,7 @@ static int load_library(const char *path, const char *expected_rev) {
         return -1;
     }
     if (get_config(config, sizeof config) || check_rev(config, expected_rev) ||
-        same_layout(original_config, config, load_cubin != NULL)) return -1;
+        same_layout(original_config, config, cubin != NULL)) return -1;
     printf("CONFIG %s\n", config);
     return 0;
 }
@@ -486,7 +490,7 @@ static int restore_live(void) {
         char reply[LINE_CAP], config[LINE_CAP];
         char command[2 * PATH_MAX + 128], original_cubin[PATH_MAX];
         int n;
-        if (load_cubin) {
+        if (load_cubin || base_cubin || candidate_cubin) {
             if (config_value(original_config, "cubin", original_cubin, sizeof original_cubin)) return -1;
             n = snprintf(command, sizeof command, "reload %s FLASH_CUBIN=%s FLASH_TRACE=0",
                          restore_path, original_cubin);
@@ -522,11 +526,23 @@ int main(int argc, char **argv) {
     strcpy(socket_path, argv[1]);
     trace_cubin = getenv("DECODE_AB_TRACE_CUBIN");
     custom_cubin = getenv("DECODE_AB_CUBIN");
-    if (trace_cubin && custom_cubin) return fail("choose DECODE_AB_TRACE_CUBIN or DECODE_AB_CUBIN"), 2;
+    /* Use separate paths to compare SASS-only variants with the same library. */
+    base_cubin = getenv("DECODE_AB_BASE_CUBIN");
+    candidate_cubin = getenv("DECODE_AB_CANDIDATE_CUBIN");
+    if (!!base_cubin != !!candidate_cubin)
+        return fail("set both DECODE_AB_BASE_CUBIN and DECODE_AB_CANDIDATE_CUBIN"), 2;
+    if ((trace_cubin && custom_cubin) ||
+        (base_cubin && (trace_cubin || custom_cubin)))
+        return fail("choose a single-cubin mode or separate base/candidate cubins"), 2;
     load_cubin = trace_cubin ? trace_cubin : custom_cubin;
     if (load_cubin && (!*load_cubin || access(load_cubin, R_OK) ||
                        strpbrk(load_cubin, " \t\r\n")))
         return fail("invalid custom cubin path"), 2;
+    if (base_cubin && (!*base_cubin || access(base_cubin, R_OK) ||
+                       strpbrk(base_cubin, " \t\r\n") || !*candidate_cubin ||
+                       access(candidate_cubin, R_OK) ||
+                       strpbrk(candidate_cubin, " \t\r\n")))
+        return fail("invalid base/candidate cubin path"), 2;
     char resolved[PATH_MAX];
     if (!realpath(argv[2], resolved) || strlen(resolved) >= sizeof restore_path) return fail("missing restore library"), 2;
     strcpy(restore_path, resolved);
@@ -554,13 +570,14 @@ int main(int argc, char **argv) {
            PROMPT_TOKENS, new_tokens + 1u);
     if (trace_cubin) printf("TRACE_PROFILE cubin=%s trace_tokens=%d\n", trace_cubin, TRACE_TOKENS);
     else if (custom_cubin) printf("CUSTOM_CUBIN cubin=%s trace_tokens=0\n", custom_cubin);
+    else if (base_cubin) printf("CUBIN_AB base=%s candidate=%s trace_tokens=0\n", base_cubin, candidate_cubin);
     printf("LIVE_CONFIG %s\n", config);
     fflush(stdout);
 
     run_result base_ref[REPEATS], result;
     int status = 1;
     mutated = 1;
-    if (load_library(argv[3], argv[4])) goto cleanup;
+    if (load_library(argv[3], argv[4], base_cubin)) goto cleanup;
     if (run_request("baseline", "warmup", 0, 0, &result)) goto cleanup;
     for (int rep = 0; rep < REPEATS; rep++) {
         if (run_request("baseline", "pre", rep + 1, new_tokens, &base_ref[rep])) goto cleanup;
@@ -571,7 +588,7 @@ int main(int argc, char **argv) {
     for (int die = 0; die < 6; die++)
         if (dump_trace("baseline", die)) goto cleanup;
 
-    if (load_library(argv[5], argv[6])) goto cleanup;
+    if (load_library(argv[5], argv[6], candidate_cubin)) goto cleanup;
     if (run_request("candidate", "warmup", 0, 0, &result)) goto cleanup;
     for (int rep = 0; rep < REPEATS; rep++) {
         if (run_request("candidate", "measure", rep + 1, new_tokens, &result)) goto cleanup;
@@ -582,7 +599,7 @@ int main(int argc, char **argv) {
     for (int die = 0; die < 6; die++)
         if (dump_trace("candidate", die)) goto cleanup;
 
-    if (load_library(argv[3], argv[4])) goto cleanup;
+    if (load_library(argv[3], argv[4], base_cubin)) goto cleanup;
     if (run_request("baseline", "warmup-after", 0, 0, &result)) goto cleanup;
     for (int rep = 0; rep < REPEATS; rep++) {
         if (run_request("baseline", "post", rep + 1, new_tokens, &result)) goto cleanup;
