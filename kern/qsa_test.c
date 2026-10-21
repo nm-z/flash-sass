@@ -47,7 +47,7 @@ static int qsa_hostkv_mode_(void) {
 }
 
 /* Capture exact sorted IDs emitted by the production OP_IDXSEL path in idxfull. */
-static int qsa_capture_ids_(const uint32_t *ids, unsigned k, unsigned nv) {
+static int qsa_capture_ids_(const uint32_t *ids, unsigned k, unsigned nv, unsigned position) {
 	const char *path = getenv("QSA_CAPTURE_IDS");
 	if (!path) return 0;
 	if (!*path || nv <= 512 || k != 512) {
@@ -74,7 +74,7 @@ static int qsa_capture_ids_(const uint32_t *ids, unsigned k, unsigned nv) {
 		perror(path);
 		return 1;
 	}
-	fprintf(stderr, "captured %u sorted OP_IDXSEL IDs from the verified idxfull run at %s\n", k, path);
+	fprintf(stderr, "captured %u sorted OP_IDXSEL IDs from the verified idxfull run at position %u at %s\n", k, position, path);
 	return 0;
 }
 
@@ -477,7 +477,7 @@ static int test_idxfull(unsigned nv, unsigned NBLK, int iters) {
 	int bad = 0, shown = 0; bad |= cmpb("iq", iq, iqg, 2048, &shown);
 	if (nv > NBLK) bad |= cmpb("sel", sel, selg, 4 * (size_t)k, &shown);
 	printf("idxfull: nv %u NBLK %u: %s\n", nv, NBLK, bad ? "MISMATCH" : "BIT-EXACT");
-	if (!bad && qsa_capture_ids_(selg, k, nv)) return 1;
+	if (!bad && qsa_capture_ids_(selg, k, nv, t)) return 1;
 	if (iters > 0) {   /* the time of the 7 phases: iters tokens in one launch (the context grows by iters/4 blocks) */
 		CK(cuMemcpyHtoD(dPROG, prog, sizeof(desc_t) * 7)); unsigned nph = 7, tk = t;
 		CK(cuMemcpyHtoD(dCTL + 8, &tk, 4));
@@ -578,7 +578,8 @@ int main(int argc,char**argv){
  unsigned which;for(which=0;which<sizeof modes/sizeof*modes;which++)if(!strcmp(argv[1],modes[which].name))break;
  if(which==sizeof modes/sizeof*modes){fprintf(stderr,"unknown test: %s\n",argv[1]);return 2;}
  const mode*m=modes+which;unsigned arg[4];memcpy(arg,m->value,sizeof arg);
- if(getenv("QSA_CAPTURE_IDS") && which!=4){fprintf(stderr,"QSA_CAPTURE_IDS is only valid with idxfull\n");return 2;}
+ const char *capture_path=getenv("QSA_CAPTURE_IDS");
+ if(capture_path && (!*capture_path || which!=4 || arg[0]<=512 || arg[1]!=512)){fprintf(stderr,"QSA_CAPTURE_IDS requires idxfull with nv > 512 and a 512-block budget\n");return 2;}
  if(argc>2+(int)m->n){fprintf(stderr,"too many arguments for %s\n",m->name);return 2;}
  for(int i=2;i<argc;i++)if(checked_parse_unsigned(argv[i],m->lo[i-2],m->hi[i-2],arg+i-2)){fprintf(stderr,"invalid argument for %s: %s\n",m->name,argv[i]);return 2;}
  if(which==4 && arg[2]>0 && arg[2]>262145u-4u*arg[0]){fprintf(stderr,"idxfull run exceeds supported token positions\n");return 2;}
