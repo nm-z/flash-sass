@@ -157,6 +157,8 @@ static void program_allocation_failure(void) {
     uint32_t stop[] = {0xffffffffu, 0xffffffffu};
     fake_core.nd = 1; core = &fake_core;
     MAXT = 32; h_ids = ids_buffer;
+    nsequences = 1; active = &slots[0];
+    seqsched_init(&schedule, nsequences); scheduler_ready = 1;
     snap_s = ple_disk = imap_dirty = rope_dirty_T = 0;
     two_position = 1; prefill_chunk = 2;
     for (unsigned fail_at = 1; fail_at <= 3; fail_at++) {
@@ -177,8 +179,10 @@ static void program_allocation_failure(void) {
     FILE *in = fmemopen(input, strlen(input), "r");
     char *output = NULL; size_t output_size = 0;
     FILE *out = open_memstream(&output, &output_size);
-    assert(in && out && s_ids && s_toks);
-    calloc_calls = 0; calloc_fail_at = 1;
+    assert(in && out);
+    /* The first two allocations are request-local token buffers; fail the
+       engine's first program allocation after those buffers are ready. */
+    calloc_calls = 0; calloc_fail_at = 3;
     assert(engine_session(in, out) == 1);
     assert(!fclose(in) && !fclose(out));
     const char *record = strstr(output, "timings {");
@@ -192,6 +196,7 @@ static void program_allocation_failure(void) {
     free(output);
     calloc_fail_at = 0; two_position = prefill_chunk = 0;
     h_ids = NULL; core = NULL; trace_n = 0;
+    scheduler_ready = 0; seqsched_destroy(&schedule);
 }
 int main(void) {
     reject_case("chat nonsense");
@@ -202,7 +207,6 @@ int main(void) {
     session_options();half_close_options();
     callback_return_before_cancel();
     program_allocation_failure();
-    free(s_ids); free(s_toks); s_ids = s_toks = NULL;
     puts("trace_session_test: request identity, timing options, half-close, callback-before-cancellation, and allocation failures PASS");
     return 0;
 }
