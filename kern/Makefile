@@ -1,6 +1,10 @@
 CUDA ?= /opt/cuda
 .DEFAULT_GOAL := all
 PTXAS11 ?= /opt/cuda-11.4/bin/ptxas
+# The M60 hosts use driver 470; compile direct driver API calls against the
+# matching 11.4 headers/stubs instead of a newer /opt/cuda header set.
+CUDA_DRIVER_API ?= /opt/cuda-11.4
+CUDA_DRIVER_STUBS ?= $(CUDA_DRIVER_API)/lib64/stubs
 MAXAS = PATH=$(CUDA)/bin:$$PATH perl -I../maxas/lib ../maxas/bin/maxas.pl
 CC ?= gcc
 SHARD1 ?= /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
@@ -122,7 +126,7 @@ test-gemv: all
 	./gemv_test $(SHARD1) blk.4.ffn_down_exps.weight 0 20
 
 clean:
-	rm -f *.cubin *.dis *.so *.so.new die.sass die_trace.sass die_trace16.sass dieops.h flashcore flashd flashvis hold memtest fence *_test ple_read_bench ple_read_audit
+	rm -f *.cubin *.dis *.so *.so.new die.sass die_trace.sass die_trace16.sass dieops.h flashcore flashd flashvis hold memtest fence die_balance die_balance_capture *_test ple_read_bench ple_read_audit
 
 .PHONY: all test test-gemv clean
 
@@ -512,6 +516,12 @@ nullengine.so: nullengine.c core.h
 tok_test: tok_test.c tok.c tok.h ucd.h ../ref/gguf.c ../ref/gguf.h
 	$(CC) -std=gnu99 -O2 -Wall -o $@ tok_test.c tok.c ../ref/gguf.c -I../ref
 
+issue16_production_prompt_ids: ../validation/issue16/tools/production_prompt_ids.c tok.c tok.h jinja.c jinja.h json.c json.h ucd.h ../ref/gguf.c ../ref/gguf.h
+	$(CC) -std=gnu99 -O2 -Wall -o $@ ../validation/issue16/tools/production_prompt_ids.c tok.c jinja.c json.c ../ref/gguf.c -I. -I../ref -lm
+
+issue16_production_launcher: ../validation/issue16/tools/issue16_production_launcher.c
+	$(CC) -std=gnu99 -O2 -Wall -Wextra -Werror -o $@ $<
+
 jinja_test: jinja_test.c jinja.c jinja.h json.c json.h
 	$(CC) -std=gnu99 -O2 -Wall -o $@ jinja_test.c jinja.c json.c -lm
 
@@ -523,7 +533,10 @@ sample_test: sample_test.c dieops.h ../ref/sample.c ../ref/sample.h ../ref/fmath
 
 # ---- QSA: int8 KV cache, indexer, selection, gather through the persistent kernel vs ref/qsa.c ----
 qsa_test: qsa_test.c quant_range_cases.h test_guards.h qsa_padding_test.h dieops.h ../ref/qsa.c ../ref/qsa.h ../ref/attn.c ../ref/attn.h ../ref/fmath.c ../ref/quant.c ../ref/gguf.c ../ref/checked.h
-	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ qsa_test.c ../ref/qsa.c ../ref/attn.c ../ref/fmath.c ../ref/quant.c ../ref/gguf.c -I../ref -I$(CUDA)/include -lcuda -lm
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ qsa_test.c ../ref/qsa.c ../ref/attn.c ../ref/fmath.c ../ref/quant.c ../ref/gguf.c -I../ref -I$(CUDA_DRIVER_API)/include -I$(CUDA)/include -L$(CUDA_DRIVER_STUBS) -lcuda -lm
+
+qsa_gather_bench: qsa_gather_bench.c qsa_test.c quant_range_cases.h test_guards.h qsa_padding_test.h dieops.h ../ref/qsa.c ../ref/qsa.h ../ref/attn.c ../ref/attn.h ../ref/fmath.c ../ref/quant.c ../ref/gguf.c ../ref/checked.h
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -DFLASH_REV='"$(FLASH_REV)"' -o $@ qsa_gather_bench.c ../ref/qsa.c ../ref/attn.c ../ref/fmath.c ../ref/quant.c ../ref/gguf.c -I../ref -I$(CUDA_DRIVER_API)/include -I$(CUDA)/include -L$(CUDA_DRIVER_STUBS) -lcuda -lm
 
 attnpartn_unitmap: attnpartn_unitmap.c
 	$(CC) -std=gnu99 -O2 -Wall -Wextra -o $@ $<
@@ -602,9 +615,12 @@ flashd_timing_test: flashd_timing_test.c flashd.c timings.h tok.c tok.h jinja.c 
 	$(CC) -std=gnu99 -O2 -Wall -UNDEBUG -o $@ flashd_timing_test.c tok.c jinja.c json.c ../ref/gguf.c -I../ref -lm -lpthread
 
 .PHONY: test-flashd-deadline
-test-flashd-deadline: flashd flashd_timing_test
+flashd_deadline_test: flashd_deadline_test.c ../validation/issue80/test_fixture.h
+	$(CC) -std=gnu99 -O2 -Wall -o $@ $<
+
+test-flashd-deadline: flashd flashd_timing_test flashd_deadline_test
 	./flashd_timing_test --unit
-	perl flashd_deadline_test.pl ./flashd
+	./flashd_deadline_test ./flashd
 # This planner test needs only a C compiler.
 prefill_plan_test: prefill_plan_test.c prefill.h
 	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -o $@ prefill_plan_test.c
@@ -649,8 +665,25 @@ test-ple: ple_read_test ple_read_bench_test ple_read_audit_test
 	bash ./ple_io_run_test.sh
 	bash ./ple_io_validate_test.sh
 
-# Offline checks for the six-die balance experiment; no CUDA or model required.
+# Offline six-die balance tools and CPU-only tests; no CUDA or model required.
+DIE_BALANCE_JSON_CFLAGS = $(shell pkg-config --cflags json-c)
+DIE_BALANCE_JSON_LIBS = $(shell pkg-config --libs json-c) -lm
+DIE_BALANCE_CAPTURE_CFLAGS = $(shell pkg-config --cflags json-c libcurl openssl)
+DIE_BALANCE_CAPTURE_LIBS = $(shell pkg-config --libs json-c libcurl openssl) -pthread -lm
+
+die_balance: die_balance.c die_balance_common.c die_balance_common.h
+	$(CC) -std=gnu99 -O2 -Wall -Wextra $(DIE_BALANCE_JSON_CFLAGS) -o $@ die_balance.c die_balance_common.c $(DIE_BALANCE_JSON_LIBS)
+
+die_balance_capture: die_balance_capture.c die_balance_capture.h die_balance_common.c die_balance_common.h
+	$(CC) -std=gnu99 -O2 -Wall -Wextra $(DIE_BALANCE_CAPTURE_CFLAGS) -o $@ die_balance_capture.c die_balance_common.c $(DIE_BALANCE_CAPTURE_LIBS)
+
+die_balance_analyzer_test: die_balance ../validation/issue54/test_die_balance.c ../validation/issue54/fixtures.c ../validation/issue54/fixtures.h die_balance_common.c die_balance_common.h
+	$(CC) -std=gnu99 -O2 -Wall -Wextra $(DIE_BALANCE_JSON_CFLAGS) -o $@ ../validation/issue54/test_die_balance.c ../validation/issue54/fixtures.c die_balance_common.c $(DIE_BALANCE_JSON_LIBS)
+
+die_balance_capture_test: ../validation/issue54/test_die_balance_capture.c ../validation/issue54/fixtures.c ../validation/issue54/fixtures.h die_balance_capture.c die_balance_capture.h die_balance_common.c die_balance_common.h
+	$(CC) -std=gnu99 -O2 -Wall -Wextra -DDIE_BALANCE_CAPTURE_NO_MAIN $(DIE_BALANCE_CAPTURE_CFLAGS) -o $@ ../validation/issue54/test_die_balance_capture.c ../validation/issue54/fixtures.c die_balance_capture.c die_balance_common.c $(DIE_BALANCE_CAPTURE_LIBS)
+
 .PHONY: die_balance_test
-die_balance_test:
-	ruby ../validation/issue54/test_die_balance.rb
-	ruby ../validation/issue54/test_die_balance_capture.rb
+die_balance_test: die_balance die_balance_capture die_balance_analyzer_test die_balance_capture_test
+	./die_balance_analyzer_test ./die_balance
+	./die_balance_capture_test

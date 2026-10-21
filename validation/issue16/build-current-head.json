@@ -1,0 +1,76 @@
+{
+  "source_revision": "a62303283f993acb8a13188941b00f5bc9ef340b",
+  "merged_master_revision": "c09927306f5170843116cc49fe85088ae42e02b3",
+  "status": "succeeded",
+  "exit_code": 0,
+  "host": "benji",
+  "dsh_build_id": "build-1094797-1792561986754772907",
+  "dsh_config": {
+    "source": "task-local config",
+    "name": "benji",
+    "ssh": "nate@127.0.0.1",
+    "remote_identity": "benji",
+    "slots": 1,
+    "jobs": 1,
+    "nice": 19,
+    "root": "/home/nate/agent-builds/fs16-issue16",
+    "target_directory": "/home/nate/agent-builds/fs16-issue16/targets",
+    "cargo_home": "/home/nate/agent-builds/fs16-issue16/cargo-home",
+    "toolchain": "/usr",
+    "timeout_seconds": 3600,
+    "max_jobs": 1,
+    "cache_max_bytes": 1073741824,
+    "project_cache_max_bytes": 536870912
+  },
+  "command": [
+    "dsh --config /tmp/fs16-dsh-isolated.toml build --host benji --admission-timeout 10 --admission-retries 2 --command-timeout 3600 --cache-max-bytes 1073741824 --project-cache-max-bytes 536870912 -- make -C kern CUDA=/opt/cuda PTXAS11=/tmp/fs16-cuda11.4/cuda_nvcc-linux-x86_64-11.4.152-archive/bin/ptxas MAXAS=PATH=/opt/cuda/bin:$$PATH perl -I/home/nate/work/fs16-maxas/lib /home/nate/work/fs16-maxas/bin/maxas.pl qsa_gather_bench qsa_test die.cubin --artifact kern/qsa_gather_bench --artifact kern/qsa_test --artifact kern/die.cubin"
+  ],
+  "toolchain": {
+    "cuda_path": "/opt/cuda",
+    "installed_nvcc_version": "13.4.92",
+    "nvcc_invoked": false,
+    "ptxas_version": "11.4.152",
+    "ptxas_sha256": "6180efbc0877b5cf127bc99c5d51be6a779d98a03811cc1c24ef61621dc20976",
+    "ptxas_redist_url": "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-11.4.152-archive.tar.xz",
+    "ptxas_redist_sha256": "7250fc83b54f9089e67f3b506648fd8e70a9107baed968cb5de169c05831d5e5"
+  },
+  "maxas": {
+    "upstream_revision": "54eda7af086a46c9dae1688b691968235d560164",
+    "patch_sha256": {
+      "maxas-patch/Cubin.pm": "0fa8cb6989248b38ee44b27f0ef6a14809b06c1f7f332df12a587412998fe3ad",
+      "maxas-patch/MaxAs.pm": "399e954359e0163fc181f19a315ae19c8c81572e1baf08b1e14c3b684e24e219",
+      "maxas-patch/MaxAsGrammar.pm": "9698b546ad5af6da6aefccaa9944c50e5fa42aa0f95da8cfa995100e544818d3"
+    }
+  },
+  "artifacts": {
+    "kern/qsa_gather_bench": {
+      "bytes": 129792,
+      "sha256": "f982b117724816c7d910a8188d585e1ef5f51c75322e21f9175b0ef6fb2b6ecc"
+    },
+    "kern/qsa_test": {
+      "bytes": 112792,
+      "sha256": "00520ee0aff6a8b49e7dbc6721005aa08f1259d7808456ba980bf52931eefa9a"
+    },
+    "kern/die.cubin": {
+      "bytes": 465384,
+      "sha256": "aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423"
+    }
+  },
+  "raw_log": "validation/issue16/build-current-head.log",
+  "cpu_only_validation": {
+    "invalid_gather_host_value": {
+      "command": "qsa_gather_bench 128 0 1 even 2 /tmp/fs16-invalid-host.csv",
+      "expected_nonzero_exit": 2,
+      "observed_exit": 2
+    },
+    "invalid_qsa_hostkv_value": {
+      "command": "QSA_HOSTKV=2 qsa_test kv",
+      "expected_nonzero_exit": 2,
+      "observed_exit": 2
+    }
+  },
+  "gpu_verification": "not_run; see validation/issue16/current-head-gpu-status.md",
+  "raw_log_sha256": "dd6955dd2dfd3baa8db8001e0f129e37e9971740883807361777d3a604aff9fe",
+  "raw_log_bytes": 816695,
+  "raw_log_lines": 6639
+}
