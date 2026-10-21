@@ -1,0 +1,71 @@
+{
+  "source_commit": "64cf729d87e6d51718f32b05b0b6d52842dacdd2",
+  "merged_master_commit": "98c176a80e82cd31736ed3165a134cfbbae45338",
+  "previous_master_commit": "c09927306f5170843116cc49fe85088ae42e02b3",
+  "implementation_commit": "a62303283f993acb8a13188941b00f5bc9ef340b",
+  "build_request": "build-2253533-1792566857689459031",
+  "build_host": "benji",
+  "build_status": "succeeded",
+  "dsh_command": "dsh build --require-tool cc --require-tool make -- bash -c 'set -euo pipefail; cp validation/issue16/current-build/cuda114/lib64/stubs/libcuda.so.data validation/issue16/current-build/cuda114/lib64/stubs/libcuda.so; make -C kern CUDA_DRIVER_API=../validation/issue16/current-build/cuda114 CUDA_DRIVER_STUBS=../validation/issue16/current-build/cuda114/lib64/stubs PTXAS11=../validation/issue16/current-build/cuda114/bin/ptxas FLASH_REV=64cf729 MAXAS=\"PATH=/opt/cuda/bin:\\$\\$PATH perl -I../validation/issue16/current-build/maxas-input/lib ../validation/issue16/current-build/maxas-input/bin/maxas.pl\" qsa_gather_bench qsa_test die.cubin' --artifact kern/qsa_gather_bench --artifact kern/qsa_test --artifact kern/die.cubin",
+  "make_command": "make -C kern CUDA_DRIVER_API=../validation/issue16/current-build/cuda114 CUDA_DRIVER_STUBS=../validation/issue16/current-build/cuda114/lib64/stubs PTXAS11=../validation/issue16/current-build/cuda114/bin/ptxas FLASH_REV=64cf729 MAXAS='PATH=/opt/cuda/bin:$$PATH perl -I../validation/issue16/current-build/maxas-input/lib ../validation/issue16/current-build/maxas-input/bin/maxas.pl' qsa_gather_bench qsa_test die.cubin",
+  "raw_log": "build-current-head-64cf.log",
+  "toolchain": {
+    "ptxas_version": "11.4.152",
+    "ptxas_sha256": "6180efbc0877b5cf127bc99c5d51be6a779d98a03811cc1c24ef61621dc20976",
+    "ptxas_redist_sha256": "7250fc83b54f9089e67f3b506648fd8e70a9107baed968cb5de169c05831d5e5",
+    "maxas_upstream_commit": "54eda7af086a46c9dae1688b691968235d560164",
+    "maxas_patch_sha256": {
+      "Cubin.pm": "0fa8cb6989248b38ee44b27f0ef6a14809b06c1f7f332df12a587412998fe3ad",
+      "MaxAs.pm": "399e954359e0163fc181f19a315ae19c8c81572e1baf08b1e14c3b684e24e219",
+      "MaxAsGrammar.pm": "9698b546ad5af6da6aefccaa9944c50e5fa42aa0f95da8cfa995100e544818d3"
+    },
+    "cuda_driver_headers": "11.4.148",
+    "cuda_h_sha256": "deb15013ce354e204edf03c7704cd1a78122070ae89205317a06375b47390698",
+    "cuda_profiler_headers": "11.4.120",
+    "cudaProfiler_h_sha256": "a06db96a93a4984dd47a6763798fed0d68d3d80331c70db51fa9b26729326945",
+    "libcuda_stub_sha256": "b9953d66a7e861bf04edc462af7c961f7f0968ba6b663ab98815d85b8c5ee8ee"
+  },
+  "source_sha256": {
+    "kern/qsa_gather_bench.c": "88657f80a2ac6fb38e0a7652c1a92b22305e2e26aa6305d42a7e3b366a02a78c",
+    "kern/qsa_test.c": "d81db6bece8c69d06bd2fe35272421bf4d8ac8ee3247e1ecf9e1612981857179",
+    "ref/qsa.c": "5d63aa53fae30d50addba450d1bd132c5c01aa67af279b2cd8925c0b523d5c21",
+    "ref/attn.c": "653521378d9bad2d2860696a6e3acde9b0316215923c6bd8eaff6a987983fa18",
+    "ref/fmath.c": "69bbf4dbb4201dd24056f29183d289910ac7067722c3214a79b3de3ffdf8f462",
+    "kern/Makefile": "a7f1fce61e1e94d3977afde68ddf768fe06f7b3837f093df9d54a7f7591828cf"
+  },
+  "artifact_sha256": {
+    "qsa_gather_bench": "565996be8055dcf79ba9b31661aaf4e611fa7d9c3793d9d660bbe13af988090a",
+    "qsa_test": "c4eaa6651560f4c451ff21297674649be0ef2ef6251e67b2b35c4c781f255e37",
+    "die.cubin": "aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423"
+  },
+  "driver_abi_check": {
+    "method": "nm -D",
+    "qsa_gather_bench_import": "cuEventElapsedTime",
+    "qsa_test_import": "cuEventElapsedTime",
+    "incompatible_symbol": "cuEventElapsedTime_v2",
+    "target_driver": "NVIDIA R470 / Tesla M60"
+  },
+  "runtime_gpu_verification": {
+    "status": "smoke_succeeded; matrix, production capture pair, and profiler counters still pending",
+    "gpuq_job_id": "33205075-1c6b-46e1-a995-100540f50727",
+    "label": "fs16-64cf-abi114-smoke",
+    "exit_code": 0,
+    "stdout_document_id": 79193,
+    "stdout_sha256": "09beb3358b8fa9aa059a72b25573351b804c796f639334b4b29babea5a0497e7",
+    "raw_stdout": "current-head-smoke-64cf.json",
+    "source_revision_reported": "64cf729",
+    "configuration": {
+      "nv": 128,
+      "tail": 0,
+      "iterations": 1,
+      "pattern": "even",
+      "host_kv": 0,
+      "seed": 4242,
+      "cuda_visible_devices": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b",
+      "die_cubin_sha256": "aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423"
+    },
+    "preflight_verified_all": true,
+    "realized_placement": "device-vram",
+    "gpu_us": 41.023999453
+  }
+}

@@ -103,6 +103,63 @@ typedef struct { float *dn_state, *conv_state, *ple_state, *kc, *vc; } hstate_t;
 
 #include "model_qsa_test.h"
 
+static int decimal_arg(const char *s, unsigned max, const char *label);
+static int model_capture_done;
+
+/* Optional evidence hook: capture the real QSA selection buffer from the last
+ * attention layer in the requested range. This runs only after the production
+ * QSA kernel has completed and does not alter its device state. */
+static int model_capture_selection(unsigned position, int b0, int b1, int dies) {
+	const char *path = getenv("QSA_CAPTURE_IDS");
+	if (!path) return 0;
+	if (!*path) { fprintf(stderr, "QSA_CAPTURE_IDS is empty\n"); return 1; }
+	const char *pos_text = getenv("QSA_CAPTURE_POSITION");
+	if (!pos_text) { fprintf(stderr, "QSA_CAPTURE_POSITION is required with QSA_CAPTURE_IDS\n"); return 1; }
+	int target = decimal_arg(pos_text, 262143, "QSA_CAPTURE_POSITION");
+	if (target < 0) return 1;
+	if (position != (unsigned)target) return 0;
+	if (!model_qsa || !model_budget) { fprintf(stderr, "QSA selection capture requires MODEL_ATTN=qsa\n"); return 1; }
+	int layer = b1 - 1;
+	const char *layer_text = getenv("QSA_CAPTURE_LAYER");
+	if (layer_text) {
+		layer = decimal_arg(layer_text, MAXB - 1, "QSA_CAPTURE_LAYER");
+		if (layer < 0) return 1;
+	}
+	if (layer < b0 || layer >= b1 || !BLK_IS_ATTN(layer)) {
+		fprintf(stderr, "QSA_CAPTURE_LAYER must name an attention block in [%d,%d)\n", b0, b1);
+		return 1;
+	}
+	int die = attn_die_of(layer);
+	if (die < 0 || die >= dies) { fprintf(stderr, "QSA capture layer %d owner %d outside %d dies\n", layer, die, dies); return 1; }
+	unsigned candidates = (position + 1) / 4;
+	if (candidates <= model_budget) {
+		fprintf(stderr, "QSA capture at %u has %u candidate blocks; need more than FLASH_NBLK=%u\n", position, candidates, model_budget);
+		return 1;
+	}
+	dn_bufs_t *q = &model_qdev[die][layer];
+	if (!q->sel) { fprintf(stderr, "QSA selection buffer is absent for block %d on die %d\n", layer, die); return 1; }
+	uint32_t *ids = malloc((size_t)model_budget * sizeof *ids);
+	if (!ids) { fprintf(stderr, "QSA selection capture allocation failed\n"); return 1; }
+	CK(cuCtxSetCurrent(ctx[die]));
+	CK(cuMemcpyDtoH(ids, q->sel, (size_t)model_budget * sizeof *ids));
+	for (unsigned i = 0; i < model_budget; ++i) {
+		if (ids[i] >= candidates || (i && ids[i - 1] >= ids[i])) {
+			fprintf(stderr, "real QSA selection is invalid at row %u: %u of %u candidates\n", i, ids[i], candidates);
+			free(ids);
+			return 1;
+		}
+	}
+	FILE *f = fopen(path, "wb");
+	if (!f) { perror(path); free(ids); return 1; }
+	int bad = fwrite(ids, sizeof *ids, model_budget, f) != model_budget;
+	if (fclose(f)) bad = 1;
+	free(ids);
+	if (bad) { fprintf(stderr, "short write to QSA selection capture %s\n", path); return 1; }
+	fprintf(stderr, "captured %u production QSA IDs from MODEL_ATTN=qsa block %d die %d at position %u of %u candidate blocks\n", model_budget, layer, die, position, candidates);
+	model_capture_done = 1;
+	return 0;
+}
+
 /* Reject malformed arguments and unreachable controls before creating a CUDA context. */
 static int decimal_arg(const char *s, unsigned max, const char *label) {
 	if (!s || !*s) { fprintf(stderr, "invalid %s\n", label); return -1; }
@@ -449,6 +506,7 @@ int main(int argc, char **argv) {
 			CK(cuLaunchKernel(fn[d], 16, 1, 1, 256, 1, 1, 0, 0, params, NULL));
 		}
 		for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuCtxSynchronize()); }
+		if (getenv("QSA_CAPTURE_IDS") && model_capture_selection((unsigned)T - 1, b0, b1, nd)) return 1;
 		double t3 = now();
 		printf("%u phases per token; twin %.2f s for %d tokens; dies %.3f ms total = %.3f ms per token\n", nph[0], t1 - t0, T, (t3 - t2) * 1e3, (t3 - t2) * 1e3 / T);
 		if (getenv("MODEL_PROF")) {   /* die 0, the last token */
@@ -488,6 +546,7 @@ int main(int argc, char **argv) {
 		if (notwin) printf("ran: one launch; no scalar comparison\n");
 		else if (bad) printf("FAIL\n");
 		else printf("OK: one launch; %s; final-token %s buffers exact\n", do_head ? "every prediction exact" : "no head prediction comparison", model_qsa ? "layer/QSA/recurrent/logit (when enabled)" : "stream");
+		if (getenv("QSA_CAPTURE_IDS") && !model_capture_done) { fprintf(stderr, "requested production QSA capture position was not reached\n"); return 1; }
 		for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); hold_close(&ar[d]); }
 		for (int d = 0; d < nd; d++) prog_free(&P[d]);
 		return bad && !notwin ? 3 : 0;
@@ -554,6 +613,7 @@ int main(int argc, char **argv) {
 			CK(cuLaunchKernel(fn[d], 16, 1, 1, 256, 1, 1, 0, 0, params, NULL));
 		}
 		for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuCtxSynchronize()); }
+		if (getenv("QSA_CAPTURE_IDS") && model_capture_selection((unsigned)t, b0, b1, nd)) return 1;
 		double t3 = now();
 		tsum += t3 - t2;
 		if (do_head) { CK(cuCtxSetCurrent(ctx[0])); CK(cuMemcpyDtoH(&tok_gpu, db[0].tokout, 4)); }
@@ -621,6 +681,7 @@ int main(int argc, char **argv) {
 		printf("  S dumped to %s: lanes sum %.6g %.6g %.6g %.6g, |S| %.6g\n", getenv("MODEL_DUMP_S"), (double)S[0], (double)S[2560], (double)S[5120], (double)S[7680], ss);
 		free(S);
 	}
+	if (getenv("QSA_CAPTURE_IDS") && !model_capture_done) { fprintf(stderr, "requested production QSA capture position was not reached\n"); return 1; }
 	if (model_inject && !model_inject_reached) { fprintf(stderr, "requested injection was not reached\n"); fails++; }
 	printf("%s: %d of %d tokens %s; mean %.3f ms per token\n", fails ? "FAIL" : "OK", T - fails, T, notwin ? "run" : "exact", tsum / T * 1e3);
 	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); hold_close(&ar[d]); }

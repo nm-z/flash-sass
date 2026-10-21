@@ -1,6 +1,10 @@
 CUDA ?= /opt/cuda
 .DEFAULT_GOAL := all
 PTXAS11 ?= /opt/cuda-11.4/bin/ptxas
+# The M60 hosts use driver 470; compile direct driver API calls against the
+# matching 11.4 headers/stubs instead of a newer /opt/cuda header set.
+CUDA_DRIVER_API ?= /opt/cuda-11.4
+CUDA_DRIVER_STUBS ?= $(CUDA_DRIVER_API)/lib64/stubs
 MAXAS = PATH=$(CUDA)/bin:$$PATH perl -I../maxas/lib ../maxas/bin/maxas.pl
 CC ?= gcc
 SHARD1 ?= /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf
@@ -511,6 +515,12 @@ nullengine.so: nullengine.c core.h
 tok_test: tok_test.c tok.c tok.h ucd.h ../ref/gguf.c ../ref/gguf.h
 	$(CC) -std=gnu99 -O2 -Wall -o $@ tok_test.c tok.c ../ref/gguf.c -I../ref
 
+issue16_production_prompt_ids: ../validation/issue16/tools/production_prompt_ids.c tok.c tok.h jinja.c jinja.h json.c json.h ucd.h ../ref/gguf.c ../ref/gguf.h
+	$(CC) -std=gnu99 -O2 -Wall -o $@ ../validation/issue16/tools/production_prompt_ids.c tok.c jinja.c json.c ../ref/gguf.c -I. -I../ref -lm
+
+issue16_production_launcher: ../validation/issue16/tools/issue16_production_launcher.c
+	$(CC) -std=gnu99 -O2 -Wall -Wextra -Werror -o $@ $<
+
 jinja_test: jinja_test.c jinja.c jinja.h json.c json.h
 	$(CC) -std=gnu99 -O2 -Wall -o $@ jinja_test.c jinja.c json.c -lm
 
@@ -522,7 +532,10 @@ sample_test: sample_test.c dieops.h ../ref/sample.c ../ref/sample.h ../ref/fmath
 
 # ---- QSA: int8 KV cache, indexer, selection, gather through the persistent kernel vs ref/qsa.c ----
 qsa_test: qsa_test.c quant_range_cases.h test_guards.h qsa_padding_test.h dieops.h ../ref/qsa.c ../ref/qsa.h ../ref/attn.c ../ref/attn.h ../ref/fmath.c ../ref/quant.c ../ref/gguf.c ../ref/checked.h
-	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ qsa_test.c ../ref/qsa.c ../ref/attn.c ../ref/fmath.c ../ref/quant.c ../ref/gguf.c -I../ref -I$(CUDA)/include -lcuda -lm
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ qsa_test.c ../ref/qsa.c ../ref/attn.c ../ref/fmath.c ../ref/quant.c ../ref/gguf.c -I../ref -I$(CUDA_DRIVER_API)/include -I$(CUDA)/include -L$(CUDA_DRIVER_STUBS) -lcuda -lm
+
+qsa_gather_bench: qsa_gather_bench.c qsa_test.c quant_range_cases.h test_guards.h qsa_padding_test.h dieops.h ../ref/qsa.c ../ref/qsa.h ../ref/attn.c ../ref/attn.h ../ref/fmath.c ../ref/quant.c ../ref/gguf.c ../ref/checked.h
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -DFLASH_REV='"$(FLASH_REV)"' -o $@ qsa_gather_bench.c ../ref/qsa.c ../ref/attn.c ../ref/fmath.c ../ref/quant.c ../ref/gguf.c -I../ref -I$(CUDA_DRIVER_API)/include -I$(CUDA)/include -L$(CUDA_DRIVER_STUBS) -lcuda -lm
 
 attnpartn_unitmap: attnpartn_unitmap.c
 	$(CC) -std=gnu99 -O2 -Wall -Wextra -o $@ $<
