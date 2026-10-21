@@ -13,7 +13,7 @@ front-end PIDs. Query `gpuq search` for reusable captures before a new run:
 
 ```bash
 gpuq run --name die-balance-baseline -- sh -c '
-exec ruby kern/die_balance_capture.rb \
+exec kern/die_balance_capture \
   --out "$GPUQ_RUN_DIR/baseline" \
   --label baseline \
   --core-pid CORE_PID \
@@ -50,7 +50,7 @@ The collector starts its own temporary HTTP front end using the running `flashd`
 After loading a candidate placement in an approved maintenance window, capture it with a new label and output directory. Hold constant the engine implementation, checkpoint, kernel image, logical-to-physical die mapping, context capacity, KV placement, layer count, block budget, front-end settings, PCIe links, and request protocol. Capture a fresh baseline again if those conditions change.
 
 ```bash
-ruby kern/die_balance.rb --baseline /path/to/baseline/capture.json \
+kern/die_balance --baseline /path/to/baseline/capture.json \
   /path/to/candidate-a/capture.json /path/to/candidate-b/capture.json
 ```
 

@@ -36,6 +36,48 @@ static void d_f32(desc_t *d, int addr, float v) { uint32_t u; memcpy(&u, &v, 4);
 static void d_tok(desc_t *d, int addr, uint32_t base) { d_u32(d, addr, base); d->w[31] |= 1u << (2 + (addr - 0x140) / 4); }
 
 static CUmodule mod; static CUfunction fn; static CUdeviceptr dPROG, dCTL;
+
+/* QSA_HOSTKV is a strict placement selector: unset/0=VRAM and 1=pinned host RAM. */
+static int qsa_hostkv_mode_(void) {
+	const char *s = getenv("QSA_HOSTKV");
+	if (!s || !strcmp(s, "0")) return 0;
+	if (!strcmp(s, "1")) return 1;
+	fprintf(stderr, "QSA_HOSTKV must be exactly 0 or 1\n");
+	exit(2);
+}
+
+/* Capture exact sorted IDs emitted by the production OP_IDXSEL path in idxfull. */
+static int qsa_capture_ids_(const uint32_t *ids, unsigned k, unsigned nv, unsigned position) {
+	const char *path = getenv("QSA_CAPTURE_IDS");
+	if (!path) return 0;
+	if (!*path || nv <= 512 || k != 512) {
+		fprintf(stderr, "QSA_CAPTURE_IDS requires idxfull with nv > 512 and a 512-block budget\n");
+		return 1;
+	}
+	for (unsigned i = 0; i < k; ++i) {
+		if (ids[i] >= nv || (i && ids[i - 1] >= ids[i])) {
+			fprintf(stderr, "OP_IDXSEL capture is invalid at row %u: %u\n", i, ids[i]);
+			return 1;
+		}
+	}
+	FILE *f = fopen(path, "wb");
+	if (!f) {
+		perror(path);
+		return 1;
+	}
+	if (fwrite(ids, sizeof *ids, k, f) != k) {
+		fprintf(stderr, "short write to selection capture %s\n", path);
+		fclose(f);
+		return 1;
+	}
+	if (fclose(f)) {
+		perror(path);
+		return 1;
+	}
+	fprintf(stderr, "captured %u sorted OP_IDXSEL IDs from the verified idxfull run at position %u at %s\n", k, position, path);
+	return 0;
+}
+
 static void dev_init(void) {
 	CK(cuInit(0));
 	CUdevice dev; CUcontext ctx;
@@ -159,7 +201,7 @@ static int test_kv(unsigned T, unsigned NBLK) {
 	unsigned cpos = 4 * (NBLK + 1) + 2048; cpos = (cpos + 31) / 32 * 32;
 	size_t kcf = ATTN_KC_FLOATS(cpos), vcf = (size_t)cpos * 512;
 	CUdeviceptr dQG = dalloc(4 * 12288), dK = dalloc(4 * 512), dV = dalloc(4 * 512), dQN = dalloc(4 * 256), dKN = dalloc(4 * 256), dCS = dalloc(4 * 32 * (size_t)npos), dSN = dalloc(4 * 32 * (size_t)npos);
-	int hk = getenv("QSA_HOSTKV") != NULL;
+	int hk = qsa_hostkv_mode_();
 	CUdeviceptr dQO = dalloc(4 * 6144), dKQ = hk ? halloc((size_t)npos * 512) : dalloc((size_t)npos * 512), dVQ = hk ? halloc((size_t)npos * 512) : dalloc((size_t)npos * 512), dKS = hk ? halloc((size_t)npos * 32) : dalloc((size_t)npos * 32), dVS = hk ? halloc((size_t)npos * 32) : dalloc((size_t)npos * 32);
 	CUdeviceptr dKC = dalloc(kcf * 4), dVC = dalloc(vcf * 4), dSEL = dalloc(4 * (NBLK + 8)), dPM = dalloc(4 * 24 * 8), dPD = dalloc(4 * 24 * 8), dPO = dalloc(4 * 24 * 8 * 256), dAOUT = dalloc(4 * 6144);
 	CK(cuMemcpyHtoD(dQN, qn, 4 * 256)); CK(cuMemcpyHtoD(dKN, kn, 4 * 256)); CK(cuMemcpyHtoD(dCS, rcs, 4 * 32 * (size_t)npos)); CK(cuMemcpyHtoD(dSN, rsn, 4 * 32 * (size_t)npos));
@@ -435,6 +477,7 @@ static int test_idxfull(unsigned nv, unsigned NBLK, int iters) {
 	int bad = 0, shown = 0; bad |= cmpb("iq", iq, iqg, 2048, &shown);
 	if (nv > NBLK) bad |= cmpb("sel", sel, selg, 4 * (size_t)k, &shown);
 	printf("idxfull: nv %u NBLK %u: %s\n", nv, NBLK, bad ? "MISMATCH" : "BIT-EXACT");
+	if (!bad && qsa_capture_ids_(selg, k, nv, t)) return 1;
 	if (iters > 0) {   /* the time of the 7 phases: iters tokens in one launch (the context grows by iters/4 blocks) */
 		CK(cuMemcpyHtoD(dPROG, prog, sizeof(desc_t) * 7)); unsigned nph = 7, tk = t;
 		CK(cuMemcpyHtoD(dCTL + 8, &tk, 4));
@@ -473,9 +516,32 @@ static int test_embimg(void) {
 	return bad;
 }
 
-/* the time of kvgather over 2051 attended keys with the int8 cache in VRAM or in pinned host memory */
+/* Legacy zero-filled, fixed repeated-layout timing over 51 positions. */
 static int test_gathertime(int host, unsigned nv) {
+	if (nv < 512 || nv > 65523) {
+		fprintf(stderr, "legacy gathertime requires nv512..65523; use qsa_gather_bench\n");
+		return 2;
+	}
 	unsigned NBLK = 512, t = 4 * nv - 1, npos = 4 * nv + 400;
+	unsigned logical_min = 0xffffffffu, logical_max = 0, tail_mask = 0;
+	unsigned logical_sum = 0;
+	for (unsigned j = 0; j < 51; ++j) {
+		unsigned pos = t + j, keys = qsa_nkeys(pos, NBLK);
+		if (keys < logical_min) logical_min = keys;
+		if (keys > logical_max) logical_max = keys;
+		logical_sum += keys;
+		tail_mask |= 1u << (pos & 3u);
+	}
+	unsigned position_end = t + 50;
+	printf("legacy gathertime: UNVERIFIED ZERO-FILLED FIXTURE, condition=repeated-layout-warm, position_start=%u position_end=%u positions=51 block_budget=%u tail_residues_mask=0x%x logical_keys_first=%u logical_keys_last=%u logical_keys_min=%u logical_keys_max=%u logical_keys_mean=%.9f per_gather_source_unique_bytes_min=%llu per_gather_source_unique_bytes_max=%llu per_gather_destination_unique_bytes_min=%llu per_gather_destination_unique_bytes_max=%llu realized_placement=%s; hardware counters are not collected by this legacy path; use qsa_gather_bench\n",
+	       t, position_end, NBLK, tail_mask,
+	       qsa_nkeys(t, NBLK), qsa_nkeys(position_end, NBLK),
+	       logical_min, logical_max, logical_sum / 51.0,
+	       (unsigned long long)logical_min * 1088u,
+	       (unsigned long long)logical_max * 1088u,
+	       (unsigned long long)logical_min * 4096u,
+	       (unsigned long long)logical_max * 4096u,
+	       host ? "pinned-system-memory" : "device-vram");
 	size_t cpos = (4 * (NBLK + 1) + 2048 + 31) / 32 * 32;
 	CUdeviceptr dKQ = host ? halloc((size_t)npos * 512) : dalloc((size_t)npos * 512), dVQ = host ? halloc((size_t)npos * 512) : dalloc((size_t)npos * 512), dKS = host ? halloc((size_t)npos * 32) : dalloc((size_t)npos * 32), dVS = host ? halloc((size_t)npos * 32) : dalloc((size_t)npos * 32);
 	CUdeviceptr dKC = dalloc(ATTN_KC_FLOATS(cpos) * 4), dVC = dalloc(cpos * 512 * 4), dSEL = dalloc(4 * (NBLK + 8));
@@ -488,7 +554,7 @@ static int test_gathertime(int host, unsigned nv) {
 	CUevent e0, e1; CK(cuEventCreate(&e0, 0)); CK(cuEventCreate(&e1, 0));
 	CK(cuEventRecord(e0, 0)); CK(cuLaunchKernel(fn, 16, 1, 1, 256, 1, 1, 0, 0, params, NULL)); CK(cuEventRecord(e1, 0)); CK(cuCtxSynchronize());
 	float ms; CK(cuEventElapsedTime(&ms, e0, e1));
-	printf("kvgather, cache in %s memory: %.1f us per token (2051 keys)\n", host ? "host" : "device", 1e3 * ms / 51);
+	printf("kvgather, cache in %s memory: %.1f us per token over %u..%u logical keys (repeated layout)\n", host ? "pinned system" : "device VRAM", 1e3 * ms / 51, logical_min, logical_max);
 	return 0;
 }
 
@@ -508,9 +574,12 @@ int main(int argc,char**argv){
   {"padding",3,{2051,512,0},{1,1,0},{262144,4096,1000000}}
  };
  if(argc<2){fprintf(stderr,"usage: qsa_test kv|idxqk|idxscore|idxsel|idxfull|embimg|gathertime|padding [arguments]\n");return 2;}
+ (void)qsa_hostkv_mode_();
  unsigned which;for(which=0;which<sizeof modes/sizeof*modes;which++)if(!strcmp(argv[1],modes[which].name))break;
  if(which==sizeof modes/sizeof*modes){fprintf(stderr,"unknown test: %s\n",argv[1]);return 2;}
  const mode*m=modes+which;unsigned arg[4];memcpy(arg,m->value,sizeof arg);
+ const char *capture_path=getenv("QSA_CAPTURE_IDS");
+ if(capture_path && (!*capture_path || which!=4 || arg[0]<=512 || arg[1]!=512)){fprintf(stderr,"QSA_CAPTURE_IDS requires idxfull with nv > 512 and a 512-block budget\n");return 2;}
  if(argc>2+(int)m->n){fprintf(stderr,"too many arguments for %s\n",m->name);return 2;}
  for(int i=2;i<argc;i++)if(checked_parse_unsigned(argv[i],m->lo[i-2],m->hi[i-2],arg+i-2)){fprintf(stderr,"invalid argument for %s: %s\n",m->name,argv[i]);return 2;}
  if(which==4 && arg[2]>0 && arg[2]>262145u-4u*arg[0]){fprintf(stderr,"idxfull run exceeds supported token positions\n");return 2;}

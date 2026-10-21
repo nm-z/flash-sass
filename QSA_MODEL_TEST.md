@@ -66,7 +66,7 @@ context. Release the lock after the run. Keep existing holders and the resident
 engine intact: do not kill another worker's process or park, restart, reload,
 or reconfigure the resident engine to make a test fit.
 
-`kern/run_qsa_model_matrix.pl` records a selected matrix, binary/source and input
+`kern/run_qsa_model_matrix.nu` records a selected matrix, binary/source and input
 identities, effective environment, GPU/process admission checks, and raw outputs.
 It requires an exact successful comparison summary, the QSA banner and matching
 opcode/budget assertions. Negative controls require a reachability marker,
@@ -76,9 +76,9 @@ requests. A passing report says `SELECTED_CASES_PASSED` and leaves
 `acceptance_complete` false.
 
 ```sh
-perl kern/run_qsa_model_matrix.pl --self-test
-bash kern/test_model_cli.sh kern/model_test
-perl kern/run_qsa_model_matrix.pl --repo "$PWD" --out /new/results \
+nu kern/run_qsa_model_matrix.nu -- --self-test
+nu kern/test_model_cli.nu kern/model_test
+nu kern/run_qsa_model_matrix.nu -- --repo "$PWD" --out /new/results \
   --cache /full/cache --ids /teacher-ids --blocks 0:48 --tokens 2052 --flags eh \
   --manifest /holder0 --manifest /holder1 --manifest /holder2 \
   --manifest /holder3 --manifest /holder4 --manifest /holder5 \
@@ -86,6 +86,7 @@ perl kern/run_qsa_model_matrix.pl --repo "$PWD" --out /new/results \
   --controls none --plan
 ```
 
+The `--` separates Nu's own options from the runner's existing options.
 `--plan` does no GPU work. Actual runs acquire the fixed shared lock and admit
 only explicitly named holder PIDs whose executable and manifest match. An owned
 holder wrapper may pass `--lock-fd 9`; the runner verifies that descriptor's
@@ -100,14 +101,14 @@ request reset and snapshot copying to the executed blocks. The default remains
 48. Partial-layer engine results must report the effective `config` and remain
 labeled as partial-model results, regardless of head/logit comparisons.
 
-`kern/check_qsa_engine_requests.pl` uses the same lock/admission helpers for
+`kern/check_qsa_engine_requests.nu` uses the same lock/admission helpers for
 owned private cores. It checks fresh requests, prompt changes, snapshots at
 positions 1/2/3/5, resume counts, final state/logit fingerprints and actual
 paired/chunk counters. A separate `gen 1` request has its own full-head engine
 reference; it is not a teacher-forced scalar-model comparison. `--self-test`
 checks the parser on CPU and `--plan` displays the exact request sequence.
 Actual execution requires an inherited reservation and an explicitly identified
-holder, such as those supplied by `validation/issue9/with_private_holder.sh`
+holder, such as those supplied by `validation/issue9/with_private_holder.nu`
 for the one-die fixture.
 
 ### Multi-die and variable-depth request checks
@@ -140,8 +141,8 @@ manifest hash, an exact source diff and optional `--weight-manifest` and
 synthetic parser fixture nor GPU-versus-GPU fingerprints establish full-model
 CPU agreement or checkpoint lineage.
 
-`perl kern/check_qsa_engine_requests.pl --self-test` runs
-`kern/test_qsa_engine_requests.pl`, including six-die, 48-layer, 2,052-token
+`nu kern/check_qsa_engine_requests.nu -- --self-test` runs
+`kern/test_qsa_engine_requests.nu`, including six-die, 48-layer, 2,052-token
 synthetic captures; corruption/missing-state checks on nonzero dies; topology
 rejection; and independent chunk/snapshot accounting checks. These are CPU
 parser/planner tests, not GPU results.

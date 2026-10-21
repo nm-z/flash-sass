@@ -1,0 +1,12 @@
+{
+  "command": [
+    "ssh",
+    "archy",
+    "CUDA_VISIBLE_DEVICES=GPU-431371bd-b482-96b2-4b70-04f83c6d075b /opt/cuda/bin/nvprof --query-metrics"
+  ],
+  "command_timeout_ms": 20000,
+  "exit_code": 124,
+  "stderr": "======== Error: CUDA profiling error.\n",
+  "measured_hardware_counters": false,
+  "required_followup": "Successful Maxwell-compatible counter query and separate fixed-input host/VRAM gather profiles; do not infer hardware bytes from address footprints."
+}

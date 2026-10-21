@@ -1858,12 +1858,14 @@ Their spread is 2.30 ms. The required limit is 0.50 ms, together with at least
 35.9 decode tokens/s on the `linkmatrix_test.sh` request protocol and unchanged
 output token IDs. No replacement split has yet been selected or validated here.
 
-`kern/die_balance_capture.rb` captures one loaded placement under the shared
+`kern/die_balance_capture` captures one loaded placement under the shared
 `/tmp/flash-sass-engine-validation.lock`: one warm-up and at least three measured
 HTTP requests, exact prompt/output token IDs, runtime identity, and all six raw
-profiles for each response. `kern/die_balance.rb` compares compatible captures
+profiles for each response. `kern/die_balance` compares compatible captures
 and ranks accepted candidates by the busiest die's profiled token time. It does
 not add parallel die durations or declare an unmeasured candidate successful.
+Both are C tools built by `make -C kern die_balance die_balance_capture`.
+`make -C kern die_balance_test` runs their CPU-only regression suites.
 
 The [experiment procedure](docs/die-balance.md) records the fixed request, capture
 and comparison commands, expert boundaries, memory checks, and the evidence to

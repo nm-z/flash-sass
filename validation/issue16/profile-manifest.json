@@ -1,0 +1,194 @@
+{
+  "schema": "flash.issue16.profile-manifest.v1",
+  "status": "ALL_THREE_PROFILE_GROUPS_SUCCEEDED; PRODUCTION_SELECTION_SOURCE_UNAVAILABLE",
+  "current_code_source_revision": "64cf729d87e6d51718f32b05b0b6d52842dacdd2",
+  "current_qsa_gather_bench_sha256": "565996be8055dcf79ba9b31661aaf4e611fa7d9c3793d9d660bbe13af988090a",
+  "current_die_cubin_sha256": "aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423",
+  "gpu": "Tesla M60, GPU-431371bd-b482-96b2-4b70-04f83c6d075b",
+  "profiler": "NVIDIA CUDA 11.4.120 nvprof/CUPTI redist; staged under /dev/shm/fs16-64cf/tools/nvprof114",
+  "nvprof_sha256": "c3e58ebca670c1511c55e1d1420f8fea67d25fba93a4e0d178bc562473ae819d",
+  "launcher": {
+    "source": "tools/issue16_profile_launcher.c",
+    "source_sha256": "aad86e5197c3f90fcd0be73e86fc8160291e7e54167d05a0fa248392d281441c",
+    "dsh_build_id": "build-2455123-1792568713295143360",
+    "dsh_host": "azb1",
+    "artifact_sha256": "daf66d46372d2986ada60f92189ebd0b115ee052f5f0a22afd047e4da77257c3"
+  },
+  "profile_range": {
+    "environment": "QSA_PROFILE_FIRST=1",
+    "nvprof_option": "--profile-from-start off",
+    "kernel_filter": "--kernels die",
+    "scope": "only the first timed qsa_gather_bench launch, excluding preflight and ten warmups"
+  },
+  "base_case": {
+    "nv": 2000,
+    "tail": 0,
+    "iterations": 8,
+    "pattern": "captured",
+    "seed": 4242,
+    "block_budget": 512,
+    "selection_position": 7999,
+    "gather_ids": "/dev/shm/fs16-64cf/kern/op-idxsel-pos7999.ids.u32",
+    "gather_ids_sha256": "27680228fc2366868f7e4a69c20d824c0bc4dd710986d2607609225bb7cb7175",
+    "selection_origin": "verified OP_IDXSEL result from a synthetic idxfull fixture; not a checkpoint-derived selection"
+  },
+  "metric_groups_from_archived_issue10_discovery": {
+    "traffic": [
+      "sysmem_read_bytes",
+      "sysmem_write_bytes",
+      "dram_read_bytes",
+      "dram_write_bytes"
+    ],
+    "transactions": [
+      "sysmem_read_transactions",
+      "sysmem_write_transactions",
+      "dram_read_transactions",
+      "dram_write_transactions",
+      "gld_transactions",
+      "gst_transactions"
+    ],
+    "stalls": [
+      "stall_memory_dependency",
+      "stall_memory_throttle",
+      "stall_exec_dependency",
+      "stall_sync"
+    ],
+    "occupancy": [
+      "achieved_occupancy",
+      "eligible_warps_per_cycle"
+    ]
+  },
+  "current_head_metric_query": {
+    "gpuq_job_id": "92530cf8-3b7d-49f6-80e1-514c3977bd86",
+    "label": "fs16-64cf-nvprof-query",
+    "exit_code": 0,
+    "device": "Tesla M60, CUDA 11.4.120 nvprof",
+    "available": [
+      "sysmem_read_bytes",
+      "sysmem_write_bytes",
+      "dram_read_bytes",
+      "dram_write_bytes",
+      "sysmem_read_transactions",
+      "sysmem_write_transactions",
+      "dram_read_transactions",
+      "dram_write_transactions",
+      "gld_transactions",
+      "gst_transactions",
+      "stall_memory_dependency",
+      "stall_memory_throttle",
+      "stall_exec_dependency",
+      "stall_sync"
+    ],
+    "stdout_documents": [79502, 79503, 79504],
+    "stdout_sha256": [
+      "7f78297d09c11f0b9bbdfad6e6547939d216e925bdbac4c068e57ee4e4c54521",
+      "9477993102014bb55a2df39eab72faee5f39db7e3ceaa860e8dc9bfb199a1f8d",
+      "82f9f22b40a23c64a55457231a56bc5494be0c597f0383101603576e2cd639d0"
+    ],
+    "raw_output": "nvprof-query-64cf.txt.gz",
+    "raw_output_encoding": "gzip",
+    "raw_output_bytes": 16912,
+    "raw_output_sha256": "63dde03745234652229c71b6a43140d18293ff770a4d9c4586c0c4625733aa02",
+    "raw_output_compressed_bytes": 2951,
+    "raw_output_compressed_sha256": "37fd93bfd8d4a74aae653e5bf475b501e5838f4ec83e3783a416d229eb1a971a"
+  },
+  "command_template": "GPUQ invokes issue16_profile_launcher <traffic|transactions|stalls>; the C launcher runs CUDA_VISIBLE_DEVICES=GPU-431371bd-b482-96b2-4b70-04f83c6d075b, GATHER_IDS=/dev/shm/fs16-64cf/kern/op-idxsel-pos7999.ids.u32, DIE_CUBIN=/dev/shm/fs16-64cf/kern/die.cubin, QSA_PROFILE_FIRST=1 and nvprof --csv --profile-from-start off --kernels die --metrics <group> for host=0 and host=1",
+  "execution_matrix": "three separate metric-group jobs; each job profiles the same captured IDs, cache input, nv=2000, tail=0, position=7999, seed=4242, 8 iterations, and cubin for both placements",
+  "execution_privilege": "The first unprivileged nvprof attempt failed before collecting counters with ERR_NVGPUCTRPERM. Successful jobs invoke nvprof through sudo -n only inside the GPUQ-locked command; no driver setting or system service was changed.",
+  "profile_timing_note": "nvprof replays kernels to collect metric groups and caused large outliers in CUDA event timing; profiler-run timings are not treated as benchmark timing evidence.",
+  "successful_profiles": {
+    "traffic": {
+      "gpuq_job_id": "663cd1b8-bf5f-427d-b501-382b6b2d35be",
+      "label": "fs16-64cf-profile-traffic-root",
+      "exit_code": 0,
+      "supplied_document_id": 79561,
+      "bundle_bytes": 2070,
+      "bundle_sha256": "0a0f648dc5f61f534ed8cb14d7fb8b461efdc534df53f036028fa9407b8b8368",
+      "raw_results": "profiles-64cf/traffic.raw.tar.gz",
+      "metrics": {
+        "device-vram": {
+          "sysmem_read_bytes": 0,
+          "sysmem_write_bytes": 672,
+          "dram_read_bytes": 7124960,
+          "dram_write_bytes": 12342272
+        },
+        "pinned-system-memory": {
+          "sysmem_read_bytes": 2359296,
+          "sysmem_write_bytes": 672,
+          "dram_read_bytes": 4946144,
+          "dram_write_bytes": 15093920
+        }
+      }
+    },
+    "transactions": {
+      "gpuq_job_id": "1c08039d-0f37-44f4-913b-77f1768d26ef",
+      "label": "fs16-64cf-profile-transactions",
+      "exit_code": 0,
+      "supplied_document_id": 79609,
+      "bundle_bytes": 2095,
+      "bundle_sha256": "08a84bd5b5c753c2678f0fa9b617c2e3b3693a3dc31e9c218c1eba4d9e705217",
+      "raw_results": "profiles-64cf/transactions.raw.tar.gz",
+      "metrics": {
+        "device-vram": {
+          "sysmem_read_transactions": 0,
+          "sysmem_write_transactions": 21,
+          "dram_read_transactions": 232532,
+          "dram_write_transactions": 408822,
+          "gld_transactions": 310954,
+          "gst_transactions": 524324
+        },
+        "pinned-system-memory": {
+          "sysmem_read_transactions": 73728,
+          "sysmem_write_transactions": 21,
+          "dram_read_transactions": 150818,
+          "dram_write_transactions": 485375,
+          "gld_transactions": 316634,
+          "gst_transactions": 524324
+        }
+      }
+    },
+    "stalls": {
+      "gpuq_job_id": "bd22bd13-2c43-4da9-ab0f-632cf06fc6e8",
+      "label": "fs16-64cf-profile-stalls",
+      "exit_code": 0,
+      "supplied_document_id": 79674,
+      "bundle_bytes": 2105,
+      "bundle_sha256": "09b4d82191f00b42fa762d572cdc712c892cef7b512bc2e862ed00d1a44185b4",
+      "raw_results": "profiles-64cf/stalls.raw.tar.gz",
+      "metrics": {
+        "device-vram": {
+          "stall_memory_dependency": 84.276301,
+          "stall_memory_throttle": 0.000724,
+          "stall_exec_dependency": 4.962355,
+          "stall_sync": 3.614320
+        },
+        "pinned-system-memory": {
+          "stall_memory_dependency": 97.329610,
+          "stall_memory_throttle": 0.000033,
+          "stall_exec_dependency": 0.213437,
+          "stall_sync": 2.377729
+        }
+      }
+    }
+  },
+  "unprivileged_profile_attempt": {
+    "gpuq_job_id": "a7842bd8-7a6b-4900-a6ee-e8847b6eac71",
+    "exit_code": 1,
+    "diagnostic": "ERR_NVGPUCTRPERM; no events/metrics were profiled",
+    "supplied_document_id": 79540,
+    "raw_results": "profiles-64cf/traffic-unprivileged-failed.raw.tar.gz",
+    "raw_results_sha256": "47a8255dba80d23ad22fc63c7489dceb9577d7ee4367efa8b5dea1cbb754692d"
+  },
+  "archived_issue10_crosswalk": {
+    "source_revision": "7c6f34d4372567fd97f1cef9b609d3dc0c81b0d3",
+    "qsa_gather_bench_sha256": "126ba2ed56f7623a0ee1eeb5f658d719e057ef3c3f54eb1d5d2746f8776523b8",
+    "die_cubin_sha256": "0fa2a17fa41c07aac507f9bc218a777601719a8e2b6eb8b40ec93867d4768027",
+    "scope": "Confirms M60 metric availability and historical separate profile groups; its artifact identities differ from the current head and do not satisfy current-head profiling"
+  },
+  "queue_access": {
+    "required_route": "ssh archy gpuq run -- ...",
+    "status": "ALL CURRENT-HEAD BYTE, TRANSACTION, AND STALL PROFILE PAIRS SUCCEEDED; ONLY CHECKPOINT-DERIVED SELECTION EVIDENCE IS UNAVAILABLE",
+    "issue": "https://github.com/nm-z/gpuq/issues/35",
+    "current_head_counter_values_collected": true
+  }
+}
