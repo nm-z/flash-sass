@@ -1,24 +1,23 @@
 {
   "schema": "flash.issue16.capture-manifest.v1",
-  "status": "PREPARATION_ONLY",
+  "status": "CAPTURE_AND_MATRIX_COMPLETE; COUNTER_PROFILES_PENDING",
   "pr": {
     "number": 43,
-    "head": "84cd2b7e9cabf5c799090858fc53a970bdc4c23d",
-    "code_source_revision": "a62303283f993acb8a13188941b00f5bc9ef340b"
+    "code_source_revision": "64cf729d87e6d51718f32b05b0b6d52842dacdd2"
   },
   "artifact_staging": {
     "status": "STAGED_IN_ARCHY_TMPFS",
-    "destination": "/dev/shm/fs16-a623032",
+    "destination": "/dev/shm/fs16-64cf",
     "copy_only": [
       {
         "name": "qsa_test",
-        "bytes": 112792,
-        "sha256": "00520ee0aff6a8b49e7dbc6721005aa08f1259d7808456ba980bf52931eefa9a"
+        "bytes": 112784,
+        "sha256": "c4eaa6651560f4c451ff21297674649be0ef2ef6251e67b2b35c4c781f255e37"
       },
       {
         "name": "qsa_gather_bench",
         "bytes": 129792,
-        "sha256": "f982b117724816c7d910a8188d585e1ef5f51c75322e21f9175b0ef6fb2b6ecc"
+        "sha256": "565996be8055dcf79ba9b31661aaf4e611fa7d9c3793d9d660bbe13af988090a"
       },
       {
         "name": "die.cubin",
@@ -26,20 +25,21 @@
         "sha256": "aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423"
       }
     ],
-    "total_bytes": 707968,
+    "total_bytes": 707960,
     "source_tree_or_cuda_toolchain_to_copy": false,
     "selection_ids_generated_inside_gpuq_job": true,
-    "staged_total_bytes": 707968,
+    "staged_total_bytes": 707960,
     "corrected_qsa_binaries": {
       "status": "STAGED_IN_ARCHY_TMPFS",
-      "qsa_gather_bench_sha256": "119fad2c1bcb15faa662c09961dafc822ccb398073c085d60fa67485e4122bfe",
-      "qsa_test_sha256": "a2fc60e13dd71523de740cef0a1da4f60809a1c2ecbdeeeb9928cc63b19ead07",
+      "qsa_gather_bench_sha256": "565996be8055dcf79ba9b31661aaf4e611fa7d9c3793d9d660bbe13af988090a",
+      "qsa_test_sha256": "c4eaa6651560f4c451ff21297674649be0ef2ef6251e67b2b35c4c781f255e37",
       "makefile_commit": "461c119a954667e6ad2097d9a47afa45e55e0fce",
-      "path": "/dev/shm/fs16-a623032/kern"
+      "path": "/dev/shm/fs16-64cf/kern"
     }
   },
   "op_idxsel_fixture_capture": {
-    "status": "NOT_RUN",
+    "status": "SUCCEEDED",
+    "gpuq_job_id": "b7de97de-7982-453c-907c-c380e72ca9a8",
     "command_template": "env QSA_HOSTKV=0 DIE_CUBIN=$GPUQ_RUN_DIR/die.cubin QSA_CAPTURE_IDS=$GPUQ_RUN_DIR/op-idxsel-nv2000-pos7999.ids.u32 $GPUQ_RUN_DIR/qsa_test idxfull 2000 512 0",
     "qsa_test_arguments": {
       "mode": "idxfull",
@@ -51,18 +51,21 @@
       "logical_keys": 2048
     },
     "output": {
-      "path": "$GPUQ_RUN_DIR/op-idxsel-nv2000-pos7999.ids.u32",
+      "path": "selection-pairs-64cf/op-idxsel-pos7999.ids.u32",
       "rows": 1,
       "ids_per_row": 512,
       "bytes": 2048,
       "encoding": "little-endian uint32",
-      "validation": "strictly increasing, unique, each ID in [0,2000); qsa_test verifies GPU output against its C twin before writing"
+      "sha256": "27680228fc2366868f7e4a69c20d824c0bc4dd710986d2607609225bb7cb7175",
+      "validation": "512 sorted, unique IDs in [0,2000); qsa_test reported BIT-EXACT and the capture launcher revalidated the row before writing results"
     },
     "selection_origin": "Verified OP_IDXSEL output from qsa_test idxfull's synthetic query/key/pool fixture; not a checkpoint-derived model selection",
-    "preserve_binary_ids_as_gpuq_document": "base64 -w0 $GPUQ_RUN_DIR/op-idxsel-nv2000-pos7999.ids.u32 | gpuq put issue16.op_idxsel_ids.base64"
+    "preserve_binary_ids_as_gpuq_document": "included as op-idxsel-pos7999.ids.u32 in GPUQ supplied document 79430; copied and checked into selection-pairs-64cf/"
   },
   "captured_gather_pair": {
-    "status": "NOT_RUN",
+    "status": "SUCCEEDED",
+    "gpuq_job_id": "b7de97de-7982-453c-907c-c380e72ca9a8",
+    "evidence": "selection-pairs-64cf/manifest.json",
     "position_match": "nv=2000, tail=0 gives gather position 7999, matching idxfull's selection position",
     "iterations": 8,
     "seed": 4242,
@@ -79,16 +82,16 @@
     "runner_note": "run_qsa_gather_pair.pl matrix mode replaces GATHER_IDS with its generated fixture; external captures use the direct qsa_gather_bench arm commands above"
   },
   "captured_token_rows": {
-    "status": "SOURCE_NOT_AVAILABLE",
+    "status": "SYNTHETIC_SINGLE_ROW_REPEATED; PRODUCTION_ROWS_NOT_AVAILABLE",
     "required_format": "iterations rows, each 512 little-endian uint32 IDs, strictly increasing and unique within each row",
     "required_bytes_for_eight_iterations": 16384,
     "qsa_gather_pattern": "captured-token",
-    "limitation": "The current qsa_test QSA_CAPTURE_IDS path writes one idxfull row per invocation at position 4*nv-1. It does not export a checkpoint-derived row for every production token position. The issue-10 archive has no accepted checkpoint-derived selection lineage."
+    "limitation": "The current qsa_test QSA_CAPTURE_IDS path writes one idxfull row per invocation at position 4*nv-1. The captured-token check repeated that synthetic row for the eight positions 7999–8006. No checkpoint-derived production row for each token is available; the issue-10 archive has no accepted checkpoint-derived selection lineage."
   },
   "issue10_archive_review": "validation/issue16/issue10-offline-review.md",
   "queue": {
     "required_route": "ssh archy gpuq run -- ...",
-    "status": "ABI_SMOKE_QUEUED_BEHIND_EXISTING_JOBS",
+    "status": "MERGED_HEAD_SMOKE_AND_MATRIX_AND_SELECTION_PAIRS_SUCCEEDED; COUNTERS_PENDING",
     "successful_jobs": [
       {
         "id": "b68ef825-8db8-4869-bf67-3855ac9af1dd",
@@ -151,9 +154,31 @@
     "issue": "https://github.com/nm-z/gpuq/issues/35",
     "abi_smoke_job": {
       "id": "94cf312f-88b8-4577-b579-a52ad34a878f",
-      "status": "queued",
-      "started_ns": null,
-      "ticket": "1792565627374018802"
+      "status": "succeeded",
+      "exit_code": 0,
+      "ticket": "1792565627374018802",
+      "source_revision": "461c119"
+    },
+    "current_head_smoke": {
+      "id": "33205075-1c6b-46e1-a995-100540f50727",
+      "status": "succeeded",
+      "exit_code": 0,
+      "source_revision": "64cf729",
+      "raw_json": "validation/issue16/current-head-smoke-64cf.json"
+    },
+    "current_head_matrix": {
+      "id": "cfacfaa9-faa5-4b06-adf1-64f3eeea452e",
+      "status": "succeeded",
+      "exit_code": 0,
+      "pair_count": 40,
+      "evidence": "validation/issue16/matrix-64cf/manifest.json"
+    },
+    "selection_and_changing_token_pairs": {
+      "id": "b7de97de-7982-453c-907c-c380e72ca9a8",
+      "status": "succeeded",
+      "exit_code": 0,
+      "supplied_document_id": 79430,
+      "evidence": "validation/issue16/selection-pairs-64cf/manifest.json"
     }
   }
 }

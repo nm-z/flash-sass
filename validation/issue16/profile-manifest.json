@@ -1,10 +1,11 @@
 {
   "schema": "flash.issue16.profile-manifest.v1",
-  "status": "TOOLS_STAGED_NOT_RUN_ON_CURRENT_HEAD",
-  "current_code_source_revision": "a62303283f993acb8a13188941b00f5bc9ef340b",
+  "status": "NVPROF_AND_CAPTURE_STAGED; METRIC_QUERY_AND_PROFILES_PENDING",
+  "current_code_source_revision": "64cf729d87e6d51718f32b05b0b6d52842dacdd2",
+  "current_qsa_gather_bench_sha256": "565996be8055dcf79ba9b31661aaf4e611fa7d9c3793d9d660bbe13af988090a",
   "current_die_cubin_sha256": "aecc7ae61d5fea6869aeb57c68965d4cce741516e8c4f909e1c8ed8956ee1423",
   "gpu": "Tesla M60, GPU-431371bd-b482-96b2-4b70-04f83c6d075b",
-  "profiler": "NVIDIA CUDA 11.4.120 nvprof/CUPTI redist; staged under /dev/shm/fs16-a623032/tools/nvprof114",
+  "profiler": "NVIDIA CUDA 11.4.120 nvprof/CUPTI redist; staged under /dev/shm/fs16-64cf/tools/nvprof114",
   "profile_range": {
     "environment": "QSA_PROFILE_FIRST=1",
     "nvprof_option": "--profile-from-start off",
@@ -19,7 +20,9 @@
     "seed": 4242,
     "block_budget": 512,
     "selection_position": 7999,
-    "gather_ids": "$GPUQ_RUN_DIR/op-idxsel-nv2000-pos7999.ids.u32"
+    "gather_ids": "/dev/shm/fs16-64cf/kern/op-idxsel-pos7999.ids.u32",
+    "gather_ids_sha256": "27680228fc2366868f7e4a69c20d824c0bc4dd710986d2607609225bb7cb7175",
+    "selection_origin": "verified OP_IDXSEL result from a synthetic idxfull fixture; not a checkpoint-derived selection"
   },
   "metric_groups_from_archived_issue10_discovery": {
     "traffic": [
@@ -32,11 +35,14 @@
       "sysmem_read_transactions",
       "sysmem_write_transactions",
       "dram_read_transactions",
-      "dram_write_transactions"
+      "dram_write_transactions",
+      "gld_transactions",
+      "gst_transactions"
     ],
     "stalls": [
       "stall_memory_dependency",
       "stall_memory_throttle",
+      "stall_exec_dependency",
       "stall_sync"
     ],
     "occupancy": [
@@ -44,8 +50,8 @@
       "eligible_warps_per_cycle"
     ]
   },
-  "command_template": "env CUDA_VISIBLE_DEVICES=GPU-431371bd-b482-96b2-4b70-04f83c6d075b DIE_CUBIN=/dev/shm/fs16-a623032/kern/die.cubin QSA_PROFILE_FIRST=1 LD_LIBRARY_PATH=/dev/shm/fs16-a623032/tools/nvprof114/lib /dev/shm/fs16-a623032/tools/nvprof114/bin/nvprof --profile-from-start off --metrics <metric-list> --log-file $GPUQ_RUN_DIR/profile.csv /dev/shm/fs16-a623032/kern/qsa_gather_bench 2000 3 1 random <host> $GPUQ_RUN_DIR/timing.csv 4242",
-  "execution_matrix": "for each metric group, run one nvprof invocation with host=0 and one with host=1; use identical capture file, cache inputs, nv/tail/position, seed, iterations and cubin",
+  "command_template": "GPUQ invokes issue16_profile_launcher <traffic|transactions|stalls>; the C launcher runs CUDA_VISIBLE_DEVICES=GPU-431371bd-b482-96b2-4b70-04f83c6d075b, GATHER_IDS=/dev/shm/fs16-64cf/kern/op-idxsel-pos7999.ids.u32, DIE_CUBIN=/dev/shm/fs16-64cf/kern/die.cubin, QSA_PROFILE_FIRST=1 and nvprof --csv --profile-from-start off --kernels die --metrics <group> for host=0 and host=1",
+  "execution_matrix": "three separate metric-group jobs; each job profiles the same captured IDs, cache input, nv=2000, tail=0, position=7999, seed=4242, 8 iterations, and cubin for both placements",
   "archived_issue10_crosswalk": {
     "source_revision": "7c6f34d4372567fd97f1cef9b609d3dc0c81b0d3",
     "qsa_gather_bench_sha256": "126ba2ed56f7623a0ee1eeb5f658d719e057ef3c3f54eb1d5d2746f8776523b8",
@@ -54,7 +60,7 @@
   },
   "queue_access": {
     "required_route": "ssh archy gpuq run -- ...",
-    "status": "NOT_RUN_ON_CURRENT_HEAD; GPUQ MATRIX ADMISSION UNRELIABLE",
+    "status": "CURRENT-HEAD METRIC QUERY AND PROFILES PENDING",
     "issue": "https://github.com/nm-z/gpuq/issues/35",
     "current_head_counter_values_collected": false
   }
