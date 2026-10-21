@@ -1,0 +1,1226 @@
+{
+   "passed" : true,
+   "requests" : [
+      {
+         "raw" : [
+            "tok 6",
+            "tok 24218",
+            "tok 10",
+            "tok 4838",
+            "tok 1665",
+            "tok 15",
+            "tok 16",
+            "done 7 0 5 1165.9 399.0 0 0 0"
+         ],
+         "request" : {
+            "ids" : [
+               1,
+               2,
+               3,
+               4,
+               5
+            ],
+            "image" : false,
+            "new" : 6,
+            "sample" : null,
+            "slot" : 0,
+            "snap" : 0,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56173.025890187,
+            "ended" : 0,
+            "first" : 56172.259080532,
+            "resumed" : 0,
+            "slot" : 0,
+            "tokens" : [
+               6,
+               24218,
+               10,
+               4838,
+               1665,
+               15,
+               16
+            ]
+         },
+         "started" : 56171.855232704
+      },
+      {
+         "raw" : [
+            "tok 840",
+            "tok 57761",
+            "tok 61354",
+            "tok 62290",
+            "tok 248046",
+            "tok 198",
+            "tok 248045",
+            "done 7 0 5 1287.9 609.3 0 0 1"
+         ],
+         "request" : {
+            "ids" : [
+               65,
+               66,
+               67,
+               68,
+               69
+            ],
+            "image" : false,
+            "new" : 6,
+            "sample" : null,
+            "slot" : 1,
+            "snap" : 0,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56174.318293801,
+            "ended" : 0,
+            "first" : 56173.639757577,
+            "resumed" : 0,
+            "slot" : 1,
+            "tokens" : [
+               840,
+               57761,
+               61354,
+               62290,
+               248046,
+               198,
+               248045
+            ]
+         },
+         "started" : 56173.026116449
+      },
+      {
+         "raw" : [
+            "tok 840",
+            "tok 57761",
+            "tok 61354",
+            "tok 62290",
+            "tok 248046",
+            "tok 198",
+            "tok 248045",
+            "done 7 0 5 604.7 259.6 0 0 1"
+         ],
+         "request" : {
+            "ids" : [
+               65,
+               66,
+               67,
+               68,
+               69
+            ],
+            "image" : false,
+            "new" : 6,
+            "sample" : null,
+            "slot" : 1,
+            "snap" : 0,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56174.929770877,
+            "ended" : 0,
+            "first" : 56174.584653282,
+            "resumed" : 0,
+            "slot" : 1,
+            "tokens" : [
+               840,
+               57761,
+               61354,
+               62290,
+               248046,
+               198,
+               248045
+            ]
+         },
+         "started" : 56174.320215742
+      },
+      {
+         "raw" : [
+            "tok 6",
+            "tok 24218",
+            "tok 10",
+            "tok 4838",
+            "tok 1665",
+            "tok 15",
+            "tok 16",
+            "done 7 0 5 601.2 255.6 0 0 0"
+         ],
+         "request" : {
+            "ids" : [
+               1,
+               2,
+               3,
+               4,
+               5
+            ],
+            "image" : false,
+            "new" : 6,
+            "sample" : null,
+            "slot" : 0,
+            "snap" : 0,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56174.958623181,
+            "ended" : 0,
+            "first" : 56174.613050668,
+            "resumed" : 0,
+            "slot" : 0,
+            "tokens" : [
+               6,
+               24218,
+               10,
+               4838,
+               1665,
+               15,
+               16
+            ]
+         },
+         "started" : 56174.320215945
+      },
+      {
+         "raw" : [
+            "ok: snap 2",
+            "tok 840",
+            "tok 57761",
+            "tok 61354",
+            "tok 62290",
+            "tok 248046",
+            "tok 198",
+            "tok 248045",
+            "done 7 0 5 612.0 264.0 0 2 1"
+         ],
+         "request" : {
+            "ids" : [
+               65,
+               66,
+               67,
+               68,
+               69
+            ],
+            "image" : false,
+            "new" : 6,
+            "sample" : null,
+            "slot" : 1,
+            "snap" : 2,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56175.579466613,
+            "ended" : 0,
+            "first" : 56175.231604162,
+            "resumed" : 0,
+            "slot" : 1,
+            "tokens" : [
+               840,
+               57761,
+               61354,
+               62290,
+               248046,
+               198,
+               248045
+            ]
+         },
+         "started" : 56174.962871221
+      },
+      {
+         "raw" : [
+            "ok: snap 2",
+            "tok 6",
+            "tok 24218",
+            "tok 10",
+            "tok 4838",
+            "tok 1665",
+            "tok 15",
+            "tok 16",
+            "done 7 0 5 608.9 260.5 0 2 0"
+         ],
+         "request" : {
+            "ids" : [
+               1,
+               2,
+               3,
+               4,
+               5
+            ],
+            "image" : false,
+            "new" : 6,
+            "sample" : null,
+            "slot" : 0,
+            "snap" : 2,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56175.608782302,
+            "ended" : 0,
+            "first" : 56175.260240575,
+            "resumed" : 0,
+            "slot" : 0,
+            "tokens" : [
+               6,
+               24218,
+               10,
+               4838,
+               1665,
+               15,
+               16
+            ]
+         },
+         "started" : 56174.962931412
+      },
+      {
+         "raw" : [
+            "ok: snap 2",
+            "tok 840",
+            "tok 57761",
+            "tok 61354",
+            "tok 62290",
+            "tok 248046",
+            "tok 198",
+            "tok 248045",
+            "done 7 0 5 493.7 145.7 2 0 1"
+         ],
+         "request" : {
+            "ids" : [
+               65,
+               66,
+               67,
+               68,
+               69
+            ],
+            "image" : false,
+            "new" : 6,
+            "sample" : null,
+            "slot" : 1,
+            "snap" : 2,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56176.110429823,
+            "ended" : 0,
+            "first" : 56175.762338683,
+            "resumed" : 2,
+            "slot" : 1,
+            "tokens" : [
+               840,
+               57761,
+               61354,
+               62290,
+               248046,
+               198,
+               248045
+            ]
+         },
+         "started" : 56175.613505227
+      },
+      {
+         "raw" : [
+            "ok: snap 2",
+            "tok 6",
+            "tok 24218",
+            "tok 10",
+            "tok 4838",
+            "tok 1665",
+            "tok 15",
+            "tok 16",
+            "done 7 0 5 491.8 143.3 2 0 0"
+         ],
+         "request" : {
+            "ids" : [
+               1,
+               2,
+               3,
+               4,
+               5
+            ],
+            "image" : false,
+            "new" : 6,
+            "sample" : null,
+            "slot" : 0,
+            "snap" : 2,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56176.139493049,
+            "ended" : 0,
+            "first" : 56175.791076693,
+            "resumed" : 2,
+            "slot" : 0,
+            "tokens" : [
+               6,
+               24218,
+               10,
+               4838,
+               1665,
+               15,
+               16
+            ]
+         },
+         "started" : 56175.613547773
+      },
+      {
+         "raw" : [
+            "ok: sample seed 12345 temp 0.7 top_k 8 top_p 0.9",
+            "tok 6",
+            "tok 24218",
+            "tok 10",
+            "tok 4838",
+            "tok 1665",
+            "tok 25",
+            "tok 33898",
+            "done 7 0 5 370.2 85.8 2 0 0"
+         ],
+         "request" : {
+            "ids" : [
+               1,
+               2,
+               3,
+               4,
+               5
+            ],
+            "image" : false,
+            "new" : 6,
+            "sample" : 12345,
+            "slot" : 0,
+            "snap" : 0,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56176.517326724,
+            "ended" : 0,
+            "first" : 56176.232886526,
+            "resumed" : 2,
+            "slot" : 0,
+            "tokens" : [
+               6,
+               24218,
+               10,
+               4838,
+               1665,
+               25,
+               33898
+            ]
+         },
+         "started" : 56176.143288291
+      },
+      {
+         "raw" : [
+            "ok: sample seed 98765 temp 0.7 top_k 8 top_p 0.9",
+            "tok 15",
+            "tok 16",
+            "tok 15",
+            "tok 16",
+            "tok 15",
+            "tok 16",
+            "tok 15",
+            "done 7 0 5 540.1 85.4 2 0 1"
+         ],
+         "request" : {
+            "ids" : [
+               65,
+               66,
+               67,
+               68,
+               69
+            ],
+            "image" : false,
+            "new" : 6,
+            "sample" : 98765,
+            "slot" : 1,
+            "snap" : 0,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56177.061282268,
+            "ended" : 0,
+            "first" : 56176.606636173,
+            "resumed" : 2,
+            "slot" : 1,
+            "tokens" : [
+               15,
+               16,
+               15,
+               16,
+               15,
+               16,
+               15
+            ]
+         },
+         "started" : 56176.517707147
+      },
+      {
+         "raw" : [
+            "ok: sample seed 98765 temp 0.7 top_k 8 top_p 0.9",
+            "tok 15",
+            "tok 16",
+            "tok 15",
+            "tok 16",
+            "tok 15",
+            "tok 16",
+            "tok 15",
+            "done 7 0 5 492.0 145.2 2 0 1"
+         ],
+         "request" : {
+            "ids" : [
+               65,
+               66,
+               67,
+               68,
+               69
+            ],
+            "image" : false,
+            "new" : 6,
+            "sample" : 98765,
+            "slot" : 1,
+            "snap" : 0,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56177.558451397,
+            "ended" : 0,
+            "first" : 56177.211566546,
+            "resumed" : 2,
+            "slot" : 1,
+            "tokens" : [
+               15,
+               16,
+               15,
+               16,
+               15,
+               16,
+               15
+            ]
+         },
+         "started" : 56177.063282117
+      },
+      {
+         "raw" : [
+            "ok: sample seed 12345 temp 0.7 top_k 8 top_p 0.9",
+            "tok 6",
+            "tok 24218",
+            "tok 10",
+            "tok 4838",
+            "tok 1665",
+            "tok 25",
+            "tok 33898",
+            "done 7 0 5 490.5 142.9 2 0 0"
+         ],
+         "request" : {
+            "ids" : [
+               1,
+               2,
+               3,
+               4,
+               5
+            ],
+            "image" : false,
+            "new" : 6,
+            "sample" : 12345,
+            "slot" : 0,
+            "snap" : 0,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56177.587961767,
+            "ended" : 0,
+            "first" : 56177.240244675,
+            "resumed" : 2,
+            "slot" : 0,
+            "tokens" : [
+               6,
+               24218,
+               10,
+               4838,
+               1665,
+               25,
+               33898
+            ]
+         },
+         "started" : 56177.063336499
+      },
+      {
+         "raw" : [
+            "ok: sample seed 98765 temp 0.7 top_k 8 top_p 0.9",
+            "ok: snap 2",
+            "tok 15",
+            "tok 16",
+            "tok 15",
+            "tok 16",
+            "tok 15",
+            "tok 16",
+            "tok 15",
+            "done 7 0 5 493.6 145.8 2 0 1"
+         ],
+         "request" : {
+            "ids" : [
+               65,
+               66,
+               67,
+               68,
+               69
+            ],
+            "image" : false,
+            "new" : 6,
+            "sample" : 98765,
+            "slot" : 1,
+            "snap" : 2,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56178.094511702,
+            "ended" : 0,
+            "first" : 56177.746805466,
+            "resumed" : 2,
+            "slot" : 1,
+            "tokens" : [
+               15,
+               16,
+               15,
+               16,
+               15,
+               16,
+               15
+            ]
+         },
+         "started" : 56177.597969653
+      },
+      {
+         "raw" : [
+            "ok: sample seed 12345 temp 0.7 top_k 8 top_p 0.9",
+            "ok: snap 2",
+            "tok 6",
+            "tok 24218",
+            "tok 10",
+            "tok 4838",
+            "tok 1665",
+            "tok 25",
+            "tok 33898",
+            "done 7 0 5 491.1 142.9 2 0 0"
+         ],
+         "request" : {
+            "ids" : [
+               1,
+               2,
+               3,
+               4,
+               5
+            ],
+            "image" : false,
+            "new" : 6,
+            "sample" : 12345,
+            "slot" : 0,
+            "snap" : 2,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56178.123672607,
+            "ended" : 0,
+            "first" : 56177.775414025,
+            "resumed" : 2,
+            "slot" : 0,
+            "tokens" : [
+               6,
+               24218,
+               10,
+               4838,
+               1665,
+               25,
+               33898
+            ]
+         },
+         "started" : 56177.597988841
+      },
+      {
+         "raw" : [
+            "ok: sample seed 12345 temp 0.7 top_k 8 top_p 0.9",
+            "ok: snap 2",
+            "tok 6",
+            "tok 24218",
+            "tok 10",
+            "tok 4838",
+            "tok 1665",
+            "tok 25",
+            "tok 33898",
+            "done 7 0 5 492.8 146.1 2 0 0"
+         ],
+         "request" : {
+            "ids" : [
+               1,
+               2,
+               3,
+               4,
+               5
+            ],
+            "image" : false,
+            "new" : 6,
+            "sample" : 12345,
+            "slot" : 0,
+            "snap" : 2,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56178.625693232,
+            "ended" : 0,
+            "first" : 56178.2790002,
+            "resumed" : 2,
+            "slot" : 0,
+            "tokens" : [
+               6,
+               24218,
+               10,
+               4838,
+               1665,
+               25,
+               33898
+            ]
+         },
+         "started" : 56178.129648222
+      },
+      {
+         "raw" : [
+            "ok: sample seed 98765 temp 0.7 top_k 8 top_p 0.9",
+            "ok: snap 2",
+            "tok 15",
+            "tok 16",
+            "tok 15",
+            "tok 16",
+            "tok 15",
+            "tok 16",
+            "tok 15",
+            "done 7 0 5 490.4 143.2 2 0 1"
+         ],
+         "request" : {
+            "ids" : [
+               65,
+               66,
+               67,
+               68,
+               69
+            ],
+            "image" : false,
+            "new" : 6,
+            "sample" : 98765,
+            "slot" : 1,
+            "snap" : 2,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56178.654707592,
+            "ended" : 0,
+            "first" : 56178.307601602,
+            "resumed" : 2,
+            "slot" : 1,
+            "tokens" : [
+               15,
+               16,
+               15,
+               16,
+               15,
+               16,
+               15
+            ]
+         },
+         "started" : 56178.129685926
+      },
+      {
+         "raw" : [
+            "tok 871",
+            "tok 606",
+            "tok 328",
+            "done 3 0 2 7853.2 7555.5 0 0 1"
+         ],
+         "request" : {
+            "ids" : [
+               65,
+               66
+            ],
+            "image" : false,
+            "new" : 2,
+            "sample" : null,
+            "slot" : 1,
+            "snap" : 0,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56186.516131239,
+            "ended" : 0,
+            "first" : 56186.304328376,
+            "resumed" : 0,
+            "slot" : 1,
+            "tokens" : [
+               871,
+               606,
+               328
+            ]
+         },
+         "started" : 56178.658266877
+      },
+      {
+         "raw" : [
+            "tok 196",
+            "tok 1517",
+            "done 2 0 96 10611.0 10496.0 0 0 0"
+         ],
+         "request" : {
+            "ids" : [
+               100,
+               101,
+               102,
+               103,
+               104,
+               105,
+               106,
+               107,
+               108,
+               109,
+               110,
+               111,
+               112,
+               113,
+               114,
+               115,
+               116,
+               117,
+               118,
+               119,
+               120,
+               121,
+               122,
+               123,
+               124,
+               125,
+               126,
+               127,
+               128,
+               129,
+               130,
+               131,
+               132,
+               133,
+               134,
+               135,
+               136,
+               137,
+               138,
+               139,
+               140,
+               141,
+               142,
+               143,
+               144,
+               145,
+               146,
+               147,
+               148,
+               149,
+               150,
+               151,
+               152,
+               153,
+               154,
+               155,
+               156,
+               157,
+               158,
+               159,
+               160,
+               161,
+               162,
+               163,
+               164,
+               165,
+               166,
+               167,
+               168,
+               169,
+               170,
+               171,
+               172,
+               173,
+               174,
+               175,
+               176,
+               177,
+               178,
+               179,
+               180,
+               181,
+               182,
+               183,
+               184,
+               185,
+               186,
+               187,
+               188,
+               189,
+               190,
+               191,
+               192,
+               193,
+               194,
+               195
+            ],
+            "image" : false,
+            "new" : 1,
+            "sample" : null,
+            "slot" : 0,
+            "snap" : 0,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56189.306094979,
+            "ended" : 0,
+            "first" : 56189.277082261,
+            "resumed" : 0,
+            "slot" : 0,
+            "tokens" : [
+               196,
+               1517
+            ]
+         },
+         "started" : 56178.658264683
+      },
+      {
+         "raw" : [
+            "tok 6",
+            "tok 24218",
+            "tok 10",
+            "tok 4838",
+            "tok 1665",
+            "tok 15",
+            "tok 16",
+            "done 7 0 5 313.8 141.2 0 0 0"
+         ],
+         "request" : {
+            "ids" : [
+               1,
+               2,
+               3,
+               4,
+               5
+            ],
+            "image" : false,
+            "new" : 6,
+            "sample" : null,
+            "slot" : 0,
+            "snap" : 0,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56189.628842391,
+            "ended" : 0,
+            "first" : 56189.456252972,
+            "resumed" : 0,
+            "slot" : 0,
+            "tokens" : [
+               6,
+               24218,
+               10,
+               4838,
+               1665,
+               15,
+               16
+            ]
+         },
+         "started" : 56189.310719895
+      },
+      {
+         "raw" : [
+            "ok: stop 6 -1",
+            "tok 6",
+            "done 1 1 5 141.2 141.2 0 0 0"
+         ],
+         "request" : {
+            "ids" : [
+               1,
+               2,
+               3,
+               4,
+               5
+            ],
+            "image" : false,
+            "new" : 6,
+            "sample" : null,
+            "slot" : 0,
+            "snap" : 0,
+            "stop" : 6
+         },
+         "result" : {
+            "done" : 56189.774803574,
+            "ended" : 1,
+            "first" : 56189.774675856,
+            "resumed" : 0,
+            "slot" : 0,
+            "tokens" : [
+               6
+            ]
+         },
+         "started" : 56189.629203277
+      },
+      {
+         "raw" : [
+            "tok 840",
+            "tok 57761",
+            "tok 61354",
+            "tok 62290",
+            "tok 248046",
+            "tok 198",
+            "tok 248045",
+            "done 7 0 5 313.9 141.2 0 0 1"
+         ],
+         "request" : {
+            "ids" : [
+               65,
+               66,
+               67,
+               68,
+               69
+            ],
+            "image" : false,
+            "new" : 6,
+            "sample" : null,
+            "slot" : 1,
+            "snap" : 0,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56190.094181039,
+            "ended" : 0,
+            "first" : 56189.921558447,
+            "resumed" : 0,
+            "slot" : 1,
+            "tokens" : [
+               840,
+               57761,
+               61354,
+               62290,
+               248046,
+               198,
+               248045
+            ]
+         },
+         "started" : 56189.775622699
+      },
+      {
+         "raw" : [
+            "tok 6",
+            "tok 24218",
+            "tok 10",
+            "tok 4838",
+            "tok 1665",
+            "tok 15",
+            "tok 16",
+            "done 7 0 5 313.6 141.3 0 0 0"
+         ],
+         "request" : {
+            "ids" : [
+               1,
+               2,
+               3,
+               4,
+               5
+            ],
+            "image" : false,
+            "new" : 6,
+            "sample" : null,
+            "slot" : 0,
+            "snap" : 0,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56190.412535003,
+            "ended" : 0,
+            "first" : 56190.240181728,
+            "resumed" : 0,
+            "slot" : 0,
+            "tokens" : [
+               6,
+               24218,
+               10,
+               4838,
+               1665,
+               15,
+               16
+            ]
+         },
+         "started" : 56190.094448789
+      },
+      {
+         "raw" : [
+            "ok: img 1",
+            "tok 6",
+            "tok 24218",
+            "tok 10",
+            "tok 4838",
+            "tok 1665",
+            "tok 25",
+            "tok 33898",
+            "done 7 0 5 314.8 142.0 0 0 0"
+         ],
+         "request" : {
+            "ids" : [
+               1,
+               2,
+               3,
+               4,
+               5
+            ],
+            "image" : true,
+            "new" : 6,
+            "sample" : null,
+            "slot" : 0,
+            "snap" : 0,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56190.733319864,
+            "ended" : 0,
+            "first" : 56190.56044717,
+            "resumed" : 0,
+            "slot" : 0,
+            "tokens" : [
+               6,
+               24218,
+               10,
+               4838,
+               1665,
+               25,
+               33898
+            ]
+         },
+         "started" : 56190.41378307
+      },
+      {
+         "raw" : [
+            "tok 840",
+            "tok 57761",
+            "tok 61354",
+            "tok 62290",
+            "tok 248046",
+            "tok 198",
+            "tok 248045",
+            "done 7 0 5 313.2 141.4 0 0 1"
+         ],
+         "request" : {
+            "ids" : [
+               65,
+               66,
+               67,
+               68,
+               69
+            ],
+            "image" : false,
+            "new" : 6,
+            "sample" : null,
+            "slot" : 1,
+            "snap" : 0,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56191.051884294,
+            "ended" : 0,
+            "first" : 56190.880061908,
+            "resumed" : 0,
+            "slot" : 1,
+            "tokens" : [
+               840,
+               57761,
+               61354,
+               62290,
+               248046,
+               198,
+               248045
+            ]
+         },
+         "started" : 56190.733676596
+      },
+      {
+         "raw" : [
+            "tok 840",
+            "tok 57761",
+            "tok 61354",
+            "tok 62290",
+            "tok 248046",
+            "tok 198",
+            "tok 248045",
+            "done 7 0 5 604.8 259.5 0 0 1"
+         ],
+         "request" : {
+            "ids" : [
+               65,
+               66,
+               67,
+               68,
+               69
+            ],
+            "image" : false,
+            "new" : 6,
+            "sample" : null,
+            "slot" : 1,
+            "snap" : 0,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56191.663261619,
+            "ended" : 0,
+            "first" : 56191.31803397,
+            "resumed" : 0,
+            "slot" : 1,
+            "tokens" : [
+               840,
+               57761,
+               61354,
+               62290,
+               248046,
+               198,
+               248045
+            ]
+         },
+         "started" : 56191.05425326
+      },
+      {
+         "raw" : [
+            "ok: img 1",
+            "tok 6",
+            "tok 24218",
+            "tok 10",
+            "tok 4838",
+            "tok 1665",
+            "tok 25",
+            "tok 33898",
+            "done 7 0 5 601.3 255.3 0 0 0"
+         ],
+         "request" : {
+            "ids" : [
+               1,
+               2,
+               3,
+               4,
+               5
+            ],
+            "image" : true,
+            "new" : 6,
+            "sample" : null,
+            "slot" : 0,
+            "snap" : 0,
+            "stop" : null
+         },
+         "result" : {
+            "done" : 56191.692395798,
+            "ended" : 0,
+            "first" : 56191.346346653,
+            "resumed" : 0,
+            "slot" : 0,
+            "tokens" : [
+               6,
+               24218,
+               10,
+               4838,
+               1665,
+               25,
+               33898
+            ]
+         },
+         "started" : 56191.054258604
+      }
+   ]
+}

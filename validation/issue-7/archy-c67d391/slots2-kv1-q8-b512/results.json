@@ -1,0 +1,130 @@
+{
+  "status": "PASS",
+  "config": {
+    "source": "/home/nate/claude/flash-sass-prs/sequence-build-c67d391",
+    "validation": "/home/nate/claude/flash-sass-prs/sequence-validation-c67d391",
+    "label": "slots2-kv1-q8-b512",
+    "revision": "c67d391c8d04e790d1b25a4ced31e5515c41e7fe",
+    "kind": "command",
+    "paired_modes": [
+      0
+    ],
+    "extra_env": {
+      "FLASH_SEQUENCES": "2",
+      "FLASH_QUANTUM": "8",
+      "FLASH_KV_HOST": "1",
+      "FLASH_NBLK": "512"
+    },
+    "commands": [
+      [
+        "{source}/seqsched_test"
+      ],
+      [
+        "{source}/output_tokens_test",
+        "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf"
+      ],
+      [
+        "perl",
+        "{source}/sequence_check.pl",
+        "{socket}",
+        "{out}/sequence-results.json"
+      ]
+    ]
+  },
+  "commands": [
+    {
+      "label": "gpu-before",
+      "argv": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm",
+        "--format=csv"
+      ],
+      "exit": 0,
+      "seconds": 0.11447384100029012
+    },
+    {
+      "label": "command0-pair0",
+      "argv": [
+        "/home/nate/claude/flash-sass-prs/sequence-build-c67d391/kern/seqsched_test"
+      ],
+      "exit": 0,
+      "seconds": 0.0018914090032922104
+    },
+    {
+      "label": "command1-pair0",
+      "argv": [
+        "/home/nate/claude/flash-sass-prs/sequence-build-c67d391/kern/output_tokens_test",
+        "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf"
+      ],
+      "exit": 0,
+      "seconds": 0.06421176400181139
+    },
+    {
+      "label": "command2-pair0",
+      "argv": [
+        "perl",
+        "/home/nate/claude/flash-sass-prs/sequence-build-c67d391/kern/sequence_check.pl",
+        "/tmp/flash-owned-slots2-kv1-q8-b512-pair0.sock",
+        "/home/nate/claude/flash-sass-prs/sequence-validation-c67d391/slots2-kv1-q8-b512/sequence-results.json"
+      ],
+      "exit": 0,
+      "seconds": 9.836283630000253
+    },
+    {
+      "label": "gpu-after",
+      "argv": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm",
+        "--format=csv"
+      ],
+      "exit": 0,
+      "seconds": 0.11430078800185584
+    }
+  ],
+  "cores": [
+    {
+      "pid": 2382942,
+      "argv": [
+        "/home/nate/claude/flash-sass-prs/sequence-build-c67d391/kern/flashcore",
+        "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+        "/home/nate/claude/flash-sass-prs/sequence-build-c67d391/kern/libengine.so",
+        "/tmp/hold-h0.manifest",
+        "/tmp/hold-h1.manifest",
+        "/tmp/hold-h2.manifest",
+        "/tmp/hold-h3.manifest",
+        "/tmp/hold-h4.manifest",
+        "/tmp/hold-h5.manifest"
+      ],
+      "environment": {
+        "CUDA_VISIBLE_DEVICES": "0,1,2,3,4,5,7",
+        "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
+        "SPLIT_SHARES": "112,97,81,116,97,97",
+        "ATTN_DIE": "1",
+        "ATTN_MAP": "1,1,1,1,4,4,4,4,5,5,5,5",
+        "FLASH_ANCHOR_DIE": "7",
+        "FLASH_MAXT": "512",
+        "FLASH_ENGINE_MAXT": "512",
+        "FLASH_MAXIMG": "1",
+        "FLASH_PLE_DISK": "1",
+        "FLASH_PLE_OFF": "192",
+        "FLASH_NBLK": "512",
+        "FLASH_KV_HOST": "1",
+        "FLASH_WATCHDOG_S": "60",
+        "FLASH_SEQUENCES": "2",
+        "FLASH_QUANTUM": "8",
+        "FLASH_TWO_POSITION": "0",
+        "FLASH_TRACE": "0",
+        "FLASH_CUBIN": "/home/nate/claude/flash-sass-prs/sequence-build-c67d391/kern/die.cubin",
+        "FLASH_SOCK": "/tmp/flash-owned-slots2-kv1-q8-b512-pair0.sock"
+      },
+      "library_sha256": "ba2a73eab352d1de617189302636773aa341522aaa65e6c4f6fa9f96eed687b4",
+      "cubin_sha256": "116d828f20139d144d46d7d8115a28e35313dac1f6c24ba81c1b5c0984f50e14",
+      "started_utc": "2026-10-17T21:41:54.587735+00:00",
+      "config": "config rev=c67d391c8d04e790d1b25a4ced31e5515c41e7fe kv_host=1 ple_disk=1 maxt=256 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=1 cubin=/home/nate/claude/flash-sass-prs/sequence-build-c67d391/kern/die.cubin cubin_fnv=669dbb2e43186b1a sequences=2 quantum=8 two_position=0",
+      "post_check_info": "info 256 1 2 8",
+      "owned_core_exit": -15,
+      "finished_utc": "2026-10-17T21:42:07.065469+00:00"
+    }
+  ],
+  "runner_sha256": "7a7c8d02b8d2135a12f226d5bf59754b8e35e8938ceb8b71e19ce3ecc34dacce"
+}

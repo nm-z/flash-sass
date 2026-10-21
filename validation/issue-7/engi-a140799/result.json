@@ -1,0 +1,10 @@
+{
+  "kind": "CPU regressions; no GPU/model execution",
+  "source_revision": "a1407995f4d273e1d2527c0f5fb3998d09252dc2",
+  "scheduler": "passed",
+  "prefill_planner": "passed",
+  "predicates": 7,
+  "http_reader": "passed",
+  "http_no_disconnect_mutant_exit": 1,
+  "result": "passed"
+}
