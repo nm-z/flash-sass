@@ -543,9 +543,10 @@ int main(int argc, char **argv) {
         return fail("restore library is not the resident core's original command-line library"), 1;
     if (read_start_tick(core_pid, &core_start)) return fail("cannot capture resident core start tick"), 1;
     if (check_rev(config, "attention-q-release")) return fail("unexpected live baseline revision"), 1;
+    unsigned new_tokens = trace_cubin ? TRACE_TOKENS - 1u : NEW_TOKENS;
     printf("GPUQ_JOB_ID=%s CORE_PID=%ld CORE_START=%llu\n", job_id, (long)core_pid, core_start);
-    printf("WORKLOAD prompt_tokens=%d prompt_ids=10..73 generated_tokens=%d sampler=greedy prefix_reuse=none\n",
-           PROMPT_TOKENS, GENERATED_TOKENS);
+    printf("WORKLOAD prompt_tokens=%d prompt_ids=10..73 generated_tokens=%u sampler=greedy prefix_reuse=none\n",
+           PROMPT_TOKENS, new_tokens + 1u);
     if (trace_cubin) printf("TRACE_PROFILE cubin=%s trace_tokens=%d\n", trace_cubin, TRACE_TOKENS);
     printf("LIVE_CONFIG %s\n", config);
     fflush(stdout);
@@ -556,7 +557,7 @@ int main(int argc, char **argv) {
     if (load_library(argv[3], argv[4])) goto cleanup;
     if (run_request("baseline", "warmup", 0, 0, &result)) goto cleanup;
     for (int rep = 0; rep < REPEATS; rep++) {
-        if (run_request("baseline", "pre", rep + 1, NEW_TOKENS, &base_ref[rep])) goto cleanup;
+        if (run_request("baseline", "pre", rep + 1, new_tokens, &base_ref[rep])) goto cleanup;
         if (rep && !same_tokens(&base_ref[0], &base_ref[rep])) { fail("baseline output IDs changed between repeats"); goto cleanup; }
     }
     for (int die = 0; die < 6; die++)
@@ -567,7 +568,7 @@ int main(int argc, char **argv) {
     if (load_library(argv[5], argv[6])) goto cleanup;
     if (run_request("candidate", "warmup", 0, 0, &result)) goto cleanup;
     for (int rep = 0; rep < REPEATS; rep++) {
-        if (run_request("candidate", "measure", rep + 1, NEW_TOKENS, &result)) goto cleanup;
+        if (run_request("candidate", "measure", rep + 1, new_tokens, &result)) goto cleanup;
         if (!same_tokens(&base_ref[0], &result)) { fail("candidate output IDs differ from baseline"); goto cleanup; }
     }
     for (int die = 0; die < 6; die++)
@@ -578,7 +579,7 @@ int main(int argc, char **argv) {
     if (load_library(argv[3], argv[4])) goto cleanup;
     if (run_request("baseline", "warmup-after", 0, 0, &result)) goto cleanup;
     for (int rep = 0; rep < REPEATS; rep++) {
-        if (run_request("baseline", "post", rep + 1, NEW_TOKENS, &result)) goto cleanup;
+        if (run_request("baseline", "post", rep + 1, new_tokens, &result)) goto cleanup;
         if (!same_tokens(&base_ref[0], &result)) { fail("post-candidate baseline output IDs differ"); goto cleanup; }
     }
     status = 0;
