@@ -109,6 +109,14 @@ static unsigned char *state_diff_ref_b_dn46, *state_diff_ref_b_conv46;
 static unsigned char *state_diff_prev_dn46, *state_diff_prev_conv46;
 static size_t state_diff_dn46_bytes, state_diff_conv46_bytes;
 static char state_diff_previous_name[32];
+typedef struct {
+	unsigned char *dn, *conv;
+	size_t dn_bytes, conv_bytes;
+	unsigned request_index;
+	int valid;
+	char previous_name[32];
+} state_diff_reset_record;
+static state_diff_reset_record state_diff_reset_previous[MAXD];
 static int kv_host = 1;                  /* FLASH_KV_HOST=0: the int8 KV caches in VRAM (small contexts) instead of pinned host memory */
 static void *h_kv;                      /* the host-resident KV caches of all attention layers */
 /* Validation-only raw group maxima. The ordinary cubin has no trace instructions. */
@@ -244,6 +252,101 @@ static void state_diff_measure(const unsigned char *reference,
 	}
 }
 
+static size_t state_diff_nonzero_bytes(const unsigned char *data, size_t bytes) {
+	size_t nonzero = 0;
+	for (size_t at = 0; at < bytes; at++) nonzero += data[at] != 0;
+	return nonzero;
+}
+
+static void state_diff_reset_records_free(void) {
+	for (int d = 0; d < MAXD; d++) {
+		free(state_diff_reset_previous[d].dn);
+		free(state_diff_reset_previous[d].conv);
+		memset(&state_diff_reset_previous[d], 0, sizeof state_diff_reset_previous[d]);
+	}
+}
+
+/* In the opt-in state-diff run, retain the old recurrent layer-46 buffers just
+ * before a fresh-request reset. The matching after-reset record verifies every
+ * byte before the model can write the new request's state. */
+static void state_diff_reset_capture_before(int d, int layer) {
+	if (!state_diff_enabled || layer != 46) return;
+	if (d < 0 || d >= nd || layer >= nlayers_run || !dst_dn[d][layer] || !dst_conv[d][layer]) {
+		fprintf(stderr, "RESET_AUDIT phase=before request_index=%u die=%d layer=%d status=fail reason=unavailable\n",
+		        state_diff_hash_calls + 1, d, layer);
+		fflush(stderr); _Exit(74);
+	}
+	state_diff_reset_record *record = &state_diff_reset_previous[d];
+	if (record->dn_bytes != dn_bytes[d][layer] || !record->dn) {
+		free(record->dn); record->dn = malloc(dn_bytes[d][layer]);
+		record->dn_bytes = record->dn ? dn_bytes[d][layer] : 0;
+	}
+	if (record->conv_bytes != conv_bytes[d][layer] || !record->conv) {
+		free(record->conv); record->conv = malloc(conv_bytes[d][layer]);
+		record->conv_bytes = record->conv ? conv_bytes[d][layer] : 0;
+	}
+	if (!record->dn || !record->conv) {
+		record->valid = 0;
+		fprintf(stderr, "RESET_AUDIT phase=before request_index=%u die=%d layer=%d status=fail reason=allocation\n",
+		        state_diff_hash_calls + 1, d, layer);
+		fflush(stderr); _Exit(74);
+	}
+	CK(cuCtxSetCurrent(ctx[d]));
+	CK(cuMemcpyDtoH(record->dn, dst_dn[d][layer], record->dn_bytes));
+	CK(cuMemcpyDtoH(record->conv, dst_conv[d][layer], record->conv_bytes));
+	const split_t *split = &sp[d][layer];
+	record->request_index = state_diff_hash_calls + 1;
+	snprintf(record->previous_name, sizeof record->previous_name, "%s",
+	         state_diff_previous_name[0] ? state_diff_previous_name : "unknown");
+	record->valid = 1;
+	fprintf(stderr,
+	        "RESET_AUDIT phase=before request_index=%u previous_request=%s die=%d layer=%d "
+	        "head_start=%d head_count=%d local_channels=%u dn_bytes=%zu conv_bytes=%zu "
+	        "dn_nonzero_bytes=%zu conv_nonzero_bytes=%zu\n",
+	        record->request_index, record->previous_name, d, layer, split->h0, split->hn,
+	        SPLIT_NLOC(split), record->dn_bytes, record->conv_bytes,
+	        state_diff_nonzero_bytes(record->dn, record->dn_bytes),
+	        state_diff_nonzero_bytes(record->conv, record->conv_bytes));
+}
+
+static void state_diff_reset_capture_after(int d, int layer) {
+	if (!state_diff_enabled || layer != 46) return;
+	state_diff_reset_record *record = &state_diff_reset_previous[d];
+	if (!record->valid || !record->dn || !record->conv) {
+		fprintf(stderr, "RESET_AUDIT phase=after request_index=%u die=%d layer=%d status=fail reason=unverified\n",
+		        state_diff_hash_calls + 1, d, layer);
+		fflush(stderr); _Exit(74);
+	}
+	unsigned char *dn = malloc(record->dn_bytes), *conv = malloc(record->conv_bytes);
+	if (!dn || !conv) {
+		free(dn); free(conv);
+		fprintf(stderr, "RESET_AUDIT phase=after request_index=%u die=%d layer=%d status=fail reason=allocation\n",
+		        record->request_index, d, layer);
+		fflush(stderr); _Exit(74);
+	}
+	CK(cuCtxSetCurrent(ctx[d]));
+	CK(cuMemcpyDtoH(dn, dst_dn[d][layer], record->dn_bytes));
+	CK(cuMemcpyDtoH(conv, dst_conv[d][layer], record->conv_bytes));
+	state_diff_metric dn_diff = {0}, conv_diff = {0};
+	state_diff_measure(record->dn, dn, record->dn_bytes, &dn_diff);
+	state_diff_measure(record->conv, conv, record->conv_bytes, &conv_diff);
+	size_t dn_nonzero = state_diff_nonzero_bytes(dn, record->dn_bytes);
+	size_t conv_nonzero = state_diff_nonzero_bytes(conv, record->conv_bytes);
+	const char *status = dn_nonzero || conv_nonzero ? "fail" : "pass";
+	const split_t *split = &sp[d][layer];
+	fprintf(stderr,
+	        "RESET_AUDIT phase=after request_index=%u previous_request=%s die=%d layer=%d "
+	        "head_start=%d head_count=%d local_channels=%u dn_post_nonzero_bytes=%zu "
+	        "conv_post_nonzero_bytes=%zu dn_diff_from_previous=%zu conv_diff_from_previous=%zu status=%s\n",
+	        record->request_index, record->previous_name, d, layer, split->h0, split->hn,
+	        SPLIT_NLOC(split), dn_nonzero, conv_nonzero, dn_diff.differing,
+	        conv_diff.differing, status);
+	free(dn); free(conv);
+	if (dn_nonzero || conv_nonzero) {
+		fflush(stderr); _Exit(73);
+	}
+}
+
 /* Opt-in comparison of layer 46 recurrent state against the matching fresh
  * request and the immediately previous request in the issue-110 plan. */
 static void state_diff_capture_reference(void) {
@@ -370,6 +473,39 @@ static void state_diff_print_first(const char *name, const unsigned char *refere
 	}
 }
 
+static void state_diff_compare_pre_reset(const char *name) {
+	for (int d = 0; d < nd; d++) {
+		state_diff_reset_record *record = &state_diff_reset_previous[d];
+		if (!record->valid || record->request_index != state_diff_hash_calls ||
+		    record->dn_bytes != dn_bytes[d][46] || record->conv_bytes != conv_bytes[d][46]) {
+			fprintf(stderr, "STATE_DIFF_STALE pair=%s die=%d layer=46 status=unavailable\n", name, d);
+			continue;
+		}
+		unsigned char *dn = malloc(record->dn_bytes), *conv = malloc(record->conv_bytes);
+		if (!dn || !conv) {
+			free(dn); free(conv);
+			fprintf(stderr, "STATE_DIFF_STALE pair=%s die=%d layer=46 status=allocation-failed\n", name, d);
+			continue;
+		}
+		CK(cuCtxSetCurrent(ctx[d]));
+		CK(cuMemcpyDtoH(dn, dst_dn[d][46], record->dn_bytes));
+		CK(cuMemcpyDtoH(conv, dst_conv[d][46], record->conv_bytes));
+		state_diff_metric dn_diff = {0}, conv_diff = {0};
+		state_diff_measure(record->dn, dn, record->dn_bytes, &dn_diff);
+		state_diff_measure(record->conv, conv, record->conv_bytes, &conv_diff);
+		const split_t *split = &sp[d][46];
+		fprintf(stderr,
+		        "STATE_DIFF_STALE pair=%s pre_request=%s die=%d layer=46 head_start=%d head_count=%d "
+		        "local_channels=%u dn_values=%zu dn_diff=%zu conv_values=%zu conv_diff=%zu "
+		        "pre_dn_nonzero_bytes=%zu pre_conv_nonzero_bytes=%zu\n",
+		        name, record->previous_name, d, split->h0, split->hn, SPLIT_NLOC(split),
+		        dn_diff.values, dn_diff.differing, conv_diff.values, conv_diff.differing,
+		        state_diff_nonzero_bytes(record->dn, record->dn_bytes),
+		        state_diff_nonzero_bytes(record->conv, record->conv_bytes));
+		free(dn); free(conv);
+	}
+}
+
 static void state_diff_compare_request(const char *name, const char *reference_name,
 				       const unsigned char *reference_dn,
 				       const unsigned char *reference_conv) {
@@ -442,6 +578,8 @@ static void state_hashes(FILE *out) {
 			}
 			if (reference_dn && reference_conv)
 				state_diff_compare_request(name, reference_name, reference_dn, reference_conv);
+			if (name && !strncmp(name, "reset-", 6))
+				state_diff_compare_pre_reset(name);
 			if (state_diff_hash_calls < 10 && name && strcmp(name, "other"))
 				state_diff_capture_previous(name);
 		}
@@ -939,7 +1077,10 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 			for (int bb = 0; bb < nlayers_run; bb++) {
 				/* the int8 caches, the indexer pool and the ring of an attention layer need no reset: positions are written before they are read */
 				if (BLK_IS_ATTN(bb)) continue;
-				else { CK(cuMemsetD8(dst_dn[d][bb], 0, dn_bytes[d][bb])); CK(cuMemsetD8(dst_conv[d][bb], 0, conv_bytes[d][bb])); }
+				state_diff_reset_capture_before(d, bb);
+				CK(cuMemsetD8(dst_dn[d][bb], 0, dn_bytes[d][bb]));
+				CK(cuMemsetD8(dst_conv[d][bb], 0, conv_bytes[d][bb]));
+				state_diff_reset_capture_after(d, bb);
 			}
 			CK(cuMemsetD8(dst_ple[d], 0, 4 * 10 * 10240));
 		}
@@ -1108,6 +1249,7 @@ int engine_init(core_t *c) {
 	free(state_diff_ref_b_conv46); state_diff_ref_b_conv46 = NULL;
 	free(state_diff_prev_dn46); state_diff_prev_dn46 = NULL;
 	free(state_diff_prev_conv46); state_diff_prev_conv46 = NULL;
+	state_diff_reset_records_free();
 	state_diff_dn46_bytes = state_diff_conv46_bytes = 0;
 	state_diff_hash_calls = 0; state_diff_previous_name[0] = '\0';
 	const char *state_diff_env = getenv("FLASH_STATE_DIFF");
@@ -1368,6 +1510,7 @@ void engine_fini(void) {
 	free(state_diff_ref_b_conv46); state_diff_ref_b_conv46 = NULL;
 	free(state_diff_prev_dn46); state_diff_prev_dn46 = NULL;
 	free(state_diff_prev_conv46); state_diff_prev_conv46 = NULL;
+	state_diff_reset_records_free();
 	state_diff_dn46_bytes = state_diff_conv46_bytes = 0;
 	state_diff_hash_calls = 0; state_diff_enabled = 0; state_diff_previous_name[0] = '\0';
 	if (!core) return;
