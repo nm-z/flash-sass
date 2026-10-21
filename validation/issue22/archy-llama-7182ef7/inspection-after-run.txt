@@ -1,0 +1,62 @@
+2026-10-18T03:10:23Z
+archy
+Linux archy 6.18.39-1-lts-k80 #2 SMP PREEMPT_DYNAMIC Tue, 21 Jul 2026 00:09:28 +0000 x86_64 GNU/Linux
+7182ef71e6d5dd0c8ea76486fac134fcd25025d4
+54eba33c757c5d692e524464fdbf2c0d6d2225371d54e416a076af5babfdd920  /home/nate/claude/flash-sass-prs/issue22-reference-review-20261017/model_reference
+f3b352250c81482f1a8bb774237c6f11c6d996509094c4fc079339472793a284  /home/nate/claude/flash-sass-prs/issue22-reference-review-20261017/model_reference.c
+961430f89e2553dbcd99e3e6c59826af9ec143f05911520c74f804d986ff3cd2  /home/nate/claude/llama.cpp-up/include/llama.h
+c0d049bd189fac5c829aad0f8ff77ee3a20af7aa0c4f75d1467fc56b6b0729e6  /home/nate/claude/llama.cpp-up/src/models/qwen4exp.cpp
+8ddb6a5bc791057d5316da25a32922716610cc948594567e3bd44c5e54166c48  /home/nate/claude/llama.cpp-up/build/bin/libllama.so.0
+981c981b89abcc3a0c6d73d5db32681c011dcd903c1464036685a07516b3bc63  /home/nate/claude/llama.cpp-up/build/bin/libggml.so.0
+98080eaec8e9275f48b80ae3a7a3752c75c82d85a158364b2c003ec92650e56b  /home/nate/claude/llama.cpp-up/build/bin/libggml-cpu.so.0
+e3bc92ec3ebf0362841d092c44789a5de755e677e082125fe81d3c8a1439455d  /home/nate/claude/llama.cpp-up/build/bin/libggml-base.so.0
+	linux-vdso.so.1 (0x00007f6a7966e000)
+	libllama.so.0 => /home/nate/claude/llama.cpp-up/build/bin/libllama.so.0 (0x00007f6a79000000)
+	libm.so.6 => /usr/lib/libm.so.6 (0x00007f6a794ee000)
+	libc.so.6 => /usr/lib/libc.so.6 (0x00007f6a78c00000)
+	libggml.so.0 => /home/nate/claude/llama.cpp-up/build/bin/libggml.so.0 (0x00007f6a794e1000)
+	libggml-cpu.so.0 => /home/nate/claude/llama.cpp-up/build/bin/libggml-cpu.so.0 (0x00007f6a78e32000)
+	libggml-base.so.0 => /home/nate/claude/llama.cpp-up/build/bin/libggml-base.so.0 (0x00007f6a78b27000)
+	libstdc++.so.6 => /usr/lib/libstdc++.so.6 (0x00007f6a78800000)
+	libgcc_s.so.1 => /usr/lib/libgcc_s.so.1 (0x00007f6a794b2000)
+	/lib64/ld-linux-x86-64.so.2 => /usr/lib64/ld-linux-x86-64.so.2 (0x00007f6a79670000)
+	libgomp.so.1 => /usr/lib/libgomp.so.1 (0x00007f6a79458000)
+57:CMAKE_BUILD_TYPE:STRING=Release
+89:CMAKE_C_COMPILER:FILEPATH=/usr/bin/cc
+408:GGML_CUDA:BOOL=OFF
+530:GGML_NATIVE:BOOL=ON
+Architecture:                            x86_64
+CPU op-mode(s):                          32-bit, 64-bit
+Address sizes:                           46 bits physical, 48 bits virtual
+Byte Order:                              Little Endian
+CPU(s):                                  12
+On-line CPU(s) list:                     0-11
+Vendor ID:                               GenuineIntel
+Model name:                              Intel(R) Xeon(R) CPU E5-2620 v3 @ 2.40GHz
+CPU family:                              6
+Model:                                   63
+Thread(s) per core:                      2
+Core(s) per socket:                      6
+Socket(s):                               1
+Stepping:                                2
+Microcode version:                       0x43
+CPU(s) scaling MHz:                      85%
+CPU max MHz:                             3200.0000
+CPU min MHz:                             1200.0000
+BogoMIPS:                                4790.61
+Flags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid dca sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm cpuid_fault epb pti intel_ppin ssbd ibrs ibpb stibp tpr_shadow flexpriority ept vpid ept_ad fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid cqm xsaveopt cqm_llc cqm_occup_llc dtherm ida arat pln pts vnmi md_clear flush_l1d
+Virtualization:                          VT-x
+L1d cache:                               192 KiB (6 instances)
+L1i cache:                               192 KiB (6 instances)
+L2 cache:                                1.5 MiB (6 instances)
+L3 cache:                                15 MiB (1 instance)
+NUMA node(s):                            1
+NUMA node0 CPU(s):                       0-11
+Vulnerability Gather data sampling:      Not affected
+Vulnerability Ghostwrite:                Not affected
+Vulnerability Indirect target selection: Not affected
+Vulnerability Itlb multihit:             KVM: Mitigation: Split huge pages
+Vulnerability L1tf:                      Mitigation; PTE Inversion; VMX conditional cache flushes, SMT vulnerable
+Vulnerability Mds:                       Mitigation; Clear CPU buffers; SMT vulnerable
+Vulnerability Meltdown:                  Mitigation; PTI
+Vulnerability Mmio stale data:           Mitigation; Clear CPU buffers; SMT vulnerable

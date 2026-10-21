@@ -1,0 +1,552 @@
+{
+   "artifact_sha256" : {
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.ids.fixed_iq_bf16_mean_norm_rope_return_casts.u32" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.ids.fixed_iq_exported_pool.u32" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.ids.fixed_iq_fp16_mean_norm_rope_return_casts.u32" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.ids.fixed_iq_fp64_pool.u32" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.ids.fixed_iq_scalar_fp32_pool.u32" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.ids.fixed_iq_scalar_fp32_pool_fp16_store.u32" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.ids.reference_fp64.u32" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.pool.reference_fp64.f64" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.query.reference_fp64.f64" : "547d183a93c78a9cc62977b55ef643831f31cda96a364dad4b1a22ec396e70f3",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.scores.fixed_iq_bf16_mean_norm_rope_return_casts.f64" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.scores.fixed_iq_exported_pool.f64" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.scores.fixed_iq_fp16_mean_norm_rope_return_casts.f64" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.scores.fixed_iq_fp64_pool.f64" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.scores.fixed_iq_scalar_fp32_pool.f64" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.scores.fixed_iq_scalar_fp32_pool_fp16_store.f64" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.scores.reference_fp64.f64" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   "attended_keys" : 1,
+   "budget" : 512,
+   "candidate_raw_scores_vs_exported_inputs_fp64" : {
+      "count" : 0,
+      "max_abs" : null,
+      "relative_l2" : null,
+      "rms" : null
+   },
+   "candidate_scaled_scores_vs_exported_inputs_fp64" : {
+      "count" : 0,
+      "max_abs" : null,
+      "relative_l2" : null,
+      "rms" : null
+   },
+   "candidate_scaled_scores_vs_full_fp64" : {
+      "count" : 0,
+      "max_abs" : null,
+      "relative_l2" : null,
+      "rms" : null
+   },
+   "candidate_score_convention" : "unscaled_sum_head_relu_dot",
+   "candidate_score_readback_present" : false,
+   "candidate_score_readback_ranking" : null,
+   "capture_completion_metadata" : {
+      "budget" : 512,
+      "byte_order" : "little",
+      "complete" : true,
+      "coverage" : "indexer_only",
+      "die" : 0,
+      "epsilon" : 9.99999997475243e-07,
+      "evidence_kind" : "synthetic_cpu_fixture",
+      "independent_checkpoint_evidence" : false,
+      "layer" : 0,
+      "positions" : 262000,
+      "producer" : "qsa_quality --synthetic",
+      "quality_validation" : false,
+      "rope_base" : 10000000,
+      "schema" : "flash-sass.qsa-layer-capture.v1",
+      "snapshot_lengths" : [
+         1,
+         2047,
+         2048,
+         2049,
+         2050,
+         2051,
+         2052,
+         2053,
+         2054,
+         2055,
+         3100,
+         8000,
+         65000,
+         262000
+      ]
+   },
+   "capture_snapshot_metadata" : {
+      "attended_keys" : 1,
+      "budget" : 512,
+      "complete_blocks" : 0,
+      "die" : 0,
+      "evidence_kind" : "synthetic_cpu_fixture",
+      "layer" : 0,
+      "length" : 1,
+      "position" : 0,
+      "quality_validation" : false,
+      "schema" : "flash-sass.qsa-layer-snapshot.v1",
+      "scores_source" : "absent_dense",
+      "selected_ids_source" : "implicit_all_completed_blocks",
+      "sparse_exclusion" : false,
+      "tail" : 1
+   },
+   "complete" : true,
+   "complete_blocks" : 0,
+   "computation_complete" : true,
+   "epsilon" : 9.99999997475243e-07,
+   "gamma_convention" : "supplied_multiplicative_gamma_no_add_one",
+   "gpu_execution_performed_by_replay" : false,
+   "independent_checkpoint_evidence" : false,
+   "input_hashes_match_before_after_replay" : true,
+   "input_origin" : "synthetic_cpu_fixture",
+   "input_sha256" : {
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-inputs/complete.json" : "faf0b37cfcfa5c4ae39c7fa9e8d1ee0ca5c7667c7bc3dd4b2da23d372dd94b09",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-inputs/ikn.f32" : "54d7c44db03de53e83440669fa30a78887caa1723ace9643f77c86177fefd1e8",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-inputs/iqn.f32" : "4c4ac24283f8a58d7155cb3edd070e3fc7da9bd62e03630d533ddc757bf4c7df",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-inputs/n1/iq.f32" : "a94accc8ceb7aaf075cf89b03460e29e68723bcfbf37ffa79304c93b7c453676",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-inputs/n1/iqk.f32" : "d4e21ccd9bf88b0271ecee147fe257993167a11d1eb5091227fa44689360d0f1",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-inputs/n1/pool.f16" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-inputs/n1/selected_ids.u32" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-inputs/n1/snapshot.json" : "3e20abb43d117f9ee4951e5a4806c8bf359f29c9c60e7323aa6157d22c2efe81",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-inputs/raw_ik.f32" : "8b30220eea301a4bb5255481a28e617be13489af50a52f9e0209778abef831c6",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-inputs/rope_cs.f32" : "17413dc9a1acac2c4f15142eaf29f5c81cdd45bac25f1612288915b25a8968c5",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-inputs/rope_sn.f32" : "3fe744234610e72bf1c5eec783a0892fee8d1268d93c4bede34f820dc400f388"
+   },
+   "length" : 1,
+   "modes" : [
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ids_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.ids.reference_fp64.u32",
+         "name" : "reference_fp64",
+         "pool_mode_vs_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : null,
+            "cutoff_margin" : null,
+            "cutoff_ties" : 0,
+            "selected_at_cutoff" : 0,
+            "selected_blocks" : 0,
+            "strict_above" : 0
+         },
+         "scores_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.scores.reference_fp64.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ids_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.ids.fixed_iq_fp64_pool.u32",
+         "name" : "fixed_iq_fp64_pool",
+         "pool_mode_vs_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : null,
+            "cutoff_margin" : null,
+            "cutoff_ties" : 0,
+            "selected_at_cutoff" : 0,
+            "selected_blocks" : 0,
+            "strict_above" : 0
+         },
+         "scores_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.scores.fixed_iq_fp64_pool.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ids_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.ids.fixed_iq_scalar_fp32_pool.u32",
+         "name" : "fixed_iq_scalar_fp32_pool",
+         "pool_mode_vs_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : null,
+            "cutoff_margin" : null,
+            "cutoff_ties" : 0,
+            "selected_at_cutoff" : 0,
+            "selected_blocks" : 0,
+            "strict_above" : 0
+         },
+         "scores_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.scores.fixed_iq_scalar_fp32_pool.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ids_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.ids.fixed_iq_scalar_fp32_pool_fp16_store.u32",
+         "name" : "fixed_iq_scalar_fp32_pool_fp16_store",
+         "pool_mode_vs_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : null,
+            "cutoff_margin" : null,
+            "cutoff_ties" : 0,
+            "selected_at_cutoff" : 0,
+            "selected_blocks" : 0,
+            "strict_above" : 0
+         },
+         "scores_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.scores.fixed_iq_scalar_fp32_pool_fp16_store.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ids_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.ids.fixed_iq_fp16_mean_norm_rope_return_casts.u32",
+         "name" : "fixed_iq_fp16_mean_norm_rope_return_casts",
+         "pool_mode_vs_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : null,
+            "cutoff_margin" : null,
+            "cutoff_ties" : 0,
+            "selected_at_cutoff" : 0,
+            "selected_blocks" : 0,
+            "strict_above" : 0
+         },
+         "scores_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.scores.fixed_iq_fp16_mean_norm_rope_return_casts.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ids_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.ids.fixed_iq_bf16_mean_norm_rope_return_casts.u32",
+         "name" : "fixed_iq_bf16_mean_norm_rope_return_casts",
+         "pool_mode_vs_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : null,
+            "cutoff_margin" : null,
+            "cutoff_ties" : 0,
+            "selected_at_cutoff" : 0,
+            "selected_blocks" : 0,
+            "strict_above" : 0
+         },
+         "scores_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.scores.fixed_iq_bf16_mean_norm_rope_return_casts.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ids_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.ids.fixed_iq_exported_pool.u32",
+         "name" : "fixed_iq_exported_pool",
+         "pool_mode_vs_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : null,
+            "cutoff_margin" : null,
+            "cutoff_ties" : 0,
+            "selected_at_cutoff" : 0,
+            "selected_blocks" : 0,
+            "strict_above" : 0
+         },
+         "scores_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.scores.fixed_iq_exported_pool.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         }
+      }
+   ],
+   "numerical_gates" : {
+      "checks" : [],
+      "enabled" : false,
+      "passed" : null,
+      "scope" : "postprojection indexer only; excludes attention, projection and checkpoint quality"
+   },
+   "pool_fp64_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.pool.reference_fp64.f64",
+   "positions" : 262000,
+   "precision_notes" : [
+      "FP64 controls frozen FP32 inputs, not original weights",
+      "Scalar FP32 reductions and reciprocal sqrt may differ from device kernels",
+      "FP16/BF16 modes cast FP32 mean, RMSNorm return and RoPE return",
+      "All modes use supplied FP32 RoPE tables",
+      "Modes 1 through 6 hold the exported query fixed",
+      "No inferred pass thresholds"
+   ],
+   "production_budget" : true,
+   "provided_selection_vs_candidate_score_readback" : null,
+   "provided_selection_vs_exported_inputs_fp64" : {
+      "canonical_overlap" : 0,
+      "exact_tie_compatible" : true,
+      "missing_strictly_above_cutoff" : 0,
+      "selected_below_cutoff" : 0,
+      "selected_blocks" : 0
+   },
+   "provided_selection_vs_full_fp64" : {
+      "canonical_overlap" : 0,
+      "exact_tie_compatible" : true,
+      "missing_strictly_above_cutoff" : 0,
+      "selected_below_cutoff" : 0,
+      "selected_blocks" : 0
+   },
+   "quality_validation" : false,
+   "query_exported_vs_fp64" : {
+      "count" : 512,
+      "max_abs" : 3.04711615939368e-07,
+      "relative_l2" : 8.10095527520761e-08,
+      "rms" : 8.10787094564717e-08
+   },
+   "query_exported_vs_scalar_fp32" : {
+      "count" : 512,
+      "max_abs" : 0,
+      "relative_l2" : 0,
+      "rms" : 0
+   },
+   "query_fp64_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n1.json.pending.1489700.query.reference_fp64.f64",
+   "query_scalar_fp32_vs_fp64" : {
+      "count" : 512,
+      "max_abs" : 3.04711615939368e-07,
+      "relative_l2" : 8.10095527520761e-08,
+      "rms" : 8.10787094564717e-08
+   },
+   "raw_last_key_snapshot_vs_prefix" : {
+      "count" : 128,
+      "max_abs" : 0,
+      "relative_l2" : 0,
+      "rms" : 0
+   },
+   "reference_commit" : "8498ed425fa01bbee7d086efdf1a6634c2962aed",
+   "reference_source" : "src/transformers/models/qwen4_exp/modeling_qwen4_exp.py",
+   "replay_executable_sha256" : "ebb38ccaf70a18a04890f07f8af01f70318ec62eb88f86eab7e909cbbc4b589e",
+   "schema" : "flash-sass.qsa-quality-replay.v1",
+   "scope" : "postprojection_indexer_only",
+   "score_convention" : "sum_head_relu_dot_div_sqrt_128",
+   "selected_blocks" : 0,
+   "selection_tie_policy" : "lower_block_id_for_exact_equal_scores",
+   "sparse_exclusion" : false,
+   "tail_token_ids" : [
+      0
+   ],
+   "tie_tolerance" : 0,
+   "wrapper_source_sha256" : "58466e04eee9629884ad8fa1cabdc7742d68b6f1391e438716112c86687ba54a"
+}

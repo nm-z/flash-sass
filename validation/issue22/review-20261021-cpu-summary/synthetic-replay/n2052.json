@@ -1,0 +1,565 @@
+{
+   "artifact_sha256" : {
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.ids.fixed_iq_bf16_mean_norm_rope_return_casts.u32" : "de2bcb83307a560a0f3d0d0a2e5374c68866873a0a84bf53c4b97c5df2ce5df3",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.ids.fixed_iq_exported_pool.u32" : "e2ffcffaea25db81b5d2c55a55e816f5e9110fb345b9e7dc57da6d3d717bff46",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.ids.fixed_iq_fp16_mean_norm_rope_return_casts.u32" : "1b2c0f63aec0418d425a02b7d0f91d6c59ce137e08d943c7bf432e11d016f7b1",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.ids.fixed_iq_fp64_pool.u32" : "674f42e2eebbd5c428542843cbf031c3c1acd0208f8b2cb8ac2455afb84d2a43",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.ids.fixed_iq_scalar_fp32_pool.u32" : "085c2f37b4bf8abe146ed99b6e6791de4596adb22e13406893afc914ca2e2aff",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.ids.fixed_iq_scalar_fp32_pool_fp16_store.u32" : "e2ffcffaea25db81b5d2c55a55e816f5e9110fb345b9e7dc57da6d3d717bff46",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.ids.reference_fp64.u32" : "085c2f37b4bf8abe146ed99b6e6791de4596adb22e13406893afc914ca2e2aff",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.pool.reference_fp64.f64" : "decfd3242da1e5ea0a1fdf2683cd64853b5223526741504a01fa7358f275e228",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.query.reference_fp64.f64" : "be567fac73517c658590ded523815e0815803365fb906b21cf6aff0aa191d5cf",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.scores.fixed_iq_bf16_mean_norm_rope_return_casts.f64" : "f05b182b95b99d0e9bebf53e2ef818bfbcb500b1eb36b6716ec8d8f3b55dc848",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.scores.fixed_iq_exported_pool.f64" : "b6e510c88ae184f23d5d100d3e7705f566cade071cc824f66aff3f446dacf01a",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.scores.fixed_iq_fp16_mean_norm_rope_return_casts.f64" : "74f683fbabed9b586c12f2ba5fccb79ded30c62603c8c7f5fa085e3c8f721493",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.scores.fixed_iq_fp64_pool.f64" : "b8fa82d0b8f8defc8a63ccc32850700800802a5f1372fbb9b8c1aa81187adab8",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.scores.fixed_iq_scalar_fp32_pool.f64" : "8e2ee00b0649e1fa068809df6bcc29c71ee80695fe5f93b139f285e38db8b87d",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.scores.fixed_iq_scalar_fp32_pool_fp16_store.f64" : "b6e510c88ae184f23d5d100d3e7705f566cade071cc824f66aff3f446dacf01a",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.scores.reference_fp64.f64" : "b6a261213a1dafa41256a5723f3149cf1c8f2d6a92d42e6f495189d1b74ebda6"
+   },
+   "attended_keys" : 2048,
+   "budget" : 512,
+   "candidate_raw_scores_vs_exported_inputs_fp64" : {
+      "count" : 513,
+      "max_abs" : 1.42948485404304e-05,
+      "relative_l2" : 1.55937905972299e-07,
+      "rms" : 3.55295198345542e-06
+   },
+   "candidate_scaled_scores_vs_exported_inputs_fp64" : {
+      "count" : 513,
+      "max_abs" : 1.26349804219217e-06,
+      "relative_l2" : 1.55937905966825e-07,
+      "rms" : 3.14039555080415e-07
+   },
+   "candidate_scaled_scores_vs_full_fp64" : {
+      "count" : 513,
+      "max_abs" : 0.00123666192735161,
+      "relative_l2" : 0.000143721502908406,
+      "rms" : 0.0002894385061187
+   },
+   "candidate_score_convention" : "unscaled_sum_head_relu_dot",
+   "candidate_score_readback_present" : true,
+   "candidate_score_readback_ranking" : {
+      "ambiguous_cutoff" : true,
+      "cutoff" : 0,
+      "cutoff_margin" : 0,
+      "cutoff_ties" : 28,
+      "selected_at_cutoff" : 27,
+      "selected_blocks" : 512,
+      "strict_above" : 485
+   },
+   "capture_completion_metadata" : {
+      "budget" : 512,
+      "byte_order" : "little",
+      "complete" : true,
+      "coverage" : "indexer_only",
+      "die" : 0,
+      "epsilon" : 9.99999997475243e-07,
+      "evidence_kind" : "synthetic_cpu_fixture",
+      "independent_checkpoint_evidence" : false,
+      "layer" : 0,
+      "positions" : 262000,
+      "producer" : "qsa_quality --synthetic",
+      "quality_validation" : false,
+      "rope_base" : 10000000,
+      "schema" : "flash-sass.qsa-layer-capture.v1",
+      "snapshot_lengths" : [
+         1,
+         2047,
+         2048,
+         2049,
+         2050,
+         2051,
+         2052,
+         2053,
+         2054,
+         2055,
+         3100,
+         8000,
+         65000,
+         262000
+      ]
+   },
+   "capture_snapshot_metadata" : {
+      "attended_keys" : 2048,
+      "budget" : 512,
+      "complete_blocks" : 513,
+      "die" : 0,
+      "evidence_kind" : "synthetic_cpu_fixture",
+      "layer" : 0,
+      "length" : 2052,
+      "position" : 2051,
+      "quality_validation" : false,
+      "schema" : "flash-sass.qsa-layer-snapshot.v1",
+      "scores_source" : "synthetic_scalar_fp32",
+      "selected_ids_source" : "synthetic_scalar_fp32_topk",
+      "sparse_exclusion" : true,
+      "tail" : 0
+   },
+   "complete" : true,
+   "complete_blocks" : 513,
+   "computation_complete" : true,
+   "epsilon" : 9.99999997475243e-07,
+   "gamma_convention" : "supplied_multiplicative_gamma_no_add_one",
+   "gpu_execution_performed_by_replay" : false,
+   "independent_checkpoint_evidence" : false,
+   "input_hashes_match_before_after_replay" : true,
+   "input_origin" : "synthetic_cpu_fixture",
+   "input_sha256" : {
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-inputs/complete.json" : "faf0b37cfcfa5c4ae39c7fa9e8d1ee0ca5c7667c7bc3dd4b2da23d372dd94b09",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-inputs/ikn.f32" : "54d7c44db03de53e83440669fa30a78887caa1723ace9643f77c86177fefd1e8",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-inputs/iqn.f32" : "4c4ac24283f8a58d7155cb3edd070e3fc7da9bd62e03630d533ddc757bf4c7df",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-inputs/n2052/iq.f32" : "f41cd679272e98f62c564cc2424c166180c9386361e6c0efe18de78407f65ccb",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-inputs/n2052/iqk.f32" : "c3f43c49bf1a773d77e17596c532feb9fd9e3f4df92a3b2b01a3e091389c9926",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-inputs/n2052/pool.f16" : "f845e2e77b0e347a2d550f47af8148d186df878675229672658a037bee4f7eee",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-inputs/n2052/scores.f32" : "d4a7ece82d1a9d28d62562d553c8b1e756e4f37eeb5399ce65783c9a06774b5e",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-inputs/n2052/selected_ids.u32" : "e2ffcffaea25db81b5d2c55a55e816f5e9110fb345b9e7dc57da6d3d717bff46",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-inputs/n2052/snapshot.json" : "106754339c0cff8062fd5fd593d6935f5bb750779b0c67c65aee568c71c04006",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-inputs/raw_ik.f32" : "8b30220eea301a4bb5255481a28e617be13489af50a52f9e0209778abef831c6",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-inputs/rope_cs.f32" : "17413dc9a1acac2c4f15142eaf29f5c81cdd45bac25f1612288915b25a8968c5",
+      "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-inputs/rope_sn.f32" : "3fe744234610e72bf1c5eec783a0892fee8d1268d93c4bede34f820dc400f388"
+   },
+   "length" : 2052,
+   "modes" : [
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 65664,
+            "max_abs" : 0.000976429560750613,
+            "relative_l2" : 0.000207485126044806,
+            "rms" : 0.000207372796104471
+         },
+         "ids_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.ids.reference_fp64.u32",
+         "name" : "reference_fp64",
+         "pool_mode_vs_fp64" : {
+            "count" : 65664,
+            "max_abs" : 0,
+            "relative_l2" : 0,
+            "rms" : 0
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : true,
+            "cutoff" : 0,
+            "cutoff_margin" : 0,
+            "cutoff_ties" : 28,
+            "selected_at_cutoff" : 27,
+            "selected_blocks" : 512,
+            "strict_above" : 485
+         },
+         "scores_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.scores.reference_fp64.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 513,
+            "max_abs" : 6.52471585205205e-07,
+            "relative_l2" : 1.07420798969237e-07,
+            "rms" : 2.16333060682328e-07
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 513,
+            "max_abs" : 0,
+            "relative_l2" : 0,
+            "rms" : 0
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 512,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 512
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 512,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 512
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 65664,
+            "max_abs" : 0.000976429560750613,
+            "relative_l2" : 0.000207485126044806,
+            "rms" : 0.000207372796104471
+         },
+         "ids_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.ids.fixed_iq_fp64_pool.u32",
+         "name" : "fixed_iq_fp64_pool",
+         "pool_mode_vs_fp64" : {
+            "count" : 65664,
+            "max_abs" : 0,
+            "relative_l2" : 0,
+            "rms" : 0
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : true,
+            "cutoff" : 0,
+            "cutoff_margin" : 0,
+            "cutoff_ties" : 28,
+            "selected_at_cutoff" : 27,
+            "selected_blocks" : 512,
+            "strict_above" : 485
+         },
+         "scores_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.scores.fixed_iq_fp64_pool.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 513,
+            "max_abs" : 0,
+            "relative_l2" : 0,
+            "rms" : 0
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 513,
+            "max_abs" : 6.52471585205205e-07,
+            "relative_l2" : 1.07420788709049e-07,
+            "rms" : 2.16333060682328e-07
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 512,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 512
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 512,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 512
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 65664,
+            "max_abs" : 0.0009765625,
+            "relative_l2" : 0.000207485702572325,
+            "rms" : 0.000207373375374184
+         },
+         "ids_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.ids.fixed_iq_scalar_fp32_pool.u32",
+         "name" : "fixed_iq_scalar_fp32_pool",
+         "pool_mode_vs_fp64" : {
+            "count" : 65664,
+            "max_abs" : 9.36683012930928e-07,
+            "relative_l2" : 9.75953036387333e-08,
+            "rms" : 9.75424667205226e-08
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : true,
+            "cutoff" : 0,
+            "cutoff_margin" : 0,
+            "cutoff_ties" : 28,
+            "selected_at_cutoff" : 27,
+            "selected_blocks" : 512,
+            "strict_above" : 485
+         },
+         "scores_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.scores.fixed_iq_scalar_fp32_pool.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 513,
+            "max_abs" : 7.73345838478434e-07,
+            "relative_l2" : 9.42465156492372e-08,
+            "rms" : 1.8980157832268e-07
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 513,
+            "max_abs" : 1.21232583527586e-06,
+            "relative_l2" : 1.34230711050392e-07,
+            "rms" : 2.70325147562897e-07
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 512,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 512
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 512,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 512
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 65664,
+            "max_abs" : 0,
+            "relative_l2" : 0,
+            "rms" : 0
+         },
+         "ids_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.ids.fixed_iq_scalar_fp32_pool_fp16_store.u32",
+         "name" : "fixed_iq_scalar_fp32_pool_fp16_store",
+         "pool_mode_vs_fp64" : {
+            "count" : 65664,
+            "max_abs" : 0.000976429560750613,
+            "relative_l2" : 0.000207485126044806,
+            "rms" : 0.000207372796104471
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : true,
+            "cutoff" : 0,
+            "cutoff_margin" : 0,
+            "cutoff_ties" : 28,
+            "selected_at_cutoff" : 27,
+            "selected_blocks" : 512,
+            "strict_above" : 485
+         },
+         "scores_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.scores.fixed_iq_scalar_fp32_pool_fp16_store.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 513,
+            "max_abs" : 0.00123656751894696,
+            "relative_l2" : 0.000143707782122429,
+            "rms" : 0.000289410846397796
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 513,
+            "max_abs" : 0.00123639307125067,
+            "relative_l2" : 0.000143710137593264,
+            "rms" : 0.000289415617686768
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 512,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 512
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 512,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 512
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 65664,
+            "max_abs" : 0.001953125,
+            "relative_l2" : 0.000379467333741928,
+            "rms" : 0.000379260768816598
+         },
+         "ids_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.ids.fixed_iq_fp16_mean_norm_rope_return_casts.u32",
+         "name" : "fixed_iq_fp16_mean_norm_rope_return_casts",
+         "pool_mode_vs_fp64" : {
+            "count" : 65664,
+            "max_abs" : 0.00243502313248856,
+            "relative_l2" : 0.000325983158870736,
+            "rms" : 0.000325806675527162
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : true,
+            "cutoff" : 0,
+            "cutoff_margin" : 0,
+            "cutoff_ties" : 28,
+            "selected_at_cutoff" : 27,
+            "selected_blocks" : 512,
+            "strict_above" : 485
+         },
+         "scores_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.scores.fixed_iq_fp16_mean_norm_rope_return_casts.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 513,
+            "max_abs" : 0.00163783727788713,
+            "relative_l2" : 0.000224194134722395,
+            "rms" : 0.000451501048371568
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 513,
+            "max_abs" : 0.00163761909514237,
+            "relative_l2" : 0.000224196017950474,
+            "rms" : 0.00045150488410006
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 512,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 512
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 512,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 512
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 65664,
+            "max_abs" : 0.021484375,
+            "relative_l2" : 0.00258793412266494,
+            "rms" : 0.00258656809495049
+         },
+         "ids_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.ids.fixed_iq_bf16_mean_norm_rope_return_casts.u32",
+         "name" : "fixed_iq_bf16_mean_norm_rope_return_casts",
+         "pool_mode_vs_fp64" : {
+            "count" : 65664,
+            "max_abs" : 0.0213491686789871,
+            "relative_l2" : 0.00257929660983146,
+            "rms" : 0.00257790020981083
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : true,
+            "cutoff" : 0,
+            "cutoff_margin" : 0,
+            "cutoff_ties" : 28,
+            "selected_at_cutoff" : 27,
+            "selected_blocks" : 512,
+            "strict_above" : 485
+         },
+         "scores_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.scores.fixed_iq_bf16_mean_norm_rope_return_casts.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 513,
+            "max_abs" : 0.0120205398394964,
+            "relative_l2" : 0.00170460358080127,
+            "rms" : 0.00343287439139603
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 513,
+            "max_abs" : 0.0120202454685514,
+            "relative_l2" : 0.00170459643833333,
+            "rms" : 0.00343286033517813
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 512,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 512
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 512,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 512
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 65664,
+            "max_abs" : 0,
+            "relative_l2" : 0,
+            "rms" : 0
+         },
+         "ids_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.ids.fixed_iq_exported_pool.u32",
+         "name" : "fixed_iq_exported_pool",
+         "pool_mode_vs_fp64" : {
+            "count" : 65664,
+            "max_abs" : 0.000976429560750613,
+            "relative_l2" : 0.000207485126044806,
+            "rms" : 0.000207372796104471
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : true,
+            "cutoff" : 0,
+            "cutoff_margin" : 0,
+            "cutoff_ties" : 28,
+            "selected_at_cutoff" : 27,
+            "selected_blocks" : 512,
+            "strict_above" : 485
+         },
+         "scores_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.scores.fixed_iq_exported_pool.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 513,
+            "max_abs" : 0.00123656751894696,
+            "relative_l2" : 0.000143707782122429,
+            "rms" : 0.000289410846397796
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 513,
+            "max_abs" : 0.00123639307125067,
+            "relative_l2" : 0.000143710137593264,
+            "rms" : 0.000289415617686768
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 512,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 512
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 512,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 512
+         }
+      }
+   ],
+   "numerical_gates" : {
+      "checks" : [],
+      "enabled" : false,
+      "passed" : null,
+      "scope" : "postprojection indexer only; excludes attention, projection and checkpoint quality"
+   },
+   "pool_fp64_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.pool.reference_fp64.f64",
+   "positions" : 262000,
+   "precision_notes" : [
+      "FP64 controls frozen FP32 inputs, not original weights",
+      "Scalar FP32 reductions and reciprocal sqrt may differ from device kernels",
+      "FP16/BF16 modes cast FP32 mean, RMSNorm return and RoPE return",
+      "All modes use supplied FP32 RoPE tables",
+      "Modes 1 through 6 hold the exported query fixed",
+      "No inferred pass thresholds"
+   ],
+   "production_budget" : true,
+   "provided_selection_vs_candidate_score_readback" : {
+      "canonical_overlap" : 512,
+      "exact_tie_compatible" : true,
+      "missing_strictly_above_cutoff" : 0,
+      "selected_below_cutoff" : 0,
+      "selected_blocks" : 512
+   },
+   "provided_selection_vs_exported_inputs_fp64" : {
+      "canonical_overlap" : 512,
+      "exact_tie_compatible" : true,
+      "missing_strictly_above_cutoff" : 0,
+      "selected_below_cutoff" : 0,
+      "selected_blocks" : 512
+   },
+   "provided_selection_vs_full_fp64" : {
+      "canonical_overlap" : 512,
+      "exact_tie_compatible" : true,
+      "missing_strictly_above_cutoff" : 0,
+      "selected_below_cutoff" : 0,
+      "selected_blocks" : 512
+   },
+   "quality_validation" : false,
+   "query_exported_vs_fp64" : {
+      "count" : 512,
+      "max_abs" : 4.20275684032134e-07,
+      "relative_l2" : 1.21896363221994e-07,
+      "rms" : 1.21516673903479e-07
+   },
+   "query_exported_vs_scalar_fp32" : {
+      "count" : 512,
+      "max_abs" : 0,
+      "relative_l2" : 0,
+      "rms" : 0
+   },
+   "query_fp64_artifact" : "/home/nate/.local/state/nates-dsh/builds/build-2630825-1792564997771592028.J0XsBV/source/validation/issue22/review-20261021-cpu-summary-full/synthetic-replay/n2052.json.pending.1489950.query.reference_fp64.f64",
+   "query_scalar_fp32_vs_fp64" : {
+      "count" : 512,
+      "max_abs" : 4.20275684032134e-07,
+      "relative_l2" : 1.21896363221994e-07,
+      "rms" : 1.21516673903479e-07
+   },
+   "raw_last_key_snapshot_vs_prefix" : {
+      "count" : 128,
+      "max_abs" : 0,
+      "relative_l2" : 0,
+      "rms" : 0
+   },
+   "reference_commit" : "8498ed425fa01bbee7d086efdf1a6634c2962aed",
+   "reference_source" : "src/transformers/models/qwen4_exp/modeling_qwen4_exp.py",
+   "replay_executable_sha256" : "ebb38ccaf70a18a04890f07f8af01f70318ec62eb88f86eab7e909cbbc4b589e",
+   "schema" : "flash-sass.qsa-quality-replay.v1",
+   "scope" : "postprojection_indexer_only",
+   "score_convention" : "sum_head_relu_dot_div_sqrt_128",
+   "selected_blocks" : 512,
+   "selection_tie_policy" : "lower_block_id_for_exact_equal_scores",
+   "sparse_exclusion" : true,
+   "tail_token_ids" : [],
+   "tie_tolerance" : 0,
+   "wrapper_source_sha256" : "58466e04eee9629884ad8fa1cabdc7742d68b6f1391e438716112c86687ba54a"
+}

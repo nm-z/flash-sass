@@ -1,0 +1,29 @@
+ok 1 - complete two-row mock capture succeeds
+ok 2 - current schema is explicit
+ok 3 - completion is a true JSON boolean
+ok 4 - IEEE little-endian FP32 declared
+ok 5 - both positions completed
+ok 6 - temporary marker removed after publication
+ok 7 - complete vocabulary rows have exact size
+ok 8 - teacher-forced IDs preserved
+ok 9 - die slices preserve vocabulary and row order
+ok 10 - interrupted returns the expected failure
+ok 11 - interrupted never publishes completion
+ok 12 - readback-failure returns the expected failure
+ok 13 - readback-failure never publishes completion
+ok 14 - duplicate returns the expected failure
+ok 15 - duplicate never publishes completion
+ok 16 - skip returns the expected failure
+ok 17 - skip never publishes completion
+ok 18 - overlap returns the expected failure
+ok 19 - overlap never publishes completion
+ok 20 - missing returns the expected failure
+ok 21 - missing never publishes completion
+ok 22 - out-of-range returns the expected failure
+ok 23 - out-of-range never publishes completion
+ok 24 - disabled capture remains a no-op
+ok 25 - disabled capture creates no directory
+ok 26 - existing directory is rejected
+ok 27 - existing contents remain intact
+ok 28 - existing directory never gains a completion marker
+1..28

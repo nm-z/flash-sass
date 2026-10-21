@@ -1,0 +1,418 @@
+[
+  {
+    "length": 1,
+    "complete_blocks": 0,
+    "selected_blocks": 0,
+    "attended_keys": 1,
+    "tail_token_ids": [
+      0
+    ],
+    "sparse_exclusion": false,
+    "production_budget": true,
+    "input_origin": "synthetic_cpu_fixture",
+    "input_hashes_match_before_after_replay": true,
+    "query_max_absolute_error": 3.04711615939368E-7,
+    "candidate_raw_score_max_absolute_error": null,
+    "selected_ids_vs_fp64": {
+      "canonical_overlap": 0,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 0
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 2047,
+    "complete_blocks": 511,
+    "selected_blocks": 511,
+    "attended_keys": 2047,
+    "tail_token_ids": [
+      2044,
+      2045,
+      2046
+    ],
+    "sparse_exclusion": false,
+    "production_budget": true,
+    "input_origin": "synthetic_cpu_fixture",
+    "input_hashes_match_before_after_replay": true,
+    "query_max_absolute_error": 2.40314796950969E-7,
+    "candidate_raw_score_max_absolute_error": null,
+    "selected_ids_vs_fp64": {
+      "canonical_overlap": 511,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 511
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 2048,
+    "complete_blocks": 512,
+    "selected_blocks": 512,
+    "attended_keys": 2048,
+    "tail_token_ids": [],
+    "sparse_exclusion": false,
+    "production_budget": true,
+    "input_origin": "synthetic_cpu_fixture",
+    "input_hashes_match_before_after_replay": true,
+    "query_max_absolute_error": 4.55251468967077E-7,
+    "candidate_raw_score_max_absolute_error": null,
+    "selected_ids_vs_fp64": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 2049,
+    "complete_blocks": 512,
+    "selected_blocks": 512,
+    "attended_keys": 2049,
+    "tail_token_ids": [
+      2048
+    ],
+    "sparse_exclusion": false,
+    "production_budget": true,
+    "input_origin": "synthetic_cpu_fixture",
+    "input_hashes_match_before_after_replay": true,
+    "query_max_absolute_error": 2.83290389591073E-7,
+    "candidate_raw_score_max_absolute_error": null,
+    "selected_ids_vs_fp64": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 2050,
+    "complete_blocks": 512,
+    "selected_blocks": 512,
+    "attended_keys": 2050,
+    "tail_token_ids": [
+      2048,
+      2049
+    ],
+    "sparse_exclusion": false,
+    "production_budget": true,
+    "input_origin": "synthetic_cpu_fixture",
+    "input_hashes_match_before_after_replay": true,
+    "query_max_absolute_error": 3.60639780261351E-7,
+    "candidate_raw_score_max_absolute_error": null,
+    "selected_ids_vs_fp64": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 2051,
+    "complete_blocks": 512,
+    "selected_blocks": 512,
+    "attended_keys": 2051,
+    "tail_token_ids": [
+      2048,
+      2049,
+      2050
+    ],
+    "sparse_exclusion": false,
+    "production_budget": true,
+    "input_origin": "synthetic_cpu_fixture",
+    "input_hashes_match_before_after_replay": true,
+    "query_max_absolute_error": 4.51394700951013E-7,
+    "candidate_raw_score_max_absolute_error": null,
+    "selected_ids_vs_fp64": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 2052,
+    "complete_blocks": 513,
+    "selected_blocks": 512,
+    "attended_keys": 2048,
+    "tail_token_ids": [],
+    "sparse_exclusion": true,
+    "production_budget": true,
+    "input_origin": "synthetic_cpu_fixture",
+    "input_hashes_match_before_after_replay": true,
+    "query_max_absolute_error": 4.20275684032134E-7,
+    "candidate_raw_score_max_absolute_error": 0.0000142948485404304,
+    "selected_ids_vs_fp64": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 2053,
+    "complete_blocks": 513,
+    "selected_blocks": 512,
+    "attended_keys": 2049,
+    "tail_token_ids": [
+      2052
+    ],
+    "sparse_exclusion": true,
+    "production_budget": true,
+    "input_origin": "synthetic_cpu_fixture",
+    "input_hashes_match_before_after_replay": true,
+    "query_max_absolute_error": 4.09058880990187E-7,
+    "candidate_raw_score_max_absolute_error": 0.0000135467107611476,
+    "selected_ids_vs_fp64": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 2054,
+    "complete_blocks": 513,
+    "selected_blocks": 512,
+    "attended_keys": 2050,
+    "tail_token_ids": [
+      2052,
+      2053
+    ],
+    "sparse_exclusion": true,
+    "production_budget": true,
+    "input_origin": "synthetic_cpu_fixture",
+    "input_hashes_match_before_after_replay": true,
+    "query_max_absolute_error": 2.29951109487203E-7,
+    "candidate_raw_score_max_absolute_error": 0.0000141947948577581,
+    "selected_ids_vs_fp64": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 2055,
+    "complete_blocks": 513,
+    "selected_blocks": 512,
+    "attended_keys": 2051,
+    "tail_token_ids": [
+      2052,
+      2053,
+      2054
+    ],
+    "sparse_exclusion": true,
+    "production_budget": true,
+    "input_origin": "synthetic_cpu_fixture",
+    "input_hashes_match_before_after_replay": true,
+    "query_max_absolute_error": 4.53163435887305E-7,
+    "candidate_raw_score_max_absolute_error": 0.0000187474564654622,
+    "selected_ids_vs_fp64": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 3100,
+    "complete_blocks": 775,
+    "selected_blocks": 512,
+    "attended_keys": 2048,
+    "tail_token_ids": [],
+    "sparse_exclusion": true,
+    "production_budget": true,
+    "input_origin": "synthetic_cpu_fixture",
+    "input_hashes_match_before_after_replay": true,
+    "query_max_absolute_error": 3.78874562390052E-7,
+    "candidate_raw_score_max_absolute_error": 0.0000171138573250573,
+    "selected_ids_vs_fp64": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 8000,
+    "complete_blocks": 2000,
+    "selected_blocks": 512,
+    "attended_keys": 2048,
+    "tail_token_ids": [],
+    "sparse_exclusion": true,
+    "production_budget": true,
+    "input_origin": "synthetic_cpu_fixture",
+    "input_hashes_match_before_after_replay": true,
+    "query_max_absolute_error": 5.4663661508414E-7,
+    "candidate_raw_score_max_absolute_error": 0.0000215933953313652,
+    "selected_ids_vs_fp64": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 65000,
+    "complete_blocks": 16250,
+    "selected_blocks": 512,
+    "attended_keys": 2048,
+    "tail_token_ids": [],
+    "sparse_exclusion": true,
+    "production_budget": true,
+    "input_origin": "synthetic_cpu_fixture",
+    "input_hashes_match_before_after_replay": true,
+    "query_max_absolute_error": 3.11261826979603E-7,
+    "candidate_raw_score_max_absolute_error": 0.0000241934790210507,
+    "selected_ids_vs_fp64": {
+      "canonical_overlap": 511,
+      "exact_tie_compatible": false,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 1,
+      "selected_blocks": 512
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  },
+  {
+    "length": 262000,
+    "complete_blocks": 65500,
+    "selected_blocks": 512,
+    "attended_keys": 2048,
+    "tail_token_ids": [],
+    "sparse_exclusion": true,
+    "production_budget": true,
+    "input_origin": "synthetic_cpu_fixture",
+    "input_hashes_match_before_after_replay": true,
+    "query_max_absolute_error": 3.40409622712201E-7,
+    "candidate_raw_score_max_absolute_error": 0.000025263241951734,
+    "selected_ids_vs_fp64": {
+      "canonical_overlap": 512,
+      "exact_tie_compatible": true,
+      "missing_strictly_above_cutoff": 0,
+      "selected_below_cutoff": 0,
+      "selected_blocks": 512
+    },
+    "numerical_gates": {
+      "checks": [],
+      "enabled": false,
+      "passed": null,
+      "scope": "postprojection indexer only; excludes attention, projection and checkpoint quality"
+    },
+    "quality_validation": false,
+    "independent_checkpoint_evidence": false
+  }
+]

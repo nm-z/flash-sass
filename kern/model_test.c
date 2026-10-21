@@ -102,6 +102,8 @@ static int cmpbuf(const char *what, const void *ref, CUdeviceptr dev, size_t byt
 typedef struct { float *dn_state, *conv_state, *ple_state, *kc, *vc; } hstate_t;
 
 #include "model_qsa_test.h"
+#include "model_capture.h"
+#include "model_layer_capture.h"
 
 /* Reject malformed arguments and unreachable controls before creating a CUDA context. */
 static int decimal_arg(const char *s, unsigned max, const char *label) {
@@ -162,6 +164,8 @@ int main(int argc, char **argv) {
 			fprintf(stderr, "MODEL_INJECT requires QSA validation and a reachable requested comparison\n"); return 2;
 		}
 	}
+	model_capture_check(b0,b1,do_embed,do_head,do_loop);
+	model_layer_capture_check(b0,b1,do_embed,do_head,do_loop,(unsigned)T);
 	model_maxp = qsa_cache_positions((unsigned)T);
 	unsigned compact_positions = qsa_compact_positions(model_budget);
 	model_kcf = ATTN_KC_FLOATS(compact_positions);
@@ -181,12 +185,19 @@ int main(int argc, char **argv) {
 			if (id < 0) { fclose(f); return 2; }
 			ids[nprompt++] = (uint32_t)id;
 		}
+		if ((model_capture_enabled() || model_layer_capture_enabled()) &&
+		    fscanf(f, "%63s", word) == 1) {
+			fprintf(stderr, "capture requires exactly T IDs; MODEL_IDS has extra input\n");
+			fclose(f); return 2;
+		}
 		if (ferror(f)) { perror(getenv("MODEL_IDS")); fclose(f); return 2; }
 		fclose(f);
 	} else for (int i = 0; i < T; i++) { ids[i] = (uint32_t)((rs >> 8) % 248000u); frand(); }
 	if (model_qsa && !notwin && nprompt != T) {
 		fprintf(stderr, "QSA comparison needs identical teacher-forced IDs at all %d positions; MODEL_IDS supplied %d. Use MODEL_NOTWIN for separate free-running smoke/timing.\n", T, nprompt); return 2;
 	}
+	if (model_capture_enabled() && nprompt != T) { fprintf(stderr,"MODEL_CAPTURE needs exactly T teacher-forced IDs\n"); return 2; }
+	if (model_layer_capture_enabled() && nprompt != T) { fprintf(stderr,"MODEL_LAYER_CAPTURE needs exactly T teacher-forced IDs\n"); return 2; }
 	CK(cuInit(0));
 	CUmodule mod[MAXD]; CUfunction fn[MAXD];
 	for (int d = 0; d < nd; d++) {
@@ -557,6 +568,8 @@ int main(int argc, char **argv) {
 		double t3 = now();
 		tsum += t3 - t2;
 		if (do_head) { CK(cuCtxSetCurrent(ctx[0])); CK(cuMemcpyDtoH(&tok_gpu, db[0].tokout, 4)); }
+		model_capture_record((unsigned)t,(unsigned)T,ids,db,sp);
+		model_layer_capture_record((unsigned)t,(unsigned)T,ids,db,dw);
 		if (getenv("MODEL_DUMP_S")) {   /* this position's stream: <path>.t<pos> */
 			float *St = malloc(4 * 10240); CK(cuCtxSetCurrent(ctx[0])); CK(cuMemcpyDtoH(St, db[0].S, 4 * 10240));
 			char fnt[600]; snprintf(fnt, sizeof fnt, "%s.t%d", getenv("MODEL_DUMP_S"), t); FILE *ft = fopen(fnt, "wb"); if (ft) { fwrite(St, 4, 10240, ft); fclose(ft); } free(St);

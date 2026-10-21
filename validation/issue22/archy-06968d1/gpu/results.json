@@ -1,0 +1,347 @@
+{
+  "status": "PASS",
+  "hostname": "archy",
+  "finished_utc": "2026-10-17T20:33:00.589828+00:00",
+  "source_revision": "06968d1a5d6d7fdaf12106236cc39a1cb5cdf389",
+  "scope": "Four short full-48-layer teacher-forced GPU captures with actual embedding, head, and disk PLE weights; valid token microfixtures; no scalar twin or independent original checkpoint comparison",
+  "quality_validation": false,
+  "independent_reference": false,
+  "rows": [
+    {
+      "label": "t4-budget512-kv0",
+      "argv": [
+        "/home/nate/claude/flash-sass-prs/quality-build-06968d1/kern/model_test",
+        "/unused-with-MODEL_NOTWIN",
+        "0",
+        "48",
+        "4",
+        "eh",
+        "/tmp/hold-h0.manifest",
+        "/tmp/hold-h1.manifest",
+        "/tmp/hold-h2.manifest",
+        "/tmp/hold-h3.manifest",
+        "/tmp/hold-h4.manifest",
+        "/tmp/hold-h5.manifest"
+      ],
+      "environment": {
+        "MODEL_ATTN": "qsa",
+        "MODEL_NOTWIN": "1",
+        "MODEL_PLE": "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+        "MODEL_PLE_OFF": "192",
+        "CUDA_VISIBLE_DEVICES": "0,1,2,3,4,5",
+        "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
+        "SPLIT_SHARES": "112,97,81,116,97,97",
+        "ATTN_DIE": "1",
+        "ATTN_MAP": "1,1,1,1,4,4,4,4,5,5,5,5",
+        "MODEL_IDS": "/home/nate/claude/flash-sass-prs/quality-validation-06968d1/gpu/t4-budget512-kv0-ids.txt",
+        "MODEL_CAPTURE": "/home/nate/claude/flash-sass-prs/quality-validation-06968d1/gpu/t4-budget512-kv0-raw",
+        "FLASH_NBLK": "512",
+        "FLASH_KV_HOST": "0"
+      },
+      "exit": 0,
+      "seconds": 2.469714500999544,
+      "capture": {
+        "logits": {
+          "bytes": 3973120,
+          "sha256": "ff487223d8ca1c397cfc01403c3a28f5412e39341fc29d8ecb62bfda251e6e06"
+        },
+        "ids": {
+          "bytes": 16,
+          "sha256": "4b55f2919bb18010fb912098dd4f0a113102404c60e446d3a3966b2eaffd0a24"
+        },
+        "info": {
+          "schema": "flash-sass.raw-model-capture.v1",
+          "teacher_forced": true,
+          "positions": 4,
+          "vocab_size": 248320,
+          "byte_order": "little",
+          "blocks": [
+            0,
+            48
+          ],
+          "attention_mode": "qsa",
+          "FLASH_NBLK": 512,
+          "FLASH_KV_HOST": 0,
+          "dies": 6,
+          "build_revision": "06968d1a5d6d7fdaf12106236cc39a1cb5cdf389",
+          "logits_source": "actual GPU per-die head row slices",
+          "checkpoint_provenance": null,
+          "reference_provenance": null,
+          "quality_validation": false
+        },
+        "finite": true,
+        "minimum": -12.185609817504883,
+        "maximum": 13.184961318969727,
+        "expected_bytes": 3973120
+      },
+      "passed": true
+    },
+    {
+      "label": "t4-budget512-kv1",
+      "argv": [
+        "/home/nate/claude/flash-sass-prs/quality-build-06968d1/kern/model_test",
+        "/unused-with-MODEL_NOTWIN",
+        "0",
+        "48",
+        "4",
+        "eh",
+        "/tmp/hold-h0.manifest",
+        "/tmp/hold-h1.manifest",
+        "/tmp/hold-h2.manifest",
+        "/tmp/hold-h3.manifest",
+        "/tmp/hold-h4.manifest",
+        "/tmp/hold-h5.manifest"
+      ],
+      "environment": {
+        "MODEL_ATTN": "qsa",
+        "MODEL_NOTWIN": "1",
+        "MODEL_PLE": "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+        "MODEL_PLE_OFF": "192",
+        "CUDA_VISIBLE_DEVICES": "0,1,2,3,4,5",
+        "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
+        "SPLIT_SHARES": "112,97,81,116,97,97",
+        "ATTN_DIE": "1",
+        "ATTN_MAP": "1,1,1,1,4,4,4,4,5,5,5,5",
+        "MODEL_IDS": "/home/nate/claude/flash-sass-prs/quality-validation-06968d1/gpu/t4-budget512-kv1-ids.txt",
+        "MODEL_CAPTURE": "/home/nate/claude/flash-sass-prs/quality-validation-06968d1/gpu/t4-budget512-kv1-raw",
+        "FLASH_NBLK": "512",
+        "FLASH_KV_HOST": "1"
+      },
+      "exit": 0,
+      "seconds": 1.6674699159993907,
+      "capture": {
+        "logits": {
+          "bytes": 3973120,
+          "sha256": "ff487223d8ca1c397cfc01403c3a28f5412e39341fc29d8ecb62bfda251e6e06"
+        },
+        "ids": {
+          "bytes": 16,
+          "sha256": "4b55f2919bb18010fb912098dd4f0a113102404c60e446d3a3966b2eaffd0a24"
+        },
+        "info": {
+          "schema": "flash-sass.raw-model-capture.v1",
+          "teacher_forced": true,
+          "positions": 4,
+          "vocab_size": 248320,
+          "byte_order": "little",
+          "blocks": [
+            0,
+            48
+          ],
+          "attention_mode": "qsa",
+          "FLASH_NBLK": 512,
+          "FLASH_KV_HOST": 1,
+          "dies": 6,
+          "build_revision": "06968d1a5d6d7fdaf12106236cc39a1cb5cdf389",
+          "logits_source": "actual GPU per-die head row slices",
+          "checkpoint_provenance": null,
+          "reference_provenance": null,
+          "quality_validation": false
+        },
+        "finite": true,
+        "minimum": -12.185609817504883,
+        "maximum": 13.184961318969727,
+        "expected_bytes": 3973120
+      },
+      "passed": true
+    },
+    {
+      "label": "t9-budget1-kv0",
+      "argv": [
+        "/home/nate/claude/flash-sass-prs/quality-build-06968d1/kern/model_test",
+        "/unused-with-MODEL_NOTWIN",
+        "0",
+        "48",
+        "9",
+        "eh",
+        "/tmp/hold-h0.manifest",
+        "/tmp/hold-h1.manifest",
+        "/tmp/hold-h2.manifest",
+        "/tmp/hold-h3.manifest",
+        "/tmp/hold-h4.manifest",
+        "/tmp/hold-h5.manifest"
+      ],
+      "environment": {
+        "MODEL_ATTN": "qsa",
+        "MODEL_NOTWIN": "1",
+        "MODEL_PLE": "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+        "MODEL_PLE_OFF": "192",
+        "CUDA_VISIBLE_DEVICES": "0,1,2,3,4,5",
+        "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
+        "SPLIT_SHARES": "112,97,81,116,97,97",
+        "ATTN_DIE": "1",
+        "ATTN_MAP": "1,1,1,1,4,4,4,4,5,5,5,5",
+        "MODEL_IDS": "/home/nate/claude/flash-sass-prs/quality-validation-06968d1/gpu/t9-budget1-kv0-ids.txt",
+        "MODEL_CAPTURE": "/home/nate/claude/flash-sass-prs/quality-validation-06968d1/gpu/t9-budget1-kv0-raw",
+        "FLASH_NBLK": "1",
+        "FLASH_KV_HOST": "0"
+      },
+      "exit": 0,
+      "seconds": 2.770411913006683,
+      "capture": {
+        "logits": {
+          "bytes": 8939520,
+          "sha256": "894ef61a63680dd3f00496dc001c26d574c9d0700e19a23653357cd55bfb35d9"
+        },
+        "ids": {
+          "bytes": 36,
+          "sha256": "125416f6f3065e804d76cdc507d53948b17dc7ba12dafd465dbd63b0415defeb"
+        },
+        "info": {
+          "schema": "flash-sass.raw-model-capture.v1",
+          "teacher_forced": true,
+          "positions": 9,
+          "vocab_size": 248320,
+          "byte_order": "little",
+          "blocks": [
+            0,
+            48
+          ],
+          "attention_mode": "qsa",
+          "FLASH_NBLK": 1,
+          "FLASH_KV_HOST": 0,
+          "dies": 6,
+          "build_revision": "06968d1a5d6d7fdaf12106236cc39a1cb5cdf389",
+          "logits_source": "actual GPU per-die head row slices",
+          "checkpoint_provenance": null,
+          "reference_provenance": null,
+          "quality_validation": false
+        },
+        "finite": true,
+        "minimum": -12.185609817504883,
+        "maximum": 21.12533187866211,
+        "expected_bytes": 8939520
+      },
+      "passed": true
+    },
+    {
+      "label": "t9-budget1-kv1",
+      "argv": [
+        "/home/nate/claude/flash-sass-prs/quality-build-06968d1/kern/model_test",
+        "/unused-with-MODEL_NOTWIN",
+        "0",
+        "48",
+        "9",
+        "eh",
+        "/tmp/hold-h0.manifest",
+        "/tmp/hold-h1.manifest",
+        "/tmp/hold-h2.manifest",
+        "/tmp/hold-h3.manifest",
+        "/tmp/hold-h4.manifest",
+        "/tmp/hold-h5.manifest"
+      ],
+      "environment": {
+        "MODEL_ATTN": "qsa",
+        "MODEL_NOTWIN": "1",
+        "MODEL_PLE": "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+        "MODEL_PLE_OFF": "192",
+        "CUDA_VISIBLE_DEVICES": "0,1,2,3,4,5",
+        "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
+        "SPLIT_SHARES": "112,97,81,116,97,97",
+        "ATTN_DIE": "1",
+        "ATTN_MAP": "1,1,1,1,4,4,4,4,5,5,5,5",
+        "MODEL_IDS": "/home/nate/claude/flash-sass-prs/quality-validation-06968d1/gpu/t9-budget1-kv1-ids.txt",
+        "MODEL_CAPTURE": "/home/nate/claude/flash-sass-prs/quality-validation-06968d1/gpu/t9-budget1-kv1-raw",
+        "FLASH_NBLK": "1",
+        "FLASH_KV_HOST": "1"
+      },
+      "exit": 0,
+      "seconds": 1.7678513120044954,
+      "capture": {
+        "logits": {
+          "bytes": 8939520,
+          "sha256": "894ef61a63680dd3f00496dc001c26d574c9d0700e19a23653357cd55bfb35d9"
+        },
+        "ids": {
+          "bytes": 36,
+          "sha256": "125416f6f3065e804d76cdc507d53948b17dc7ba12dafd465dbd63b0415defeb"
+        },
+        "info": {
+          "schema": "flash-sass.raw-model-capture.v1",
+          "teacher_forced": true,
+          "positions": 9,
+          "vocab_size": 248320,
+          "byte_order": "little",
+          "blocks": [
+            0,
+            48
+          ],
+          "attention_mode": "qsa",
+          "FLASH_NBLK": 1,
+          "FLASH_KV_HOST": 1,
+          "dies": 6,
+          "build_revision": "06968d1a5d6d7fdaf12106236cc39a1cb5cdf389",
+          "logits_source": "actual GPU per-die head row slices",
+          "checkpoint_provenance": null,
+          "reference_provenance": null,
+          "quality_validation": false
+        },
+        "finite": true,
+        "minimum": -12.185609817504883,
+        "maximum": 21.12533187866211,
+        "expected_bytes": 8939520
+      },
+      "passed": true
+    }
+  ],
+  "placement_comparisons": [
+    {
+      "positions": 4,
+      "budget": 512,
+      "placement_bit_exact": true,
+      "scope": "same implementation and inputs; different KV placement"
+    },
+    {
+      "positions": 9,
+      "budget": 1,
+      "placement_bit_exact": true,
+      "scope": "same implementation and inputs; different KV placement"
+    }
+  ],
+  "gpu_before": {
+    "label": "gpu-before",
+    "argv": [
+      "nvidia-smi",
+      "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm",
+      "--format=csv"
+    ],
+    "environment": {
+      "MODEL_ATTN": "qsa",
+      "MODEL_NOTWIN": "1",
+      "MODEL_PLE": "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+      "MODEL_PLE_OFF": "192",
+      "CUDA_VISIBLE_DEVICES": "0,1,2,3,4,5",
+      "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
+      "SPLIT_SHARES": "112,97,81,116,97,97",
+      "ATTN_DIE": "1",
+      "ATTN_MAP": "1,1,1,1,4,4,4,4,5,5,5,5"
+    },
+    "exit": 0,
+    "seconds": 0.11452625499805436
+  },
+  "gpu_after": {
+    "label": "gpu-after",
+    "argv": [
+      "nvidia-smi",
+      "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm",
+      "--format=csv"
+    ],
+    "environment": {
+      "MODEL_ATTN": "qsa",
+      "MODEL_NOTWIN": "1",
+      "MODEL_PLE": "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+      "MODEL_PLE_OFF": "192",
+      "CUDA_VISIBLE_DEVICES": "0,1,2,3,4,5",
+      "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
+      "SPLIT_SHARES": "112,97,81,116,97,97",
+      "ATTN_DIE": "1",
+      "ATTN_MAP": "1,1,1,1,4,4,4,4,5,5,5,5"
+    },
+    "exit": 0,
+    "seconds": 0.11438996999640949
+  },
+  "weights_manifest": {
+    "bytes": 577,
+    "sha256": "f31fd0882cf8fec75a8692e8c02cf4cef32382e5efa8cf09ecc3e397e51c952d"
+  }
+}

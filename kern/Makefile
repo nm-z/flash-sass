@@ -122,7 +122,33 @@ test-gemv: all
 	./gemv_test $(SHARD1) blk.4.ffn_down_exps.weight 0 20
 
 clean:
-	rm -f *.cubin *.dis *.so *.so.new die.sass die_trace.sass die_trace16.sass dieops.h flashcore flashd flashvis hold memtest fence *_test ple_read_bench ple_read_audit
+	rm -f *.cubin *.dis *.so *.so.new die.sass die_trace.sass die_trace16.sass dieops.h flashcore flashd flashvis hold memtest fence *_test ple_read_bench ple_read_audit model_quality model_quality_json.o qsa_quality qsa_attention_quality qsa_attention_gpu model_reference
+	rm -f qsa_safetensors_qkv
+
+# CPU-only FP32 logit comparison using core Perl modules.
+model_quality: model_quality.pl
+	cp $< $@
+	chmod +x $@
+
+qsa_quality: qsa_quality.c
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -fno-fast-math -ffp-contract=off -o $@ $< -lm
+
+qsa_attention_quality: qsa_attention_quality.c
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -fno-fast-math -ffp-contract=off -o $@ $< -lm
+
+qsa_safetensors_qkv: qsa_safetensors_qkv.c ../ref/qsa.c ../ref/qsa.h ../ref/fmath.c ../ref/fmath.h
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -fno-fast-math -ffp-contract=off -DFLASH_REV='"$(FLASH_REV)"' -I../ref -o $@ qsa_safetensors_qkv.c ../ref/qsa.c ../ref/fmath.c -lm
+
+# Fixed-projection GPU fixtures; supplied selection, no model/indexer claim.
+qsa_attention_gpu: qsa_attention_gpu.c dieops.h
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -fno-fast-math -ffp-contract=off -DFLASH_REV='"$(FLASH_REV)"' -o $@ $< -I$(CUDA)/include -lcuda -lm
+
+# Independent backend source/build supplied explicitly; no GPU backend loading.
+# Rebuild when LLAMA_DIR changes even if model_reference.c has not changed.
+.PHONY: model_reference
+model_reference: model_reference.c
+	@test -n "$(LLAMA_DIR)" || { echo 'set LLAMA_DIR to the independent llama.cpp source/build' >&2; exit 2; }
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -I"$(LLAMA_DIR)/include" -I"$(LLAMA_DIR)/ggml/include" -o $@ $< -L"$(LLAMA_DIR)/build/bin" -Wl,-rpath,"$(LLAMA_DIR)/build/bin" -lllama -lm
 
 .PHONY: all test test-gemv clean
 
@@ -481,8 +507,14 @@ dies_test: dies_test.c prog.c prog.h holdc.c hold.h dieops.h ../ref/block.c ../r
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ dies_test.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I$(CUDA)/include -lcuda -lm
 
 # ---- whole tokens (embed, blocks [b0,b1), head) on n dies vs the twins ----
-model_test: model_test.c prog.c prog.h holdc.c hold.h dieops.h ../ref/block.c ../ref/block.h ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c ../ref/split.h ../ref/qsa.c ../ref/qsa.h model_qsa_test.h qsa_state.h
-	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ model_test.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I$(CUDA)/include -lcuda -lm
+model_test: model_test.c prog.c prog.h holdc.c hold.h dieops.h ../ref/block.c ../ref/block.h ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c ../ref/split.h ../ref/qsa.c ../ref/qsa.h model_qsa_test.h qsa_state.h model_capture.h model_layer_capture.h
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -DFLASH_REV='"$(FLASH_REV)"' -o $@ model_test.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+model_layer_capture_test: model_layer_capture_test.c model_layer_capture.h
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -o $@ model_layer_capture_test.c
+
+model_capture_test: model_capture_test.c model_capture.h
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -o $@ model_capture_test.c
 
 # the persistent core and the reloadable engine library (see core.h); the library is built to a new name and moved
 # over the old one, so a running core that has the old file mapped keeps a consistent image

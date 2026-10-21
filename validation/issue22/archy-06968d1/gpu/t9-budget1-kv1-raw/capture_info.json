@@ -1,0 +1,17 @@
+{
+  "schema":"flash-sass.raw-model-capture.v1",
+  "teacher_forced":true,
+  "positions":9,
+  "vocab_size":248320,
+  "byte_order":"little",
+  "blocks":[0,48],
+  "attention_mode":"qsa",
+  "FLASH_NBLK":1,
+  "FLASH_KV_HOST":1,
+  "dies":6,
+  "build_revision":"06968d1a5d6d7fdaf12106236cc39a1cb5cdf389",
+  "logits_source":"actual GPU per-die head row slices",
+  "checkpoint_provenance":null,
+  "reference_provenance":null,
+  "quality_validation":false
+}

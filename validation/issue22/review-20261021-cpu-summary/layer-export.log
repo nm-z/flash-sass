@@ -1,0 +1,49 @@
+ok 1 - CPU readback mock capture succeeds
+ok 2 - completion schema
+ok 3 - complete prefix length
+ok 4 - predeclared lengths retained
+ok 5 - capture does not attest independent quality
+ok 6 - postprojection boundary does not claim upstream isolation
+ok 7 - raw K prefix shape
+ok 8 - raw V prefix shape
+ok 9 - raw indexer key prefix shape
+ok 10 - all K prefix rows kept in token order
+ok 11 - raw indexer keys exclude query projections
+ok 12 - exact supplied RoPE table shape
+ok 13 - supplied gamma is not offset by one
+ok 14 - first token includes its one tail key
+ok 15 - no complete-block pool at first token
+ok 16 - no implicit complete block at first token
+ok 17 - dense scores are explicitly unavailable
+ok 18 - uncleared dense score buffer is not exported
+ok 19 - dense identity origin explicit
+ok 20 - dense selected block is implicit zero
+ok 21 - sparse exclusion recorded above block budget
+ok 22 - sparse key count at exact complete block
+ok 23 - sparse IDs have readback origin
+ok 24 - selected ID readback is preserved
+ok 25 - valid score readback is preserved
+ok 26 - tiled pool is exported as block-major FP16
+ok 27 - only valid INT8 prefix is exported
+ok 28 - scale prefix shape
+ok 29 - sparse tail included
+ok 30 - snapshot stores the selected token output
+ok 31 - existing capture directory is rejected
+ok 32 - existing completion bytes remain intact
+ok 33 - invalid length list rejected: 0
+ok 34 - invalid configuration creates no capture
+ok 35 - invalid length list rejected: 10
+ok 36 - invalid configuration creates no capture
+ok 37 - invalid length list rejected: 1,1
+ok 38 - invalid configuration creates no capture
+ok 39 - invalid length list rejected: 1,
+ok 40 - invalid configuration creates no capture
+ok 41 - invalid length list rejected: ,1
+ok 42 - invalid configuration creates no capture
+ok 43 - invalid length list rejected: 1x
+ok 44 - invalid configuration creates no capture
+ok 45 - invalid length list rejected: -1
+ok 46 - invalid configuration creates no capture
+ok 47 - invalid length list rejected: 1,,4
+ok 48 - invalid configuration creates no capture
+1..48

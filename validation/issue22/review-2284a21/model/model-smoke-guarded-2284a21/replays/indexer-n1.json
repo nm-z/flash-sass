@@ -1,0 +1,545 @@
+{
+   "artifact_sha256" : {
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.ids.fixed_iq_bf16_mean_norm_rope_return_casts.u32" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.ids.fixed_iq_exported_pool.u32" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.ids.fixed_iq_fp16_mean_norm_rope_return_casts.u32" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.ids.fixed_iq_fp64_pool.u32" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.ids.fixed_iq_scalar_fp32_pool.u32" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.ids.fixed_iq_scalar_fp32_pool_fp16_store.u32" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.ids.reference_fp64.u32" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.pool.reference_fp64.f64" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.query.reference_fp64.f64" : "f2842587fa6d274e2168f36ac230a783957e7943bb405245fd3abe35d68d8965",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.scores.fixed_iq_bf16_mean_norm_rope_return_casts.f64" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.scores.fixed_iq_exported_pool.f64" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.scores.fixed_iq_fp16_mean_norm_rope_return_casts.f64" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.scores.fixed_iq_fp64_pool.f64" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.scores.fixed_iq_scalar_fp32_pool.f64" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.scores.fixed_iq_scalar_fp32_pool_fp16_store.f64" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.scores.reference_fp64.f64" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   "attended_keys" : 1,
+   "budget" : 1,
+   "candidate_raw_scores_vs_exported_inputs_fp64" : {
+      "count" : 0,
+      "max_abs" : null,
+      "relative_l2" : null,
+      "rms" : null
+   },
+   "candidate_scaled_scores_vs_exported_inputs_fp64" : {
+      "count" : 0,
+      "max_abs" : null,
+      "relative_l2" : null,
+      "rms" : null
+   },
+   "candidate_scaled_scores_vs_full_fp64" : {
+      "count" : 0,
+      "max_abs" : null,
+      "relative_l2" : null,
+      "rms" : null
+   },
+   "candidate_score_convention" : "unscaled_sum_head_relu_dot",
+   "candidate_score_readback_present" : false,
+   "candidate_score_readback_ranking" : null,
+   "capture_completion_metadata" : {
+      "FLASH_KV_HOST" : 1,
+      "budget" : 1,
+      "build_revision" : "2284a214d3babea6df19510654203c65abfd6cce",
+      "byte_order" : "little",
+      "die" : 1,
+      "epsilon" : 9.99999997475243e-07,
+      "gamma" : "supplied_multiplicative_f32",
+      "independent_checkpoint_evidence" : false,
+      "input_boundary" : "post_projection_before_norm_rope_and_kv_quantization",
+      "layer" : 3,
+      "pool_dtype" : "fp16",
+      "positions" : 9,
+      "quality_validation" : false,
+      "rope_base" : 10000000,
+      "rope_tables" : "supplied_f32",
+      "schema" : "flash-sass.qsa-layer-capture.v1",
+      "snapshot_lengths" : [
+         1,
+         4,
+         8,
+         9
+      ],
+      "teacher_forced" : true,
+      "upstream_activation_quantization_isolated" : false
+   },
+   "capture_snapshot_metadata" : {
+      "attended_keys" : 1,
+      "budget" : 1,
+      "complete_blocks" : 0,
+      "die" : 1,
+      "layer" : 3,
+      "length" : 1,
+      "position" : 0,
+      "quality_validation" : false,
+      "schema" : "flash-sass.qsa-layer-snapshot.v1",
+      "scores_source" : "not_dispatched",
+      "selected_ids_source" : "implicit_all_blocks",
+      "sparse_exclusion" : false,
+      "tail" : 1
+   },
+   "complete" : true,
+   "complete_blocks" : 0,
+   "computation_complete" : true,
+   "epsilon" : 9.99999997475243e-07,
+   "gamma_convention" : "supplied_multiplicative_gamma_no_add_one",
+   "gpu_execution_performed_by_replay" : false,
+   "independent_checkpoint_evidence" : false,
+   "input_hashes_match_before_after_replay" : true,
+   "input_origin" : "unverified_external_capture",
+   "input_sha256" : {
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/layer/complete.json" : "3611af58070994ab57275ccc0ffd5573642733f67b30f7be1d895a2bbfc012d4",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/layer/ikn.f32" : "a251770eb43e4c78d6103bad01ff65be045662dee5a52a65031035befa37b6d7",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/layer/iqn.f32" : "5fbf994c6acea483aa8c7e53ed5e10fe8214b805b4e78723d3019c6a6f0a4441",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/layer/n1/iq.f32" : "ef3c0fec66ba5cddecf4ea67679ad6ff695c04cd2cb57b0801c276be55d4f43a",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/layer/n1/iqk.f32" : "6a2d7750a0a37b4670e9cbe72c7e68262f752b6e1e32827626b23c9179c9c249",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/layer/n1/pool.f16" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/layer/n1/selected_ids.u32" : "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/layer/n1/snapshot.json" : "791c91d3198d9530b666f074752b696dbeac56a8c033da8a0ca374bed7f97e91",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/layer/raw_ik.f32" : "ef8fa806ef5b0dc6e3e35fdaed5acc587d5db24d1fce580ffe5302bcbc6c5117",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/layer/rope_cs.f32" : "a17ade825ff989c96ff1af188527472ed78a7ccc0bce2f11256c4cc4037e14dc",
+      "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/layer/rope_sn.f32" : "87d1f4f16cda1ba611400168021b9a4b0af4cd8b61d0453060a1b895dba26236"
+   },
+   "length" : 1,
+   "modes" : [
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ids_artifact" : "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.ids.reference_fp64.u32",
+         "name" : "reference_fp64",
+         "pool_mode_vs_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : null,
+            "cutoff_margin" : null,
+            "cutoff_ties" : 0,
+            "selected_at_cutoff" : 0,
+            "selected_blocks" : 0,
+            "strict_above" : 0
+         },
+         "scores_artifact" : "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.scores.reference_fp64.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ids_artifact" : "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.ids.fixed_iq_fp64_pool.u32",
+         "name" : "fixed_iq_fp64_pool",
+         "pool_mode_vs_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : null,
+            "cutoff_margin" : null,
+            "cutoff_ties" : 0,
+            "selected_at_cutoff" : 0,
+            "selected_blocks" : 0,
+            "strict_above" : 0
+         },
+         "scores_artifact" : "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.scores.fixed_iq_fp64_pool.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ids_artifact" : "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.ids.fixed_iq_scalar_fp32_pool.u32",
+         "name" : "fixed_iq_scalar_fp32_pool",
+         "pool_mode_vs_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : null,
+            "cutoff_margin" : null,
+            "cutoff_ties" : 0,
+            "selected_at_cutoff" : 0,
+            "selected_blocks" : 0,
+            "strict_above" : 0
+         },
+         "scores_artifact" : "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.scores.fixed_iq_scalar_fp32_pool.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ids_artifact" : "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.ids.fixed_iq_scalar_fp32_pool_fp16_store.u32",
+         "name" : "fixed_iq_scalar_fp32_pool_fp16_store",
+         "pool_mode_vs_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : null,
+            "cutoff_margin" : null,
+            "cutoff_ties" : 0,
+            "selected_at_cutoff" : 0,
+            "selected_blocks" : 0,
+            "strict_above" : 0
+         },
+         "scores_artifact" : "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.scores.fixed_iq_scalar_fp32_pool_fp16_store.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ids_artifact" : "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.ids.fixed_iq_fp16_mean_norm_rope_return_casts.u32",
+         "name" : "fixed_iq_fp16_mean_norm_rope_return_casts",
+         "pool_mode_vs_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : null,
+            "cutoff_margin" : null,
+            "cutoff_ties" : 0,
+            "selected_at_cutoff" : 0,
+            "selected_blocks" : 0,
+            "strict_above" : 0
+         },
+         "scores_artifact" : "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.scores.fixed_iq_fp16_mean_norm_rope_return_casts.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ids_artifact" : "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.ids.fixed_iq_bf16_mean_norm_rope_return_casts.u32",
+         "name" : "fixed_iq_bf16_mean_norm_rope_return_casts",
+         "pool_mode_vs_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : null,
+            "cutoff_margin" : null,
+            "cutoff_ties" : 0,
+            "selected_at_cutoff" : 0,
+            "selected_blocks" : 0,
+            "strict_above" : 0
+         },
+         "scores_artifact" : "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.scores.fixed_iq_bf16_mean_norm_rope_return_casts.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ids_artifact" : "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.ids.fixed_iq_exported_pool.u32",
+         "name" : "fixed_iq_exported_pool",
+         "pool_mode_vs_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : null,
+            "cutoff_margin" : null,
+            "cutoff_ties" : 0,
+            "selected_at_cutoff" : 0,
+            "selected_blocks" : 0,
+            "strict_above" : 0
+         },
+         "scores_artifact" : "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.scores.fixed_iq_exported_pool.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 0,
+            "max_abs" : null,
+            "relative_l2" : null,
+            "rms" : null
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 0,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 0
+         }
+      }
+   ],
+   "numerical_gates" : {
+      "checks" : [],
+      "enabled" : false,
+      "passed" : null,
+      "scope" : "postprojection indexer only; excludes attention, projection and checkpoint quality"
+   },
+   "pool_fp64_artifact" : "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.pool.reference_fp64.f64",
+   "positions" : 9,
+   "precision_notes" : [
+      "FP64 controls frozen FP32 inputs, not original weights",
+      "Scalar FP32 reductions and reciprocal sqrt may differ from device kernels",
+      "FP16/BF16 modes cast FP32 mean, RMSNorm return and RoPE return",
+      "All modes use supplied FP32 RoPE tables",
+      "Modes 1 through 6 hold the exported query fixed",
+      "No inferred pass thresholds"
+   ],
+   "production_budget" : false,
+   "provided_selection_vs_candidate_score_readback" : null,
+   "provided_selection_vs_exported_inputs_fp64" : {
+      "canonical_overlap" : 0,
+      "exact_tie_compatible" : true,
+      "missing_strictly_above_cutoff" : 0,
+      "selected_below_cutoff" : 0,
+      "selected_blocks" : 0
+   },
+   "provided_selection_vs_full_fp64" : {
+      "canonical_overlap" : 0,
+      "exact_tie_compatible" : true,
+      "missing_strictly_above_cutoff" : 0,
+      "selected_below_cutoff" : 0,
+      "selected_blocks" : 0
+   },
+   "quality_validation" : false,
+   "query_exported_vs_fp64" : {
+      "count" : 512,
+      "max_abs" : 1.73124000468761e-07,
+      "relative_l2" : 4.7675066295677e-08,
+      "rms" : 4.61314478319567e-08
+   },
+   "query_exported_vs_scalar_fp32" : {
+      "count" : 512,
+      "max_abs" : 2.38418579101562e-07,
+      "relative_l2" : 4.24264009780109e-08,
+      "rms" : 4.1052724739764e-08
+   },
+   "query_fp64_artifact" : "/home/nate/codex/flash-pr46-attention-20261018.LnH4Z4/model-smoke-guarded-2284a21/replays/indexer-n1.json.pending.1243147.query.reference_fp64.f64",
+   "query_scalar_fp32_vs_fp64" : {
+      "count" : 512,
+      "max_abs" : 3.99918457016923e-07,
+      "relative_l2" : 7.55147313650474e-08,
+      "rms" : 7.3069723047806e-08
+   },
+   "raw_last_key_snapshot_vs_prefix" : {
+      "count" : 128,
+      "max_abs" : 0,
+      "relative_l2" : 0,
+      "rms" : 0
+   },
+   "reference_commit" : "8498ed425fa01bbee7d086efdf1a6634c2962aed",
+   "reference_source" : "src/transformers/models/qwen4_exp/modeling_qwen4_exp.py",
+   "replay_executable_sha256" : "ebb38ccaf70a18a04890f07f8af01f70318ec62eb88f86eab7e909cbbc4b589e",
+   "schema" : "flash-sass.qsa-quality-replay.v1",
+   "scope" : "postprojection_indexer_only",
+   "score_convention" : "sum_head_relu_dot_div_sqrt_128",
+   "selected_blocks" : 0,
+   "selection_tie_policy" : "lower_block_id_for_exact_equal_scores",
+   "sparse_exclusion" : false,
+   "tail_token_ids" : [
+      0
+   ],
+   "tie_tolerance" : 0,
+   "wrapper_source_sha256" : "58466e04eee9629884ad8fa1cabdc7742d68b6f1391e438716112c86687ba54a"
+}

@@ -31,6 +31,8 @@ check() {
     local status
     set +e
     env -u MODEL_NOTWIN -u MODEL_NPH -u MODEL_INJECT -u ATTN_DIE \
+        -u MODEL_CAPTURE -u MODEL_LAYER_CAPTURE -u MODEL_LAYER_INDEX \
+        -u MODEL_LAYER_LENGTHS -u MODEL_PLE \
         MODEL_ATTN=qsa FLASH_NBLK=1 FLASH_KV_HOST=1 \
         ATTN_MAP=0,0,0,0,0,0,0,0,0,0,0,0 SPLIT_SHARES=1 \
         MODEL_IDS="$scratch_dir/ids" LD_PRELOAD="$scratch_dir/no_cuda.so" \
@@ -68,6 +70,12 @@ check missing-teacher-ids 2 0 8 9 eh MODEL_IDS="$scratch_dir/short-ids"
 check out-of-vocabulary-id 2 0 8 2 eh MODEL_IDS="$scratch_dir/bad-ids"
 check malformed-id 2 0 8 2 eh MODEL_IDS="$scratch_dir/junk-ids"
 check valid-id-prefix 99 0 8 9 eh MODEL_IDS="$scratch_dir/long-ids"
+check capture-positive-control 99 0 48 9 eh MODEL_CAPTURE="$scratch_dir/raw" MODEL_PLE=/unused-ple MODEL_NOTWIN=1
+check capture-missing-ids 2 0 48 9 eh MODEL_CAPTURE="$scratch_dir/raw" MODEL_PLE=/unused-ple MODEL_NOTWIN=1 MODEL_IDS="$scratch_dir/short-ids"
+check capture-extra-ids 2 0 48 9 eh MODEL_CAPTURE="$scratch_dir/raw" MODEL_PLE=/unused-ple MODEL_NOTWIN=1 MODEL_IDS="$scratch_dir/long-ids"
+check layer-capture-positive-control 99 0 48 9 eh MODEL_LAYER_CAPTURE="$scratch_dir/layer" MODEL_LAYER_INDEX=3 MODEL_LAYER_LENGTHS=9 MODEL_PLE=/unused-ple MODEL_NOTWIN=1
+check layer-capture-missing-ids 2 0 48 9 eh MODEL_LAYER_CAPTURE="$scratch_dir/layer" MODEL_LAYER_INDEX=3 MODEL_LAYER_LENGTHS=9 MODEL_PLE=/unused-ple MODEL_NOTWIN=1 MODEL_IDS="$scratch_dir/short-ids"
+check layer-capture-extra-ids 2 0 48 9 eh MODEL_LAYER_CAPTURE="$scratch_dir/layer" MODEL_LAYER_INDEX=3 MODEL_LAYER_LENGTHS=9 MODEL_PLE=/unused-ple MODEL_NOTWIN=1 MODEL_IDS="$scratch_dir/long-ids"
 check no-attention-block 2 0 3 9 eh
 check unreachable-selection 2 0 8 4 eh MODEL_INJECT=selection
 check reachable-selection 99 0 8 9 eh MODEL_INJECT=selection

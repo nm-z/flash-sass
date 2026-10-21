@@ -1,0 +1,212 @@
+[
+  {
+    "length": 1,
+    "selected_blocks": 0,
+    "complete_blocks": 0,
+    "tail": 1,
+    "attended_keys": 1,
+    "excluded_complete_blocks": 0,
+    "status": "arithmetic_limits_met",
+    "observed": {
+      "arithmetic_max_abs": 9.41320751346453E-8,
+      "arithmetic_relative_l2": 4.80807540422453E-8,
+      "arithmetic_rmse": 1.51229691214115E-8,
+      "query_max_abs": 1.89173244846685E-7
+    }
+  },
+  {
+    "length": 2047,
+    "selected_blocks": 511,
+    "complete_blocks": 511,
+    "tail": 3,
+    "attended_keys": 2047,
+    "excluded_complete_blocks": 0,
+    "status": "arithmetic_limits_met",
+    "observed": {
+      "arithmetic_max_abs": 0.0000219291652570064,
+      "arithmetic_relative_l2": 2.90114460460376E-7,
+      "arithmetic_rmse": 0.00000166609834561626,
+      "query_max_abs": 2.3789143122066E-7
+    }
+  },
+  {
+    "length": 2048,
+    "selected_blocks": 512,
+    "complete_blocks": 512,
+    "tail": 0,
+    "attended_keys": 2048,
+    "excluded_complete_blocks": 0,
+    "status": "arithmetic_limits_met",
+    "observed": {
+      "arithmetic_max_abs": 0.0000139499425202416,
+      "arithmetic_relative_l2": 2.84956521461065E-7,
+      "arithmetic_rmse": 0.00000163645978260943,
+      "query_max_abs": 2.3209422761461E-7
+    }
+  },
+  {
+    "length": 2049,
+    "selected_blocks": 512,
+    "complete_blocks": 512,
+    "tail": 1,
+    "attended_keys": 2049,
+    "excluded_complete_blocks": 0,
+    "status": "arithmetic_limits_met",
+    "observed": {
+      "arithmetic_max_abs": 0.0000141595726361743,
+      "arithmetic_relative_l2": 2.91614153656002E-7,
+      "arithmetic_rmse": 0.00000167350071459911,
+      "query_max_abs": 2.33008633943044E-7
+    }
+  },
+  {
+    "length": 2050,
+    "selected_blocks": 512,
+    "complete_blocks": 512,
+    "tail": 2,
+    "attended_keys": 2050,
+    "excluded_complete_blocks": 0,
+    "status": "arithmetic_limits_met",
+    "observed": {
+      "arithmetic_max_abs": 0.0000176780000415988,
+      "arithmetic_relative_l2": 2.90643258618599E-7,
+      "arithmetic_rmse": 0.00000166608282029552,
+      "query_max_abs": 2.28164492188654E-7
+    }
+  },
+  {
+    "length": 2051,
+    "selected_blocks": 512,
+    "complete_blocks": 512,
+    "tail": 3,
+    "attended_keys": 2051,
+    "excluded_complete_blocks": 0,
+    "status": "arithmetic_limits_met",
+    "observed": {
+      "arithmetic_max_abs": 0.0000171771049792824,
+      "arithmetic_relative_l2": 2.84957879410838E-7,
+      "arithmetic_rmse": 0.00000163158905597563,
+      "query_max_abs": 2.14701871614764E-7
+    }
+  },
+  {
+    "length": 2052,
+    "selected_blocks": 512,
+    "complete_blocks": 513,
+    "tail": 0,
+    "attended_keys": 2048,
+    "excluded_complete_blocks": 1,
+    "status": "arithmetic_limits_met",
+    "observed": {
+      "arithmetic_max_abs": 0.0000212194301312252,
+      "arithmetic_relative_l2": 2.96482659626272E-7,
+      "arithmetic_rmse": 0.00000169911667759685,
+      "query_max_abs": 2.08904667786669E-7
+    }
+  },
+  {
+    "length": 2053,
+    "selected_blocks": 512,
+    "complete_blocks": 513,
+    "tail": 1,
+    "attended_keys": 2049,
+    "excluded_complete_blocks": 1,
+    "status": "arithmetic_limits_met",
+    "observed": {
+      "arithmetic_max_abs": 0.0000227173829472349,
+      "arithmetic_relative_l2": 3.05812146133967E-7,
+      "arithmetic_rmse": 0.0000017514779355895,
+      "query_max_abs": 2.35356968802947E-7
+    }
+  },
+  {
+    "length": 2054,
+    "selected_blocks": 512,
+    "complete_blocks": 513,
+    "tail": 2,
+    "attended_keys": 2050,
+    "excluded_complete_blocks": 1,
+    "status": "arithmetic_limits_met",
+    "observed": {
+      "arithmetic_max_abs": 0.0000185426484478057,
+      "arithmetic_relative_l2": 2.93118881168637E-7,
+      "arithmetic_rmse": 0.00000167822814939744,
+      "query_max_abs": 2.30606049811399E-7
+    }
+  },
+  {
+    "length": 2055,
+    "selected_blocks": 512,
+    "complete_blocks": 513,
+    "tail": 3,
+    "attended_keys": 2051,
+    "excluded_complete_blocks": 1,
+    "status": "arithmetic_limits_met",
+    "observed": {
+      "arithmetic_max_abs": 0.0000215947895512159,
+      "arithmetic_relative_l2": 2.98135679067119E-7,
+      "arithmetic_rmse": 0.00000170677153946373,
+      "query_max_abs": 2.23154702716499E-7
+    }
+  },
+  {
+    "length": 3100,
+    "selected_blocks": 512,
+    "complete_blocks": 775,
+    "tail": 0,
+    "attended_keys": 2048,
+    "excluded_complete_blocks": 263,
+    "status": "arithmetic_limits_met",
+    "observed": {
+      "arithmetic_max_abs": 0.0000162940582626447,
+      "arithmetic_relative_l2": 2.9243617026439E-7,
+      "arithmetic_rmse": 0.00000167316222419289,
+      "query_max_abs": 2.00125910954085E-7
+    }
+  },
+  {
+    "length": 8000,
+    "selected_blocks": 512,
+    "complete_blocks": 2000,
+    "tail": 0,
+    "attended_keys": 2048,
+    "excluded_complete_blocks": 1488,
+    "status": "arithmetic_limits_met",
+    "observed": {
+      "arithmetic_max_abs": 0.0000138636763225009,
+      "arithmetic_relative_l2": 3.18063888960063E-7,
+      "arithmetic_rmse": 0.00000159769268478693,
+      "query_max_abs": 2.04253190805304E-7
+    }
+  },
+  {
+    "length": 65000,
+    "selected_blocks": 512,
+    "complete_blocks": 16250,
+    "tail": 0,
+    "attended_keys": 2048,
+    "excluded_complete_blocks": 15738,
+    "status": "arithmetic_limits_met",
+    "observed": {
+      "arithmetic_max_abs": 0.0000187895453365172,
+      "arithmetic_relative_l2": 3.20260924608753E-7,
+      "arithmetic_rmse": 0.00000182120982256661,
+      "query_max_abs": 2.30631272524207E-7
+    }
+  },
+  {
+    "length": 262000,
+    "selected_blocks": 512,
+    "complete_blocks": 65500,
+    "tail": 0,
+    "attended_keys": 2048,
+    "excluded_complete_blocks": 64988,
+    "status": "arithmetic_limits_met",
+    "observed": {
+      "arithmetic_max_abs": 0.0000152556821824135,
+      "arithmetic_relative_l2": 2.86792163936767E-7,
+      "arithmetic_rmse": 0.00000162136337038003,
+      "query_max_abs": 2.14948081334043E-7
+    }
+  }
+]

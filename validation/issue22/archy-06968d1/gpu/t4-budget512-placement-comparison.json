@@ -1,0 +1,106 @@
+{
+  "candidate_manifest_sha256": "8c9b34e7c88241be93a34731e2fea83f7d3d2eb43624a5d9abf298858b812227",
+  "declared_criteria": [],
+  "declared_limits_pass": null,
+  "independent_checkpoint_evidence": false,
+  "metrics": {
+    "candidate_mean_nll": 11.00281643232195,
+    "candidate_mean_target_rank": 1769.3333333333333,
+    "candidate_perplexity": 60043.010875828004,
+    "centered_logit_rmse": 0.0,
+    "logit_rmse": 0.0,
+    "maximum_absolute_logit_error": 0.0,
+    "maximum_absolute_probability_error": 0.0,
+    "mean_absolute_logit_error": 0.0,
+    "mean_cosine_similarity": 1.0,
+    "mean_nll_increase": 0.0,
+    "mean_reference_to_candidate_kl": 0.0,
+    "mean_topk_overlap": 1.0,
+    "perplexity_overflow": false,
+    "positions": 4,
+    "reference_mean_nll": 11.00281643232195,
+    "reference_mean_target_rank": 1769.3333333333333,
+    "reference_perplexity": 60043.010875828004,
+    "relative_l2_logit_error": 0.0,
+    "teacher_forced_labels": 3,
+    "top1_agreement": 1.0,
+    "topk": 10,
+    "vocabulary": 248320
+  },
+  "missing_provenance": {
+    "candidate": [
+      "base_model.revision (immutable hash)",
+      "tokenizer.sha256 (canonical tokenizer identity)",
+      "checkpoint.files"
+    ],
+    "reference": [
+      "base_model.revision (immutable hash)",
+      "tokenizer.sha256 (canonical tokenizer identity)",
+      "checkpoint.files",
+      "implementation.independent_reference=true"
+    ]
+  },
+  "positions": [
+    {
+      "candidate_nll": 12.09158809365986,
+      "candidate_target_rank": 2135,
+      "candidate_top1": 18,
+      "input_id": 10,
+      "next_id": 11,
+      "nll_increase": 0.0,
+      "position": 0,
+      "reference_nll": 12.09158809365986,
+      "reference_target_rank": 2135,
+      "reference_to_candidate_kl": 0.0,
+      "reference_top1": 18,
+      "top1_agrees": true,
+      "topk_overlap": 1.0
+    },
+    {
+      "candidate_nll": 10.492118775240119,
+      "candidate_target_rank": 1649,
+      "candidate_top1": 220,
+      "input_id": 11,
+      "next_id": 12,
+      "nll_increase": 0.0,
+      "position": 1,
+      "reference_nll": 10.492118775240119,
+      "reference_target_rank": 1649,
+      "reference_to_candidate_kl": 0.0,
+      "reference_top1": 220,
+      "top1_agrees": true,
+      "topk_overlap": 1.0
+    },
+    {
+      "candidate_nll": 10.42474242806587,
+      "candidate_target_rank": 1524,
+      "candidate_top1": 198,
+      "input_id": 12,
+      "next_id": 13,
+      "nll_increase": 0.0,
+      "position": 2,
+      "reference_nll": 10.42474242806587,
+      "reference_target_rank": 1524,
+      "reference_to_candidate_kl": 0.0,
+      "reference_top1": 198,
+      "top1_agrees": true,
+      "topk_overlap": 1.0
+    },
+    {
+      "candidate_top1": 271,
+      "input_id": 13,
+      "position": 3,
+      "reference_to_candidate_kl": 0.0,
+      "reference_top1": 271,
+      "top1_agrees": true,
+      "topk_overlap": 1.0
+    }
+  ],
+  "provenance_note": "Capture-producer declarations and hashed files are not execution attestation.",
+  "provenance_status": "producer_declared_unattested",
+  "quality_pass": null,
+  "reference_manifest_sha256": "399bb7f7cd28b671f16bb52024ea50e885072b597d4724cb3d3731b1c9358774",
+  "schema": "flash-sass.logit-comparison.v1",
+  "scope": "Numerical comparison of these supplied teacher-forced rows only; no claim about other prompts/tasks.",
+  "status": "diagnostic_missing_provenance"
+}

@@ -1,0 +1,55 @@
+ok 1 - freeze succeeds
+ok 2 - freeze succeeds
+ok 3 - diagnostic exit
+ok 4 - analytic KL
+ok 5 - reference next-token NLL
+ok 6 - candidate next-token NLL
+ok 7 - top1 tie
+ok 8 - no quality attestation
+ok 9 - no independent evidence
+ok 10 - missing declarations rejected
+ok 11 - limit failure exit
+ok 12 - limit fail report
+ok 13 - freeze succeeds
+ok 14 - freeze succeeds
+ok 15 - large offset accepted
+ok 16 - large offset normalization
+ok 17 - large offset probabilities
+ok 18 - constant offset centering
+ok 19 - freeze succeeds
+ok 20 - freeze succeeds
+ok 21 - vocabulary reordering
+ok 22 - freeze succeeds
+ok 23 - freeze succeeds
+ok 24 - cutoff ties by token ID
+ok 25 - freeze succeeds
+ok 26 - freeze succeeds
+ok 27 - invalid first input rejected
+ok 28 - freeze succeeds
+ok 29 - freeze succeeds
+ok 30 - different teacher-forced input IDs rejected
+ok 31 - freeze succeeds
+ok 32 - NaN rejected
+ok 33 - NaN never quality pass
+ok 34 - freeze succeeds
+ok 35 - freeze succeeds
+ok 36 - NLL 700 metric exit
+ok 37 - NLL 700
+ok 38 - representable perplexity retained
+ok 39 - freeze succeeds
+ok 40 - freeze succeeds
+ok 41 - NLL 710 metric exit
+ok 42 - NLL 710
+ok 43 - overflow explicit
+ok 44 - freeze succeeds
+ok 45 - freeze succeeds
+ok 46 - complete declarations numerical exit
+ok 47 - fake producer declarations cannot attest
+ok 48 - complete declarations numerical exit
+ok 49 - fake producer declarations cannot attest
+ok 50 - invalid CLI rejected
+ok 51 - invalid CLI rejected
+ok 52 - invalid CLI rejected
+ok 53 - invalid CLI rejected
+ok 54 - changed frozen bytes rejected
+1..54

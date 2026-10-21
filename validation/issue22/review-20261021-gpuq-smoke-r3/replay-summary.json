@@ -1,0 +1,278 @@
+{
+  "schema": "flash-sass.issue22-gpuq-replay-summary.v1",
+  "source_revision": "6b52888d5fd354184a2af80671be2309c92f7f3f",
+  "gpuq_job_id": "e2da7237-e204-4174-ad24-775c1d3f83a5",
+  "evidence_kind": "synthetic_gpu_fixture",
+  "snapshots": [
+    {
+      "length": 1,
+      "status": "arithmetic_limits_met",
+      "complete": true,
+      "selected_ids": [],
+      "attended_keys": 1,
+      "tail": 1,
+      "arithmetic_vs_gpu": {
+        "cosine": 1,
+        "cosine_defined": true,
+        "error_l2": 0.00000118539384778638,
+        "max_abs": 9.41320751346453E-8,
+        "mean_abs": 9.63539712164382E-9,
+        "observed_l2": 24.6542275246461,
+        "observed_zero": false,
+        "reference_l2": 24.6542274845534,
+        "reference_zero": false,
+        "relative_l2": 4.80807540422453E-8,
+        "relative_l2_finite": true,
+        "rmse": 1.51229691214115E-8
+      },
+      "query_vs_gpu": {
+        "cosine": 0.999999999999996,
+        "cosine_defined": true,
+        "error_l2": 0.0000024766828116159,
+        "max_abs": 1.89173244846685E-7,
+        "mean_abs": 1.93672690500038E-8,
+        "observed_l2": 43.5952801460415,
+        "observed_zero": false,
+        "reference_l2": 43.5952809155638,
+        "reference_zero": false,
+        "relative_l2": 5.68108006096528E-8,
+        "relative_l2_finite": true,
+        "rmse": 3.1596922620732E-8
+      },
+      "limits": {
+        "enforced_fields": [
+          "arithmetic_max_abs",
+          "arithmetic_rmse",
+          "arithmetic_relative_l2",
+          "query_max_abs"
+        ],
+        "failed": [],
+        "file_observed_before_replay": true,
+        "historical_predeclaration_attested": false,
+        "observed": {
+          "arithmetic_max_abs": 9.41320751346453E-8,
+          "arithmetic_relative_l2": 4.80807540422453E-8,
+          "arithmetic_rmse": 1.51229691214115E-8,
+          "query_max_abs": 1.89173244846685E-7
+        },
+        "profile": {
+          "bytes": 177,
+          "path": "/home/nate/.local/state/nates-dsh/builds/build-2894068-1792567318732828928.93mUQw/source/validation/issue22/attention-limits.json",
+          "sha256": "e6e6c337f222bfdef8eba689f307d6a39d6041464ac662d073a69687ba5b2f8e"
+        },
+        "quantization_effects_gated": false,
+        "schema": "flash-sass.qsa-attention-limits.v1",
+        "values": {
+          "arithmetic_max_abs": 0.005,
+          "arithmetic_relative_l2": 0.00005,
+          "arithmetic_rmse": 0.001,
+          "query_max_abs": 0.00001
+        }
+      }
+    },
+    {
+      "length": 4,
+      "status": "arithmetic_limits_met",
+      "complete": true,
+      "selected_ids": [
+        0
+      ],
+      "attended_keys": 4,
+      "tail": 0,
+      "arithmetic_vs_gpu": {
+        "cosine": 0.999999999999997,
+        "cosine_defined": true,
+        "error_l2": 0.00000130881038573998,
+        "max_abs": 1.51743086984624E-7,
+        "mean_abs": 1.13318202500606E-8,
+        "observed_l2": 11.8213122811017,
+        "observed_zero": false,
+        "reference_l2": 11.8213122236024,
+        "reference_zero": false,
+        "relative_l2": 1.10716167628735E-7,
+        "relative_l2_finite": true,
+        "rmse": 1.66974875787405E-8
+      },
+      "query_vs_gpu": {
+        "cosine": 1,
+        "cosine_defined": true,
+        "error_l2": 0.00000254514097495852,
+        "max_abs": 1.95981538775314E-7,
+        "mean_abs": 1.99160494522323E-8,
+        "observed_l2": 43.5952800489874,
+        "observed_zero": false,
+        "reference_l2": 43.5952808044265,
+        "reference_zero": false,
+        "relative_l2": 5.83811120835835E-8,
+        "relative_l2_finite": true,
+        "rmse": 3.24702953755108E-8
+      },
+      "limits": {
+        "enforced_fields": [
+          "arithmetic_max_abs",
+          "arithmetic_rmse",
+          "arithmetic_relative_l2",
+          "query_max_abs"
+        ],
+        "failed": [],
+        "file_observed_before_replay": true,
+        "historical_predeclaration_attested": false,
+        "observed": {
+          "arithmetic_max_abs": 1.51743086984624E-7,
+          "arithmetic_relative_l2": 1.10716167628735E-7,
+          "arithmetic_rmse": 1.66974875787405E-8,
+          "query_max_abs": 1.95981538775314E-7
+        },
+        "profile": {
+          "bytes": 177,
+          "path": "/home/nate/.local/state/nates-dsh/builds/build-2894068-1792567318732828928.93mUQw/source/validation/issue22/attention-limits.json",
+          "sha256": "e6e6c337f222bfdef8eba689f307d6a39d6041464ac662d073a69687ba5b2f8e"
+        },
+        "quantization_effects_gated": false,
+        "schema": "flash-sass.qsa-attention-limits.v1",
+        "values": {
+          "arithmetic_max_abs": 0.005,
+          "arithmetic_relative_l2": 0.00005,
+          "arithmetic_rmse": 0.001,
+          "query_max_abs": 0.00001
+        }
+      }
+    },
+    {
+      "length": 8,
+      "status": "arithmetic_limits_met",
+      "complete": true,
+      "selected_ids": [
+        0
+      ],
+      "attended_keys": 4,
+      "tail": 0,
+      "arithmetic_vs_gpu": {
+        "cosine": 0.999999999999996,
+        "cosine_defined": true,
+        "error_l2": 0.00000133744281228908,
+        "max_abs": 1.17103165164778E-7,
+        "mean_abs": 1.15023944250594E-8,
+        "observed_l2": 11.8726857370326,
+        "observed_zero": false,
+        "reference_l2": 11.8726855260835,
+        "reference_zero": false,
+        "relative_l2": 1.12648718720866E-7,
+        "relative_l2_finite": true,
+        "rmse": 1.70627731784436E-8
+      },
+      "query_vs_gpu": {
+        "cosine": 1,
+        "cosine_defined": true,
+        "error_l2": 0.00000254971631898741,
+        "max_abs": 2.32660188226319E-7,
+        "mean_abs": 2.00376718069856E-8,
+        "observed_l2": 43.5952801489062,
+        "observed_zero": false,
+        "reference_l2": 43.5952809073344,
+        "reference_zero": false,
+        "relative_l2": 5.84860623884282E-8,
+        "relative_l2_finite": true,
+        "rmse": 3.25286665123258E-8
+      },
+      "limits": {
+        "enforced_fields": [
+          "arithmetic_max_abs",
+          "arithmetic_rmse",
+          "arithmetic_relative_l2",
+          "query_max_abs"
+        ],
+        "failed": [],
+        "file_observed_before_replay": true,
+        "historical_predeclaration_attested": false,
+        "observed": {
+          "arithmetic_max_abs": 1.17103165164778E-7,
+          "arithmetic_relative_l2": 1.12648718720866E-7,
+          "arithmetic_rmse": 1.70627731784436E-8,
+          "query_max_abs": 2.32660188226319E-7
+        },
+        "profile": {
+          "bytes": 177,
+          "path": "/home/nate/.local/state/nates-dsh/builds/build-2894068-1792567318732828928.93mUQw/source/validation/issue22/attention-limits.json",
+          "sha256": "e6e6c337f222bfdef8eba689f307d6a39d6041464ac662d073a69687ba5b2f8e"
+        },
+        "quantization_effects_gated": false,
+        "schema": "flash-sass.qsa-attention-limits.v1",
+        "values": {
+          "arithmetic_max_abs": 0.005,
+          "arithmetic_relative_l2": 0.00005,
+          "arithmetic_rmse": 0.001,
+          "query_max_abs": 0.00001
+        }
+      }
+    },
+    {
+      "length": 9,
+      "status": "arithmetic_limits_met",
+      "complete": true,
+      "selected_ids": [
+        0
+      ],
+      "attended_keys": 5,
+      "tail": 1,
+      "arithmetic_vs_gpu": {
+        "cosine": 0.999999999999991,
+        "cosine_defined": true,
+        "error_l2": 0.00000118782156293599,
+        "max_abs": 1.09238166373649E-7,
+        "mean_abs": 1.02073396310939E-8,
+        "observed_l2": 10.5456780916987,
+        "observed_zero": false,
+        "reference_l2": 10.5456779305612,
+        "reference_zero": false,
+        "relative_l2": 1.12635865684244E-7,
+        "relative_l2_finite": true,
+        "rmse": 1.51539413263979E-8
+      },
+      "query_vs_gpu": {
+        "cosine": 1,
+        "cosine_defined": true,
+        "error_l2": 0.00000255975328803009,
+        "max_abs": 1.99042869519772E-7,
+        "mean_abs": 2.01060322824817E-8,
+        "observed_l2": 43.5952800674176,
+        "observed_zero": false,
+        "reference_l2": 43.5952808406275,
+        "reference_zero": false,
+        "relative_l2": 5.87162931095192E-8,
+        "relative_l2_finite": true,
+        "rmse": 3.26567157452355E-8
+      },
+      "limits": {
+        "enforced_fields": [
+          "arithmetic_max_abs",
+          "arithmetic_rmse",
+          "arithmetic_relative_l2",
+          "query_max_abs"
+        ],
+        "failed": [],
+        "file_observed_before_replay": true,
+        "historical_predeclaration_attested": false,
+        "observed": {
+          "arithmetic_max_abs": 1.09238166373649E-7,
+          "arithmetic_relative_l2": 1.12635865684244E-7,
+          "arithmetic_rmse": 1.51539413263979E-8,
+          "query_max_abs": 1.99042869519772E-7
+        },
+        "profile": {
+          "bytes": 177,
+          "path": "/home/nate/.local/state/nates-dsh/builds/build-2894068-1792567318732828928.93mUQw/source/validation/issue22/attention-limits.json",
+          "sha256": "e6e6c337f222bfdef8eba689f307d6a39d6041464ac662d073a69687ba5b2f8e"
+        },
+        "quantization_effects_gated": false,
+        "schema": "flash-sass.qsa-attention-limits.v1",
+        "values": {
+          "arithmetic_max_abs": 0.005,
+          "arithmetic_relative_l2": 0.00005,
+          "arithmetic_rmse": 0.001,
+          "query_max_abs": 0.00001
+        }
+      }
+    }
+  ]
+}

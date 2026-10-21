@@ -1,0 +1,79 @@
+{
+  "artifacts": {
+    "ids.u32": {
+      "bytes": 16,
+      "sha256": "4b55f2919bb18010fb912098dd4f0a113102404c60e446d3a3966b2eaffd0a24"
+    },
+    "logits.f32": {
+      "bytes": 3973120,
+      "sha256": "ff487223d8ca1c397cfc01403c3a28f5412e39341fc29d8ecb62bfda251e6e06"
+    },
+    "raw_capture_info.json": {
+      "bytes": 477,
+      "sha256": "0e90b824d390d81feba57a8811142df8ee48f64cd63f638062f4ec818090eb70"
+    },
+    "vocab_ids.u32": {
+      "bytes": 993280,
+      "sha256": "04e2cf36c8dbca2187a72a00956b204113e8a107478e8301c3982b6d960a29a2"
+    }
+  },
+  "byte_order": "little",
+  "created_utc": "2026-10-17T20:37:09.564458+00:00",
+  "dtype": "<f4",
+  "kind": "candidate",
+  "metadata": {
+    "base_model": {
+      "id": "unknown_original_checkpoint_identity",
+      "revision": null
+    },
+    "command": [
+      "/home/nate/claude/flash-sass-prs/quality-build-06968d1/kern/model_test",
+      "/unused-with-MODEL_NOTWIN",
+      "0",
+      "48",
+      "4",
+      "eh",
+      "/tmp/hold-h0.manifest",
+      "/tmp/hold-h1.manifest",
+      "/tmp/hold-h2.manifest",
+      "/tmp/hold-h3.manifest",
+      "/tmp/hold-h4.manifest",
+      "/tmp/hold-h5.manifest"
+    ],
+    "environment": {
+      "ATTN_DIE": "1",
+      "ATTN_MAP": "1,1,1,1,4,4,4,4,5,5,5,5",
+      "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
+      "CUDA_VISIBLE_DEVICES": "0,1,2,3,4,5",
+      "FLASH_KV_HOST": "0",
+      "FLASH_NBLK": "512",
+      "MODEL_ATTN": "qsa",
+      "MODEL_CAPTURE": "/home/nate/claude/flash-sass-prs/quality-validation-06968d1/gpu/t4-budget512-kv0-raw",
+      "MODEL_IDS": "/home/nate/claude/flash-sass-prs/quality-validation-06968d1/gpu/t4-budget512-kv0-ids.txt",
+      "MODEL_NOTWIN": "1",
+      "MODEL_PLE": "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+      "MODEL_PLE_OFF": "192",
+      "SPLIT_SHARES": "112,97,81,116,97,97"
+    },
+    "implementation": {
+      "independent_reference": false,
+      "name": "flash-sass",
+      "revision": "06968d1a5d6d7fdaf12106236cc39a1cb5cdf389"
+    },
+    "source_scope": "Same implementation and microfixture IDs, different KV placement; original-checkpoint reference and quality not established",
+    "teacher_forced": true,
+    "tokenizer": {
+      "sha256": null
+    },
+    "weights_manifest": "gpu/weights-sha256.json"
+  },
+  "missing_provenance": [
+    "base_model.revision (immutable hash)",
+    "tokenizer.sha256 (canonical tokenizer identity)",
+    "checkpoint.files"
+  ],
+  "positions": 4,
+  "provenance_note": "Producer declarations and local file identities; not execution attestation.",
+  "schema": "flash-sass.frozen-logits.v1",
+  "vocab_size": 248320
+}

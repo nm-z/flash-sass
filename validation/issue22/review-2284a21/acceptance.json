@@ -1,0 +1,286 @@
+{
+  "schema": "flash-sass.issue22-acceptance.v2",
+  "issue": "https://github.com/nm-z/flash-sass/issues/22",
+  "pull_request": "https://github.com/nm-z/flash-sass/pull/46",
+  "assessed_source_revision": "04e77e181fa6195f199ab384ad19e36fb18484d5",
+  "executed_source_revision": "2284a214d3babea6df19510654203c65abfd6cce",
+  "profiles_only_revision": "04e77e181fa6195f199ab384ad19e36fb18484d5",
+  "issue22_resolved": false,
+  "ready_for_review": false,
+  "pr_state": "open_draft",
+  "criteria": [
+    {
+      "number": 1,
+      "criterion": "Build reproducible export/comparison tooling; pin engine/library/cubin, GGUF and conversion, original checkpoint, tokenizer/template/IDs, backend/version, runtime dtypes, seeds and hardware.",
+      "status": "unmet",
+      "assessment": "Frozen capture/replay tooling, actual build/input identities, public checkpoint metadata and published GGUF identities are recorded. Exact original-to-GGUF conversion/search execution lineage and an executed original-checkpoint reference remain unverified."
+    },
+    {
+      "number": 2,
+      "criterion": "First compare identical frozen layer inputs/weights and identical selected IDs. Isolate activation quantization where used, intermediate/pool dtype, INT8 KV and elementary-function arithmetic one at a time. Then permit independent selection to measure selection error. Keep total original-checkpoint conversion/quantization effects separate.",
+      "status": "unmet",
+      "assessment": "Fixed-input attention controls and short actual-model indexer selection diagnostics are measured. Projection/activation quantization, pure K-storage isolation, and the full independent-selection experiment remain incomplete."
+    },
+    {
+      "number": 3,
+      "criterion": "Match native QSA pooling-before-norm/RoPE, completed blocks plus tail, mask and position rules. Record the reference FP32 mean-to-raw-dtype cast, local FP16 pool, gamma conversion, RoPE precision and score scaling. FP16 versus BF16 and supplied gamma versus 1+w need explicit conversion settings, not automatic defect labels.",
+      "status": "unmet",
+      "assessment": "Contiguous-prefix block/tail handling and explicit dtype/gamma controls are implemented and partly measured. The complete native-QSA precision and mask/position comparison remains incomplete."
+    },
+    {
+      "number": 4,
+      "criterion": "Export pool values, scores/cutoff margins, selected IDs, layer outputs and teacher-forced logits. Report selection overlap/tie ambiguity, max-absolute/relative/RMS output errors, logit divergence and top-token agreement with predeclared thresholds.",
+      "status": "unmet",
+      "assessment": "Actual short model layer/logit exports and synthetic attention gates are measured. Production-length and independent teacher-forced logit experiments with applicable predeclared thresholds remain incomplete."
+    },
+    {
+      "number": 5,
+      "criterion": "Cover N=1, 2047..2052, 3100, 8000, 65000 and 262000 where supported, plus tail residues. Assert actual production sparse dispatch and exclusion above 512 complete blocks. Use the same teacher-forced continuation so early greedy differences do not change later inputs.",
+      "status": "unmet",
+      "assessment": "All 14 synthetic fixed-ID attention lengths complete through N=262000. New full-model evidence is T=9 with budget override 1. The T=8000, budget-512 preflights refused active resident engines before launch; the required model-level matrix is unmeasured."
+    },
+    {
+      "number": 6,
+      "criterion": "Run a fixed held-out long-context quality set with loss/perplexity and retrieval/task accuracy, plus separately labeled free-running generation. Compare native QSA semantics; dense attention is not the expected equivalent graph. Control independent model differences already tracked in #1/#2 and subsequent fixes.",
+      "status": "unmet",
+      "assessment": "Held-out long-context loss/perplexity, retrieval/task accuracy, free-running generation, and controlled original-checkpoint comparisons remain unmeasured. Consecutive token IDs are microfixtures, not held-out language."
+    },
+    {
+      "number": 7,
+      "criterion": "Publish machine-readable outputs and a supported precision/quality statement; distinguish local byte parity, same-weight numerical agreement and original-checkpoint quality. Missing GPU/checkpoint/length cases remain explicitly unmeasured.",
+      "status": "met",
+      "assessment": "Machine-readable captures, comparisons, completion states, numerical gates, command/hash records and qualified support statements distinguish completed, diagnostic, interrupted, blocked and unmeasured scopes."
+    }
+  ],
+  "experiments": {
+    "cpu": {
+      "status": "passed",
+      "analytic_regression_checks": 250,
+      "attention_analytic_groups": 6,
+      "synthetic_indexer_lengths": [
+        1,
+        2047,
+        2048,
+        2049,
+        2050,
+        2051,
+        2052,
+        2053,
+        2054,
+        2055,
+        3100,
+        8000,
+        65000,
+        262000
+      ],
+      "source_hashes_unchanged": true,
+      "evidence": "cpu/complete.json"
+    },
+    "synthetic_attention_smoke": {
+      "status": "predeclared_arithmetic_limits_met",
+      "execution_complete": true,
+      "gpu": 6,
+      "budget": 1,
+      "lengths": [
+        1,
+        4,
+        8,
+        9
+      ],
+      "case_count": 4,
+      "evidence": "gpu/smoke-2284a21/comparison-summary.json",
+      "production_indexer_executed": false,
+      "full_model": false
+    },
+    "synthetic_attention_budget512": {
+      "status": "predeclared_arithmetic_limits_met",
+      "execution_complete": true,
+      "gpu": 6,
+      "budget": 512,
+      "lengths": [
+        1,
+        2047,
+        2048,
+        2049,
+        2050,
+        2051,
+        2052,
+        2053,
+        2054,
+        2055,
+        3100,
+        8000,
+        65000,
+        262000
+      ],
+      "case_count": 14,
+      "evidence": "gpu/production-budget-2284a21/comparison-summary.json",
+      "production_indexer_executed": false,
+      "full_model": false,
+      "selection_source": "supplied_fixture_ids"
+    },
+    "actual_model_smoke": {
+      "status": "measured_diagnostic",
+      "execution_complete": true,
+      "threshold_verdict": "not_evaluated",
+      "positions": 9,
+      "layers": 48,
+      "budget": 1,
+      "budget_is_override": true,
+      "teacher_forced": true,
+      "input_kind": "consecutive_token_microfixture",
+      "input_ids": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "layer": 3,
+      "snapshot_lengths": [
+        1,
+        4,
+        8,
+        9
+      ],
+      "attention_replays_complete": 4,
+      "indexer_replays_complete": 4,
+      "held_out_quality": false,
+      "evidence": "model/model-smoke-guarded-2284a21",
+      "archive_logit_comparison": {
+        "status": "byte_identical",
+        "archive_source_revision": "06968d1a5d6d7fdaf12106236cc39a1cb5cdf389",
+        "float32_count": 2234880,
+        "raw_sha256": "894ef61a63680dd3f00496dc001c26d574c9d0700e19a23653357cd55bfb35d9",
+        "independent_checkpoint_comparison": false
+      }
+    },
+    "interrupted_model_smoke": {
+      "status": "interrupted_no_complete_capture",
+      "exit_code": 143,
+      "model_execution_started": true,
+      "completion_marker": false,
+      "cause_established": false,
+      "owned_process_cleanup_complete": true,
+      "evidence": "model/model-smoke-2284a21"
+    },
+    "production_model_preflights": [
+      {
+        "status": "blocked_before_model_launch",
+        "exit_code": 75,
+        "positions": 8000,
+        "budget": 512,
+        "lock_acquired_at": "2026-10-18T06:45:27Z",
+        "resident_pid": 1249426,
+        "model_execution_started": false,
+        "evidence": "model/model-production-8000-2284a21"
+      },
+      {
+        "status": "blocked_before_model_launch",
+        "exit_code": 75,
+        "positions": 8000,
+        "budget": 512,
+        "lock_acquired_at": "2026-10-18T06:52:52Z",
+        "resident_pid": 1321713,
+        "model_execution_started": false,
+        "evidence": "model/model-production-8000-retry-2284a21"
+      }
+    ]
+  },
+  "numerical_profiles": {
+    "synthetic_attention": {
+      "path": "../attention-limits.json",
+      "sha256": "e6e6c337f222bfdef8eba689f307d6a39d6041464ac662d073a69687ba5b2f8e",
+      "predeclared_commit": "affe73f3b62c94639875a1d5b2c5d6958752f7be",
+      "applicable_cases": 18
+    },
+    "prospective_model_attention": {
+      "path": "../model-attention-limits.json",
+      "predeclared_commit": "04e77e181fa6195f199ab384ad19e36fb18484d5",
+      "applicable_experiment": "T8000_budget512",
+      "applied_to_completed_model_comparison": false
+    },
+    "prospective_model_indexer": {
+      "path": "../model-indexer-limits.json",
+      "predeclared_commit": "04e77e181fa6195f199ab384ad19e36fb18484d5",
+      "applicable_experiment": "T8000_budget512",
+      "applied_to_completed_model_comparison": false
+    }
+  },
+  "scope": {
+    "gpu_execution_measured": true,
+    "short_full_model_capture_measured": true,
+    "same_input_attention_arithmetic_measured": true,
+    "v_storage_control_measured": true,
+    "k_storage_only_measured": false,
+    "upstream_activation_quantization_isolated": false,
+    "production_model_length_matrix_completed": false,
+    "original_checkpoint_metadata_pinned": true,
+    "original_checkpoint_weights_executed": false,
+    "exact_gguf_conversion_lineage_verified": false,
+    "original_checkpoint_quality_measured": false,
+    "held_out_long_context_quality_measured": false,
+    "free_running_quality_measured": false,
+    "original_checkpoint_quality": null
+  },
+  "blocking_resource_observation": {
+    "observed_at": "2026-10-18T07:05:59Z",
+    "host": "archy",
+    "lock": "/tmp/flash-sass-engine-validation.lock",
+    "lock_probe_exit": 0,
+    "blocker": "Resident flashcore occupies devices 0 through 5 required by the recorded full-model six-holder split. The guarded T8000 runner requires a window without an overlapping resident engine.",
+    "resident_pid": 1369637,
+    "executable": "/home/nate/claude/flash-sass-live/kern/flashcore",
+    "holder_manifests": [
+      "/tmp/hold-h0.manifest",
+      "/tmp/hold-h1.manifest",
+      "/tmp/hold-h2.manifest",
+      "/tmp/hold-h3.manifest",
+      "/tmp/hold-h4.manifest",
+      "/tmp/hold-h5.manifest"
+    ],
+    "gpu_free_mib": [
+      {
+        "gpu": 0,
+        "free": 52
+      },
+      {
+        "gpu": 1,
+        "free": 16
+      },
+      {
+        "gpu": 2,
+        "free": 77
+      },
+      {
+        "gpu": 3,
+        "free": 7
+      },
+      {
+        "gpu": 4,
+        "free": 3
+      },
+      {
+        "gpu": 5,
+        "free": 65
+      }
+    ],
+    "evidence": "model/resource-observation-final.txt",
+    "observation_is_permanent_blocker_claim": false,
+    "other_workers_or_holders_signaled": false
+  },
+  "original_checkpoint_feasibility": {
+    "public_and_ungated": true,
+    "metadata_and_shard_identities_available": true,
+    "existing_native_qsa_converter_and_mmap_loader_inspected": true,
+    "original_weight_tensors_downloaded": false,
+    "original_execution_completed": false,
+    "hard_hardware_impossibility_established": false,
+    "evidence": "provenance"
+  },
+  "next_required_action": "Obtain a quiescent six-device validation window, rerun the prepared T8000 budget-512 experiment under the shared lock, and complete the remaining original-checkpoint, precision-control and held-out quality work before marking Ready for review."
+}

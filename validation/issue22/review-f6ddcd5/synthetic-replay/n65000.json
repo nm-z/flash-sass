@@ -1,0 +1,565 @@
+{
+   "artifact_sha256" : {
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.ids.fixed_iq_bf16_mean_norm_rope_return_casts.u32" : "64d008239fb159033e24169a17f67cca877b6c0121be6c40c8c82b172c4b4883",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.ids.fixed_iq_exported_pool.u32" : "75ec139cadb8386425f4a61c11cfc13f4c278c817d3e2021c0044602be746325",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.ids.fixed_iq_fp16_mean_norm_rope_return_casts.u32" : "04785aabcba7e8bdbb88d0d030b3b3f5d737238d32ddc5c40962226a02978c2d",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.ids.fixed_iq_fp64_pool.u32" : "1c48834bf65e271244c9fdae64502098173c92b99c7e1ae8fd3ed766fb672585",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.ids.fixed_iq_scalar_fp32_pool.u32" : "1c48834bf65e271244c9fdae64502098173c92b99c7e1ae8fd3ed766fb672585",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.ids.fixed_iq_scalar_fp32_pool_fp16_store.u32" : "75ec139cadb8386425f4a61c11cfc13f4c278c817d3e2021c0044602be746325",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.ids.reference_fp64.u32" : "1c48834bf65e271244c9fdae64502098173c92b99c7e1ae8fd3ed766fb672585",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.pool.reference_fp64.f64" : "dc669b3a274b3d76ca653a75403e189599e52fcc910e81025406216a9f345582",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.query.reference_fp64.f64" : "5762e44304ca9841edae7ece0508e5b18c66f3c5629506a395ef65e3a12ec57c",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.scores.fixed_iq_bf16_mean_norm_rope_return_casts.f64" : "906410ff27e3c5864ade4fedf7f51eae5d26df6766d4718013267ba91cdc24b3",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.scores.fixed_iq_exported_pool.f64" : "d0600b9e2e518e20525b8650b5aa602773248bb0b695e919a58992e8667b275b",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.scores.fixed_iq_fp16_mean_norm_rope_return_casts.f64" : "ad8ca9bd908931a07b79f3036877ac7ad16a199214974b34ff157551e34bca6d",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.scores.fixed_iq_fp64_pool.f64" : "76dcf1bf54eff762eee1befb2135307a3c2689580126bc9eca15b7eb59d18aae",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.scores.fixed_iq_scalar_fp32_pool.f64" : "e535d22866b929a5461a3867c406c1dfc3595535b010de22f3fb05573fd3ec24",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.scores.fixed_iq_scalar_fp32_pool_fp16_store.f64" : "d0600b9e2e518e20525b8650b5aa602773248bb0b695e919a58992e8667b275b",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.scores.reference_fp64.f64" : "ed4fe9660c7f3062bbcd789b3ad19c2d32b426f09fd862248025b7d502440e9a"
+   },
+   "attended_keys" : 2048,
+   "budget" : 512,
+   "candidate_raw_scores_vs_exported_inputs_fp64" : {
+      "count" : 16250,
+      "max_abs" : 2.41934790210507e-05,
+      "relative_l2" : 1.48740257668835e-07,
+      "rms" : 3.38475695587602e-06
+   },
+   "candidate_scaled_scores_vs_exported_inputs_fp64" : {
+      "count" : 16250,
+      "max_abs" : 2.13842163443445e-06,
+      "relative_l2" : 1.48740257668725e-07,
+      "rms" : 2.99173074520812e-07
+   },
+   "candidate_scaled_scores_vs_full_fp64" : {
+      "count" : 16250,
+      "max_abs" : 0.00148058199272327,
+      "relative_l2" : 0.000150652277666794,
+      "rms" : 0.000303017939397983
+   },
+   "candidate_score_convention" : "unscaled_sum_head_relu_dot",
+   "candidate_score_readback_present" : true,
+   "candidate_score_readback_ranking" : {
+      "ambiguous_cutoff" : false,
+      "cutoff" : 48.6242599487305,
+      "cutoff_margin" : 0.00548553466796875,
+      "cutoff_ties" : 1,
+      "selected_at_cutoff" : 1,
+      "selected_blocks" : 512,
+      "strict_above" : 511
+   },
+   "capture_completion_metadata" : {
+      "budget" : 512,
+      "byte_order" : "little",
+      "complete" : true,
+      "coverage" : "indexer_only",
+      "die" : 0,
+      "epsilon" : 9.99999997475243e-07,
+      "evidence_kind" : "synthetic_cpu_fixture",
+      "independent_checkpoint_evidence" : false,
+      "layer" : 0,
+      "positions" : 262000,
+      "producer" : "qsa_quality --synthetic",
+      "quality_validation" : false,
+      "rope_base" : 10000000,
+      "schema" : "flash-sass.qsa-layer-capture.v1",
+      "snapshot_lengths" : [
+         1,
+         2047,
+         2048,
+         2049,
+         2050,
+         2051,
+         2052,
+         2053,
+         2054,
+         2055,
+         3100,
+         8000,
+         65000,
+         262000
+      ]
+   },
+   "capture_snapshot_metadata" : {
+      "attended_keys" : 2048,
+      "budget" : 512,
+      "complete_blocks" : 16250,
+      "die" : 0,
+      "evidence_kind" : "synthetic_cpu_fixture",
+      "layer" : 0,
+      "length" : 65000,
+      "position" : 64999,
+      "quality_validation" : false,
+      "schema" : "flash-sass.qsa-layer-snapshot.v1",
+      "scores_source" : "synthetic_scalar_fp32",
+      "selected_ids_source" : "synthetic_scalar_fp32_topk",
+      "sparse_exclusion" : true,
+      "tail" : 0
+   },
+   "complete" : true,
+   "complete_blocks" : 16250,
+   "computation_complete" : true,
+   "epsilon" : 9.99999997475243e-07,
+   "gamma_convention" : "supplied_multiplicative_gamma_no_add_one",
+   "gpu_execution_performed_by_replay" : false,
+   "independent_checkpoint_evidence" : false,
+   "input_hashes_match_before_after_replay" : true,
+   "input_origin" : "synthetic_cpu_fixture",
+   "input_sha256" : {
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-inputs/complete.json" : "faf0b37cfcfa5c4ae39c7fa9e8d1ee0ca5c7667c7bc3dd4b2da23d372dd94b09",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-inputs/ikn.f32" : "54d7c44db03de53e83440669fa30a78887caa1723ace9643f77c86177fefd1e8",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-inputs/iqn.f32" : "4c4ac24283f8a58d7155cb3edd070e3fc7da9bd62e03630d533ddc757bf4c7df",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-inputs/n65000/iq.f32" : "4596bc374c2bde096e6e8c01dd64933a37aa2dd496d54d0d81ec63d98b450ff5",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-inputs/n65000/iqk.f32" : "6e1d6e41f03296a9e3b2951a7d3cd432266651c35686a1095cd7b1cd73b5ef0b",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-inputs/n65000/pool.f16" : "6cec26108f2cf2f3d4f59cb40c091ec91533930724fafeb19a4f994ef40b7ec6",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-inputs/n65000/scores.f32" : "e6bc42644a77e932ef03fb4b9d4401541fefa2fce8cd5a6eafc8066c794ce10a",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-inputs/n65000/selected_ids.u32" : "75ec139cadb8386425f4a61c11cfc13f4c278c817d3e2021c0044602be746325",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-inputs/n65000/snapshot.json" : "c8632af883225032a92c57b90cdb26c25573939d6ec5f2fdea67f1a7eeae992e",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-inputs/raw_ik.f32" : "8b30220eea301a4bb5255481a28e617be13489af50a52f9e0209778abef831c6",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-inputs/rope_cs.f32" : "17413dc9a1acac2c4f15142eaf29f5c81cdd45bac25f1612288915b25a8968c5",
+      "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-inputs/rope_sn.f32" : "3fe744234610e72bf1c5eec783a0892fee8d1268d93c4bede34f820dc400f388"
+   },
+   "length" : 65000,
+   "modes" : [
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 2080000,
+            "max_abs" : 0.00170171054424095,
+            "relative_l2" : 0.000208132539283333,
+            "rms" : 0.00020802187149473
+         },
+         "ids_artifact" : "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.ids.reference_fp64.u32",
+         "name" : "reference_fp64",
+         "pool_mode_vs_fp64" : {
+            "count" : 2080000,
+            "max_abs" : 0,
+            "relative_l2" : 0,
+            "rms" : 0
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : 4.29822579015835,
+            "cutoff_margin" : 0.00062660670896264,
+            "cutoff_ties" : 1,
+            "selected_at_cutoff" : 1,
+            "selected_blocks" : 512,
+            "strict_above" : 511
+         },
+         "scores_artifact" : "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.scores.reference_fp64.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 16250,
+            "max_abs" : 5.4069736332707e-07,
+            "relative_l2" : 5.35834031604845e-08,
+            "rms" : 1.0777621968509e-07
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 16250,
+            "max_abs" : 0,
+            "relative_l2" : 0,
+            "rms" : 0
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 512,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 512
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 512,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 512
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 2080000,
+            "max_abs" : 0.00170171054424095,
+            "relative_l2" : 0.000208132539283333,
+            "rms" : 0.00020802187149473
+         },
+         "ids_artifact" : "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.ids.fixed_iq_fp64_pool.u32",
+         "name" : "fixed_iq_fp64_pool",
+         "pool_mode_vs_fp64" : {
+            "count" : 2080000,
+            "max_abs" : 0,
+            "relative_l2" : 0,
+            "rms" : 0
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : 4.29822588953482,
+            "cutoff_margin" : 0.00062658632918744,
+            "cutoff_ties" : 1,
+            "selected_at_cutoff" : 1,
+            "selected_blocks" : 512,
+            "strict_above" : 511
+         },
+         "scores_artifact" : "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.scores.fixed_iq_fp64_pool.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 16250,
+            "max_abs" : 0,
+            "relative_l2" : 0,
+            "rms" : 0
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 16250,
+            "max_abs" : 5.4069736332707e-07,
+            "relative_l2" : 5.3583405015999e-08,
+            "rms" : 1.0777621968509e-07
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 512,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 512
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 512,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 512
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 2080000,
+            "max_abs" : 0.00170183181762695,
+            "relative_l2" : 0.000208132478684493,
+            "rms" : 0.000208021812901544
+         },
+         "ids_artifact" : "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.ids.fixed_iq_scalar_fp32_pool.u32",
+         "name" : "fixed_iq_scalar_fp32_pool",
+         "pool_mode_vs_fp64" : {
+            "count" : 2080000,
+            "max_abs" : 1.2166918654799e-06,
+            "relative_l2" : 1.03396957371544e-07,
+            "rms" : 1.03341979362531e-07
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : 4.29822578201931,
+            "cutoff_margin" : 0.000626114429213231,
+            "cutoff_ties" : 1,
+            "selected_at_cutoff" : 1,
+            "selected_blocks" : 512,
+            "strict_above" : 511
+         },
+         "scores_artifact" : "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.scores.fixed_iq_scalar_fp32_pool.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 16250,
+            "max_abs" : 1.70648852826361e-06,
+            "relative_l2" : 9.99022839919229e-08,
+            "rms" : 2.00940774036091e-07
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 16250,
+            "max_abs" : 1.8146197522384e-06,
+            "relative_l2" : 1.1632301022466e-07,
+            "rms" : 2.33968974175131e-07
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 512,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 512
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 512,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 512
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 2080000,
+            "max_abs" : 0,
+            "relative_l2" : 0,
+            "rms" : 0
+         },
+         "ids_artifact" : "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.ids.fixed_iq_scalar_fp32_pool_fp16_store.u32",
+         "name" : "fixed_iq_scalar_fp32_pool_fp16_store",
+         "pool_mode_vs_fp64" : {
+            "count" : 2080000,
+            "max_abs" : 0.00170171054424095,
+            "relative_l2" : 0.000208132539283333,
+            "rms" : 0.00020802187149473
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : 4.29781726059015,
+            "cutoff_margin" : 0.000484552044746955,
+            "cutoff_ties" : 1,
+            "selected_at_cutoff" : 1,
+            "selected_blocks" : 512,
+            "strict_above" : 511
+         },
+         "scores_artifact" : "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.scores.fixed_iq_scalar_fp32_pool_fp16_store.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 16250,
+            "max_abs" : 0.00148050835740943,
+            "relative_l2" : 0.000150651667977725,
+            "rms" : 0.00030301672357881
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 16250,
+            "max_abs" : 0.00148029512290559,
+            "relative_l2" : 0.000150651926543665,
+            "rms" : 0.000303017233158364
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 511,
+            "exact_tie_compatible" : false,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 1,
+            "selected_blocks" : 512
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 511,
+            "exact_tie_compatible" : false,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 1,
+            "selected_blocks" : 512
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 2080000,
+            "max_abs" : 0.00390625,
+            "relative_l2" : 0.000383104433315825,
+            "rms" : 0.000382900485288586
+         },
+         "ids_artifact" : "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.ids.fixed_iq_fp16_mean_norm_rope_return_casts.u32",
+         "name" : "fixed_iq_fp16_mean_norm_rope_return_casts",
+         "pool_mode_vs_fp64" : {
+            "count" : 2080000,
+            "max_abs" : 0.00288741543267568,
+            "relative_l2" : 0.000328107749040435,
+            "rms" : 0.00032793328828992
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : 4.29841091039038,
+            "cutoff_margin" : 0.00127547535725547,
+            "cutoff_ties" : 1,
+            "selected_at_cutoff" : 1,
+            "selected_blocks" : 512,
+            "strict_above" : 511
+         },
+         "scores_artifact" : "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.scores.fixed_iq_fp16_mean_norm_rope_return_casts.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 16250,
+            "max_abs" : 0.00268260332706394,
+            "relative_l2" : 0.000234207453624188,
+            "rms" : 0.000471078589355087
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 16250,
+            "max_abs" : 0.00268249997175296,
+            "relative_l2" : 0.000234207459897225,
+            "rms" : 0.000471078585659746
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 512,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 512
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 512,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 512
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 2080000,
+            "max_abs" : 0.0234375,
+            "relative_l2" : 0.0026277667468808,
+            "rms" : 0.00262636822084144
+         },
+         "ids_artifact" : "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.ids.fixed_iq_bf16_mean_norm_rope_return_casts.u32",
+         "name" : "fixed_iq_bf16_mean_norm_rope_return_casts",
+         "pool_mode_vs_fp64" : {
+            "count" : 2080000,
+            "max_abs" : 0.0231872389885153,
+            "relative_l2" : 0.00261997603556766,
+            "rms" : 0.00261858294751401
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : 4.29909108846867,
+            "cutoff_margin" : 0.001564294926653,
+            "cutoff_ties" : 1,
+            "selected_at_cutoff" : 1,
+            "selected_blocks" : 512,
+            "strict_above" : 511
+         },
+         "scores_artifact" : "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.scores.fixed_iq_bf16_mean_norm_rope_return_casts.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 16250,
+            "max_abs" : 0.0185703260877805,
+            "relative_l2" : 0.00186645377101425,
+            "rms" : 0.00375413504540604
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 16250,
+            "max_abs" : 0.0185703761299991,
+            "relative_l2" : 0.0018664533526416,
+            "rms" : 0.00375413407390237
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 510,
+            "exact_tie_compatible" : false,
+            "missing_strictly_above_cutoff" : 2,
+            "selected_below_cutoff" : 2,
+            "selected_blocks" : 512
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 510,
+            "exact_tie_compatible" : false,
+            "missing_strictly_above_cutoff" : 2,
+            "selected_below_cutoff" : 2,
+            "selected_blocks" : 512
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 2080000,
+            "max_abs" : 0,
+            "relative_l2" : 0,
+            "rms" : 0
+         },
+         "ids_artifact" : "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.ids.fixed_iq_exported_pool.u32",
+         "name" : "fixed_iq_exported_pool",
+         "pool_mode_vs_fp64" : {
+            "count" : 2080000,
+            "max_abs" : 0.00170171054424095,
+            "relative_l2" : 0.000208132539283333,
+            "rms" : 0.00020802187149473
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : 4.29781726059015,
+            "cutoff_margin" : 0.000484552044746955,
+            "cutoff_ties" : 1,
+            "selected_at_cutoff" : 1,
+            "selected_blocks" : 512,
+            "strict_above" : 511
+         },
+         "scores_artifact" : "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.scores.fixed_iq_exported_pool.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 16250,
+            "max_abs" : 0.00148050835740943,
+            "relative_l2" : 0.000150651667977725,
+            "rms" : 0.00030301672357881
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 16250,
+            "max_abs" : 0.00148029512290559,
+            "relative_l2" : 0.000150651926543665,
+            "rms" : 0.000303017233158364
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 511,
+            "exact_tie_compatible" : false,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 1,
+            "selected_blocks" : 512
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 511,
+            "exact_tie_compatible" : false,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 1,
+            "selected_blocks" : 512
+         }
+      }
+   ],
+   "numerical_gates" : {
+      "checks" : [],
+      "enabled" : false,
+      "passed" : null,
+      "scope" : "postprojection indexer only; excludes attention, projection and checkpoint quality"
+   },
+   "pool_fp64_artifact" : "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.pool.reference_fp64.f64",
+   "positions" : 262000,
+   "precision_notes" : [
+      "FP64 controls frozen FP32 inputs, not original weights",
+      "Scalar FP32 reductions and reciprocal sqrt may differ from device kernels",
+      "FP16/BF16 modes cast FP32 mean, RMSNorm return and RoPE return",
+      "All modes use supplied FP32 RoPE tables",
+      "Modes 1 through 6 hold the exported query fixed",
+      "No inferred pass thresholds"
+   ],
+   "production_budget" : true,
+   "provided_selection_vs_candidate_score_readback" : {
+      "canonical_overlap" : 512,
+      "exact_tie_compatible" : true,
+      "missing_strictly_above_cutoff" : 0,
+      "selected_below_cutoff" : 0,
+      "selected_blocks" : 512
+   },
+   "provided_selection_vs_exported_inputs_fp64" : {
+      "canonical_overlap" : 512,
+      "exact_tie_compatible" : true,
+      "missing_strictly_above_cutoff" : 0,
+      "selected_below_cutoff" : 0,
+      "selected_blocks" : 512
+   },
+   "provided_selection_vs_full_fp64" : {
+      "canonical_overlap" : 511,
+      "exact_tie_compatible" : false,
+      "missing_strictly_above_cutoff" : 0,
+      "selected_below_cutoff" : 1,
+      "selected_blocks" : 512
+   },
+   "quality_validation" : false,
+   "query_exported_vs_fp64" : {
+      "count" : 512,
+      "max_abs" : 3.11261826979603e-07,
+      "relative_l2" : 7.55797667111063e-08,
+      "rms" : 7.56434788134839e-08
+   },
+   "query_exported_vs_scalar_fp32" : {
+      "count" : 512,
+      "max_abs" : 0,
+      "relative_l2" : 0,
+      "rms" : 0
+   },
+   "query_fp64_artifact" : "/home/nate/codex/flash-issue22-20261018.P8ncez/cpu-final/synthetic-replay/n65000.json.pending.3643496.query.reference_fp64.f64",
+   "query_scalar_fp32_vs_fp64" : {
+      "count" : 512,
+      "max_abs" : 3.11261826979603e-07,
+      "relative_l2" : 7.55797667111063e-08,
+      "rms" : 7.56434788134839e-08
+   },
+   "raw_last_key_snapshot_vs_prefix" : {
+      "count" : 128,
+      "max_abs" : 0,
+      "relative_l2" : 0,
+      "rms" : 0
+   },
+   "reference_commit" : "8498ed425fa01bbee7d086efdf1a6634c2962aed",
+   "reference_source" : "src/transformers/models/qwen4_exp/modeling_qwen4_exp.py",
+   "replay_executable_sha256" : "ebb38ccaf70a18a04890f07f8af01f70318ec62eb88f86eab7e909cbbc4b589e",
+   "schema" : "flash-sass.qsa-quality-replay.v1",
+   "scope" : "postprojection_indexer_only",
+   "score_convention" : "sum_head_relu_dot_div_sqrt_128",
+   "selected_blocks" : 512,
+   "selection_tie_policy" : "lower_block_id_for_exact_equal_scores",
+   "sparse_exclusion" : true,
+   "tail_token_ids" : [],
+   "tie_tolerance" : 0,
+   "wrapper_source_sha256" : "58466e04eee9629884ad8fa1cabdc7742d68b6f1391e438716112c86687ba54a"
+}

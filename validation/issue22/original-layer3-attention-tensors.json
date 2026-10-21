@@ -1,0 +1,95 @@
+{
+  "schema": "flash-sass.issue22-original-layer3-attention-tensors.v1",
+  "repo": "Qwen/Qwen3.8-Flash-Next",
+  "revision": "de4b8e4d43b917e7706784d8bb445c9af86a3540",
+  "file": "model-00082-of-00131.safetensors",
+  "file_bytes": 1935433136,
+  "layer": 3,
+  "activation_scope": "deterministic synthetic hidden vectors; no original model forward",
+  "tensors": {
+    "q_proj": {
+      "dtype": "BF16",
+      "shape": [
+        12288,
+        2560
+      ],
+      "data_offsets": [
+        1740745216,
+        1803659776
+      ]
+    },
+    "k_proj": {
+      "dtype": "BF16",
+      "shape": [
+        512,
+        2560
+      ],
+      "data_offsets": [
+        1706665984,
+        1709287424
+      ]
+    },
+    "v_proj": {
+      "dtype": "BF16",
+      "shape": [
+        512,
+        2560
+      ],
+      "data_offsets": [
+        1803659776,
+        1806281216
+      ]
+    },
+    "q_norm": {
+      "dtype": "BF16",
+      "shape": [
+        256
+      ],
+      "data_offsets": [
+        1740744704,
+        1740745216
+      ]
+    },
+    "k_norm": {
+      "dtype": "BF16",
+      "shape": [
+        256
+      ],
+      "data_offsets": [
+        1706665472,
+        1706665984
+      ]
+    },
+    "index_qk_proj": {
+      "dtype": "BF16",
+      "shape": [
+        640,
+        2560
+      ],
+      "data_offsets": [
+        1703388160,
+        1706664960
+      ]
+    },
+    "index_q_norm": {
+      "dtype": "BF16",
+      "shape": [
+        128
+      ],
+      "data_offsets": [
+        1706665216,
+        1706665472
+      ]
+    },
+    "index_k_norm": {
+      "dtype": "BF16",
+      "shape": [
+        128
+      ],
+      "data_offsets": [
+        1706664960,
+        1706665216
+      ]
+    }
+  }
+}

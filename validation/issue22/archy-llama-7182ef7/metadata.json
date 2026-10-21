@@ -1,0 +1,82 @@
+{
+  "teacher_forced": true,
+  "base_model": {
+    "id": "unknown_original_checkpoint_identity",
+    "revision": null
+  },
+  "tokenizer": {
+    "sha256": null,
+    "template_applied": false,
+    "input_kind": "explicit token IDs 10,11,12,13"
+  },
+  "checkpoint": {
+    "files": [
+      {
+        "source_uri": "archy:/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf",
+        "sha256": "69820c02ec7d0b45ef2ebb19d6620299db749fe2aded7f39f93c6b88b199b720",
+        "bytes": 37623740192
+      },
+      {
+        "source_uri": "archy:/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+        "sha256": "316b46f3a2dbd68c900f43136ab9449f9dcc3725dfd8c794847c204bc161e113",
+        "bytes": 28800138432
+      }
+    ],
+    "evidence": "Recovered post-run shard hashes match historical GPU hashes; no original-checkpoint conversion attestation"
+  },
+  "implementation": {
+    "name": "llama.cpp CPU",
+    "revision": "7182ef71e6d5dd0c8ea76486fac134fcd25025d4",
+    "independent_reference": true,
+    "revision_evidence": "Clean worktree and linked libraries inspected after the run, not attested at capture start",
+    "adapter_source_sha256": "f3b352250c81482f1a8bb774237c6f11c6d996509094c4fc079339472793a284",
+    "adapter_binary_sha256_observed_after_run": "54eba33c757c5d692e524464fdbf2c0d6d2225371d54e416a076af5babfdd920"
+  },
+  "command": [
+    "./model_reference",
+    "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf",
+    "t4-budget512-kv0-ids.txt",
+    "t4-cpu",
+    "2",
+    "1800"
+  ],
+  "raw_capture_settings": {
+    "schema": "flash-sass.independent-gguf-capture.v1",
+    "teacher_forced": true,
+    "positions": 4,
+    "vocab_size": 248320,
+    "dtype": "<f4",
+    "byte_order": "little",
+    "input_semantics": "row t predicts after supplied token t; no inserted tokens",
+    "independent_checkpoint_evidence": false,
+    "quality_validation": false,
+    "scope": "CPU llama.cpp same-quantized-GGUF numerical capture",
+    "gpu_layers": 0,
+    "offload_kqv": false,
+    "op_offload": false,
+    "kv_dtype": "f32",
+    "flash_attention": false,
+    "mmap": true,
+    "lazy_marked_tensors": true,
+    "extra_buffer_types": false,
+    "mtp": false,
+    "threads": 2,
+    "context_capacity": 256,
+    "elapsed_seconds": 535.857938,
+    "system_info": "CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | LLAMAFILE = 1 | OPENMP = 1 | REPACK = 1 | ",
+    "command": [
+      "./model_reference",
+      "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf",
+      "t4-budget512-kv0-ids.txt",
+      "t4-cpu",
+      "2",
+      "1800"
+    ],
+    "complete": true
+  },
+  "evidence_kind": "recovered_independent_cpu_process_capture",
+  "gguf_declared_base_model": "Qwen/Qwen3.8-Flash-Next",
+  "ordered_gguf_vocabulary_text_sha256": "3fb92abcfed7206ad240fad7ceb8cd62aafa6354f1d172b7bff5626f8c0e2a34",
+  "independent_checkpoint_evidence": false,
+  "quality_validation": false
+}

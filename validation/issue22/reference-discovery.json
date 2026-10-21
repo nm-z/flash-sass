@@ -1,0 +1,42 @@
+{
+  "schema": "flash-sass.issue22-reference-discovery.v1",
+  "observed_utc": "2026-10-18T03:15:35Z",
+  "transformers": {
+    "repository": "https://github.com/huggingface/transformers",
+    "revision": "8498ed425fa01bbee7d086efdf1a6634c2962aed",
+    "file": "src/transformers/models/qwen4_exp/modeling_qwen4_exp.py",
+    "blob": "946f5fd6e9ba21347654b1b2ca196e86b0f751b3",
+    "blob_verified": true,
+    "indexer_lines": [
+      664,
+      770
+    ],
+    "rmsnorm_lines": [
+      143,
+      163
+    ],
+    "executed": false
+  },
+  "original_checkpoint": {
+    "api_url": "https://huggingface.co/api/models/Qwen/Qwen3.8-Flash-Next",
+    "id": "Qwen/Qwen3.8-Flash-Next",
+    "revision": "de4b8e4d43b917e7706784d8bb445c9af86a3540",
+    "gated": false,
+    "private": false,
+    "architectures": [
+      "Qwen4ExpForConditionalGeneration"
+    ],
+    "parameter_metadata": {
+      "parameters": {
+        "BF16": 179999981424,
+        "I64": 35
+      },
+      "total": 179999981459
+    },
+    "revision_source": "public model API observed during review; not conversion provenance",
+    "weights_downloaded_by_this_review": false,
+    "executed_by_this_review": false
+  },
+  "quality_validation": false,
+  "issue22_resolved": false
+}

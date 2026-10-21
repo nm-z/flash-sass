@@ -26,6 +26,15 @@ CUresult cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev);
 static uint32_t rs = 4242;
 static uint32_t urand(void) { rs = rs * 1664525u + 1013904223u; return rs >> 8; }
 static float frand(void) { return (urand() & 0xffff) / 32768.f - 1.f; }
+static const char *indexer_input_dir;
+static unsigned indexer_positions;
+static void read_indexer_input(const char *leaf, void *buffer, size_t bytes) {
+	char path[4096]; int n=snprintf(path,sizeof path,"%s/%s",indexer_input_dir,leaf);
+	if(n<0||(size_t)n>=sizeof path){fprintf(stderr,"indexer input path too long\n");exit(2);}
+	FILE *f=fopen(path,"rb"); if(!f){perror(path);exit(2);}
+	if(fread(buffer,1,bytes,f)!=bytes||fgetc(f)!=EOF){fprintf(stderr,"indexer input size mismatch: %s\n",path);exit(2);}
+	if(fclose(f)){perror(path);exit(2);}
+}
 
 typedef struct { uint32_t w[32]; } desc_t;
 static void d_init(desc_t *d, int op, unsigned units) { memset(d, 0, sizeof *d); d->w[0] = (uint32_t)op; d->w[1] = units; }
@@ -300,10 +309,15 @@ static size_t pkt_idx(unsigned b, int d) { return (size_t)(b >> 5) * 4096 + (siz
 
 static int test_idxqk(unsigned T) {
 	const float eps = 1e-6f;
+	if(indexer_input_dir && T!=indexer_positions){fprintf(stderr,"idxqk input token count mismatch\n");return 2;}
 	unsigned npos = T + 64, nblk = (T + 3) / 4, ngrp = (nblk + 31) / 32 + 1;
 	float *rcs = malloc(4 * 32 * (size_t)npos), *rsn = malloc(4 * 32 * (size_t)npos);
 	for (unsigned t = 0; t < npos; t++) rope_table_gpu(t, 1e7f, rcs + 32 * t, rsn + 32 * t);
-	float qn[128], kn[128]; for (int i = 0; i < 128; i++) { qn[i] = 0.5f + 0.5f * frand(); kn[i] = 0.5f + 0.5f * frand(); }
+	float qn[128], kn[128]; float *qk_input=NULL;
+	if(indexer_input_dir){qk_input=malloc((size_t)T*640*4);if(!qk_input){fprintf(stderr,"indexer input allocation failed\n");exit(2);}
+		read_indexer_input("iqn.f32",qn,sizeof qn);read_indexer_input("ikn.f32",kn,sizeof kn);
+		read_indexer_input("qk_projected.f32",qk_input,(size_t)T*640*4);
+	}else for (int i = 0; i < 128; i++) { qn[i] = 0.5f + 0.5f * frand(); kn[i] = 0.5f + 0.5f * frand(); }
 	CUdeviceptr dIQK = dalloc(4 * 640), dQN = dalloc(4 * 128), dKN = dalloc(4 * 128), dCS = dalloc(4 * 32 * (size_t)npos), dSN = dalloc(4 * 32 * (size_t)npos), dIQ = dalloc(4 * 512), dRING = dalloc(4 * 512), dPKT = dalloc((size_t)ngrp * 8192), dHST = dalloc(4 * 1280);
 	CK(cuMemcpyHtoD(dQN, qn, 4 * 128)); CK(cuMemcpyHtoD(dKN, kn, 4 * 128)); CK(cuMemcpyHtoD(dCS, rcs, 4 * 32 * (size_t)npos)); CK(cuMemcpyHtoD(dSN, rsn, 4 * 32 * (size_t)npos));
 	CK(cuMemsetD32(dHST, 0xdeadbeefu, 1280));
@@ -316,7 +330,8 @@ static int test_idxqk(unsigned T) {
 	uint32_t hst[1280];
 	int bad = 0, shown = 0;
 	for (unsigned t = 0; t < T; t++) {
-		for (int i = 0; i < 640; i++) iqk[i] = 1.5f * frand();
+		if(qk_input)memcpy(iqk,qk_input+(size_t)t*640,sizeof iqk);
+		else for (int i = 0; i < 640; i++) iqk[i] = 1.5f * frand();
 		CK(cuMemcpyHtoD(dIQK, iqk, 4 * 640));
 		run_token(prog, 1, t);
 		for (int h = 0; h < 4; h++) idx_norm_rope_gpu(iqk + 128 * h, qn, eps, rcs + 32 * t, rsn + 32 * t, iq + 128 * h);
@@ -336,15 +351,25 @@ static int test_idxqk(unsigned T) {
 		bad += b;
 	}
 	printf("idxqk: %u tokens: %s (%d tokens differ)\n", T, bad ? "MISMATCH" : "BIT-EXACT", bad);
+	free(qk_input);
 	return bad;
 }
 
 static int test_idxscore(unsigned nv, unsigned NBLK) {
-	unsigned ngrp = (nv + 31) / 32 + 1, t = 4 * nv + (urand() & 3) - ((nv > 0) ? 1 : 0);
+	unsigned ngrp = (nv + 31) / 32 + 1, t = indexer_input_dir ? indexer_positions-1 : 4 * nv + (urand() & 3) - ((nv > 0) ? 1 : 0);
 	if (nv == 0) t = 0; else if (t > 262143) t = 262143;   /* last supported zero-based position; the RNG draw above is kept */
-	float iq[512]; for (int i = 0; i < 512; i++) iq[i] = 1.5f * frand();
+	float iq[512];
 	uint16_t *pool = calloc((size_t)(nv + 1) * 128, 2), *pkt = calloc((size_t)ngrp * 4096, 2);
-	for (unsigned b = 0; b < nv; b++) for (int d = 0; d < 128; d++) { uint16_t h = qsa_f2h(2.f * frand() + (b % 5 == 0 ? 0.7f : 0.f)); pool[(size_t)b * 128 + d] = h; pkt[pkt_idx(b, d)] = h; }
+	if(indexer_input_dir){
+		char leaf[64];
+		if(indexer_positions/4!=nv){fprintf(stderr,"indexer position/block count mismatch\n");return 2;}
+		snprintf(leaf,sizeof leaf,"n%u/iq.f32",indexer_positions);read_indexer_input(leaf,iq,sizeof iq);
+		snprintf(leaf,sizeof leaf,"n%u/pool.f16",indexer_positions);read_indexer_input(leaf,pool,(size_t)nv*128*2);
+		for(unsigned b=0;b<nv;b++)for(int d=0;d<128;d++)pkt[pkt_idx(b,d)]=pool[(size_t)b*128+d];
+	}else{
+		for (int i = 0; i < 512; i++) iq[i] = 1.5f * frand();
+		for (unsigned b = 0; b < nv; b++) for (int d = 0; d < 128; d++) { uint16_t h = qsa_f2h(2.f * frand() + (b % 5 == 0 ? 0.7f : 0.f)); pool[(size_t)b * 128 + d] = h; pkt[pkt_idx(b, d)] = h; }
+	}
 	CUdeviceptr dPKT = dalloc((size_t)ngrp * 8192), dIQ = dalloc(4 * 512), dSC = dalloc(4 * ((size_t)ngrp * 32 + 32)), dHST = dalloc(4 * 1280);
 	CK(cuMemcpyHtoD(dPKT, pkt, (size_t)ngrp * 8192)); CK(cuMemcpyHtoD(dIQ, iq, 4 * 512));
 	CK(cuMemsetD32(dSC, 0x7fc00000u, ngrp * 32 + 32));
@@ -366,9 +391,10 @@ static int test_idxscore(unsigned nv, unsigned NBLK) {
 }
 
 static int test_idxsel(unsigned nv, unsigned NBLK, int mode, int npass) {
-	unsigned t = 4 * nv - 1;
+	unsigned t = indexer_input_dir ? indexer_positions-1 : 4 * nv - 1;
 	float *sc = malloc(4 * (nv + 8)); uint32_t *sel = calloc(NBLK + 8, 4), *selg = malloc(4 * (NBLK + 8)), *selw = calloc(NBLK + 8, 4);
-	for (unsigned b = 0; b < nv; b++) {
+	if(indexer_input_dir){char leaf[64];if(indexer_positions/4!=nv){fprintf(stderr,"indexer position/block count mismatch\n");return 2;}snprintf(leaf,sizeof leaf,"n%u/scores.f32",indexer_positions);read_indexer_input(leaf,sc,(size_t)nv*4);}
+	else for (unsigned b = 0; b < nv; b++) {
 		float v = fabsf(frand()) * 3.f;
 		if (mode == 1 && (urand() % 3)) v = 0.f;                   /* mostly exact zeros: a tie at the threshold */
 		if (mode == 2) v = (float)(urand() % 7) * 0.5f;             /* a few distinct values */
@@ -385,6 +411,7 @@ static int test_idxsel(unsigned nv, unsigned NBLK, int mode, int npass) {
 	for (int p = 0; p < 5; p++) { d_init(&prog[p], OP_IDXSEL, 16); d_ptr(&prog[p], 0x140, dSC); d_ptr(&prog[p], 0x148, dHST); d_ptr(&prog[p], 0x150, dSEL); d_tok(&prog[p], 0x158, 0); d_u32(&prog[p], 0x15c, NBLK); d_u32(&prog[p], 0x160, 2 + p); }
 	run_token(prog, (unsigned)npass, t);
 	unsigned k = idx_select_gpu(sc, nv, NBLK, sel);
+	if(indexer_input_dir){char leaf[64];uint32_t *provided=malloc(4*(NBLK+8));if(!provided){fprintf(stderr,"selection input allocation failed\n");exit(2);}snprintf(leaf,sizeof leaf,"n%u/selected_ids.u32",indexer_positions);read_indexer_input(leaf,provided,4*k);if(memcmp(provided,sel,4*k)){fprintf(stderr,"captured selection differs from C reference\n");free(provided);return 1;}free(provided);}
 	CK(cuMemcpyDtoH(selg, dSEL, 4 * (NBLK + 8)));
 	int bad = 0, shown = 0;
 	if (getenv("QSA_DEBUG") && nv <= 8000)
@@ -514,6 +541,11 @@ int main(int argc,char**argv){
  if(argc>2+(int)m->n){fprintf(stderr,"too many arguments for %s\n",m->name);return 2;}
  for(int i=2;i<argc;i++)if(checked_parse_unsigned(argv[i],m->lo[i-2],m->hi[i-2],arg+i-2)){fprintf(stderr,"invalid argument for %s: %s\n",m->name,argv[i]);return 2;}
  if(which==4 && arg[2]>0 && arg[2]>262145u-4u*arg[0]){fprintf(stderr,"idxfull run exceeds supported token positions\n");return 2;}
+ indexer_input_dir=getenv("QSA_INDEXER_INPUT_DIR");
+ if(indexer_input_dir && !*indexer_input_dir) indexer_input_dir=NULL;
+ if(indexer_input_dir && checked_parse_unsigned(getenv("QSA_INDEXER_POSITIONS"),1,262144,&indexer_positions)){
+  fprintf(stderr,"QSA_INDEXER_INPUT_DIR requires valid QSA_INDEXER_POSITIONS\n");return 2;
+ }
  /* No allocation or CUDA entry point before validation. */
  dev_init();
  switch(which){

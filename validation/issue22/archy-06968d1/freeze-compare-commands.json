@@ -1,0 +1,120 @@
+[
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/nate/claude/flash-sass-prs/issue-22/kern/model_quality.py",
+      "freeze",
+      "--kind",
+      "candidate",
+      "--ids",
+      "/home/nate/claude/flash-sass-prs/quality-captures-06968d1/gpu/t4-budget512-kv0-raw/ids.u32",
+      "--logits",
+      "/home/nate/claude/flash-sass-prs/quality-captures-06968d1/gpu/t4-budget512-kv0-raw/logits.f32",
+      "--vocab-size",
+      "248320",
+      "--raw-info",
+      "/home/nate/claude/flash-sass-prs/quality-captures-06968d1/gpu/t4-budget512-kv0-raw/capture_info.json",
+      "--metadata",
+      "/home/nate/claude/flash-sass-prs/issue-22/validation/issue22/archy-06968d1/gpu/t4-budget512-kv0-metadata.json",
+      "--out",
+      "/home/nate/claude/flash-sass-prs/quality-frozen-06968d1/t4-budget512-kv0"
+    ],
+    "exit": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/nate/claude/flash-sass-prs/issue-22/kern/model_quality.py",
+      "freeze",
+      "--kind",
+      "reference",
+      "--ids",
+      "/home/nate/claude/flash-sass-prs/quality-captures-06968d1/gpu/t4-budget512-kv1-raw/ids.u32",
+      "--logits",
+      "/home/nate/claude/flash-sass-prs/quality-captures-06968d1/gpu/t4-budget512-kv1-raw/logits.f32",
+      "--vocab-size",
+      "248320",
+      "--raw-info",
+      "/home/nate/claude/flash-sass-prs/quality-captures-06968d1/gpu/t4-budget512-kv1-raw/capture_info.json",
+      "--metadata",
+      "/home/nate/claude/flash-sass-prs/issue-22/validation/issue22/archy-06968d1/gpu/t4-budget512-kv1-metadata.json",
+      "--out",
+      "/home/nate/claude/flash-sass-prs/quality-frozen-06968d1/t4-budget512-kv1"
+    ],
+    "exit": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/nate/claude/flash-sass-prs/issue-22/kern/model_quality.py",
+      "compare",
+      "--candidate",
+      "/home/nate/claude/flash-sass-prs/quality-frozen-06968d1/t4-budget512-kv0",
+      "--reference",
+      "/home/nate/claude/flash-sass-prs/quality-frozen-06968d1/t4-budget512-kv1",
+      "--diagnostic",
+      "--out",
+      "/home/nate/claude/flash-sass-prs/issue-22/validation/issue22/archy-06968d1/gpu/t4-budget512-placement-comparison.json"
+    ],
+    "exit": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/nate/claude/flash-sass-prs/issue-22/kern/model_quality.py",
+      "freeze",
+      "--kind",
+      "candidate",
+      "--ids",
+      "/home/nate/claude/flash-sass-prs/quality-captures-06968d1/gpu/t9-budget1-kv0-raw/ids.u32",
+      "--logits",
+      "/home/nate/claude/flash-sass-prs/quality-captures-06968d1/gpu/t9-budget1-kv0-raw/logits.f32",
+      "--vocab-size",
+      "248320",
+      "--raw-info",
+      "/home/nate/claude/flash-sass-prs/quality-captures-06968d1/gpu/t9-budget1-kv0-raw/capture_info.json",
+      "--metadata",
+      "/home/nate/claude/flash-sass-prs/issue-22/validation/issue22/archy-06968d1/gpu/t9-budget1-kv0-metadata.json",
+      "--out",
+      "/home/nate/claude/flash-sass-prs/quality-frozen-06968d1/t9-budget1-kv0"
+    ],
+    "exit": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/nate/claude/flash-sass-prs/issue-22/kern/model_quality.py",
+      "freeze",
+      "--kind",
+      "reference",
+      "--ids",
+      "/home/nate/claude/flash-sass-prs/quality-captures-06968d1/gpu/t9-budget1-kv1-raw/ids.u32",
+      "--logits",
+      "/home/nate/claude/flash-sass-prs/quality-captures-06968d1/gpu/t9-budget1-kv1-raw/logits.f32",
+      "--vocab-size",
+      "248320",
+      "--raw-info",
+      "/home/nate/claude/flash-sass-prs/quality-captures-06968d1/gpu/t9-budget1-kv1-raw/capture_info.json",
+      "--metadata",
+      "/home/nate/claude/flash-sass-prs/issue-22/validation/issue22/archy-06968d1/gpu/t9-budget1-kv1-metadata.json",
+      "--out",
+      "/home/nate/claude/flash-sass-prs/quality-frozen-06968d1/t9-budget1-kv1"
+    ],
+    "exit": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/nate/claude/flash-sass-prs/issue-22/kern/model_quality.py",
+      "compare",
+      "--candidate",
+      "/home/nate/claude/flash-sass-prs/quality-frozen-06968d1/t9-budget1-kv0",
+      "--reference",
+      "/home/nate/claude/flash-sass-prs/quality-frozen-06968d1/t9-budget1-kv1",
+      "--diagnostic",
+      "--out",
+      "/home/nate/claude/flash-sass-prs/issue-22/validation/issue22/archy-06968d1/gpu/t9-budget1-placement-comparison.json"
+    ],
+    "exit": 0
+  }
+]
