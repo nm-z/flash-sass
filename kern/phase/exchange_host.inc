@@ -23,7 +23,7 @@ static void exchange_trace_dump(FILE *out,int d) {
                 records++;continue;
             }
             const uint64_t *acq=data+((size_t)t*4096+index)*256;
-            if(acq[224]) {
+            if(!body_trace && acq[224]) {
                 uint64_t hash=14695981039346656037ull;
                 const unsigned char *bytes=(const unsigned char *)(acq+224);
                 for(unsigned k=0;k<256;k++)hash=(hash^bytes[k])*1099511628211ull;

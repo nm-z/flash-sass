@@ -95,9 +95,10 @@ Implemented:
   is added to its original group. Publication reduces groups0–5 in order;
   the following GR consumer reads one assembled vector instead of summing six
   copies. The reference owner boundaries come from the retained SPLIT_SHARES.
-- A distinct manifest marker prevents the legacy engine from accidentally
-  interpreting these matrices as whole-expert shards. The balanced descriptor
-  and SASS path must replace that temporary rejection before execution.
+- The engine now classifies all six layout markers, validates logical ranks,
+  stripe grain and distinct physical GPUs, and rejects mixed arenas. The row
+  path requires fused GR, producer quantization, matrix grouping, all48 layers
+  and a single causal position. Kernel ABI markers must match the layout.
 - Holder and engine build checks. No balanced holders have been loaded and no
   balanced kernel has been run. The serving baseline and persistent holders
   have not been changed.
@@ -124,9 +125,10 @@ Implemented:
 
 Still required for the complete operation loop:
 
-1. Finish all balanced engine ownership and activation-table bindings; enable
-   mode only when all following components are integrated. The existing
-   rejection of balanced holders remains until then.
+1. Install the complete balanced engine and compatible holders only after
+   physical sizing and concrete restoration artifacts are ready. The source
+   now enables the balanced path for six validated matching holder markers;
+   the live baseline has not been reloaded.
 2. Verify complete dense/GDN/PLE/head descriptor coverage in the final program.
 3. Qualify the implemented routed/shared path as part of the complete model;
    no partial-MoE GPU benchmark has been performed.
@@ -220,6 +222,29 @@ work or a relabeled count of descriptors. Any fused local readiness waits must
 remain visible in the balance report.
 
 ## Qualification and publication
+
+The `die_balanced_body.cubin` diagnostic image now builds with the production
+operation graph. With `FLASH_BODY_TRACE=1 FLASH_XTRACE=N`, `bodytrace D` emits
+every physical phase/CTA, body entry after incoming acquisition, body completion
+after the local footer rendezvous, SM residency and individually timed explicit
+polls. QSA records normalization/indexer, score-producer, selection-producer,
+gather and partition waits; MoE preparation and the router consumer have their
+own poll records. Existing `xtrace D` retains publication/arrival/acquire data.
+Missing or malformed records remain in the output with `valid:false`.
+
+The body-minus-poll field still includes local CTA barriers, publication,
+dispatch and instrumentation overhead. It must not be called pure arithmetic
+time. Resident SM IDs establish placement, not useful utilization; the work
+ledger and operation participation are still needed. The trace has not run on
+a GPU yet. Both normal and diagnostic images preserve493 physical phases.
+
+On October22, the source checkpoint's NFS mount timed out on archy. Direct SSH
+to Sentry's configured address returned `No route to host`. Existing GPU
+holders and the serving core remain alive. Do not stop them before preserving
+a usable source for replacement weights: their source GGUF is not currently
+reachable. Repacking their existing resident native rows into a local backing
+cache is a possible way to avoid depending on that mount. No such repack has
+been performed yet.
 
 Reuse canonical GPUQ evidence before starting new work. All archy GPU execution
 continues through `ssh archy gpuq run -- COMMAND`. Preserve one canonical

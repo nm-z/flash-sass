@@ -50,11 +50,24 @@ CUresult cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev);
 static jmp_buf init_jb, run_jb; static int in_init, in_run;
 #define CK(x) do { CUresult r_ = (x); if (r_ != CUDA_SUCCESS) { const char *s_ = "?"; cuGetErrorString(r_, &s_); fprintf(stderr, "engine.c:%d: %s -> %s\n", __LINE__, #x, s_); if (in_init) longjmp(init_jb, 1); if (in_run) longjmp(run_jb, 1); exit(1); } } while (0)
 static double now(void) { struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts); return ts.tv_sec + ts.tv_nsec * 1e-9; }
-static int row_balance; /* enabled only after the complete balanced path is integrated */
-static int legacy_holder_layout(const core_t *c) {
-    for(int d=0;d<c->nd;d++)if(hold_find(&c->ar[d],FLASH_BALANCE_LAYOUT_MARKER)) {
-        fprintf(stderr,"engine: row-balanced holder needs the balanced program/SASS path\n");return 0;
+static int row_balance,body_trace;
+static int classify_holder_layout(const core_t *c) {
+    unsigned marked=0,physical=0;row_balance=0;
+    for(int d=0;d<c->nd;d++) {
+        const hold_tensor *t=hold_find(&c->ar[d],FLASH_BALANCE_LAYOUT_MARKER);
+        if(!t)continue;
+        if(c->nd!=FLASH_BALANCE_DIES || t->off || t->bytes || t->type ||
+           t->rows!=d || t->K!=FLASH_BALANCE_DIES ||
+           t->stride!=FLASH_BALANCE_EXPERT_GRAIN || t->experts!=1 ||
+           c->ar[d].die<0 || c->ar[d].die>=32 || physical&(1u<<c->ar[d].die)) {
+            fprintf(stderr,"engine: invalid balanced holder metadata in logical slot %d\n",d);return 0;
+        }
+        marked++;physical|=1u<<c->ar[d].die;
     }
+    if(marked && marked!=(unsigned)c->nd) {
+        fprintf(stderr,"engine: cannot mix balanced and legacy holders\n");return 0;
+    }
+    row_balance=marked!=0;
     return 1;
 }
 
@@ -173,6 +186,11 @@ static const char *profile_op_name(unsigned op) {
 }
 static void check_fused_moe_module(CUmodule module) {
 	CUfunction marker;
+    CUresult body_marker=cuModuleGetFunction(&marker,module,"flash_balance_body_trace_abi_v1");
+    if(body_trace)CK(body_marker);
+    else if(body_marker==CUDA_SUCCESS) {
+        fprintf(stderr,"engine: body trace image requires FLASH_BODY_TRACE=1\n");CK(CUDA_ERROR_INVALID_IMAGE);
+    }
     CUresult balanced_marker=cuModuleGetFunction(&marker,module,"flash_balanced_rows_abi_v1");
     if(row_balance)CK(balanced_marker);
     else if(balanced_marker==CUDA_SUCCESS) {
@@ -1385,13 +1403,17 @@ int engine_init(core_t *c) {
 	if (trace_n > 256) { fprintf(stderr, "FLASH_TRACE must be 0..256\n"); return -1; }
     gr_write_trace=getenv("FLASH_GR_WRITE_TRACE") && atoi(getenv("FLASH_GR_WRITE_TRACE"));
     xtrace_n=getenv("FLASH_XTRACE")?(unsigned)strtoul(getenv("FLASH_XTRACE"),NULL,10):0;
+    body_trace=getenv("FLASH_BODY_TRACE") && atoi(getenv("FLASH_BODY_TRACE"));
+    if(body_trace && (!xtrace_n || gr_write_trace ||
+       (getenv("FLASH_XTRACE_HASH_ONLY") && atoi(getenv("FLASH_XTRACE_HASH_ONLY"))))) {
+        fprintf(stderr,"engine: body trace requires exchange tracing without GR/hash-only modes\n");return -1;
+    }
     if(xtrace_n>(gr_write_trace?256u:16u) || (gr_write_trace && !xtrace_n)){fprintf(stderr,"invalid trace window\n");return -1;}
 	if (c->abi != CORE_ABI) { fprintf(stderr, "engine: the core speaks ABI %d, this library was built for %d\n", c->abi, CORE_ABI); return -1; }
-    /* The legacy program interprets routed matrices as whole-expert shards.
-     * Never reinterpret a row-striped arena before the matching program and
-     * SASS bodies are integrated. This guard is replaced by the balanced
-     * descriptor path when the complete new execution layout is available. */
-    if(!legacy_holder_layout(c))return -1;
+    if(!classify_holder_layout(c))return -1;
+    if(body_trace && !row_balance) {
+        fprintf(stderr,"engine: balanced body tracing requires balanced holders\n");return -1;
+    }
 	core = c; in_init = 1;
 	if (setjmp(init_jb)) { in_init = 0; engine_fini(); return -1; }
 	MAXT = c->maxt;
@@ -1436,6 +1458,14 @@ int engine_init(core_t *c) {
 		verify_accept=(unsigned)n;
 	}
 #endif
+	if(row_balance && (!producer_quant || !group_matrices || residual_fp8 ||
+        gr_replicate_ffn || two_position ||
+        !getenv("FLASH_FUSED_GR") || !atoi(getenv("FLASH_FUSED_GR")) ||
+        getenv("PROG_NOHCUP") || getenv("PROG_NORMSFUSE") || getenv("PROG_NORMSW") ||
+        (getenv("FLASH_MTP_AUDIT") && atoi(getenv("FLASH_MTP_AUDIT"))))) {
+        fprintf(stderr,"engine: balanced holders require the scalar full production path with fused GR, producer quantization and matrix grouping\n");
+        longjmp(init_jb,1);
+    }
 	program_capacity = 4096;
 	allocated_positions = two_position ? 2 : 1;
 #ifdef FLASH_EXACT_BATCH
@@ -1464,11 +1494,17 @@ int engine_init(core_t *c) {
 		longjmp(init_jb, 1);
 	}
 	if (getenv("FLASH_ENGINE_MAXT")) { int m = atoi(getenv("FLASH_ENGINE_MAXT")); if (m > 0 && m <= c->maxt) MAXT = m; }   /* a library reloaded with FLASH_ENGINE_MAXT=n serves fewer positions than the core was started for (the KV caches shrink) */
+    if(row_balance && allocated_positions!=1) {
+        fprintf(stderr,"engine: balanced holders require one causal position per dispatch\n");longjmp(init_jb,1);
+    }
 	const char *cubin = getenv("FLASH_CUBIN") ? getenv("FLASH_CUBIN") : "die.cubin";
 	img_rows_max = getenv("FLASH_MAXIMG") ? (unsigned)atoi(getenv("FLASH_MAXIMG")) : (unsigned)(MAXT < FLASH_IMAGE_MAX_TOKENS ? MAXT : FLASH_IMAGE_MAX_TOKENS);   /* image tokens per response (fp16 rows of 2560 on every die) */
 	h_imap = calloc((size_t)MAXT + 2, 4); imap_dirty = 0; rope_dirty_T = 0;
 	kv_host = getenv("FLASH_KV_HOST") ? atoi(getenv("FLASH_KV_HOST")) : 1;
 	nlayers_run = getenv("FLASH_LAYERS") ? atoi(getenv("FLASH_LAYERS")) : NB; if (nlayers_run < 1 || nlayers_run > NB) nlayers_run = NB;
+    if(row_balance && nlayers_run!=NB) {
+        fprintf(stderr,"engine: balanced production requires all %d layers\n",NB);longjmp(init_jb,1);
+    }
 	if (getenv("FLASH_NBLK")) nblk_qsa = (unsigned)atoi(getenv("FLASH_NBLK"));
 	if (nblk_qsa < 1 || nblk_qsa > 4096) { fprintf(stderr, "engine: FLASH_NBLK %u out of range\n", nblk_qsa); return -1; }
 	unsigned cpos = qsa_compact_positions(nblk_qsa);   /* compact caches: the attended keys (4 per block + the partial one) and the kernels' stray prefetch past them */
@@ -1866,6 +1902,7 @@ const char *engine_reload_path(void) { return reload_path[0] ? reload_path : NUL
 
 #include "trace_host.inc"
 #include "phase/exchange_host.inc"
+#include "balance/body_host.inc"
 
 int engine_session(FILE *in, FILE *out) {
 	last_timing_valid=0;
@@ -1920,6 +1957,7 @@ int engine_session(FILE *in, FILE *out) {
 		if (!strncmp(p, "trace", 5)) { trace_dump(out, atoi(p + 5)); fflush(out); continue; }
 		if (!strncmp(p, "hosttrace", 9)) { host_trace_dump(out); fflush(out); continue; }
         if(!strncmp(p,"xtrace ",7)){exchange_trace_dump(out,atoi(p+7));fflush(out);continue;}
+        if(!strncmp(p,"bodytrace ",10)){balance_body_dump(out,atoi(p+10));fflush(out);continue;}
 		if (!strncmp(p, "prof", 4)) {   /* where the last token of the last response spent its time, from the phase timestamps CTA 0 writes at each phase end */
 			int pd = atoi(p + 4); if (pd < 0 || pd >= nd) pd = 0; const int nph_ = prof_nph[pd]; const uint32_t *pop = prof_op[pd];   /* prof [die] */
 			uint32_t *ts = malloc(4 * (size_t)(prof_desc[pd] ? prof_desc[pd] : 1));
@@ -1989,6 +2027,9 @@ int engine_session(FILE *in, FILE *out) {
 			fprintf(out, "config rev=%s kv_host=%d kv_trace=%d ple_disk=%d ple_readers=%u ple_file=%s ple_cache=%s maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u rope_owner=%d trace_tokens=%u two_position=%d prefill_chunk=%d attn_q_split=%u attn_q_mask=%x cubin=%s cubin_fnv=%016llx",
 			        FLASH_REV, kv_host, kv_trace, ple_disk, ple_disk ? ple_readers : 0, ple_cache_active ? ple_cache_path : "core", ple_cache_path[0] ? ple_cache_path : "core", MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, rope_owner, trace_n, two_position, prefill_chunk, attn_q_split_mode, attn_q_split_mask, cubin_path, (unsigned long long)cubin_fnv);
             fprintf(out," runtime_attn_map=%s balanced=%d",runtime_map,phase_attention_balanced());
+            fprintf(out," row_balance=%d row_grain=%u compute_physical=",row_balance,row_balance?FLASH_BALANCE_EXPERT_GRAIN:0u);
+            for(int d=0;d<nd;d++)fprintf(out,"%s%d",d?",":"",ar[d].die);
+            fprintf(out," body_trace=%d",body_trace);
             fprintf(out," residual_storage=%s fused_gr=%d producer_quant=%d matrix_group=%d gr_replica_ffn=%d xtrace=%u",residual_fp8?"fp8":"fp32",getenv("FLASH_FUSED_GR")?atoi(getenv("FLASH_FUSED_GR")):0,producer_quant,group_matrices,gr_replicate_ffn,xtrace_n);
 #ifdef FLASH_CHUNK_NATIVE
 			fprintf(out, " native_chunk=%u chunk_maxt=%u prefix_hash=%d chunk_cubin=%s chunk_cubin_fnv=%016llx", chunk_ldx, chunk_ldx ? chunk_maxt : 0, getenv("FLASH_PREFIX_HASH") && atoi(getenv("FLASH_PREFIX_HASH")), chunk_ldx ? (chunk_mod[0] ? chunk_cubin_path : cubin_path) : "none", (unsigned long long)(chunk_ldx ? (chunk_mod[0] ? chunk_cubin_fnv : cubin_fnv) : 0));

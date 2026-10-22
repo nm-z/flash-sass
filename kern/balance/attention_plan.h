@@ -28,7 +28,8 @@ static unsigned balanced_attention_fuse(prog_t *p,const dn_bufs_t *b,int *layers
     }
     if(attention!=(unsigned)nlayers_run/4) {
         fprintf(stderr,"balanced attention coverage: attention=%u layers=%d\n",attention,nlayers_run);
-        if(in_init)longjmp(init_jb,1);exit(1);
+        if(in_init)longjmp(init_jb,1);
+        exit(1);
     }
     return attention;
 }
