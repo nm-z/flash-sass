@@ -4,7 +4,9 @@ This is work in progress for the three requested items. The full objective is
 not complete. V33 passes the ordinary and fixed-input self-repeatability gates
 but fails the long-context repeat. V35 and v36 repeat long-context output
 tokens but still differ in recurrent state. V38's all-writer release also fails
-the long-context state repeat; a fresh matched split measurement remains pending. Earlier
+the long-context state repeat. V39 passes the two-request long-context repeat
+in both arms; current-source ordinary/fixed and matched split qualification
+remain in progress. Earlier
 failures below are retained as evidence.
 Full48-stage FFN GR replication does not fit archy's current memory placement;
 the eight-stage variant fits and reduces actual exchanges, but its earlier run
@@ -494,8 +496,13 @@ The benchmark process was confirmed absent before retrying. The first retry
 `b808c281-0173-4c00-87b5-df09baf8c17a` rejected the leftover candidate serving
 configuration before admission; no model request ran. Restore job
 `bbfdb592-1cc2-4525-aef1-774309267204` succeeded. The unchanged frozen v39
-images are now running in job `6842afd1-0e3b-4063-aaa6-56bdb6736d81`.
-Its end-to-end qualification is pending. A stale status-polling shell was
+images completed in job `6842afd1-0e3b-4063-aaa6-56bdb6736d81`, exit0.
+Both arms pass their two4,096/16 requests: zero output,216-state,
+component-value, token-consensus and PLE input-history mismatches. Candidate
+warm decode is28.0880 TPS, matched baseline29.0467 TPS. This is a long-context
+repeatability pass, not a performance improvement or exhaustive proof.
+Current-source ordinary/fixed and split qualifications remain pending.
+A stale status-polling shell was
 temporarily suspended, and this retry is monitored through read-only SQLite
 queries rather than GPUQ commands that initialize a writer connection.
 
