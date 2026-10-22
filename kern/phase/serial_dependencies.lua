@@ -3,12 +3,18 @@
 -- instruction order and dispatch table entries. No model phase is removed.
 local f=assert(io.open(assert(arg[1])));local s=f:read('a');f:close()
 local scope=arg[3] or 'body';assert(scope=='body' or scope=='frame' or scope=='all')
-local fixed=arg[4]=='fixed'
+local fixed_mode=arg[4] or ''
+assert(fixed_mode=='' or fixed_mode=='fixed' or fixed_mode=='fixedbody' or fixed_mode=='fixedframe')
+local fixed_ops={};for op in (arg[5] or ''):gmatch('[%w_]+')do fixed_ops[op]=true end
+local filtered=next(fixed_ops)~=nil;local active_op=''
 local out={};local n=0;local in_body=false
 for line in s:gmatch('[^\n]+')do
+ active_op=line:match('^([%w_]+)_SETUP:$') or active_op
  if line=='embrow_SETUP:' then in_body=true end
  if line=='POSITION_END:' then in_body=false end
  local enabled=scope=='all' or (scope=='body' and in_body) or (scope=='frame' and not in_body)
+ local fixed=fixed_mode=='fixed' or (fixed_mode=='fixedbody' and in_body) or (fixed_mode=='fixedframe' and not in_body)
+ if filtered then fixed=fixed and fixed_ops[active_op] end
  local ctl,space,ins=line:match('^(%S+)(%s+)(.+);')
  local wait,read,write,yield,stall
  if ctl then wait,read,write,yield,stall=ctl:match('^([^:]+):([^:]+):([^:]+):([^:]+):([%x])$')end
@@ -33,4 +39,4 @@ for line in s:gmatch('[^\n]+')do
 end
 assert(n>(scope=='frame' and 10 or 10000),'unexpected dependency geometry '..n)
 f=assert(io.open(assert(arg[2]),'w'));f:write(table.concat(out,'\n'),'\n');f:close()
-io.stderr:write(string.format('serial_dependencies explicit_completions=%d scope=%s fixed_latency=%s\n',n,scope,tostring(fixed)))
+io.stderr:write(string.format('serial_dependencies explicit_completions=%d scope=%s fixed_latency=%s fixed_ops=%s\n',n,scope,fixed_mode,arg[5] or 'all'))

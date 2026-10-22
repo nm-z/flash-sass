@@ -259,7 +259,7 @@ int main(int argc,char **argv) {
         snprintf(restore_command,sizeof restore_command,"reload %s FLASH_CUBIN=%s FLASH_ENGINE_MAXT=%s FLASH_MAXIMG=%s FLASH_ROPE_OWNER=%s FLASH_TWO_POSITION=%s FLASH_PREFILL_CHUNK=%s FLASH_ATTN_Q_SPLIT=%s FLASH_TRACE=%s FLASH_PLE_FILE=%s FLASH_FUSED_MOE=0 FLASH_FAST_EXCHANGE=0 FLASH_CHUNK_PREFILL=0 FLASH_VERIFY_STREAM=0",argv[6],argv[7],maxt,img,rope,pairs,chunk,qs,trace,ple);
         size_t rused=strlen(restore_command);
         snprintf(restore_command+rused,sizeof restore_command-rused," FLASH_PREFIX_HASH=0 FLASH_CHUNK_CUBIN= FLASH_PHASE_BATCH=0 FLASH_EXACT_CUBIN= FLASH_MTP_AUDIT=0 FLASH_MTP_MODEL= FLASH_MTP_CUBIN= FLASH_VERIFY_AUDIT=0 FLASH_VERIFY_STATE_CHECK=1 FLASH_LAYERS=%d FLASH_NBLK=%s FLASH_KV_HOST=%s FLASH_PLE_READERS=%s",atoi(layers),blocks,kv,readers);
-        rused=strlen(restore_command);snprintf(restore_command+rused,sizeof restore_command-rused," FLASH_XTRACE=0 FLASH_GR_REPLICATE_FFN=0");
+        rused=strlen(restore_command);snprintf(restore_command+rused,sizeof restore_command-rused," FLASH_XTRACE=0 FLASH_GR_REPLICATE_FFN=0 FLASH_LOCKSTEP_PHASES=0 FLASH_STRICT_PHASE_JOINS=0 FLASH_GR_WRITE_TRACE=0");
         char old_gr[16];value(before_config,"fused_gr","0",old_gr,sizeof old_gr);
         rused=strlen(restore_command);snprintf(restore_command+rused,sizeof restore_command-rused," FLASH_FUSED_GR=%s",old_gr);
         char old_residual[64];value(before_config,"residual_storage","fp32",old_residual,sizeof old_residual);
@@ -356,6 +356,7 @@ int main(int argc,char **argv) {
             {size_t used=strlen(cmd);snprintf(cmd+used,sizeof cmd-used," FLASH_XTRACE_FIRST=%s FLASH_XTRACE_HASH_ONLY=%d",getenv("BENCH_XTRACE_FIRST")?getenv("BENCH_XTRACE_FIRST"):"",getenv("BENCH_XTRACE_HASH_ONLY")?atoi(getenv("BENCH_XTRACE_HASH_ONLY")):0);}
             {size_t used=strlen(cmd);snprintf(cmd+used,sizeof cmd-used," FLASH_GR_REPLICATE_FFN=%d",arm&&getenv("BENCH_GR_REPLICA_FFN")?atoi(getenv("BENCH_GR_REPLICA_FFN")):0);}
             {size_t used=strlen(cmd);snprintf(cmd+used,sizeof cmd-used," FLASH_STRICT_PHASE_JOINS=%d",arm&&getenv("BENCH_STRICT_PHASE_JOINS")?atoi(getenv("BENCH_STRICT_PHASE_JOINS")):0);}
+            {size_t used=strlen(cmd);snprintf(cmd+used,sizeof cmd-used," FLASH_LOCKSTEP_PHASES=%d",arm&&getenv("BENCH_LOCKSTEP_PHASES")?atoi(getenv("BENCH_LOCKSTEP_PHASES")):0);}
             {size_t used=strlen(cmd);snprintf(cmd+used,sizeof cmd-used," FLASH_GR_WRITE_TRACE=%d",getenv("BENCH_GR_WRITE_TRACE")?atoi(getenv("BENCH_GR_WRITE_TRACE")):0);}
             command(active,cmd); fclose(active); active=NULL;
             f=connect_core(); if(!f) fail("post-reload connection"); active=f;

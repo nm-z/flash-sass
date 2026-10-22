@@ -589,6 +589,18 @@ static void model_program(prog_t *P, int d, unsigned position, unsigned nprompt,
      * and 499 dispatches remain; only local join elision is disabled. */
     if(producer_quant && getenv("FLASH_STRICT_PHASE_JOINS") && atoi(getenv("FLASH_STRICT_PHASE_JOINS")))
         for(int i=0;i<P->n;i++)P->p[i].w[30]&=~(4u|PHASE_EXCHANGE_JOIN_FLAG);
+    /* Diagnostic for cross-die buffer reuse: all physical phases acquire the
+     * preceding phase on every die and publish their completion. Keep the
+     * complete merged bodies and physical phase count. Secondary descriptors
+     * remain parameters/internal chain operations, not extra publications. */
+    if(producer_quant && getenv("FLASH_LOCKSTEP_PHASES") && atoi(getenv("FLASH_LOCKSTEP_PHASES"))) {
+        for(int i=0;i<P->n;) {
+            phase_t *a=P->p+i;unsigned encoded=(a->w[30]>>8)&255u;
+            unsigned width=(a->w[30]&8u)?(encoded?encoded:2u):1u;
+            a->w[30]=(a->w[30]&~(4u|PHASE_EXCHANGE_JOIN_FLAG))|3u;
+            i+=(int)width;
+        }
+    }
     if(gr_write_trace) {
         unsigned slot=0;
         for(int i=0;i<P->n;i++)if(P->p[i].w[0]==94 || P->p[i].w[0]==OP_BF16HCRWX)P->p[i].w[21]=++slot;
@@ -662,6 +674,9 @@ static void upload_programs(const prog_t *P, unsigned *nph, unsigned positions) 
         if(producer_quant && (positions!=1 || prof_nph[d]>=500)) {
             fprintf(stderr,"phase candidate not runnable: die %d has %d phases, %u positions; require single-position production decode below 500 phases on every die\n",d,prof_nph[d],positions);
             longjmp(run_jb,1);
+        }
+        if(d && producer_quant && getenv("FLASH_LOCKSTEP_PHASES") && atoi(getenv("FLASH_LOCKSTEP_PHASES")) && prof_nph[d]!=prof_nph[0]) {
+            fprintf(stderr,"lockstep diagnostic requires equal physical phase counts on every die\n");longjmp(run_jb,1);
         }
 		CK(cuMemcpyHtoD(dPROG[d], P[d].p, sizeof(phase_t) * (size_t)P[d].n));
 		CK(cuMemsetD32(dCTL[d] + 0x24, positions, 1));

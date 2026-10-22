@@ -88,7 +88,7 @@ die_phase_grhash.cubin: die_phase_grhash.sass die_phase_grhash.ptx
 	$(MAXAS) -i die_phase_grhash.sass $@
 
 die_phase_serial.sass: die_phase.sass phase/serial_dependencies.lua
-	$(LUA) phase/serial_dependencies.lua $< $@ $(or $(SERIAL_SCOPE),body) $(SERIAL_FIXED)
+	$(LUA) phase/serial_dependencies.lua $< $@ $(or $(SERIAL_SCOPE),body) $(SERIAL_FIXED) $(SERIAL_FIXED_OPS)
 die_phase_serial.cubin: die_phase_serial.sass die_phase.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ die_phase.ptx
 	$(MAXAS) -i die_phase_serial.sass $@

@@ -210,6 +210,42 @@ ordinary64/128 requests, including216 states each. These deliberately slow
 images retain all499 phases. A fixed-input gate is required before drawing a
 scheduling conclusion; changing issue timing can also mask a data race.
 
+The follow-up fixed-input job `9accb9bb-a79a-40ab-8a85-e3d33e549d40` passes
+all four256-position candidate requests, including all216 states. The job as
+a whole **fails** because the baseline's third request differs at positions183
+and236 and in162 GDN states. Earlier baseline self-repeats are therefore
+insufficient to qualify the baseline as an oracle. No cross-kernel correctness
+claim is made. The next diagnostic keeps immediate variable-completion waits
+throughout but adds the13-cycle spacing only to the persistent frame, to
+distinguish frame and operator scheduling without changing the model.
+
+Frame-only spacing `4daa6b0b-23eb-46fd-bf66-559cdcdbf4fa` fails all three
+fixed-input repeats:7,3 and6 prediction mismatches, with210 state differences
+each. It keeps immediate variable completions across the entire image and
+changes only the fixed-spacing region relative to v20. Operator-only spacing
+is tested separately; neither image is a production speed candidate.
+
+Operator-only spacing `19f8c751-6c91-4ec4-b84e-0c20f4a61217` passes all four
+fixed256-position requests and216 GDN states per request. Thus the passing
+configuration does not require the frame's added fixed spacing. This remains
+a timing-sensitive observation, not identification of a faulty instruction.
+
+`92ea972d-f619-416f-8cf6-a3f9cf4579d8` uses the unchanged v17 production SASS
+with a diagnostic host schedule that acquires and publishes every physical
+phase. All six dies confirm499 phases,499 local joins and499 peer acquires;
+there are no joined-publication shortcuts. It still fails all three repeats:
+5,5 and1 prediction differences,210 GDN state differences each. Adding peer
+ordering at every existing phase does not establish determinism. The normal
+schedule remains354 peer acquires; lockstep is off by default and explicitly
+cleared on benchmark restoration.
+
+`phase/register_latency.lua` reports two same-name straight-line arithmetic
+RAW candidates with minimum age5 cycles: the final accumulator clamp in
+`idxscore` and its `scoreselect` clone. The report assumes6-cycle fixed
+arithmetic latency and does not model register aliases, CFG edges, or extra
+stall cycles supplied by variable completions. It is a review aid. These QSA
+sites do not by themselves explain state drift beginning at layer1.
+
 `phase/predicate_cfg.lua` audits minimum predicate age through labels and
 direct branch edges, terminating paths at unknown BRX edges. It reports zero
 sub13-cycle fixed predicate candidates in the current production image. This
