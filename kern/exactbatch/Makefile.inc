@@ -137,7 +137,7 @@ die_phase_serial.cubin: die_phase_serial.sass die_phase.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ die_phase.ptx
 	$(MAXAS) -i die_phase_serial.sass $@
 
-libengine.so libengine_exact.so libengine_mtp.so libengine_mtp_chunk.so libengine_dflash.so libengine_verify.so libengine_chunk.so: phase/plan.h phase/ownership.h phase/gr_replica.h phase/exchange_host.inc balance/layout.h balance/program.h balance/attention_program.h balance/attention_plan.h balance/body_host.inc
+libengine.so libengine_exact.so libengine_mtp.so libengine_mtp_chunk.so libengine_dflash.so libengine_verify.so libengine_chunk.so: phase/plan.h phase/ownership.h phase/gr_replica.h phase/exchange_host.inc balance/layout.h balance/program.h balance/attention_program.h balance/attention_plan.h balance/body_host.inc balance/qsa_audit.inc
 
 die_gr_fp8.sass: die_gr.sass fp8/link.lua
 	$(LUA) fp8/link.lua $< $@

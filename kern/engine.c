@@ -434,10 +434,10 @@ static void state_hashes(FILE *out,int detail) {
 			if (BLK_IS_ATTN(bb)) {
 				if (!dst_kq[d][bb]) continue;
 				h = device_fnv(dst_ring[d][bb], 2048, h);
-				h = device_fnv(dst_kq[d][bb], (size_t)last_positions * 512, h);
-				h = device_fnv(dst_vq[d][bb], (size_t)last_positions * 512, h);
-				h = device_fnv(dst_ks[d][bb], (size_t)last_positions * 32, h);
-				h = device_fnv(dst_vs[d][bb], (size_t)last_positions * 32, h);
+				h = device_fnv(dst_kq[d][bb], (size_t)last_positions * (row_balance?256:512), h);
+				h = device_fnv(dst_vq[d][bb], (size_t)last_positions * (row_balance?256:512), h);
+				h = device_fnv(dst_ks[d][bb], (size_t)last_positions * (row_balance?16:32), h);
+				h = device_fnv(dst_vs[d][bb], (size_t)last_positions * (row_balance?16:32), h);
 				/* Full transposed tiles, including their finite zero/stale padding. */
 				h = device_fnv(dst_pkt[d][bb], ((size_t)last_positions / 4 + 31) / 32 * 8192, h);
 			} else {
@@ -1979,6 +1979,7 @@ const char *engine_reload_path(void) { return reload_path[0] ? reload_path : NUL
 #include "trace_host.inc"
 #include "phase/exchange_host.inc"
 #include "balance/body_host.inc"
+#include "balance/qsa_audit.inc"
 
 int engine_session(FILE *in, FILE *out) {
 	last_timing_valid=0;
@@ -2068,6 +2069,7 @@ int engine_session(FILE *in, FILE *out) {
 			fprintf(out, "  longest:"); for (int k = 0; k < 8 && big[k] > 0; k++) fprintf(out, " #%d %s %.0f us;", big[k], profile_op_name(pop[big[k]]), (uint32_t)(ts[big[k]] - ts[big[k] - 1]) / 1e3);
 			fprintf(out, "\n"); fflush(out); free(ts); continue;
 		}
+		if (!strcmp(p, "qsaaudit\n")) { qsa_audit(out); continue; }
 		if (!strncmp(p, "statehash", 9)) { state_hashes(out,strstr(p,"detail")!=NULL); continue; }
         if(!strncmp(p,"tokenaudit",10)){token_audit(out);fflush(out);continue;}
 #ifdef FLASH_VERIFY_NATIVE

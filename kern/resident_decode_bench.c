@@ -400,6 +400,7 @@ int main(int argc,char **argv) {
         const char *workload=candidate_only && repetitions==1 && !repeatability && !pair_cost?"decode-first-execution":mtp_audit==4?"dflash2-full-model-unchecked":mtp_audit==3?"mtp-full-model-unchecked":mtp_audit==2?"mtp-unchecked-rollout":verify_rollback?"rollback-state-diagnostic":mtp_audit?"draft-shadow-diagnostic":pair_cost?"teacher_forced":candidate_only?(generate==1&&prefix_hash?"native-prefix-repeatability":"decode-repeatability"):"decode";
         if(getenv("BENCH_CUDA_DEBUG") && atoi(getenv("BENCH_CUDA_DEBUG")))workload="cuda-debug-diagnostic";
         if(getenv("FLASH_FAULT_CTL") && atoi(getenv("FLASH_FAULT_CTL")))workload="fault-phase-diagnostic";
+        if(getenv("BENCH_QSA_AUDIT") && atoi(getenv("BENCH_QSA_AUDIT")))workload="qsa-component-audit";
         if(pair_cost && plain_decode)name=arm?"teacher-forced-candidate":"teacher-forced-baseline";
         if(plain_decode && getenv("BENCH_BASE_PHASE") && atoi(getenv("BENCH_BASE_PHASE")))name=arm?"split-candidate":"phase-baseline";
         printf("{\"arm\":\"%s\",\"workload\":\"%s\",\"prompt_tokens\":%d,\"generated_tokens\":%d,\"warmup_runs\":%d,\"baseline_compared\":%s,\"reference_kind\":\"%s\"}\n",name,repeatability?"same_kernel_repeatability":workload,pair_cost?positions:64*prompt_copies,pair_cost?0:generate,arm&&verify_matrix?8:1,(candidate_only||repeatability)?"false":"true",repeatability?"first_request_same_kernel":mtp_audit>=2?"none":reference?"frozen_scalar":"first_run");
@@ -452,6 +453,21 @@ int main(int argc,char **argv) {
             }
             free(line); fflush(stdout);
             if(!done||n!=positions) fail("incomplete generation");
+            if(getenv("BENCH_QSA_AUDIT") && atoi(getenv("BENCH_QSA_AUDIT"))) {
+                fputs("qsaaudit\n",f);fflush(f);
+                char *al=NULL;size_t ac=0;int complete=0;
+                while(getline(&al,&ac,f)>0){
+                    fputs(al,stdout);
+                    if(!strncmp(al,"qsaaudit_end ",13)){
+                        char status[16];unsigned count,bad;
+                        if(sscanf(al,"qsaaudit_end status=%15s components=%u failures=%u",status,&count,&bad)!=3)
+                            fail("invalid QSA audit summary");
+                        mismatches+=bad;if(count!=90 && !bad)mismatches++;
+                        complete=1;break;
+                    }
+                }
+                free(al);if(!complete)fail("incomplete QSA audit");
+            }
             if(getenv("BENCH_PLE_CACHE_STATS") && atoi(getenv("BENCH_PLE_CACHE_STATS")))command(f,"plecache");
             if(getenv("BENCH_STATE_HASH") && atoi(getenv("BENCH_STATE_HASH"))) {
                 int detail=getenv("BENCH_STATE_DETAIL") && atoi(getenv("BENCH_STATE_DETAIL"));

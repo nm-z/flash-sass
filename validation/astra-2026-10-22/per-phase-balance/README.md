@@ -197,3 +197,54 @@ The [256-position original fixture](original-v39-fixed-reference.ids),
 [balanced outputs](balanced-fixed-output.ids) and [all58 mismatches](fixed-mismatches.tsv)
 are retained. The balanced architecture remains in place while its numerical
 cause is investigated; the original-model correctness gate is still open.
+
+## KV-major gather fix and restored short-context fidelity (v65)
+
+The optional `qsaaudit` engine command reads layer47's retained attention
+scratch after a complete scalar model request. For each of six dies it checks
+15 components against the existing C stage twins. Each stage uses actual GPU
+inputs, so upstream discrepancies are not attributed to downstream arithmetic.
+Only valid keys and real local heads are compared. The reference's additional
+heads are copies used to satisfy its fixed24-Q/2-KV layout; they do not enter
+the comparisons. No model arithmetic or partial-model GPU launch is added.
+`BENCH_QSA_AUDIT=1` labels the workload as a component audit and collects all
+results before reporting failure. Balanced raw-cache state hashes now use the
+correct256-byte codes and16-byte scales per position instead of legacy widths.
+
+The initial audit job `b2487649-4444-42c0-b85a-04e5c2df22b7` completed inference
+but rejected the readback because its guard incorrectly excluded scalar prompt
+groups counted as prefill chunks. The guard was corrected; no production-kernel
+change was involved in that diagnostic failure.
+
+Job `c9aa7c73-f13e-4fa1-aced-f678fe6dc53a` found exactly12 failing components:
+K gather and V gather on every die. All other78 checks matched bitwise. The
+[full audit](qsa-audit-v64.log) shows the first mismatch at key1 and roughly half
+the gathered values wrong. The source specializes an expanded KV-major loop
+(head0 tokens0..3, then head1 tokens0..3), but retained alternating blocks as if
+it were token-major. It thus omitted odd-position keys from head0. The fix
+retains all four consecutive head0 blocks and asserts their raw-source and
+compact-destination offsets while generating SASS. The493-phase architecture
+and per-die head split remain intact.
+
+Job `1e47a219-e8da-47bc-8f1f-253ce952a4d1` runs all256 fixed-input positions
+and the full head before auditing the corrected image. It has zero output
+mismatches against the original fixture (previously58), and all90 component
+checks pass. The [complete log](qsa-fixed-v65.log) retains the results and state
+hashes. All144 comparable recurrent/convolution hashes now match the original
+exactly; see [corrected hashes](balanced-fixed-v65-common-gdn.tsv) and the
+existing original-common-gdn-hashes.tsv. This comparison covers the same global
+head ranges on logical dies0,1,4,5, not incompatible shards on dies2,3.
+
+Ordinary decode job `be8d413d-bc4c-49d1-8ce8-be65ec5dd083` uses64 prompt tokens
+and generates128, with127 timed decode intervals. It measures19.850973046 TPS
+and20.421824092 prompt positions/s. All128 generated IDs match the original
+frozen baseline; [log](decode-v65.log). It is one measured execution, not a
+statistical speedup claim. The former19.92 TPS run had incorrect output.
+
+Artifacts: v63 benchmark, v64 audit-enabled engine, v65 corrected production
+and body images on archy. Production SHA256:
+`8abf0a7abeda96f68bf32868b7d480cb375c9b70fc6f41975af910592d5e8c2a`.
+Body image SHA256:
+`1cb471837975af0d628103e8c77f8dd7b859b24ecf94e7eabbeeafc7aa6a61f6`.
+All canonical runs remain in the single gpuq history database. Long-context
+selection and complete per-phase balance qualification remain open.

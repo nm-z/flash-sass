@@ -524,6 +524,16 @@ through layer2 and first differ at layer4, leaving output/FFN2 and QSA/FFN3
 as the next numerical interval to separate. The detailed canonical references
 and tables are in the current validation README linked above.
 
+The v65 gather fix resolves that short-context numerical failure. The
+specializer had selected alternating expanded blocks, assuming token-major
+order; the production expansion is KV-major. It now retains head0's four
+consecutive token blocks, with source/destination assertions during generation.
+All256 fixed-input outputs and all144 comparable GDN hashes match the original
+baseline exactly. All90 retained-buffer QSA component comparisons pass.
+Ordinary64/128 decode measures19.850973 TPS, with all128 generated IDs matching
+the original baseline. This restores fidelity for these fixtures, not a speedup
+or long-context qualification. The full per-phase balance goal remains open.
+
 ## Attention implementation notes
 
 Preserve four local query heads and one local K/V head on every die. Main

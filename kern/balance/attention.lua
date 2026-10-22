@@ -28,8 +28,15 @@ routine('kvgather',function(b)
  local ending=assert(b:find('kvgather_END:',points[8],true))
  local out={b:sub(1,points[1]-1)}
  for j=0,3 do
-  local a=points[2*j+1];local last=points[2*j+2]-1
+  -- The expanded production loop is KV-major: head0 tokens0..3, then
+  -- head1 tokens0..3. Taking alternating blocks drops odd tokens and keeps
+  -- half of head1. Retain all four consecutive head0 blocks instead.
+  local a=points[j+1];local last=points[j+2]-1
   local block=b:sub(a,last)
+  assert(block:find(string.format('[kvgather_kdp+0x%x]',j*512),1,true),
+   'unexpected gather source order for token '..j)
+  assert(block:find(string.format('[kvgather_kcp+0x%x]',j*16),1,true),
+   'unexpected gather destination head/order for token '..j)
   -- The previous unit's tail predicate is immaterial; establish this exact key.
   local insert=assert(block:find('[^\n]*@!P5 LDG%.E'))
   block=block:sub(1,insert-1)..string.format([=[

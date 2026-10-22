@@ -1,0 +1,408 @@
+reference_file=/home/nate/work/flash-per-phase-balance-v59/original-v39-fixed-reference.ids expected_tokens=256 validation_only=1
+flashcore: PLE rows are read from /home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf on demand (FLASH_PLE_DISK): 47 MB pinned instead of 28.8 GB, no table load
+flashcore: 6 dies, weights and PLE table resident after 1 s
+engine: PLE cache /home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf is available; original source remains available
+engine: 6 dies, 48/48 blocks, up to 32768 positions, 356 MB of buffers per die, ready in 0.9 s
+flashcore: engine /home/nate/work/flash-per-phase-balance-v64/libengine_exact.so ready in 0.9 s
+ready
+flashcore: listening on /tmp/flash-60-55674.sock
+{"arm":"teacher-forced-candidate","workload":"qsa-component-audit","prompt_tokens":256,"generated_tokens":0,"warmup_runs":1,"baseline_compared":false,"reference_kind":"frozen_scalar"}
+config rev=09e013a-dirty-exact kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf maxt=32768 layers=48/48 nblk=512 dies=6 attn_dies=0,1,2,3,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=1 rope_owner=-1 trace_tokens=0 two_position=0 prefill_chunk=64 attn_q_split=0 attn_q_mask=0 cubin=/home/nate/work/flash-per-phase-balance-v65/die_balanced.cubin cubin_fnv=d8c0909aa9322dcb runtime_attn_map=0,1,2,3,4,5,0,1,2,3,4,5 balanced=1 row_balance=1 row_grain=8 compute_physical=0,1,6,3,4,5 body_trace=0 ple_device_rows=1 ple_device_bytes=47188800 residual_storage=fp32 fused_gr=1 producer_quant=1 matrix_group=1 gr_replica_ffn=0 xtrace=0 phase_batch=0 exact_cubin=none exact_cubin_fnv=0000000000000000
+ok: stop -1 -1
+ok: sample seed 7 temp 0 top_k 20 top_p 0.95 (greedy)
+ok: timings 1
+{"arm":"teacher-forced-candidate","run":0,"kept":0,"warmup":true}
+timings {"schema_version":1,"request_id":"1","clock":"CLOCK_MONOTONIC","prompt_tokens":256,"resumed_positions":0,"positions_completed":256,"positions_executed":256,"prompt_positions_processed":256,"generated_tokens":1,"decode_intervals":0,"counts_known":true,"counts_final":true,"error_code":0,"counter_semantics":"last_observed_completed_positions","stop_token_observed":false,"aborted":false,"build_ms":27.742725000280188,"run_ms":12745.182650999595,"first_observed_ms":12744.995422000102,"post_first_ms":0.18722899949352723,"prompt_positions_per_second":20.086315571216215,"decode_tokens_per_second":null,"device_clock":"SR_GLOBALTIMER","device_origin":"first_generated_position_start","device_first_start_ns":null,"device_first_publish_ns":null,"device_last_traced_publish_ns":null,"device_traced_tokens":0,"device_first_publish_ms":null,"device_decode_ms":null,"device_decode_tokens_per_second":null,"prompt_n":256,"cache_n":0,"prompt_ms":12744.995422000102,"prompt_per_second":20.086315571216215,"predicted_n":1,"predicted_ms":0.18722899949352723,"predicted_per_second":null,"decode_ms":0.18722899949352723}
+tokens: 846 198 2 286 248046 369 716 310 1496 11553 13 248046 1683 303 883 279 3296 321 3019 1328 30800 11 2814 6607 25605 11 321 60445 264 11 76591 11 321 16097 303 279 1534 4087 13 248046 198 248045 846 198 248046 248046 279 248046 248046 248046 248046 248046 248046 248046 248046 248046 248046 198 248045 74455 198 248068 198 1596 846 198 1596 286 25 369 716 310 830 11553 13 14235 1683 15060 1472 279 3274 11 9307 1328 30800 11 2814 47675 25605 11 321 60445 55404 11 27224 11 321 30246 303 279 1534 4087 13 14235 198 248045 846 198 9930 1503 11679 28052 9561 248046 248046 25899 303 17248 3992 248046 248046 198 248045 74455 198 248068 198 1596 846 198 1596 286 25 369 716 310 830 11553 13 5044 1683 15060 1472 279 3274 11 9307 1328 30800 11 2814 47675 25605 11 321 60445 55404 11 27224 11 321 30246 303 279 1534 4087 13 271 198 248045 74455 248046 248046 1503 11679 28052 9561 30 248046 25899 303 17248 3992 13 248046 198 248045 74455 198 248068 198 1596 846 198 24342 286 4879 369 716 310 830 11553 13 5044 1683 15060 1472 279 3274 11 9307 1328 30800 11 2814 47675 25605 11 321 60445 55404 11 27224 11 321 30246 303 279 1534 4087 13 248046 198 248045 74455 198 248046 1503 11679 28052 9561 30 248046 25899 303 17248 3992 13 248046 198 248045 74455 198 248068 198 1596
+time: 12745.2 ms for 256 positions run (0 from the snapshot; 49.79 ms per position run; first token 12745.0 ms; 980 phases; programs 28 ms; 0 paired positions; 0 prefill chunks)
+qsaaudit_begin position=255 keys=256 layer=47 dies=6 reference=cpu_stage_twins inputs=retained_gpu
+qsaaudit die=0 layer=47 component=q_norm_rope count=1024 changed=0 first=0 actual_bits=3e97d025 reference_bits=3e97d025 max_abs=0 nonfinite=0
+qsaaudit die=0 layer=47 component=k_codes count=256 changed=0 first=0 actual_bits=0000002f reference_bits=0000002f max_abs=0 nonfinite=0
+qsaaudit die=0 layer=47 component=k_scales count=8 changed=0 first=0 actual_bits=00002727 reference_bits=00002727 max_abs=0 nonfinite=0
+qsaaudit die=0 layer=47 component=v_codes count=256 changed=0 first=0 actual_bits=000000f2 reference_bits=000000f2 max_abs=0 nonfinite=0
+qsaaudit die=0 layer=47 component=v_scales count=8 changed=0 first=0 actual_bits=0000251c reference_bits=0000251c max_abs=0 nonfinite=0
+qsaaudit die=0 layer=47 component=gather_k count=65536 changed=0 first=0 actual_bits=3f646c00 reference_bits=3f646c00 max_abs=0 nonfinite=0
+qsaaudit die=0 layer=47 component=gather_v count=65536 changed=0 first=0 actual_bits=3c69e000 reference_bits=3c69e000 max_abs=0 nonfinite=0
+qsaaudit die=0 layer=47 component=partial_max count=32 changed=0 first=0 actual_bits=4134765a reference_bits=4134765a max_abs=0 nonfinite=0
+qsaaudit die=0 layer=47 component=partial_den count=32 changed=0 first=0 actual_bits=41009e8f reference_bits=41009e8f max_abs=0 nonfinite=0
+qsaaudit die=0 layer=47 component=partial_out count=8192 changed=0 first=0 actual_bits=bfe5c02c reference_bits=bfe5c02c max_abs=0 nonfinite=0
+qsaaudit die=0 layer=47 component=merge_gate count=1024 changed=0 first=0 actual_bits=bdbd4e3f reference_bits=bdbd4e3f max_abs=0 nonfinite=0
+qsaaudit die=0 layer=47 component=activation_codes count=1024 changed=0 first=0 actual_bits=0000ffe3 reference_bits=0000ffe3 max_abs=0 nonfinite=0
+qsaaudit die=0 layer=47 component=activation_sum32 count=32 changed=0 first=0 actual_bits=ffffffab reference_bits=ffffffab max_abs=0 nonfinite=0
+qsaaudit die=0 layer=47 component=activation_sum16 count=64 changed=0 first=0 actual_bits=ffffff9f reference_bits=ffffff9f max_abs=0 nonfinite=0
+qsaaudit die=0 layer=47 component=activation_scales count=32 changed=0 first=0 actual_bits=3b513fe6 reference_bits=3b513fe6 max_abs=0 nonfinite=0
+qsaaudit die=1 layer=47 component=q_norm_rope count=1024 changed=0 first=0 actual_bits=be194186 reference_bits=be194186 max_abs=0 nonfinite=0
+qsaaudit die=1 layer=47 component=k_codes count=256 changed=0 first=0 actual_bits=0000002f reference_bits=0000002f max_abs=0 nonfinite=0
+qsaaudit die=1 layer=47 component=k_scales count=8 changed=0 first=0 actual_bits=00002727 reference_bits=00002727 max_abs=0 nonfinite=0
+qsaaudit die=1 layer=47 component=v_codes count=256 changed=0 first=0 actual_bits=000000f2 reference_bits=000000f2 max_abs=0 nonfinite=0
+qsaaudit die=1 layer=47 component=v_scales count=8 changed=0 first=0 actual_bits=0000251c reference_bits=0000251c max_abs=0 nonfinite=0
+qsaaudit die=1 layer=47 component=gather_k count=65536 changed=0 first=0 actual_bits=3f646c00 reference_bits=3f646c00 max_abs=0 nonfinite=0
+qsaaudit die=1 layer=47 component=gather_v count=65536 changed=0 first=0 actual_bits=3c69e000 reference_bits=3c69e000 max_abs=0 nonfinite=0
+qsaaudit die=1 layer=47 component=partial_max count=32 changed=0 first=0 actual_bits=41e32338 reference_bits=41e32338 max_abs=0 nonfinite=0
+qsaaudit die=1 layer=47 component=partial_den count=32 changed=0 first=0 actual_bits=405a8b4e reference_bits=405a8b4e max_abs=0 nonfinite=0
+qsaaudit die=1 layer=47 component=partial_out count=8192 changed=0 first=0 actual_bits=bf3f0211 reference_bits=bf3f0211 max_abs=0 nonfinite=0
+qsaaudit die=1 layer=47 component=merge_gate count=1024 changed=0 first=0 actual_bits=bb19ee61 reference_bits=bb19ee61 max_abs=0 nonfinite=0
+qsaaudit die=1 layer=47 component=activation_codes count=1024 changed=0 first=0 actual_bits=0000ffff reference_bits=0000ffff max_abs=0 nonfinite=0
+qsaaudit die=1 layer=47 component=activation_sum32 count=32 changed=0 first=0 actual_bits=ffffffaf reference_bits=ffffffaf max_abs=0 nonfinite=0
+qsaaudit die=1 layer=47 component=activation_sum16 count=64 changed=0 first=0 actual_bits=ffffff3e reference_bits=ffffff3e max_abs=0 nonfinite=0
+qsaaudit die=1 layer=47 component=activation_scales count=32 changed=0 first=0 actual_bits=3b2c5153 reference_bits=3b2c5153 max_abs=0 nonfinite=0
+qsaaudit die=2 layer=47 component=q_norm_rope count=1024 changed=0 first=0 actual_bits=bf72a19b reference_bits=bf72a19b max_abs=0 nonfinite=0
+qsaaudit die=2 layer=47 component=k_codes count=256 changed=0 first=0 actual_bits=0000002f reference_bits=0000002f max_abs=0 nonfinite=0
+qsaaudit die=2 layer=47 component=k_scales count=8 changed=0 first=0 actual_bits=00002727 reference_bits=00002727 max_abs=0 nonfinite=0
+qsaaudit die=2 layer=47 component=v_codes count=256 changed=0 first=0 actual_bits=000000f2 reference_bits=000000f2 max_abs=0 nonfinite=0
+qsaaudit die=2 layer=47 component=v_scales count=8 changed=0 first=0 actual_bits=0000251c reference_bits=0000251c max_abs=0 nonfinite=0
+qsaaudit die=2 layer=47 component=gather_k count=65536 changed=0 first=0 actual_bits=3f646c00 reference_bits=3f646c00 max_abs=0 nonfinite=0
+qsaaudit die=2 layer=47 component=gather_v count=65536 changed=0 first=0 actual_bits=3c69e000 reference_bits=3c69e000 max_abs=0 nonfinite=0
+qsaaudit die=2 layer=47 component=partial_max count=32 changed=0 first=0 actual_bits=41b06ea9 reference_bits=41b06ea9 max_abs=0 nonfinite=0
+qsaaudit die=2 layer=47 component=partial_den count=32 changed=0 first=0 actual_bits=403b1d39 reference_bits=403b1d39 max_abs=0 nonfinite=0
+qsaaudit die=2 layer=47 component=partial_out count=8192 changed=0 first=0 actual_bits=bf21e435 reference_bits=bf21e435 max_abs=0 nonfinite=0
+qsaaudit die=2 layer=47 component=merge_gate count=1024 changed=0 first=0 actual_bits=bb4be11a reference_bits=bb4be11a max_abs=0 nonfinite=0
+qsaaudit die=2 layer=47 component=activation_codes count=1024 changed=0 first=0 actual_bits=0000ffff reference_bits=0000ffff max_abs=0 nonfinite=0
+qsaaudit die=2 layer=47 component=activation_sum32 count=32 changed=0 first=0 actual_bits=ffffff54 reference_bits=ffffff54 max_abs=0 nonfinite=0
+qsaaudit die=2 layer=47 component=activation_sum16 count=64 changed=0 first=0 actual_bits=ffffff32 reference_bits=ffffff32 max_abs=0 nonfinite=0
+qsaaudit die=2 layer=47 component=activation_scales count=32 changed=0 first=0 actual_bits=3b4c8b04 reference_bits=3b4c8b04 max_abs=0 nonfinite=0
+qsaaudit die=3 layer=47 component=q_norm_rope count=1024 changed=0 first=0 actual_bits=bc8dc56b reference_bits=bc8dc56b max_abs=0 nonfinite=0
+qsaaudit die=3 layer=47 component=k_codes count=256 changed=0 first=0 actual_bits=00000004 reference_bits=00000004 max_abs=0 nonfinite=0
+qsaaudit die=3 layer=47 component=k_scales count=8 changed=0 first=0 actual_bits=000028cb reference_bits=000028cb max_abs=0 nonfinite=0
+qsaaudit die=3 layer=47 component=v_codes count=256 changed=0 first=0 actual_bits=0000000c reference_bits=0000000c max_abs=0 nonfinite=0
+qsaaudit die=3 layer=47 component=v_scales count=8 changed=0 first=0 actual_bits=000024b7 reference_bits=000024b7 max_abs=0 nonfinite=0
+qsaaudit die=3 layer=47 component=gather_k count=65536 changed=0 first=0 actual_bits=3ed29000 reference_bits=3ed29000 max_abs=0 nonfinite=0
+qsaaudit die=3 layer=47 component=gather_v count=65536 changed=0 first=0 actual_bits=3f1ef480 reference_bits=3f1ef480 max_abs=0 nonfinite=0
+qsaaudit die=3 layer=47 component=partial_max count=32 changed=0 first=0 actual_bits=415b7ae9 reference_bits=415b7ae9 max_abs=0 nonfinite=0
+qsaaudit die=3 layer=47 component=partial_den count=32 changed=0 first=0 actual_bits=3fe9bdc2 reference_bits=3fe9bdc2 max_abs=0 nonfinite=0
+qsaaudit die=3 layer=47 component=partial_out count=8192 changed=0 first=0 actual_bits=3f2feff3 reference_bits=3f2feff3 max_abs=0 nonfinite=0
+qsaaudit die=3 layer=47 component=merge_gate count=1024 changed=0 first=0 actual_bits=3db43486 reference_bits=3db43486 max_abs=0 nonfinite=0
+qsaaudit die=3 layer=47 component=activation_codes count=1024 changed=0 first=0 actual_bits=00000011 reference_bits=00000011 max_abs=0 nonfinite=0
+qsaaudit die=3 layer=47 component=activation_sum32 count=32 changed=0 first=0 actual_bits=00000049 reference_bits=00000049 max_abs=0 nonfinite=0
+qsaaudit die=3 layer=47 component=activation_sum16 count=64 changed=0 first=0 actual_bits=ffffffe3 reference_bits=ffffffe3 max_abs=0 nonfinite=0
+qsaaudit die=3 layer=47 component=activation_scales count=32 changed=0 first=0 actual_bits=3ba9dc44 reference_bits=3ba9dc44 max_abs=0 nonfinite=0
+qsaaudit die=4 layer=47 component=q_norm_rope count=1024 changed=0 first=0 actual_bits=beab5665 reference_bits=beab5665 max_abs=0 nonfinite=0
+qsaaudit die=4 layer=47 component=k_codes count=256 changed=0 first=0 actual_bits=00000004 reference_bits=00000004 max_abs=0 nonfinite=0
+qsaaudit die=4 layer=47 component=k_scales count=8 changed=0 first=0 actual_bits=000028cb reference_bits=000028cb max_abs=0 nonfinite=0
+qsaaudit die=4 layer=47 component=v_codes count=256 changed=0 first=0 actual_bits=0000000c reference_bits=0000000c max_abs=0 nonfinite=0
+qsaaudit die=4 layer=47 component=v_scales count=8 changed=0 first=0 actual_bits=000024b7 reference_bits=000024b7 max_abs=0 nonfinite=0
+qsaaudit die=4 layer=47 component=gather_k count=65536 changed=0 first=0 actual_bits=3ed29000 reference_bits=3ed29000 max_abs=0 nonfinite=0
+qsaaudit die=4 layer=47 component=gather_v count=65536 changed=0 first=0 actual_bits=3f1ef480 reference_bits=3f1ef480 max_abs=0 nonfinite=0
+qsaaudit die=4 layer=47 component=partial_max count=32 changed=0 first=0 actual_bits=414f3b04 reference_bits=414f3b04 max_abs=0 nonfinite=0
+qsaaudit die=4 layer=47 component=partial_den count=32 changed=0 first=0 actual_bits=4056983c reference_bits=4056983c max_abs=0 nonfinite=0
+qsaaudit die=4 layer=47 component=partial_out count=8192 changed=0 first=0 actual_bits=3f63c512 reference_bits=3f63c512 max_abs=0 nonfinite=0
+qsaaudit die=4 layer=47 component=merge_gate count=1024 changed=0 first=0 actual_bits=3d08381d reference_bits=3d08381d max_abs=0 nonfinite=0
+qsaaudit die=4 layer=47 component=activation_codes count=1024 changed=0 first=0 actual_bits=00000006 reference_bits=00000006 max_abs=0 nonfinite=0
+qsaaudit die=4 layer=47 component=activation_sum32 count=32 changed=0 first=0 actual_bits=000000ab reference_bits=000000ab max_abs=0 nonfinite=0
+qsaaudit die=4 layer=47 component=activation_sum16 count=64 changed=0 first=0 actual_bits=00000075 reference_bits=00000075 max_abs=0 nonfinite=0
+qsaaudit die=4 layer=47 component=activation_scales count=32 changed=0 first=0 actual_bits=3bba6185 reference_bits=3bba6185 max_abs=0 nonfinite=0
+qsaaudit die=5 layer=47 component=q_norm_rope count=1024 changed=0 first=0 actual_bits=3f6a22e3 reference_bits=3f6a22e3 max_abs=0 nonfinite=0
+qsaaudit die=5 layer=47 component=k_codes count=256 changed=0 first=0 actual_bits=00000004 reference_bits=00000004 max_abs=0 nonfinite=0
+qsaaudit die=5 layer=47 component=k_scales count=8 changed=0 first=0 actual_bits=000028cb reference_bits=000028cb max_abs=0 nonfinite=0
+qsaaudit die=5 layer=47 component=v_codes count=256 changed=0 first=0 actual_bits=0000000c reference_bits=0000000c max_abs=0 nonfinite=0
+qsaaudit die=5 layer=47 component=v_scales count=8 changed=0 first=0 actual_bits=000024b7 reference_bits=000024b7 max_abs=0 nonfinite=0
+qsaaudit die=5 layer=47 component=gather_k count=65536 changed=0 first=0 actual_bits=3ed29000 reference_bits=3ed29000 max_abs=0 nonfinite=0
+qsaaudit die=5 layer=47 component=gather_v count=65536 changed=0 first=0 actual_bits=3f1ef480 reference_bits=3f1ef480 max_abs=0 nonfinite=0
+qsaaudit die=5 layer=47 component=partial_max count=32 changed=0 first=0 actual_bits=414b190a reference_bits=414b190a max_abs=0 nonfinite=0
+qsaaudit die=5 layer=47 component=partial_den count=32 changed=0 first=0 actual_bits=3feed7a4 reference_bits=3feed7a4 max_abs=0 nonfinite=0
+qsaaudit die=5 layer=47 component=partial_out count=8192 changed=0 first=0 actual_bits=3f294f9f reference_bits=3f294f9f max_abs=0 nonfinite=0
+qsaaudit die=5 layer=47 component=merge_gate count=1024 changed=0 first=0 actual_bits=3d89542a reference_bits=3d89542a max_abs=0 nonfinite=0
+qsaaudit die=5 layer=47 component=activation_codes count=1024 changed=0 first=0 actual_bits=00000016 reference_bits=00000016 max_abs=0 nonfinite=0
+qsaaudit die=5 layer=47 component=activation_sum32 count=32 changed=0 first=0 actual_bits=00000058 reference_bits=00000058 max_abs=0 nonfinite=0
+qsaaudit die=5 layer=47 component=activation_sum16 count=64 changed=0 first=0 actual_bits=0000004d reference_bits=0000004d max_abs=0 nonfinite=0
+qsaaudit die=5 layer=47 component=activation_scales count=32 changed=0 first=0 actual_bits=3b46b67c reference_bits=3b46b67c max_abs=0 nonfinite=0
+qsaaudit_end status=PASS components=90 failures=0
+statehash positions=256 paired_positions=0 prefill_chunks=0
+statehash die=0 layer=0 state=84434a45d6ca74bb
+statehash die=0 layer=1 state=fc06d538715d708a
+statehash die=0 layer=2 state=08277d391d616eec
+statehash die=0 layer=3 state=5c0ff923a58113cf
+statehash die=0 layer=4 state=5a1076e8169daf4e
+statehash die=0 layer=5 state=434581d4be204d99
+statehash die=0 layer=6 state=c8b88e0589a80e75
+statehash die=0 layer=7 state=68edf0c7e765fc9d
+statehash die=0 layer=8 state=2c3aa6dd8eecd46f
+statehash die=0 layer=9 state=c4c2d89a5311ef56
+statehash die=0 layer=10 state=a059a3fe626b7480
+statehash die=0 layer=11 state=179064ba93f8b82b
+statehash die=0 layer=12 state=c1b0753ca3f533ac
+statehash die=0 layer=13 state=37211220129c4f28
+statehash die=0 layer=14 state=bcca63144fe47079
+statehash die=0 layer=15 state=5880fc2f898617ef
+statehash die=0 layer=16 state=96d26008fdef41a2
+statehash die=0 layer=17 state=bfeccfebf2faf1c3
+statehash die=0 layer=18 state=6a4907caa9da8c3e
+statehash die=0 layer=19 state=8bc712f96be1caf4
+statehash die=0 layer=20 state=1428196068ac759e
+statehash die=0 layer=21 state=8a07f6f8a6053bcb
+statehash die=0 layer=22 state=97d01d58b8a06f00
+statehash die=0 layer=23 state=e9cd694f140bc429
+statehash die=0 layer=24 state=5ac506e84fe4410c
+statehash die=0 layer=25 state=b6bee066ed034ef4
+statehash die=0 layer=26 state=19c78c36f6794e3d
+statehash die=0 layer=27 state=a9e8b31187981fb8
+statehash die=0 layer=28 state=cc5714db3d9db07b
+statehash die=0 layer=29 state=004f294b0ac486eb
+statehash die=0 layer=30 state=da61c3e01f8b8d4b
+statehash die=0 layer=31 state=265690a855ce19b8
+statehash die=0 layer=32 state=707c86f2e48f8419
+statehash die=0 layer=33 state=f8a9565e1093f5a6
+statehash die=0 layer=34 state=fe31d71b5e06c2fc
+statehash die=0 layer=35 state=e27d249806eaf2a0
+statehash die=0 layer=36 state=dcd7ee90bfe2f356
+statehash die=0 layer=37 state=29226533d2af8ae0
+statehash die=0 layer=38 state=715521d6b7933b7f
+statehash die=0 layer=39 state=af1f0dd3d7a29cbc
+statehash die=0 layer=40 state=d535b29aee47fa8b
+statehash die=0 layer=41 state=8a25eb0540fd1c5b
+statehash die=0 layer=42 state=f222eae420ca0feb
+statehash die=0 layer=43 state=225d393fff549a4a
+statehash die=0 layer=44 state=d6733096c225d1a2
+statehash die=0 layer=45 state=09fa5de88d1193b9
+statehash die=0 layer=46 state=7ecaf5a814238f35
+statehash die=0 layer=47 state=1c472e343992ac21
+statehash die=0 ple=1e99a9358fc3c22e logits=639b89ea239f18c1
+statehash die=1 layer=0 state=b9638ab8f5595457
+statehash die=1 layer=1 state=1de6300d7d907cab
+statehash die=1 layer=2 state=1e39e28f6876e297
+statehash die=1 layer=3 state=5c0ff923a58113cf
+statehash die=1 layer=4 state=d882d316bc705e95
+statehash die=1 layer=5 state=88db676d0ac2c847
+statehash die=1 layer=6 state=ad6354c7ad5a7d72
+statehash die=1 layer=7 state=68edf0c7e765fc9d
+statehash die=1 layer=8 state=e063bf9a013aae8d
+statehash die=1 layer=9 state=81a8c4364027959d
+statehash die=1 layer=10 state=493bdf10919d2a84
+statehash die=1 layer=11 state=179064ba93f8b82b
+statehash die=1 layer=12 state=3bafd9ecbc34da9e
+statehash die=1 layer=13 state=45a7badcf9cb3ed8
+statehash die=1 layer=14 state=29ba92023eb11f3a
+statehash die=1 layer=15 state=5880fc2f898617ef
+statehash die=1 layer=16 state=95600a398a9a0de8
+statehash die=1 layer=17 state=889701d8c683fbf3
+statehash die=1 layer=18 state=41c5902ecd33ad3c
+statehash die=1 layer=19 state=8bc712f96be1caf4
+statehash die=1 layer=20 state=746670ab8e8cc0fe
+statehash die=1 layer=21 state=95c060a2ba8d9d12
+statehash die=1 layer=22 state=c5238e509f9818ce
+statehash die=1 layer=23 state=e9cd694f140bc429
+statehash die=1 layer=24 state=fc9cf8cf6c360452
+statehash die=1 layer=25 state=599f782e0076c128
+statehash die=1 layer=26 state=599aad02c5d6ceff
+statehash die=1 layer=27 state=a9e8b31187981fb8
+statehash die=1 layer=28 state=1099d8a1ed6a83a9
+statehash die=1 layer=29 state=235f30b9b6648ebd
+statehash die=1 layer=30 state=4642e9882461fcca
+statehash die=1 layer=31 state=265690a855ce19b8
+statehash die=1 layer=32 state=81b29a074a1a37c1
+statehash die=1 layer=33 state=ae9f3173d24481b9
+statehash die=1 layer=34 state=66264370b7299e41
+statehash die=1 layer=35 state=e27d249806eaf2a0
+statehash die=1 layer=36 state=392b3151e435dec4
+statehash die=1 layer=37 state=ca7c3ecd9070ce6c
+statehash die=1 layer=38 state=c9759e223f90577c
+statehash die=1 layer=39 state=af1f0dd3d7a29cbc
+statehash die=1 layer=40 state=a4b0f2ee40fa4b34
+statehash die=1 layer=41 state=2d3e56ce634bb6e6
+statehash die=1 layer=42 state=2c585b4c48befc64
+statehash die=1 layer=43 state=225d393fff549a4a
+statehash die=1 layer=44 state=1af0fe2f03b18c7d
+statehash die=1 layer=45 state=801b78aa8a379711
+statehash die=1 layer=46 state=7efc78619ff69c91
+statehash die=1 layer=47 state=1c472e343992ac21
+statehash die=1 ple=1e99a9358fc3c22e logits=328ac7ded5e8a6f8
+statehash die=2 layer=0 state=2051347f69330916
+statehash die=2 layer=1 state=297e0f824c878ea6
+statehash die=2 layer=2 state=8cdeaef09b5c6ba9
+statehash die=2 layer=3 state=5c0ff923a58113cf
+statehash die=2 layer=4 state=f90ef068789d4ffe
+statehash die=2 layer=5 state=3a8aa7db6c3a6997
+statehash die=2 layer=6 state=cf391743db7bb056
+statehash die=2 layer=7 state=68edf0c7e765fc9d
+statehash die=2 layer=8 state=e5df19b9f5a60fd1
+statehash die=2 layer=9 state=a5e32367bd34359f
+statehash die=2 layer=10 state=f40c985905a4b949
+statehash die=2 layer=11 state=179064ba93f8b82b
+statehash die=2 layer=12 state=6a1d83c4fa68400b
+statehash die=2 layer=13 state=60071ad39090fc0f
+statehash die=2 layer=14 state=7a40ad378953a417
+statehash die=2 layer=15 state=5880fc2f898617ef
+statehash die=2 layer=16 state=5efbc0d33b0f7a30
+statehash die=2 layer=17 state=477a404abf6d9558
+statehash die=2 layer=18 state=9111125485bd5396
+statehash die=2 layer=19 state=8bc712f96be1caf4
+statehash die=2 layer=20 state=c211e9b7b7c281b5
+statehash die=2 layer=21 state=04376c7f5a21c728
+statehash die=2 layer=22 state=71a96309c844df84
+statehash die=2 layer=23 state=e9cd694f140bc429
+statehash die=2 layer=24 state=b5a88e05a6d45bff
+statehash die=2 layer=25 state=3b23400047b10524
+statehash die=2 layer=26 state=fa5a06e0477f9d79
+statehash die=2 layer=27 state=a9e8b31187981fb8
+statehash die=2 layer=28 state=86a65d16550ec3b8
+statehash die=2 layer=29 state=60470a2a201427c3
+statehash die=2 layer=30 state=65427af54d0200e8
+statehash die=2 layer=31 state=265690a855ce19b8
+statehash die=2 layer=32 state=755fdc644539308f
+statehash die=2 layer=33 state=3fdfeb7283c37e30
+statehash die=2 layer=34 state=c252d8e043e0931f
+statehash die=2 layer=35 state=e27d249806eaf2a0
+statehash die=2 layer=36 state=3f3da03d9d133b39
+statehash die=2 layer=37 state=fbf8711e29852b3a
+statehash die=2 layer=38 state=a34ed9d7b7c6688b
+statehash die=2 layer=39 state=af1f0dd3d7a29cbc
+statehash die=2 layer=40 state=21197314e7d4a905
+statehash die=2 layer=41 state=7642f1ced6926b76
+statehash die=2 layer=42 state=c1f96bd3250a5607
+statehash die=2 layer=43 state=225d393fff549a4a
+statehash die=2 layer=44 state=dbec147682d086c9
+statehash die=2 layer=45 state=4b16504c8d66b4c0
+statehash die=2 layer=46 state=9702bd9e87414ebd
+statehash die=2 layer=47 state=1c472e343992ac21
+statehash die=2 ple=1e99a9358fc3c22e logits=8caa496afebe55fe
+statehash die=3 layer=0 state=485c25b736c4f99b
+statehash die=3 layer=1 state=8fd32d6fc8674cac
+statehash die=3 layer=2 state=648fed4d67e2c362
+statehash die=3 layer=3 state=c37b3cea558b4284
+statehash die=3 layer=4 state=f93b5d04ceaa5896
+statehash die=3 layer=5 state=7b6218c11681adf2
+statehash die=3 layer=6 state=0798c7625899d394
+statehash die=3 layer=7 state=25348d1af401e573
+statehash die=3 layer=8 state=2f4fefbbad248ce8
+statehash die=3 layer=9 state=1adb5f6bdec8bc4a
+statehash die=3 layer=10 state=a12da01b535c3500
+statehash die=3 layer=11 state=7e930cf1e483633b
+statehash die=3 layer=12 state=ca1d3ba09860a7cd
+statehash die=3 layer=13 state=2e122473a5c6e1a5
+statehash die=3 layer=14 state=b919f933caf4da81
+statehash die=3 layer=15 state=47ba738359ebd4f5
+statehash die=3 layer=16 state=29840808c6fd4e23
+statehash die=3 layer=17 state=bb72d193ec12ee86
+statehash die=3 layer=18 state=a46d9608f08f8a74
+statehash die=3 layer=19 state=c62e5d753fb28f98
+statehash die=3 layer=20 state=24acf38f70ba9f97
+statehash die=3 layer=21 state=78c755c847ec354f
+statehash die=3 layer=22 state=0a712fd57cc448dc
+statehash die=3 layer=23 state=73f1e93884523b87
+statehash die=3 layer=24 state=4736718f3c9a7f70
+statehash die=3 layer=25 state=771f99b370a7c015
+statehash die=3 layer=26 state=bc2b54d3561669ba
+statehash die=3 layer=27 state=bd78e4d44cc65e35
+statehash die=3 layer=28 state=698727ff9384faea
+statehash die=3 layer=29 state=a07e4f10b5456a85
+statehash die=3 layer=30 state=39384b543fb34ca6
+statehash die=3 layer=31 state=06d05a388f6fd0f1
+statehash die=3 layer=32 state=67d05b22c5589168
+statehash die=3 layer=33 state=6a605c970e8f946e
+statehash die=3 layer=34 state=a389daa62b684fcf
+statehash die=3 layer=35 state=50bbbfb729d55269
+statehash die=3 layer=36 state=2dab7967f17994c7
+statehash die=3 layer=37 state=436542d072ab8320
+statehash die=3 layer=38 state=a9eb288830bf81be
+statehash die=3 layer=39 state=6b74aca244c54a97
+statehash die=3 layer=40 state=5298f366de834c21
+statehash die=3 layer=41 state=1e857332f97cd5f1
+statehash die=3 layer=42 state=4d378bb230fa0ae9
+statehash die=3 layer=43 state=8adb26e375e8b57f
+statehash die=3 layer=44 state=90dce7e2bba0b31b
+statehash die=3 layer=45 state=72dc6a4da6e1b039
+statehash die=3 layer=46 state=e745bbeaeed00f45
+statehash die=3 layer=47 state=617282f11a755440
+statehash die=3 ple=1e99a9358fc3c22e logits=e892248cb548b1f4
+statehash die=4 layer=0 state=849e4cd0ebfe2c8a
+statehash die=4 layer=1 state=68cc323f8e7e55bd
+statehash die=4 layer=2 state=52b5833e1ec312a2
+statehash die=4 layer=3 state=c37b3cea558b4284
+statehash die=4 layer=4 state=094f540e6e1c3984
+statehash die=4 layer=5 state=420ede004b4a4f2b
+statehash die=4 layer=6 state=a515cd52ae391419
+statehash die=4 layer=7 state=25348d1af401e573
+statehash die=4 layer=8 state=bc77dc2a94916081
+statehash die=4 layer=9 state=b98ed5bbf48d7c78
+statehash die=4 layer=10 state=875d873bcfaca66b
+statehash die=4 layer=11 state=7e930cf1e483633b
+statehash die=4 layer=12 state=25a3dbf00b7ee67b
+statehash die=4 layer=13 state=35f0e3407549490c
+statehash die=4 layer=14 state=a7458edd441d65c7
+statehash die=4 layer=15 state=47ba738359ebd4f5
+statehash die=4 layer=16 state=abd9b5f0cced4a21
+statehash die=4 layer=17 state=1f0283fcc74deb9d
+statehash die=4 layer=18 state=7b22e6ec497577df
+statehash die=4 layer=19 state=c62e5d753fb28f98
+statehash die=4 layer=20 state=d06711d4f5c3f4e4
+statehash die=4 layer=21 state=602e20659aa020c0
+statehash die=4 layer=22 state=b61638745fe18cf0
+statehash die=4 layer=23 state=73f1e93884523b87
+statehash die=4 layer=24 state=42dd8c6365f1755d
+statehash die=4 layer=25 state=58f5b1a6192327cd
+statehash die=4 layer=26 state=2c5a7d8fc0486b47
+statehash die=4 layer=27 state=bd78e4d44cc65e35
+statehash die=4 layer=28 state=7cd394920793b017
+statehash die=4 layer=29 state=0d07dee7a42b8afd
+statehash die=4 layer=30 state=4534f6e5e2893f58
+statehash die=4 layer=31 state=06d05a388f6fd0f1
+statehash die=4 layer=32 state=fa4b289004c5e309
+statehash die=4 layer=33 state=b65ec82f215ff2fa
+statehash die=4 layer=34 state=71dd2af184c25422
+statehash die=4 layer=35 state=50bbbfb729d55269
+statehash die=4 layer=36 state=34c4505ac67e2857
+statehash die=4 layer=37 state=a8d53315210d92f9
+statehash die=4 layer=38 state=1cedba4d8416eb6c
+statehash die=4 layer=39 state=6b74aca244c54a97
+statehash die=4 layer=40 state=437aede45ff48d8a
+statehash die=4 layer=41 state=5496c06abe0154ed
+statehash die=4 layer=42 state=375f36c700188042
+statehash die=4 layer=43 state=8adb26e375e8b57f
+statehash die=4 layer=44 state=69e6d8e93cf16cd4
+statehash die=4 layer=45 state=f53beeb1404ab97c
+statehash die=4 layer=46 state=1b7021e8b6d8d5cb
+statehash die=4 layer=47 state=617282f11a755440
+statehash die=4 ple=1e99a9358fc3c22e logits=b2af6e747ced39e1
+statehash die=5 layer=0 state=9c5b07b68696ae1e
+statehash die=5 layer=1 state=26a22c6bc92e3175
+statehash die=5 layer=2 state=d8685ae08d1611a2
+statehash die=5 layer=3 state=c37b3cea558b4284
+statehash die=5 layer=4 state=691b61e0094ea133
+statehash die=5 layer=5 state=f16759140ca46a7c
+statehash die=5 layer=6 state=f394f407303dd530
+statehash die=5 layer=7 state=25348d1af401e573
+statehash die=5 layer=8 state=5b46a432e6b82a1b
+statehash die=5 layer=9 state=b9857d7ff6334822
+statehash die=5 layer=10 state=ab03d459a8e535f8
+statehash die=5 layer=11 state=7e930cf1e483633b
+statehash die=5 layer=12 state=275c16ffe6282bb5
+statehash die=5 layer=13 state=3b0e7cfedbeb9822
+statehash die=5 layer=14 state=d945c0a6a84a3384
+statehash die=5 layer=15 state=47ba738359ebd4f5
+statehash die=5 layer=16 state=497b7d050bc6b7f0
+statehash die=5 layer=17 state=9cedfff3248d72ab
+statehash die=5 layer=18 state=79a28b0c1524b3d2
+statehash die=5 layer=19 state=c62e5d753fb28f98
+statehash die=5 layer=20 state=74b2058102bea1f7
+statehash die=5 layer=21 state=41bf12888a8094d4
+statehash die=5 layer=22 state=3b2d1789533be22d
+statehash die=5 layer=23 state=73f1e93884523b87
+statehash die=5 layer=24 state=b503a0fca63c2a2f
+statehash die=5 layer=25 state=5e343f85be1bac0b
+statehash die=5 layer=26 state=1310c9aa17c13236
+statehash die=5 layer=27 state=bd78e4d44cc65e35
+statehash die=5 layer=28 state=4ea7ba14ce7792b3
+statehash die=5 layer=29 state=bb71d4b739449bb4
+statehash die=5 layer=30 state=2270ab68b29bfff2
+statehash die=5 layer=31 state=06d05a388f6fd0f1
+statehash die=5 layer=32 state=a18a1c5f8ddad43d
+statehash die=5 layer=33 state=211af7e353c75057
+statehash die=5 layer=34 state=d46e414ad9e8f858
+statehash die=5 layer=35 state=50bbbfb729d55269
+statehash die=5 layer=36 state=5298149ea69f56ac
+statehash die=5 layer=37 state=afb6924042d8c581
+statehash die=5 layer=38 state=682a47ec7952ff46
+statehash die=5 layer=39 state=6b74aca244c54a97
+statehash die=5 layer=40 state=69e746cf458a9c10
+statehash die=5 layer=41 state=613e629b94106137
+statehash die=5 layer=42 state=18a2d2814eb3f451
+statehash die=5 layer=43 state=8adb26e375e8b57f
+statehash die=5 layer=44 state=856022e3ba1c55e2
+statehash die=5 layer=45 state=0ac5efe9a92a5281
+statehash die=5 layer=46 state=f003a421ce784bac
+statehash die=5 layer=47 state=617282f11a755440
+statehash die=5 ple=1e99a9358fc3c22e logits=df9e7013b1a1c417
+statehash done
+stateaudit arm=teacher-forced-candidate run=0 rows=216 mismatches=0 reference=first_request_same_kernel
+{"arm":"teacher-forced-candidate","run":0,"output_mismatches":0,"state_mismatches":0,"state_checked":true,"output_checked":true,"correct":true}
+resident_decode_bench: 1 256-position output(s) match frozen scalar reference; no matched live A/B
