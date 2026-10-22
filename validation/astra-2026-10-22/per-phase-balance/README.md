@@ -478,3 +478,80 @@ difference. The next candidate is producing CTA winners inside the output GEMV
 itself, avoiding the separate logit scan and its synchronization boundary.
 That requires a coordinated production-kernel change and is not implemented
 by v71. No completion claim is made from the eliminated copy descriptor.
+
+## Winners produced by the output GEMV (v73–v75)
+
+The Q5_K output producer now tracks each row's maximum while its reduced logit
+is still in a register. Its dot products and logit stores are unchanged. The
+separate argmax scan is removed, reducing the full program to492 physical
+phases. CTA ownership is now the GEMV's16-row tiles with a256-row iteration
+stride; the independent head audit uses this mapping and scans all248320 logits.
+The added state uses registers222..229, outside this routine's original live
+range; the complete image still uses249 registers and the same resident grid.
+
+The first v72 attempt, job `0a8f53d7-9311-4ca8-81cf-ebd1b1904f1d`, failed with
+an illegal memory access. Full-model diagnostic job
+`56a6b4bd-8510-40af-8053-4d2e01e8ff52` captured the [phase stamps](head-producer-v72-fault.log).
+Source inspection found that a Lua long string dropped its initial newline,
+joining the mode-load instruction to the preceding instruction. The resulting
+stale mode could enter head-only code during a non-head Q5 projection. The
+fixed generator preserves and asserts instruction/label boundaries, and
+initializes mode before the row-shard wrapper's inactive-warp early exits.
+An intermediate malformed-label build was rejected before deployment. No
+debugger attach or host reboot was used, and the producer design was retained.
+
+Corrected v73 job `18fa1f97-fdca-4254-a4d1-9b23523f909b` matches all128 original
+IDs and all96 CTA partials, with20.042860145 timed decode TPS;
+[log](head-audit-v73.log). Its complete trace
+`e2109e70-1159-4855-a204-8a94d9c62c9f` has94464 valid records and576 consistent
+expert records; [table](body-v73.tsv), [summary](body-v73-summary.txt). The output
+GEMV's cycle deviations are1.221380% and0.514971%, but the96-peer-partial AMAX
+still fails at21.376434% and28.003626%.
+
+V74 completes the die-local winner inside the output producer. Every CTA
+releases its partial before incrementing the local counter; the last CTA
+reduces all16 partials, stores the die winner, and resets the counter. AMAX's
+existing acquire includes that last CTA's system-fenced completion flag, so
+its six lanes can fetch six die winners in one request wave. The intermediate
+partials remain available to the audit. ABI2 peer/producer markers guard the
+new pointer-table and descriptor interpretation.
+
+Complete-model job `cd6e1bf7-5257-40cf-9740-5161657e0c61` matches all128 baseline
+IDs, all96 CTA partials, all six die winners and the final global winner. It
+records20.042659472 timed decode TPS; [log](head-audit-v74.log). No overall
+throughput speedup is claimed from these single observations.
+
+Full trace `f76fc877-68ae-4e7f-9655-567917dd2f99` matches the baseline IDs and has
+94464 valid CTA records, all984 phase comparisons, and576/576 consistent expert
+records. The [table](body-v74.tsv) and [summary](body-v74-summary.txt) show that
+both head phases are now inside ten percent in both measures. Cycle deviations
+are1.097196% and0.856190% for the output GEMV, and3.185813% and5.007123% for
+AMAX. Four comparisons still fail both measures:
+
+| Position | Phase | Layer | Operation | Maximum cycle deviation |
+|---:|---:|---:|---|---:|
+|189|111|10|gdn_full|11.364387%|
+|189|222|21|q4kk6144|14.658399%|
+|189|392|38|q6kk1536|18.641054%|
+|190|211|20|gdn_full|12.610707%|
+
+The goal remains incomplete. These are complete tables, not a selection of
+passing phases. The v74 engine/images are archived on archy. Production SHA256:
+`d88646fead0ed8de75ca44eefde1fb69a38d2b84cf354959fdb9770eaa9a6d74`.
+Body image SHA256:
+`e0c8a762f2d6f91391d6dec6a9df5c96a9a49d203fef0d12dd0690cfb8eef798`.
+
+The v75 benchmark launcher now restricts visibility to physical0,1,3,4,5,6
+and anchors pinned memory in a separate context on physical3. Earlier clients
+opened a non-compute anchor context on2; use v75 or newer for future balanced
+runs to respect Nate's reservation of2 and7. Live process environment readback
+confirmed both settings. The existing GPU2 protective fence is unchanged.
+
+Broader qualification job `9eec4d2a-d1d8-43f3-b014-046132ffec17` uses v74's
+body image and v75's launcher with an eight-position trace window. Inference
+has completed with zero128-token differences and zero head-audit failures;
+trace ingestion is still in progress at this checkpoint. Its expected coverage
+is377856 CTA records,3936 phase comparisons and2304 expert records. The broader
+table is not yet complete, and no balance conclusion is drawn from its partial
+capture. This run also changes the anchor context; it is not a matched timing
+comparison with the earlier launcher.

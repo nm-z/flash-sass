@@ -16,22 +16,33 @@ static void balance_head_audit(FILE *out) {
         CK(cuMemcpyDtoH(actual,db[d].apart,sizeof actual));
         unsigned nonfinite=0;
         for(unsigned r=0;r<rows;r++) {
-            unsigned c=(r/256)%16;counts[c]++;
+            /* Q5_K2560 produces16 adjacent rows per CTA iteration, with
+             * a256-row stride between iterations. */
+            unsigned c=(r/16)%16;counts[c]++;
             if(!isfinite(logits[r])){nonfinite++;continue;}
             if(logits[r]>maxima[c]){maxima[c]=logits[r];indices[c]=r;}
         }
         if(nonfinite){failures++;fprintf(out,"headaudit die=%d nonfinite_logits=%u\n",d,nonfinite);}
+        uint32_t die_index=UINT32_MAX,die_bits=0;float die_max=-INFINITY;
         for(unsigned c=0;c<16;c++) {
             uint32_t bits;memcpy(&bits,maxima+c,4);
             int valid=counts[c]!=0 && indices[c]!=UINT32_MAX && actual[c][0]==indices[c] && actual[c][1]==bits;
             fprintf(out,"headpart die=%d cta=%u rows=%u actual_index=%u expected_index=%u actual_bits=%08x expected_bits=%08x valid=%d\n",
                 d,c,counts[c],actual[c][0],indices[c],actual[c][1],bits,valid);
             failures+=!valid;parts++;total_rows+=counts[c];
+            if(indices[c]!=UINT32_MAX && (maxima[c]>die_max || (maxima[c]==die_max && indices[c]<die_index))){
+                die_max=maxima[c];die_index=indices[c];die_bits=bits;
+            }
             uint32_t global=indices[c]+(uint32_t)sp[d][0].o0;
             if(indices[c]!=UINT32_MAX && (maxima[c]>winner || (maxima[c]==winner && global<winner_index))){
                 winner=maxima[c];winner_index=global;winner_bits=bits;
             }
         }
+        uint32_t die_actual[2];CK(cuMemcpyDtoH(die_actual,db[d].amo,sizeof die_actual));
+        int die_valid=die_index!=UINT32_MAX && die_actual[0]==die_index && die_actual[1]==die_bits;
+        failures+=!die_valid;
+        fprintf(out,"headdie die=%d actual_index=%u expected_index=%u actual_bits=%08x expected_bits=%08x valid=%d\n",
+            d,die_actual[0],die_index,die_actual[1],die_bits,die_valid);
         free(logits);
     }
     for(int d=0;d<nd;d++) {

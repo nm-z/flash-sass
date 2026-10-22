@@ -571,6 +571,18 @@ transport/synchronization imbalance. Timed decode is20.09 TPS in one run.
 The complete evidence is retained; the next candidate is producing CTA winners
 inside the output GEMV to remove the separate scan and synchronization boundary.
 
+V74 now produces both CTA and die winners inside the output GEMV, retaining
+the intermediate partials for independent audit. AMAX reads six die winners
+instead of96 CTA partials. The full graph has492 phases;128 original IDs,
+96 CTA partials and six die winners match exactly. Measured decode is20.04 TPS.
+The complete two-position capture puts both head phases inside ten percent,
+but four observations remain outside: two GDN, one Q4 and one Q6 projection.
+The eight-position qualification capture is pending; the goal is not complete.
+
+Use the v75-or-newer balanced benchmark launcher: visibility is restricted to
+0,1,3,4,5,6 and the non-compute anchor is on physical3. Older launchers opened
+an anchor context on2, which conflicts with Nate's later GPU reservation.
+
 ## Attention implementation notes
 
 Preserve four local query heads and one local K/V head on every die. Main

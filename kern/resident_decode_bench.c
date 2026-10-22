@@ -113,7 +113,11 @@ static FILE *start(const char *core,const char *lib,const char *cubin,int fused)
         if(balanced) {
             const char *dir=getenv("BENCH_HOLDER_DIR");if(!dir || !*dir)_exit(2);
             const char *context=getenv("BENCH_CONTEXT");if(!context)context="32768";
-            setenv("FLASH_ANCHOR_DIE","2",1);setenv("FLASH_MAXT",context,1);setenv("FLASH_ENGINE_MAXT",context,1);
+            /* GPUs2 and7 are reserved for Nate. Keep even the non-compute
+             * anchor context on a compute GPU, in a separate CUDA context. */
+            setenv("CUDA_VISIBLE_DEVICES","0,1,3,4,5,6",1);
+            setenv("FLASH_ANCHOR_DIE","3",1);setenv("FLASH_MAXT",context,1);setenv("FLASH_ENGINE_MAXT",context,1);
+            dprintf(STDERR_FILENO,"balanced_runtime visible=0,1,3,4,5,6 anchor_physical=3\n");
             setenv("FLASH_PLE_FILE","/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf",1);
             setenv("FLASH_PREFILL_CHUNK","64",1);setenv("FLASH_ATTN_Q_SPLIT","0",1);
             setenv("FLASH_ATTN_BALANCE","1",1);setenv("FLASH_FUSED_MOE","0",1);setenv("FLASH_FAST_EXCHANGE","0",1);

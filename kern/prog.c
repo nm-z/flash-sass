@@ -503,6 +503,7 @@ void prog_logits(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_
                  const dn_bufs_t *b, CUdeviceptr Z, unsigned t, unsigned nprompt) {
 	ph_actq(P, OP_ACTQ256, Z, b->zq, b->zs32, b->zs16, b->zas, 256, 10);
 	ph_gemv_any(P, GG_Q5_K, 2560, w->output, b->zq, b->zs32, b->zs16, b->hlo, (unsigned)s->on, b->zas, 0, 0);
+    int output_phase=P->n-1;
 	phase_t *p;
 	if (P->samp_k >= 2) {   /* top-k -> top-p -> temperature, the dies agree on the token (kern/sample.sass) */
 		p = prog_add(P, OP_TOPK, 16);
@@ -514,18 +515,27 @@ void prog_logits(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_
 		ph_u32(p, 0x178, P->stop[0]); ph_u32(p, 0x17c, P->stop[1]); ph_ptr(p, 0x180, P->end); ph_ptr(p, 0x188, b->rnd);
 		return;
 	}
-	p = prog_add(P, OP_ARGMAX, 16);
-    CUdeviceptr winners=w->balanced_rows?b->apart:b->amo;
-	ph_ptr(p, 0x140, b->hlo); ph_ptr(p, 0x148, winners); ph_ptr(p, 0x150, b->apart); ph_ptr(p, 0x158, b->acnt); ph_u32(p, 0x160, (unsigned)s->on); ph_u32(p, 0x164, 16);
     CUdeviceptr PAIRS;
     if(w->balanced_rows) {
-        /* Every CTA releases its local pair before the existing system-fenced
-         * producer flag. AMAX acquires all96 flags and reads the peers directly.
+        p=P->p+output_phase;
+        if(p->w[0]!=OP_Q5KK2560 || p->w[1]!=16){fprintf(stderr,"balanced head requires the complete Q5_K output GEMV\n");exit(1);}
+        ph_ptr(p,0x178,b->apart);
+        ph_ptr(p,0x180,b->amo);ph_ptr(p,0x188,b->acnt);
+        /* Each output CTA produces its winner while its logits are still in
+         * registers, eliminating the separate scan. It releases the pair
+         * before the existing system-fenced
+         * producer flag. The last local CTA reduces the16 partials; AMAX
+         * acquires all96 flags and reads the six die winners directly.
          * The next token's embedding exchange prevents reuse before all AMAX
          * readers finish; balanced execution is scalar and has a full graph. */
-        p->w[30]|=1u;P->pending_wait=1;P->xj++;
+        p->w[30]|=1u|PHASE_BALANCED_HEAD_OUTPUT;P->pending_wait=1;P->xj++;
         PAIRS=b->balance_head_sources;
-    } else PAIRS=ph_xchg(P,x,s->d,s->n,winners,8,8u*(unsigned)s->d,8u*(unsigned)s->n);
+    } else {
+        p=prog_add(P,OP_ARGMAX,16);
+        ph_ptr(p,0x140,b->hlo);ph_ptr(p,0x148,b->amo);ph_ptr(p,0x150,b->apart);ph_ptr(p,0x158,b->acnt);
+        ph_u32(p,0x160,(unsigned)s->on);ph_u32(p,0x164,16);
+        PAIRS=ph_xchg(P,x,s->d,s->n,b->amo,8,8u*(unsigned)s->d,8u*(unsigned)s->n);
+    }
 	p = prog_add(P, OP_AMAX, 1);
 	ph_ptr(p, 0x140, PAIRS); ph_ptr(p, 0x148, w->obases); ph_u32(p, 0x150, (unsigned)s->n); ph_ptr(p, 0x158, b->tokout);
 	ph_ptr(p, 0x160, b->ids); ph_ptr(p, 0x168, b->toks); ph_tokv(P, p, 0x170, 0, t); ph_u32(p, 0x174, nprompt);
