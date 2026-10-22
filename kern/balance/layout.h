@@ -5,6 +5,11 @@
 #define FLASH_BALANCE_LAYOUT_MARKER "__flash_balance_rows_v1"
 #define FLASH_BALANCE_DIES 6u
 #define FLASH_BALANCE_EXPERT_GRAIN 8u
+#define PHASE_BALANCED_ROW8 0x80000u
+#define PHASE_BALANCED_PUBLISH 0x100000u
+#define PHASE_BALANCED_PREPARE 0x200000u
+#define PHASE_BALANCED_ASSEMBLED 0x400000u
+#define PHASE_BALANCED_REDUCE 0x800000u
 
 /* Output rows, not whole experts, are striped across all six dies. Every
  * selected expert has the same local row count, independent of its ID. For

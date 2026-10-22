@@ -96,7 +96,7 @@ void split_of(split_t *s, int d, int n, int blk);
  * ssm_ab_bias = dt_bias ++ zeros, emap = global expert -> local index or 0xffffffff) */
 typedef struct {
 	CUdeviceptr hc_attn_norm, hc_attn_dj, hc_attn_up;
-    unsigned balanced_rows,embedding_first,embedding_columns,embedding_stride;
+    unsigned balanced_rows,balanced_layer,embedding_first,embedding_columns,embedding_stride;
 	unsigned attn_q_split, attn_q_first, attn_q_rows;
 	CUdeviceptr hc_ffn_norm, hc_ffn_dj, hc_ffn_up;
     unsigned hc_ffn_replicated;
@@ -121,6 +121,10 @@ typedef struct {
 typedef struct {
 	CUdeviceptr S;                    /* 10240 in/out stream (replicated) */
     CUdeviceptr embedding_targets;    /* balanced embedding: six residual destinations */
+    CUdeviceptr balance_gate_local,balance_up_local,balance_down_local;
+    CUdeviceptr balance_gate_targets,balance_up_targets,balance_down_targets;
+    CUdeviceptr balance_prepare,balance_quant_ready;
+    CUdeviceptr balance_owner_bounds;
 	CUdeviceptr S2;                   /* 10240 scratch stream: the attention side's write lands here (bf16hcrwx), the MoE end writes S */
 	CUdeviceptr xh, t;                /* 10240; 324 = SiLU(0.25 down) ++ inj */
 	CUdeviceptr ldown, lup, lz;       /* djn; 4 x 32 cbn; 32 cbn */

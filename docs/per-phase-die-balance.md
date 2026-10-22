@@ -73,9 +73,28 @@ Implemented:
   balanced mode is enabled; logit global offsets follow those same boundaries.
   Each causal position has its own six-die embedding destination table.
 - `die_balanced.cubin` assembles successfully from production SASS with the
-  replacement embedding body. Its distinct module marker prevents loading it
+  replacement embedding and striped MoE bodies. Its distinct module marker prevents loading it
   with the legacy holder/program layout. It is an in-progress image, not a
   runnable complete balanced model yet.
+- `kern/balance/program.h` constructs same-token gate/up and down chains. All
+  ten selected global IDs are consumed on each die. Compact local row buffers
+  are separate from the complete vectors published to peers, preventing local
+  publication from overwriting rows that have not yet been sent.
+- `kern/balance/moe.lua` retains production per-row dot arithmetic, changes
+  routed expert strides to the local row counts, and executes eight useful
+  rows per virtual unit. Shared-expert format bodies take the same marked
+  row-shard path; ordinary dense descriptors retain their original row loops.
+- `kern/balance/prepare.lua` performs SiLU/multiply and32-value activation
+  quantization inside the existing down dispatch, then joins sixteen local
+  CTA readiness flags. Epochs identify token/layer, and flags are cleared for
+  every request, including a prefix-cache resume. The join remains an explicit
+  data dependency, not an omitted wait or extra model dispatch.
+- Down retains six numerical partials for each owned row. Experts are processed
+  in the original owner group and router order, with the first contribution
+  multiplied and later contributions accumulated as before. The shared expert
+  is added to its original group. Publication reduces groups0–5 in order;
+  the following GR consumer reads one assembled vector instead of summing six
+  copies. The reference owner boundaries come from the retained SPLIT_SHARES.
 - A distinct manifest marker prevents the legacy engine from accidentally
   interpreting these matrices as whole-expert shards. The balanced descriptor
   and SASS path must replace that temporary rejection before execution.
@@ -89,12 +108,10 @@ Still required for the complete operation loop:
    mode only when all following components are integrated. The existing
    rejection of balanced holders remains until then.
 2. Verify complete dense/GDN/PLE/head descriptor coverage in the final program.
-3. Row-striped gate/up/shared SASS, publication of complete FP32 activations,
-   and local quantization before row-striped down projections. The existing
-   gate/up→down boundary carries this dependency; do not add placeholder phases.
-4. Down projection accumulation preserving selected contributions and documented
-   numerical order, with disjoint output-row publication instead of whole-expert
-   partial ownership. The following GR consumer must read that revised layout.
+3. Qualify the implemented routed/shared path as part of the complete model;
+   no partial-MoE GPU benchmark has been performed.
+4. Verify the six-part accumulation/publication and assembled GR path against
+   completed full-model outputs and state, after the first end-to-end run.
 5. Four-head attention bodies, one-head cache layout, striped indexer projection
    publication, local selection and output publication with global head offsets.
 6. Complete and budget the physical placement below. Use six fully resident
@@ -155,6 +172,12 @@ then execute disjoint down-output row shards. A local readiness join is needed
 between parallel quantization and consumers; account for it explicitly. Run
 the preparation only on each CTA's first virtual unit, so it is not repeated
 or raced when a CTA loops over additional output-row units.
+
+The implementation runs preparation from the routed-down SETUP label, before
+its BEGIN/END virtual-unit loop. Same-token groups use the native chain flag32;
+the routed→shared chain additionally uses the existing local-fence flag31.
+The balanced image disables the old Q2MOEGN flag32→whole-expert GA shortcut,
+so chain metadata cannot accidentally select a640-row legacy body.
 
 Publish the completed output row shards directly. The next GR consumer must
 consume one assembled output vector, not sum six copies of that vector. Retain

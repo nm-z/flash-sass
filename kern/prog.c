@@ -2,6 +2,7 @@
 #include "split.h"
 #include "gguf.h"
 #include "quant.h"
+#include "balance/layout.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -319,6 +320,7 @@ static CUdeviceptr ph_hc_read(prog_t *P, const split_t *s, const xchg_t *x, CUde
 	return Z;
 }
 
+#include "balance/program.h"
 /* the MoE hyper-block (expert split: this die's routed experts, partials reduced) */
 static void ph_moe_half(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, float eps, CUdeviceptr Y) {
 	CUdeviceptr inj = b->t + 320 * 4;
@@ -326,6 +328,7 @@ static void ph_moe_half(prog_t *P, const split_t *s, const xchg_t *x, const dn_w
 	   the MoE end writes S from S2); 0: the write already happened (S2 = S, in place) */
 	CUdeviceptr Z = ph_hc_read(P, s, x, w->hc_ffn_norm, w->hc_ffn_dj, w->hc_ffn_up, b, eps, Y, inj,w->hc_ffn_replicated);
 	CUdeviceptr SIN = Y ? b->S2 : b->S;
+    if(w->balanced_rows){prog_balanced_moe(P,s,w,b,Z,SIN,inj);return;}
 	ph_bf16(P, OP_BF16K2560, w->ffn_gate_inp_x, Z, b->r, 513, 0);
 	ph_router(P, b->r, b->r + 512 * 4, b->idx, b->w, b->s);
 	ph_moesel(P, b->idx, b->w, w->emap, b->lidx, b->lw, b->ne, b->part);

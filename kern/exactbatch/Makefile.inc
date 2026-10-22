@@ -89,9 +89,10 @@ die_phase.cubin: die_phase.sass die_phase.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ die_phase.ptx
 	$(MAXAS) -i die_phase.sass $@
 
-die_balanced.sass: die_phase.sass balance/embedding.lua phase/predicate_latency.lua
+die_balanced.sass: die_phase.sass balance/embedding.lua balance/moe.lua balance/prepare.lua phase/quant_emit.lua phase/predicate_latency.lua
 	$(LUA) balance/embedding.lua $< $@.embedding
-	$(LUA) phase/predicate_latency.lua $@.embedding $@ $@.predicate.csv
+	$(LUA) balance/moe.lua $@.embedding $@.moe
+	$(LUA) phase/predicate_latency.lua $@.moe $@ $@.predicate.csv
 die_balanced.ptx: die_phase.ptx balance/marker.ptxinc
 	cat $^ > $@
 die_balanced.cubin: die_balanced.sass die_balanced.ptx
@@ -112,7 +113,7 @@ die_phase_serial.cubin: die_phase_serial.sass die_phase.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ die_phase.ptx
 	$(MAXAS) -i die_phase_serial.sass $@
 
-libengine.so libengine_exact.so libengine_mtp.so libengine_mtp_chunk.so libengine_dflash.so libengine_verify.so libengine_chunk.so: phase/plan.h phase/ownership.h phase/gr_replica.h phase/exchange_host.inc balance/layout.h
+libengine.so libengine_exact.so libengine_mtp.so libengine_mtp_chunk.so libengine_dflash.so libengine_verify.so libengine_chunk.so: phase/plan.h phase/ownership.h phase/gr_replica.h phase/exchange_host.inc balance/layout.h balance/program.h
 
 die_gr_fp8.sass: die_gr.sass fp8/link.lua
 	$(LUA) fp8/link.lua $< $@
@@ -150,5 +151,5 @@ libengine_verify.so: $(ENGINE_SRC) exactbatch/prog_group.c exactbatch/prog_group
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -pthread -DFLASH_EXACT_BATCH -DFLASH_VERIFY_NATIVE -DFLASH_REV='"$(FLASH_REV)-verify"' -o $@.new $(ENGINE_SRC) exactbatch/prog_group.c -I. -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
 
 # Descriptor compilation only: deliberately no CUDA library and no model math.
-phase_schedule: phase/schedule.c phase/schedule_symbols.inc engine.c phase/plan.h phase/ownership.h prog.c prog.h holdc.c hold.h ../ref/split.c ../ref/quant.c ../ref/gguf.c
+phase_schedule: phase/schedule.c phase/schedule_symbols.inc engine.c phase/plan.h phase/ownership.h balance/layout.h balance/program.h prog.c prog.h holdc.c hold.h ../ref/split.c ../ref/quant.c ../ref/gguf.c
 	$(CC) -std=gnu99 -O2 -ffunction-sections -fdata-sections -Wl,--gc-sections -I$(CUDA)/include -I. -I../ref -o $@ phase/schedule.c prog.c holdc.c ../ref/split.c ../ref/quant.c ../ref/gguf.c -lm

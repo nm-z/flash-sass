@@ -493,6 +493,7 @@ static void clone_position(int d, dn_bufs_t *b, xchg_t *x, int alias_attention) 
 	SECOND(r); SECOND(idx); SECOND(w); SECOND(s);
 	SECOND(lidx); SECOND(lw); SECOND(ne); SECOND(part);
 	SECOND(g); SECOND(gu); SECOND(hq); SECOND(hs32); SECOND(hs16); SECOND(has); SECOND(out);
+    SECOND(balance_gate_local);SECOND(balance_up_local);SECOND(balance_down_local);SECOND(balance_quant_ready);
 	SECOND(qg); SECOND(k); SECOND(v); SECOND(qo); SECOND(aout);
 	/* Wide headless programs serialize gather/partial/merge per position. */
 	if (!alias_attention) { SECOND(kc); SECOND(vc); SECOND(pm); SECOND(pd); SECOND(po); }
@@ -537,6 +538,7 @@ static void reset_fresh_sequence(int d) {
         ZERO(oq);ZERO(os32);ZERO(os16);ZERO(oas);ZERO(ly);
         ZERO(r);ZERO(idx);ZERO(w);ZERO(s);ZERO(lidx);ZERO(lw);ZERO(ne);ZERO(part);
         ZERO(g);ZERO(gu);ZERO(hq);ZERO(hs32);ZERO(hs16);ZERO(has);ZERO(out);
+        ZERO(balance_gate_local);ZERO(balance_up_local);ZERO(balance_down_local);
         ZERO(qg);ZERO(k);ZERO(v);ZERO(qo);ZERO(aout);ZERO(kc);ZERO(vc);ZERO(pm);ZERO(pd);ZERO(po);
         ZERO(iqk);ZERO(iq);ZERO(sc);ZERO(hst);ZERO(sel);
         ZERO(pg);ZERO(pgq);ZERO(pgs32);ZERO(pgs16);ZERO(pgas);
@@ -580,11 +582,13 @@ static unsigned fuse_gr_write_read(prog_t *p,int *layers,int die) {
     if(!getenv("FLASH_FUSED_GR") || !atoi(getenv("FLASH_FUSED_GR")))return 0;
     for(int i=0;i+1<p->n;i++) {
         phase_t *a=p->p+i,*b=a+1;
-        if(a->w[0]!=OP_HCWSUM || b->w[0]!=OP_BF16HCRX || a->w[8]!=2560 || a->w[9]!=10240 || a->w[11]!=6 || gr_pointer(a,6)!=gr_pointer(b,4))continue;
+        if(a->w[0]!=OP_HCWSUM || b->w[0]!=OP_BF16HCRX || a->w[8]!=2560 || a->w[9]!=10240 ||
+           (a->w[11]!=6 && !(row_balance && a->w[11]==1)) || gr_pointer(a,6)!=gr_pointer(b,4))continue;
         phase_t merged=*b;merged.w[0]=EXACT_OP_COUNT;
         ph_ptr(&merged,0x148,gr_pointer(a,14));ph_ptr(&merged,0x160,gr_pointer(a,6));
         ph_ptr(&merged,0x1a0,gr_pointer(a,4));ph_ptr(&merged,0x1a8,gr_pointer(a,2));
         if(producer_quant)ph_ptr(&merged,0x180,phase_gr_sum_cache[die]);
+        if(row_balance && a->w[11]==1)merged.w[30]|=PHASE_BALANCED_ASSEMBLED;
         merged.w[30]|=a->w[30]&2u;p->p[i]=merged;
         if(layers){layers[i]=layers[i+1];memmove(layers+i+1,layers+i+2,(size_t)(p->n-i-2)*sizeof *layers);}
         memmove(p->p+i+1,p->p+i+2,(size_t)(p->n-i-2)*sizeof *p->p);p->n--;fused++;
@@ -1088,6 +1092,10 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	if (snap_at > nprompt - 1) snap_at = nprompt - 1;
 	for (int i = 0; i < nimg; i++) if (snap_at > imgs[i].s) snap_at = imgs[i].s;   /* the snapshot would not know the image */
 	if (snap_at <= resume) snap_at = 0;
+    if(row_balance)for(int d=0;d<nd;d++) {
+        CK(cuCtxSetCurrent(ctx[d]));
+        for(unsigned p=0;p<allocated_positions;p++)CK(cuMemsetD32(position_buf(d,p)->balance_quant_ready,0,16));
+    }
 	if (!resume) snap_s = 0;   /* this response rewrites the attention caches from position 0 */
 	if (ple_disk) {   /* a new id for this response (never 0); the rows of the positions it runs are staged from `resume` on */
 		ple_rid = ple_rid + 1 ? ple_rid + 1 : 1; ple_start = ple_next = resume; ple_short_reads = 0;
@@ -1560,6 +1568,12 @@ int engine_init(core_t *c) {
 		b->ly = dalloc(4u * (unsigned)s0.yn); b->r = dalloc(4 * (513+16)); b->idx = dalloc(64); b->w = dalloc(64); b->s = dalloc(16);
 		b->lidx = dalloc(64); b->lw = dalloc(64); b->ne = dalloc(16); b->part = dalloc(4 * 2560);
 		b->g = dalloc(4 * 7040); b->gu = dalloc(4 * 7040); b->hq = dalloc(2 * 7040); b->hs32 = dalloc(4 * 220); b->hs16 = dalloc(4 * 440); b->has = dalloc(4 * 220);
+        if(row_balance) {
+            unsigned gate_rows=balance_row_count(640,(unsigned)d,(unsigned)nd,8);
+            unsigned down_rows=balance_row_count(2560,(unsigned)d,(unsigned)nd,8);
+            b->balance_gate_local=dalloc(44u*gate_rows);b->balance_up_local=dalloc(44u*gate_rows);
+            b->balance_down_local=dalloc(24u*down_rows);b->balance_quant_ready=dalloc(64);
+        }
 		b->out = dalloc(4 * 2560);
 		b->qg = dalloc(4 * 12288); b->k = dalloc(4 * 512); b->v = dalloc(4 * 512); b->qo = dalloc(4 * 6144); b->aout = dalloc(4 * 6144);
 		b->pm = dalloc(4 * 24 * 8); b->pd = dalloc(4 * (24 * 8+16)); b->po = dalloc(4 * 24 * 8 * 256);
@@ -1588,7 +1602,7 @@ int engine_init(core_t *c) {
 		for (int bb = 0; bb < nlayers_run; bb++) {
 			split_t *s = &sp[d][bb]; execution_split(s, d, bb);
 			dn_weights_t *w = &dw[d][bb]; int is_attn = BLK_IS_ATTN(bb);
-            w->balanced_rows=(unsigned)row_balance;
+            w->balanced_rows=(unsigned)row_balance;w->balanced_layer=(unsigned)bb;
 			w->hc_attn_norm = dptr(d, bb, "hc_attn_norm.weight"); w->hc_attn_dj = dptr(d, bb, "hc_attn_dj.weight"); w->hc_attn_up = dptr(d, bb, "hc_attn_up.weight");
 			w->hc_ffn_norm = dptr(d, bb, "hc_ffn_norm.weight"); w->hc_ffn_dj = dptr(d, bb, "hc_ffn_dj.weight"); w->hc_ffn_up = dptr(d, bb, "hc_ffn_up.weight");
             if(bb<gr_replicate_ffn){w->hc_ffn_dj=replicate_gr_matrix(d,bb,0);w->hc_ffn_up=replicate_gr_matrix(d,bb,1);w->hc_ffn_replicated=1;}
@@ -1682,6 +1696,18 @@ int engine_init(core_t *c) {
             CK(cuCtxSetCurrent(ctx[embed_die]));embedding_tables[p]=dalloc(sizeof targets);
             CK(cuMemcpyHtoD(embedding_tables[p],targets,sizeof targets));
         }
+    }
+    if(row_balance)for(unsigned p=0;p<allocated_positions;p++)for(int d=0;d<nd;d++) {
+        CK(cuCtxSetCurrent(ctx[d]));dn_bufs_t *b=position_buf(d,p);
+        CUdeviceptr gate[6],up[6],down[6];
+        for(int e=0;e<nd;e++){gate[e]=position_buf(e,p)->g;up[e]=position_buf(e,p)->gu;down[e]=position_buf(e,p)->part;}
+        b->balance_gate_targets=dalloc(sizeof gate);CK(cuMemcpyHtoD(b->balance_gate_targets,gate,sizeof gate));
+        b->balance_up_targets=dalloc(sizeof up);CK(cuMemcpyHtoD(b->balance_up_targets,up,sizeof up));
+        b->balance_down_targets=dalloc(sizeof down);CK(cuMemcpyHtoD(b->balance_down_targets,down,sizeof down));
+        CUdeviceptr prepare[7]={b->g,b->gu,b->hq,b->hs32,b->hs16,b->has,b->balance_quant_ready};
+        b->balance_prepare=dalloc(sizeof prepare);CK(cuMemcpyHtoD(b->balance_prepare,prepare,sizeof prepare));
+        uint32_t bounds[7];for(int e=0;e<=nd;e++)bounds[e]=split_bound(512,(int)e,nd);
+        b->balance_owner_bounds=dalloc(sizeof bounds);CK(cuMemcpyHtoD(b->balance_owner_bounds,bounds,sizeof bounds));
     }
     if(residual_fp8)for(unsigned p=0;p<allocated_positions;p++)for(int d=0;d<nd;d++){CK(cuCtxSetCurrent(ctx[d]));for(unsigned k=0;k<2;k++)residual_encoded[p][d][k]=dalloc(fp8_bytes(10240));}
     if(producer_quant)for(int d=0;d<nd;d++) {

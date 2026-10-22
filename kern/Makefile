@@ -443,7 +443,7 @@ die_test: die_test.c dieops.h ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref
 die: die.cubin die_test
 
 # ---- the resident weight holder (load once; tests map the arena over CUDA IPC) ----
-hold: hold.c prog.c prog.h dieops.h balance/layout.h balance/embedding.h ../ref/quant.c ../ref/gguf.c ../ref/quant.h ../ref/gguf.h ../ref/split.c ../ref/split.h
+hold: hold.c prog.c prog.h dieops.h balance/layout.h balance/embedding.h balance/program.h ../ref/quant.c ../ref/gguf.c ../ref/quant.h ../ref/gguf.h ../ref/split.c ../ref/split.h
 	$(CC) -std=gnu99 -O2 -Wall -o $@ hold.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I$(CUDA)/include -lcuda -lm
 
 # ---- DeltaNet readout norm + gate ----
@@ -584,7 +584,7 @@ fence: fence.c
 	$(CC) -std=gnu99 -O2 -Wall -o $@ fence.c -I$(CUDA)/include -lcuda
 
 # Same packing implementation as the holder; no CUDA driver link or calls.
-hold_cache: hold.c prog.c prog.h dieops.h balance/layout.h balance/embedding.h ../ref/quant.c ../ref/gguf.c ../ref/quant.h ../ref/gguf.h ../ref/split.c ../ref/split.h
+hold_cache: hold.c prog.c prog.h dieops.h balance/layout.h balance/embedding.h balance/program.h ../ref/quant.c ../ref/gguf.c ../ref/quant.h ../ref/gguf.h ../ref/split.c ../ref/split.h
 	$(CC) -std=gnu99 -O2 -Wall -DHOLD_CACHE_ONLY -o $@ hold.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I$(CUDA)/include -lm
 
 quant_range_test: quant_range_test.c quant_range_cases.h ../ref/qsa.c ../ref/qsa.h ../ref/fmath.c ../ref/fmath.h
