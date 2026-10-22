@@ -1,0 +1,112 @@
+[
+  {
+    "id": 141221,
+    "job_id": "dc56a1de-d8de-439c-b4c1-26c72cf5238b",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 0,
+    "observed_ns": "1792634804439898660",
+    "bytes": 726,
+    "sha256": "74b7a9f18fdd8384b89fdc7935b8abb5a275e42985d8c4b871e232e4047f6b37",
+    "text": "before: config rev=5a17b72-dirty-exact kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf maxt=32768 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=1 rope_owner=5 trace_tokens=0 two_position=0 prefill_chunk=64 attn_q_split=1 attn_q_mask=3f cubin=/home/nate/work/flash-phase499-20261021-waitjoin-v6/baseline-amax13.cubin cubin_fnv=d215dc737080be6d runtime_attn_map=1,1,1,1,4,4,4,4,5,5,5,5 balanced=0 residual_storage=fp32 fused_gr=0 producer_quant=0 matrix_group=0 phase_batch=0 exact_cubin=none exact_cubin_fnv=0000000000000000\n"
+  },
+  {
+    "id": 141223,
+    "job_id": "dc56a1de-d8de-439c-b4c1-26c72cf5238b",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 1,
+    "observed_ns": "1792634805700860029",
+    "bytes": 20,
+    "sha256": "e80d8cf2d54f04b5a3644b53d2d1ea1efad068eee899b798f3f524237cb4e606",
+    "text": "ok: engine reloaded\n"
+  },
+  {
+    "id": 141224,
+    "job_id": "dc56a1de-d8de-439c-b4c1-26c72cf5238b",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 2,
+    "observed_ns": "1792634805707581816",
+    "bytes": 1059,
+    "sha256": "025a56a395628dabc70dfe510c47da1a812573b570f1c53c31d29903b5752ffa",
+    "text": "{\"arm\":\"baseline\",\"workload\":\"same_kernel_repeatability\",\"prompt_tokens\":128,\"generated_tokens\":1,\"warmup_runs\":1,\"baseline_compared\":false,\"reference_kind\":\"first_request_same_kernel\"}\nconfig rev=3bcac18-dirty-exact kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf maxt=32768 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=1 rope_owner=5 trace_tokens=0 two_position=0 prefill_chunk=64 attn_q_split=1 attn_q_mask=3f cubin=/home/nate/work/flash-exchange-determinism-v5/die_deterministic.cubin cubin_fnv=5f2c287c7eec0c27 runtime_attn_map=1,1,1,1,4,4,4,4,5,5,5,5 balanced=0 residual_storage=fp32 fused_gr=0 producer_quant=0 matrix_group=0 gr_replica_ffn=0 xtrace=0 phase_batch=0 exact_cubin=none exact_cubin_fnv=0000000000000000\nok: stop -1 -1\nok: sample seed 7 temp 0 top_k 20 top_p 0.95 (greedy)\nok: timings 1\n{\"arm\":\"baseline\",\"run\":0,\"kept\":0,\"warmup\":true}\n"
+  },
+  {
+    "id": 141228,
+    "job_id": "dc56a1de-d8de-439c-b4c1-26c72cf5238b",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 3,
+    "observed_ns": "1792634809052411614",
+    "bytes": 9,
+    "sha256": "17237d16deeae76c82bdbb0f823466948c8b8b85b96fdae215460deee7b9471f",
+    "text": "tok 1596\n"
+  },
+  {
+    "id": 141229,
+    "job_id": "dc56a1de-d8de-439c-b4c1-26c72cf5238b",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 4,
+    "observed_ns": "1792634809058860846",
+    "bytes": 1145,
+    "sha256": "6dcc71d480a4f855fa4a3f575420725cac283d2171ec0ae10567b1a40d9c35ea",
+    "text": "timings {\"schema_version\":1,\"request_id\":\"1\",\"clock\":\"CLOCK_MONOTONIC\",\"prompt_tokens\":128,\"resumed_positions\":0,\"positions_completed\":128,\"positions_executed\":128,\"prompt_positions_processed\":128,\"generated_tokens\":1,\"decode_intervals\":0,\"counts_known\":true,\"counts_final\":true,\"error_code\":0,\"counter_semantics\":\"last_observed_completed_positions\",\"stop_token_observed\":false,\"aborted\":false,\"build_ms\":5.8755880163516849,\"run_ms\":3345.5787059792783,\"first_observed_ms\":3345.4132569895592,\"post_first_ms\":0.16544898971915245,\"prompt_positions_per_second\":38.261341773716623,\"decode_tokens_per_second\":null,\"device_clock\":\"SR_GLOBALTIMER\",\"device_origin\":\"first_generated_position_start\",\"device_first_start_ns\":null,\"device_first_publish_ns\":null,\"device_last_traced_publish_ns\":null,\"device_traced_tokens\":0,\"device_first_publish_ms\":null,\"device_decode_ms\":null,\"device_decode_tokens_per_second\":null,\"prompt_n\":128,\"cache_n\":0,\"prompt_ms\":3345.4132569895592,\"prompt_per_second\":38.261341773716623,\"predicted_n\":1,\"predicted_ms\":0.16544898971915245,\"predicted_per_second\":null,\"decode_ms\":0.16544898971915245}\ndone 1 0 128 3345.6 3345.4 0 0\n"
+  },
+  {
+    "id": 141230,
+    "job_id": "dc56a1de-d8de-439c-b4c1-26c72cf5238b",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 5,
+    "observed_ns": "1792634809138606033",
+    "bytes": 124,
+    "sha256": "9d2742b4715e6a27e907a3c50f6c329b4b3a29dd2f1fdce339966b48a53df1ee",
+    "text": "statehash positions=128 paired_positions=0 prefill_chunks=2\n{\"arm\":\"baseline\",\"run\":0,\"output_mismatches\":0,\"correct\":true}\n"
+  },
+  {
+    "id": 141231,
+    "job_id": "dc56a1de-d8de-439c-b4c1-26c72cf5238b",
+    "kind": "stderr",
+    "source": "stderr",
+    "ordinal": 0,
+    "observed_ns": "1792634809138692297",
+    "bytes": 40,
+    "sha256": "3a05c83ed9bfb01263ea8dc8a1dca6503f0457ba7d4bdee860871940a7828898",
+    "text": "decode benchmark: tokenaudit incomplete\n"
+  },
+  {
+    "id": 141234,
+    "job_id": "dc56a1de-d8de-439c-b4c1-26c72cf5238b",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 6,
+    "observed_ns": "1792634810635997735",
+    "bytes": 29,
+    "sha256": "01bf47c93836ae29d976134f1476c28c3743309b16ea1f41257bfc93cd4ca555",
+    "text": "restore: ok: engine reloaded\n"
+  },
+  {
+    "id": 141235,
+    "job_id": "dc56a1de-d8de-439c-b4c1-26c72cf5238b",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 7,
+    "observed_ns": "1792634810639856524",
+    "bytes": 26,
+    "sha256": "9764ade2c5c5151bded363223015d1c9cc3b84a09b2289244bb89fabf6eec093",
+    "text": "restore: config identical\n"
+  },
+  {
+    "id": 141239,
+    "job_id": "dc56a1de-d8de-439c-b4c1-26c72cf5238b",
+    "kind": "collector_error",
+    "source": "trace",
+    "ordinal": 0,
+    "observed_ns": "1792634810650931336",
+    "bytes": 103,
+    "sha256": "30349a93d1d8c356fb6dc81ab296392e83b76d83f2b7e22d67e7a50c1df4d6d1",
+    "text": "RuntimeError: resident engine has no enabled trace producer; raw job-provided traces are still imported"
+  }
+]

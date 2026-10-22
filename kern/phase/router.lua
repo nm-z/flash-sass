@@ -1,6 +1,9 @@
 -- Distributed router projection with a single consuming warp. Producers signal
 -- row completion and proceed to the final phase barrier; only CTA0 warp0 waits
 -- for logits. There is no intervening whole-grid rendezvous or second dispatch.
+-- Router/shared producers reuse one ready array. Reserve 98 epochs per token:
+-- router 1..48 and shared 50..97. With stride49, shared(t,L) incorrectly equals
+-- router(t+1,L), allowing the next router to consume stale completion flags.
 local function read(p)local f=assert(io.open(p));local s=f:read('a');f:close();return s end
 local base=read(assert(arg[1]));local s=read(assert(arg[2]));local out=assert(arg[3])
 local function rep(a,b)local i=assert(s:find(a,1,true),'missing '..a);s=s:sub(1,i-1)..b..s:sub(i+#a)end
@@ -23,7 +26,10 @@ body=body:sub(1,at-1)..[=[routerproj_END:
 --:-:1:-:1 LDS.64 routejoin_ptr0, [RZ+0xbf98];
 --:-:1:-:1 LDS routejoin_layer, [RZ+0xbfa8];
 --:-:1:-:2 LDS routejoin_epoch, [RZ+0xbf70];
-01:-:-:-:6 XMAD routejoin_epoch, routejoin_epoch, 0x31, routejoin_layer;
+01:-:-:-:6 SHL routejoin_tmp, routejoin_epoch, 0x6;
+--:-:-:-:6 ISCADD routejoin_tmp, routejoin_epoch, routejoin_tmp, 0x5;
+--:-:-:-:6 ISCADD routejoin_epoch, routejoin_epoch, routejoin_tmp, 0x1;
+--:-:-:-:6 IADD routejoin_epoch, routejoin_epoch, routejoin_layer;
 --:-:-:-:6 ISCADD routejoin_tmp, cta, RZ, 0x2;
 --:-:-:-:6 IADD routejoin_tmp, routejoin_tmp, 0x804;
 --:-:-:-:6 IADD routejoin_ptr0.CC, routejoin_ptr0, routejoin_tmp;

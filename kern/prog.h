@@ -98,6 +98,7 @@ typedef struct {
 	CUdeviceptr hc_attn_norm, hc_attn_dj, hc_attn_up;
 	unsigned attn_q_split, attn_q_first, attn_q_rows;
 	CUdeviceptr hc_ffn_norm, hc_ffn_dj, hc_ffn_up;
+    unsigned hc_ffn_replicated;
 	CUdeviceptr attn_qkv, attn_gate, ssm_ab, ssm_ab_bias, ssm_conv1d, ssm_a, ssm_norm, ssm_out;
 	uint32_t attn_qkv_type, attn_gate_type, ssm_out_type;
 	CUdeviceptr ffn_gate_inp_x, ffn_gate_exps, ffn_up_exps, ffn_down_exps, emap;
@@ -121,6 +122,7 @@ typedef struct {
 	CUdeviceptr S2;                   /* 10240 scratch stream: the attention side's write lands here (bf16hcrwx), the MoE end writes S */
 	CUdeviceptr xh, t;                /* 10240; 324 = SiLU(0.25 down) ++ inj */
 	CUdeviceptr ldown, lup, lz;       /* djn; 4 x 32 cbn; 32 cbn */
+    CUdeviceptr gr_local_down_table,gr_local_up_table;
 	CUdeviceptr zq, zs32, zs16, zas;  /* int16 2560, i32 80, i32 160, f32 80 */
 	CUdeviceptr lqkv, lgate, la, lu, lo, lon;  /* nloc, 128 hn, 2 hn (a ++ b), nloc, 128 hn, 128 hn */
 	CUdeviceptr oq, os32, os16, oas;  /* int16 6144, 192, 384, 192 */

@@ -26,6 +26,8 @@ int main(int argc,char **argv) {
     core_t local={0};core=&local;nd=6;nlayers_run=48;nblk_qsa=512;MAXT=32768;embed_die=0;
     const int baseline=getenv("FLASH_SCHEDULE_BASELINE") && atoi(getenv("FLASH_SCHEDULE_BASELINE"));
     producer_quant=group_matrices=!baseline;two_position=0;embedding_tables[0]=symbol();
+    gr_replicate_ffn=baseline?0:(getenv("FLASH_SCHEDULE_GR_REPLICATE")?atoi(getenv("FLASH_SCHEDULE_GR_REPLICATE")):0);
+    if(gr_replicate_ffn<0 || gr_replicate_ffn>48)return 2;
     setenv("FLASH_PRODUCER_QUANT",baseline?"0":"1",1);setenv("FLASH_FUSED_GR",baseline?"0":"1",1);
     setenv("FLASH_ATTN_BALANCE",baseline?"0":"1",1);
     setenv("SPLIT_SHARES","112,97,81,116,97,97",1);
@@ -38,11 +40,13 @@ int main(int argc,char **argv) {
     for(int d=0;d<nd;d++) {
         char path[1024];snprintf(path,sizeof path,"%s/hold-h%d.manifest",argv[1],d);metadata(&ar[d],path);
         symbols(d);
+        db[d].gr_local_down_table=symbol();db[d].gr_local_up_table=symbol();producer_local_tables[0][d]=symbol();
         phase_gr_sum_cache[d]=symbol();
         xc[d]=(xchg_t){.inbox=symbol(),.flags=symbol(),.xtab=symbol(),.xgen=symbol()};
         producer_tables[0][d][0]=symbol();producer_tables[0][d][1]=symbol();
         for(int b=0;b<48;b++) {
             split_of(&sp[d][b],d,nd,b);weight_symbols(d,b);
+            dw[d][b].hc_ffn_replicated=b<gr_replicate_ffn;
             dst_dn[d][b]=symbol();dst_conv[d][b]=symbol();
             if(BLK_IS_ATTN(b)) {
                 int owner=runtime_attn_owner(b),rank=d-(d>owner);

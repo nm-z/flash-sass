@@ -291,7 +291,9 @@ void split_of(split_t *s, int d, int n, int blk) {
  * Returns the gathered z (an inbox slot). */
 /* Y / inj: the pending stream write of the attention side (gathered y, inject values) or 0: with them
    the read runs bf16hcrwx, which first applies the write (S + 2 sigmoid(inj / 4) y) into S2 */
-static CUdeviceptr ph_hc_read(prog_t *P, const split_t *s, const xchg_t *x, CUdeviceptr norm, CUdeviceptr dj, CUdeviceptr up, const dn_bufs_t *b, float eps, CUdeviceptr Y, CUdeviceptr inj) {
+static CUdeviceptr ph_hc_read(prog_t *P, const split_t *s, const xchg_t *x, CUdeviceptr norm, CUdeviceptr dj, CUdeviceptr up, const dn_bufs_t *b, float eps, CUdeviceptr Y, CUdeviceptr inj, int replicated) {
+    split_t whole; xchg_t local;int saved_xj=P->xj;
+    if(replicated){whole=*s;whole.dj0=whole.cb0=0;whole.djn=324;whole.cbn=80;s=&whole;local=*x;local.xtab=b->gr_local_down_table;local.inbox=b->ldown;x=&local;}
 	unsigned cols = 32u * (unsigned)s->cbn;
 	CUdeviceptr DOWN;
 	if (Y) {
@@ -305,7 +307,9 @@ static CUdeviceptr ph_hc_read(prog_t *P, const split_t *s, const xchg_t *x, CUde
 		ph_rms(P, OP_RMS2560, b->S, norm, b->xh, eps, 4);
 		DOWN = ph_bf16x(P, x, OP_BF16HCX, dj, b->xh, (unsigned)s->djn, 4u * (unsigned)s->dj0);   /* down ++ inject rows straight into every die's slot */
 	} else DOWN = ph_bf16rx(P, x, dj, b->S, norm, b->xh, eps, (unsigned)s->djn, 4u * (unsigned)s->dj0);   /* + the RMS norm */
+    if(replicated){phase_t *a=P->p+P->n-1;a->w[30]&=~1u;a->w[12]=0;P->xj=saved_xj;P->pending_wait=0;DOWN=b->ldown;local.xtab=b->gr_local_up_table;local.inbox=b->lz;}
 	CUdeviceptr Z = getenv("PROG_NOHCUP") ? 0 : ph_hcup(P, x, up, DOWN, b->lup, cols, b->xh + 4u * 32u * (unsigned)s->cb0, b->t, 324, 4u * 32u * (unsigned)s->cb0);
+    if(replicated){phase_t *a=P->p+P->n-1;a->w[30]=(a->w[30]&~1u)|0x40000u;a->w[12]=0;P->xj=saved_xj;P->pending_wait=0;Z=b->lz;}
 	if (!Z) {
 		ph_hc(P, OP_HCSILU, DOWN, b->t, 0, 324, 320, 2);
 		ph_bf16(P, OP_BF16K320, up, b->t, b->lup, 4 * cols, 0);
@@ -320,7 +324,7 @@ static void ph_moe_half(prog_t *P, const split_t *s, const xchg_t *x, const dn_w
 	CUdeviceptr inj = b->t + 320 * 4;
 	/* Y: the attention side's gathered output, its write fused into this read (the stream goes to S2 and
 	   the MoE end writes S from S2); 0: the write already happened (S2 = S, in place) */
-	CUdeviceptr Z = ph_hc_read(P, s, x, w->hc_ffn_norm, w->hc_ffn_dj, w->hc_ffn_up, b, eps, Y, inj);
+	CUdeviceptr Z = ph_hc_read(P, s, x, w->hc_ffn_norm, w->hc_ffn_dj, w->hc_ffn_up, b, eps, Y, inj,w->hc_ffn_replicated);
 	CUdeviceptr SIN = Y ? b->S2 : b->S;
 	ph_bf16(P, OP_BF16K2560, w->ffn_gate_inp_x, Z, b->r, 513, 0);
 	ph_router(P, b->r, b->r + 512 * 4, b->idx, b->w, b->s);
@@ -431,7 +435,7 @@ static void ph_attn_core(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, u
 
 void prog_attn_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps) {
 	CUdeviceptr inj = b->t + 320 * 4;
-	CUdeviceptr Z = ph_hc_read(P, s, x, w->hc_attn_norm, w->hc_attn_dj, w->hc_attn_up, b, eps, 0, 0);
+	CUdeviceptr Z = ph_hc_read(P, s, x, w->hc_attn_norm, w->hc_attn_dj, w->hc_attn_up, b, eps, 0, 0,0);
 	int here = b->qsa ? b->kq != 0 : s->d == attn_die();   /* the die that runs this layer: the one holding its KV cache (QSA), else attn_die() */
 	CUdeviceptr QG = 0;
 	if (b->qsa && w->attn_q_split) {
@@ -522,7 +526,7 @@ void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_
 	unsigned nloc = SPLIT_NLOC(s), hrows = 128u * (unsigned)s->hn;
 	CUdeviceptr inj = b->t + 320 * 4;
 	/* ---- attention-side hyper-block: Gated DeltaNet ---- */
-	CUdeviceptr Z = ph_hc_read(P, s, x, w->hc_attn_norm, w->hc_attn_dj, w->hc_attn_up, b, eps, 0, 0);
+	CUdeviceptr Z = ph_hc_read(P, s, x, w->hc_attn_norm, w->hc_attn_dj, w->hc_attn_up, b, eps, 0, 0,0);
 	ph_gemv_any(P, w->attn_qkv_type, 2560, w->attn_qkv, b->zq, b->zs32, b->zs16, b->lqkv, nloc, b->zas, 0, 0);
 	prog_nobar(P);
 	ph_gemv_any(P, w->attn_gate_type, 2560, w->attn_gate, b->zq, b->zs32, b->zs16, b->lgate, hrows, b->zas, 0, 0);

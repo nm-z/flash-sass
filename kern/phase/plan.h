@@ -9,7 +9,7 @@ static unsigned producer_fuse(prog_t *p,unsigned position,int die,int *layers) {
         else if(a->w[0]==OP_BF16HCUP && b->w[1]==10 && a->w[8]%128==0)kind=0;
         else continue;
         if(kind) { a->w[0]=95;ph_ptr(a,0x158,producer_tables[position][die][1]); }
-        else { a->w[0]=96;ph_ptr(a,0x190,producer_tables[position][die][0]); }
+        else { a->w[0]=96;ph_ptr(a,0x190,(a->w[30]&0x40000u)?producer_local_tables[position][die]:producer_tables[position][die][0]); }
         if(i+2<p->n)p->p[i+2].w[30]|=b->w[30]&2u;
         memmove(p->p+i+1,p->p+i+2,(size_t)(p->n-i-2)*sizeof *p->p);
         if(layers)memmove(layers+i+1,layers+i+2,(size_t)(p->n-i-2)*sizeof *layers);

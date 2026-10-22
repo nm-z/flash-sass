@@ -1,6 +1,7 @@
 -- Finish the shared expert's activation/quantization in the producing phase.
 -- Only its consuming warp joins producer-ready words; no grid rendezvous is
 -- introduced. The auxiliary FFNACT descriptor is skipped by the chain cursor.
+-- Match router.lua's 98-slot token epoch, with layer+49 in slots50..97.
 local f=assert(io.open(assert(arg[1])));local s=f:read('a');f:close()
 local function rep(a,b)local i=assert(s:find(a,1,true),'missing '..a);s=s:sub(1,i-1)..b..s:sub(i+#a)end
 rep('</REGISTER_MAPPING>',[=[    16,17 : sharedjoin_ptr<0-1>
@@ -27,7 +28,10 @@ local body=[=[SHARED_ACT_JOIN:
 --:-:1:-:1 LDS.64 sharedjoin_ptr0, [RZ+0xbfd8];
 --:-:1:-:1 LDS sharedjoin_layer, [RZ+0xbfe0];
 --:-:1:-:2 LDS sharedjoin_epoch, [RZ+0xbf70];
-01:-:-:-:6 XMAD sharedjoin_epoch, sharedjoin_epoch, 0x31, sharedjoin_layer;
+01:-:-:-:6 SHL sharedjoin_tmp, sharedjoin_epoch, 0x6;
+--:-:-:-:6 ISCADD sharedjoin_tmp, sharedjoin_epoch, sharedjoin_tmp, 0x5;
+--:-:-:-:6 ISCADD sharedjoin_epoch, sharedjoin_epoch, sharedjoin_tmp, 0x1;
+--:-:-:-:6 IADD sharedjoin_epoch, sharedjoin_epoch, sharedjoin_layer;
 --:-:-:-:6 SHL sharedjoin_tmp, cta, 0x2;
 --:-:-:-:6 IADD sharedjoin_ptr0.CC, sharedjoin_ptr0, sharedjoin_tmp;
 --:-:-:-:6 IADD.X sharedjoin_ptr1, sharedjoin_ptr1, RZ;

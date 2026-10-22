@@ -166,6 +166,7 @@ int main(int argc,char **argv) {
     if(!getenv("GPUQ_JOB_ID")) fail("run inside gpuq");
     int pair_cost=getenv("BENCH_PAIR_COST") && atoi(getenv("BENCH_PAIR_COST"));
     int collect_mismatches=getenv("BENCH_COLLECT_MISMATCHES") && atoi(getenv("BENCH_COLLECT_MISMATCHES"));
+    int repeatability=getenv("BENCH_REPEATABILITY") && atoi(getenv("BENCH_REPEATABILITY"));
     int verify_stream=getenv("BENCH_VERIFY_STREAM") && atoi(getenv("BENCH_VERIFY_STREAM"));
     int prefix_hash=getenv("BENCH_PREFIX_HASH") && atoi(getenv("BENCH_PREFIX_HASH"));
     int candidate_only=getenv("BENCH_CANDIDATE_ONLY") && atoi(getenv("BENCH_CANDIDATE_ONLY"));
@@ -242,6 +243,7 @@ int main(int argc,char **argv) {
         snprintf(restore_command,sizeof restore_command,"reload %s FLASH_CUBIN=%s FLASH_ENGINE_MAXT=%s FLASH_MAXIMG=%s FLASH_ROPE_OWNER=%s FLASH_TWO_POSITION=%s FLASH_PREFILL_CHUNK=%s FLASH_ATTN_Q_SPLIT=%s FLASH_TRACE=%s FLASH_PLE_FILE=%s FLASH_FUSED_MOE=0 FLASH_FAST_EXCHANGE=0 FLASH_CHUNK_PREFILL=0 FLASH_VERIFY_STREAM=0",argv[6],argv[7],maxt,img,rope,pairs,chunk,qs,trace,ple);
         size_t rused=strlen(restore_command);
         snprintf(restore_command+rused,sizeof restore_command-rused," FLASH_PREFIX_HASH=0 FLASH_CHUNK_CUBIN= FLASH_PHASE_BATCH=0 FLASH_EXACT_CUBIN= FLASH_MTP_AUDIT=0 FLASH_MTP_MODEL= FLASH_MTP_CUBIN= FLASH_VERIFY_AUDIT=0 FLASH_VERIFY_STATE_CHECK=1 FLASH_LAYERS=%d FLASH_NBLK=%s FLASH_KV_HOST=%s FLASH_PLE_READERS=%s",atoi(layers),blocks,kv,readers);
+        rused=strlen(restore_command);snprintf(restore_command+rused,sizeof restore_command-rused," FLASH_XTRACE=0 FLASH_GR_REPLICATE_FFN=0");
         char old_gr[16];value(before_config,"fused_gr","0",old_gr,sizeof old_gr);
         rused=strlen(restore_command);snprintf(restore_command+rused,sizeof restore_command-rused," FLASH_FUSED_GR=%s",old_gr);
         char old_residual[64];value(before_config,"residual_storage","fp32",old_residual,sizeof old_residual);
@@ -272,6 +274,9 @@ int main(int argc,char **argv) {
     }
     unsigned completed_runs=0;
     for(int arm=candidate_only?1:0;arm<2;arm++) {
+        if(repeatability)have=0;
+        unsigned long long state_reference[6][48]={{0}};
+        unsigned char state_seen[6][48]={{0}};
         FILE *f;
         if(resident) {
             active=connect_core(); if(!active) fail("reload connection");
@@ -330,13 +335,15 @@ int main(int argc,char **argv) {
             if(getenv("BENCH_PHASE_WATCH") && atoi(getenv("BENCH_PHASE_WATCH"))) {
                 size_t used=strlen(cmd);snprintf(cmd+used,sizeof cmd-used," FLASH_PHASE_WATCH=1 FLASH_WATCHDOG_S=30");
             }
+            {size_t used=strlen(cmd);snprintf(cmd+used,sizeof cmd-used," FLASH_XTRACE=%d",getenv("BENCH_XTRACE")?atoi(getenv("BENCH_XTRACE")):0);}
+            {size_t used=strlen(cmd);snprintf(cmd+used,sizeof cmd-used," FLASH_GR_REPLICATE_FFN=%d",arm&&getenv("BENCH_GR_REPLICA_FFN")?atoi(getenv("BENCH_GR_REPLICA_FFN")):0);}
             command(active,cmd); fclose(active); active=NULL;
             f=connect_core(); if(!f) fail("post-reload connection"); active=f;
         } else { f=start(argv[1],argv[2],argv[3+arm],arm); active=f; }
         const char *name=kernel_only?(arm?"kernel-candidate":"baseline"):verify_rollback?(arm?"rollback-audit":"baseline"):mtp_audit?(arm?(mtp_audit==4?"dflash2-full-model":mtp_audit==3?"mtp-full-model":mtp_audit==2?"mtp-rollout":"mtp-shadow"):"baseline"):pair_cost?(arm?"paired-full-head":"scalar-full-head"):exact_batch?(arm?"exact-b8":"production-b2"):(arm?(native_chunk?"native-chunk":"fused"):"baseline");
         const char *workload=mtp_audit==4?"dflash2-full-model-unchecked":mtp_audit==3?"mtp-full-model-unchecked":mtp_audit==2?"mtp-unchecked-rollout":verify_rollback?"rollback-state-diagnostic":mtp_audit?"draft-shadow-diagnostic":pair_cost?"teacher_forced":candidate_only?(generate==1&&prefix_hash?"native-prefix-repeatability":"decode-repeatability"):"decode";
         if(getenv("BENCH_CUDA_DEBUG") && atoi(getenv("BENCH_CUDA_DEBUG")))workload="cuda-debug-diagnostic";
-        printf("{\"arm\":\"%s\",\"workload\":\"%s\",\"prompt_tokens\":%d,\"generated_tokens\":%d,\"warmup_runs\":%d,\"baseline_compared\":%s,\"reference_kind\":\"%s\"}\n",name,workload,pair_cost?positions:64*prompt_copies,pair_cost?1:generate,arm&&verify_matrix?8:1,candidate_only?"false":"true",mtp_audit>=2?"none":reference?"frozen_scalar":"first_run");
+        printf("{\"arm\":\"%s\",\"workload\":\"%s\",\"prompt_tokens\":%d,\"generated_tokens\":%d,\"warmup_runs\":%d,\"baseline_compared\":%s,\"reference_kind\":\"%s\"}\n",name,repeatability?"same_kernel_repeatability":workload,pair_cost?positions:64*prompt_copies,pair_cost?1:generate,arm&&verify_matrix?8:1,(candidate_only||repeatability)?"false":"true",repeatability?"first_request_same_kernel":mtp_audit>=2?"none":reference?"frozen_scalar":"first_run");
         if(mtp_audit>=2)command(f,"config");
         else check_scope(f,mtp_audit?arm:-1,verify_rollback?(arm?verify_rollback:0):-1);
         command(f,"stop");
@@ -382,6 +389,24 @@ int main(int argc,char **argv) {
             }
             free(line); fflush(stdout);
             if(!done||n!=positions) fail("incomplete generation");
+            if(getenv("BENCH_STATE_HASH") && atoi(getenv("BENCH_STATE_HASH"))) {
+                fputs("statehash\n",f);fflush(f);char *hl=NULL;size_t hc=0;int hd=0;
+                unsigned state_rows=0,state_errors=0;
+                while(getline(&hl,&hc,f)>0){
+                    fputs(hl,stdout);if(!strcmp(hl,"statehash done\n")){hd=1;break;}
+                    int sd,sl;unsigned long long sh;
+                    /* GDN state has no unused positional padding. QSA's combined
+                     * hash includes stale padding, so it is not an equality oracle. */
+                    if(sscanf(hl,"statehash die=%d layer=%d state=%llx",&sd,&sl,&sh)==3 && sd>=0 && sd<6 && sl>=0 && sl<48 && sl%4!=3){
+                        state_rows++;
+                        if(state_seen[sd][sl] && state_reference[sd][sl]!=sh){state_errors++;mismatches++;}
+                        if(!state_seen[sd][sl]){state_reference[sd][sl]=sh;state_seen[sd][sl]=1;}
+                    }
+                }
+                free(hl);if(!hd)fail("incomplete state hash readback");
+                if(state_rows!=216)fail("incomplete full-model GDN state coverage");
+                printf("stateaudit arm=%s run=%d rows=%u mismatches=%u reference=first_request_same_kernel\n",name,run_id,state_rows,state_errors);
+            }
             if(mtp_audit>=2)printf("{\"arm\":\"%s\",\"run\":%d,\"correctness_checked\":false,\"generated_tokens\":%d}\n",name,run_id,n);
             else printf("{\"arm\":\"%s\",\"run\":%d,\"output_mismatches\":%u,\"correct\":%s}\n",name,run_id,run_mismatches,run_mismatches?"false":"true");
             if(exact_batch) {
@@ -426,6 +451,19 @@ int main(int argc,char **argv) {
                 prefix_mismatches+=changed;
             }
             have=1;completed_runs++;
+            if(repeatability) {
+                fputs("tokenaudit\n",f);fflush(f);char *audit_line=NULL;size_t audit_cap=0;int complete=0;
+                while(getline(&audit_line,&audit_cap,f)>0) {
+                    fputs(audit_line,stdout);
+                    if(!strncmp(audit_line,"error:",6))fail("tokenaudit unavailable");
+                    if(!strncmp(audit_line,"tokenaudit_end",14)){
+                        unsigned audit_count,stream_bad,peer_bad;
+                        if(sscanf(audit_line,"tokenaudit_end count=%u stream_mismatches=%u peer_mismatches=%u",&audit_count,&stream_bad,&peer_bad)!=3 || audit_count!=(unsigned)generate)fail("tokenaudit coverage");
+                        mismatches+=stream_bad+peer_bad;complete=1;break;
+                    }
+                }
+                free(audit_line);if(!complete)fail("tokenaudit incomplete");
+            }
         }
         }
         if(getenv("BENCH_PROFILE") && atoi(getenv("BENCH_PROFILE")))for(int d=0;d<6;d++) {
@@ -433,6 +471,20 @@ int main(int argc,char **argv) {
             char *row=NULL;size_t capacity=0;
             while(getline(&row,&capacity,f)>0) { fputs(row,stdout);if(!strncmp(row,"  longest:",10))break; }
             free(row);
+        }
+        if(getenv("BENCH_XTRACE") && atoi(getenv("BENCH_XTRACE")))for(int d=0;d<6;d++) {
+            printf("xtrace arm=%s die=%d\n",name,d);fprintf(f,"xtrace %d\n",d);fflush(f);
+            char *row=NULL;size_t capacity=0;int complete=0;
+            while(getline(&row,&capacity,f)>0) {
+                fputs(row,stdout);
+                if(!strncmp(row,"error:",6))fail("exchange trace unavailable");
+                if(!strncmp(row,"xtrace_end",10)){
+                    int td;unsigned records,invalid;
+                    if(sscanf(row,"xtrace_end die=%d records=%u invalid=%u",&td,&records,&invalid)!=3 || td!=d || !records || invalid)fail("exchange trace incomplete");
+                    complete=1;break;
+                }
+            }
+            free(row);if(!complete)fail("exchange trace EOF");
         }
         if(!resident) { fputs("quit\n",f); fflush(f); }
         fclose(f); active=NULL;
@@ -444,8 +496,9 @@ int main(int argc,char **argv) {
     if(getenv("BENCH_KEEP_LOADED") && atoi(getenv("BENCH_KEEP_LOADED")) && (mtp_audit>=3 || plain_decode) && candidate_only) { restore_pending=0;puts("deployment: measured full-model engine remains loaded"); }
     if(restore()) return 1;
     if(prefix_mismatches) { fprintf(stderr,"resident_decode_bench: FAILED, %u prefix-state mismatches\n",prefix_mismatches);return 1; }
-    if(mismatches) { fprintf(stderr,"resident_decode_bench: FAILED, %u output mismatches; timings are diagnostic only\n",mismatches); return 1; }
-    if(mtp_audit>=2)printf("resident_decode_bench: unchecked MTP execution completed; no target verification, acceptance, or output comparison\n");
+    if(mismatches) { fprintf(stderr,"resident_decode_bench: FAILED, %u output/state/consensus mismatches; timings are diagnostic only\n",mismatches); return 1; }
+    if(repeatability)printf("resident_decode_bench: same-kernel repeatability and GPU/stream consensus PASS; no cross-kernel oracle comparison\n");
+    else if(mtp_audit>=2)printf("resident_decode_bench: unchecked MTP execution completed; no target verification, acceptance, or output comparison\n");
     else if(candidate_only && reference) printf("resident_decode_bench: %u %d-position output(s) match frozen scalar reference; no matched live A/B\n",completed_runs,positions);
     else if(candidate_only) printf("resident_decode_bench: candidate repeatability PASS; no independent output reference or matched live A/B\n");
     else printf("resident_decode_bench: all %u %d-position outputs match\n",completed_runs,positions);

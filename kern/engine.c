@@ -105,11 +105,14 @@ static CUdeviceptr verify_dn[7][MAXD][NB],verify_conv[7][MAXD][NB],verify_ring[7
 static unsigned program_capacity = 4096, active_program_positions = 1;
 static unsigned allocated_positions = 1;
 static int producer_quant,group_matrices,residual_fp8;
+static int gr_replicate_ffn;
 static uint32_t *phase_watch;
 #include "phase/ownership.h"
+#include "phase/gr_replica.h"
 static unsigned gr_fusions;
 static CUdeviceptr embedding_tables[8];
 static CUdeviceptr producer_tables[8][MAXD][2],residual_encoded[8][MAXD][2];
+static CUdeviceptr producer_local_tables[8][MAXD];
 static CUdeviceptr phase_gr_sum_cache[MAXD];
 #ifdef FLASH_DFLASH_NATIVE
 static int dflash_enabled;
@@ -162,6 +165,8 @@ static void check_fused_moe_module(CUmodule module) {
     if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_phase_exchange_join_abi_v1"));
     if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_phase_gr_cache_abi_v1"));
     if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_phase_amax_schedule_abi_v1"));
+    if(getenv("FLASH_XTRACE") && atoi(getenv("FLASH_XTRACE")))CK(cuModuleGetFunction(&marker,module,"flash_exchange_trace_abi_v1"));
+    if(gr_replicate_ffn)CK(cuModuleGetFunction(&marker,module,"flash_gr_local_abi_v1"));
     if(residual_fp8)CK(cuModuleGetFunction(&marker,module,"flash_fp8_residual_abi_v1"));
 #ifdef FLASH_CHUNK_NATIVE
 	const char *chunk_image = getenv("FLASH_CHUNK_CUBIN");
@@ -223,6 +228,7 @@ static CUdeviceptr (*snap_dn)[NB], (*snap_conv)[NB], snap_ple[MAXD];
 static uint32_t *snap_ids; static int snap_s;
 static int embed_die;   /* the die that holds token_embd (the lowest one when several do) */
 static CUdeviceptr dTRACE[MAXD]; static unsigned trace_n, trace_first, trace_valid;
+static CUdeviceptr dXTRACE[MAXD];static unsigned xtrace_n,xtrace_first,xtrace_count;
 static uint64_t trace_request;
 static const char *trace_status = "none";
 static uint64_t trace_requested;
@@ -248,6 +254,33 @@ static uint32_t prof_units[MAXD][4096], prof_flags[MAXD][4096];
 static uint32_t prof_op[MAXD][4096], prof_index[MAXD][4096];
 static unsigned prof_producer_fusions[MAXD],prof_matrix_groups[MAXD],prof_gr_fusions[MAXD],prof_local_fusions[MAXD],prof_publications[MAXD];
 static int prof_nph[MAXD]; static unsigned prof_desc[MAXD];   /* every die's program of the last response, for the "prof" command */
+
+/* Post-request determinism diagnosis: distinguish GPU-die disagreement from
+ * streamed-token visibility. No model operation or sampling decision changes. */
+static void token_audit(FILE *out) {
+    unsigned start=last_timing.prompt>0?(unsigned)last_timing.prompt-1:0;
+    unsigned end=last_timing.completed>0?(unsigned)last_timing.completed:0;
+    if(!last_timing.counts_final || last_timing.error_code || end<=start || end>(unsigned)MAXT) {
+        fprintf(out,"error: tokenaudit requires a completed request\n");return;
+    }
+    unsigned n=end-start;uint32_t *tokens=malloc((size_t)nd*n*4);
+    if(!tokens){fprintf(out,"error: tokenaudit allocation\n");return;}
+    for(int d=0;d<nd;d++){CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoH(tokens+(size_t)d*n,db[d].toks+4ull*start,4ull*n));}
+    unsigned stream=0,peer=0;
+    for(unsigned i=0;i<n;i++) {
+        if(tokens[i]!=h_toks[start+i]) {if(stream<4)fprintf(out,"tokenaudit stream position=%u delivered=%u device=%u\n",start+i,h_toks[start+i],tokens[i]);stream++;}
+        for(int d=1;d<nd;d++)if(tokens[(size_t)d*n+i]!=tokens[i]) {
+            if(peer<4)fprintf(out,"tokenaudit peer position=%u die=%d gpu0=%u gpu_die=%u\n",start+i,d,tokens[i],tokens[(size_t)d*n+i]);
+            peer++;
+        }
+    }
+    for(int d=0;d<nd;d++) {
+        uint64_t hash=UINT64_C(0xcbf29ce484222325);
+        for(unsigned i=0;i<n;i++){hash^=tokens[(size_t)d*n+i];hash*=UINT64_C(0x100000001b3);}
+        fprintf(out,"tokenaudit die=%d count=%u hash=%016llx\n",d,n,(unsigned long long)hash);
+    }
+    fprintf(out,"tokenaudit_end count=%u stream_mismatches=%u peer_mismatches=%u\n",n,stream,peer);free(tokens);
+}
 
 /* A validation-only readback, requested explicitly with `statehash`. Hash each
  * named buffer separately so paired/single passes can be compared beyond tokens. */
@@ -1019,6 +1052,17 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
             CK(cuMemcpyHtoD(dCTL[d] + 0xd0, tr, sizeof tr));
         }
     }
+
+    if(xtrace_n) {
+        xtrace_count=(unsigned)(T-nprompt+1);if(xtrace_count>xtrace_n)xtrace_count=xtrace_n;
+        xtrace_first=(unsigned)T-xtrace_count;
+        for(int d=0;d<nd;d++) {
+            CK(cuCtxSetCurrent(ctx[d]));
+            uint32_t header[4]={(uint32_t)dXTRACE[d],(uint32_t)(dXTRACE[d]>>32),xtrace_first,xtrace_count};
+            CK(cuMemsetD8(dXTRACE[d],0,(size_t)xtrace_count*nph[d]*2048));
+            CK(cuMemcpyHtoD(dCTL[d]+0xe8,header,sizeof header));
+        }
+    }
 	double t1 = now();
     timing_run_start=t1;last_timing.build_ms=(t1-timing_request_start)*1e3;last_timing.run_ms=0;
 	runctx r = { .T = T, .nprompt = nprompt, .sent = nprompt - 1, .count = resume, .cb = cb };
@@ -1174,6 +1218,8 @@ static void split_attention_queries(void) {
 int engine_init(core_t *c) {
 	trace_n = getenv("FLASH_TRACE") ? (unsigned)strtoul(getenv("FLASH_TRACE"), NULL, 10) : 0;
 	if (trace_n > 256) { fprintf(stderr, "FLASH_TRACE must be 0..256\n"); return -1; }
+    xtrace_n=getenv("FLASH_XTRACE")?(unsigned)strtoul(getenv("FLASH_XTRACE"),NULL,10):0;
+    if(xtrace_n>16){fprintf(stderr,"FLASH_XTRACE must be 0..16\n");return -1;}
 	if (c->abi != CORE_ABI) { fprintf(stderr, "engine: the core speaks ABI %d, this library was built for %d\n", c->abi, CORE_ABI); return -1; }
 	core = c; in_init = 1;
 	if (setjmp(init_jb)) { in_init = 0; engine_fini(); return -1; }
@@ -1199,6 +1245,10 @@ int engine_init(core_t *c) {
     producer_quant=getenv("FLASH_PRODUCER_QUANT") && atoi(getenv("FLASH_PRODUCER_QUANT"));
     group_matrices=getenv("FLASH_MATRIX_GROUP") && atoi(getenv("FLASH_MATRIX_GROUP"));
     residual_fp8=getenv("FLASH_RESIDUAL_FP8") && atoi(getenv("FLASH_RESIDUAL_FP8"));
+    gr_replicate_ffn=getenv("FLASH_GR_REPLICATE_FFN")?atoi(getenv("FLASH_GR_REPLICATE_FFN")):0;
+    if(gr_replicate_ffn<0 || gr_replicate_ffn>48 || (gr_replicate_ffn && (!producer_quant || getenv("PROG_NOHCUP") || getenv("PROG_NORMSFUSE")))) {
+        fprintf(stderr,"engine: GR replication requires production quantization, standard GR kernels, and a layer count 0..48\n");in_init=0;return -1;
+    }
     if(group_matrices || producer_quant)two_position=0;
 #ifdef FLASH_MTP_NATIVE
 	if(getenv("FLASH_MTP_AUDIT") && !strcmp(getenv("FLASH_MTP_AUDIT"),"3"))two_position=1;
@@ -1343,7 +1393,12 @@ int engine_init(core_t *c) {
 		dn_bufs_t *b = &db[d]; memset(b, 0, sizeof *b);
 		unsigned nlocmax = 128u * (2u * (unsigned)s0.nk + (unsigned)s0.hn)   /* q, k of the die's key heads, v of its value heads */, cols = 32u * (unsigned)s0.cbn, hrows = 128u * (unsigned)s0.hn;
 		b->S = dalloc(4 * 10240); b->S2 = dalloc(4 * 10240); b->xh = dalloc(4 * 10240); b->t = dalloc(4 * 324);
-		b->ldown = dalloc(4 * 324); b->lup = dalloc(4 * 4 * cols); b->lz = dalloc(4 * cols);
+		b->ldown = dalloc(4 * 324); b->lup = dalloc(4 * 4 * (gr_replicate_ffn?2560:cols)); b->lz = dalloc(4 * (gr_replicate_ffn?2560:cols));
+        if(gr_replicate_ffn) {
+            CUdeviceptr down[6],up[6];for(int e=0;e<6;e++){down[e]=b->ldown;up[e]=b->lz;}
+            b->gr_local_down_table=dalloc(sizeof down);b->gr_local_up_table=dalloc(sizeof up);
+            CK(cuMemcpyHtoD(b->gr_local_down_table,down,sizeof down));CK(cuMemcpyHtoD(b->gr_local_up_table,up,sizeof up));
+        }
 		b->zq = dalloc(2 * 2560); b->zs32 = dalloc(4 * 80); b->zs16 = dalloc(4 * 160); b->zas = dalloc(4 * 80);
 		b->lqkv = dalloc(4 * nlocmax); b->lgate = dalloc(4 * hrows); b->la = dalloc(4 * 2u * (unsigned)s0.hn); b->lu = dalloc(4 * nlocmax); b->lo = dalloc(4 * hrows); b->lon = dalloc(4 * hrows);
 		b->oq = dalloc(2 * 6144); b->os32 = dalloc(4 * 192); b->os16 = dalloc(4 * 384); b->oas = dalloc(4 * 192);
@@ -1380,6 +1435,7 @@ int engine_init(core_t *c) {
 			dn_weights_t *w = &dw[d][bb]; int is_attn = BLK_IS_ATTN(bb);
 			w->hc_attn_norm = dptr(d, bb, "hc_attn_norm.weight"); w->hc_attn_dj = dptr(d, bb, "hc_attn_dj.weight"); w->hc_attn_up = dptr(d, bb, "hc_attn_up.weight");
 			w->hc_ffn_norm = dptr(d, bb, "hc_ffn_norm.weight"); w->hc_ffn_dj = dptr(d, bb, "hc_ffn_dj.weight"); w->hc_ffn_up = dptr(d, bb, "hc_ffn_up.weight");
+            if(bb<gr_replicate_ffn){w->hc_ffn_dj=replicate_gr_matrix(d,bb,0);w->hc_ffn_up=replicate_gr_matrix(d,bb,1);w->hc_ffn_replicated=1;}
 			if (!is_attn) {
 				w->attn_qkv = dptr(d, bb, "attn_qkv.weight"); w->attn_qkv_type = ttype(bb, "attn_qkv.weight");
 				w->attn_gate = dptr(d, bb, "attn_gate.weight"); w->attn_gate_type = ttype(bb, "attn_gate.weight");
@@ -1430,6 +1486,7 @@ int engine_init(core_t *c) {
 		uint32_t fl[96]; for (int e = 0; e < 96; e++) fl[e] = e / 16 < nd ? 0u : 0xffffffffu;
 		CK(cuMemcpyHtoD(x->flags, fl, sizeof fl));
 		if (trace_n) dTRACE[d] = dalloc((size_t)trace_n * 4096 * 64);
+        if(xtrace_n)dXTRACE[d]=dalloc((size_t)xtrace_n*4096*2048);
 		dPROG[d] = dalloc(sizeof(phase_t) * program_capacity);
 		dCTL[d] = dalloc(0x100 + 4 * (program_capacity < 8192 ? 8192 : program_capacity));
 		x->xgen = dCTL[d] + 0x20;
@@ -1446,6 +1503,11 @@ int engine_init(core_t *c) {
         CUdeviceptr table[6][4];
         for(int e=0;e<6;e++){const dn_bufs_t *b=position_buf(e,p);table[e][0]=kind?b->oq:b->zq;table[e][1]=kind?b->os32:b->zs32;table[e][2]=kind?b->os16:b->zs16;table[e][3]=kind?b->oas:b->zas;}
         for(int d=0;d<nd;d++){CK(cuCtxSetCurrent(ctx[d]));producer_tables[p][d][kind]=dalloc(sizeof table);CK(cuMemcpyHtoD(producer_tables[p][d][kind],table,sizeof table));}
+    }
+    if(gr_replicate_ffn)for(unsigned p=0;p<allocated_positions;p++)for(int d=0;d<nd;d++) {
+        CUdeviceptr table[6][4];const dn_bufs_t *b=position_buf(d,p);
+        for(int e=0;e<6;e++){table[e][0]=b->zq;table[e][1]=b->zs32;table[e][2]=b->zs16;table[e][3]=b->zas;}
+        CK(cuCtxSetCurrent(ctx[d]));producer_local_tables[p][d]=dalloc(sizeof table);CK(cuMemcpyHtoD(producer_local_tables[p][d],table,sizeof table));
     }
     if(producer_quant)for(unsigned p=0;p<allocated_positions;p++) {
         CUdeviceptr targets[6];for(int e=0;e<6;e++)targets[e]=position_buf(e,p)->S;
@@ -1539,6 +1601,8 @@ void engine_fini(void) {
 	free(h_imap); h_imap = NULL; imap_dirty = rope_dirty_T = 0;
 	memset(db, 0, sizeof db); memset(xc, 0, sizeof xc); memset(dPROG, 0, sizeof dPROG); memset(dCTL, 0, sizeof dCTL); memset(dst_ple, 0, sizeof dst_ple);
 	memset(dTRACE, 0, sizeof dTRACE); trace_n = trace_valid = 0;
+    memset(dXTRACE,0,sizeof dXTRACE);xtrace_n=xtrace_first=xtrace_count=0;
+    memset(producer_local_tables,0,sizeof producer_local_tables);gr_replicate_ffn=0;
 	memset(db_pair, 0, sizeof db_pair); memset(xc_pair, 0, sizeof xc_pair); two_position = prefill_chunk = 0;
 	allocated_positions = active_program_positions = 1; program_capacity = 4096;
     memset(embedding_tables,0,sizeof embedding_tables);memset(producer_tables,0,sizeof producer_tables);memset(residual_encoded,0,sizeof residual_encoded);
@@ -1581,6 +1645,7 @@ static char reload_path[1024];
 const char *engine_reload_path(void) { return reload_path[0] ? reload_path : NULL; }
 
 #include "trace_host.inc"
+#include "phase/exchange_host.inc"
 
 int engine_session(FILE *in, FILE *out) {
 	last_timing_valid=0;
@@ -1634,6 +1699,7 @@ int engine_session(FILE *in, FILE *out) {
 		}
 		if (!strncmp(p, "trace", 5)) { trace_dump(out, atoi(p + 5)); fflush(out); continue; }
 		if (!strncmp(p, "hosttrace", 9)) { host_trace_dump(out); fflush(out); continue; }
+        if(!strncmp(p,"xtrace ",7)){exchange_trace_dump(out,atoi(p+7));fflush(out);continue;}
 		if (!strncmp(p, "prof", 4)) {   /* where the last token of the last response spent its time, from the phase timestamps CTA 0 writes at each phase end */
 			int pd = atoi(p + 4); if (pd < 0 || pd >= nd) pd = 0; const int nph_ = prof_nph[pd]; const uint32_t *pop = prof_op[pd];   /* prof [die] */
 			uint32_t *ts = malloc(4 * (size_t)(prof_desc[pd] ? prof_desc[pd] : 1));
@@ -1663,6 +1729,7 @@ int engine_session(FILE *in, FILE *out) {
 			fprintf(out, "\n"); fflush(out); free(ts); continue;
 		}
 		if (!strncmp(p, "statehash", 9)) { state_hashes(out); continue; }
+        if(!strncmp(p,"tokenaudit",10)){token_audit(out);fflush(out);continue;}
 #ifdef FLASH_VERIFY_NATIVE
 		if (!strncmp(p,"verifystats",11)) { verify_stats(out);continue; }
 		if (!strncmp(p,"verifykeep ",11)) {
@@ -1702,7 +1769,7 @@ int engine_session(FILE *in, FILE *out) {
 			fprintf(out, "config rev=%s kv_host=%d kv_trace=%d ple_disk=%d ple_readers=%u ple_file=%s ple_cache=%s maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u rope_owner=%d trace_tokens=%u two_position=%d prefill_chunk=%d attn_q_split=%u attn_q_mask=%x cubin=%s cubin_fnv=%016llx",
 			        FLASH_REV, kv_host, kv_trace, ple_disk, ple_disk ? ple_readers : 0, ple_cache_active ? ple_cache_path : "core", ple_cache_path[0] ? ple_cache_path : "core", MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, rope_owner, trace_n, two_position, prefill_chunk, attn_q_split_mode, attn_q_split_mask, cubin_path, (unsigned long long)cubin_fnv);
             fprintf(out," runtime_attn_map=%s balanced=%d",runtime_map,phase_attention_balanced());
-            fprintf(out," residual_storage=%s fused_gr=%d producer_quant=%d matrix_group=%d",residual_fp8?"fp8":"fp32",getenv("FLASH_FUSED_GR")?atoi(getenv("FLASH_FUSED_GR")):0,producer_quant,group_matrices);
+            fprintf(out," residual_storage=%s fused_gr=%d producer_quant=%d matrix_group=%d gr_replica_ffn=%d xtrace=%u",residual_fp8?"fp8":"fp32",getenv("FLASH_FUSED_GR")?atoi(getenv("FLASH_FUSED_GR")):0,producer_quant,group_matrices,gr_replicate_ffn,xtrace_n);
 #ifdef FLASH_CHUNK_NATIVE
 			fprintf(out, " native_chunk=%u chunk_maxt=%u prefix_hash=%d chunk_cubin=%s chunk_cubin_fnv=%016llx", chunk_ldx, chunk_ldx ? chunk_maxt : 0, getenv("FLASH_PREFIX_HASH") && atoi(getenv("FLASH_PREFIX_HASH")), chunk_ldx ? (chunk_mod[0] ? chunk_cubin_path : cubin_path) : "none", (unsigned long long)(chunk_ldx ? (chunk_mod[0] ? chunk_cubin_fnv : cubin_fnv) : 0));
 #endif
