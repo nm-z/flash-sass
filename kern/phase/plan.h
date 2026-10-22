@@ -1,3 +1,4 @@
+#define PHASE_EXCHANGE_JOIN_FLAG 0x20000u
 static unsigned phase_producer_fusions,phase_matrix_groups;
 static unsigned producer_fuse(prog_t *p,unsigned position,int die,int *layers) {
     unsigned count=0;if(!producer_quant)return 0;
@@ -370,4 +371,26 @@ static unsigned phase_edges_fuse(prog_t *p,unsigned position,int die,int *layers
         p->n--;count++;
     }
     return count;
+}
+
+/* The following exchange acquire includes this die's own sixteen producer
+ * flags. Do not also poll the local grid immediately after publishing those
+ * same flags. The footer still fences stores, publishes every block's flag,
+ * advances GEN/XG, and hands the descriptor state to the next operation. */
+static void phase_reduce_waits(prog_t *p) {
+    if(!producer_quant)return;
+    for(int i=0;i<p->n;) {
+        phase_t *a=p->p+i;
+        unsigned encoded=(a->w[30]>>8)&255u;
+        unsigned width=(a->w[30]&8u)?(encoded?encoded:2u):1u;
+        int next=i+(int)width;
+        if(next<p->n && (a->w[30]&1u) && !(a->w[30]&4u) &&
+           (p->p[next].w[30]&2u))a->w[30]|=PHASE_EXCHANGE_JOIN_FLAG;
+        /* PLE key/query RMS does not feed the following raw-row value GEMV.
+         * Its block is joined by that GEMV's subsequent exchange acquire. */
+        if(next<p->n && a->w[0]==OP_RMS2560 && width==2 &&
+           a[1].w[0]==OP_RMS2560 && p->p[next].w[0]==OP_BF16K2560 &&
+           (p->p[next].w[30]&1u))a->w[30]|=4u;
+        i=next;
+    }
 }

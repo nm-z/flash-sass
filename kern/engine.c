@@ -110,6 +110,7 @@ static uint32_t *phase_watch;
 static unsigned gr_fusions;
 static CUdeviceptr embedding_tables[8];
 static CUdeviceptr producer_tables[8][MAXD][2],residual_encoded[8][MAXD][2];
+static CUdeviceptr phase_gr_sum_cache[MAXD];
 #ifdef FLASH_DFLASH_NATIVE
 static int dflash_enabled;
 static CUdeviceptr dflash_capture[2][MAXD][5];
@@ -158,6 +159,9 @@ static void check_fused_moe_module(CUmodule module) {
 	CUfunction marker;
     if(getenv("FLASH_FUSED_GR") && atoi(getenv("FLASH_FUSED_GR")))CK(cuModuleGetFunction(&marker,module,"flash_gr_read_sum_abi_v1"));
     if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_phase_fused_abi_v6"));
+    if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_phase_exchange_join_abi_v1"));
+    if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_phase_gr_cache_abi_v1"));
+    if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_phase_amax_schedule_abi_v1"));
     if(residual_fp8)CK(cuModuleGetFunction(&marker,module,"flash_fp8_residual_abi_v1"));
 #ifdef FLASH_CHUNK_NATIVE
 	const char *chunk_image = getenv("FLASH_CHUNK_CUBIN");
@@ -428,7 +432,7 @@ static void state_copy(int to_snapshot) {
 #include "fp8/storage.h"
 static CUdeviceptr gr_pointer(const phase_t *p,unsigned word) { uint64_t v;memcpy(&v,&p->w[word],8);return v; }
 #include "phase/plan.h"
-static unsigned fuse_gr_write_read(prog_t *p,int *layers) {
+static unsigned fuse_gr_write_read(prog_t *p,int *layers,int die) {
     unsigned fused=0;
 #ifdef FLASH_EXACT_BATCH
     if(!getenv("FLASH_FUSED_GR") || !atoi(getenv("FLASH_FUSED_GR")))return 0;
@@ -438,12 +442,13 @@ static unsigned fuse_gr_write_read(prog_t *p,int *layers) {
         phase_t merged=*b;merged.w[0]=EXACT_OP_COUNT;
         ph_ptr(&merged,0x148,gr_pointer(a,14));ph_ptr(&merged,0x160,gr_pointer(a,6));
         ph_ptr(&merged,0x1a0,gr_pointer(a,4));ph_ptr(&merged,0x1a8,gr_pointer(a,2));
+        if(producer_quant)ph_ptr(&merged,0x180,phase_gr_sum_cache[die]);
         merged.w[30]|=a->w[30]&2u;p->p[i]=merged;
         if(layers){layers[i]=layers[i+1];memmove(layers+i+1,layers+i+2,(size_t)(p->n-i-2)*sizeof *layers);}
         memmove(p->p+i+1,p->p+i+2,(size_t)(p->n-i-2)*sizeof *p->p);p->n--;fused++;
     }
 #else
-    (void)p;(void)layers;
+    (void)p;(void)layers;(void)die;
 #endif
     return fused;
 }
@@ -490,7 +495,7 @@ static void model_program(prog_t *P, int d, unsigned position, unsigned nprompt,
 	if (include_head) prog_head(P, &sp[d][0], x, &dw[d][0], b, eps, 0, nprompt);
 	prog_token_end(P, x, d, nd, b->S);
     int *layers=!position && !checkpoints?prof_layer[d]:NULL;
-    gr_fusions=fuse_gr_write_read(P,layers);
+    gr_fusions=fuse_gr_write_read(P,layers,d);
     phase_producer_fusions=producer_fuse(P,position,d,layers);
     phase_local_fuse(P,layers);phase_attention_fuse(P,position,d,layers);
     phase_publish_fuse(P,layers);phase_gdn_fuse(P,layers);phase_router_fuse(P,layers);
@@ -500,6 +505,7 @@ static void model_program(prog_t *P, int d, unsigned position, unsigned nprompt,
     phase_ple_rows_fuse(P,layers);
     phase_edges_fuse(P,position,d,layers);
     phase_matrix_groups=matrix_group(P);
+    phase_reduce_waits(P);
     if(residual_fp8){CUdeviceptr work[2]={b->S,b->S2};fp8_program(P,work,residual_encoded[position][d],2,10240,0,layers);}
 }
 
@@ -1447,6 +1453,9 @@ int engine_init(core_t *c) {
         CK(cuMemcpyHtoD(embedding_tables[p],targets,sizeof targets));
     }
     if(residual_fp8)for(unsigned p=0;p<allocated_positions;p++)for(int d=0;d<nd;d++){CK(cuCtxSetCurrent(ctx[d]));for(unsigned k=0;k<2;k++)residual_encoded[p][d][k]=dalloc(fp8_bytes(10240));}
+    if(producer_quant)for(int d=0;d<nd;d++) {
+        CK(cuCtxSetCurrent(ctx[d]));phase_gr_sum_cache[d]=dalloc(16u*2560u*sizeof(float));
+    }
 	uint64_t tab[12] = { 0 };
 	for (int d = 0; d < 6; d++) { tab[d] = (uint64_t)xc[d < nd ? d : 0].inbox; tab[6 + d] = (uint64_t)xc[d < nd ? d : 0].flags; }
 	for (int d = 0; d < nd; d++) {
@@ -1533,6 +1542,7 @@ void engine_fini(void) {
 	memset(db_pair, 0, sizeof db_pair); memset(xc_pair, 0, sizeof xc_pair); two_position = prefill_chunk = 0;
 	allocated_positions = active_program_positions = 1; program_capacity = 4096;
     memset(embedding_tables,0,sizeof embedding_tables);memset(producer_tables,0,sizeof producer_tables);memset(residual_encoded,0,sizeof residual_encoded);
+    memset(phase_gr_sum_cache,0,sizeof phase_gr_sum_cache);
     producer_quant=group_matrices=residual_fp8=0;
 	core = NULL;
 }
@@ -1640,6 +1650,13 @@ int engine_session(FILE *in, FILE *out) {
 			}
 			fprintf(out, "prof: %d phases, %.2f ms between the first and last timestamp\n", nph_, all / 1e3);
 			fprintf(out,"  structural: producer_quant_fusions=%u matrix_groups=%u residual_fusions=%u local_fusions=%u producer_publications=%u\n",prof_producer_fusions[pd],prof_matrix_groups[pd],prof_gr_fusions[pd],prof_local_fusions[pd],prof_publications[pd]);
+            unsigned grid_joins=0,peer_waits=0,joined_publications=0;
+            for(int j=0;j<nph_;j++) {
+                unsigned flags=prof_flags[pd][j];
+                grid_joins+=!(flags&(4u|PHASE_EXCHANGE_JOIN_FLAG));
+                peer_waits+=!!(flags&2u);joined_publications+=!!(flags&PHASE_EXCHANGE_JOIN_FLAG);
+            }
+            fprintf(out,"  waits: local_grid_joins=%u peer_acquires=%u joined_publications=%u\n",grid_joins,peer_waits,joined_publications);
             const int all_kinds = strstr(p, "all") != NULL;
 			for (int rep = 0; rep < (all_kinds ? 128 : 12); rep++) { int bi = -1; for (int o = 0; o < 128; o++) if (cnt[o] && (bi < 0 || tot[o] > tot[bi])) bi = o; if (bi < 0 || tot[bi] <= 0) break; fprintf(out, "  %-10s %4d phases %9.1f us (%6.1f us each)\n", profile_op_name((unsigned)bi), cnt[bi], tot[bi], tot[bi] / cnt[bi]); tot[bi] = 0; }
 			fprintf(out, "  longest:"); for (int k = 0; k < 8 && big[k] > 0; k++) fprintf(out, " #%d %s %.0f us;", big[k], profile_op_name(pop[big[k]]), (uint32_t)(ts[big[k]] - ts[big[k] - 1]) / 1e3);

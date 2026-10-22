@@ -446,7 +446,7 @@ int main(int argc,char **argv) {
     if(prefix_mismatches) { fprintf(stderr,"resident_decode_bench: FAILED, %u prefix-state mismatches\n",prefix_mismatches);return 1; }
     if(mismatches) { fprintf(stderr,"resident_decode_bench: FAILED, %u output mismatches; timings are diagnostic only\n",mismatches); return 1; }
     if(mtp_audit>=2)printf("resident_decode_bench: unchecked MTP execution completed; no target verification, acceptance, or output comparison\n");
-    else if(candidate_only && reference) printf("resident_decode_bench: four %d-position outputs match frozen scalar reference; no matched live A/B\n",positions);
+    else if(candidate_only && reference) printf("resident_decode_bench: %u %d-position output(s) match frozen scalar reference; no matched live A/B\n",completed_runs,positions);
     else if(candidate_only) printf("resident_decode_bench: candidate repeatability PASS; no independent output reference or matched live A/B\n");
     else printf("resident_decode_bench: all %u %d-position outputs match\n",completed_runs,positions);
     return 0;

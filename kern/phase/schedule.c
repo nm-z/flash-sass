@@ -38,6 +38,7 @@ int main(int argc,char **argv) {
     for(int d=0;d<nd;d++) {
         char path[1024];snprintf(path,sizeof path,"%s/hold-h%d.manifest",argv[1],d);metadata(&ar[d],path);
         symbols(d);
+        phase_gr_sum_cache[d]=symbol();
         xc[d]=(xchg_t){.inbox=symbol(),.flags=symbol(),.xtab=symbol(),.xgen=symbol()};
         producer_tables[0][d][0]=symbol();producer_tables[0][d][1]=symbol();
         for(int b=0;b<48;b++) {
@@ -63,7 +64,7 @@ int main(int argc,char **argv) {
             unsigned width=phase_descriptors(p.p+i);phase_t *a=p.p+i;
             if(a->w[0]>=128 || !width || width>(unsigned)(p.n-i))return 2;
             count[a->w[0]]++;phases++;
-            grid+=!(a->w[30]&4u);send+=!!(a->w[30]&1u);wait+=!!(a->w[30]&2u);
+            grid+=!(a->w[30]&(4u|PHASE_EXCHANGE_JOIN_FLAG));send+=!!(a->w[30]&1u);wait+=!!(a->w[30]&2u);
             if(a->w[30]&PHASE_CHAIN_FLAG && a->w[30]&PHASE_GROUP_FLAG)
                 for(unsigned k=0;k+1<width;k++)inner+=!!(a[k].w[30]&PHASE_CHAIN_BAR_FLAG);
             if(getenv("FLASH_SCHEDULE_DESCRIPTORS")) {
@@ -72,7 +73,7 @@ int main(int argc,char **argv) {
             if(getenv("FLASH_SCHEDULE_WAIT_AUDIT")) {
                 printf("wait_phase die=%d phase=%u index=%d name=%s units=%u width=%u flags=%u layer=%d grid=%u send=%u exchange_wait=%u\n",
                        d,phases-1,i,profile_op_name(a->w[0]),a->w[1],width,a->w[30],prof_layer[d][i],
-                       !(a->w[30]&4u),!!(a->w[30]&1u),!!(a->w[30]&2u));
+                       !(a->w[30]&(4u|PHASE_EXCHANGE_JOIN_FLAG)),!!(a->w[30]&1u),!!(a->w[30]&2u));
                 for(unsigned j=0;j<width;j++)
                     printf("wait_body die=%d phase=%u member=%u name=%s units=%u flags=%u\n",
                            d,phases-1,j,profile_op_name(a[j].w[0]),a[j].w[1],a[j].w[30]);

@@ -1,5 +1,7 @@
--- Publish GEMV output from the CTA that produced each row. The original XSEND
--- grid phase disappears; only a local rendezvous precedes these remote stores.
+-- Publish only rows owned by this CTA. Transpose the producer's row-subgroup
+-- layout into one row per copying lane, so a copy does not repeat the GEMV's
+-- mostly inactive lane geometry. Publication reads other producing warps, so
+-- each producer fences before the real CTA handoff. Nonpublishers skip it.
 local f=assert(io.open(assert(arg[1])));local s=f:read('a');f:close()
 local function replace(a,b)local i=assert(s:find(a,1,true),'missing '..a);s=s:sub(1,i-1)..b..s:sub(i+#a)end
 replace('</REGISTER_MAPPING>',[=[
@@ -27,7 +29,7 @@ end
 for _,item in ipairs(tags)do
  local tag,shift=item[1],item[2]
  local body=([=[
-3f:-:-:-:6 BAR.SYNC 0x0;
+3f:-:-:-:6 NOP;
 --:-:1:-:2 LDS pub_flags, [RZ+0xbff8];
 01:-:-:-:6 LOP32I.AND pub_flags, pub_flags, 0x80;
 --:-:-:-:6 ISETP.EQ.U32.AND P6, PT, pub_flags, RZ, PT;
@@ -36,24 +38,35 @@ for _,item in ipairs(tags)do
 --:-:-:-:6 NOP;
 --:-:-:-:6 @P6 BRA @_SEND_DONE;
 --:-:-:-:6 MEMBAR.GL;
+--:-:-:-:6 BAR.SYNC 0x0;
+--:-:-:-:6 MEMBAR.GL.IVALLD;
 --:-:1:-:1 LDS pub_rows, [RZ+0xbfa8];
 --:-:1:-:2 LDS pub_offset, [RZ+0xbfe0];
---:-:-:-:6 SHR.U32 pub_row, tid, 0x%GROUP%;
---:-:-:-:6 ISCADD pub_row, cta, pub_row, 0x%SHIFT%;
---:-:-:-:6 LOP32I.AND pub_tmp, tid, 0x%MASK%;
---:-:-:-:6 ISETP.EQ.U32.AND P4, PT, pub_tmp, RZ, PT;
---:-:-:-:6 MOV32I pub_step, 0x%STEP%;
---:-:-:-:6 NOP;
---:-:-:-:6 NOP;
+--:-:-:-:6 SHR.U32 pub_tmp, tid, 0x%SHIFT%;
+--:-:-:-:6 SHL pub_row, pub_tmp, 0x%TILESHIFT%;
 --:-:-:-:6 SHL pub_base, cta, 0x%SHIFT%;
+--:-:-:-:6 IADD pub_row, pub_row, pub_base;
+--:-:-:-:6 LOP32I.AND pub_tmp, tid, 0x%ROWMASK%;
+--:-:-:-:6 IADD pub_row, pub_row, pub_tmp;
+# Minimum owned row of this warp: the exit predicate must be warp-uniform.
+--:-:-:-:6 LOP32I.AND pub_flags, tid, 0xffffffe0;
+--:-:-:-:6 SHR.U32 pub_tmp, pub_flags, 0x%SHIFT%;
+--:-:-:-:6 SHL pub_tmp, pub_tmp, 0x%TILESHIFT%;
+--:-:-:-:6 IADD pub_base, pub_base, pub_tmp;
+--:-:-:-:6 LOP32I.AND pub_flags, pub_flags, 0x%ROWMASK%;
+--:-:-:-:6 IADD pub_base, pub_base, pub_flags;
+--:-:-:-:6 MOV32I pub_step, 0x1000;
 01:-:-:-:6 NOP;
 @_SEND_ROW:
 --:-:-:-:6 ISETP.GE.U32.AND P6, PT, pub_base, pub_rows, PT;
 --:-:1:-:1 LDS.64 pub_src0, [RZ+0xbfa0];
 --:-:1:-:2 LDS.64 pub_tab0, [RZ+0xbfd8];
 --:-:-:-:6 SHL pub_byte, pub_row, 0x2;
+--:-:-:-:6 NOP;
+--:-:-:-:6 NOP;
+--:-:-:-:6 NOP;
 --:-:-:-:6 @P6 BRA @_SEND_DONE;
-01:-:-:-:6 ISETP.LT.U32.AND P2, PT, pub_row, pub_rows, P4;
+01:-:-:-:6 ISETP.LT.U32.AND P2, PT, pub_row, pub_rows, PT;
 --:-:-:-:6 IADD pub_src0.CC, pub_src0, pub_byte;
 --:-:-:-:6 IADD.X pub_src1, pub_src1, RZ;
 --:-:-:-:6 NOP;
@@ -77,7 +90,7 @@ for _,item in ipairs(tags)do
 --:-:-:-:6 IADD pub_base, pub_base, pub_step;
 --:-:-:-:6 BRA @_SEND_ROW;
 @_SEND_DONE:
-]=]):gsub('@_',tag..'_'):gsub('%%GROUP%%',string.format('%x',8-shift)):gsub('%%SHIFT%%',string.format('%x',shift)):gsub('%%MASK%%',string.format('%x',(1<<(8-shift))-1)):gsub('%%STEP%%',string.format('%x',16<<shift))
+]=]):gsub('@_',tag..'_'):gsub('%%SHIFT%%',string.format('%x',shift)):gsub('%%TILESHIFT%%',string.format('%x',shift+4)):gsub('%%ROWMASK%%',string.format('%x',(1<<shift)-1))
  if tag=='bf16k2560' then
   body=body:gsub('LDS pub_rows, %[RZ%+0xbfa8%];','LDS pub_rows, [RZ+0xbfa0];')
   body=body:gsub('LDS%.64 pub_src0, %[RZ%+0xbfa0%];','LDS.64 pub_src0, [RZ+0xbf98];')

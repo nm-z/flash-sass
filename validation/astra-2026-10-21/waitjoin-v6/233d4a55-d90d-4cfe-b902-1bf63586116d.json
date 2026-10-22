@@ -1,0 +1,35 @@
+[
+  {
+    "id": 135370,
+    "job_id": "233d4a55-d90d-4cfe-b902-1bf63586116d",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 0,
+    "observed_ns": "1792628249514855777",
+    "bytes": 20,
+    "sha256": "e80d8cf2d54f04b5a3644b53d2d1ea1efad068eee899b798f3f524237cb4e606",
+    "text": "ok: engine reloaded\n"
+  },
+  {
+    "id": 135372,
+    "job_id": "233d4a55-d90d-4cfe-b902-1bf63586116d",
+    "kind": "collector_error",
+    "source": "process",
+    "ordinal": 0,
+    "observed_ns": "1792628249559184652",
+    "bytes": 95,
+    "sha256": "e206ca75437f19ceed15dc6be6bd97d7d393f30b7dc3bd513dd786a143330701",
+    "text": "RuntimeError: process exited before a tree sample; waited resource usage is recorded separately"
+  },
+  {
+    "id": 135376,
+    "job_id": "233d4a55-d90d-4cfe-b902-1bf63586116d",
+    "kind": "collector_error",
+    "source": "trace",
+    "ordinal": 0,
+    "observed_ns": "1792628249573798144",
+    "bytes": 103,
+    "sha256": "30349a93d1d8c356fb6dc81ab296392e83b76d83f2b7e22d67e7a50c1df4d6d1",
+    "text": "RuntimeError: resident engine has no enabled trace producer; raw job-provided traces are still imported"
+  }
+]

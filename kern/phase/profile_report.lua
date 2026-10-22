@@ -1,6 +1,7 @@
 -- Read flattened `gpuq logs` output; no kernel execution or timing allocation.
--- usage: lua kern/phase/profile_report.lua PROFILE_TEXT OUTPUT_DIRECTORY
+-- usage: lua kern/phase/profile_report.lua PROFILE_TEXT OUTPUT_DIRECTORY [JOB_ID]
 local input=assert(arg[1]);local dir=assert(arg[2])
+local job=arg[3]or '03bff6fb-db1f-4844-9d91-0e2e381ea17f'
 local arms={baseline={},['kernel-candidate']={}};local names={};local arm,die
 local expected={baseline={},['kernel-candidate']={}}
 for line in io.lines(input)do
@@ -34,7 +35,7 @@ csv:write('die,operation,baseline_phases,baseline_us_per_token,candidate_phases,
 for d=0,5 do for _,op in ipairs(ordered)do local b=value('baseline',d,op);local c=value('kernel-candidate',d,op);csv:write(string.format('%d,%s,%d,%.1f,%d,%.1f\n',d,op,b.n,b.us,c.n,c.us))end end
 csv:close()
 local md=assert(io.open(dir..'/operations.md','w'))
-md:write('# Complete saved PROF_ALL comparison\n\nSource: canonical archy GPUQ job `03bff6fb-db1f-4844-9d91-0e2e381ea17f`, fetched with `gpuq logs ID 10000`. No new GPU run. Both arms sent `prof DIE all`, the same engine command used by `PROF_ALL=1 kern/prof.sh`.\n\nThese are inclusive final-token phase times, averaged over six dies, **not** averages over the measured requests or isolated operation execution times. Each arm profiled the final token after four requests of 64 prompt / 128 generated tokens. Phase counts show the range across dies. Sum across dies divided by six preserves the twelve attention layers despite their changed ownership. Synchronization and waits are included; grouped descriptors are charged to their primary opcode. The first timestamp has no preceding interval and is omitted by the profiler. Zero means no recorded interval for this opcode.\n\n| Profile opcode | Baseline phases/die | Baseline µs/token/die | Candidate phases/die | Candidate µs/token/die | Difference |\n|---|---:|---:|---:|---:|---:|\n')
+md:write('# Complete saved PROF_ALL comparison\n\nSource: canonical archy GPUQ job `'..job..'`, fetched with `gpuq logs ID 10000`. This extraction performs no GPU run. Both arms sent `prof DIE all`, the same engine command used by `PROF_ALL=1 kern/prof.sh`.\n\nThese are inclusive final-token phase times, averaged over six dies, **not** averages over the measured requests or isolated operation execution times. Each arm profiled the final token after four requests of 64 prompt / 128 generated tokens. Phase counts show the range across dies. Sum across dies divided by six preserves the twelve attention layers despite their changed ownership. Synchronization and waits are included; grouped descriptors are charged to their primary opcode. The first timestamp has no preceding interval and is omitted by the profiler. Zero means no recorded interval for this opcode.\n\n| Profile opcode | Baseline phases/die | Baseline µs/token/die | Candidate phases/die | Candidate µs/token/die | Difference |\n|---|---:|---:|---:|---:|---:|\n')
 for _,op in ipairs(ordered)do local b,bn=stats('baseline',op);local c,cn=stats('kernel-candidate',op);md:write(string.format('| `%s` | %s | %.1f | %s | %.1f | %+.1f |\n',op,bn,b,cn,c,c-b))end
 local bt,ct=0,0;for _,op in ipairs(ordered)do bt=bt+stats('baseline',op);ct=ct+stats('kernel-candidate',op)end
 md:write(string.format('| **All recorded intervals** | 1,177–1,229 | **%.1f** | 498 | **%.1f** | **%+.1f** |\n',bt,ct,ct-bt))

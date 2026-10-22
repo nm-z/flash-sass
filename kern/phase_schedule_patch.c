@@ -1,5 +1,6 @@
-/* Preserve production math, changing three Maxwell scheduling fields and,
- * optionally, the cache policy of three mutable controller reads.
+/* Preserve production math. Default experiments change three scheduling fields
+ * and optionally controller cache policy. --amax-only instead changes exactly
+ * five predicate-producer controls to a 13-clock stall with yield enabled.
  * The input identity and opcode words bind this patch to
  * the measured attention-q-release image; it is not a general binary editor. */
 #define _POSIX_C_SOURCE 200809L
@@ -24,11 +25,12 @@ static void control(uint8_t *text,size_t size,size_t pc,uint64_t opcode,unsigned
     printf("instruction=0x%zx control_before=0x%05x control_after=0x%05x\n",pc,before,after);
 }
 int main(int argc,char **argv) {
-    int coherent=0,prefetch=0;
-    if(argc<3) { fprintf(stderr,"usage: phase_schedule_patch ORIGINAL.cubin OUTPUT.cubin [--coherent-start] [--separate-prefetch]\n");return 2; }
+    int coherent=0,prefetch=0,amax_only=0;
+    if(argc<3) { fprintf(stderr,"usage: phase_schedule_patch ORIGINAL.cubin OUTPUT.cubin [--coherent-start] [--separate-prefetch]\n       phase_schedule_patch ORIGINAL.cubin OUTPUT.cubin --amax-only\n");return 2; }
     for(int i=3;i<argc;i++) {
         if(!strcmp(argv[i],"--coherent-start"))coherent=1;
         else if(!strcmp(argv[i],"--separate-prefetch"))prefetch=1;
+        else if(!strcmp(argv[i],"--amax-only"))amax_only=1;
         else fail("unknown option");
     }
     FILE *f=fopen(argv[1],"rb");if(!f)fail("open input");
@@ -52,6 +54,12 @@ int main(int argc,char **argv) {
     }
     if(matches!=1||!range(n,kernel.sh_offset,kernel.sh_size))fail("kernel section");
     uint8_t *code=data+kernel.sh_offset;size_t size=(size_t)kernel.sh_size;
+    if(amax_only) {
+        if(coherent||prefetch)fail("AMAX-only cannot be combined with other experiments");
+        const size_t pc[]={0x573b0,0x57448,0x574d8,0x57570,0x57608};
+        for(unsigned i=0;i<5;i++)
+            control(code,size,pc[i],UINT64_C(0x5bb2038001271417),0x1f,0x16,0x0d);
+    } else {
     /* The P2 mirror consumer followed only seven one-cycle stores. Allow the
      * producer to settle before ctl[8] consumes it, without moving any opcode. */
     /* Long stalls require the yield bit; without it values12..15 behave as6. */
@@ -60,6 +68,7 @@ int main(int argc,char **argv) {
      * Barrier2 is free after BDONE; barrier3 may still guard a nobar prefetch. */
     control(code,size,0x70fd0,UINT64_C(0xeedc200010041813),0x700,0x700,0x100);
     control(code,size,0x70fe8,UINT64_C(0x5c10000001570707),0x1f800,0x800,0x1800);
+    }
     if(coherent) {
         const size_t pc[]={0x88,0x98,0xb0};
         const uint64_t old[]={UINT64_C(0xeed4200000870e0d),UINT64_C(0xeed4200002070e0d),UINT64_C(0xeed4200000470e0d)};
@@ -85,5 +94,5 @@ int main(int argc,char **argv) {
     f=fopen(argv[2],"wx");if(!f)fail("output exists or cannot open");
     if(fwrite(data,1,n,f)!=n||fclose(f))fail("write output");
     free(data);
-    printf("bytes=%zu fnv_before=%016" PRIx64 " fnv_after=%016" PRIx64 " math_opcodes_unchanged=1 coherent_controller_reads=%d separate_prefetch=%d\n",n,before,after,coherent,prefetch);return 0;
+    printf("bytes=%zu fnv_before=%016" PRIx64 " fnv_after=%016" PRIx64 " math_opcodes_unchanged=1 coherent_controller_reads=%d separate_prefetch=%d amax_only=%d\n",n,before,after,coherent,prefetch,amax_only);return 0;
 }

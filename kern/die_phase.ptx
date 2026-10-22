@@ -9,6 +9,9 @@
 .visible .entry flash_phase_fused_abi_v4() { ret; }
 .visible .entry flash_phase_fused_abi_v5() { ret; }
 .visible .entry flash_phase_fused_abi_v6() { ret; }
+.visible .entry flash_phase_exchange_join_abi_v1() { ret; }
+.visible .entry flash_phase_gr_cache_abi_v1() { ret; }
+.visible .entry flash_phase_amax_schedule_abi_v1() { ret; }
 .visible .entry flash_fused_moe_abi_v1() { ret; }
 .visible .entry die(.param .u64 pprog, .param .u32 nph, .param .u64 pctl, .param .u32 ntok)
 {

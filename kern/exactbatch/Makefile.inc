@@ -11,8 +11,9 @@ die_gr.cubin: die_gr.sass die_gr.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ die_gr.ptx
 	$(MAXAS) -i die_gr.sass $@
 
-die_phase.sass: die.sass die_gr.sass phase/quant.lua phase/local.lua phase/publish.lua phase/gdn.lua phase/moe.lua phase/router.lua phase/chain.lua phase/attention.lua phase/quant_emit.lua phase/select.lua phase/shared.lua phase/score_select.lua phase/part_merge.lua phase/ple.lua phase/ple_rows.lua phase/edges.lua die_fused.sass
-	$(LUA) phase/quant.lua die.sass die_gr.sass $@.quant
+die_phase.sass: die.sass die_gr.sass phase/gr_cache.lua phase/quant.lua phase/local.lua phase/publish.lua phase/gdn.lua phase/moe.lua phase/router.lua phase/chain.lua phase/attention.lua phase/quant_emit.lua phase/select.lua phase/shared.lua phase/score_select.lua phase/part_merge.lua phase/ple.lua phase/ple_rows.lua phase/edges.lua phase/waits.lua die_fused.sass
+	$(LUA) phase/gr_cache.lua die.sass die_gr.sass $@.cached
+	$(LUA) phase/quant.lua die.sass $@.cached $@.quant
 	$(LUA) phase/local.lua die.sass $@.quant $@.local
 	$(LUA) phase/gdn.lua die.sass $@.local $@.gdn
 	$(LUA) phase/publish.lua $@.gdn $@.publish
@@ -26,7 +27,8 @@ die_phase.sass: die.sass die_gr.sass phase/quant.lua phase/local.lua phase/publi
 	$(LUA) phase/ple.lua die.sass $@.part $@.ple
 	$(LUA) phase/ple_rows.lua die.sass $@.ple $@.plerows
 	$(LUA) phase/edges.lua $@.plerows $@.edges
-	$(LUA) phase/chain.lua $@.edges $@
+	$(LUA) phase/chain.lua $@.edges $@.chain
+	$(LUA) phase/waits.lua $@.chain $@
 die_phase.cubin: die_phase.sass die_phase.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ die_phase.ptx
 	$(MAXAS) -i die_phase.sass $@

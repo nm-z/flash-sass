@@ -1,4 +1,22 @@
-# Production phase-count result
+# Current: wait audit and revised production kernel
+
+Reports: `validation/astra-2026-10-21/WAIT-DEPENDENCIES.md` contains the DeltaNet/QSA/common-MoE/PLE/output dependency tables. `phase499/wait-boundaries.csv` lists all 499 original candidate boundaries on every die. `WAITJOIN-RESULTS.md` records revisions and failures; `waitjoin-v6/operations.md` and `.csv` contain the final matched PROF_ALL tables.
+
+Full candidate: all 48 layers and head, **499 phases/token on every die**, **144 local grid joins**, **354 peer acquires**, no MTP/FP8. The under-500 guard remains. It removes 354 duplicate producer grid polls plus one independent PLE RMS join, transposes publication copying into one owned row per lane, caches each CTA's fixed-order FP32 six-peer GR sum (160 KiB/die), and uses eight local warps for PLE quantization. Data-bearing local and peer handoffs remain.
+
+AMAX had five equality → integer tie-break predicate dependencies with six clocks instead of thirteen. Canonical `kern/amax.sass` now uses thirteen clocks with yield. `phase_schedule_patch --amax-only` corrects exactly those five scheduling fields in the original baseline binary, with unchanged arithmetic opcodes. Both final measured kernels include it. Canonical-source rebuilds have identical library and phase-image SHA-256 values to the measured artifacts.
+
+Passing short-context job **84dff40d-5cc1-44a7-a99f-7c26cd02a28c**: four 64-prompt/128-output requests per arm, all 512 candidate tokens match. Warm medians: **40.274955 TPS / 24.829326 ms/token candidate**, **40.092022 TPS / 24.942618 ms/token baseline**. Seeded sampling job **ba72bfdf-f20e-48a8-b436-c0f3181b324c**: all 16 tokens match. This recovers the original 32.99 TPS phase-kernel regression; the small final margin is not a large baseline speedup or a 60/140 TPS result.
+
+**Long-context correctness is NOT resolved.** Final 4,096-prompt/16-output job **f608e18c-5665-4681-b41b-acdb1317d9e0** completes but has 10 mismatches beginning at token 6. Its timing is diagnostic only. Earlier baseline/candidate discrepancies, a client timeout and frozen-reference failures are retained in the report. AMAX's hazard is real but does not resolve every discrepancy. Do not promote the candidate or claim full correctness.
+
+**Live serving: baseline with AMAX scheduling correction**, archy `/home/nate/work/flash-phase499-20261021-waitjoin-v6/baseline-amax13.cubin`, FNV **d215dc737080be6d**. Deployment job **233d4a55-d90d-4cfe-b902-1bf63586116d** succeeded; a following config read confirms fusion/grouping/balancing disabled, FP32 residuals, no MTP. The original baseline binary remains intact. Recovery startup retains its original command; no permanent boot-service migration is claimed.
+
+Retained candidate artifacts: `/home/nate/work/flash-phase499-20261021-waitjoin-v6/`; library SHA-256 `04117f10a371f6d61ed78b4e06aa84d00a1246dba7d72c90bc591c6366d06c76`, phase image SHA-256 `da67831240e7200f8a5d8ea156df29ec9c0a64b9d4a88a52680393aae192a836`, FNV **14f13ad89b1e2445**. Immutable source/binary snapshots are retained. Every run uses the single canonical GPUQ DB; JSON files are exports, not additional databases.
+
+No more optional repeats: the concrete remaining concern is the long-context output discrepancy. Diagnose it before further performance changes. Router/QSA/shared-expert producer joins remain where data crosses blocks. Launch occupancy is evaluated statically (249 registers, 256 threads/block, at most eight resident warps/SM), not redesigned. Prompt processing remains scalar. Do not silently resume MTP/FP8. Use safe atomic edits; the earlier engine.c recovery warning below still applies.
+
+# Historical: original phase-count result
 
 The requested full-model production path has been implemented and runtime
 verified at **499 phases/token on every one of six dies**. All48 layers and the

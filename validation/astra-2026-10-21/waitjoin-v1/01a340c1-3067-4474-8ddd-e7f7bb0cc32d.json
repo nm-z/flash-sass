@@ -1,0 +1,79 @@
+[
+  {
+    "id": 128010,
+    "job_id": "01a340c1-3067-4474-8ddd-e7f7bb0cc32d",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 0,
+    "observed_ns": "1792626206403498987",
+    "bytes": 720,
+    "sha256": "60ea1082882073d405f0a90e8828e30e85da8de881f69830c91c71335c620748",
+    "text": "before: config rev=5a17b72-dirty-exact kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf maxt=32768 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=1 rope_owner=5 trace_tokens=0 two_position=0 prefill_chunk=64 attn_q_split=1 attn_q_mask=3f cubin=/home/nate/codex/flash-astra-build-20261018/iq4-bias/kern/die.cubin cubin_fnv=9abf8aafb9134d59 runtime_attn_map=1,1,1,1,4,4,4,4,5,5,5,5 balanced=0 residual_storage=fp32 fused_gr=0 producer_quant=0 matrix_group=0 phase_batch=0 exact_cubin=none exact_cubin_fnv=0000000000000000\n"
+  },
+  {
+    "id": 128012,
+    "job_id": "01a340c1-3067-4474-8ddd-e7f7bb0cc32d",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 1,
+    "observed_ns": "1792626207664438293",
+    "bytes": 20,
+    "sha256": "e80d8cf2d54f04b5a3644b53d2d1ea1efad068eee899b798f3f524237cb4e606",
+    "text": "ok: engine reloaded\n"
+  },
+  {
+    "id": 128013,
+    "job_id": "01a340c1-3067-4474-8ddd-e7f7bb0cc32d",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 2,
+    "observed_ns": "1792626207673246158",
+    "bytes": 997,
+    "sha256": "06ce1a213d3f53a5bc7512a6bc69d1044771a26183621f49d7a10bbb7655800a",
+    "text": "{\"arm\":\"baseline\",\"workload\":\"decode\",\"prompt_tokens\":4096,\"generated_tokens\":16,\"warmup_runs\":1,\"baseline_compared\":true,\"reference_kind\":\"first_run\"}\nconfig rev=df6bb69-dirty-exact kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf maxt=32768 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=1 rope_owner=5 trace_tokens=0 two_position=0 prefill_chunk=64 attn_q_split=1 attn_q_mask=3f cubin=/home/nate/codex/flash-astra-build-20261018/iq4-bias/kern/die.cubin cubin_fnv=9abf8aafb9134d59 runtime_attn_map=1,1,1,1,4,4,4,4,5,5,5,5 balanced=0 residual_storage=fp32 fused_gr=0 producer_quant=0 matrix_group=0 phase_batch=0 exact_cubin=none exact_cubin_fnv=0000000000000000\nok: stop -1 -1\nok: sample seed 7 temp 0 top_k 20 top_p 0.95 (greedy)\nok: timings 1\n{\"arm\":\"baseline\",\"run\":0,\"kept\":0,\"warmup\":true}\n"
+  },
+  {
+    "id": 128092,
+    "job_id": "01a340c1-3067-4474-8ddd-e7f7bb0cc32d",
+    "kind": "stderr",
+    "source": "stderr",
+    "ordinal": 0,
+    "observed_ns": "1792626298481747330",
+    "bytes": 40,
+    "sha256": "ba58976d4509462258eda742bc9c3813a29297dc6de602a680b881f639cb918b",
+    "text": "decode benchmark: incomplete generation\n"
+  },
+  {
+    "id": 128095,
+    "job_id": "01a340c1-3067-4474-8ddd-e7f7bb0cc32d",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 3,
+    "observed_ns": "1792626300015626770",
+    "bytes": 29,
+    "sha256": "01bf47c93836ae29d976134f1476c28c3743309b16ea1f41257bfc93cd4ca555",
+    "text": "restore: ok: engine reloaded\n"
+  },
+  {
+    "id": 128096,
+    "job_id": "01a340c1-3067-4474-8ddd-e7f7bb0cc32d",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 4,
+    "observed_ns": "1792626300016863352",
+    "bytes": 26,
+    "sha256": "9764ade2c5c5151bded363223015d1c9cc3b84a09b2289244bb89fabf6eec093",
+    "text": "restore: config identical\n"
+  },
+  {
+    "id": 128100,
+    "job_id": "01a340c1-3067-4474-8ddd-e7f7bb0cc32d",
+    "kind": "collector_error",
+    "source": "trace",
+    "ordinal": 0,
+    "observed_ns": "1792626300025834281",
+    "bytes": 103,
+    "sha256": "30349a93d1d8c356fb6dc81ab296392e83b76d83f2b7e22d67e7a50c1df4d6d1",
+    "text": "RuntimeError: resident engine has no enabled trace producer; raw job-provided traces are still imported"
+  }
+]

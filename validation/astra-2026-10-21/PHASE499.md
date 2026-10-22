@@ -1,5 +1,12 @@
 # Production decode: 499 phases on every die
 
+**Current follow-up:** [wait/publication revision results](WAITJOIN-RESULTS.md)
+and [DeltaNet/QSA dependency tables](WAIT-DEPENDENCIES.md). The revised kernel
+keeps 499 phases and reduces local grid joins to 144. It measures 40.2750 TPS
+versus 40.0920 baseline in the passing short-context comparison, but the final
+4,096-token comparison still has 10 output mismatches. Serving remains baseline;
+the sections below describe the original 32.99 TPS phase-count result.
+
 [Detailed merged-operation timing and block participation](phase499/MERGED-OPERATIONS.md)
 and [complete side-by-side PROF_ALL tables](phase499/operations.md) were extracted
 from the existing canonical GPUQ records without another GPU run. The report
