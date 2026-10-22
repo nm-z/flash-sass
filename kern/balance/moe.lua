@@ -36,6 +36,7 @@ local maps={[=[
     246,247 : bd_address<0-1>
     30 : grcache_limit
 ]=]}
+local wide_down={q2moedn=true,q2acc640=true,b32q40acc=true,b32q50acc=true,b32q80acc=true,b32iq4nlacc=true}
 local function codegen()
  local out={};local function emit(ins,ctl)out[#out+1]=(ctl or '--:-:-:Y:d')..' '..ins..';'end
  local function label(x)out[#out+1]=x..':'end
@@ -44,34 +45,49 @@ local function codegen()
 end
 local function publication(tag)
  local out,e,l,w=codegen()
+ local parallel=tag~='q2moegn'
  local rows_slot=tag=='bf16k2560' and 0xbfa0 or 0xbfa8
  local source_slot=tag=='bf16k2560' and 0xbf98 or 0xbfa0
  e('LDS br_flags, [RZ+0xbff8]','3f:-:1:-:2');w('01')
  e('LOP32I.AND br_flags, br_flags, 0x100000')
  e('ISETP.EQ.U32.AND P6, PT, br_flags, RZ, PT');e('@P6 BRA '..tag..'_STRIPE_DONE')
  e('MEMBAR.GL');e('BAR.SYNC 0x0')
- e('ISETP.NE.U32.AND P6, PT, warp, RZ, PT');e('@P6 BRA '..tag..'_STRIPE_DONE')
+ e(parallel and 'ISETP.GE.U32.AND P6, PT, warp, 0x6, PT' or 'ISETP.NE.U32.AND P6, PT, warp, RZ, PT')
+ e('@P6 BRA '..tag..'_STRIPE_DONE')
  for _,x in ipairs({{'br_rows',rows_slot},{'br_global_rows',0xbfd8},{'br_ranks',0xbfdc},
                    {'br_die',0xbfe0},{'br_base',0xbfe4}})do
   e(string.format('LDS %s, [RZ+0x%x]',x[1],x[2]),'--:-:1:-:2');w('01')
  end
- e('ISCADD br_row, vid, lane, 0x3')
- e('ISETP.LT.U32.AND P2, PT, lane, 0x8, PT')
+ if wide_down[tag] then e('ISCADD br_row, vid, lane, 0x5')
+ elseif parallel then e('LOP32I.AND br_tmp, lane, 0x7');e('ISCADD br_row, vid, br_tmp, 0x3')
+ else e('ISCADD br_row, vid, lane, 0x3') end
  e('LDS br_reduce, [RZ+0xbff8]','--:-:1:-:2');w('01')
  e('LOP32I.AND br_reduce, br_reduce, 0x800000')
  e('ISETP.NE.U32.AND P5, PT, br_reduce, RZ, PT')
- e('PSETP.AND.AND P0, PT, P2, P5, PT');e('PSETP.AND.AND P1, PT, P2, !P5, PT')
  e('MOV32I br_groups, 0x1');e('@P5 MOV32I br_groups, 0x6')
  e('SHL br_step, br_rows, 0x2')
  e('SHR.U32 br_global, br_row, 0x3')
  e('ISCADD br_global, br_global, br_global, 0x1')
  e('ISCADD br_global, br_global, br_die, 0x1')
  e('LOP32I.AND br_tmp, br_row, 0x7');e('ISCADD br_global, br_global, br_tmp, 0x3')
- e('MOV br_rank, RZ')
+ -- One warp per peer. For eight-row stripes, each warp carries four ranks;
+ -- the uniform rank-base loop avoids divergence before the CTA handoff.
+ e(parallel and 'MOV br_peer, RZ' or 'MOV br_rank, RZ')
  l(tag..'_STRIPE_RANK')
+ if parallel then
+  if wide_down[tag] then e('MOV br_rank, br_peer')
+  else e('SHR.U32 br_rank, lane, 0x3');e('IADD br_rank, br_rank, br_peer') end
+ end
+ e('ISETP.LT.U32.AND P2, PT, br_row, br_rows, PT')
+ if not parallel then e('ISETP.LT.U32.AND P2, PT, lane, 0x8, P2') end
+ e('ISETP.LT.U32.AND P2, PT, br_rank, br_ranks, P2')
+ e('PSETP.AND.AND P0, PT, P2, P5, PT');e('PSETP.AND.AND P1, PT, P2, !P5, PT')
  e(string.format('@!P5 LDS.64 br_src0, [RZ+0x%x]',source_slot),'--:-:1:-:2')
  e('@P5 LDS.64 br_src0, [RZ+0xbfe8]','--:-:1:-:2');w('01')
  e('LDS.64 br_targets0, [RZ+0xbfd0]','--:-:1:-:2');w('01')
+ if parallel then
+  e('SHL br_tmp, warp, 0x3');e('IADD br_targets0.CC, br_targets0, br_tmp');e('IADD.X br_targets1, br_targets1, RZ')
+ end
  e('XMAD br_offset, br_rank, br_rows, br_row');e('SHL br_offset, br_offset, 0x2')
  e('IADD br_src0.CC, br_src0, br_offset');e('IADD.X br_src1, br_src1, RZ')
  e('MOV br_value, RZ');e('MOV br_group, RZ')
@@ -83,15 +99,22 @@ local function publication(tag)
  e('ISETP.LT.U32.AND P6, PT, br_group, br_groups, PT');e('@P6 BRA '..tag..'_STRIPE_PART')
  e('XMAD br_offset, br_rank, br_global_rows, br_global')
  e('IADD br_offset, br_offset, br_base');e('SHL br_offset, br_offset, 0x2')
- e('MOV br_peer, RZ')
- l(tag..'_STRIPE_PEER')
+ if not parallel then e('MOV br_peer, RZ');l(tag..'_STRIPE_PEER') end
  e('LDG.E.CG.64 br_dest0, [br_targets]','--:-:1:-:2');w('01')
  e('IADD br_dest0.CC, br_dest0, br_offset');e('IADD.X br_dest1, br_dest1, RZ')
  e('@P2 STG.E.WT [br_dest], br_value','--:2:-:-:2');w('02')
- e('IADD br_targets0.CC, br_targets0, 0x8');e('IADD.X br_targets1, br_targets1, RZ')
- e('IADD br_peer, br_peer, 0x1');e('ISETP.LT.U32.AND P6, PT, br_peer, 0x6, PT')
- e('@P6 BRA '..tag..'_STRIPE_PEER')
- e('IADD br_rank, br_rank, 0x1');e('ISETP.LT.U32.AND P6, PT, br_rank, br_ranks, PT')
+ if parallel then
+  e('IADD br_peer, br_peer, '..(wide_down[tag] and '0x1' or '0x4'))
+  e('ISETP.LT.U32.AND P6, PT, br_peer, br_ranks, PT')
+ else
+  -- Packed multi-rank peer writes regressed full-model throughput (v82/v83).
+  -- Keep rank-contiguous gate publication while wide down/shared rows use
+  -- the coalesced, one-peer-per-warp path.
+  e('IADD br_targets0.CC, br_targets0, 0x8');e('IADD.X br_targets1, br_targets1, RZ')
+  e('IADD br_peer, br_peer, 0x1');e('ISETP.LT.U32.AND P6, PT, br_peer, 0x6, PT')
+  e('@P6 BRA '..tag..'_STRIPE_PEER')
+  e('IADD br_rank, br_rank, 0x1');e('ISETP.LT.U32.AND P6, PT, br_rank, br_ranks, PT')
+ end
  e('@P6 BRA '..tag..'_STRIPE_RANK')
  l(tag..'_STRIPE_DONE')
  return table.concat(out,'\n')..'\n'
@@ -113,6 +136,8 @@ for _,tag in ipairs(tags)do
  end
  local shift=assert(body:match('SHL '..tag..'_rowstep, '..tag..'_rowstep, 0x(%x+);'))
  local group_shift=8-tonumber(shift,16)
+ local tile_shift=wide_down[tag] and 5 or 3
+ local tile=1<<tile_shift
  -- Only descriptors marked ROW8 take this path. Preserve ordinary dense GEMVs.
  local prefix=([=[
 3f:-:1:-:2 LDS bm_flags, [RZ+0xbff8];
@@ -122,12 +147,12 @@ for _,tag in ipairs(tags)do
 --:-:-:Y:d ISETP.GE.U32.AND P6, PT, tid, 0x%THREADS%, PT;
 --:-:-:Y:d @P6 BRA @_END;
 @_ROW_DEFAULT:
-]=]):gsub('@_',tag..'_'):gsub('%%THREADS%%',string.format('%x',math.min(256,8*(1<<group_shift))))
+]=]):gsub('@_',tag..'_'):gsub('%%THREADS%%',string.format('%x',math.min(256,tile*(1<<group_shift))))
  body=rep(body,tag..'_BEGIN:',tag..'_BEGIN:\n'..prefix)
  -- A predicated rowstep/base change retains the original dense loop otherwise.
  body=body:gsub('(SHL '..tag..'_rowstep, '..tag..'_rowstep, 0x%x+;)',function(ins)
   return ins..'\n--:-:-:Y:d ISETP.NE.U32.AND P6, PT, bm_flags, RZ, PT;\n'..
-   '--:-:-:Y:d @P6 SHL '..tag..'_rowstep, '..tag..'_gridDimX, 0x3;'
+   '--:-:-:Y:d @P6 SHL '..tag..'_rowstep, '..tag..'_gridDimX, 0x'..string.format('%x',tile_shift)..';'
  end,1)
  -- The flag lives outside all selected operators' registers (their maximum
  -- is240). Preserve the original group operand before overwriting row itself.
@@ -137,7 +162,7 @@ for _,tag in ipairs(tags)do
   local mask=assert(old:match('^(%S+):')):match('^[^:]+')
   return mask..':-:-:-:6 NOP;\n--:-:-:Y:d ISETP.NE.U32.AND P6, PT, bm_flags, RZ, PT;\n'..
    old:gsub(' ISCADD',' @!P6 ISCADD',1)..'\n'..
-   '--:-:-:Y:d @P6 ISCADD '..tag..'_row, '..tag..'_bid, '..group..', 0x3;'
+   '--:-:-:Y:d @P6 ISCADD '..tag..'_row, '..tag..'_bid, '..group..', 0x'..string.format('%x',tile_shift)..';'
  end)
  assert(n==1,'row base geometry '..tag..' '..n)
  -- Existing END publication is disabled on balanced descriptors (no0x80).
@@ -167,9 +192,11 @@ routine('q2moegn',function(body)return rep(body,old,'--:-:-:Y:d XMAD q2moegn_t0,
 -- once, in its original owner group; the shared expert is added to that group.
 routine('q2moedn',function(body)
  local out,e,l,w=codegen()
- e('SHR.U32 bd_low0, tid, 0x2');e('ISCADD bd_low0, vid, bd_low0, 0x3')
- e('SHL bd_low0, bd_low0, 0x2');e('LOP32I.AND bd_low1, tid, 0x3')
- e('ISETP.EQ.U32.AND P5, PT, bd_low1, RZ, PT');e('MOV bd_owner, RZ')
+ e('SHR.U32 bd_low0, tid, 0x2');e('ISCADD bd_low0, vid, bd_low0, 0x5')
+ e('LOP32I.AND bd_low1, tid, 0x3')
+ e('ISETP.EQ.U32.AND P5, PT, bd_low1, RZ, PT')
+ e('ISETP.LT.U32.AND P5, PT, bd_low0, q2moedn_param_rows, P5')
+ e('SHL bd_low0, bd_low0, 0x2');e('MOV bd_owner, RZ')
  l('BALANCED_DOWN_ZERO')
  e('XMAD bd_low1, bd_owner, q2moedn_param_rows, RZ')
  e('ISCADD bd_low1, bd_low1, bd_low0, 0x2')

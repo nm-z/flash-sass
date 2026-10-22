@@ -204,6 +204,7 @@ static void check_fused_moe_module(CUmodule module) {
         CK(CUDA_ERROR_INVALID_IMAGE);
     }
     if(row_balance)CK(cuModuleGetFunction(&marker,module,"flash_balance_head_producer_abi_v2"));
+    if(row_balance)CK(cuModuleGetFunction(&marker,module,"flash_balance_down_tile32_abi_v1"));
     if(getenv("FLASH_FUSED_GR") && atoi(getenv("FLASH_FUSED_GR")))CK(cuModuleGetFunction(&marker,module,"flash_gr_read_sum_abi_v1"));
     if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_phase_fused_abi_v6"));
     if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_phase_exchange_join_abi_v1"));

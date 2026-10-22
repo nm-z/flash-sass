@@ -5,6 +5,11 @@ static void balance_row_descriptor(phase_t *p,unsigned die,unsigned rows,
                                    unsigned ranks,unsigned base,unsigned layer) {
     p->w[1]=rows/FLASH_BALANCE_EXPERT_GRAIN;
     p->w[30]|=PHASE_BALANCED_ROW8;
+    /* Ownership remains eight-row-striped. Pack four stripes into one CTA
+     * for K640 down projections so four warps compute instead of one. */
+    if(global_rows==2560 && ranks==1) {
+        p->w[1]=(rows+31)/32;p->w[30]|=PHASE_BALANCED_TILE32;
+    }
     if(targets)p->w[30]|=PHASE_BALANCED_PUBLISH;
     ph_ptr(p,0x188,targets);             /* words20..21: six destinations */
     ph_u32(p,0x190,global_rows);         /* word22: destination rows/rank */

@@ -34,13 +34,15 @@ local function geometry(a)
   if not row8 and not tiles[n] then
    tiles[n]=2^tonumber(assert(sass:match('SHL '..n..'_rowstep, '..n..'_rowstep, 0x(%x+);'),'tile '..n),16)
   end
-  local tile=row8 and 8 or tiles[n]
+  local wide=w[30]&0x2000000~=0
+  local tile=row8 and (wide and 32 or 8) or tiles[n]
   local ranks=(n=='q2moegn' or n=='q2moedn') and 10 or 1
   put('rows',rows);put('K',k);put('ranks',ranks)
   put('dot_values',rows*k*ranks);put('issued_dot_values',math.ceil(rows/tile)*tile*k*ranks)
   put('row_tiles',math.ceil(rows/tile))
   if row8 then
-   assert(w[1]==rows/8 and rows%8==0,'ROW8 geometry')
+   assert(w[1]==math.ceil(rows/tile) and rows%8==0,'row-stripe geometry')
+   if wide then assert(k==640 and w[22]==2560,'wide down tile geometry') end
    put('global_rows',w[22]);put('published_ranks',w[23])
   else assert(w[1]==16,'dense dispatch geometry') end
   if w[30]&0x100000~=0 then put('published_values',rows*w[23]*6) end
@@ -63,6 +65,8 @@ local function geometry(a)
   assert(sass:find('MOV32I hcquant_xl, 0x20;',1,true),'GR up column tile')
   put('dot_values',w[8]*320);put('up_rows',w[8]);put('mix_columns',w[8]/4)
   put('issued_dot_values',math.ceil(w[8]/128)*128*320)
+  local copies=sass:find('ISETP.GE.U32.AND P4, PT, warp, 0x6, PT;\n--:-:1:-:1 LDS hcq_cols,',1,true) and 6 or 1
+  put('quant_evaluations',w[8]/128*copies)
   put('quant_groups',w[8]/128);put('silu_and_injection_values',w[20]);put('published_columns',w[8]/4*6)
  elseif n=='gdn_full' then
   put('heads',w[1]);put('state_cells',w[1]*128*128);put('norm_and_quant_values',w[1]*128)
