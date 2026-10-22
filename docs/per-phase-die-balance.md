@@ -533,6 +533,11 @@ baseline exactly. All90 retained-buffer QSA component comparisons pass.
 Ordinary64/128 decode measures19.850973 TPS, with all128 generated IDs matching
 the original baseline. This restores fidelity for these fixtures, not a speedup
 or long-context qualification. The full per-phase balance goal remains open.
+The corrected body capture covers all94656 CTA records and has980/986 phase
+comparisons within ten percent. Six observations remain outside: HCWSUM,
+AMAX, two GDN phases and argmax at both positions. Worst deviation is25%.
+The full table and timer-resolution limitations are retained in the validation
+README; no failing phase is omitted or excused by the summary.
 
 ## Attention implementation notes
 

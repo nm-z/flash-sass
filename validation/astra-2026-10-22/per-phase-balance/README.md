@@ -248,3 +248,28 @@ Body image SHA256:
 `1cb471837975af0d628103e8c77f8dd7b859b24ecf94e7eabbeeafc7aa6a61f6`.
 All canonical runs remain in the single gpuq history database. Long-context
 selection and complete per-phase balance qualification remain open.
+
+The corrected body-image job `23637881-f770-4fe8-86b8-e6beda26d0e6` also
+matches all128 original generated IDs and passes all90 attention checks,
+including the191-key tail case. Its [complete phase table](body-v65.tsv) and
+[coverage summary](body-v65-summary.txt) contain94656 valid CTA records:
+493 physical phases at two positions on six dies with16 CTAs each. All986
+comparisons have complete coverage;980 are inside ten percent and six outside.
+This is a new capture with corrected token history, not a matched timing
+improvement over the former incorrect output.
+
+| Position | Phase | Operation | Layer | Largest deviation from mean |
+|---:|---:|---|---:|---:|
+|189|11|hcwsum|0|12.195122%|
+|189|181|gdn_full|17|10.344828%|
+|189|461|gdn_full|45|10.059172%|
+|189|491|argmax|head|25.000000%|
+|189|492|amax|47|15.384615%|
+|190|491|argmax|head|17.647059%|
+
+The same1024ns GLOBALTIMER resolution and instrumentation/publication
+limitations apply. HCWSUM and AMAX are short enough that one timer tick can
+cross the threshold; this does not exempt them from the gate. Argmax needs
+its local reduction/publication cost separated, and GDN's remaining timing
+variation needs resolution. Sixteen resident SMs per die do not establish
+sixteen SMs of equal useful work. The goal remains incomplete.
