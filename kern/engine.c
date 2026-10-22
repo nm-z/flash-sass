@@ -204,7 +204,7 @@ static void check_fused_moe_module(CUmodule module) {
         CK(CUDA_ERROR_INVALID_IMAGE);
     }
     if(row_balance)CK(cuModuleGetFunction(&marker,module,"flash_balance_head_producer_abi_v2"));
-    if(row_balance)CK(cuModuleGetFunction(&marker,module,"flash_balance_down_tile32_abi_v1"));
+    if(row_balance)CK(cuModuleGetFunction(&marker,module,"flash_balance_down_tile32_packed_gate_abi_v2"));
     if(getenv("FLASH_FUSED_GR") && atoi(getenv("FLASH_FUSED_GR")))CK(cuModuleGetFunction(&marker,module,"flash_gr_read_sum_abi_v1"));
     if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_phase_fused_abi_v6"));
     if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_phase_exchange_join_abi_v1"));
@@ -1845,7 +1845,9 @@ int engine_init(core_t *c) {
         b->balance_gate_targets=dalloc(sizeof gate);CK(cuMemcpyHtoD(b->balance_gate_targets,gate,sizeof gate));
         b->balance_up_targets=dalloc(sizeof up);CK(cuMemcpyHtoD(b->balance_up_targets,up,sizeof up));
         b->balance_down_targets=dalloc(sizeof down);CK(cuMemcpyHtoD(b->balance_down_targets,down,sizeof down));
-        CUdeviceptr prepare[7]={b->g,b->gu,b->hq,b->hs32,b->hs16,b->has,b->balance_quant_ready};
+        uint32_t gate_map[7040];for(unsigned i=0;i<7040;i++)gate_map[i]=balance_gate_packed_index(i);
+        CUdeviceptr packed_map=dalloc(sizeof gate_map);CK(cuMemcpyHtoD(packed_map,gate_map,sizeof gate_map));
+        CUdeviceptr prepare[8]={b->g,b->gu,b->hq,b->hs32,b->hs16,b->has,b->balance_quant_ready,packed_map};
         b->balance_prepare=dalloc(sizeof prepare);CK(cuMemcpyHtoD(b->balance_prepare,prepare,sizeof prepare));
         uint32_t bounds[7];for(int e=0;e<=nd;e++)bounds[e]=split_bound(512,(int)e,nd);
         b->balance_owner_bounds=dalloc(sizeof bounds);CK(cuMemcpyHtoD(b->balance_owner_bounds,bounds,sizeof bounds));

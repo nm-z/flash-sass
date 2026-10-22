@@ -34,6 +34,8 @@ return function(source,maps)
     218 : mb_value
     219 : mb_flags
     220 : mb_temp
+    222,223 : mb_map<0-1>
+    224 : mb_mapped
 ]=]
  local out={};local function e(ins,ctl)out[#out+1]=(ctl or '--:-:-:Y:d')..' '..ins..';'end
  local function l(x)out[#out+1]=x..':'end
@@ -42,7 +44,7 @@ return function(source,maps)
  e('LOP32I.AND mb_flags, mb_flags, 0x200000')
  e('ISETP.EQ.U32.AND P6, PT, mb_flags, RZ, PT');e('@P6 BRA BM_PREP_DONE')
  e('LDS.64 mb_prepare0, [RZ+0xbfe8]','--:-:1:-:2');w('01')
- for _,x in ipairs({{'mb_g0',0},{'mb_u0',8},{'mb_ready0',48}})do
+ for _,x in ipairs({{'mb_g0',0},{'mb_u0',8},{'mb_ready0',48},{'mb_map0',56}})do
   e(string.format('LDG.E.CG.64 %s, [mb_prepare+0x%x]',x[1],x[2]),'--:-:1:-:2');w('01')
  end
  e('IADD mb_targets0.CC, mb_prepare0, 0x10');e('IADD.X mb_targets1, mb_prepare1, RZ')
@@ -55,6 +57,9 @@ return function(source,maps)
  l('BM_PREP_LOOP')
  e('ISETP.GE.U32.AND P6, PT, mb_index, 0x1b80, PT');e('@P6 BRA BM_PREP_QUANT_DONE')
  e('SHL mb_temp, mb_index, 0x2')
+ e('IADD mb_address0.CC, mb_map0, mb_temp');e('IADD.X mb_address1, mb_map1, RZ')
+ e('LDG.E.CG mb_mapped, [mb_address]','--:-:1:-:2');w('01')
+ e('SHL mb_temp, mb_mapped, 0x2')
  e('IADD mb_address0.CC, mb_g0, mb_temp');e('IADD.X mb_address1, mb_g1, RZ')
  e('LDG.E.CG bact_gate, [mb_address]','--:-:1:-:2');w('01')
  e('IADD mb_address0.CC, mb_u0, mb_temp');e('IADD.X mb_address1, mb_u1, RZ')

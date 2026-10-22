@@ -33,6 +33,16 @@ static inline unsigned balance_local_row(unsigned row,unsigned dies,unsigned gra
 static inline unsigned balance_row_owner(unsigned row,unsigned dies,unsigned grain) {
     return row/grain%dies;
 }
+/* Routed gate/up exchange layout: owner, local eight-row tile, rank, row.
+ * Every CTA's ten ranks occupy80 consecutive floats, without padding. The
+ * shared expert stays at6400..7039. This permutation leaves the activation
+ * quantizer's output in the original rank-major layout. */
+static inline unsigned balance_gate_packed_index(unsigned index) {
+    if(index>=6400)return index;
+    unsigned rank=index/640,row=index%640,stripe=row/8,owner=stripe%6;
+    unsigned before=owner*13+(owner<2?owner:2);
+    return (before+stripe/6)*80+rank*8+row%8;
+}
 static inline unsigned balance_boundary(unsigned groups,unsigned die,unsigned dies) {
     return (unsigned)((uint64_t)groups*die/dies);
 }

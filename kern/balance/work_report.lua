@@ -47,7 +47,10 @@ local function geometry(a)
   else assert(w[1]==16,'dense dispatch geometry') end
   if w[30]&0x100000~=0 then put('published_values',rows*w[23]*6) end
   if w[30]&0x80~=0 then put('published_values',rows*6) end
-  if w[30]&0x200000~=0 then put('activation_values',11*640);put('quant_groups',11*20) end
+  if w[30]&0x200000~=0 then
+   put('activation_values',11*640);put('quant_groups',11*20)
+   if sass:find('LDG.E.CG mb_mapped, [mb_address]',1,true) then put('activation_map_lookups',7040) end
+  end
   if w[30]&0x800000~=0 then put('reduced_values',rows*6) end
   if w[30]&0x1000000~=0 then put('head_candidates',rows);put('cta_winners',16) end
  elseif n=='embrow' then
