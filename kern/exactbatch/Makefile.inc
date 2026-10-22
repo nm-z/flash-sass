@@ -113,6 +113,15 @@ die_balanced_body.cubin: die_balanced_body.sass die_balanced_body.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ die_balanced_body.ptx
 	$(MAXAS) -i die_balanced_body.sass $@
 
+die_balanced_exchange.sass: die_balanced.sass phase/exchange_trace.lua phase/predicate_latency.lua
+	$(LUA) phase/exchange_trace.lua $< $@.exchange
+	$(LUA) phase/predicate_latency.lua $@.exchange $@ $@.predicate.csv
+die_balanced_exchange.ptx: die_balanced.ptx phase/xtrace_marker.ptxinc
+	cat $^ > $@
+die_balanced_exchange.cubin: die_balanced_exchange.sass die_balanced_exchange.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ die_balanced_exchange.ptx
+	$(MAXAS) -i die_balanced_exchange.sass $@
+
 die_phase_grhash.sass: die_phase.sass phase/gr_write_trace.lua
 	$(LUA) phase/gr_write_trace.lua $< $@
 die_phase_grhash.ptx: die_phase.ptx phase/xtrace_marker.ptxinc phase/gr_write_marker.ptxinc

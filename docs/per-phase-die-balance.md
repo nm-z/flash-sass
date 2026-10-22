@@ -499,7 +499,21 @@ loader subsequently exited, leaving stale IPC metadata; its marker alone was
 not treated as a live allocation. Missing holders were reloaded serially after
 the remaining live jobs completed.
 
-## Next attention integration
+## Current runtime qualification
+
+Current executed state and canonical job references are in
+[`validation/astra-2026-10-22/per-phase-balance/README.md`](../validation/astra-2026-10-22/per-phase-balance/README.md).
+The corrected full production kernel now completes128 generated tokens and
+repeats its outputs. With all six compute clocks at1177MHz it measures19.57
+TPS. Complete body capture covers94656 CTA records with no invalid records;
+11 of986 phase comparisons fail the present ten-percent timing gate. PLE is
+the main persistent outlier, and the coarse1024ns timer cannot qualify every
+small phase. SM placement is measured, but useful occupancy still needs a
+work ledger. The output differs from the original frozen baseline first at
+generated index8, so original-model fidelity also remains unqualified. The
+goal is not complete.
+
+## Attention implementation notes
 
 Preserve four local query heads and one local K/V head on every die. Main
 Q/gate rows are2048 per die; K/V projections have256 rows each. The640-row

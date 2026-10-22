@@ -1,0 +1,13 @@
+// Compile/disassemble only: establish Maxwell's %smid encoding independently
+// of MaxAs's special-register name table. This is never a GPU model test.
+.version 7.4
+.target sm_52
+.address_size 64
+.visible .entry balance_smid_encoding(.param .u64 output) {
+    .reg .u64 %p;
+    .reg .u32 %id;
+    ld.param.u64 %p, [output];
+    mov.u32 %id, %smid;
+    st.global.u32 [%p], %id;
+    ret;
+}

@@ -199,7 +199,10 @@ static void check_scope(FILE *f,int mtp_expected,int verify_expected) {
     }
 }
 int main(int argc,char **argv) {
-    setvbuf(stdout,NULL,_IONBF,0);
+    static char trace_output[1u<<20];
+    if(getenv("BENCH_BODY_TRACE") && atoi(getenv("BENCH_BODY_TRACE")))
+        setvbuf(stdout,trace_output,_IOFBF,sizeof trace_output);
+    else setvbuf(stdout,NULL,_IONBF,0);
     int resident=(argc==8 || argc==10) && !strcmp(argv[1],"--resident");
     int private_reference=argc==7 && !strcmp(argv[5],"--reference");
     if(argc!=5 && !resident && !private_reference) { fprintf(stderr,"usage: resident_decode_bench CORE LIB BASE_CUBIN CANDIDATE_CUBIN [--reference IDS_FILE]\n       resident_decode_bench --resident SOCKET LIB BASE_CUBIN CANDIDATE_CUBIN RESTORE_LIB RESTORE_CUBIN [--reference IDS_FILE]\n"); return 2; }
