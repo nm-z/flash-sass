@@ -423,6 +423,9 @@ moe_fused_test: moe_fused_test.c prog.c prog.h dieops.h ../ref/quant.c ../ref/gg
 resident_decode_bench: resident_decode_bench.c
 	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -o $@ $<
 
+balance_report: balance/report.c json.c json.h
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -o $@ balance/report.c json.c -lm
+
 mtp_q8_gen: mtp_q8_gen.c
 	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -o $@ $<
 

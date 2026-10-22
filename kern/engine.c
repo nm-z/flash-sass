@@ -187,7 +187,7 @@ static const char *profile_op_name(unsigned op) {
 static void check_fused_moe_module(CUmodule module) {
 	CUfunction marker;
     CUresult body_marker=cuModuleGetFunction(&marker,module,"flash_balance_body_trace_abi_v1");
-    if(body_trace)CK(body_marker);
+    if(body_trace)CK(cuModuleGetFunction(&marker,module,"flash_balance_body_trace_abi_v2"));
     else if(body_marker==CUDA_SUCCESS) {
         fprintf(stderr,"engine: body trace image requires FLASH_BODY_TRACE=1\n");CK(CUDA_ERROR_INVALID_IMAGE);
     }
@@ -743,6 +743,9 @@ static void upload_programs(const prog_t *P, unsigned *nph, unsigned positions) 
 		CK(cuCtxSetCurrent(ctx[d]));
 		nph[d] = (unsigned)P[d].n;
 		if (nph[d] > program_capacity) { fprintf(stderr, "program too long (%u descriptors)\n", nph[d]); longjmp(run_jb, 1); }
+        if(body_trace && nph[d]>=2048) {
+            fprintf(stderr,"body trace reserves descriptor slots 2048..4095 for wait records\n");longjmp(run_jb,1);
+        }
         prof_desc[d] = nph[d]; prof_nph[d] = 0;
         prof_producer_fusions[d]=prof_matrix_groups[d]=prof_gr_fusions[d]=prof_local_fusions[d]=prof_publications[d]=0;
         for (int i = 0; i < P[d].n; ) {

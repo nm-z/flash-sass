@@ -15,22 +15,22 @@ static void balance_body_dump(FILE *out,int d) {
         unsigned index=prof_index[d][p],op=prof_op[d][p],flags=prof_flags[d][p];
         const uint64_t *primary=data+((size_t)t*4096+index)*256;
         unsigned events=op==OP_BALANCED_SELECT?5u:
-            ((flags&PHASE_BALANCED_PREPARE) || op==100?1u:0u);
+            ((flags&PHASE_BALANCED_PREPARE) || op==100 || op==106?1u:0u);
         const char *qsa[]={"norm_index_grid","score_producers","selection_producer","gather_grid","partition_grid"};
         for(unsigned c=0;c<16;c++) {
             const uint64_t *a=primary+8*c;
             uint64_t elapsed=a[7]>=a[6]?a[7]-a[6]:0,total=0;
             int valid=a[6]!=0 && a[7]>=a[6];
-            fprintf(out,"{\"kind\":\"balanced_body\",\"request\":%llu,\"position\":%u,\"die\":%d,\"physical_gpu\":%d,\"phase\":%d,\"descriptor\":%u,\"layer\":%d,\"op\":\"%s\",\"cta\":%u,\"resident_sm\":%llu,\"start_ns\":%llu,\"end_ns\":%llu,\"polls\":[",
+            fprintf(out,"{\"kind\":\"balanced_body\",\"trace_abi\":2,\"request\":%llu,\"position\":%u,\"die\":%d,\"physical_gpu\":%d,\"phase\":%d,\"descriptor\":%u,\"layer\":%d,\"op\":\"%s\",\"cta\":%u,\"resident_sm\":%llu,\"start_ns\":%llu,\"end_ns\":%llu,\"polls\":[",
                 last_timing.request_id,xtrace_first+t,d,ar[d].die,p,index,prof_layer[d][index],profile_op_name(op),c,
                 (unsigned long long)primary[224+2*c],(unsigned long long)a[6],(unsigned long long)a[7]);
             for(unsigned e=0;e<events;e++) {
-                const uint64_t *v=primary+256*(1+e/4)+8*c+2*(e%4);
-                int expected=!(op==OP_BALANCED_SELECT && e==1 && c!=0) && !(op==100 && c!=0);
+                const uint64_t *v=primary+256*(op==106?2048:1+e/4)+8*c+2*(e%4);
+                int expected=!(op==OP_BALANCED_SELECT && e==1 && c!=0) && !((op==100 || op==106) && c!=0);
                 int observed=v[0]!=0 || v[1]!=0;
                 int ok=observed?v[0]>=a[6] && v[1]>=v[0] && v[1]<=a[7]:!expected;
                 uint64_t ns=ok && observed?v[1]-v[0]:0;total+=ns;valid&=ok;
-                const char *name=op==OP_BALANCED_SELECT?qsa[e]:op==100?"router_producers":"moe_prepare_grid";
+                const char *name=op==OP_BALANCED_SELECT?qsa[e]:op==100?"router_producers":op==106?"ple_host_ready":"moe_prepare_grid";
                 fprintf(out,"%s{\"name\":\"%s\",\"expected\":%s,\"observed\":%s,\"valid\":%s,\"start_ns\":%llu,\"end_ns\":%llu}",
                     e?",":"",name,expected?"true":"false",observed?"true":"false",ok?"true":"false",(unsigned long long)v[0],(unsigned long long)v[1]);
             }

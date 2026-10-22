@@ -238,6 +238,22 @@ time. Resident SM IDs establish placement, not useful utilization; the work
 ledger and operation participation are still needed. The trace has not run on
 a GPU yet. Both normal and diagnostic images preserve493 physical phases.
 
+Body trace ABI2 also times the PLE host-prefetch readiness poll. This phase has
+no auxiliary descriptor, so its poll records use reserved slots in the second
+half of the trace arena; the production builder rejects a traced program with
+2048 or more descriptors. The current full program has980 descriptors. The
+host requires the ABI2 image and labels each body record with that version.
+
+`kern/balance/report.c` builds as`kern/balance_report`. After actual full-model
+traces exist, `balance_report 493 2 < JOB_STDOUT` reports every expected phase
+for two traced positions. It requires all six dies and16 CTAs per die, rejects
+duplicates/incomplete coverage or inconsistent operation/physical mappings, and
+compares each die's maximum CTA body-minus-poll duration with the six-die mean.
+The ten-percent boundary is checked with exact integer cross-products. The
+table retains missing/failing phases; the reader has not yet run on balanced
+GPU data. This timing gate is separate from model correctness and useful-work
+ledger qualification; a resident SM count is not a useful utilization count.
+
 On October22, the source checkpoint's NFS mount timed out on archy. Direct SSH
 to Sentry's configured address returned `No route to host`. Existing GPU
 holders and the serving core remain alive. Do not stop them before preserving

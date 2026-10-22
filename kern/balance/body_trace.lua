@@ -110,6 +110,10 @@ pair('BAL_ATTN_PART_READY_WAIT','BAL_ATTN_PART_READY_BARRIER',4,true)
 pair('BM_PREP_WAIT','BM_PREP_BARRIER',0,false)
 before('ROUTE_JOIN:',stamp(1,0,false))
 insert('@!P5 BRA ROUTE_JOIN;',stamp(1,1,false))
+-- PLE has no auxiliary descriptor. The second half of the diagnostic arena
+-- is reserved for its host-prefetch wait, and is guarded by the host builder.
+before('plegatherq_WAITRDY:',stamp(2048,0,false))
+insert('@P3 BRA plegatherq_WAITRDY;',stamp(2048,1,false))
 -- Final publisher clocks and flag arrival observations remain in the normal
 -- exchange tracer. No trace points alter model descriptors or dispatch count.
 f=assert(io.open(assert(arg[2]),'w'));f:write(s);f:close()
