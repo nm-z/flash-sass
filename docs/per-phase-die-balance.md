@@ -428,6 +428,24 @@ Recovery artifacts:
   resumes on that GPU. It must run on the fresh allocation layout, not after
   another workload has already occupied the die.
 
+### Authorized cold boot completed
+
+After explicit user authorization, `kern/powercycle.sh` ran from engi and
+completed successfully. Archy's new boot ID is
+`891167ad-e388-4e45-aed7-4b31dc598987`. The GPU2 fence was restored first:
+canonical job `7c57e1de-6108-4d3e-a2f7-ec64a408add8` succeeded and the live
+fence reported the original3770 allocated/1022 retained blocks. GPU7's original
+128000-context service and CPU port18620 both returned healthy. Persistence
+enablement completed successfully (`7507fc3e-aa45-4567-9645-9d3179eea078`),
+the thermal timer is active, and the power monitor appends to the original
+`/home/nate/flash-power2.csv`. DRM modeset is Y and writeback remains2000.
+
+The first post-boot queue submission failed because GPUq's staging symlink
+pointed at a cleared `/tmp/gpuq-staging-pr34-20261020` directory. This was filed
+as nm-z/gpuq#72; recreating that directory allowed queue jobs to succeed.
+The flash model holders and main engine remain unloaded at this checkpoint;
+there is still no successful balanced-model run or new TPS measurement.
+
 Following host recovery, restore the fence first, then the original GPU7 unit
 and thermal monitor. Reload all six balanced holders with one physical device
 visible per loader and `CUDA_DEVICE_ORDER=PCI_BUS_ID`. Re-run the corrected
