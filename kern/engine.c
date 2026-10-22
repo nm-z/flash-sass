@@ -269,7 +269,7 @@ static void token_audit(FILE *out) {
     unsigned n=end-start;uint32_t *tokens=malloc((size_t)nd*n*4);
     if(!tokens){fprintf(out,"error: tokenaudit allocation\n");return;}
     for(int d=0;d<nd;d++){CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoH(tokens+(size_t)d*n,db[d].toks+4ull*start,4ull*n));}
-    unsigned stream=0,peer=0,input=0;
+    unsigned stream=0,peer=0,input=0,ple_input=0;
     uint32_t *ids=malloc((size_t)n*4);
     if(!ids){free(tokens);fprintf(out,"error: tokenaudit input allocation\n");return;}
     for(int d=0;d<nd;d++) {
@@ -277,6 +277,13 @@ static void token_audit(FILE *out) {
         for(unsigned i=0;i<n;i++)if(ids[i]!=tokens[(size_t)d*n+i]) {
             if(input<4)fprintf(out,"tokenaudit input position=%u die=%d generated=%u next_id=%u\n",start+i,d,tokens[(size_t)d*n+i],ids[i]);
             input++;
+        }
+        if(!d && ple_disk)for(unsigned i=0;i<n;i++) {
+            unsigned q=start+i+1;if(q>=end)break;
+            if(q>=(unsigned)ple_next || ple_seq[q]!=ids[i]) {
+                if(ple_input<4)fprintf(out,"tokenaudit ple_input position=%u staged=%u device_id=%u staged_end=%d\n",q,ple_seq[q],ids[i],ple_next);
+                ple_input++;input++;
+            }
         }
     }
     free(ids);
@@ -292,7 +299,7 @@ static void token_audit(FILE *out) {
         for(unsigned i=0;i<n;i++){hash^=tokens[(size_t)d*n+i];hash*=UINT64_C(0x100000001b3);}
         fprintf(out,"tokenaudit die=%d count=%u hash=%016llx\n",d,n,(unsigned long long)hash);
     }
-    if(ple_disk)fprintf(out,"pleaudit rid=%u cleared=%u prior_equal=%u\n",ple_rid,ple_ready_cleared,ple_ready_collisions);
+    if(ple_disk)fprintf(out,"pleaudit rid=%u cleared=%u prior_equal=%u staged_end=%d completed=%u input_mismatches=%u\n",ple_rid,ple_ready_cleared,ple_ready_collisions,ple_next,end,ple_input);
     fprintf(out,"tokenaudit_end count=%u stream_mismatches=%u peer_mismatches=%u input_mismatches=%u\n",n,stream,peer,input);free(tokens);
 }
 

@@ -36,6 +36,10 @@ out[#out+1]=s:sub(cursor);s=table.concat(out)
 local advance=s:find('05:-:-:-:6      IADD pidx, pidx, bar_t;',1,true)and '05' or '01'
 replace(advance..':-:-:-:6      IADD pidx, pidx, bar_t;',
         '07:-:-:-:6      IADD pidx, pidx, bar_t;')
+-- The host polls ctl[2] and then copies TOKS while this persistent launch is
+-- active. Order token/ID/state stores at system scope before publishing that
+-- progress; peer-only publication fences do not cover a final non-send phase.
+replace('# ---- token done:', '3f:-:-:-:6 MEMBAR.SYS; # release completed model stores before host progress\n# ---- token done:')
 -- Every publishing thread must order its own peer writes before the CTA's
 -- representative publishes the flag. A fence executed only by thread zero
 -- does not order writes issued by the other seven warps.

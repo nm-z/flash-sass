@@ -1,9 +1,12 @@
-# Exchange measurements, split prototype, and remaining determinism failure
+# Exchange measurements, split change, and repeatability qualification
 
 This is work in progress for the three requested items. The full objective is
-not complete: the candidate still has repeatability failures, and the proposed
-full FFN GR replication does not fit archy's current memory placement. No new
-cross-kernel correctness comparisons have been used as an oracle.
+not complete. The latest v33 candidate passes the ordinary and fixed-input
+self-repeatability gates; long-context qualification and a fresh matched split
+measurement remain pending. Earlier failures below are retained as evidence.
+Full48-stage FFN GR replication does not fit archy's current memory placement;
+the eight-stage variant fits and reduces actual exchanges, but its earlier run
+was not qualified. No cross-kernel correctness oracle is claimed.
 
 ## Per-exchange observations
 
@@ -67,9 +70,10 @@ job `4be120bc-dff8-4a75-8949-3c57a403ef53`.
 The memory snapshot in job `473aaf77-2130-47ef-b070-ab80104520c8` reports7,618
 MiB per GPU, with175–266 MiB free on the six inference GPUs in recovered startup
 configuration. The balanced runtime also copies relocated attention weights.
-A feasible measured split, rather than merely an offline descriptor reduction,
-is still required. The router is already fully replicated and has no peer
-exchange of its own to eliminate.
+The later eight-stage job below establishes a feasible actual split, but fails
+repeatability. A matched qualification on the current fixed source is still
+required. The router is already fully replicated and has no peer exchange of
+its own to eliminate.
 
 ## Determinism evidence and fixes
 
@@ -346,6 +350,59 @@ values on this workload. Candidate warm decode averages31.0001 TPS;
 baseline32.4847 TPS. No additional fixed-input, long-context or cross-kernel
 qualification is claimed for this candidate. GDN completions are therefore
 also insufficient to identify or resolve the remaining fault.
+
+## Physical dependency and publication audit
+
+`phase/physical_dependencies.lua` resolves hardware register aliases and vector
+operands before inspecting fixed-result, pending-variable and delayed-read
+dependencies. Labels and branches terminate its straight-line analysis. It
+does not prove CFG paths or the completion time of a later variable writer.
+Its WAR rows are review candidates, not automatically applied fixes.
+
+Against v31, the audit reports364 short fixed-result reads and44 delayed-read
+candidates. Register-result `ICMP` feeds many router-selection consumers after
+six scheduled cycles while the installed
+[MaxAs grammar](https://github.com/NervanaSystems/maxas/blob/master/lib/MaxAs/MaxAsGrammar.pm)
+models that compare class at13. Two QSA final accumulator clamps also have a
+five-cycle gap instead of six. `phase/fixed_latency.lua` changes control fields:
+732 register compares and64 unrolled accumulator sites in the candidate,
+412 and32 in the baseline. It adds no instruction or phase. The corrected
+physical audit has no short fixed-result rows in either image; remaining WAR
+rows are not claimed to be definite hardware violations.
+
+V32 `ff4a7085-7869-4a9c-a25c-c6e51683e461` still fails: baseline repeats,
+candidate request2 differs at generated index33 and93 output tokens in total,
+with216 different GDN state hashes. Those control-field corrections are not a
+complete determinism fix.
+
+The subsequent frame change orders final token/ID/state stores with
+`MEMBAR.SYS` before publishing the progress counter polled by the host during
+the persistent launch. This is a system publication boundary, distinct from
+the conditional peer-send fences. NVIDIA describes the relevant cross-host/
+device ordering scope in the
+[CUDA memory-fence documentation](https://docs.nvidia.com/cuda/archive/11.0/cuda-c-programming-guide/index.html#memory-fence-functions).
+`pleaudit` also compares the token history used for host row staging against
+the completed GPU IDs, after execution.
+
+The selected-body scheduling helper previously kept the last operator name
+after `POSITION_END`, unintentionally applying operand-completion waits to
+the footer. Selected mode now requires being inside an operator body. This
+corrects the intended scope; old manifests retain the exact binaries actually
+tested. All full/split/trace images were rebuilt for the new publication test.
+
+V33 ordinary job `dd7a2119-eeb3-4a45-b1bd-88eedabe5336` passes four64/128
+requests per arm: output tokens,216 GDN states,432 component value comparisons,
+six-GPU/host/next-input agreement and PLE staging history all match. Candidate
+warm decode averages31.6741 TPS, versus32.4113 for its matched baseline.
+Fixed-input gate `a59acb74-24fb-4d75-8edd-a83cf65ba775` also passes all four
+256-position requests per arm and all state comparisons. These are qualified
+observations for those workloads, not proof for longer contexts or evidence
+of a performance improvement. The4,096/16 long-context gate is running next.
+
+The profile extraction tool now accepts explicit arm labels/workload text and
+derives phase ranges from the captured headers, so a499-versus499 split report
+does not inherit hardcoded unfused-baseline counts. Replaying the saved original
+PROF_ALL fixture produces the identical numeric CSV.
 
 `phase/predicate_cfg.lua` audits minimum predicate age through labels and
 direct branch edges, terminating paths at unknown BRX edges. It reports zero

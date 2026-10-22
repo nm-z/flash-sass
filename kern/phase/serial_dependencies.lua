@@ -15,7 +15,7 @@ for line in s:gmatch('[^\n]+')do
  if line=='embrow_SETUP:' then in_body=true end
  if line=='POSITION_END:' then in_body=false end
  local enabled=scope=='all' or (scope=='body' and in_body) or (scope=='frame' and not in_body)
- if selected then enabled=enabled and fixed_ops[active_op] end
+ if selected then enabled=enabled and in_body and fixed_ops[active_op] end
  local fixed=fixed_mode=='fixed' or (fixed_mode=='fixedbody' and in_body) or (fixed_mode=='fixedframe' and not in_body)
  if filtered then fixed=fixed and fixed_ops[active_op] end
  local ctl,space,ins=line:match('^(%S+)(%s+)(.+);')
