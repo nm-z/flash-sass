@@ -383,7 +383,7 @@ int main(int argc,char **argv) {
             else { fprintf(f,"chat %d",generate-1); for(int i=0;i<prompt_copies;i++) fprintf(f," %s",prompt); fputc('\n',f); }
             fflush(f);
             if(arm && !round && !run && getenv("BENCH_CUDA_DEBUG") && atoi(getenv("BENCH_CUDA_DEBUG")))start_cuda_debugger();
-            char *line=NULL; size_t cap=0; int n=0,done=0; unsigned run_mismatches=0;
+            char *line=NULL; size_t cap=0; int n=0,done=0; unsigned run_mismatches=0,run_state_errors=0;int run_state_checked=0;
             while(getline(&line,&cap,f)>0) {
                 fputs(line,stdout);
                 unsigned token;
@@ -417,11 +417,14 @@ int main(int argc,char **argv) {
             free(line); fflush(stdout);
             if(!done||n!=positions) fail("incomplete generation");
             if(getenv("BENCH_STATE_HASH") && atoi(getenv("BENCH_STATE_HASH"))) {
-                fputs("statehash\n",f);fflush(f);char *hl=NULL;size_t hc=0;int hd=0;
-                unsigned state_rows=0,state_errors=0;
+                int detail=getenv("BENCH_STATE_DETAIL") && atoi(getenv("BENCH_STATE_DETAIL"));
+                fputs(detail?"statehash detail\n":"statehash\n",f);fflush(f);char *hl=NULL;size_t hc=0;int hd=0;
+                unsigned state_rows=0,state_errors=0,value_rows=0;
                 while(getline(&hl,&hc,f)>0){
                     fputs(hl,stdout);if(!strcmp(hl,"statehash done\n")){hd=1;break;}
                     int sd,sl;unsigned long long sh;
+                    if(!strncmp(hl,"statevalues die=",16))value_rows++;
+                    if(!strncmp(hl,"statevalues error=",18))fail("state value readback failed");
                     /* GDN state has no unused positional padding. QSA's combined
                      * hash includes stale padding, so it is not an equality oracle. */
                     if(sscanf(hl,"statehash die=%d layer=%d state=%llx",&sd,&sl,&sh)==3 && sd>=0 && sd<6 && sl>=0 && sl<48 && sl%4!=3){
@@ -432,10 +435,12 @@ int main(int argc,char **argv) {
                 }
                 free(hl);if(!hd)fail("incomplete state hash readback");
                 if(state_rows!=216)fail("incomplete full-model GDN state coverage");
+                if(detail && value_rows!=432)fail("incomplete full-model state value coverage");
+                run_state_checked=1;run_state_errors=state_errors;
                 printf("stateaudit arm=%s run=%d rows=%u mismatches=%u reference=first_request_same_kernel\n",name,run_id,state_rows,state_errors);
             }
             if(mtp_audit>=2)printf("{\"arm\":\"%s\",\"run\":%d,\"correctness_checked\":false,\"generated_tokens\":%d}\n",name,run_id,n);
-            else printf("{\"arm\":\"%s\",\"run\":%d,\"output_mismatches\":%u,\"correct\":%s}\n",name,run_id,run_mismatches,run_mismatches?"false":"true");
+            else printf("{\"arm\":\"%s\",\"run\":%d,\"output_mismatches\":%u,\"state_mismatches\":%u,\"state_checked\":%s,\"correct\":%s}\n",name,run_id,run_mismatches,run_state_errors,run_state_checked?"true":"false",run_mismatches||run_state_errors?"false":"true");
             if(exact_batch) {
                 char stats[256];unsigned width;int batched;
                 fputs("batchstats\n",f);fflush(f);

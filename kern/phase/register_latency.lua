@@ -13,7 +13,9 @@ for line in assert(source:match('<REGISTER_MAPPING>(.-)</REGISTER_MAPPING>')):gm
 end
 local fixed={MOV=true,MOV32I=true,FADD=true,FMUL=true,FFMA=true,FMNMX=true,FSEL=true,
  IADD=true,IADD32I=true,ISCADD=true,XMAD=true,LOP=true,LOP32I=true,SHL=true,SHR=true,
- BFE=true,BFI=true,SEL=true,IMNMX=true,FLO=true,POPC=true,PRMT=true}
+ BFE=true,BFI=true,SEL=true,IMNMX=true,FLO=true,POPC=true,PRMT=true,
+ F2F=true,F2I=true,I2F=true,I2I=true,MUFU=true}
+local conversion={F2F=true,F2I=true,I2F=true,I2I=true,MUFU=true}
 local defs,cycle,line_no,count={},0,0,0
 f=assert(io.open(assert(arg[2]),'w'));f:write('line,register,producer_line,minimum_cycles,consumer\n')
 for line in source:gmatch('[^\n]+')do
@@ -30,10 +32,14 @@ for line in source:gmatch('[^\n]+')do
   local reg=dest and dest:match('^([%w_]+)')
   local hasdest=reg and names[reg] and not (op:match('^ST') or op=='RED')
   local used={};for r in (hasdest and rest or args):gmatch('[%a_][%w_]*')do if names[r]then used[r]=true end end
-  for r in pairs(used)do local d=defs[r];if d and cycle-d.cycle<6 then
-   f:write(string.format('%d,%s,%d,%d,"%s"\n',line_no,r,d.line,cycle-d.cycle,text));count=count+1
+  local read_delay=(conversion[op] or op=='LDG' or op=='STG') and 4 or ((op=='LDS' or op=='STS' or op=='SHFL') and 2 or 0)
+  local waited=tonumber(wait,16)or 0
+  for _,d in pairs(defs)do if d.bar and (waited&(1<<(d.bar-1)))~=0 then d.latency=0 end end
+  for r in pairs(used)do local d=defs[r];local age=d and cycle+read_delay-d.cycle
+  if d and age<d.latency and not(d.bar and (waited&(1<<(d.bar-1)))~=0)then
+   f:write(string.format('%d,%s,%d,%d,"%s"\n',line_no,r,d.line,age,text));count=count+1
   end end
-  if hasdest then defs[reg]=fixed[op] and {cycle=cycle,line=line_no} or nil end
+  if hasdest then defs[reg]=fixed[op] and {cycle=cycle,line=line_no,latency=conversion[op] and 8 or 6,bar=tonumber(wr)} or nil end
   local clocks=tonumber(stall,16);if clocks>11 and y~='Y'then clocks=6 end;cycle=cycle+clocks
   if op=='BRA' or op=='BRX' or op=='EXIT'then defs={};cycle=0 end
  end

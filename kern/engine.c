@@ -308,7 +308,42 @@ static uint64_t device_fnv(CUdeviceptr p, size_t bytes, uint64_t h) {
 	}
 	return h;
 }
-static void state_hashes(FILE *out) {
+static uint32_t *state_detail_reference[MAXD][48][2];
+static size_t state_detail_bytes[MAXD][48][2];
+static void state_detail_clear(void) {
+    for(int d=0;d<MAXD;d++)for(int b=0;b<48;b++)for(int k=0;k<2;k++) {
+        free(state_detail_reference[d][b][k]);state_detail_reference[d][b][k]=NULL;state_detail_bytes[d][b][k]=0;
+    }
+}
+/* Read only after the request has completed. No instrumentation or comparison
+ * is inserted into the GPU kernel. References belong to this library instance. */
+static void state_values(FILE *out,int d,int b,int k,CUdeviceptr p,size_t bytes) {
+    uint32_t *current=malloc(bytes),**ref=&state_detail_reference[d][b][k];
+    if(!current){fprintf(out,"statevalues error=allocation\n");return;}
+    CK(cuMemcpyDtoH(current,p,bytes));
+    int first=!*ref || state_detail_bytes[d][b][k]!=bytes;
+    if(first){free(*ref);*ref=malloc(bytes);state_detail_bytes[d][b][k]=bytes;}
+    if(!*ref){free(current);fprintf(out,"statevalues error=reference_allocation\n");return;}
+    if(first)memcpy(*ref,current,bytes);
+    size_t changed=0,first_index=0;uint64_t max_ulp=0;double max_abs=0,max_rel=0;unsigned nonfinite=0;
+    for(size_t i=0;i<bytes/4;i++)if(current[i]!=(*ref)[i]) {
+        if(!changed)first_index=i;
+        changed++;
+        float a,c;memcpy(&a,current+i,4);memcpy(&c,*ref+i,4);
+        if(!isfinite(a)||!isfinite(c)){nonfinite++;continue;}
+        double delta=fabs((double)a-c),rel=delta/fmax(fabs((double)c),1e-30);
+        if(delta>max_abs)max_abs=delta;
+        if(rel>max_rel)max_rel=rel;
+        uint32_t x=current[i]&0x80000000u?~current[i]:current[i]|0x80000000u;
+        uint32_t y=(*ref)[i]&0x80000000u?~(*ref)[i]:(*ref)[i]|0x80000000u;
+        uint64_t ulp=x>y?(uint64_t)x-y:(uint64_t)y-x;if(ulp>max_ulp)max_ulp=ulp;
+    }
+    float a,c;memcpy(&a,current+first_index,4);memcpy(&c,*ref+first_index,4);
+    fprintf(out,"statevalues die=%d layer=%d buffer=%s values=%zu changed=%zu first=%zu current_bits=%08x reference_bits=%08x current=%.9g reference=%.9g max_abs=%.9g max_rel=%.9g max_ulp=%llu nonfinite=%u reference_kind=%s\n",
+        d,b,k?"conv":"dn",bytes/4,changed,first_index,current[first_index],(*ref)[first_index],a,c,max_abs,max_rel,(unsigned long long)max_ulp,nonfinite,first?"capture":"first_completed_request_same_library");
+    free(current);
+}
+static void state_hashes(FILE *out,int detail) {
 	const uint64_t seed = 0xcbf29ce484222325ull;
 	fprintf(out, "statehash positions=%d paired_positions=%d prefill_chunks=%d\n", last_positions, last_paired_positions, last_prefill_chunks);
 	for (int d = 0; d < nd; d++) {
@@ -327,6 +362,7 @@ static void state_hashes(FILE *out) {
 			} else {
 				h = device_fnv(dst_dn[d][bb], dn_bytes[d][bb], h);
 				h = device_fnv(dst_conv[d][bb], conv_bytes[d][bb], h);
+				if(detail){state_values(out,d,bb,0,dst_dn[d][bb],dn_bytes[d][bb]);state_values(out,d,bb,1,dst_conv[d][bb],conv_bytes[d][bb]);}
 			}
 			fprintf(out, "statehash die=%d layer=%d state=%016llx\n", d, bb, (unsigned long long)h);
 		}
@@ -1653,6 +1689,7 @@ void engine_fini(void) {
 	chunk_fini();
 #endif
 	ple_read_pool_destroy(&ple_reads);
+	state_detail_clear();
 	ple_cache_path[0]=0;ple_cache_active=0;
 	if (!core) return;
 	for (int d = 0; d < nd; d++) { if (pollst[d]) { cuCtxSetCurrent(ctx[d]); cuStreamDestroy(pollst[d]); pollst[d] = 0; } }
@@ -1814,7 +1851,7 @@ int engine_session(FILE *in, FILE *out) {
 			fprintf(out, "  longest:"); for (int k = 0; k < 8 && big[k] > 0; k++) fprintf(out, " #%d %s %.0f us;", big[k], profile_op_name(pop[big[k]]), (uint32_t)(ts[big[k]] - ts[big[k] - 1]) / 1e3);
 			fprintf(out, "\n"); fflush(out); free(ts); continue;
 		}
-		if (!strncmp(p, "statehash", 9)) { state_hashes(out); continue; }
+		if (!strncmp(p, "statehash", 9)) { state_hashes(out,strstr(p,"detail")!=NULL); continue; }
         if(!strncmp(p,"tokenaudit",10)){token_audit(out);fflush(out);continue;}
 #ifdef FLASH_VERIFY_NATIVE
 		if (!strncmp(p,"verifystats",11)) { verify_stats(out);continue; }

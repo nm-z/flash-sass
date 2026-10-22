@@ -246,6 +246,107 @@ arithmetic latency and does not model register aliases, CFG edges, or extra
 stall cycles supplied by variable completions. It is a review aid. These QSA
 sites do not by themselves explain state drift beginning at layer1.
 
+The audit also models8-cycle conversion/SFU results and delayed source reads
+(4 cycles for conversion/SFU/global memory,2 for shared memory/shuffles),
+using the installed MaxAs grammar's scheduling classes. Retired completion
+barriers remain retired for subsequent uses. The same two candidates remain.
+
+GR-only fixed spacing `4a216054-6519-4455-85a4-c56eeecd904c` fails all three
+fixed-input repeats:17,12 and9 prediction differences and210 GDN state
+differences each. It retains full-image immediate variable completions, but
+applies extra fixed spacing only to `bf16hcrwx` and `grreadsum`. The next
+isolation region is the PLE path, which executes immediately before layer1,
+the first recurrent-state layer that repeatedly differs in these jobs.
+
+PLE-path spacing `c6e5eb17-7945-4cdd-aafb-31c7dd9db19d` passes all four
+fixed-input requests and all216 GDN states. This region includes
+`plegatherq,plenormgate,pleconv,rms2560,q2k2560,bf16k2560`; the generic bodies
+also execute outside PLE. The next narrowing retains extra fixed spacing
+only in the three PLE-specific bodies, with full-image variable completions
+unchanged. Passing this timing diagnostic is not yet a production fix.
+
+PLE-specific spacing `e076993b-b61a-499a-a8cd-1578d2a77e5f` also passes all
+four requests and216 GDN states per request. Extra spacing in the generic
+matrix/norm bodies is therefore not required for this observed pass. The
+next region is only `plegatherq`, which contains compact row gather followed
+by quantization. Immediate variable completions elsewhere are retained for
+the controlled isolation and must later be removed from a production fix.
+
+Row/quantization-only spacing `1362c5c8-2245-42f2-9832-0b07a05e2d12` fails
+the three repeats:11,19 and11 prediction differences and210 GDN states each.
+The three-body PLE region remains the narrowest observed passing region.
+
+The production candidate now applies explicit operand completions and
+conservative fixed spacing only to the PLE-specific bodies. It contains597
+explicit completion waits, versus16,384 in the full-image diagnostic. The
+unfused baseline applies the analogous scheduling to its separate row/gate/
+convolution bodies and the generic norm/quantization bodies used between
+them (518 completion waits). No phase or fusion is removed. The full images,
+split images and exchange trace images have been rebuilt together. This is
+a candidate requiring end-to-end qualification, not a demonstrated root-cause
+instruction fix or a measured performance improvement.
+
+Production PLE-only end-to-end job
+`36730b1e-61cb-44a6-96cf-960cd1c1442d` repeats all output tokens across four
+requests per arm. Baseline also repeats all216 GDN states, but candidate
+request1 differs in210 states. The job **fails**, despite exact output and
+GPU/host/next-input agreement. Thus the PLE scheduling change alone is not
+sufficient after removing model-wide completion waits. The next production
+candidate retains PLE scheduling and adds immediate operand completions in
+the GR read/write bodies, without extra fixed spacing there, phases, or
+model-wide serialization. This remains an unqualified candidate.
+
+The v28 warm decode means are34.0386 TPS for the candidate and33.9560 TPS
+for its matched baseline (64 prompt tokens,128 generated,no MTP,no trace).
+These are diagnostic rates because the candidate's state gate failed.
+
+The v29 candidate keeps the PLE changes and adds442 GR operand-completion
+waits, for1,039 total explicit waits. The baseline has727. These are static
+instructions in the kernel, not extra dispatch phases or peer exchanges.
+Both traced and untraced full-model/split images were rebuilt together.
+
+V29 end-to-end job `b6f17fe1-28d7-460a-b159-eeec086fc79e` still fails.
+Both arms repeat every output token, and baseline repeats all216 GDN states.
+Candidate request1 differs in210 states; its other requests match. Candidate
+warm decode averages31.3355 TPS, baseline32.8099 TPS. The added GR completions
+cost time without resolving that state failure. The normal six-die schedule
+remains499 phases and354 peer acquires. No speedup or determinism claim is made.
+
+`statehash detail` adds post-completion host comparisons of the actual DN and
+convolution values: changed element count, first differing bits/value, maximum
+absolute/relative/ULP difference and nonfinite differences. It reads no data
+while the kernel runs and adds no kernel instructions. References are captured
+from the first completed request in the current library instance and freed on
+unload. `BENCH_STATE_DETAIL=1` requires all432 component rows in the full model.
+This will distinguish numerical differences from stale/corrupt values without
+relying solely on the combined hashes or changing the device instruction stream.
+
+Post-completion job `efcd838e-70c3-45ea-b14a-b2ce86524ce4` reproduces210
+state differences in all three repeats while outputs agree. On die0/layer1,
+51,603 of131,072 recurrent values differ, maximum absolute difference
+4.0423125e-5, with no nonfinite differences. That layer's convolution buffer
+matches exactly. Subsequent layers show larger propagated differences. This
+is valid state data, not the unused QSA padding excluded from the gate.
+
+The next candidate retains the PLE/GR changes and adds explicit variable
+completions to the fused GDN body (and analogous unfused baseline bodies).
+The per-request JSON now includes state mismatch counts and marks a request
+incorrect when its state gate fails; older records' `correct` field referred
+only to output tokens, while their stateaudit records and final job status
+already recorded the failure. Generation recipes depend on their Makefile
+include so edits to scheduling stages rebuild the images instead of silently
+retaining an older binary.
+
+V31 `fb8ec819-0f6b-4ddf-a96a-92e7be32fa4b` adds189 completion waits in
+the fused GDN body (1,228 total;baseline903). It still fails one candidate
+repeat with210 state mismatches while all output tokens agree. Die0/layer1
+has53,505 changed recurrent values, maximum absolute difference1.92848966e-5,
+and its convolution buffer still matches. Baseline repeats all outputs and
+values on this workload. Candidate warm decode averages31.0001 TPS;
+baseline32.4847 TPS. No additional fixed-input, long-context or cross-kernel
+qualification is claimed for this candidate. GDN completions are therefore
+also insufficient to identify or resolve the remaining fault.
+
 `phase/predicate_cfg.lua` audits minimum predicate age through labels and
 direct branch edges, terminating paths at unknown BRX edges. It reports zero
 sub13-cycle fixed predicate candidates in the current production image. This
