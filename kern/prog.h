@@ -126,6 +126,7 @@ typedef struct {
     CUdeviceptr balance_gate_targets,balance_up_targets,balance_down_targets;
     CUdeviceptr balance_prepare,balance_quant_ready;
     CUdeviceptr balance_owner_bounds;
+    CUdeviceptr balance_head_sources; /* six peer pointers to16 CTA winners */
     CUdeviceptr balance_index_local,balance_index_targets,balance_attention_targets,balance_attn_ready;
 	CUdeviceptr S2;                   /* 10240 scratch stream: the attention side's write lands here (bf16hcrwx), the MoE end writes S */
 	CUdeviceptr xh, t;                /* 10240; 324 = SiLU(0.25 down) ++ inj */

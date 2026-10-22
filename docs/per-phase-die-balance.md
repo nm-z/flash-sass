@@ -562,6 +562,15 @@ fail. Full evidence and limitations are in the validation README.
 Physical GPUs2 and7 are reserved for Nate's work. The model compute mapping
 remains logical0..5 to physical0,1,6,3,4,5; do not move model shards onto2 or7.
 
+The v71 direct-peer head path removes the copy phase and returns to493 phases.
+It preserves128 original IDs and passes all96 retained-head-partial checks.
+The complete capture still fails: five cycle observations and eight nanosecond
+observations are outside ten percent. Argmax and AMAX fail at both positions,
+with physical GPU6 slowest. Direct reads therefore do not solve the head's
+transport/synchronization imbalance. Timed decode is20.09 TPS in one run.
+The complete evidence is retained; the next candidate is producing CTA winners
+inside the output GEMV to remove the separate scan and synchronization boundary.
+
 ## Attention implementation notes
 
 Preserve four local query heads and one local K/V head on every die. Main

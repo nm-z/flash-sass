@@ -422,3 +422,59 @@ work. Keep flash-sass computation on0,1,6,3,4,5 (logical0..5 respectively).
 Existing GPU2 protected-memory fence/anchor and GPU7 stop-hook allocations
 were disclosed; do not move a model shard or launch additional workloads onto
 either reserved GPU. The six weight holders remain resident.
+
+## Direct peer reads of head winners (v71)
+
+The separate winner-copy phase is removed. Argmax writes its16 local winner
+pairs with WT stores; its ordinary phase footer performs the system fence and
+publishes all16 producer flags. The existing AMAX acquire waits for all96 flags
+before reading the six producer-local buffers through a48-byte pointer table.
+Each die still consumes all96 winners and uses the original global-index tie
+rule. The full graph is493 physical phases again. No workload is added to the
+reserved physical GPUs2 or7.
+
+The scalar full-model graph protects reuse: after AMAX, the next token's
+embedding exchange requires every die to have finished AMAX before any die
+can progress through the model to overwrite its head partials. Stop/exit paths
+do not write another set of partials. Balanced initialization already excludes
+paired and multi-position execution. The pointer table is built from the
+actual six compute contexts after all partial buffers exist.
+
+AMAX issues three independent64-bit peer reads per lane before waiting for
+their results, with CV loads to avoid retaining an earlier token's peer data.
+Independent vocabulary-base loads are also overlapped. The peer pairs are
+issued in logical order0/1,4/5,2/3; the last group includes the chipset-side
+physical GPU6 in the current mapping. The [PCI topology](pci-topology-v71.txt)
+and [driver bus map](gpu-bus-map-v71.txt) retain that hardware evidence. The
+ordering changes latency scheduling only; all six buffers are always read.
+The new `flash_balance_head_peer_abi_v1` image marker guards the pointer-table
+interpretation against the older flat copied-pair format.
+
+Complete-model job `1e1052f4-e850-4f98-b426-b64a89096c49` matches all128 frozen
+baseline IDs, passes all96 partial checks across248320 retained logits, and
+reports493 phases. It records20.093097685 decode TPS before the post-run audit;
+[log](head-audit-v71.log). This one observation does not show a throughput
+improvement over the preceding20.10 TPS result.
+
+The v71 engine and images are archived on archy. Production SHA256:
+`23016a38959b46bc8718676b30e6a38a435a4715afc1d962c35c46b5b732d876`.
+Body image SHA256:
+`67eca18a0ea3451c187726906dc272d1aa03cfdd4361dc2e33424317c452e298`.
+
+Complete trace job `844d9836-64a3-4c15-ba27-73edf5771b22` matches all128
+original IDs and has94656 valid CTA records, all986 valid phase/cycle
+comparisons, and576 consistent expert records. Its [full table](body-v71.tsv)
+and [summary](body-v71-summary.txt) show eight nanosecond failures and five
+cycle failures. Argmax fails at24.707730% and20.930514%; AMAX fails at29.657860%
+and26.618313%. The remaining cycle failure is GDN layer26 at13.309264%.
+Logical die2 / physical GPU6 is the slowest head participant at both positions.
+The direct-read path is correct on this fixture and removes a copy phase, but
+does not satisfy the balance objective or show a throughput improvement.
+
+The comparison isolates two costs that remain despite equal logit stripes:
+system-fenced producer completion and peer reads. This is consistent with the
+asymmetric PCI topology, not proof that topology alone explains every timing
+difference. The next candidate is producing CTA winners inside the output GEMV
+itself, avoiding the separate logit scan and its synchronization boundary.
+That requires a coordinated production-kernel change and is not implemented
+by v71. No completion claim is made from the eliminated copy descriptor.

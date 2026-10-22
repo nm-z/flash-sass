@@ -197,7 +197,7 @@ static void check_fused_moe_module(CUmodule module) {
         fprintf(stderr,"engine: body trace image requires FLASH_BODY_TRACE=1\n");CK(CUDA_ERROR_INVALID_IMAGE);
     }
     CUresult balanced_marker=cuModuleGetFunction(&marker,module,"flash_balanced_rows_abi_v1");
-    if(row_balance){CK(balanced_marker);CK(cuModuleGetFunction(&marker,module,"flash_balance_head_cta_abi_v1"));}
+    if(row_balance){CK(balanced_marker);CK(cuModuleGetFunction(&marker,module,"flash_balance_head_peer_abi_v1"));}
     else if(balanced_marker==CUDA_SUCCESS) {
         fprintf(stderr,"engine: balanced SASS requires row-balanced holders and program\n");
         CK(CUDA_ERROR_INVALID_IMAGE);
@@ -1840,6 +1840,8 @@ int engine_init(core_t *c) {
         CUdeviceptr index[6];for(int e=0;e<nd;e++)index[e]=position_buf(e,p)->iqk;
         b->balance_index_targets=dalloc(sizeof index);CK(cuMemcpyHtoD(b->balance_index_targets,index,sizeof index));
         b->balance_attention_targets=producer_tables[p][d][1];
+        CUdeviceptr heads[6];for(int e=0;e<nd;e++)heads[e]=position_buf(e,p)->apart;
+        b->balance_head_sources=dalloc(sizeof heads);CK(cuMemcpyHtoD(b->balance_head_sources,heads,sizeof heads));
     }
     if(residual_fp8)for(unsigned p=0;p<allocated_positions;p++)for(int d=0;d<nd;d++){CK(cuCtxSetCurrent(ctx[d]));for(unsigned k=0;k<2;k++)residual_encoded[p][d][k]=dalloc(fp8_bytes(10240));}
     if(producer_quant)for(int d=0;d<nd;d++) {

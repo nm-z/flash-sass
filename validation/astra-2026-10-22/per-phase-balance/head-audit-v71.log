@@ -1,0 +1,441 @@
+reference_file=/home/nate/work/flash-per-phase-balance-v65/original-v39-short-reference.ids expected_tokens=128 validation_only=1
+flashcore: PLE rows are read from /home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf on demand (FLASH_PLE_DISK): 47 MB pinned instead of 28.8 GB, no table load
+flashcore: 6 dies, weights and PLE table resident after 1 s
+engine: PLE cache /home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf is available; original source remains available
+engine: 6 dies, 48/48 blocks, up to 32768 positions, 356 MB of buffers per die, ready in 1.3 s
+flashcore: engine /home/nate/work/flash-per-phase-balance-v71/libengine_exact.so ready in 1.3 s
+ready
+flashcore: listening on /tmp/flash-60-197728.sock
+{"arm":"row-balanced","workload":"head-component-audit","prompt_tokens":64,"generated_tokens":128,"warmup_runs":1,"baseline_compared":false,"reference_kind":"frozen_scalar"}
+config rev=44bd268-dirty-exact kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf maxt=32768 layers=48/48 nblk=512 dies=6 attn_dies=0,1,2,3,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=1 rope_owner=-1 trace_tokens=0 two_position=0 prefill_chunk=64 attn_q_split=0 attn_q_mask=0 cubin=/home/nate/work/flash-per-phase-balance-v71/die_balanced.cubin cubin_fnv=6f987d3b6ee4e1bc runtime_attn_map=0,1,2,3,4,5,0,1,2,3,4,5 balanced=1 row_balance=1 row_grain=8 compute_physical=0,1,6,3,4,5 body_trace=0 ple_device_rows=1 ple_device_bytes=47188800 residual_storage=fp32 fused_gr=1 producer_quant=1 matrix_group=1 gr_replica_ffn=0 xtrace=0 phase_batch=0 exact_cubin=none exact_cubin_fnv=0000000000000000
+ok: stop -1 -1
+ok: sample seed 7 temp 0 top_k 20 top_p 0.95 (greedy)
+ok: timings 1
+{"arm":"row-balanced","run":0,"kept":0,"warmup":true}
+tok 1596
+tok 1144
+tok 4087
+tok 1156
+tok 25
+tok 328
+tok 9930
+tok 1503
+tok 11679
+tok 28052
+tok 9561
+tok 30
+tok 79091
+tok 25899
+tok 303
+tok 17248
+tok 3992
+tok 1149
+tok 14235
+tok 1534
+tok 61446
+tok 13
+tok 14235
+tok 10033
+tok 40818
+tok 1406
+tok 17669
+tok 11
+tok 11679
+tok 13376
+tok 17645
+tok 303
+tok 2919
+tok 14
+tok 543
+tok 7099
+tok 11
+tok 69569
+tok 40818
+tok 1406
+tok 11
+tok 9561
+tok 94708
+tok 413
+tok 2643
+tok 3294
+tok 491
+tok 40818
+tok 1406
+tok 13
+tok 75926
+tok 3992
+tok 13
+tok 10380
+tok 6088
+tok 11679
+tok 3070
+tok 914
+tok 28052
+tok 9561
+tok 539
+tok 8364
+tok 26
+tok 424
+tok 3520
+tok 2919
+tok 15288
+tok 310
+tok 28953
+tok 13
+tok 28763
+tok 9522
+tok 13
+tok 28320
+tok 524
+tok 2166
+tok 1248
+tok 13
+tok 198
+tok 248069
+tok 271
+tok 45742
+tok 94708
+tok 9561
+tok 1521
+tok 424
+tok 3520
+tok 424
+tok 15288
+tok 364
+tok 2919
+tok 310
+tok 28953
+tok 13
+tok 3095
+tok 11679
+tok 27692
+tok 9561
+tok 11
+tok 424
+tok 13376
+tok 17645
+tok 1083
+tok 279
+tok 14979
+tok 6000
+tok 314
+tok 2919
+tok 383
+tok 279
+tok 7099
+tok 321
+tok 69569
+tok 279
+tok 40818
+tok 1406
+tok 314
+tok 421
+tok 2919
+tok 13
+tok 1987
+tok 279
+tok 9561
+tok 628
+tok 28052
+tok 1442
+tok 948
+tok 279
+timings {"schema_version":1,"request_id":"1","clock":"CLOCK_MONOTONIC","prompt_tokens":64,"resumed_positions":0,"positions_completed":191,"positions_executed":191,"prompt_positions_processed":64,"generated_tokens":128,"decode_intervals":127,"counts_known":true,"counts_final":true,"error_code":0,"counter_semantics":"last_observed_completed_positions","stop_token_observed":false,"aborted":false,"build_ms":37.876770000366378,"run_ms":9448.1459500002529,"first_observed_ms":3127.567511000052,"post_first_ms":6320.5784390002009,"prompt_positions_per_second":20.463187373223398,"decode_tokens_per_second":20.093097684915222,"device_clock":"SR_GLOBALTIMER","device_origin":"first_generated_position_start","device_first_start_ns":null,"device_first_publish_ns":null,"device_last_traced_publish_ns":null,"device_traced_tokens":0,"device_first_publish_ms":null,"device_decode_ms":null,"device_decode_tokens_per_second":null,"prompt_n":64,"cache_n":0,"prompt_ms":3127.567511000052,"prompt_per_second":20.463187373223398,"predicted_n":128,"predicted_ms":6320.5784390002009,"predicted_per_second":20.093097684915222,"decode_ms":6320.5784390002009}
+done 128 0 64 9448.1 3127.6 0 0
+headpart die=0 cta=0 rows=2816 actual_index=11 expected_index=11 actual_bits=414ae6b2 expected_bits=414ae6b2 valid=1
+headpart die=0 cta=1 rows=2720 actual_index=279 expected_index=279 actual_bits=41c4eab0 expected_bits=41c4eab0 valid=1
+headpart die=0 cta=2 rows=2560 actual_index=4732 expected_index=4732 actual_bits=418089f2 expected_bits=418089f2 valid=1
+headpart die=0 cta=3 rows=2560 actual_index=8981 expected_index=8981 actual_bits=41789e4c expected_bits=41789e4c valid=1
+headpart die=0 cta=4 rows=2560 actual_index=1141 expected_index=1141 actual_bits=4198a9da expected_bits=4198a9da valid=1
+headpart die=0 cta=5 rows=2560 actual_index=5611 expected_index=5611 actual_bits=416a86ff expected_bits=416a86ff valid=1
+headpart die=0 cta=6 rows=2560 actual_index=13870 expected_index=13870 actual_bits=41646ae4 expected_bits=41646ae4 valid=1
+headpart die=0 cta=7 rows=2560 actual_index=10213 expected_index=10213 actual_bits=4161aa68 expected_bits=4161aa68 valid=1
+headpart die=0 cta=8 rows=2560 actual_index=18541 expected_index=18541 actual_bits=4181c72e expected_bits=4181c72e valid=1
+headpart die=0 cta=9 rows=2560 actual_index=2433 expected_index=2433 actual_bits=416ce54b expected_bits=416ce54b valid=1
+headpart die=0 cta=10 rows=2560 actual_index=19088 expected_index=19088 actual_bits=413e17f4 expected_bits=413e17f4 valid=1
+headpart die=0 cta=11 rows=2560 actual_index=19274 expected_index=19274 actual_bits=419521c8 expected_bits=419521c8 valid=1
+headpart die=0 cta=12 rows=2560 actual_index=11456 expected_index=11456 actual_bits=41448a50 expected_bits=41448a50 valid=1
+headpart die=0 cta=13 rows=2560 actual_index=3559 expected_index=3559 actual_bits=41582a07 expected_bits=41582a07 valid=1
+headpart die=0 cta=14 rows=2560 actual_index=3594 expected_index=3594 actual_bits=4189be20 expected_bits=4189be20 valid=1
+headpart die=0 cta=15 rows=2560 actual_index=40818 expected_index=40818 actual_bits=4159627d expected_bits=4159627d valid=1
+headpart die=1 cta=0 rows=2816 actual_index=41051 expected_index=41051 actual_bits=410a63f2 expected_bits=410a63f2 valid=1
+headpart die=1 cta=1 rows=2720 actual_index=20890 expected_index=20890 actual_bits=412d48e6 expected_bits=412d48e6 valid=1
+headpart die=1 cta=2 rows=2560 actual_index=8897 expected_index=8897 actual_bits=41123500 expected_bits=41123500 valid=1
+headpart die=1 cta=3 rows=2560 actual_index=5039 expected_index=5039 actual_bits=40dbb0b4 expected_bits=40dbb0b4 valid=1
+headpart die=1 cta=4 rows=2560 actual_index=17648 expected_index=17648 actual_bits=411cc2ea expected_bits=411cc2ea valid=1
+headpart die=1 cta=5 rows=2560 actual_index=29988 expected_index=29988 actual_bits=412792e0 expected_bits=412792e0 valid=1
+headpart die=1 cta=6 rows=2560 actual_index=18168 expected_index=18168 actual_bits=41178a6d expected_bits=41178a6d valid=1
+headpart die=1 cta=7 rows=2560 actual_index=1871 expected_index=1871 actual_bits=413aae7d expected_bits=413aae7d valid=1
+headpart die=1 cta=8 rows=2560 actual_index=2066 expected_index=2066 actual_bits=4126c87c expected_bits=4126c87c valid=1
+headpart die=1 cta=9 rows=2560 actual_index=31179 expected_index=31179 actual_bits=4152c931 expected_bits=4152c931 valid=1
+headpart die=1 cta=10 rows=2560 actual_index=39670 expected_index=39670 actual_bits=41172726 expected_bits=41172726 valid=1
+headpart die=1 cta=11 rows=2560 actual_index=27436 expected_index=27436 actual_bits=40ef0e28 expected_bits=40ef0e28 valid=1
+headpart die=1 cta=12 rows=2560 actual_index=11374 expected_index=11374 actual_bits=40ffd26e expected_bits=40ffd26e valid=1
+headpart die=1 cta=13 rows=2560 actual_index=7616 expected_index=7616 actual_bits=4125a7c6 expected_bits=4125a7c6 valid=1
+headpart die=1 cta=14 rows=2560 actual_index=28361 expected_index=28361 actual_bits=41092052 expected_bits=41092052 valid=1
+headpart die=1 cta=15 rows=2560 actual_index=36709 expected_index=36709 actual_bits=411b3c48 expected_bits=411b3c48 valid=1
+headpart die=2 cta=0 rows=2816 actual_index=36998 expected_index=36998 actual_bits=40ec16e8 expected_bits=40ec16e8 valid=1
+headpart die=2 cta=1 rows=2752 actual_index=8668 expected_index=8668 actual_bits=40d20492 expected_bits=40d20492 valid=1
+headpart die=2 cta=2 rows=2560 actual_index=33288 expected_index=33288 actual_bits=410765e1 expected_bits=410765e1 valid=1
+headpart die=2 cta=3 rows=2560 actual_index=21427 expected_index=21427 actual_bits=410cc850 expected_bits=410cc850 valid=1
+headpart die=2 cta=4 rows=2560 actual_index=21753 expected_index=21753 actual_bits=40e9e805 expected_bits=40e9e805 valid=1
+headpart die=2 cta=5 rows=2560 actual_index=21819 expected_index=21819 actual_bits=40f5d3a2 expected_bits=40f5d3a2 valid=1
+headpart die=2 cta=6 rows=2560 actual_index=26214 expected_index=26214 actual_bits=40cc86f6 expected_bits=40cc86f6 valid=1
+headpart die=2 cta=7 rows=2560 actual_index=34647 expected_index=34647 actual_bits=41122efa expected_bits=41122efa valid=1
+headpart die=2 cta=8 rows=2560 actual_index=6237 expected_index=6237 actual_bits=4109ecec expected_bits=4109ecec valid=1
+headpart die=2 cta=9 rows=2560 actual_index=10676 expected_index=10676 actual_bits=4104e9db expected_bits=4104e9db valid=1
+headpart die=2 cta=10 rows=2560 actual_index=6698 expected_index=6698 actual_bits=410e88d8 expected_bits=410e88d8 valid=1
+headpart die=2 cta=11 rows=2560 actual_index=19382 expected_index=19382 actual_bits=4111ac67 expected_bits=4111ac67 valid=1
+headpart die=2 cta=12 rows=2560 actual_index=27760 expected_index=27760 actual_bits=411079a0 expected_bits=411079a0 valid=1
+headpart die=2 cta=13 rows=2560 actual_index=36300 expected_index=36300 actual_bits=40ed3142 expected_bits=40ed3142 valid=1
+headpart die=2 cta=14 rows=2560 actual_index=28350 expected_index=28350 actual_bits=40ee93bb expected_bits=40ee93bb valid=1
+headpart die=2 cta=15 rows=2560 actual_index=3932 expected_index=3932 actual_bits=40f0af87 expected_bits=40f0af87 valid=1
+headpart die=3 cta=0 rows=2816 actual_index=20632 expected_index=20632 actual_bits=40c81956 expected_bits=40c81956 valid=1
+headpart die=3 cta=1 rows=2720 actual_index=12622 expected_index=12622 actual_bits=4098e047 expected_bits=4098e047 valid=1
+headpart die=3 cta=2 rows=2560 actual_index=8889 expected_index=8889 actual_bits=40edeae8 expected_bits=40edeae8 valid=1
+headpart die=3 cta=3 rows=2560 actual_index=29555 expected_index=29555 actual_bits=40c6648c expected_bits=40c6648c valid=1
+headpart die=3 cta=4 rows=2560 actual_index=5320 expected_index=5320 actual_bits=40baee3b expected_bits=40baee3b valid=1
+headpart die=3 cta=5 rows=2560 actual_index=1486 expected_index=1486 actual_bits=40b60a3e expected_bits=40b60a3e valid=1
+headpart die=3 cta=6 rows=2560 actual_index=13925 expected_index=13925 actual_bits=40cdcc8a expected_bits=40cdcc8a valid=1
+headpart die=3 cta=7 rows=2560 actual_index=10117 expected_index=10117 actual_bits=40e3944d expected_bits=40e3944d valid=1
+headpart die=3 cta=8 rows=2560 actual_index=6314 expected_index=6314 actual_bits=40f3ec24 expected_bits=40f3ec24 valid=1
+headpart die=3 cta=9 rows=2560 actual_index=6634 expected_index=6634 actual_bits=40beda67 expected_bits=40beda67 valid=1
+headpart die=3 cta=10 rows=2560 actual_index=19029 expected_index=19029 actual_bits=40c03cc7 expected_bits=40c03cc7 valid=1
+headpart die=3 cta=11 rows=2560 actual_index=11074 expected_index=11074 actual_bits=40d39c76 expected_bits=40d39c76 valid=1
+headpart die=3 cta=12 rows=2560 actual_index=3082 expected_index=3082 actual_bits=40e2a536 expected_bits=40e2a536 valid=1
+headpart die=3 cta=13 rows=2560 actual_index=11772 expected_index=11772 actual_bits=40a7e2dc expected_bits=40a7e2dc valid=1
+headpart die=3 cta=14 rows=2560 actual_index=7808 expected_index=7808 actual_bits=40e2f9cd expected_bits=40e2f9cd valid=1
+headpart die=3 cta=15 rows=2560 actual_index=8141 expected_index=8141 actual_bits=40d28df4 expected_bits=40d28df4 valid=1
+headpart die=4 cta=0 rows=2816 actual_index=12521 expected_index=12521 actual_bits=40a9e5dc expected_bits=40a9e5dc valid=1
+headpart die=4 cta=1 rows=2720 actual_index=4355 expected_index=4355 actual_bits=409e7d1f expected_bits=409e7d1f valid=1
+headpart die=4 cta=2 rows=2560 actual_index=33400 expected_index=33400 actual_bits=4102ba47 expected_bits=4102ba47 valid=1
+headpart die=4 cta=3 rows=2560 actual_index=17177 expected_index=17177 actual_bits=40c8ce18 expected_bits=40c8ce18 valid=1
+headpart die=4 cta=4 rows=2560 actual_index=21663 expected_index=21663 actual_bits=40a9c860 expected_bits=40a9c860 valid=1
+headpart die=4 cta=5 rows=2560 actual_index=5506 expected_index=5506 actual_bits=40b84d3a expected_bits=40b84d3a valid=1
+headpart die=4 cta=6 rows=2560 actual_index=5785 expected_index=5785 actual_bits=40a9792e expected_bits=40a9792e valid=1
+headpart die=4 cta=7 rows=2560 actual_index=22505 expected_index=22505 actual_bits=40c6a8ac expected_bits=40c6a8ac valid=1
+headpart die=4 cta=8 rows=2560 actual_index=18627 expected_index=18627 actual_bits=40af0110 expected_bits=40af0110 valid=1
+headpart die=4 cta=9 rows=2560 actual_index=14830 expected_index=14830 actual_bits=40b43e70 expected_bits=40b43e70 valid=1
+headpart die=4 cta=10 rows=2560 actual_index=6716 expected_index=6716 actual_bits=40eef603 expected_bits=40eef603 valid=1
+headpart die=4 cta=11 rows=2560 actual_index=39795 expected_index=39795 actual_bits=40a2f512 expected_bits=40a2f512 valid=1
+headpart die=4 cta=12 rows=2560 actual_index=11289 expected_index=11289 actual_bits=40a8b967 expected_bits=40a8b967 valid=1
+headpart die=4 cta=13 rows=2560 actual_index=15661 expected_index=15661 actual_bits=40faa014 expected_bits=40faa014 valid=1
+headpart die=4 cta=14 rows=2560 actual_index=11983 expected_index=11983 actual_bits=41003354 expected_bits=41003354 valid=1
+headpart die=4 cta=15 rows=2560 actual_index=12051 expected_index=12051 actual_bits=40e9bf78 expected_bits=40e9bf78 valid=1
+headpart die=5 cta=0 rows=2816 actual_index=28678 expected_index=28678 actual_bits=40d91012 expected_bits=40d91012 valid=1
+headpart die=5 cta=1 rows=2752 actual_index=28984 expected_index=28984 actual_bits=407f176e expected_bits=407f176e valid=1
+headpart die=5 cta=2 rows=2560 actual_index=29299 expected_index=29299 actual_bits=40a13e86 expected_bits=40a13e86 valid=1
+headpart die=5 cta=3 rows=2560 actual_index=799 expected_index=799 actual_bits=40beae76 expected_bits=40beae76 valid=1
+headpart die=5 cta=4 rows=2560 actual_index=17473 expected_index=17473 actual_bits=4104c3ce expected_bits=4104c3ce valid=1
+headpart die=5 cta=5 rows=2560 actual_index=1433 expected_index=1433 actual_bits=40a9a3b7 expected_bits=40a9a3b7 valid=1
+headpart die=5 cta=6 rows=2560 actual_index=26215 expected_index=26215 actual_bits=40d0b95a expected_bits=40d0b95a valid=1
+headpart die=5 cta=7 rows=2560 actual_index=5954 expected_index=5954 actual_bits=408247b2 expected_bits=408247b2 valid=1
+headpart die=5 cta=8 rows=2560 actual_index=26802 expected_index=26802 actual_bits=40dd5026 expected_bits=40dd5026 valid=1
+headpart die=5 cta=9 rows=2560 actual_index=2501 expected_index=2501 actual_bits=40b016bb expected_bits=40b016bb valid=1
+headpart die=5 cta=10 rows=2560 actual_index=10912 expected_index=10912 actual_bits=40e4ce2c expected_bits=40e4ce2c valid=1
+headpart die=5 cta=11 rows=2560 actual_index=35809 expected_index=35809 actual_bits=40c546d0 expected_bits=40c546d0 valid=1
+headpart die=5 cta=12 rows=2560 actual_index=11452 expected_index=11452 actual_bits=40b41270 expected_bits=40b41270 valid=1
+headpart die=5 cta=13 rows=2560 actual_index=28084 expected_index=28084 actual_bits=40d4b6d9 expected_bits=40d4b6d9 valid=1
+headpart die=5 cta=14 rows=2560 actual_index=3785 expected_index=3785 actual_bits=40e7ee0a expected_bits=40e7ee0a valid=1
+headpart die=5 cta=15 rows=2560 actual_index=36799 expected_index=36799 actual_bits=40e8d6d1 expected_bits=40e8d6d1 valid=1
+headwinner die=0 actual_index=279 expected_index=279 actual_bits=41c4eab0 expected_bits=41c4eab0 token=279 valid=1
+headwinner die=1 actual_index=279 expected_index=279 actual_bits=41c4eab0 expected_bits=41c4eab0 token=279 valid=1
+headwinner die=2 actual_index=279 expected_index=279 actual_bits=41c4eab0 expected_bits=41c4eab0 token=279 valid=1
+headwinner die=3 actual_index=279 expected_index=279 actual_bits=41c4eab0 expected_bits=41c4eab0 token=279 valid=1
+headwinner die=4 actual_index=279 expected_index=279 actual_bits=41c4eab0 expected_bits=41c4eab0 token=279 valid=1
+headwinner die=5 actual_index=279 expected_index=279 actual_bits=41c4eab0 expected_bits=41c4eab0 token=279 valid=1
+headaudit_end parts=96 rows=248320 failures=0
+{"arm":"row-balanced","run":0,"output_mismatches":0,"state_mismatches":0,"state_checked":false,"output_checked":true,"correct":true}
+profile arm=row-balanced die=0
+prof: 493 phases, 49.74 ms between the first and last timestamp
+  structural: producer_quant_fusions=133 matrix_groups=37 residual_fusions=47 local_fusions=84 producer_publications=44
+  waits: local_grid_joins=90 peer_acquires=402 joined_publications=402
+  q2moedn      48 phases   10650.6 us ( 221.9 us each)
+  q2moegn      48 phases    7072.8 us ( 147.3 us each)
+  hcupq_x      97 phases    6261.8 us (  64.6 us each)
+  bf16hcrwx    48 phases    3676.2 us (  76.6 us each)
+  grwrite_read   47 phases    3543.0 us (  75.4 us each)
+  router_full   48 phases    3142.7 us (  65.5 us each)
+  qsa_full_bal   12 phases    2980.9 us ( 248.4 us each)
+  q3kk2560     24 phases    2360.3 us (  98.3 us each)
+  gdn_full     36 phases    2243.6 us (  62.3 us each)
+  iq4k2560     17 phases    1737.7 us ( 102.2 us each)
+  iq4k6144     17 phases    1523.7 us (  89.6 us each)
+  q4kk6144     15 phases    1360.9 us (  90.7 us each)
+  q5kk6144      7 phases     689.2 us (  98.5 us each)
+  q5kk2560      1 phases     605.2 us ( 605.2 us each)
+  q6kk1536      6 phases     457.7 us (  76.3 us each)
+  q4kk2560      4 phases     419.8 us ( 105.0 us each)
+  q2k2560       4 phases     377.9 us (  94.5 us each)
+  q3kk6144      3 phases     300.0 us ( 100.0 us each)
+  bf16hcrx      2 phases     131.1 us (  65.5 us each)
+  bf16k2560     1 phases      60.4 us (  60.4 us each)
+  plegate_norm    1 phases      36.9 us (  36.9 us each)
+  rms2560       1 phases      27.6 us (  27.6 us each)
+  amax          1 phases      21.5 us (  21.5 us each)
+  ple_rowsq     1 phases      16.4 us (  16.4 us each)
+  argmax        1 phases      13.3 us (  13.3 us each)
+  pleconv       1 phases      13.3 us (  13.3 us each)
+  hcwsum        1 phases      12.3 us (  12.3 us each)
+  longest: #490 q5kk2560 605 us; #201 qsa_full_bal 261 us; #361 qsa_full_bal 252 us; #481 qsa_full_bal 250 us; #401 qsa_full_bal 249 us; #441 qsa_full_bal 249 us; #161 qsa_full_bal 247 us; #321 qsa_full_bal 247 us;
+profile arm=row-balanced die=1
+prof: 493 phases, 49.74 ms between the first and last timestamp
+  structural: producer_quant_fusions=133 matrix_groups=37 residual_fusions=47 local_fusions=84 producer_publications=44
+  waits: local_grid_joins=90 peer_acquires=402 joined_publications=402
+  q2moedn      48 phases   10672.1 us ( 222.3 us each)
+  q2moegn      48 phases    7051.3 us ( 146.9 us each)
+  hcupq_x      97 phases    6287.4 us (  64.8 us each)
+  bf16hcrwx    48 phases    3698.7 us (  77.1 us each)
+  grwrite_read   47 phases    3516.4 us (  74.8 us each)
+  router_full   48 phases    3171.3 us (  66.1 us each)
+  qsa_full_bal   12 phases    2979.8 us ( 248.3 us each)
+  q3kk2560     24 phases    2359.3 us (  98.3 us each)
+  gdn_full     36 phases    2241.5 us (  62.3 us each)
+  iq4k2560     17 phases    1727.5 us ( 101.6 us each)
+  iq4k6144     17 phases    1508.4 us (  88.7 us each)
+  q4kk6144     15 phases    1358.8 us (  90.6 us each)
+  q5kk6144      7 phases     689.2 us (  98.5 us each)
+  q5kk2560      1 phases     600.1 us ( 600.1 us each)
+  q6kk1536      6 phases     446.5 us (  74.4 us each)
+  q4kk2560      4 phases     416.8 us ( 104.2 us each)
+  q2k2560       4 phases     378.9 us (  94.7 us each)
+  q3kk6144      3 phases     303.1 us ( 101.0 us each)
+  bf16hcrx      2 phases     133.1 us (  66.6 us each)
+  bf16k2560     1 phases      63.5 us (  63.5 us each)
+  plegate_norm    1 phases      35.8 us (  35.8 us each)
+  rms2560       1 phases      23.6 us (  23.6 us each)
+  amax          1 phases      19.5 us (  19.5 us each)
+  argmax        1 phases      17.4 us (  17.4 us each)
+  ple_rowsq     1 phases      17.4 us (  17.4 us each)
+  pleconv       1 phases      13.3 us (  13.3 us each)
+  hcwsum        1 phases       7.2 us (   7.2 us each)
+  longest: #490 q5kk2560 600 us; #201 qsa_full_bal 252 us; #481 qsa_full_bal 252 us; #361 qsa_full_bal 251 us; #401 qsa_full_bal 250 us; #441 qsa_full_bal 250 us; #81 qsa_full_bal 249 us; #121 qsa_full_bal 249 us;
+profile arm=row-balanced die=2
+prof: 493 phases, 49.69 ms between the first and last timestamp
+  structural: producer_quant_fusions=133 matrix_groups=37 residual_fusions=47 local_fusions=84 producer_publications=44
+  waits: local_grid_joins=90 peer_acquires=402 joined_publications=402
+  q2moedn      48 phases   10609.7 us ( 221.0 us each)
+  q2moegn      48 phases    7229.4 us ( 150.6 us each)
+  hcupq_x      97 phases    6610.9 us (  68.2 us each)
+  bf16hcrwx    48 phases    3639.3 us (  75.8 us each)
+  grwrite_read   47 phases    3505.2 us (  74.6 us each)
+  qsa_full_bal   12 phases    2966.5 us ( 247.2 us each)
+  router_full   48 phases    2902.0 us (  60.5 us each)
+  gdn_full     36 phases    2322.4 us (  64.5 us each)
+  q3kk2560     24 phases    2312.2 us (  96.3 us each)
+  iq4k2560     17 phases    1659.9 us (  97.6 us each)
+  iq4k6144     17 phases    1490.9 us (  87.7 us each)
+  q4kk6144     15 phases    1348.6 us (  89.9 us each)
+  q5kk6144      7 phases     692.2 us (  98.9 us each)
+  q5kk2560      1 phases     596.0 us ( 596.0 us each)
+  q6kk1536      6 phases     454.7 us (  75.8 us each)
+  q4kk2560      4 phases     393.2 us (  98.3 us each)
+  q2k2560       4 phases     373.8 us (  93.4 us each)
+  q3kk6144      3 phases     292.9 us (  97.6 us each)
+  bf16hcrx      2 phases      77.8 us (  38.9 us each)
+  bf16k2560     1 phases      55.3 us (  55.3 us each)
+  plegate_norm    1 phases      38.9 us (  38.9 us each)
+  rms2560       1 phases      29.7 us (  29.7 us each)
+  amax          1 phases      21.5 us (  21.5 us each)
+  argmax        1 phases      20.5 us (  20.5 us each)
+  ple_rowsq     1 phases      17.4 us (  17.4 us each)
+  pleconv       1 phases      13.3 us (  13.3 us each)
+  hcwsum        1 phases      11.3 us (  11.3 us each)
+  longest: #490 q5kk2560 596 us; #81 qsa_full_bal 251 us; #481 qsa_full_bal 250 us; #441 qsa_full_bal 249 us; #361 qsa_full_bal 248 us; #161 qsa_full_bal 247 us; #201 qsa_full_bal 247 us; #281 qsa_full_bal 247 us;
+profile arm=row-balanced die=3
+prof: 493 phases, 49.74 ms between the first and last timestamp
+  structural: producer_quant_fusions=133 matrix_groups=37 residual_fusions=47 local_fusions=84 producer_publications=44
+  waits: local_grid_joins=90 peer_acquires=402 joined_publications=402
+  q2moedn      48 phases   10651.6 us ( 221.9 us each)
+  q2moegn      48 phases    6894.6 us ( 143.6 us each)
+  hcupq_x      97 phases    6236.2 us (  64.3 us each)
+  bf16hcrwx    48 phases    3741.7 us (  78.0 us each)
+  grwrite_read   47 phases    3583.0 us (  76.2 us each)
+  router_full   48 phases    3293.2 us (  68.6 us each)
+  qsa_full_bal   12 phases    2961.4 us ( 246.8 us each)
+  q3kk2560     24 phases    2370.6 us (  98.8 us each)
+  gdn_full     36 phases    2230.3 us (  62.0 us each)
+  iq4k2560     17 phases    1743.9 us ( 102.6 us each)
+  iq4k6144     17 phases    1490.9 us (  87.7 us each)
+  q4kk6144     15 phases    1353.7 us (  90.2 us each)
+  q5kk6144      7 phases     685.1 us (  97.9 us each)
+  q5kk2560      1 phases     602.1 us ( 602.1 us each)
+  q6kk1536      6 phases     463.9 us (  77.3 us each)
+  q4kk2560      4 phases     419.8 us ( 105.0 us each)
+  q2k2560       4 phases     378.9 us (  94.7 us each)
+  q3kk6144      3 phases     294.9 us (  98.3 us each)
+  bf16hcrx      2 phases     133.1 us (  66.6 us each)
+  bf16k2560     1 phases      62.5 us (  62.5 us each)
+  plegate_norm    1 phases      35.8 us (  35.8 us each)
+  rms2560       1 phases      29.7 us (  29.7 us each)
+  amax          1 phases      20.5 us (  20.5 us each)
+  argmax        1 phases      16.4 us (  16.4 us each)
+  ple_rowsq     1 phases      16.4 us (  16.4 us each)
+  hcwsum        1 phases      13.3 us (  13.3 us each)
+  pleconv       1 phases      13.3 us (  13.3 us each)
+  longest: #490 q5kk2560 602 us; #401 qsa_full_bal 254 us; #281 qsa_full_bal 252 us; #201 qsa_full_bal 251 us; #361 qsa_full_bal 251 us; #121 qsa_full_bal 248 us; #161 qsa_full_bal 246 us; #481 qsa_full_bal 246 us;
+profile arm=row-balanced die=4
+prof: 493 phases, 49.74 ms between the first and last timestamp
+  structural: producer_quant_fusions=133 matrix_groups=37 residual_fusions=47 local_fusions=84 producer_publications=44
+  waits: local_grid_joins=90 peer_acquires=402 joined_publications=402
+  q2moedn      48 phases   10710.0 us ( 223.1 us each)
+  q2moegn      48 phases    6878.2 us ( 143.3 us each)
+  hcupq_x      97 phases    6266.9 us (  64.6 us each)
+  bf16hcrwx    48 phases    3713.0 us (  77.4 us each)
+  grwrite_read   47 phases    3510.3 us (  74.7 us each)
+  router_full   48 phases    3295.2 us (  68.7 us each)
+  qsa_full_bal   12 phases    2949.1 us ( 245.8 us each)
+  q3kk2560     24 phases    2408.4 us ( 100.4 us each)
+  gdn_full     36 phases    2200.6 us (  61.1 us each)
+  iq4k2560     17 phases    1757.2 us ( 103.4 us each)
+  iq4k6144     17 phases    1499.1 us (  88.2 us each)
+  q4kk6144     15 phases    1357.8 us (  90.5 us each)
+  q5kk6144      7 phases     699.4 us (  99.9 us each)
+  q5kk2560      1 phases     606.2 us ( 606.2 us each)
+  q6kk1536      6 phases     457.7 us (  76.3 us each)
+  q4kk2560      4 phases     418.8 us ( 104.7 us each)
+  q2k2560       4 phases     380.9 us (  95.2 us each)
+  q3kk6144      3 phases     298.0 us (  99.3 us each)
+  bf16hcrx      2 phases     133.1 us (  66.6 us each)
+  bf16k2560     1 phases      59.4 us (  59.4 us each)
+  plegate_norm    1 phases      37.9 us (  37.9 us each)
+  rms2560       1 phases      24.6 us (  24.6 us each)
+  amax          1 phases      19.5 us (  19.5 us each)
+  ple_rowsq     1 phases      17.4 us (  17.4 us each)
+  argmax        1 phases      14.3 us (  14.3 us each)
+  pleconv       1 phases      14.3 us (  14.3 us each)
+  hcwsum        1 phases      10.2 us (  10.2 us each)
+  longest: #490 q5kk2560 606 us; #361 qsa_full_bal 253 us; #81 qsa_full_bal 250 us; #121 qsa_full_bal 250 us; #401 qsa_full_bal 249 us; #281 qsa_full_bal 247 us; #441 qsa_full_bal 247 us; #161 qsa_full_bal 246 us;
+profile arm=row-balanced die=5
+prof: 493 phases, 49.74 ms between the first and last timestamp
+  structural: producer_quant_fusions=133 matrix_groups=37 residual_fusions=47 local_fusions=84 producer_publications=44
+  waits: local_grid_joins=90 peer_acquires=402 joined_publications=402
+  q2moedn      48 phases   10685.4 us ( 222.6 us each)
+  q2moegn      48 phases    6956.0 us ( 144.9 us each)
+  hcupq_x      97 phases    6283.3 us (  64.8 us each)
+  bf16hcrwx    48 phases    3759.1 us (  78.3 us each)
+  grwrite_read   47 phases    3572.7 us (  76.0 us each)
+  router_full   48 phases    3186.7 us (  66.4 us each)
+  qsa_full_bal   12 phases    2960.4 us ( 246.7 us each)
+  q3kk2560     24 phases    2391.0 us (  99.6 us each)
+  gdn_full     36 phases    2201.6 us (  61.2 us each)
+  iq4k2560     17 phases    1734.7 us ( 102.0 us each)
+  iq4k6144     17 phases    1494.0 us (  87.9 us each)
+  q4kk6144     15 phases    1317.9 us (  87.9 us each)
+  q5kk6144      7 phases     692.2 us (  98.9 us each)
+  q5kk2560      1 phases     604.2 us ( 604.2 us each)
+  q6kk1536      6 phases     453.6 us (  75.6 us each)
+  q4kk2560      4 phases     430.1 us ( 107.5 us each)
+  q2k2560       4 phases     388.1 us (  97.0 us each)
+  q3kk6144      3 phases     293.9 us (  98.0 us each)
+  bf16hcrx      2 phases     132.1 us (  66.0 us each)
+  bf16k2560     1 phases      53.2 us (  53.2 us each)
+  plegate_norm    1 phases      38.9 us (  38.9 us each)
+  rms2560       1 phases      29.7 us (  29.7 us each)
+  amax          1 phases      21.5 us (  21.5 us each)
+  ple_rowsq     1 phases      17.4 us (  17.4 us each)
+  argmax        1 phases      14.3 us (  14.3 us each)
+  pleconv       1 phases      13.3 us (  13.3 us each)
+  hcwsum        1 phases      12.3 us (  12.3 us each)
+  longest: #490 q5kk2560 604 us; #281 qsa_full_bal 251 us; #401 qsa_full_bal 251 us; #361 qsa_full_bal 250 us; #201 qsa_full_bal 249 us; #121 qsa_full_bal 248 us; #481 qsa_full_bal 248 us; #321 qsa_full_bal 247 us;
+resident_decode_bench: 1 128-position output(s) match frozen scalar reference; no matched live A/B

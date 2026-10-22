@@ -48,6 +48,7 @@ int main(int argc,char **argv) {
             db[d].balance_gate_targets=symbol();db[d].balance_up_targets=symbol();db[d].balance_down_targets=symbol();
             db[d].balance_prepare=symbol();db[d].balance_quant_ready=symbol();db[d].balance_owner_bounds=symbol();
             db[d].balance_index_local=symbol();db[d].balance_index_targets=symbol();db[d].balance_attn_ready=symbol();
+            db[d].balance_head_sources=symbol();
         }
         db[d].gr_local_down_table=symbol();db[d].gr_local_up_table=symbol();producer_local_tables[0][d]=symbol();
         phase_gr_sum_cache[d]=symbol();
