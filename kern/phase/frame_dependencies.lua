@@ -40,6 +40,9 @@ replace(advance..':-:-:-:6      IADD pidx, pidx, bar_t;',
 -- active. Order token/ID/state stores at system scope before publishing that
 -- progress; peer-only publication fences do not cover a final non-send phase.
 replace('# ---- token done:', '3f:-:-:-:6 MEMBAR.SYS; # release completed model stores before host progress\n# ---- token done:')
+-- IDXQK's zeroing unit writes HST, including the fused scorer's ready words.
+-- Every writer orders its own global stores before entering the grid footer.
+replace('idxqk_END:', 'idxqk_END:\n3f:-:-:-:6 MEMBAR.GL; # publish histogram reset before scoring')
 -- Every publishing thread must order its own peer writes before the CTA's
 -- representative publishes the flag. A fence executed only by thread zero
 -- does not order writes issued by the other seven warps.

@@ -283,7 +283,7 @@ static unsigned phase_qsa_empty_publish(prog_t *p,int *layers) {
     return count;
 }
 
-static unsigned phase_score_selection_fuse(prog_t *p) {
+static unsigned phase_score_selection_fuse(prog_t *p,unsigned request_epoch_base) {
     unsigned count=0;if(!producer_quant || !p->loop)return 0;
     for(int i=0;i+1<p->n;i++) {
         phase_t *a=p->p+i,*b=a+1;
@@ -292,7 +292,11 @@ static unsigned phase_score_selection_fuse(prog_t *p) {
            gr_pointer(a,6)!=gr_pointer(b,2) || gr_pointer(a,8)!=gr_pointer(b,4) ||
            a->w[10]!=b->w[8] || a->w[11]!=b->w[9])continue;
         a->w[0]=103;a->w[30]=24u;
-        count++;i++;
+        /* HST scratch is reused between attention layers and tokens. A ready
+         * word must identify this scoring generation, not just contain1. */
+        a->w[12]=request_epoch_base+(++count);
+        if(count>=16){fprintf(stderr,"too many local QSA generations\n");exit(1);}
+        i++;
     }
     return count;
 }

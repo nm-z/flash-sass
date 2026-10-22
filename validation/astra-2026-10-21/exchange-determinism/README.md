@@ -1,9 +1,10 @@
 # Exchange measurements, split change, and repeatability qualification
 
 This is work in progress for the three requested items. The full objective is
-not complete. The latest v33 candidate passes the ordinary and fixed-input
-self-repeatability gates; long-context qualification and a fresh matched split
-measurement remain pending. Earlier failures below are retained as evidence.
+not complete. V33 passes the ordinary and fixed-input self-repeatability gates
+but fails the long-context repeat. The latest v35 QSA handoff candidate is under
+long-context test; a fresh matched split measurement remains pending. Earlier
+failures below are retained as evidence.
 Full48-stage FFN GR replication does not fit archy's current memory placement;
 the eight-stage variant fits and reduces actual exchanges, but its earlier run
 was not qualified. No cross-kernel correctness oracle is claimed.
@@ -397,12 +398,45 @@ warm decode averages31.6741 TPS, versus32.4113 for its matched baseline.
 Fixed-input gate `a59acb74-24fb-4d75-8edd-a83cf65ba775` also passes all four
 256-position requests per arm and all state comparisons. These are qualified
 observations for those workloads, not proof for longer contexts or evidence
-of a performance improvement. The4,096/16 long-context gate is running next.
+of a performance improvement. The4,096/16 long-context gate subsequently fails
+as recorded below.
 
 The profile extraction tool now accepts explicit arm labels/workload text and
 derives phase ranges from the captured headers, so a499-versus499 split report
 does not inherit hardcoded unfused-baseline counts. Replaying the saved original
 PROF_ALL fixture produces the identical numeric CSV.
+
+## Long-context QSA handoff
+
+V33 long-context job `e1ff1b2b-87f4-4027-b11b-7e28bfd5aebd` passes two
+baseline4,096/16 requests but fails the candidate repeat at generated index6:
+10 output differences and216 state differences. All PLE input-history audits
+match, with4,111 positions staged and completed. The short/fixed-input passes
+do not qualify long-context determinism.
+
+The fused QSA scorer used constant1 ready words in HST scratch that is reused
+between layers and tokens. The new handoff publishes
+`request_base + (absolute_token << 4) + local_attention_slot`, with a per-request
+base stride of `16*(MAXT+1)` and local slots1..12. It uses32-bit shifts/adds,
+retains one fused scoring/selection operation, and adds no dispatch phase.
+Each IDXQK writer fences the histogram reset before entering the grid footer.
+
+The auxiliary selection descriptor was also loaded through LDG with the same
+completion barrier as a subsequent LDS of the token offset. Those two pipeline
+completions now have distinct barriers and a combined wait before installing
+the descriptor. The new module marker `flash_qsa_score_epoch_abi_v1` prevents
+using the new host descriptor layout with an older fused image.
+
+The complete production/split/trace images and host were rebuilt. V34 is a
+build-only checkpoint, never a GPU run; v35 includes the separate descriptor/
+token completions and request-separated epoch base. Long-context job
+`ec9165ad-bf77-43d4-86ab-dabb58caed29` is running two4,096/16 requests per arm.
+No v35 TPS or repeatability result is claimed before that job completes.
+
+[Current recorded PROF_ALL tables](v33-profile/operations.md) preserve all
+per-opcode and per-die values for the passing short v33 workload. They remain
+inclusive intervals; they are not an invented allocation of the shared XSEND/
+ACTQ pools to individual merges or a hardware SM-activity measurement.
 
 `phase/predicate_cfg.lua` audits minimum predicate age through labels and
 direct branch edges, terminating paths at unknown BRX edges. It reports zero

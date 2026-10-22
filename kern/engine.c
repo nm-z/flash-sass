@@ -166,6 +166,7 @@ static void check_fused_moe_module(CUmodule module) {
     if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_phase_exchange_join_abi_v1"));
     if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_phase_gr_cache_abi_v1"));
     if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_phase_amax_schedule_abi_v1"));
+    if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_qsa_score_epoch_abi_v1"));
     if(getenv("FLASH_XTRACE") && atoi(getenv("FLASH_XTRACE")))CK(cuModuleGetFunction(&marker,module,"flash_exchange_trace_abi_v2"));
     if(gr_write_trace)CK(cuModuleGetFunction(&marker,module,"flash_gr_write_trace_abi_v1"));
     if(gr_replicate_ffn)CK(cuModuleGetFunction(&marker,module,"flash_gr_local_abi_v1"));
@@ -622,7 +623,9 @@ static void model_program(prog_t *P, int d, unsigned position, unsigned nprompt,
     phase_local_fuse(P,layers);phase_attention_fuse(P,position,d,layers);
     phase_publish_fuse(P,layers);phase_gdn_fuse(P,layers);phase_router_fuse(P,layers);
     phase_q6_fuse(P);phase_shared_down_fuse(P);phase_shared_gate_group(P,b->r);
-    phase_selection_fuse(P,layers);phase_score_selection_fuse(P);phase_part_merge_fuse(P);
+    phase_selection_fuse(P,layers);
+    phase_score_selection_fuse(P,(unsigned)(trace_request*16ull*((uint64_t)MAXT+1)));
+    phase_part_merge_fuse(P);
     phase_qsa_empty_publish(P,layers);phase_qsa_independent_group(P);phase_ple_fuse(P,b,layers);
     phase_ple_rows_fuse(P,layers);
     phase_edges_fuse(P,position,d,layers);
