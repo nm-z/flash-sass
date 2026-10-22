@@ -273,3 +273,65 @@ cross the threshold; this does not exempt them from the gate. Argmax needs
 its local reduction/publication cost separated, and GDN's remaining timing
 variation needs resolution. Sixteen resident SMs per die do not establish
 sixteen SMs of equal useful work. The goal remains incomplete.
+
+## Cycle-resolution diagnostic and concurrent argmax publication
+
+Trace ABI3 adds per-SM CLOCKLO pairs alongside every existing body and explicit
+poll timestamp. The reserved upper-half trace records hold six32-bit pairs per
+CTA without growing the allocation or changing the production register count.
+Differences are taken only within one resident CTA/SM. Modulo subtraction
+handles wrap through zero; intervals of one second or more are rejected as
+ambiguous. The [clock query](clocks-v66.csv), canonical job
+`24638a3d-000e-4337-ba5a-4f6be693b500`, confirms the compute GPUs' current and
+maximum SM clocks are1177MHz, below the2GHz wrap-bound assumption. Cycle counts
+remain separate from nanoseconds and are not converted using an assumed clock.
+Both measures retain instrumentation, local barriers and publication overhead.
+
+The report accepts ABI2 evidence unchanged: its original21 columns exactly
+reproduce the v65 table. ABI3 appends six die cycle maxima, their deviation and
+complete-coverage/pass flags. The existing nanosecond gate is unchanged; absent
+cycle data in an old trace are reported as missing, not a passing cycle check.
+
+Cycle-image job `8d0b0d29-a9c0-46f3-b927-87f29466355e` completes the full model
+and matches all128 frozen-baseline IDs. All94656 records and986 cycle comparisons
+are valid. The [v66 table](body-v66.tsv) and [summary](body-v66-summary.txt) show
+12 failures in nanoseconds and eight in cycles. HCWSUM and AMAX are inside ten
+percent in cycles for this capture. Argmax remains outside at both positions,
+with a maximum24.099911% cycle deviation. Other cycle failures are PLE's Q2
+projection at both positions, two router observations, one GDN and one RMSNorm.
+This exposes measurement variation and does not establish that the previously
+failing small operations pass for all inputs. The full gate remains open.
+
+The v66 image and engine are archived on archy. Body image SHA256:
+`12e296fe4df84f61830e3e8939808e02cf5f73255a42167dee1a87ed5e6d5242`.
+
+The balanced argmax specialization now uses lanes0..5 of its surviving warp
+to publish the winning pair to six inboxes concurrently. The final butterfly
+already leaves the same winning index/value in every lane, so no reduction
+arithmetic, destination offset, local result/counter write or footer system
+fence changes. The old path fetched each peer pointer and sent each pair
+serially from lane0. Top-k retains its separate existing path. This targets
+publication latency without padding or changing the493-phase split.
+
+Ordinary job `371eb7c4-05e9-440d-b7cd-38ea953bcdaa` runs the complete candidate
+and matches all128 original-baseline IDs. It records20.070463380 decode TPS;
+[log](decode-v67.log). This is one execution, not sufficient evidence of a
+statistical speedup over19.85 TPS.
+
+Full body job `6514d0b6-a9ce-4dea-8c4f-3616d8fca335` preserves all128 baseline
+IDs and yields94656 valid records and986 valid cycle comparisons. The
+[v67 table](body-v67.tsv) and [summary](body-v67-summary.txt) contain seven
+nanosecond failures and four cycle failures. The latter are router layer30,
+GDN layer42 (10.150634%), and argmax at both positions. Argmax's cycle
+deviations are24.901655% and18.808543%; concurrent publication did not resolve
+its imbalance. The production output remains correct for the exercised fixture,
+but the full balance goal is still open. The reduced total count of failing
+observations is not attributed entirely to this change: other operations vary
+between captures, and no repeated statistical qualification has been performed.
+
+The next structural candidate is eliminating argmax's last-CTA atomic handoff
+and local final reduction. Its16 per-CTA winners can instead be forwarded to
+the already-existing final AMAX reduction, with a matching wider exchange
+payload and base-index mapping. That requires a complete coordinated producer,
+descriptor and consumer change, followed by a full-model run. It has not yet
+been implemented; no completion or performance claim relies on it.

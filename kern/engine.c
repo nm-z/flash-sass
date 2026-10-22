@@ -192,7 +192,7 @@ static const char *profile_op_name(unsigned op) {
 static void check_fused_moe_module(CUmodule module) {
 	CUfunction marker;
     CUresult body_marker=cuModuleGetFunction(&marker,module,"flash_balance_body_trace_abi_v1");
-    if(body_trace)CK(cuModuleGetFunction(&marker,module,"flash_balance_body_trace_abi_v2"));
+    if(body_trace)CK(cuModuleGetFunction(&marker,module,"flash_balance_body_trace_abi_v3"));
     else if(body_marker==CUDA_SUCCESS) {
         fprintf(stderr,"engine: body trace image requires FLASH_BODY_TRACE=1\n");CK(CUDA_ERROR_INVALID_IMAGE);
     }

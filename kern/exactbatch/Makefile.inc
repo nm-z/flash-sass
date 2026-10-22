@@ -89,12 +89,13 @@ die_phase.cubin: die_phase.sass die_phase.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ die_phase.ptx
 	$(MAXAS) -i die_phase.sass $@
 
-die_balanced.sass: die_phase.sass balance/embedding.lua balance/ple.lua balance/moe.lua balance/prepare.lua balance/attention.lua balance/attention_heads.lua balance/schedule.lua balance/composite.lua phase/quant_emit.lua phase/serial_dependencies.lua phase/predicate_latency.lua
+die_balanced.sass: die_phase.sass balance/embedding.lua balance/ple.lua balance/moe.lua balance/prepare.lua balance/attention.lua balance/attention_heads.lua balance/head.lua balance/schedule.lua balance/composite.lua phase/quant_emit.lua phase/serial_dependencies.lua phase/predicate_latency.lua
 	$(LUA) balance/embedding.lua $< $@.embedding
 	$(LUA) balance/ple.lua $@.embedding $@.ple
 	$(LUA) balance/moe.lua $@.ple $@.moe
 	$(LUA) balance/attention.lua $@.moe $@.attention
-	$(LUA) phase/serial_dependencies.lua $@.attention $@.complete all none attnpartn,kvgather,attnqkq,attnquant selected
+	$(LUA) balance/head.lua $@.attention $@.head
+	$(LUA) phase/serial_dependencies.lua $@.head $@.complete all none attnpartn,kvgather,attnqkq,attnquant selected
 	$(LUA) balance/schedule.lua $@.complete $@.scheduled
 	$(LUA) balance/composite.lua $@.scheduled $@.composite
 	$(LUA) phase/predicate_latency.lua $@.composite $@ $@.predicate.csv

@@ -1,0 +1,338 @@
+reference_file=/home/nate/work/flash-per-phase-balance-v65/original-v39-short-reference.ids expected_tokens=128 validation_only=1
+flashcore: PLE rows are read from /home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf on demand (FLASH_PLE_DISK): 47 MB pinned instead of 28.8 GB, no table load
+flashcore: 6 dies, weights and PLE table resident after 1 s
+engine: PLE cache /home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf is available; original source remains available
+engine: 6 dies, 48/48 blocks, up to 32768 positions, 356 MB of buffers per die, ready in 1.3 s
+flashcore: engine /home/nate/work/flash-per-phase-balance-v66/libengine_exact.so ready in 1.3 s
+ready
+flashcore: listening on /tmp/flash-60-99417.sock
+{"arm":"row-balanced","workload":"decode-first-execution","prompt_tokens":64,"generated_tokens":128,"warmup_runs":1,"baseline_compared":false,"reference_kind":"frozen_scalar"}
+config rev=70ed596-dirty-exact kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf maxt=32768 layers=48/48 nblk=512 dies=6 attn_dies=0,1,2,3,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=1 rope_owner=-1 trace_tokens=0 two_position=0 prefill_chunk=64 attn_q_split=0 attn_q_mask=0 cubin=/home/nate/work/flash-per-phase-balance-v67/die_balanced.cubin cubin_fnv=9cdd05fa1062be04 runtime_attn_map=0,1,2,3,4,5,0,1,2,3,4,5 balanced=1 row_balance=1 row_grain=8 compute_physical=0,1,6,3,4,5 body_trace=0 ple_device_rows=1 ple_device_bytes=47188800 residual_storage=fp32 fused_gr=1 producer_quant=1 matrix_group=1 gr_replica_ffn=0 xtrace=0 phase_batch=0 exact_cubin=none exact_cubin_fnv=0000000000000000
+ok: stop -1 -1
+ok: sample seed 7 temp 0 top_k 20 top_p 0.95 (greedy)
+ok: timings 1
+{"arm":"row-balanced","run":0,"kept":0,"warmup":true}
+tok 1596
+tok 1144
+tok 4087
+tok 1156
+tok 25
+tok 328
+tok 9930
+tok 1503
+tok 11679
+tok 28052
+tok 9561
+tok 30
+tok 79091
+tok 25899
+tok 303
+tok 17248
+tok 3992
+tok 1149
+tok 14235
+tok 1534
+tok 61446
+tok 13
+tok 14235
+tok 10033
+tok 40818
+tok 1406
+tok 17669
+tok 11
+tok 11679
+tok 13376
+tok 17645
+tok 303
+tok 2919
+tok 14
+tok 543
+tok 7099
+tok 11
+tok 69569
+tok 40818
+tok 1406
+tok 11
+tok 9561
+tok 94708
+tok 413
+tok 2643
+tok 3294
+tok 491
+tok 40818
+tok 1406
+tok 13
+tok 75926
+tok 3992
+tok 13
+tok 10380
+tok 6088
+tok 11679
+tok 3070
+tok 914
+tok 28052
+tok 9561
+tok 539
+tok 8364
+tok 26
+tok 424
+tok 3520
+tok 2919
+tok 15288
+tok 310
+tok 28953
+tok 13
+tok 28763
+tok 9522
+tok 13
+tok 28320
+tok 524
+tok 2166
+tok 1248
+tok 13
+tok 198
+tok 248069
+tok 271
+tok 45742
+tok 94708
+tok 9561
+tok 1521
+tok 424
+tok 3520
+tok 424
+tok 15288
+tok 364
+tok 2919
+tok 310
+tok 28953
+tok 13
+tok 3095
+tok 11679
+tok 27692
+tok 9561
+tok 11
+tok 424
+tok 13376
+tok 17645
+tok 1083
+tok 279
+tok 14979
+tok 6000
+tok 314
+tok 2919
+tok 383
+tok 279
+tok 7099
+tok 321
+tok 69569
+tok 279
+tok 40818
+tok 1406
+tok 314
+tok 421
+tok 2919
+tok 13
+tok 1987
+tok 279
+tok 9561
+tok 628
+tok 28052
+tok 1442
+tok 948
+tok 279
+timings {"schema_version":1,"request_id":"1","clock":"CLOCK_MONOTONIC","prompt_tokens":64,"resumed_positions":0,"positions_completed":191,"positions_executed":191,"prompt_positions_processed":64,"generated_tokens":128,"decode_intervals":127,"counts_known":true,"counts_final":true,"error_code":0,"counter_semantics":"last_observed_completed_positions","stop_token_observed":false,"aborted":false,"build_ms":34.431992999998329,"run_ms":9462.1163090005211,"first_observed_ms":3134.4098879999365,"post_first_ms":6327.7064210005847,"prompt_positions_per_second":20.418516494930511,"decode_tokens_per_second":20.070463379670798,"device_clock":"SR_GLOBALTIMER","device_origin":"first_generated_position_start","device_first_start_ns":null,"device_first_publish_ns":null,"device_last_traced_publish_ns":null,"device_traced_tokens":0,"device_first_publish_ms":null,"device_decode_ms":null,"device_decode_tokens_per_second":null,"prompt_n":64,"cache_n":0,"prompt_ms":3134.4098879999365,"prompt_per_second":20.418516494930511,"predicted_n":128,"predicted_ms":6327.7064210005847,"predicted_per_second":20.070463379670798,"decode_ms":6327.7064210005847}
+done 128 0 64 9462.1 3134.4 0 0
+{"arm":"row-balanced","run":0,"output_mismatches":0,"state_mismatches":0,"state_checked":false,"output_checked":true,"correct":true}
+profile arm=row-balanced die=0
+prof: 493 phases, 49.81 ms between the first and last timestamp
+  structural: producer_quant_fusions=133 matrix_groups=37 residual_fusions=47 local_fusions=84 producer_publications=45
+  waits: local_grid_joins=90 peer_acquires=402 joined_publications=402
+  q2moedn      48 phases   10623.0 us ( 221.3 us each)
+  q2moegn      48 phases    7071.7 us ( 147.3 us each)
+  hcupq_x      97 phases    6261.8 us (  64.6 us each)
+  bf16hcrwx    48 phases    3707.9 us (  77.2 us each)
+  grwrite_read   47 phases    3586.0 us (  76.3 us each)
+  router_full   48 phases    3153.9 us (  65.7 us each)
+  qsa_full_bal   12 phases    2989.1 us ( 249.1 us each)
+  q3kk2560     24 phases    2379.8 us (  99.2 us each)
+  gdn_full     36 phases    2287.6 us (  63.5 us each)
+  iq4k2560     17 phases    1721.3 us ( 101.3 us each)
+  iq4k6144     17 phases    1544.2 us (  90.8 us each)
+  q4kk6144     15 phases    1378.3 us (  91.9 us each)
+  q5kk6144      7 phases     673.8 us (  96.3 us each)
+  q5kk2560      1 phases     598.0 us ( 598.0 us each)
+  q6kk1536      6 phases     447.5 us (  74.6 us each)
+  q4kk2560      4 phases     413.7 us ( 103.4 us each)
+  q2k2560       4 phases     382.0 us (  95.5 us each)
+  q3kk6144      3 phases     304.1 us ( 101.4 us each)
+  bf16hcrx      2 phases      75.8 us (  37.9 us each)
+  bf16k2560     1 phases      60.4 us (  60.4 us each)
+  plegate_norm    1 phases      41.0 us (  41.0 us each)
+  rms2560       1 phases      28.7 us (  28.7 us each)
+  amax          1 phases      23.6 us (  23.6 us each)
+  ple_rowsq     1 phases      16.4 us (  16.4 us each)
+  argmax        1 phases      14.3 us (  14.3 us each)
+  pleconv       1 phases      13.3 us (  13.3 us each)
+  hcwsum        1 phases      11.3 us (  11.3 us each)
+  longest: #490 q5kk2560 598 us; #481 qsa_full_bal 254 us; #81 qsa_full_bal 252 us; #41 qsa_full_bal 250 us; #241 qsa_full_bal 250 us; #401 qsa_full_bal 250 us; #121 qsa_full_bal 249 us; #161 qsa_full_bal 249 us;
+profile arm=row-balanced die=1
+prof: 493 phases, 49.81 ms between the first and last timestamp
+  structural: producer_quant_fusions=133 matrix_groups=37 residual_fusions=47 local_fusions=84 producer_publications=45
+  waits: local_grid_joins=90 peer_acquires=402 joined_publications=402
+  q2moedn      48 phases   10649.6 us ( 221.9 us each)
+  q2moegn      48 phases    7061.5 us ( 147.1 us each)
+  hcupq_x      97 phases    6336.5 us (  65.3 us each)
+  bf16hcrwx    48 phases    3694.6 us (  77.0 us each)
+  grwrite_read   47 phases    3528.7 us (  75.1 us each)
+  router_full   48 phases    3162.1 us (  65.9 us each)
+  qsa_full_bal   12 phases    2991.1 us ( 249.3 us each)
+  q3kk2560     24 phases    2373.6 us (  98.9 us each)
+  gdn_full     36 phases    2280.4 us (  63.3 us each)
+  iq4k2560     17 phases    1714.2 us ( 100.8 us each)
+  iq4k6144     17 phases    1544.2 us (  90.8 us each)
+  q4kk6144     15 phases    1371.1 us (  91.4 us each)
+  q5kk6144      7 phases     668.7 us (  95.5 us each)
+  q5kk2560      1 phases     601.1 us ( 601.1 us each)
+  q6kk1536      6 phases     445.4 us (  74.2 us each)
+  q4kk2560      4 phases     412.7 us ( 103.2 us each)
+  q2k2560       4 phases     388.1 us (  97.0 us each)
+  q3kk6144      3 phases     305.2 us ( 101.7 us each)
+  bf16hcrx      2 phases      79.9 us (  39.9 us each)
+  bf16k2560     1 phases      59.4 us (  59.4 us each)
+  plegate_norm    1 phases      42.0 us (  42.0 us each)
+  rms2560       1 phases      27.6 us (  27.6 us each)
+  argmax        1 phases      22.5 us (  22.5 us each)
+  ple_rowsq     1 phases      16.4 us (  16.4 us each)
+  pleconv       1 phases      12.3 us (  12.3 us each)
+  amax          1 phases      10.2 us (  10.2 us each)
+  hcwsum        1 phases       9.2 us (   9.2 us each)
+  longest: #490 q5kk2560 601 us; #481 qsa_full_bal 257 us; #121 qsa_full_bal 251 us; #401 qsa_full_bal 250 us; #41 qsa_full_bal 249 us; #201 qsa_full_bal 249 us; #241 qsa_full_bal 249 us; #281 qsa_full_bal 249 us;
+profile arm=row-balanced die=2
+prof: 493 phases, 49.81 ms between the first and last timestamp
+  structural: producer_quant_fusions=133 matrix_groups=37 residual_fusions=47 local_fusions=84 producer_publications=45
+  waits: local_grid_joins=90 peer_acquires=402 joined_publications=402
+  q2moedn      48 phases   10586.1 us ( 220.5 us each)
+  q2moegn      48 phases    7201.8 us ( 150.0 us each)
+  hcupq_x      97 phases    6685.7 us (  68.9 us each)
+  bf16hcrwx    48 phases    3633.2 us (  75.7 us each)
+  grwrite_read   47 phases    3474.4 us (  73.9 us each)
+  qsa_full_bal   12 phases    2990.1 us ( 249.2 us each)
+  router_full   48 phases    2955.3 us (  61.6 us each)
+  gdn_full     36 phases    2333.7 us (  64.8 us each)
+  q3kk2560     24 phases    2308.1 us (  96.2 us each)
+  iq4k2560     17 phases    1674.2 us (  98.5 us each)
+  iq4k6144     17 phases    1530.9 us (  90.1 us each)
+  q4kk6144     15 phases    1366.0 us (  91.1 us each)
+  q5kk6144      7 phases     675.8 us (  96.5 us each)
+  q5kk2560      1 phases     600.1 us ( 600.1 us each)
+  q6kk1536      6 phases     436.2 us (  72.7 us each)
+  q4kk2560      4 phases     394.2 us (  98.6 us each)
+  q2k2560       4 phases     380.9 us (  95.2 us each)
+  q3kk6144      3 phases     294.9 us (  98.3 us each)
+  bf16hcrx      2 phases      81.9 us (  41.0 us each)
+  bf16k2560     1 phases      61.4 us (  61.4 us each)
+  plegate_norm    1 phases      33.8 us (  33.8 us each)
+  rms2560       1 phases      32.8 us (  32.8 us each)
+  argmax        1 phases      22.5 us (  22.5 us each)
+  ple_rowsq     1 phases      16.4 us (  16.4 us each)
+  hcwsum        1 phases      13.3 us (  13.3 us each)
+  pleconv       1 phases      13.3 us (  13.3 us each)
+  amax          1 phases      11.3 us (  11.3 us each)
+  longest: #490 q5kk2560 600 us; #241 qsa_full_bal 252 us; #441 qsa_full_bal 251 us; #121 qsa_full_bal 250 us; #481 qsa_full_bal 250 us; #41 qsa_full_bal 249 us; #81 qsa_full_bal 249 us; #161 qsa_full_bal 249 us;
+profile arm=row-balanced die=3
+prof: 493 phases, 49.81 ms between the first and last timestamp
+  structural: producer_quant_fusions=133 matrix_groups=37 residual_fusions=47 local_fusions=84 producer_publications=45
+  waits: local_grid_joins=90 peer_acquires=402 joined_publications=402
+  q2moedn      48 phases   10652.7 us ( 221.9 us each)
+  q2moegn      48 phases    6936.6 us ( 144.5 us each)
+  hcupq_x      97 phases    6262.8 us (  64.6 us each)
+  bf16hcrwx    48 phases    3748.9 us (  78.1 us each)
+  grwrite_read   47 phases    3595.3 us (  76.5 us each)
+  router_full   48 phases    3221.5 us (  67.1 us each)
+  qsa_full_bal   12 phases    2933.8 us ( 244.5 us each)
+  q3kk2560     24 phases    2395.1 us (  99.8 us each)
+  gdn_full     36 phases    2266.1 us (  62.9 us each)
+  iq4k2560     17 phases    1752.1 us ( 103.1 us each)
+  iq4k6144     17 phases    1498.1 us (  88.1 us each)
+  q4kk6144     15 phases    1378.3 us (  91.9 us each)
+  q5kk6144      7 phases     698.4 us (  99.8 us each)
+  q5kk2560      1 phases     604.2 us ( 604.2 us each)
+  q6kk1536      6 phases     471.0 us (  78.5 us each)
+  q4kk2560      4 phases     420.9 us ( 105.2 us each)
+  q2k2560       4 phases     386.0 us (  96.5 us each)
+  q3kk6144      3 phases     302.1 us ( 100.7 us each)
+  bf16hcrx      2 phases      81.9 us (  41.0 us each)
+  bf16k2560     1 phases      60.4 us (  60.4 us each)
+  plegate_norm    1 phases      39.9 us (  39.9 us each)
+  rms2560       1 phases      29.7 us (  29.7 us each)
+  argmax        1 phases      21.5 us (  21.5 us each)
+  ple_rowsq     1 phases      16.4 us (  16.4 us each)
+  pleconv       1 phases      13.3 us (  13.3 us each)
+  hcwsum        1 phases      11.3 us (  11.3 us each)
+  amax          1 phases      10.2 us (  10.2 us each)
+  longest: #490 q5kk2560 604 us; #401 qsa_full_bal 250 us; #121 qsa_full_bal 249 us; #241 qsa_full_bal 247 us; #41 qsa_full_bal 246 us; #81 qsa_full_bal 246 us; #361 qsa_full_bal 245 us; #481 qsa_full_bal 245 us;
+profile arm=row-balanced die=4
+prof: 493 phases, 49.81 ms between the first and last timestamp
+  structural: producer_quant_fusions=133 matrix_groups=37 residual_fusions=47 local_fusions=84 producer_publications=45
+  waits: local_grid_joins=90 peer_acquires=402 joined_publications=402
+  q2moedn      48 phases   10685.4 us ( 222.6 us each)
+  q2moegn      48 phases    6938.6 us ( 144.6 us each)
+  hcupq_x      97 phases    6260.7 us (  64.5 us each)
+  bf16hcrwx    48 phases    3762.2 us (  78.4 us each)
+  grwrite_read   47 phases    3560.4 us (  75.8 us each)
+  router_full   48 phases    3222.5 us (  67.1 us each)
+  qsa_full_bal   12 phases    2934.8 us ( 244.6 us each)
+  q3kk2560     24 phases    2395.1 us (  99.8 us each)
+  gdn_full     36 phases    2252.8 us (  62.6 us each)
+  iq4k2560     17 phases    1732.6 us ( 101.9 us each)
+  iq4k6144     17 phases    1521.7 us (  89.5 us each)
+  q4kk6144     15 phases    1391.6 us (  92.8 us each)
+  q5kk6144      7 phases     705.5 us ( 100.8 us each)
+  q5kk2560      1 phases     603.1 us ( 603.1 us each)
+  q6kk1536      6 phases     452.6 us (  75.4 us each)
+  q4kk2560      4 phases     419.8 us ( 105.0 us each)
+  q2k2560       4 phases     390.1 us (  97.5 us each)
+  q3kk6144      3 phases     300.0 us ( 100.0 us each)
+  bf16hcrx      2 phases      77.8 us (  38.9 us each)
+  bf16k2560     1 phases      59.4 us (  59.4 us each)
+  plegate_norm    1 phases      41.0 us (  41.0 us each)
+  rms2560       1 phases      25.6 us (  25.6 us each)
+  argmax        1 phases      22.5 us (  22.5 us each)
+  ple_rowsq     1 phases      16.4 us (  16.4 us each)
+  pleconv       1 phases      13.3 us (  13.3 us each)
+  hcwsum        1 phases      12.3 us (  12.3 us each)
+  amax          1 phases      10.2 us (  10.2 us each)
+  longest: #490 q5kk2560 603 us; #481 qsa_full_bal 249 us; #321 qsa_full_bal 248 us; #41 qsa_full_bal 246 us; #81 qsa_full_bal 246 us; #241 qsa_full_bal 246 us; #441 qsa_full_bal 246 us; #121 qsa_full_bal 245 us;
+profile arm=row-balanced die=5
+prof: 493 phases, 49.81 ms between the first and last timestamp
+  structural: producer_quant_fusions=133 matrix_groups=37 residual_fusions=47 local_fusions=84 producer_publications=45
+  waits: local_grid_joins=90 peer_acquires=402 joined_publications=402
+  q2moedn      48 phases   10659.8 us ( 222.1 us each)
+  q2moegn      48 phases    6971.4 us ( 145.2 us each)
+  hcupq_x      97 phases    6350.8 us (  65.5 us each)
+  bf16hcrwx    48 phases    3791.9 us (  79.0 us each)
+  grwrite_read   47 phases    3585.0 us (  76.3 us each)
+  router_full   48 phases    3177.5 us (  66.2 us each)
+  qsa_full_bal   12 phases    2934.8 us ( 244.6 us each)
+  q3kk2560     24 phases    2376.7 us (  99.0 us each)
+  gdn_full     36 phases    2233.3 us (  62.0 us each)
+  iq4k2560     17 phases    1708.0 us ( 100.5 us each)
+  iq4k6144     17 phases    1524.7 us (  89.7 us each)
+  q4kk6144     15 phases    1370.1 us (  91.3 us each)
+  q5kk6144      7 phases     684.0 us (  97.7 us each)
+  q5kk2560      1 phases     601.1 us ( 601.1 us each)
+  q6kk1536      6 phases     466.9 us (  77.8 us each)
+  q4kk2560      4 phases     409.6 us ( 102.4 us each)
+  q2k2560       4 phases     380.9 us (  95.2 us each)
+  q3kk6144      3 phases     299.0 us (  99.7 us each)
+  bf16hcrx      2 phases      80.9 us (  40.4 us each)
+  bf16k2560     1 phases      57.3 us (  57.3 us each)
+  plegate_norm    1 phases      42.0 us (  42.0 us each)
+  rms2560       1 phases      26.6 us (  26.6 us each)
+  argmax        1 phases      22.5 us (  22.5 us each)
+  ple_rowsq     1 phases      16.4 us (  16.4 us each)
+  hcwsum        1 phases      13.3 us (  13.3 us each)
+  pleconv       1 phases      12.3 us (  12.3 us each)
+  amax          1 phases      11.3 us (  11.3 us each)
+  longest: #490 q5kk2560 601 us; #481 qsa_full_bal 252 us; #121 qsa_full_bal 251 us; #41 qsa_full_bal 248 us; #241 qsa_full_bal 246 us; #361 qsa_full_bal 246 us; #81 qsa_full_bal 245 us; #401 qsa_full_bal 245 us;
+resident_decode_bench: 1 128-position output(s) match frozen scalar reference; no matched live A/B

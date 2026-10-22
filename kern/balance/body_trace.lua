@@ -93,6 +93,20 @@ local function stamp(aux,slot,composite,nonzero)
  e('ISETP.NE.U32.AND P6, PT, bt_clock1, bt_temp, PT');e('@P6 BRA '..tag..'_CLOCK')
  put(string.format('STG.E.64 [bt_ptr+0x%x], bt_clock0',8*slot))
  out[#out+1]='02:-:-:Y:d NOP;'
+ -- The reserved upper-half record leaves its first16 bytes for the PLE
+ -- GLOBALTIMER poll pair. Its remaining48 bytes hold body + five poll pairs
+ -- in CLOCKLO cycles. Each pair belongs to one resident CTA/SM. Never compare
+ -- absolute cycle epochs across CTAs or GPUs; host rejects long intervals
+ -- for which a32-bit wrap could be ambiguous.
+ local cycle_slot
+ if aux==0 then cycle_slot=16+4*(slot-6)
+ elseif aux==2048 then cycle_slot=24+4*slot
+ else cycle_slot=24+(aux-1)*32+4*slot end
+ assert(cycle_slot>=16 and cycle_slot<=60)
+ load('S2R bt_temp, SR_CLOCKLO',1)
+ out[#out+1]='01:-:-:Y:d NOP;'
+ put(string.format('STG.E [bt_ptr+0x%x], bt_temp',(2048-aux)*2048+cycle_slot))
+ out[#out+1]='02:-:-:Y:d NOP;'
  out[#out+1]=tag..'_DONE:'
  return '3f:-:-:Y:d NOP;\n'..table.concat(out,'\n')..'\n'
 end

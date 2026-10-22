@@ -539,6 +539,16 @@ AMAX, two GDN phases and argmax at both positions. Worst deviation is25%.
 The full table and timer-resolution limitations are retained in the validation
 README; no failing phase is omitted or excused by the summary.
 
+ABI3 now retains per-SM cycles alongside nanoseconds for every body and explicit
+poll. The concurrent argmax-publication candidate (v67) preserves128 original
+IDs and measures20.07 TPS in one ordinary run. Its full capture has982/986
+cycle comparisons inside ten percent, but only979/986 under the unchanged
+nanosecond gate. Argmax remains outside at both positions (24.90% and18.81%
+in cycles), along with one router and one GDN cycle observation. Concurrent
+publication therefore does not solve the remaining head imbalance. The next
+candidate is forwarding per-CTA winners to the existing final AMAX phase to
+remove the last-CTA atomic/reduction handoff; that change is not implemented.
+
 ## Attention implementation notes
 
 Preserve four local query heads and one local K/V head on every die. Main
