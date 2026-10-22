@@ -118,7 +118,7 @@ static FILE *start(const char *core,const char *lib,const char *cubin,int fused)
             setenv("FLASH_BODY_TRACE",getenv("BENCH_BODY_TRACE")?getenv("BENCH_BODY_TRACE"):"0",1);
             char paths[6][1024];char *args[10]={(char *)core,"/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf",(char *)lib};
             for(int d=0;d<6;d++) {
-                if(snprintf(paths[d],sizeof paths[d],"%s/h%d.manifest",dir,d)>=(int)sizeof paths[d])_exit(2);
+                if(snprintf(paths[d],sizeof paths[d],"%s/h%d.ipc.bin",dir,d)>=(int)sizeof paths[d])_exit(2);
                 args[d+3]=paths[d];
             }
             execv(core,args);perror("exec balanced flashcore");_exit(127);

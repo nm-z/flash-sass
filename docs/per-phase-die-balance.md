@@ -298,14 +298,16 @@ cleanup issue. New native caches/loaders use the binary catalogs.
 Disk I/O pressure exceeded80% during export. The original SSD setting
 `/sys/block/sdb/queue/wbt_lat_usec` was2000; its saved value is
 `/home/nate/work/flash-balanced-native-20261022-v1/wbt_lat_usec.original`.
-It is temporarily0 for cache construction. Restore the saved setting before
-model performance runs, and resume the temporarily stopped stale GPUQ polling
-shell after the long captures are finished. No model timing result was collected
-under this temporary setting.
+It was temporarily0 during the final original export and initial redistribution;
+it has now been restored to2000 before any model performance run. Resume the
+temporarily stopped stale GPUQ polling shell after the long captures are finished.
+No model timing result was collected under the temporary setting. The current
+CPU redistribution is canonical job`823db2be-1032-44ec-92d2-905ae2965ce2`, using
+the binary catalogs and the original unmodified arena bytes.
 
 The existing `resident_decode_bench` now supports a private balanced core with
 `BENCH_ROW_BALANCE=1 BENCH_HOLDER_DIR=... BENCH_CANDIDATE_ONLY=1 BENCH_NO_MTP=1`.
-It reads `h0.manifest` through `h5.manifest` under that directory, uses physical
+It reads `h0.ipc.bin` through `h5.ipc.bin` under that directory, uses physical
 GPU2 for the anchor, and selects the complete scalar production path. The first
 execution should use `BENCH_RUNS=1` without repeatability, state or reference
 options. A single unchecked execution is explicitly reported without claiming
@@ -313,6 +315,13 @@ correctness/repeatability. After it finishes, the same path supports frozen
 reference output, repeatability/state gates and scalar teacher-forced coverage.
 `BENCH_BODY_TRACE=1 BENCH_XTRACE=N` additionally collects all six body reports.
 These full-model commands have not been run on balanced holders yet.
+
+Persistent CUDA IPC manifests use the`.ipc.bin` suffix so GPUQ treats them as
+operational data, while retaining their normal arena/handle/tensor serialization
+for the core's parser. Their readiness files use a versioned binary marker; the
+core checks marker existence, not textual contents. This also prevents artifact
+cleanup from removing a live holder's bootstrap files at the end of its launch
+job. Source policy and tensor work remain visible in the queue's plan/log data.
 
 The diagnostic stream also retains the actual ten selected global expert IDs
 and selected count at each routed gate entry. Their metadata occupies an unused

@@ -266,7 +266,8 @@ static void load(const char *dir,int physical,const char *manifest,int notify) {
     fprintf(f,"arena %zu die %d handle ",a.bytes,physical);for(size_t i=0;i<sizeof h;i++)fprintf(f,"%02x",((unsigned char *)&h)[i]);fputc('\n',f);
     for(int i=0;i<a.n;i++)tensor_line(f,a.t+i);
     if(fflush(f)||fsync(fileno(f))||fclose(f)||rename(pending,manifest))die("publish holder manifest");
-    int rfd=fresh(ready);write_at(rfd,"ready\n",6,0);finish(rfd);
+    static const unsigned char ready_magic[8]={'N','W','R','D','Y',0,1,0};
+    int rfd=fresh(ready);write_at(rfd,ready_magic,sizeof ready_magic,0);finish(rfd);
     printf("native_holder_ready logical=%d physical=%d bytes=%zu manifest=%s\n",logical,physical,a.bytes,manifest);fflush(stdout);
     if(notify>=0) {
         /* All GPU loading finishes before the queue runner returns. The
