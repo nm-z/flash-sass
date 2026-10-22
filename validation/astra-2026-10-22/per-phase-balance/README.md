@@ -549,9 +549,56 @@ confirmed both settings. The existing GPU2 protective fence is unchanged.
 
 Broader qualification job `9eec4d2a-d1d8-43f3-b014-046132ffec17` uses v74's
 body image and v75's launcher with an eight-position trace window. Inference
-has completed with zero128-token differences and zero head-audit failures;
-trace ingestion is still in progress at this checkpoint. Its expected coverage
-is377856 CTA records,3936 phase comparisons and2304 expert records. The broader
-table is not yet complete, and no balance conclusion is drawn from its partial
-capture. This run also changes the anchor context; it is not a matched timing
-comparison with the earlier launcher.
+completed with zero128-token differences and zero head-audit failures. The
+finished [table](body-v75.tsv) and [summary](body-v75-summary.txt) contain all
+377856 valid CTA records,3936 phase comparisons and2304 consistent expert
+records. Sixteen nanosecond observations and12 cycle observations fail. This
+run also changes the anchor context; it is not a matched timing comparison
+with the earlier launcher.
+
+The new `kern/balance/aggregate.lua` diagnoses window means while retaining
+counts and worst deviations of the individual observations. It requires one
+request, a complete contiguous position window and valid timing coverage.
+The [eight-position means](body-v75-means.tsv) put all492 phases inside ten
+percent in both measures; the worst mean cycle deviation is8.392735%, in PLE's
+key projection. The [summary](body-v75-means-summary.txt) explicitly leaves the
+original per-observation gate unchanged. Passing means do not complete the goal.
+
+The two largest cycle deviations,49.115081% and45.262651%, occur in that key
+projection at positions186 and188. The preceding PLE ready polls last about
+5.04–5.11ms and2.57–2.64ms respectively; other captured positions have only
+1–2us measured polls. [Per-die handoff observations](ple-handoff-v75.tsv) retain
+both the poll durations and the following projection duration. The association
+and the serial six-die DMA enqueue loop identify a handoff concern to investigate;
+they do not prove that all of the following projection's variation is DMA cost.
+
+## Concurrent matrix-result publication (v76)
+
+The balanced image now assigns one destination peer to each of six copying
+warps. Each warp traverses the same CTA-owned output rows that the previous
+publisher copied while iterating serially over all six peers. Source rereads
+are local, and the existing CTA fence/handoff, payload bytes, destination
+offsets and producer-ready protocol are preserved. The full program remains
+492 phases. A separate two-half traversal covers64-row producer tiles; the
+initial build assertion exposed that layout before any candidate GPU run.
+
+Full fixed-input job `fa6c0295-f5e7-4ed1-8fcb-dd845dc1f664` completes all256
+positions with zero output mismatches and zero head-audit failures;
+[log](fixed-v76.log). All144 comparable recurrent/convolution state hashes
+match the original baseline exactly; [hashes](fixed-v76-common-gdn.tsv).
+
+Normal decode job `b22bea2a-b9d2-4d58-be62-d10af203ec09` matches all128 original
+IDs and records20.154218797 decode TPS; [log](decode-v76.log). Its PLE staging
+queues191 positions,1650240 row bytes and4584 flag bytes across six dies, with
+12.828777ms total host queue-submission time. Submission time is not DMA
+completion time. This single throughput observation does not establish a
+speedup over20.04 TPS, and the earlier ordinary run used a different anchor.
+
+The v76 images are archived on archy and use the v74 engine with the v75
+launcher. Production SHA256:
+`32e973cddd0b297dcda7caae016950070a46af56ca38f7e3dcc2d0373606d8f7`.
+Body image SHA256:
+`1a3aeaa0a733c38ea291a7a2371f2b3d333d7442c0af8365620e14b0000cc588`.
+Eight-position comparison job `8d70bb33-1019-4c29-a54a-2cdd9143d155` is still
+running at this checkpoint. Its complete table is required before drawing a
+balance conclusion about the publisher change. The goal remains active.

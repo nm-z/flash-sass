@@ -577,11 +577,21 @@ instead of96 CTA partials. The full graph has492 phases;128 original IDs,
 96 CTA partials and six die winners match exactly. Measured decode is20.04 TPS.
 The complete two-position capture puts both head phases inside ten percent,
 but four observations remain outside: two GDN, one Q4 and one Q6 projection.
-The eight-position qualification capture is pending; the goal is not complete.
+The complete eight-position capture has16 nanosecond failures and12 cycle
+failures across3936 comparisons. All492 window means are inside ten percent,
+but that diagnostic does not replace the original gate. Two large PLE-key
+projection differences follow multi-millisecond ready polls. The goal remains
+incomplete.
 
 Use the v75-or-newer balanced benchmark launcher: visibility is restricted to
 0,1,3,4,5,6 and the non-compute anchor is on physical3. Older launchers opened
 an anchor context on2, which conflicts with Nate's later GPU reservation.
+
+V76 assigns concurrent destination warps in matrix-result publication while
+preserving the payload and synchronization. It matches256 fixed-input outputs,
+all144 comparable GDN hashes and128 generated IDs; one ordinary run measures
+20.15 TPS. Its eight-position comparison capture is still pending. The full
+baseline tables, diagnostic means and individual failures remain in validation.
 
 ## Attention implementation notes
 
