@@ -37,9 +37,13 @@ static void write_at(int fd,const void *v,size_t n,size_t off) {
     while(n){ssize_t z=pwrite(fd,p,n,(off_t)off);if(z<0 && errno==EINTR)continue;if(z<=0)die("pwrite");p+=z;n-=(size_t)z;off+=(size_t)z;}
 }
 static void finish(int fd) { if(fsync(fd)||close(fd))die("finish cache"); }
+static const unsigned char catalog_magic[8]={'N','W','C','A','T',0,1,0};
+static const unsigned char policy_magic[8]={'N','W','P','O','L',0,1,0};
 static void metadata_read(hold_arena *a,const char *p,int *logical) {
     FILE *f=fopen(p,"r");if(!f)die(p);
     char *line=NULL;size_t cap=0;memset(a,0,sizeof *a);*logical=-1;
+    unsigned char magic[8];size_t got=fread(magic,1,sizeof magic,f);
+    if(got!=sizeof magic || memcmp(magic,catalog_magic,sizeof magic))require(!fseek(f,0,SEEK_SET),"rewind source metadata");
     require(getline(&line,&cap,f)>0,"empty metadata");
     unsigned version=0;
     if(sscanf(line,"native_weights %u bytes %zu physical %d logical %d",&version,&a->bytes,&a->die,logical)==4)
@@ -58,8 +62,9 @@ static void tensor_line(FILE *f,const hold_tensor *t) {
     fprintf(f,"%s %zu %zu %u %d %d %d %d\n",t->name,t->off,t->bytes,t->type,t->rows,t->K,t->stride,t->experts);
 }
 static void metadata_write(const char *dir,const hold_arena *a,int logical) {
-    char p[1024],done[1024];path(p,dir,"metadata.pending");path(done,dir,"metadata");
+    char p[1024],done[1024];path(p,dir,"metadata.bin.pending");path(done,dir,"metadata.bin");
     FILE *f=fdopen(fresh(p),"w");if(!f)die(p);
+    require(fwrite(catalog_magic,1,sizeof catalog_magic,f)==sizeof catalog_magic,"write catalog header");
     fprintf(f,"native_weights 1 bytes %zu physical %d logical %d\n",a->bytes,a->die,logical);
     for(int i=0;i<a->n;i++)tensor_line(f,a->t+i);
     if(fflush(f)||fsync(fileno(f))||fclose(f))die("metadata write");
@@ -68,13 +73,28 @@ static void metadata_write(const char *dir,const hold_arena *a,int logical) {
 static void policy_save(const char *dir) {
     const char *shares=getenv("SPLIT_SHARES"),*attn=getenv("ATTN_MAP");
     require(shares && *shares && attn && *attn,"explicit source SPLIT_SHARES and ATTN_MAP required");
-    char p[1024];path(p,dir,"policy");FILE *f=fdopen(fresh(p),"w");if(!f)die(p);
-    fprintf(f,"SPLIT_SHARES %s\nATTN_MAP %s\n",shares,attn);if(fclose(f))die("policy write");
+    char p[1024];path(p,dir,"policy.bin");FILE *f=fdopen(fresh(p),"w");if(!f)die(p);
+    require(fwrite(policy_magic,1,sizeof policy_magic,f)==sizeof policy_magic,"write policy header");
+    fprintf(f,"SPLIT_SHARES %s\nATTN_MAP %s\n",shares,attn);if(fflush(f)||fsync(fileno(f))||fclose(f))die("policy write");
 }
 static void policy_read(const char *dir) {
-    char p[1024],shares[512],attn[512];path(p,dir,"policy");FILE *f=fopen(p,"r");if(!f)die(p);
+    char p[1024],shares[512],attn[512];path(p,dir,"policy.bin");FILE *f=fopen(p,"r");if(!f)die(p);
+    unsigned char magic[8];require(fread(magic,1,sizeof magic,f)==sizeof magic && !memcmp(magic,policy_magic,sizeof magic),"invalid binary policy header");
     require(fscanf(f,"SPLIT_SHARES %511s\nATTN_MAP %511s",shares,attn)==2,"invalid source policy");fclose(f);
     require(!setenv("SPLIT_SHARES",shares,1) && !setenv("ATTN_MAP",attn,1),"set source policy");
+}
+/* Upgrade the seven exact text documents recovered from a v1 export. This
+ * touches catalogs only; arena bytes are neither copied nor modified. */
+static void seal(const char *dir) {
+    char p[1024],shares[512],attn[512];path(p,dir,"policy");FILE *f=fopen(p,"r");if(!f)die(p);
+    require(fscanf(f,"SPLIT_SHARES %511s\nATTN_MAP %511s",shares,attn)==2,"invalid recovered source policy");fclose(f);
+    require(!setenv("SPLIT_SHARES",shares,1) && !setenv("ATTN_MAP",attn,1),"set recovered policy");policy_save(dir);
+    for(int d=0;d<6;d++) {
+        char sub[64],folder[1024];snprintf(sub,sizeof sub,"die%d",d);path(folder,dir,sub);path(p,folder,"metadata");
+        hold_arena a;int logical;metadata_read(&a,p,&logical);require(logical==d,"recovered catalog rank mismatch");
+        metadata_write(folder,&a,d);free(a.t);
+    }
+    printf("native_catalogs_sealed dir=%s arenas_unchanged=1\n",dir);
 }
 static void save(const char *out,char **manifest) {
     newdir(out);policy_save(out);CK(cuInit(0));
@@ -231,7 +251,7 @@ static void balance(backing src[6],const char *out) {
 static volatile sig_atomic_t stopped;
 static void on_signal(int sig) { (void)sig;stopped=1; }
 static void load(const char *dir,int physical,const char *manifest,int notify) {
-    char p[1024];path(p,dir,"metadata");hold_arena a;int logical;metadata_read(&a,p,&logical);
+    char p[1024];path(p,dir,"metadata.bin");hold_arena a;int logical;metadata_read(&a,p,&logical);
     require(logical>=0 && logical<6,"invalid cached logical rank");
     path(p,dir,"arena.bin");int fd=open(p,O_RDONLY);if(fd<0)die(p);struct stat st;if(fstat(fd,&st))die(p);
     require(st.st_size>=0 && (size_t)st.st_size==a.bytes,"cached arena has wrong size");
@@ -261,6 +281,7 @@ static void load(const char *dir,int physical,const char *manifest,int notify) {
 }
 int main(int argc,char **argv) {
     if(argc==9 && !strcmp(argv[1],"save")){save(argv[2],argv+3);return 0;}
+    if(argc==3 && !strcmp(argv[1],"seal")){seal(argv[2]);return 0;}
     if(argc==5 && (!strcmp(argv[1],"load") || !strcmp(argv[1],"launch"))) {
         char *end;long d=strtol(argv[3],&end,10);require(*argv[3] && !*end && d>=0 && d<32,"invalid physical GPU");
         if(!strcmp(argv[1],"load")){load(argv[2],(int)d,argv[4],-1);return 0;}
@@ -278,11 +299,11 @@ int main(int argc,char **argv) {
     } else if(argc==4 && !strcmp(argv[1],"balance")) {
         policy_read(argv[2]);
         for(int d=0;d<6;d++) {
-            char sub[64],dir[1024],p[1024];snprintf(sub,sizeof sub,"die%d",d);path(dir,argv[2],sub);path(p,dir,"metadata");int logical;metadata_read(&src[d].a,p,&logical);require(logical==d,"cached source rank mismatch");
+            char sub[64],dir[1024],p[1024];snprintf(sub,sizeof sub,"die%d",d);path(dir,argv[2],sub);path(p,dir,"metadata.bin");int logical;metadata_read(&src[d].a,p,&logical);require(logical==d,"cached source rank mismatch");
             path(p,dir,"arena.bin");int fd=open(p,O_RDONLY);if(fd<0)die(p);struct stat st;if(fstat(fd,&st))die(p);require(st.st_size>=0 && (size_t)st.st_size==src[d].a.bytes,"source cache size mismatch");
             src[d].image=mmap(NULL,src[d].a.bytes,PROT_READ,MAP_PRIVATE,fd,0);if(src[d].image==MAP_FAILED)die("map source cache");close(fd);
         }
         balance(src,argv[3]);
-    } else {fprintf(stderr,"usage: native_weights save NEW_DIR MANIFEST0..5 | plan MANIFEST0..5 | balance SOURCE_CACHE NEW_CACHE | load|launch DIE_CACHE PHYSICAL_GPU NEW_MANIFEST\n");return 2;}
+    } else {fprintf(stderr,"usage: native_weights save NEW_DIR MANIFEST0..5 | plan MANIFEST0..5 | balance SOURCE_CACHE NEW_CACHE | seal RECOVERED_CACHE | load|launch DIE_CACHE PHYSICAL_GPU NEW_MANIFEST\n");return 2;}
     for(int d=0;d<6;d++){if(src[d].image)munmap((void *)src[d].image,src[d].a.bytes);free(src[d].a.t);}return 0;
 }

@@ -279,10 +279,29 @@ no balanced model run has occurred yet.
 
 Original export is tracked as canonical job
 `1be7314c-ba35-4acf-ac79-803d951cd241`. The original core and holders remain
-live during its read-only device-to-host copies. Observed export stalls were
+live during its read-only device-to-host copies. It finished successfully with
+all six original arenas (39,456,608,768 bytes). Observed export stalls were
 Linux disk writeback waits (`rq_qos_wait`, `balance_dirty_pages` and `fsync`),
 not evidence that the process stopped. Re-poll the same job/process rather than
 starting another export solely because an observation timed out.
+
+The first queued redistribution, job`25c7ea28-09a0-4007-8cb2-b67e790fd86d`,
+failed before copying any rows: GPUQ had captured and removed the cache's
+operational text policy/catalogs. Their exact contents are retained in canonical
+artifact documents173167–173173. They were recovered from that database, and
+job`68221e81-71e4-41ea-b022-33c4d79a4f75` sealed them into versioned binary
+`policy.bin`/`metadata.bin` catalogs. All seven binary catalogs remain present
+after collection. Arena bytes were unchanged; no second export was required.
+[gpuq#71](https://github.com/nm-z/gpuq/issues/71) records the operational-file
+cleanup issue. New native caches/loaders use the binary catalogs.
+
+Disk I/O pressure exceeded80% during export. The original SSD setting
+`/sys/block/sdb/queue/wbt_lat_usec` was2000; its saved value is
+`/home/nate/work/flash-balanced-native-20261022-v1/wbt_lat_usec.original`.
+It is temporarily0 for cache construction. Restore the saved setting before
+model performance runs, and resume the temporarily stopped stale GPUQ polling
+shell after the long captures are finished. No model timing result was collected
+under this temporary setting.
 
 The existing `resident_decode_bench` now supports a private balanced core with
 `BENCH_ROW_BALANCE=1 BENCH_HOLDER_DIR=... BENCH_CANDIDATE_ONLY=1 BENCH_NO_MTP=1`.
