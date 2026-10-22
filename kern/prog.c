@@ -217,6 +217,13 @@ CUdeviceptr ph_hcup(prog_t *P, const xchg_t *x, CUdeviceptr W, CUdeviceptr DOWN,
 	p->w[30] |= 1; P->pending_wait = 1; P->xj++;
 	return x->inbox + slot;
 }
+static CUdeviceptr ph_hcup_local(prog_t *P,const xchg_t *x,CUdeviceptr W,CUdeviceptr DOWN,
+                                const dn_bufs_t *b,unsigned tn) {
+    int exchange=P->xj;xchg_t local=*x;local.xtab=b->gr_local_up_table;local.inbox=b->lz;
+    ph_hcup(P,&local,W,DOWN,b->lup,2560,b->xh,b->t,tn,0);
+    phase_t *a=P->p+P->n-1;a->w[30]=(a->w[30]&~1u)|0x40000u;a->w[12]=0;
+    P->xj=exchange;P->pending_wait=0;return b->lz;
+}
 /* hcmix / dnnorm variants whose output lands in every die's inbox slot (HC_XOUT / DN_XOUT ops) */
 CUdeviceptr ph_hcx(prog_t *P, const xchg_t *x, int op, CUdeviceptr P0, CUdeviceptr P1, unsigned n, unsigned us, unsigned units, unsigned myoff) {
 	unsigned slot = (unsigned)(P->xj & 1) * XSLOT;
@@ -309,7 +316,7 @@ static CUdeviceptr ph_hc_read(prog_t *P, const split_t *s, const xchg_t *x, CUde
 		DOWN = ph_bf16x(P, x, OP_BF16HCX, dj, b->xh, (unsigned)s->djn, 4u * (unsigned)s->dj0);   /* down ++ inject rows straight into every die's slot */
 	} else DOWN = ph_bf16rx(P, x, dj, b->S, norm, b->xh, eps, (unsigned)s->djn, 4u * (unsigned)s->dj0);   /* + the RMS norm */
     if(replicated){phase_t *a=P->p+P->n-1;a->w[30]&=~1u;a->w[12]=0;P->xj=saved_xj;P->pending_wait=0;DOWN=b->ldown;local.xtab=b->gr_local_up_table;local.inbox=b->lz;}
-	CUdeviceptr Z = getenv("PROG_NOHCUP") ? 0 : ph_hcup(P, x, up, DOWN, b->lup, cols, b->xh + 4u * 32u * (unsigned)s->cb0, b->t, 324, 4u * 32u * (unsigned)s->cb0);
+	CUdeviceptr Z = getenv("PROG_NOHCUP") ? 0 : b->gr_up_local?ph_hcup_local(P,x,up,DOWN,b,324):ph_hcup(P, x, up, DOWN, b->lup, cols, b->xh + 4u * 32u * (unsigned)s->cb0, b->t, 324, 4u * 32u * (unsigned)s->cb0);
     if(replicated){phase_t *a=P->p+P->n-1;a->w[30]=(a->w[30]&~1u)|0x40000u;a->w[12]=0;P->xj=saved_xj;P->pending_wait=0;Z=b->lz;}
 	if (!Z) {
 		ph_hc(P, OP_HCSILU, DOWN, b->t, 0, 324, 320, 2);
@@ -495,7 +502,7 @@ void prog_head(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t 
 	unsigned cols = 32u * (unsigned)s->cbn;
 	/* the read gate without an inject: 320 down rows, nothing copied behind t */
 	CUdeviceptr DOWN = ph_bf16rx(P, x, w->output_hc_down, b->S, w->output_hc_norm, b->xh, eps, (unsigned)s->hdn, 4u * (unsigned)s->hd0);
-	CUdeviceptr Z = ph_hcup(P, x, w->output_hc_up, DOWN, b->lup, cols, b->xh + 4u * 32u * (unsigned)s->cb0, b->t, 320, 4u * 32u * (unsigned)s->cb0);
+	CUdeviceptr Z = b->gr_up_local?ph_hcup_local(P,x,w->output_hc_up,DOWN,b,320):ph_hcup(P, x, w->output_hc_up, DOWN, b->lup, cols, b->xh + 4u * 32u * (unsigned)s->cb0, b->t, 320, 4u * 32u * (unsigned)s->cb0);
 	prog_logits(P, s, x, w, b, Z, t, nprompt);
 }
 

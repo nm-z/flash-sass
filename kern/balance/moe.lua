@@ -136,7 +136,19 @@ for _,tag in ipairs(tags)do
 --:-:-:Y:d ISETP.GE.U32.AND P6, PT, tid, 0x%THREADS%, PT;
 --:-:-:Y:d @P6 BRA @_END;
 @_ROW_DEFAULT:
-]=]):gsub('@_',tag..'_'):gsub('%%THREADS%%',string.format('%x',math.min(256,tile*(1<<group_shift))))
+]=]):gsub('@_',tag..'_'):gsub('%%THREADS%%',string.format('%x',tag=='q2moegn' and 256 or math.min(256,tile*(1<<group_shift))))
+ if wide_down[tag] then
+  -- A warp owns eight rows for every K640 format here. Tail rows are whole
+  -- warps: bypass their loads before entering the native unpredicated loop.
+  -- All warps still join the existing END/publication or chain barrier.
+  assert(group_shift==2,'wide tail requires four lanes per row')
+  local tail,te,tl,tw=codegen()
+  te('LDS br_rows, [RZ+0xbfa8]','--:-:1:-:2');tw('01')
+  te('SHL br_tmp, warp, 0x3');te('ISCADD br_tmp, vid, br_tmp, 0x5')
+  te('ISETP.GE.U32.AND P6, PT, br_tmp, br_rows, PT');te('@P6 BRA '..tag..'_END')
+  tl(tag..'_WIDE_TAIL_OK')
+  prefix=rep(prefix,tag..'_ROW_DEFAULT:',table.concat(tail,'\n')..'\n'..tag..'_ROW_DEFAULT:')
+ end
  body=rep(body,tag..'_BEGIN:',tag..'_BEGIN:\n'..prefix)
  -- A predicated rowstep/base change retains the original dense loop otherwise.
  body=body:gsub('(SHL '..tag..'_rowstep, '..tag..'_rowstep, 0x%x+;)',function(ins)
@@ -150,10 +162,17 @@ for _,tag in ipairs(tags)do
  body,n=body:gsub(base_pat,function(old,group)
   local mask=assert(old:match('^(%S+):')):match('^[^:]+')
   return mask..':-:-:-:6 NOP;\n--:-:-:Y:d ISETP.NE.U32.AND P6, PT, bm_flags, RZ, PT;\n'..
+   (tag=='q2moegn' and '--:-:-:Y:d @P6 LOP32I.AND '..group..', '..group..', 0x7;\n' or '')..
    old:gsub(' ISCADD',' @!P6 ISCADD',1)..'\n'..
    '--:-:-:Y:d @P6 ISCADD '..tag..'_row, '..tag..'_bid, '..group..', 0x'..string.format('%x',tile_shift)..';'
  end)
  assert(n==1,'row base geometry '..tag..' '..n)
+ if tag=='q2moegn' then
+  -- Two CTA halves visit even/odd ranks respectively. Each warp stays
+  -- uniform, and the existing publication barrier joins all ten outputs.
+  body=rep(body,'MOV q2moegn_e, RZ;','SHR.U32 q2moegn_e, tid, 0x7;')
+  body=rep(body,'IADD q2moegn_e, q2moegn_e, 0x1;','IADD q2moegn_e, q2moegn_e, 0x2;')
+ end
  -- Existing END publication is disabled on balanced descriptors (no0x80).
  body=rep(body,tag..'_END:',tag..'_END:\n'..publication(tag))
  s=s:sub(1,start-1)..body..s:sub(finish)
@@ -177,8 +196,9 @@ for _,x in ipairs({{'q2moegn','0x800','0x4','0x6','0x7','0x9'},
 end
 local old='--:-:-:-:6      XMAD q2moegn_t0, q2moegn_e, 0xa00, RZ;'
 routine('q2moegn',function(body)return rep(body,old,'--:-:-:Y:d XMAD q2moegn_t0, q2moegn_e, q2moegn_param_rows, RZ;\n--:-:-:Y:d SHL q2moegn_t0, q2moegn_t0, 0x2;')end)
--- Preserve the old six-part FP32 association. Each selected expert is dotted
--- once, in its original owner group; the shared expert is added to that group.
+-- Preserve the old six-part FP32 association while visiting each rank once.
+-- An expert-to-owner map selects the same partial; a six-bit seen mask keeps
+-- the original first-product versus accumulated-FMA choice for each owner.
 routine('q2moedn',function(body)
  local out,e,l,w=codegen()
  e('SHR.U32 bd_low0, tid, 0x2');e('ISCADD bd_low0, vid, bd_low0, 0x5')
@@ -194,34 +214,25 @@ routine('q2moedn',function(body)
  e('IADD bd_owner, bd_owner, 0x1');e('ISETP.LT.U32.AND P6, PT, bd_owner, 0x6, PT')
  e('@P6 BRA BALANCED_DOWN_ZERO');e('MEMBAR.GL')
  e('LDS.64 bd_bounds0, [RZ+0xbfd0]','--:-:1:-:2');w('01')
- e('MOV bd_owner, RZ')
- l('BALANCED_DOWN_OWNER')
- -- Consecutive owner ranges advance by one u32. Odd owners are only
- -- four-byte aligned, so a vector64 load is not legal on Maxwell.
- e('LDG.E.CG bd_low0, [bd_bounds]','--:-:1:-:2')
- e('LDG.E.CG bd_low1, [bd_bounds+0x4]','--:-:2:-:2');w('03')
+ e('IADD bd_bounds0.CC, bd_bounds0, 0x1c');e('IADD.X bd_bounds1, bd_bounds1, RZ')
+ e('MOV bd_seen, RZ');e('MOV q2moedn_e, RZ')
+ body=rep(body,'--:-:-:-:6      MOV q2moedn_e, RZ;',table.concat(out,'\n'))
+ out,e,l,w=codegen()
+ e('SHL bd_low0, q2moedn_eoff, 0x2','02:-:-:Y:d')
+ e('IADD bd_address0.CC, bd_bounds0, bd_low0');e('IADD.X bd_address1, bd_bounds1, RZ')
+ e('LDG.E.CG bd_owner, [bd_address]','--:-:1:-:2');w('01')
  e('LDS q2moedn_param_Y0, [RZ+0xbfa0]','--:-:1:-:2')
  e('LDS q2moedn_param_Y1, [RZ+0xbfa4]','--:-:1:-:2');w('01')
  e('XMAD q2moedn_t0, bd_owner, q2moedn_param_rows, RZ')
  e('SHL q2moedn_t0, q2moedn_t0, 0x2')
  e('IADD q2moedn_param_Y0.CC, q2moedn_param_Y0, q2moedn_t0')
  e('IADD.X q2moedn_param_Y1, q2moedn_param_Y1, RZ')
- e('MOV bd_seen, RZ');e('MOV q2moedn_e, RZ')
- body=rep(body,'--:-:-:-:6      MOV q2moedn_e, RZ;',table.concat(out,'\n'))
- out,e,l,w=codegen()
- e('ISETP.GE.U32.AND P4, PT, q2moedn_eoff, bd_low0, PT','02:-:-:Y:d')
- e('ISETP.LT.U32.AND P4, PT, q2moedn_eoff, bd_low1, P4')
- e('@!P4 BRA BALANCED_DOWN_SKIP_EXPERT')
- e('ISETP.EQ.U32.AND P3, PT, bd_seen, RZ, PT')
+ e('MOV bd_low0, 0x1');e('SHL bd_low0, bd_low0, bd_owner')
+ e('LOP.AND bd_low1, bd_seen, bd_low0')
+ e('ISETP.EQ.U32.AND P3, PT, bd_low1, RZ, PT')
+ e('LOP.OR bd_seen, bd_seen, bd_low0')
  body=rep(body,'--:-:-:-:6      ISETP.EQ.U32.AND P3, PT, q2moedn_e, RZ, PT;',table.concat(out,'\n'))
- body=rep(body,'--:-:-:-:6      IADD q2moedn_e, q2moedn_e, 0x1;',
-  '--:-:-:Y:d IADD bd_seen, bd_seen, 0x1;\nBALANCED_DOWN_SKIP_EXPERT:\n--:-:-:Y:d IADD q2moedn_e, q2moedn_e, 0x1;')
- out,e,l,w=codegen()
- e('IADD bd_owner, bd_owner, 0x1')
- e('IADD bd_bounds0.CC, bd_bounds0, 0x4');e('IADD.X bd_bounds1, bd_bounds1, RZ')
- e('ISETP.LT.U32.AND P6, PT, bd_owner, 0x6, PT')
- e('@P6 BRA BALANCED_DOWN_OWNER');e('BRA q2moedn_END')
- return rep(body,'--:-:-:-:f      BRA q2moedn_END;',table.concat(out,'\n'))
+ return body
 end)
 -- The assembled MoE output is one vector, not six partials.
 s=rep(s,'--:-:-:-:6 MOV grcache_peer, RZ;', [=[

@@ -38,8 +38,17 @@ local function geometry(a)
   local tile=row8 and (wide and 32 or 8) or tiles[n]
   local ranks=(n=='q2moegn' or n=='q2moedn') and 10 or 1
   put('rows',rows);put('K',k);put('ranks',ranks)
-  put('dot_values',rows*k*ranks);put('issued_dot_values',math.ceil(rows/tile)*tile*k*ranks)
+  local issued_rows=wide and sass:find(n..'_WIDE_TAIL_OK:',1,true) and rows or math.ceil(rows/tile)*tile
+  put('dot_values',rows*k*ranks);put('issued_dot_values',issued_rows*k*ranks)
+  if sass:find(n..'_COMPACT_DOT:',1,true) then
+   put('half_block_operand_moves',issued_rows*(k/160)*ranks*5*20)
+  end
   put('row_tiles',math.ceil(rows/tile))
+  if n=='q2moedn' then
+   local mapped=sass:find('LDG.E.CG bd_owner, [bd_address]',1,true)~=nil
+   put('expert_dispatches',math.ceil(rows/tile)*10*(mapped and 1 or 6))
+   put('owner_map_lookups',mapped and math.ceil(rows/tile)*10 or 0)
+  end
   if row8 then
    assert(w[1]==math.ceil(rows/tile) and rows%8==0,'row-stripe geometry')
    if wide then assert(k==640 and w[22]==2560,'wide down tile geometry') end
@@ -65,12 +74,13 @@ local function geometry(a)
   if n=='grwrite_read' then put('sum_values',2560*(w[30]&0x400000~=0 and 1 or 6)) end
  elseif n=='hcupq_x' then
   assert(w[8]%128==0,'GR quantization alignment')
-  assert(sass:find('MOV32I hcquant_xl, 0x20;',1,true),'GR up column tile')
+  assert(sass:find('MOV32I hcquant_xl, 0x20;',1,true) or sass:find('SHL hcquant_xl, hcquant_xl, 0x5;',1,true),'GR up column tile')
   put('dot_values',w[8]*320);put('up_rows',w[8]);put('mix_columns',w[8]/4)
   put('issued_dot_values',math.ceil(w[8]/128)*128*320)
-  local copies=sass:find('ISETP.GE.U32.AND P4, PT, warp, 0x6, PT;\n--:-:1:-:1 LDS hcq_cols,',1,true) and 6 or 1
+  local copies=(sass:find('BALANCED_LOCAL_UP_GROUP:',1,true) or sass:find('ISETP.GE.U32.AND P4, PT, warp, 0x6, PT;\n--:-:1:-:1 LDS hcq_cols,',1,true)) and 6 or 1
+  if w[30]&0x40000~=0 then copies=1 end
   put('quant_evaluations',w[8]/128*copies)
-  put('quant_groups',w[8]/128);put('silu_and_injection_values',w[20]);put('published_columns',w[8]/4*6)
+  put('quant_groups',w[8]/128);put('silu_and_injection_values',w[20]);put('published_columns',w[8]/4*copies)
  elseif n=='gdn_full' then
   put('heads',w[1]);put('state_cells',w[1]*128*128);put('norm_and_quant_values',w[1]*128)
  elseif n=='conv1d' then put('channels',w[11]);put('time_base',w[10])
@@ -90,6 +100,7 @@ local function geometry(a)
  elseif n=='attnpartn' then put('head_partitions',w[1]);put('block_limit',w[15]);put('time_base',w[14])
  elseif n=='attnmergeq_x' then put('heads',w[1]);put('head_width',256);put('published_values',w[1]*256*6)
  elseif n=='amax' then put('die_winners',w[6]);put('time_base',w[14]);put('prompt_length',w[15])
+ elseif n=='xsend' then put('payload_bytes',w[6]);put('peers',w[9])
  else error('unhandled operation '..n) end
  return v
 end

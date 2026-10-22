@@ -1,4 +1,4 @@
 .visible .entry flash_balanced_rows_abi_v1() { ret; }
 .visible .entry flash_balance_head_peer_abi_v2() { ret; }
 .visible .entry flash_balance_head_producer_abi_v2() { ret; }
-.visible .entry flash_balance_down_tile32_packed_gate_abi_v2() { ret; }
+.visible .entry flash_balance_down_owner_map_abi_v3() { ret; }

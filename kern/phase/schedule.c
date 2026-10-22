@@ -42,6 +42,7 @@ int main(int argc,char **argv) {
     for(int d=0;d<nd;d++) {
         char path[1024];snprintf(path,sizeof path,"%s/hold-h%d.manifest",argv[1],d);metadata(&ar[d],path);
         symbols(d);
+        db[d].gr_up_local=getenv("FLASH_BALANCED_LOCAL_UP") && atoi(getenv("FLASH_BALANCED_LOCAL_UP"));
         if(row_balance) {
             db[d].embedding_targets=symbol();
             db[d].balance_gate_local=symbol();db[d].balance_up_local=symbol();db[d].balance_down_local=symbol();

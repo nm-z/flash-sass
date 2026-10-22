@@ -100,12 +100,26 @@ die_balanced.sass: die_phase.sass balance/embedding.lua balance/ple.lua balance/
 	$(LUA) phase/serial_dependencies.lua $@.quantpublished $@.complete all none attnpartn,kvgather,attnqkq,attnquant selected
 	$(LUA) balance/schedule.lua $@.complete $@.scheduled
 	$(LUA) balance/composite.lua $@.scheduled $@.composite
-	$(LUA) phase/predicate_latency.lua $@.composite $@ $@.predicate.csv
+	$(LUA) balance/load_bursts.lua $@.composite $@.bursts
+	$(LUA) phase/predicate_latency.lua $@.bursts $@ $@.predicate.csv
 die_balanced.ptx: die_phase.ptx balance/marker.ptxinc
 	cat $^ > $@
+die_balanced.sass: exactbatch/Makefile.inc
+die_balanced.sass: balance/load_bursts.lua
 die_balanced.cubin: die_balanced.sass die_balanced.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ die_balanced.ptx
 	$(MAXAS) -i die_balanced.sass $@
+
+# Complete production-image experiment: replicated local GR-up. It has a
+# distinct marker so an ordinary image cannot silently execute its descriptors.
+die_balanced_localup.sass: die_balanced.sass balance/local_up.lua phase/predicate_latency.lua
+	$(LUA) balance/local_up.lua $< $@.raw
+	$(LUA) phase/predicate_latency.lua $@.raw $@ $@.predicate.csv
+die_balanced_localup.ptx: die_balanced.ptx balance/local_up_marker.ptxinc
+	cat $^ > $@
+die_balanced_localup.cubin: die_balanced_localup.sass die_balanced_localup.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ die_balanced_localup.ptx
+	$(MAXAS) -i die_balanced_localup.sass $@
 
 die_balanced_body.sass: die_balanced.sass balance/body_trace.lua phase/exchange_trace.lua phase/predicate_latency.lua
 	$(LUA) balance/body_trace.lua $< $@.body

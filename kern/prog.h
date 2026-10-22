@@ -121,6 +121,7 @@ typedef struct {
  * l* buffers hold this die's part, the gathered vectors live in the inbox slots */
 typedef struct {
 	CUdeviceptr S;                    /* 10240 in/out stream (replicated) */
+    unsigned gr_up_local;             /* complete local GR-up matrices; skip their peer exchange */
     CUdeviceptr embedding_targets;    /* balanced embedding: six residual destinations */
     CUdeviceptr balance_gate_local,balance_up_local,balance_down_local;
     CUdeviceptr balance_gate_targets,balance_up_targets,balance_down_targets;

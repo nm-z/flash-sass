@@ -133,6 +133,7 @@ static unsigned program_capacity = 4096, active_program_positions = 1;
 static unsigned allocated_positions = 1;
 static int producer_quant,group_matrices,residual_fp8;
 static int gr_replicate_ffn;
+static int balanced_local_up;
 static uint32_t *phase_watch;
 /* Diagnostic-only host-mapped control pages retain the existing phase footer
  * stamps when a CUDA fault makes device copies unavailable. No model phase,
@@ -204,7 +205,7 @@ static void check_fused_moe_module(CUmodule module) {
         CK(CUDA_ERROR_INVALID_IMAGE);
     }
     if(row_balance)CK(cuModuleGetFunction(&marker,module,"flash_balance_head_producer_abi_v2"));
-    if(row_balance)CK(cuModuleGetFunction(&marker,module,"flash_balance_down_tile32_packed_gate_abi_v2"));
+    if(row_balance)CK(cuModuleGetFunction(&marker,module,"flash_balance_down_owner_map_abi_v3"));
     if(getenv("FLASH_FUSED_GR") && atoi(getenv("FLASH_FUSED_GR")))CK(cuModuleGetFunction(&marker,module,"flash_gr_read_sum_abi_v1"));
     if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_phase_fused_abi_v6"));
     if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_phase_exchange_join_abi_v1"));
@@ -215,6 +216,7 @@ static void check_fused_moe_module(CUmodule module) {
     if(getenv("FLASH_XTRACE") && atoi(getenv("FLASH_XTRACE")))CK(cuModuleGetFunction(&marker,module,"flash_exchange_trace_abi_v2"));
     if(gr_write_trace)CK(cuModuleGetFunction(&marker,module,"flash_gr_write_trace_abi_v1"));
     if(gr_replicate_ffn)CK(cuModuleGetFunction(&marker,module,"flash_gr_local_abi_v1"));
+    if(balanced_local_up)CK(cuModuleGetFunction(&marker,module,"flash_balanced_local_up_abi_v1"));
     if(residual_fp8)CK(cuModuleGetFunction(&marker,module,"flash_fp8_residual_abi_v1"));
 #ifdef FLASH_CHUNK_NATIVE
 	const char *chunk_image = getenv("FLASH_CHUNK_CUBIN");
@@ -1510,6 +1512,10 @@ int engine_init(core_t *c) {
     group_matrices=getenv("FLASH_MATRIX_GROUP") && atoi(getenv("FLASH_MATRIX_GROUP"));
     residual_fp8=getenv("FLASH_RESIDUAL_FP8") && atoi(getenv("FLASH_RESIDUAL_FP8"));
     gr_replicate_ffn=getenv("FLASH_GR_REPLICATE_FFN")?atoi(getenv("FLASH_GR_REPLICATE_FFN")):0;
+    balanced_local_up=getenv("FLASH_BALANCED_LOCAL_UP")?atoi(getenv("FLASH_BALANCED_LOCAL_UP")):0;
+    if(balanced_local_up && (!row_balance || balanced_local_up!=1 || gr_replicate_ffn)) {
+        fprintf(stderr,"engine: local GR-up requires balanced scalar holders and value1\n");longjmp(init_jb,1);
+    }
     if(gr_replicate_ffn<0 || gr_replicate_ffn>48 || (gr_replicate_ffn && (!producer_quant || getenv("PROG_NOHCUP") || getenv("PROG_NORMSFUSE")))) {
         fprintf(stderr,"engine: GR replication requires production quantization, standard GR kernels, and a layer count 0..48\n");in_init=0;return -1;
     }
@@ -1677,8 +1683,9 @@ int engine_init(core_t *c) {
 		dn_bufs_t *b = &db[d]; memset(b, 0, sizeof *b);
 		unsigned nlocmax = 128u * (2u * (unsigned)s0.nk + (unsigned)s0.hn)   /* q, k of the die's key heads, v of its value heads */, cols = 32u * (unsigned)s0.cbn, hrows = 128u * (unsigned)s0.hn;
 		b->S = dalloc(4 * 10240); b->S2 = dalloc(4 * 10240); b->xh = dalloc(4 * 10240); b->t = dalloc(4 * 324);
-		b->ldown = dalloc(4 * 324); b->lup = dalloc(4 * 4 * (gr_replicate_ffn?2560:cols)); b->lz = dalloc(4 * (gr_replicate_ffn?2560:cols));
-        if(gr_replicate_ffn) {
+		b->ldown = dalloc(4 * 324); b->lup = dalloc(4 * 4 * ((gr_replicate_ffn||balanced_local_up)?2560:cols)); b->lz = dalloc(4 * ((gr_replicate_ffn||balanced_local_up)?2560:cols));
+        b->gr_up_local=(unsigned)balanced_local_up;
+        if(gr_replicate_ffn || balanced_local_up) {
             CUdeviceptr down[6],up[6];for(int e=0;e<6;e++){down[e]=b->ldown;up[e]=b->lz;}
             b->gr_local_down_table=dalloc(sizeof down);b->gr_local_up_table=dalloc(sizeof up);
             CK(cuMemcpyHtoD(b->gr_local_down_table,down,sizeof down));CK(cuMemcpyHtoD(b->gr_local_up_table,up,sizeof up));
@@ -1739,6 +1746,7 @@ int engine_init(core_t *c) {
 			w->hc_attn_norm = dptr(d, bb, "hc_attn_norm.weight"); w->hc_attn_dj = dptr(d, bb, "hc_attn_dj.weight"); w->hc_attn_up = dptr(d, bb, "hc_attn_up.weight");
 			w->hc_ffn_norm = dptr(d, bb, "hc_ffn_norm.weight"); w->hc_ffn_dj = dptr(d, bb, "hc_ffn_dj.weight"); w->hc_ffn_up = dptr(d, bb, "hc_ffn_up.weight");
             if(bb<gr_replicate_ffn){w->hc_ffn_dj=replicate_gr_matrix(d,bb,0);w->hc_ffn_up=replicate_gr_matrix(d,bb,1);w->hc_ffn_replicated=1;}
+            if(balanced_local_up){w->hc_attn_up=replicate_balanced_up(d,bb,tn(bb,"hc_attn_up.weight"));w->hc_ffn_up=replicate_balanced_up(d,bb,tn(bb,"hc_ffn_up.weight"));}
 			if (!is_attn) {
 				w->attn_qkv = dptr(d, bb, "attn_qkv.weight"); w->attn_qkv_type = ttype(bb, "attn_qkv.weight");
 				w->attn_gate = dptr(d, bb, "attn_gate.weight"); w->attn_gate_type = ttype(bb, "attn_gate.weight");
@@ -1783,6 +1791,7 @@ int engine_init(core_t *c) {
 		}
 		dn_weights_t *w = &dw[d][0];
 		w->output_hc_norm = dptr_raw(d, "output_hc_norm.weight"); w->output_hc_down = dptr_raw(d, "output_hc_down.weight"); w->output_hc_up = dptr_raw(d, "output_hc_up.weight"); w->output = dptr_raw(d, "output.weight");
+        if(balanced_local_up)w->output_hc_up=replicate_balanced_up(d,-1,"output_hc_up.weight");
 		uint32_t ob[6]; for (int e = 0; e < 6; e++) {
             split_t head;execution_split(&head,e,0);ob[e]=(uint32_t)head.o0;
         }
@@ -1822,7 +1831,7 @@ int engine_init(core_t *c) {
         for(int e=0;e<6;e++){const dn_bufs_t *b=position_buf(e,p);table[e][0]=kind?b->oq:b->zq;table[e][1]=kind?b->os32:b->zs32;table[e][2]=kind?b->os16:b->zs16;table[e][3]=kind?b->oas:b->zas;}
         for(int d=0;d<nd;d++){CK(cuCtxSetCurrent(ctx[d]));producer_tables[p][d][kind]=dalloc(sizeof table);CK(cuMemcpyHtoD(producer_tables[p][d][kind],table,sizeof table));}
     }
-    if(gr_replicate_ffn)for(unsigned p=0;p<allocated_positions;p++)for(int d=0;d<nd;d++) {
+    if(gr_replicate_ffn || balanced_local_up)for(unsigned p=0;p<allocated_positions;p++)for(int d=0;d<nd;d++) {
         CUdeviceptr table[6][4];const dn_bufs_t *b=position_buf(d,p);
         for(int e=0;e<6;e++){table[e][0]=b->zq;table[e][1]=b->zs32;table[e][2]=b->zs16;table[e][3]=b->zas;}
         CK(cuCtxSetCurrent(ctx[d]));producer_local_tables[p][d]=dalloc(sizeof table);CK(cuMemcpyHtoD(producer_local_tables[p][d],table,sizeof table));
@@ -1849,7 +1858,8 @@ int engine_init(core_t *c) {
         CUdeviceptr packed_map=dalloc(sizeof gate_map);CK(cuMemcpyHtoD(packed_map,gate_map,sizeof gate_map));
         CUdeviceptr prepare[8]={b->g,b->gu,b->hq,b->hs32,b->hs16,b->has,b->balance_quant_ready,packed_map};
         b->balance_prepare=dalloc(sizeof prepare);CK(cuMemcpyHtoD(b->balance_prepare,prepare,sizeof prepare));
-        uint32_t bounds[7];for(int e=0;e<=nd;e++)bounds[e]=split_bound(512,(int)e,nd);
+        uint32_t bounds[7+512];for(int e=0;e<=nd;e++)bounds[e]=split_bound(512,(int)e,nd);
+        for(unsigned owner=0;owner<6;owner++)for(unsigned e=bounds[owner];e<bounds[owner+1];e++)bounds[7+e]=owner;
         b->balance_owner_bounds=dalloc(sizeof bounds);CK(cuMemcpyHtoD(b->balance_owner_bounds,bounds,sizeof bounds));
         CUdeviceptr index[6];for(int e=0;e<nd;e++)index[e]=position_buf(e,p)->iqk;
         b->balance_index_targets=dalloc(sizeof index);CK(cuMemcpyHtoD(b->balance_index_targets,index,sizeof index));
@@ -1955,7 +1965,7 @@ void engine_fini(void) {
 	memset(dTRACE, 0, sizeof dTRACE); trace_n = trace_valid = 0;
     memset(dXTRACE,0,sizeof dXTRACE);xtrace_n=xtrace_first=xtrace_count=0;
     gr_write_trace=0;
-    memset(producer_local_tables,0,sizeof producer_local_tables);gr_replicate_ffn=0;
+    memset(producer_local_tables,0,sizeof producer_local_tables);gr_replicate_ffn=0;balanced_local_up=0;
 	memset(db_pair, 0, sizeof db_pair); memset(xc_pair, 0, sizeof xc_pair); two_position = prefill_chunk = 0;
 	allocated_positions = active_program_positions = 1; program_capacity = 4096;
     memset(embedding_tables,0,sizeof embedding_tables);memset(producer_tables,0,sizeof producer_tables);memset(residual_encoded,0,sizeof residual_encoded);

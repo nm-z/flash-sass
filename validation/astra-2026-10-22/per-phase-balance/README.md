@@ -1,5 +1,8 @@
 # Complete balanced kernel: first execution and phase evidence
 
+Subsequent throughput work is recorded in [the decode60 report](../decode60/README.md).
+The counts below identify the original completed balance snapshots.
+
 Current criterion and evidence: [pairwise production work audit](work-audit-v79.md).
 Nate clarified that every die must be within ten percent of every other die's
 work, with fewer than 500 phases/token. The current program has 492 phases;
