@@ -506,6 +506,28 @@ A stale status-polling shell was
 temporarily suspended, and this retry is monitored through read-only SQLite
 queries rather than GPUQ commands that initialize a writer connection.
 
+## V39 matched split qualification
+
+Job `b761ed99-563c-45d7-ae52-16665c5c6bd5` compares the normal phase image
+against the eight-stage replica image using the same frozen v39 library,
+fused499-phase schedule, six-die attention balance,64-token prompt and
+128 generated tokens. Each image completes four requests, including one
+warmup. All same-kernel output,216-state, component-value, consensus and PLE
+history checks pass. The profiler records354 peer acquires/144 local joins
+for the normal split and338 peer acquires/160 local joins for the replicated
+split on every die. Both retain499 phases. These are executed counts, not
+only offline schedule predictions.
+
+Mean warm decode over the three measured requests is31.4909 TPS normal split
+and30.1612 TPS replicated split. Fewer exchanges do not produce a speedup in
+this measurement. The [complete matched per-operation table](v39-split-profile/operations.md)
+preserves both images' inclusive final-token profiles.
+
+Fixed-input job `5930993a-ed67-43cc-8e28-acc21ad9cf93` is running four
+256-position requests per image. Replicated long-context qualification and
+the fresh traced/untraced comparison remain pending. No cross-kernel token
+oracle comparison has been made while these repeatability gates are pending.
+
 The dependency audit now lists mixed-pipeline reuse of a completion barrier as
 an additional review category. Some rows can be safe because of execution
 distance or are in unused bodies; the report does not automatically establish
