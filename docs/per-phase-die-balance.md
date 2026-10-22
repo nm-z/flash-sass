@@ -209,3 +209,32 @@ The final evidence must include **every phase** and report actual TPS, memory,
 cache traffic and residual imbalance; do not qualify only phases that pass.
 
 This goal is not complete. No±10% runtime balance or TPS improvement is claimed.
+
+## Next attention integration
+
+Preserve four local query heads and one local K/V head on every die. Main
+Q/gate rows are2048 per die; K/V projections have256 rows each. The640-row
+indexer projection uses the existing marked row-shard publication path into
+all six complete IQK vectors. Group these independent projections and publish
+indexer completion before consuming IQK. Normalization and cache append must
+use local head counts, and compact/persistent KV layouts must have one head.
+
+The old owner program already groups ATTNQKQ and IDXQK as independent work.
+Fusing IDXQK with scoring alone would therefore not remove a phase. A complete
+local stage can run normalization/cache append and indexer update, join their
+producers, then perform scoring/selection. A second complete local stage can
+run KV gather, join its producers, then attention partitions and gated merge.
+These are real dependencies; retain and measure the local readiness joins.
+The intended reduction is four owner stages to two, not skipped attention work.
+Count the full production program to establish whether this meets the phase
+limit; do not assume a count from this design note.
+
+The existing score/select body loads its auxiliary selection descriptor using
+pidx+1, while the part/merge body similarly loads an adjacent merge descriptor.
+Composite stages must load the correct child parameter banks, apply each
+child's own +TOK mask, preserve the primary phase flags/count, and restore any
+temporary descriptor cursor before the physical phase footer. Do not reuse a
+completion barrier across global/shared loads without explicit retirement.
+Each readiness generation must be distinct per token/layer and cleared on all
+request paths. Projection, append, selection, gather and merge must all execute
+on every logical die; an empty owner-participation exchange is not useful work.
