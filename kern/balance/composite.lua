@@ -21,6 +21,12 @@ local function extract(tag)
 end
 local function clone(tag,new,other,return_to)
  local body=extract(tag);local rename={[tag]=new}
+ local function instructions(text)
+  local n=0;for line in text:gmatch('[^\n]+')do
+   if line:match('^[%x%-]+:[%d%-]+:[%d%-]+:[Y%-]:%x%s')then n=n+1 end
+  end;return n
+ end
+ local count=instructions(body)
  for a,b in pairs(other or {})do rename[a]=b end
  for a,b in pairs(rename)do
   for line in assert(s:match('<REGISTER_MAPPING>(.-)</REGISTER_MAPPING>')):gmatch('[^\n]+')do
@@ -28,11 +34,16 @@ local function clone(tag,new,other,return_to)
   end
   body=body:gsub(a..'_',b..'_')
  end
- local labels={};for name in body:gmatch('\n([%w_]+):')do
-  if name:sub(1,#new+1)~=new..'_'then labels[#labels+1]=name end
+ -- Control words also begin with a hexadecimal token and colon (01:, 3f:).
+ -- Rename only complete label lines. Treating those wait masks as labels
+ -- causes MaxAs to discard the cloned completion waits and their operations.
+ local labels={};for line in body:gmatch('[^\n]+')do
+  local name=line:match('^([%a_][%w_]*):%s*$')
+  if name and name:sub(1,#new+1)~=new..'_'then labels[#labels+1]=name end
  end
  for _,name in ipairs(labels)do body=body:gsub('%f[%w_]'..name..'%f[^%w_]',new..'_'..name)end
  body=body:gsub('BRA POSITION_END;','BRA '..return_to..';')
+ assert(instructions(body)==count,'cloning lost SASS instructions: '..tag..' -> '..new)
  return body
 end
 local function generator()

@@ -75,7 +75,8 @@ Implemented:
 - `die_balanced.cubin` assembles successfully from production SASS with the
   replacement embedding and striped MoE bodies. Its distinct module marker prevents loading it
   with the legacy holder/program layout. It is an in-progress image, not a
-  runnable complete balanced model yet.
+  runnable complete balanced model at that initial checkpoint. Subsequent
+  full-model qualification is recorded below.
 - `kern/balance/program.h` constructs same-token gate/up and down chains. All
   ten selected global IDs are consumed on each die. Compact local row buffers
   are separate from the complete vectors published to peers, preventing local
@@ -100,8 +101,8 @@ Implemented:
   path requires fused GR, producer quantization, matrix grouping, all48 layers
   and a single causal position. Kernel ABI markers must match the layout.
 - Holder and engine build checks. No balanced holders have been loaded and no
-  balanced kernel has been run. The serving baseline and persistent holders
-  have not been changed.
+  balanced kernel had been run at that initial build checkpoint. Subsequent
+  installation and execution are recorded below.
 - Four-head attention integration now assembles: each die projects four query
   heads and its one K/V head, publishes its striped indexer rows, updates its
   one-head persistent cache, selects keys, gathers and computes attention, and
@@ -457,6 +458,46 @@ throughput, not a measured zero TPS. Historical raw exchange data also shows
 1024 ns timestamp granularity (66432 sampled timestamps); short-phase timing
 uncertainty must be addressed before treating an observed ten-percent timing
 table as proof of the final goal.
+
+### First completed full balanced request
+
+After the first authorized cold boot, all six balanced holders loaded, but job
+`62252dfc-0edc-482d-869d-add766958646` still faulted at position0. CUDA-GDB
+diagnostic `2c610e0c-e4e2-41f5-93bc-96c5e136e255` could not attach through
+driver470 and left subsequent CUDA initialization spinning. A second cold
+boot cleared that state. Do not repeat this debugger path on the current
+driver. All six holders are now live under `/tmp/flash-balanced-postboot-v51`;
+GPU2's fence was restored first with the original3770/1022 counts.
+
+`FLASH_FAULT_CTL=1` uses host-mapped control pages for the existing SASS footer
+stamps. It is explicitly a diagnostic, never timing evidence; it changes no
+model operation or SASS instruction. Full-model diagnostic job
+`357dfcb4-fb54-4bad-a154-9fb9bcbecb44` localized the failure on every die to
+physical phase41, descriptor69: the first complete four-head QSA operation.
+All six dies had completed phase40. This replaced the earlier unknown fault
+location with a concrete failing production operation.
+
+The QSA cloner in `balance/composite.lua` matched SASS control words such as
+`01:` and `3f:` as label names. It consequently renamed completion masks into
+invalid line prefixes such as `bscore_01:`, losing instructions in the emitted
+machine code. Matching only complete label lines fixes this; an instruction
+count invariant now rejects a clone that loses controlled instructions.
+Both full production and body-trace images assemble with this fix.
+
+Canonical job `81b8aeaa-8f0b-413b-9d01-17b1bd2e4ed8` then completed all191
+causal positions of a64-token prompt plus128 generated tokens. Production
+image FNV is `6a3d00cf0fbb0882`; host control diagnostics, MTP and FP8 were off.
+Host-observed decode was17.039430938 TPS (127 intervals over7453.300551ms),
+and prompt processing17.584772725 TPS. This is the first successful full
+balanced operation-loop execution, **not correctness or ten-percent timing
+qualification**, and is slower than the previous ordinary baseline. Its
+benchmark explicitly reports `correct:null` and `output_checked:false`.
+
+The post-boot reload also reproduced nm-z/gpuq#70 without CLI log polling:
+concurrent queued submissions encountered database locks. One capture-failed
+loader subsequently exited, leaving stale IPC metadata; its marker alone was
+not treated as a live allocation. Missing holders were reloaded serially after
+the remaining live jobs completed.
 
 ## Next attention integration
 
