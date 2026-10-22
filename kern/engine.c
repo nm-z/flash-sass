@@ -48,7 +48,8 @@ static __thread double timing_request_start, timing_run_start;
 CUresult cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev);
 /* during engine_init a failure unwinds to it (the core and its weights and table stay up); later ones are fatal */
 static jmp_buf init_jb, run_jb; static int in_init, in_run;
-#define CK(x) do { CUresult r_ = (x); if (r_ != CUDA_SUCCESS) { const char *s_ = "?"; cuGetErrorString(r_, &s_); fprintf(stderr, "engine.c:%d: %s -> %s\n", __LINE__, #x, s_); if (in_init) longjmp(init_jb, 1); if (in_run) longjmp(run_jb, 1); exit(1); } } while (0)
+static void balance_fault_dump(void);
+#define CK(x) do { CUresult r_ = (x); if (r_ != CUDA_SUCCESS) { const char *s_ = "?"; cuGetErrorString(r_, &s_); fprintf(stderr, "engine.c:%d: %s -> %s\n", __LINE__, #x, s_); if (in_init) longjmp(init_jb, 1); if (in_run) { balance_fault_dump(); longjmp(run_jb, 1); } exit(1); } } while (0)
 static double now(void) { struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts); return ts.tv_sec + ts.tv_nsec * 1e-9; }
 static int row_balance,body_trace;
 static int classify_holder_layout(const core_t *c) {
@@ -132,6 +133,10 @@ static unsigned allocated_positions = 1;
 static int producer_quant,group_matrices,residual_fp8;
 static int gr_replicate_ffn;
 static uint32_t *phase_watch;
+/* Diagnostic-only host-mapped control pages retain the existing phase footer
+ * stamps when a CUDA fault makes device copies unavailable. No model phase,
+ * arithmetic, dispatch, or SASS instruction changes. Never use for timing. */
+static uint32_t *fault_ctl[MAXD];
 #include "phase/ownership.h"
 #include "phase/gr_replica.h"
 static unsigned gr_fusions;
@@ -295,6 +300,28 @@ static uint32_t prof_units[MAXD][4096], prof_flags[MAXD][4096];
 static uint32_t prof_op[MAXD][4096], prof_index[MAXD][4096];
 static unsigned prof_producer_fusions[MAXD],prof_matrix_groups[MAXD],prof_gr_fusions[MAXD],prof_local_fusions[MAXD],prof_publications[MAXD];
 static int prof_nph[MAXD]; static unsigned prof_desc[MAXD];   /* every die's program of the last response, for the "prof" command */
+static void balance_fault_dump(void) {
+    for(int d=0;d<nd;d++)if(fault_ctl[d]) {
+        volatile const uint32_t *ctl=fault_ctl[d];int last=-1;
+        for(int j=0;j<prof_nph[d];j++)if(ctl[64+prof_index[d][j]])last=j;
+        int next=last+1;
+        fprintf(stderr,"fault_phase die=%d physical=%d token=%u last_completed=%d next_phase=%d descriptor=%u op=%s diagnostic_host_control=1 timing_valid=0\n",
+            d,ar[d].die,ctl[2],last,next,next<prof_nph[d]?prof_index[d][next]:0,
+            next<prof_nph[d]?profile_op_name(prof_op[d][next]):"token-boundary");
+        if(next<prof_nph[d])for(unsigned k=0;k<8;k++)if(request_programs[k]) {
+            const prog_t *p=request_programs[k]+d;unsigned index=prof_index[d][next];
+            if(index>=(unsigned)p->n || p->p[index].w[0]!=prof_op[d][next])continue;
+            unsigned end=next+1<prof_nph[d]?prof_index[d][next+1]:(unsigned)p->n;
+            if(end>(unsigned)p->n)end=(unsigned)p->n;
+            for(unsigned i=index;i<end;i++) {
+                fprintf(stderr,"fault_descriptor die=%d program=%u index=%u words=",d,k,i);
+                for(unsigned w=0;w<32;w++)fprintf(stderr,"%s%08x",w?",":"",p->p[i].w[w]);
+                fputc('\n',stderr);
+            }
+            break;
+        }
+    }
+}
 
 /* Post-request determinism diagnosis: distinguish GPU-die disagreement from
  * streamed-token visibility. No model operation or sampling decision changes. */
@@ -1724,7 +1751,13 @@ int engine_init(core_t *c) {
 		if (trace_n) dTRACE[d] = dalloc((size_t)trace_n * 4096 * 64);
         if(xtrace_n)dXTRACE[d]=dalloc((size_t)xtrace_n*(gr_write_trace?128:4096)*2048);
 		dPROG[d] = dalloc(sizeof(phase_t) * program_capacity);
-		dCTL[d] = dalloc(0x100 + 4 * (program_capacity < 8192 ? 8192 : program_capacity));
+        size_t control_bytes=0x100+4u*(program_capacity<8192?8192:program_capacity);
+        if(getenv("FLASH_FAULT_CTL") && atoi(getenv("FLASH_FAULT_CTL"))) {
+            CK(cuMemHostAlloc((void **)&fault_ctl[d],control_bytes,CU_MEMHOSTALLOC_PORTABLE|CU_MEMHOSTALLOC_DEVICEMAP));
+            memset(fault_ctl[d],0,control_bytes);
+            CK(cuMemHostGetDevicePointer(&dCTL[d],fault_ctl[d],0));
+            fprintf(stderr,"engine: diagnostic host-mapped control die=%d timing_valid=0\n",d);
+        } else dCTL[d]=dalloc(control_bytes);
 		x->xgen = dCTL[d] + 0x20;
 		for (unsigned p = 1; p < allocated_positions; p++) alloc_position(d, p);
 #ifdef FLASH_DFLASH_NATIVE
@@ -1839,6 +1872,7 @@ void engine_fini(void) {
 	if (h_toks) cuMemFreeHost(h_toks);
 	if (h_rnd) cuMemFreeHost(h_rnd);
 	if (h_tok) cuMemFreeHost(h_tok);
+    for(int d=0;d<MAXD;d++)if(fault_ctl[d]){cuMemFreeHost(fault_ctl[d]);fault_ctl[d]=NULL;}
     if(phase_watch){cuMemFreeHost(phase_watch);phase_watch=NULL;}
 	if (h_abort) cuMemFreeHost(h_abort);
 	h_ids = NULL; h_toks = NULL; h_rnd = NULL; h_tok = NULL; h_abort = NULL;
