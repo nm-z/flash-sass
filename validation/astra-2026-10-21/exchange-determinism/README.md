@@ -3,8 +3,8 @@
 This is work in progress for the three requested items. The full objective is
 not complete. V33 passes the ordinary and fixed-input self-repeatability gates
 but fails the long-context repeat. V35 and v36 repeat long-context output
-tokens but still differ in recurrent state. The latest v38 all-writer release
-candidate is under long-context test; a fresh matched split measurement remains pending. Earlier
+tokens but still differ in recurrent state. V38's all-writer release also fails
+the long-context state repeat; a fresh matched split measurement remains pending. Earlier
 failures below are retained as evidence.
 Full48-stage FFN GR replication does not fit archy's current memory placement;
 the eight-stage variant fits and reduces actual exchanges, but its earlier run
@@ -466,8 +466,26 @@ The module marker `flash_phase_writer_release_abi_v1` guards the new contract.
 V37 is a build-only checkpoint, never a GPU run. V38 includes both the retained
 writer protection and the per-thread local publication release. Its full
 baseline/candidate long-context job is
-`45806366-8fdb-40fa-9649-887225f752c7`, currently running two4,096/16 requests
-per arm. No v38 rate or qualification is claimed before completion.
+`45806366-8fdb-40fa-9649-887225f752c7`, completed two4,096/16 requests
+per arm. Baseline repeats all216 states. Candidate output tokens repeat but
+210 states differ. Die0/layer1 has33,806 changed recurrent values, maximum
+absolute difference2.37673521e-6; layer0 and the layer1 convolution buffer
+match. Input-history and six-die token consensus audits are clean. Warm decode
+is28.3207 TPS candidate versus29.0633 baseline. This is not a qualified speedup.
+
+V39 retires a pending completion barrier before reusing it across different
+execution pipelines. The physical audit identifies adjacent shared/global
+loads in exchange entry/publication, shared/SFU reuse in attention scoring,
+and conversion/shared-load reuse in matrix bodies. Same-pipeline groups stay
+batched. The change inserts dependency waits, retains all499 phases and model
+operations, and does not claim that every flagged reuse was a hardware fault.
+The completed build inserts110 candidate and72 baseline static handoff waits.
+The candidate straight-line audit reports zero mixed-pipeline reuse candidates;
+four remaining address-lifetime warnings are in unused DNSTEP/DNLOCAL bodies,
+while the production GDN has explicit operand completions. This audit is not a
+hardware correctness proof. Full-model long-context job
+`fccfe040-2f70-49d1-84cd-3cd593a6038b` is running two4,096/16 requests per arm.
+Its end-to-end qualification is pending.
 
 The dependency audit now lists mixed-pipeline reuse of a completion barrier as
 an additional review category. Some rows can be safe because of execution

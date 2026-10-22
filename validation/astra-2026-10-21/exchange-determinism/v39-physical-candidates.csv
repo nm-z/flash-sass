@@ -1,0 +1,5 @@
+kind,line,resource,prior_line,minimum_cycles,required_cycles,instruction,prior_instruction
+WAR,12404,R132,12403,1,4,"IADD dnstep_ap0.CC, dnstep_t, dnstep_param_B0","LDG.E.CG dnstep_fa, [dnstep_ap]"
+WAR,12407,R132,12406,1,4,"IADD dnstep_ap0.CC, dnstep_t, dnstep_param_SA0","LDG.E.CG dnstep_fb, [dnstep_ap]"
+WAR,90041,R132,90040,1,4,"IADD dnlocal_ap0.CC, dnlocal_t, dnlocal_param_B0","LDG.E.CG dnlocal_fa, [dnlocal_ap]"
+WAR,90044,R132,90043,1,4,"IADD dnlocal_ap0.CC, dnlocal_t, dnlocal_param_SA0","LDG.E.CG dnlocal_fb, [dnlocal_ap]"

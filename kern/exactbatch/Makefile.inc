@@ -36,7 +36,8 @@ die_phase.sass: die.sass die_gr.sass phase/gr_cache.lua phase/quant.lua phase/lo
 	$(LUA) phase/serial_dependencies.lua $@.plecomplete $@.grcomplete all none bf16hcrwx,grreadsum,hcwsum selected
 	$(LUA) phase/serial_dependencies.lua $@.grcomplete $@.gdncomplete all none gdn selected
 	$(LUA) phase/fixed_latency.lua $@.gdncomplete $@.fixed $@.fixed.csv
-	$(LUA) phase/predicate_latency.lua $@.fixed $@ $@.predicate.csv
+	$(LUA) phase/pipeline_completions.lua $@.fixed $@.pipeline
+	$(LUA) phase/predicate_latency.lua $@.pipeline $@ $@.predicate.csv
 
 die_deterministic.sass: die.sass phase/kv_tail.lua phase/frame_dependencies.lua phase/predicate_latency.lua
 	$(LUA) phase/kv_tail.lua $< $@.tail
@@ -46,12 +47,13 @@ die_deterministic.sass: die.sass phase/kv_tail.lua phase/frame_dependencies.lua 
 	$(LUA) phase/serial_dependencies.lua $@.plecomplete $@.grcomplete all none bf16hcrx,hcwsum selected
 	$(LUA) phase/serial_dependencies.lua $@.grcomplete $@.gdncomplete all none conv1d,dnstep,dnnormx selected
 	$(LUA) phase/fixed_latency.lua $@.gdncomplete $@.fixed $@.fixed.csv
-	$(LUA) phase/predicate_latency.lua $@.fixed $@ $@.predicate.csv
+	$(LUA) phase/pipeline_completions.lua $@.fixed $@.pipeline
+	$(LUA) phase/predicate_latency.lua $@.pipeline $@ $@.predicate.csv
 die_deterministic.cubin: die_deterministic.sass skel_die.cubin
 	cp skel_die.cubin $@
 	$(MAXAS) -i die_deterministic.sass $@
 
-die_phase.sass die_deterministic.sass: phase/mutable_loads.lua phase/serial_dependencies.lua phase/fixed_latency.lua exactbatch/Makefile.inc
+die_phase.sass die_deterministic.sass: phase/mutable_loads.lua phase/serial_dependencies.lua phase/fixed_latency.lua phase/pipeline_completions.lua exactbatch/Makefile.inc
 
 die_phase_xtrace.sass: die_phase.sass phase/exchange_trace.lua
 	$(LUA) phase/exchange_trace.lua $< $@
