@@ -243,8 +243,39 @@ to Sentry's configured address returned `No route to host`. Existing GPU
 holders and the serving core remain alive. Do not stop them before preserving
 a usable source for replacement weights: their source GGUF is not currently
 reachable. Repacking their existing resident native rows into a local backing
-cache is a possible way to avoid depending on that mount. No such repack has
-been performed yet.
+cache avoids depending on that mount. `kern/balance/native_weights.c` now
+implements original-arena export, CPU redistribution, and a persistent cache
+loader. It shares the exact holder row-selection code through
+`kern/hold_selection.h`; native quantized rows are copied without conversion,
+Q6 slices are redistributed separately, and embedding groups use the same
+integer packer as checkpoint loading. Original arenas remain a separate local
+restoration source. Cache metadata is published only after its arena is durable.
+
+The complete CPU size plan passed in canonical job
+`75442a5e-5e35-4d72-8f00-0f6745fe7179`:
+
+| Logical die | Physical GPU | Balanced arena bytes |
+|---|---|---|
+| 0 | 0 | 6,798,874,112 |
+| 1 | 1 | 6,798,874,112 |
+| 2 | 6 | 6,494,398,720 |
+| 3 | 3 | 6,476,552,960 |
+| 4 | 4 | 6,476,552,960 |
+| 5 | 5 | 6,494,398,720 |
+
+Each arena contains1080 tensor records, including its layout marker. The
+original arenas total39,456,608,768 bytes. Archy had88,408,420,352 available
+disk bytes before export, enough for both original and redistributed arenas.
+Runtime context/state/trace memory must still be included before installation.
+
+The first plan run exposed an embedding catalog detail: only die0's original
+manifest contains the replicated embedding. The native redistributor now
+accepts that single source while preserving all global embedding rows. This
+was a CPU metadata failure, not a model run. A subsequent queue capture failed
+mid-plan; [gpuq#70](https://github.com/nm-z/gpuq/issues/70) is attached under#69
+and remains open. With the known stale polling shell temporarily suspended,
+the identical complete plan succeeded. No balanced holder has been loaded and
+no balanced model run has occurred yet.
 
 Reuse canonical GPUQ evidence before starting new work. All archy GPU execution
 continues through `ssh archy gpuq run -- COMMAND`. Preserve one canonical

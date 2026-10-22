@@ -56,6 +56,23 @@ local function stamp(aux,slot,composite,nonzero)
   load('S2R bt_clock0, SR_SMID',1);out[#out+1]='01:-:-:Y:d NOP;'
   out[#out+1]='--:2:-:-:2 STG.E [bt_ptr+0x700], bt_clock0;'
   out[#out+1]='02:-:-:Y:d NOP;'
+  e('ISETP.NE.U32.AND P6, PT, cta, RZ, PT');e('@P6 BRA '..tag..'_DONE')
+  load('LDS bt_temp, [RZ+0xbf80]',1);out[#out+1]='01:-:-:Y:d NOP;'
+  e('ISETP.NE.U32.AND P6, PT, bt_temp, 0x3d, PT');e('@P6 BRA '..tag..'_DONE')
+  -- The routed gate starts the four-member gate/up group. Its second
+  -- auxiliary record is unused by poll clocks; retain the actual selected
+  -- global IDs here rather than assuming ten useful experts from static rows.
+  load('LDS.64 bt_clock0, [RZ+0xbfb0]',1);out[#out+1]='01:-:-:Y:d NOP;'
+  for i=0,9 do
+   load(string.format('LDG.E.CG bt_temp, [bt_clock+0x%x]',4*i),1)
+   out[#out+1]='01:-:-:Y:d NOP;'
+   out[#out+1]=string.format('--:2:-:-:2 STG.E [bt_ptr+0x%x], bt_temp;',0x900+4*i)
+   out[#out+1]='02:-:-:Y:d NOP;'
+  end
+  load('LDS.64 bt_clock0, [RZ+0xbfc8]',1);out[#out+1]='01:-:-:Y:d NOP;'
+  load('LDG.E.CG bt_temp, [bt_clock]',1);out[#out+1]='01:-:-:Y:d NOP;'
+  out[#out+1]='--:2:-:-:2 STG.E [bt_ptr+0x928], bt_temp;'
+  out[#out+1]='02:-:-:Y:d NOP;'
  end
  out[#out+1]=tag..'_DONE:';e('R2P PR, bt_pred, 0x7f')
  return '3f:-:-:Y:d NOP;\n'..table.concat(out,'\n')..'\n'

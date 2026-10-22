@@ -39,6 +39,13 @@ static void balance_body_dump(FILE *out,int d) {
                 valid?"true":"false",(unsigned long long)elapsed,(unsigned long long)total,(unsigned long long)(valid?elapsed-total:0));
             records++;bad+=!valid;
         }
+        if(op==OP_Q2MOEGN && flags&PHASE_BALANCED_ROW8) {
+            const uint32_t *ids=(const uint32_t *)(primary+512);
+            fprintf(out,"{\"kind\":\"balanced_experts\",\"request\":%llu,\"position\":%u,\"die\":%d,\"phase\":%d,\"layer\":%d,\"selected_count\":%u,\"selected_global_ids\":[",
+                last_timing.request_id,xtrace_first+t,d,p,prof_layer[d][index],ids[10]);
+            for(unsigned k=0;k<10;k++)fprintf(out,"%s%u",k?",":"",ids[k]);
+            fprintf(out,"]}\n");
+        }
     }
     fprintf(out,"bodytrace_end die=%d records=%u invalid=%u clock=SR_GLOBALTIMER device_local=1 trace_overhead_included=1\n",d,records,bad);
     free(data);
