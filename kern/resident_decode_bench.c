@@ -458,6 +458,19 @@ int main(int argc,char **argv) {
             }
             free(line); fflush(stdout);
             if(!done||n!=positions) fail("incomplete generation");
+            if(getenv("BENCH_WORK_DUMP") && atoi(getenv("BENCH_WORK_DUMP"))) {
+                fputs("workdump\n",f);fflush(f);char *wl=NULL;size_t wc=0;unsigned records=0;int complete=0;
+                while(getline(&wl,&wc,f)>0) {
+                    fputs(wl,stdout);if(!strncmp(wl,"workdesc ",9))records++;
+                    if(!strncmp(wl,"workdump_end ",13)) {
+                        unsigned dies,count,bad;
+                        if(sscanf(wl,"workdump_end dies=%u records=%u failures=%u",&dies,&count,&bad)!=3 ||
+                           dies!=6 || count!=records || !records || bad)fail("invalid work descriptor coverage");
+                        complete=1;break;
+                    }
+                }
+                free(wl);if(!complete)fail("incomplete work descriptor readback");
+            }
             if(getenv("BENCH_HEAD_AUDIT") && atoi(getenv("BENCH_HEAD_AUDIT"))) {
                 fputs("headaudit\n",f);fflush(f);char *hl=NULL;size_t hc=0;int complete=0;
                 while(getline(&hl,&hc,f)>0){
@@ -487,6 +500,17 @@ int main(int argc,char **argv) {
                 free(al);if(!complete)fail("incomplete QSA audit");
             }
             if(getenv("BENCH_PLE_CACHE_STATS") && atoi(getenv("BENCH_PLE_CACHE_STATS")))command(f,"plecache");
+            if(getenv("BENCH_PLE_HANDOFF") && atoi(getenv("BENCH_PLE_HANDOFF"))) {
+                fputs("plehandoff\n",f);fflush(f);char *hl=NULL;size_t hc=0;int complete=0;unsigned rows=0;
+                while(getline(&hl,&hc,f)>0){
+                    fputs(hl,stdout);if(!strncmp(hl,"plehandoff position=",19))rows++;
+                    if(!strncmp(hl,"plehandoff_end ",15)){
+                        unsigned count;if(sscanf(hl,"plehandoff_end count=%u",&count)!=1 || !count || count!=rows || count>16)fail("invalid PLE handoff coverage");
+                        complete=1;break;
+                    }
+                }
+                free(hl);if(!complete)fail("incomplete PLE handoff readback");
+            }
             if(getenv("BENCH_STATE_HASH") && atoi(getenv("BENCH_STATE_HASH"))) {
                 int detail=getenv("BENCH_STATE_DETAIL") && atoi(getenv("BENCH_STATE_DETAIL"));
                 fputs(detail?"statehash detail\n":"statehash\n",f);fflush(f);char *hl=NULL;size_t hc=0;int hd=0;

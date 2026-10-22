@@ -107,6 +107,13 @@ int main(int argc,char **argv) {
             if(getenv("FLASH_SCHEDULE_DESCRIPTORS")) {
                 printf("descriptor die=%d phase=%u index=%d opcode=%u units=%u width=%u flags=%u layer=%d\n",d,phases-1,i,a->w[0],a->w[1],width,a->w[30],prof_layer[d][i]);
             }
+            if(getenv("FLASH_SCHEDULE_WORK_DUMP")) {
+                for(unsigned j=0;j<width;j++) {
+                    printf("workdesc die=%d phase=%u member=%u index=%u name=%s words=",d,phases-1,j,(unsigned)i+j,profile_op_name(a[j].w[0]));
+                    for(unsigned w=0;w<32;w++)printf("%s%08x",w?",":"",a[j].w[w]);
+                    putchar('\n');
+                }
+            }
             if(getenv("FLASH_SCHEDULE_WAIT_AUDIT")) {
                 printf("wait_phase die=%d phase=%u index=%d name=%s units=%u width=%u flags=%u layer=%d grid=%u send=%u exchange_wait=%u\n",
                        d,phases-1,i,profile_op_name(a->w[0]),a->w[1],width,a->w[30],prof_layer[d][i],

@@ -15,8 +15,9 @@
 
 /* Output rows, not whole experts, are striped across all six dies. Every
  * selected expert has the same local row count, independent of its ID. For
- * 640 rows this is104/112 rows (within5% of the mean);32-row stripes can be
- * 96/128 rows and miss the per-phase10% requirement. No weight is replicated. */
+ * 640 rows this is104/112 rows (largest/smallest = 1.076923);32-row stripes
+ * can be96/128 rows and miss the pairwise per-phase10% requirement. No weight
+ * is replicated. */
 static inline unsigned balance_row_count(unsigned rows,unsigned die,unsigned dies,unsigned grain) {
     unsigned groups=rows/grain,tail=rows%grain;
     unsigned n=groups/dies+(die<groups%dies);

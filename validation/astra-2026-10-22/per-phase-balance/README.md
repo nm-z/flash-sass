@@ -1,8 +1,16 @@
 # Complete balanced kernel: first execution and phase evidence
 
-The objective remains open: every compute die must perform useful work within
-ten percent of the six-die mean for every full-model phase. Neither equal
-phase counts nor a mostly passing table proves completion.
+Current criterion and evidence: [pairwise production work audit](work-audit-v79.md).
+Nate clarified that every die must be within ten percent of every other die's
+work, with fewer than 500 phases/token. The current program has 492 phases;
+the retained v79 and v80 programs pass all 7,091 work-geometry comparisons,
+with maximum pairwise ratio 1.076923077. The v80 long-context run also confirms
+cross-die query, score and selection equality after exercising the selection
+branch. The clarified work-allocation target is met; timing outliers remain
+separate and no throughput speedup is claimed.
+
+The chronology below records earlier implementations and the earlier
+mean-relative timing gate; those historical counts and failures are retained.
 
 The production image runs all48 layers and the full head, with493 physical
 phases and980 descriptors on every die. MTP and FP8 are off. Logical compute

@@ -31,6 +31,7 @@ static __thread double timing_request_start, timing_run_start;
 #include "ple_read_reload.h"
 #include <setjmp.h>
 #include <cuda.h>
+#include "balance/ple_dma.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -267,6 +268,9 @@ static size_t ple_device_cache_bytes;
 static CUdeviceptr ple_device_rows[MAXD],ple_device_ready[MAXD];
 static uint64_t ple_device_row_bytes,ple_device_flag_bytes,ple_device_positions;
 static double ple_device_queue_ms;
+static struct ple_dma_pool ple_dma;
+static uint64_t ple_enqueue_spread_sum,ple_enqueue_spread_max;
+static struct {int position;uint64_t read_ns,submit_ns;struct ple_dma_span span;} ple_handoff[16];
 #define PLE_AHEAD 128                      /* positions staged ahead of the one that runs */
 static float *h_rnd;                /* pinned: u[position] for the sampler */
 static uint32_t *h_tok;             /* pinned: ctl[2] (count, bit 31 = the turn ended) */
@@ -852,7 +856,13 @@ static void ple_pump(runctx *r, int budget) {
 	int lim = c + PLE_AHEAD < known ? c + PLE_AHEAD : known;
 	for (; ple_next < lim && budget > 0; ple_next++, budget--) {
 		int q = ple_next;
+        uint64_t read_begin=0,dispatch_ns=0;
 		int ti = trace_slot(q); if (ti >= 0) trace_host[ti].staging_start = host_ns();
+        if(ple_device_cache){
+            uint64_t begin=ple_dma_ns();
+            CK(ple_dma_prepare(&ple_dma,(unsigned)q,ple_host+(size_t)q*1440,h_rdy+q,ple_rid));
+            dispatch_ns=ple_dma_ns()-begin;read_begin=ple_dma_ns();
+        }
 		if (q >= r->nprompt) ple_seq[q] = h_toks[q - 1];
 		uint64_t rows[16]; uint32_t endid = ple_end_id;
 		ple_rows_c(ple_seq, (size_t)q, ple_absent_id, &endid, 1, ple_multipliers, ple_head_offsets, ple_head_vocab, rows);
@@ -879,17 +889,15 @@ static void ple_pump(runctx *r, int budget) {
 		}
         __atomic_store_n(&h_rdy[q], ple_rid, __ATOMIC_RELEASE);
         if(ple_device_cache) {
-            double queued_at=now();CUcontext previous;CK(cuCtxGetCurrent(&previous));
-            for(int d=0;d<nd;d++) {
-                CK(cuCtxSetCurrent(ctx[d]));
-                CK(cuMemcpyHtoDAsync(ple_device_rows[d]+(size_t)q*16u*90u,dst,16u*90u,pollst[d]));
-                /* Copy the pinned epoch, rather than launching a tiny memset
-                 * kernel that cannot run beside the resident sixteen CTAs. */
-                CK(cuMemcpyHtoDAsync(ple_device_ready[d]+4u*(size_t)q,h_rdy+q,4,pollst[d]));
-                ple_device_row_bytes+=16u*90u;ple_device_flag_bytes+=4;
-            }
-            CK(cuCtxSetCurrent(previous));ple_device_positions++;
-            ple_device_queue_ms+=(now()-queued_at)*1e3;
+            uint64_t queued_at=ple_dma_ns();struct ple_dma_span span;
+            CK(ple_dma_finish(&ple_dma,&span));
+            uint64_t submitted=ple_dma_ns(),spread=span.last_end-span.first_end;
+            ple_device_positions++;ple_device_row_bytes+=(uint64_t)nd*1440;ple_device_flag_bytes+=(uint64_t)nd*4;
+            ple_device_queue_ms+=(dispatch_ns+submitted-queued_at)*1e-6;
+            ple_enqueue_spread_sum+=spread;if(spread>ple_enqueue_spread_max)ple_enqueue_spread_max=spread;
+            unsigned slot=(unsigned)q%16;
+            ple_handoff[slot].position=q;ple_handoff[slot].read_ns=queued_at-read_begin;
+            ple_handoff[slot].submit_ns=dispatch_ns+submitted-queued_at;ple_handoff[slot].span=span;
         }
         if (ti >= 0) {
             trace_host[ti].staging_end=host_ns();
@@ -1183,6 +1191,8 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	if (!resume) snap_s = 0;   /* this response rewrites the attention caches from position 0 */
 	if (ple_disk) {   /* a new id for this response (never 0); the rows of the positions it runs are staged from `resume` on */
         ple_device_row_bytes=ple_device_flag_bytes=ple_device_positions=0;ple_device_queue_ms=0;
+        ple_enqueue_spread_sum=ple_enqueue_spread_max=0;
+        for(unsigned i=0;i<16;i++)ple_handoff[i].position=-1;
 		ple_rid = ple_rid + 1 ? ple_rid + 1 : 1; ple_start = ple_next = resume; ple_short_reads = 0;
         /* The core's pinned table survives dlopen/reload, but ple_rid does not.
          * Invalidate the executed span before launching any GPU reader so an
@@ -1862,6 +1872,10 @@ int engine_init(core_t *c) {
 		for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(position_xchg(d, p)->xtab, tab, sizeof tab)); }
 	}
 	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuStreamCreate(&pollst[d], CU_STREAM_NON_BLOCKING)); }
+    if(ple_device_cache){
+        CUresult bound;int err=ple_dma_init(&ple_dma,(unsigned)nd,ctx,pollst,ple_device_rows,ple_device_ready,&bound);
+        if(err){fprintf(stderr,"engine: PLE DMA workers: %s\n",strerror(err));longjmp(init_jb,1);}CK(bound);
+    }
 	CK(cuCtxSetCurrent(ctx[0]));
 	CK(cuMemAllocHost((void **)&h_ids, 4 * ((size_t)MAXT + 2))); CK(cuMemAllocHost((void **)&h_toks, 4 * ((size_t)MAXT + 2))); CK(cuMemAllocHost((void **)&h_rnd, 4 * ((size_t)MAXT + 2)));
 	CK(cuMemAllocHost((void **)&h_tok, 64)); CK(cuMemHostAlloc((void **)&h_abort, 64, CU_MEMHOSTALLOC_PORTABLE));
@@ -1897,6 +1911,7 @@ void engine_fini(void) {
 #ifdef FLASH_CHUNK_NATIVE
 	chunk_fini();
 #endif
+    ple_dma_destroy(&ple_dma);
 	ple_read_pool_destroy(&ple_reads);
 	state_detail_clear();
 	ple_cache_path[0]=0;ple_cache_active=0;
@@ -1984,6 +1999,7 @@ const char *engine_reload_path(void) { return reload_path[0] ? reload_path : NUL
 #include "balance/body_host.inc"
 #include "balance/qsa_audit.inc"
 #include "balance/head_audit.inc"
+#include "balance/work_dump.inc"
 
 int engine_session(FILE *in, FILE *out) {
 	last_timing_valid=0;
@@ -2040,10 +2056,27 @@ int engine_session(FILE *in, FILE *out) {
         if(!strncmp(p,"xtrace ",7)){exchange_trace_dump(out,atoi(p+7));fflush(out);continue;}
         if(!strncmp(p,"bodytrace ",10)){balance_body_dump(out,atoi(p+10));fflush(out);continue;}
         if(!strcmp(p,"plecache\n")) {
-            fprintf(out,"plecache device_rows=%d bytes_per_die=%zu staged_positions=%llu row_copy_bytes=%llu flag_copy_bytes=%llu queue_ms=%.6f ready_clock=device_poll host_ready_timestamp_available=%d\n",
+            fprintf(out,"plecache device_rows=%d bytes_per_die=%zu staged_positions=%llu row_copy_bytes=%llu flag_copy_bytes=%llu queue_ms=%.6f ready_clock=device_poll host_ready_timestamp_available=%d dma_workers=%u warm_before_read=%d mean_enqueue_finish_spread_us=%.6f max_enqueue_finish_spread_us=%.6f\n",
                 ple_device_cache,ple_device_cache_bytes,(unsigned long long)ple_device_positions,
                 (unsigned long long)ple_device_row_bytes,(unsigned long long)ple_device_flag_bytes,
-                ple_device_queue_ms,!ple_device_cache);fflush(out);continue;
+                ple_device_queue_ms,!ple_device_cache,ple_dma.started,ple_device_cache && ple_dma.started!=0,
+                ple_device_positions?(double)ple_enqueue_spread_sum/ple_device_positions/1000:0,
+                ple_enqueue_spread_max/1000.0);fflush(out);continue;
+        }
+        if(!strcmp(p,"plehandoff\n")) {
+            unsigned count=0;
+            if(!ple_device_cache || !last_timing_valid || !last_timing.counts_final || last_timing.error_code){
+                fprintf(out,"plehandoff_end count=0 status=unavailable\n");fflush(out);continue;
+            }
+            for(int q=ple_next>16?ple_next-16:0;q<ple_next;q++) {
+                unsigned s=(unsigned)q%16;if(ple_handoff[s].position!=q)continue;
+                struct ple_dma_span *v=&ple_handoff[s].span;
+                fprintf(out,"plehandoff position=%d prepare_read_ns=%llu submit_ns=%llu first_enqueue_begin_ns=%llu last_enqueue_begin_ns=%llu first_enqueue_end_ns=%llu last_enqueue_end_ns=%llu clock=CLOCK_MONOTONIC dma_completion=not_measured\n",
+                    q,(unsigned long long)ple_handoff[s].read_ns,(unsigned long long)ple_handoff[s].submit_ns,
+                    (unsigned long long)v->first_begin,(unsigned long long)v->last_begin,
+                    (unsigned long long)v->first_end,(unsigned long long)v->last_end);count++;
+            }
+            fprintf(out,"plehandoff_end count=%u\n",count);fflush(out);continue;
         }
 		if (!strncmp(p, "prof", 4)) {   /* where the last token of the last response spent its time, from the phase timestamps CTA 0 writes at each phase end */
 			int pd = atoi(p + 4); if (pd < 0 || pd >= nd) pd = 0; const int nph_ = prof_nph[pd]; const uint32_t *pop = prof_op[pd];   /* prof [die] */
@@ -2075,6 +2108,7 @@ int engine_session(FILE *in, FILE *out) {
 		}
 		if (!strcmp(p, "qsaaudit\n")) { qsa_audit(out); continue; }
 		if (!strcmp(p, "headaudit\n")) { balance_head_audit(out); continue; }
+		if (!strcmp(p, "workdump\n")) { balance_work_dump(out); continue; }
 		if (!strncmp(p, "statehash", 9)) { state_hashes(out,strstr(p,"detail")!=NULL); continue; }
         if(!strncmp(p,"tokenaudit",10)){token_audit(out);fflush(out);continue;}
 #ifdef FLASH_VERIFY_NATIVE
