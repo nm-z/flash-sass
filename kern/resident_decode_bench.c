@@ -21,16 +21,18 @@ static char socket_path[108];
 static FILE *active;
 static char restore_command[4096],before_config[4096];
 static int restore_pending;
+static long request_timeout(void) {
+    const char *option=getenv("BENCH_SOCKET_TIMEOUT");
+    if(option) { char *end;long v=strtol(option,&end,10);if(*option && !*end && v>=30 && v<=900)return v; }
+    return 120;
+}
 static FILE *connect_core(void) {
     int fd=socket(AF_UNIX,SOCK_STREAM,0); if(fd<0) return NULL;
     struct sockaddr_un sa={.sun_family=AF_UNIX}; strcpy(sa.sun_path,socket_path);
     if(connect(fd,(struct sockaddr *)&sa,sizeof sa)) { close(fd); return NULL; }
     struct ucred peer;socklen_t peer_size=sizeof peer;
     if(!getsockopt(fd,SOL_SOCKET,SO_PEERCRED,&peer,&peer_size))server_pid=peer.pid;
-    long timeout=120;
-    const char *option=getenv("BENCH_SOCKET_TIMEOUT");
-    if(option) { char *end;long v=strtol(option,&end,10);if(*option && !*end && v>=30 && v<=900)timeout=v; }
-    struct timeval tv={.tv_sec=timeout};
+    struct timeval tv={.tv_sec=request_timeout()};
     setsockopt(fd,SOL_SOCKET,SO_RCVTIMEO,&tv,sizeof tv);
     setsockopt(fd,SOL_SOCKET,SO_SNDTIMEO,&tv,sizeof tv);
     FILE *f=fdopen(fd,"r+"); if(!f) { close(fd); return NULL; }
@@ -139,7 +141,7 @@ static FILE *start(const char *core,const char *lib,const char *cubin,int fused)
         struct sockaddr_un sa={.sun_family=AF_UNIX}; strcpy(sa.sun_path,socket_path);
         if(connect(fd,(struct sockaddr *)&sa,sizeof sa)==0) {
             server_pid=child;
-            struct timeval tv={.tv_sec=120};
+            struct timeval tv={.tv_sec=request_timeout()};
             setsockopt(fd,SOL_SOCKET,SO_RCVTIMEO,&tv,sizeof tv);
             setsockopt(fd,SOL_SOCKET,SO_SNDTIMEO,&tv,sizeof tv);
             FILE *f=fdopen(fd,"r+"); if(!f) fail("fdopen"); setvbuf(f,NULL,_IOLBF,0); return f;
@@ -450,6 +452,7 @@ int main(int argc,char **argv) {
             }
             free(line); fflush(stdout);
             if(!done||n!=positions) fail("incomplete generation");
+            if(getenv("BENCH_PLE_CACHE_STATS") && atoi(getenv("BENCH_PLE_CACHE_STATS")))command(f,"plecache");
             if(getenv("BENCH_STATE_HASH") && atoi(getenv("BENCH_STATE_HASH"))) {
                 int detail=getenv("BENCH_STATE_DETAIL") && atoi(getenv("BENCH_STATE_DETAIL"));
                 fputs(detail?"statehash detail\n":"statehash\n",f);fflush(f);char *hl=NULL;size_t hc=0;int hd=0;

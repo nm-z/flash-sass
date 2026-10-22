@@ -341,6 +341,7 @@ static unsigned phase_ple_rows_fuse(prog_t *p,int *layers) {
         if(a->w[0]!=OP_PLEROWS || a->w[1]!=1 || b->w[0]!=OP_ACTQ256 || b->w[1]!=10 ||
            b->w[30] || b->w[31] || gr_pointer(a,8)!=gr_pointer(b,2))continue;
         a->w[0]=106;memcpy(a->w+20,b->w+4,8*sizeof(uint32_t));a->w[28]=b->w[12];
+        if(row_balance)a->w[1]=16; /* one complete160-value n-gram head per CTA */
         memmove(b,b+1,(size_t)(p->n-i-2)*sizeof *b);
         if(layers)memmove(layers+i+1,layers+i+2,(size_t)(p->n-i-2)*sizeof *layers);
         p->n--;count++;

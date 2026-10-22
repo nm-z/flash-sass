@@ -26,7 +26,7 @@ static void balance_body_dump(FILE *out,int d) {
                 (unsigned long long)primary[224+2*c],(unsigned long long)a[6],(unsigned long long)a[7]);
             for(unsigned e=0;e<events;e++) {
                 const uint64_t *v=primary+256*(op==106?2048:1+e/4)+8*c+2*(e%4);
-                int expected=!(op==OP_BALANCED_SELECT && e==1 && c!=0) && !((op==100 || op==106) && c!=0);
+                int expected=!(op==OP_BALANCED_SELECT && e==1 && c!=0) && !(op==100 && c!=0);
                 int observed=v[0]!=0 || v[1]!=0;
                 int ok=observed?v[0]>=a[6] && v[1]>=v[0] && v[1]<=a[7]:!expected;
                 uint64_t ns=ok && observed?v[1]-v[0]:0;total+=ns;valid&=ok;

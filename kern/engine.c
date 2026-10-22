@@ -257,6 +257,15 @@ static uint32_t ple_absent_id, ple_end_id; /* the constants block's absent / end
 static uint32_t *ple_seq;                  /* the ids of the response so far: the prompt, then each generated token as it arrives */
 static int ple_next, ple_start;            /* the first position whose rows are not staged yet; the position the response starts at */
 static unsigned long long ple_short_reads; /* rows that could not be read (staged as zeros; the flag is set anyway so that no die waits for ever) */
+/* Balanced PLE keeps only the compact prefetched rows on each GPU. The full
+ * capacity table remains on the host/file. Payload and epoch copies share a
+ * nonblocking stream, so the kernel sees its local epoch only after its own
+ * payload arrives; no die is held back by another die's DMA completion. */
+static int ple_device_cache;
+static size_t ple_device_cache_bytes;
+static CUdeviceptr ple_device_rows[MAXD],ple_device_ready[MAXD];
+static uint64_t ple_device_row_bytes,ple_device_flag_bytes,ple_device_positions;
+static double ple_device_queue_ms;
 #define PLE_AHEAD 128                      /* positions staged ahead of the one that runs */
 static float *h_rnd;                /* pinned: u[position] for the sampler */
 static uint32_t *h_tok;             /* pinned: ctl[2] (count, bit 31 = the turn ended) */
@@ -867,8 +876,26 @@ static void ple_pump(runctx *r, int budget) {
 			if (ti >= 0) { trace_host[ti].bytes += (unsigned)got; trace_host[ti].short_reads += got < 90; }
 			if (got < 90) { memset(dst + h * 90 + got, 0, 90 - got); if (!ple_short_reads++) fprintf(stderr, "engine: PLE row read failed at position %d (head %d)\n", q, h); }
 		}
-		__atomic_store_n(&h_rdy[q], ple_rid, __ATOMIC_RELEASE);
-		if (ti >= 0) trace_host[ti].ready = trace_host[ti].staging_end = host_ns();
+        __atomic_store_n(&h_rdy[q], ple_rid, __ATOMIC_RELEASE);
+        if(ple_device_cache) {
+            double queued_at=now();CUcontext previous;CK(cuCtxGetCurrent(&previous));
+            for(int d=0;d<nd;d++) {
+                CK(cuCtxSetCurrent(ctx[d]));
+                CK(cuMemcpyHtoDAsync(ple_device_rows[d]+(size_t)q*16u*90u,dst,16u*90u,pollst[d]));
+                /* Copy the pinned epoch, rather than launching a tiny memset
+                 * kernel that cannot run beside the resident sixteen CTAs. */
+                CK(cuMemcpyHtoDAsync(ple_device_ready[d]+4u*(size_t)q,h_rdy+q,4,pollst[d]));
+                ple_device_row_bytes+=16u*90u;ple_device_flag_bytes+=4;
+            }
+            CK(cuCtxSetCurrent(previous));ple_device_positions++;
+            ple_device_queue_ms+=(now()-queued_at)*1e3;
+        }
+        if (ti >= 0) {
+            trace_host[ti].staging_end=host_ns();
+            /* Device readiness is observed by the kernel poll trace. Queue
+             * submission is not a completed-DMA timestamp. */
+            trace_host[ti].ready=ple_device_cache?0:trace_host[ti].staging_end;
+        }
 	}
 }
 
@@ -1146,6 +1173,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	if (snap_at <= resume) snap_at = 0;
     if(row_balance)for(int d=0;d<nd;d++) {
         CK(cuCtxSetCurrent(ctx[d]));
+        if(ple_device_cache)CK(cuMemsetD32(ple_device_ready[d]+4u*(size_t)resume,0,(size_t)(T-resume)));
         for(unsigned p=0;p<allocated_positions;p++) {
             CK(cuMemsetD32(position_buf(d,p)->balance_quant_ready,0,16));
             CK(cuMemsetD32(position_buf(d,p)->balance_attn_ready,0,16));
@@ -1153,6 +1181,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
     }
 	if (!resume) snap_s = 0;   /* this response rewrites the attention caches from position 0 */
 	if (ple_disk) {   /* a new id for this response (never 0); the rows of the positions it runs are staged from `resume` on */
+        ple_device_row_bytes=ple_device_flag_bytes=ple_device_positions=0;ple_device_queue_ms=0;
 		ple_rid = ple_rid + 1 ? ple_rid + 1 : 1; ple_start = ple_next = resume; ple_short_reads = 0;
         /* The core's pinned table survives dlopen/reload, but ple_rid does not.
          * Invalidate the executed span before launching any GPU reader so an
@@ -1595,6 +1624,9 @@ int engine_init(core_t *c) {
 		int err = ple_read_pool_init(&ple_reads, ple_readers);
 		if (err) { fprintf(stderr, "engine: starting PLE readers failed: %s\n", strerror(err)); longjmp(init_jb, 1); }
 	}
+    ple_device_cache=row_balance && ple_disk && c->ple_compact;
+    ple_device_cache_bytes=ple_device_cache?((size_t)MAXT+2u)*16u*90u:0;
+    memset(ple_device_rows,0,sizeof ple_device_rows);memset(ple_device_ready,0,sizeof ple_device_ready);
 	h_rdy = ple_disk ? (uint32_t *)(c->ple_host + c->ple_rdy_off) : NULL;
 	ple_absent_id = pabsent; ple_end_id = pend;
 	free(ple_seq); ple_seq = ple_disk ? calloc((size_t)MAXT + 2, 4) : NULL; ple_next = ple_start = 0;
@@ -1671,6 +1703,11 @@ int engine_init(core_t *c) {
 		if (img_rows_max) b->img = dalloc(2 * 2560 * (size_t)img_rows_max);
 		b->ple_pc = dalloc(160); CK(cuMemcpyHtoD(b->ple_pc, ppc, 160)); CK(cuMemHostGetDevicePointer(&b->ple_tab, c->ple_host, 0)); b->ple_compact = (unsigned)c->ple_compact;
 		b->ple_rdy = c->ple_disk ? b->ple_tab + c->ple_rdy_off : 0; b->ple_rid = 0;   /* ple_rid is set per response (engine_run) */
+        if(ple_device_cache) {
+            ple_device_rows[d]=dalloc(ple_device_cache_bytes+4u*((size_t)MAXT+2u));
+            ple_device_ready[d]=ple_device_rows[d]+ple_device_cache_bytes;
+            b->ple_tab=ple_device_rows[d];b->ple_rdy=ple_device_ready[d];
+        }
 		b->pg = dalloc(4 * 2560); b->pgq = dalloc(2 * 2560); b->pgs32 = dalloc(4 * 80); b->pgs16 = dalloc(4 * 160); b->pgas = dalloc(4 * 80);
 		b->lk = dalloc(4u * (unsigned)s0.pkn); b->kn = dalloc(4 * 10240); b->qn = dalloc(4 * 10240); b->lv = dalloc(4u * (unsigned)s0.yn);
 		b->pG = dalloc(4 * 10240); b->pgates = dalloc(16); b->px = dalloc(4 * 10240); b->prows = dalloc(64);
@@ -1868,6 +1905,8 @@ void engine_fini(void) {
 	memset(d_kv_rawmax, 0, sizeof d_kv_rawmax);
 	kv_trace = kv_trace_start = kv_trace_complete = 0;
 	free(ple_seq); ple_seq = NULL; h_rdy = NULL; ple_disk = 0;
+    ple_device_cache=0;ple_device_cache_bytes=0;
+    memset(ple_device_rows,0,sizeof ple_device_rows);memset(ple_device_ready,0,sizeof ple_device_ready);
 	if (h_ids) cuMemFreeHost(h_ids);
 	if (h_toks) cuMemFreeHost(h_toks);
 	if (h_rnd) cuMemFreeHost(h_rnd);
@@ -1995,6 +2034,12 @@ int engine_session(FILE *in, FILE *out) {
 		if (!strncmp(p, "hosttrace", 9)) { host_trace_dump(out); fflush(out); continue; }
         if(!strncmp(p,"xtrace ",7)){exchange_trace_dump(out,atoi(p+7));fflush(out);continue;}
         if(!strncmp(p,"bodytrace ",10)){balance_body_dump(out,atoi(p+10));fflush(out);continue;}
+        if(!strcmp(p,"plecache\n")) {
+            fprintf(out,"plecache device_rows=%d bytes_per_die=%zu staged_positions=%llu row_copy_bytes=%llu flag_copy_bytes=%llu queue_ms=%.6f ready_clock=device_poll host_ready_timestamp_available=%d\n",
+                ple_device_cache,ple_device_cache_bytes,(unsigned long long)ple_device_positions,
+                (unsigned long long)ple_device_row_bytes,(unsigned long long)ple_device_flag_bytes,
+                ple_device_queue_ms,!ple_device_cache);fflush(out);continue;
+        }
 		if (!strncmp(p, "prof", 4)) {   /* where the last token of the last response spent its time, from the phase timestamps CTA 0 writes at each phase end */
 			int pd = atoi(p + 4); if (pd < 0 || pd >= nd) pd = 0; const int nph_ = prof_nph[pd]; const uint32_t *pop = prof_op[pd];   /* prof [die] */
 			uint32_t *ts = malloc(4 * (size_t)(prof_desc[pd] ? prof_desc[pd] : 1));
@@ -2067,6 +2112,7 @@ int engine_session(FILE *in, FILE *out) {
             fprintf(out," row_balance=%d row_grain=%u compute_physical=",row_balance,row_balance?FLASH_BALANCE_EXPERT_GRAIN:0u);
             for(int d=0;d<nd;d++)fprintf(out,"%s%d",d?",":"",ar[d].die);
             fprintf(out," body_trace=%d",body_trace);
+            fprintf(out," ple_device_rows=%d ple_device_bytes=%zu",ple_device_cache,ple_device_cache_bytes);
             fprintf(out," residual_storage=%s fused_gr=%d producer_quant=%d matrix_group=%d gr_replica_ffn=%d xtrace=%u",residual_fp8?"fp8":"fp32",getenv("FLASH_FUSED_GR")?atoi(getenv("FLASH_FUSED_GR")):0,producer_quant,group_matrices,gr_replicate_ffn,xtrace_n);
 #ifdef FLASH_CHUNK_NATIVE
 			fprintf(out, " native_chunk=%u chunk_maxt=%u prefix_hash=%d chunk_cubin=%s chunk_cubin_fnv=%016llx", chunk_ldx, chunk_ldx ? chunk_maxt : 0, getenv("FLASH_PREFIX_HASH") && atoi(getenv("FLASH_PREFIX_HASH")), chunk_ldx ? (chunk_mod[0] ? chunk_cubin_path : cubin_path) : "none", (unsigned long long)(chunk_ldx ? (chunk_mod[0] ? chunk_cubin_fnv : cubin_fnv) : 0));

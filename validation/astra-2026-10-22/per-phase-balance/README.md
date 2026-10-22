@@ -109,3 +109,91 @@ serving; these requests use private complete-model cores. GPU2's fence,
 GPU7's original128K-context service, CPU service, persistence mode and thermal/
 power monitoring were restored after the cold boots. GPU6's1177MHz application
 clock is an intentional recorded change.
+
+## Cooperative PLE and compact per-GPU prefetch cache
+
+`kern/balance/ple.lua` replaces the balanced image's whole gather/quantization
+operation in place. Sixteen CTAs own the sixteen160-value n-gram heads. Each
+CTA hashes its head in lane0, explicitly reconverges the warp, cooperatively
+loads the45 packed u16 words in two warp instructions, and uses five warps
+to decode/quantize its five32-value IQ4_NL blocks. Hash and dequantization
+arithmetic retain the production constants/order. Every CTA performs useful
+work; no phase or exchange is added. The complete program remains493 phases.
+
+The first complete-model attempt, job
+`8e2a6c19-5af9-4d57-b4f2-a7828338c644`, failed with a hardware stack error:
+the SSY target was the SYNC instruction itself. Moving the reconvergence
+target past SYNC corrected that control flow without reverting the operation.
+Job `76963f67-bb35-485b-9763-83a3858c9f96` then completed64/128 at19.930911532
+TPS. Its128 output IDs exactly match `balanced-short-output.ids`.
+
+The first cooperative trace, job
+`04ef1e32-0dc8-4b94-80b1-7ad42b65d60d`, has complete94656-record coverage;
+[body-v60.tsv](body-v60.tsv) retains every phase. It reduces PLE execution
+substantially, but host-mapped reads still leave GPU6 slower. The six-die
+maximum CTA body-minus-poll observations for position189 are:
+
+| PLE implementation | Die0 | Die1 | Die2 / GPU6 | Die3 | Die4 | Die5 |
+|---|---:|---:|---:|---:|---:|---:|
+| Original balanced gather, v58 |81.920|81.920|159.744|80.896|80.896|81.920|
+| Cooperative host reads, v60 |18.432|16.384|38.912|22.528|23.552|26.624|
+| Cooperative device-row cache, v62 |16.384|16.384|14.336|16.384|15.360|14.336|
+
+All values are instrumented microseconds; the same GLOBALTIMER resolution and
+overhead limitations apply. These are measured operator observations, not a
+statistical speedup claim for complete decode.
+
+The engine now DMA-stages only the compact prefetched rows on each balanced
+GPU, preserving the full table's off-accelerator capacity. At context32768,
+each die reserves47188800 row bytes plus131080 epoch bytes. Each position's
+1440-byte payload and4-byte epoch copy are ordered in that die's nonblocking
+stream. The kernel polls its own device epoch, allowing each die to start as
+soon as its own payload arrives. There is no cross-die readiness padding or
+runtime cache fallback. Epoch spans are cleared before a new request.
+The pinned epoch copy avoids launching a helper memset kernel alongside the
+fully resident model. Host queue-submission time is not reported as actual
+device readiness; that point is measured by the kernel's poll clocks.
+
+Job `77f3113c-74d5-4936-899b-376919d191f9` completes the complete64/128 model at
+19.921056333 TPS with the compact caches. All128 IDs again exactly match the
+pre-change balanced output. It stages191 positions,1650240 payload bytes
+across six dies,4584 epoch bytes, and11.025221ms of CPU queue-submission time.
+Production cubin FNV is `e9bc7ec3e5262163`; its SHA256 is
+`16efd39bbdf2fa85b0643e9698e431869e2e3d7590059d5c68a49214d24b896b`.
+The cooperative images are archived in archy's `flash-per-phase-balance-v60`;
+the engine with epoch-span clearing and the updated client are in v62.
+
+Full-model trace job `fbf5984a-6130-4800-ad84-78d002aa7cea` produces
+[body-v62.tsv](body-v62.tsv): all94656 records and986 phase comparisons have
+valid coverage. PLE is inside ten percent at both positions (maximum
+deviations7.692308% and6.666667%). Eight other comparisons fail the current
+gate: HCWSUM, AMAX, argmax and two GDN observations. The maximum observed
+deviation is20%, with the short-phase quantization limitation still open.
+This is978/986 comparisons inside the current gate, not goal completion.
+
+## Fixed-input numerical boundary
+
+The private client now honours `BENCH_SOCKET_TIMEOUT` consistently with the
+resident client, to permit future long-prompt qualification without the old
+120-second private-socket timeout. No long-context pass is claimed yet.
+
+Fixed-input job `89b8999a-ab42-404f-9221-2a33e7019f1e` completes all256 causal
+positions and full-head outputs against the original baseline fixture from
+job374f3bd1. It reports58 differing outputs, first at position6. The fixture
+is four copies of the same64-token prompt; the prompt constant matches commit
+00e0981 exactly. All positions execute before the client reports failure;
+there is no differing generated history in this comparison.
+
+The original and balanced layouts have the same eight global GDN heads on
+logical dies0,1,4,5. Their comparable combined recurrent/convolution hashes
+match through layers0,1,2 and first differ at layer4 on all four dies. The
+[144-row comparison](common-gdn-comparison.tsv) preserves every comparable
+GDN layer, with [original hashes](original-common-gdn-hashes.tsv) and
+[balanced hashes](balanced-common-gdn-hashes.tsv). This narrows the numerical
+boundary to the interval after GDN2 and before GDN4: output/FFN2 and QSA/FFN3
+still need to be separated. It does not yet prove QSA alone is responsible.
+
+The [256-position original fixture](original-v39-fixed-reference.ids),
+[balanced outputs](balanced-fixed-output.ids) and [all58 mismatches](fixed-mismatches.tsv)
+are retained. The balanced architecture remains in place while its numerical
+cause is investigated; the original-model correctness gate is still open.

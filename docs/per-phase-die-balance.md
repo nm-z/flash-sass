@@ -513,6 +513,17 @@ work ledger. The output differs from the original frozen baseline first at
 generated index8, so original-model fidelity also remains unqualified. The
 goal is not complete.
 
+The subsequent cooperative PLE operation and compact per-GPU prefetch cache
+now put the measured PLE phase inside ten percent on all six dies at both
+captured positions:14.336–16.384us, compared with80–160us before. Full decode
+is19.92 TPS and preserves all128 prior balanced IDs. The complete v62 body
+capture has978/986 comparisons inside the current gate; eight remain outside.
+Fixed-input comparison completes256 positions and finds58 original-baseline
+output differences, first at position6. Comparable GDN state hashes match
+through layer2 and first differ at layer4, leaving output/FFN2 and QSA/FFN3
+as the next numerical interval to separate. The detailed canonical references
+and tables are in the current validation README linked above.
+
 ## Attention implementation notes
 
 Preserve four local query heads and one local K/V head on every die. Main
