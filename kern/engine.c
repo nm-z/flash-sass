@@ -12,6 +12,7 @@
 #include "ple.h"
 #include "hold.h"
 #include "prog.h"
+#include "balance/layout.h"
 #include "split.h"
 #include "qsa.h"
 #include "qsa_state.h"
@@ -49,6 +50,12 @@ CUresult cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev);
 static jmp_buf init_jb, run_jb; static int in_init, in_run;
 #define CK(x) do { CUresult r_ = (x); if (r_ != CUDA_SUCCESS) { const char *s_ = "?"; cuGetErrorString(r_, &s_); fprintf(stderr, "engine.c:%d: %s -> %s\n", __LINE__, #x, s_); if (in_init) longjmp(init_jb, 1); if (in_run) longjmp(run_jb, 1); exit(1); } } while (0)
 static double now(void) { struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts); return ts.tv_sec + ts.tv_nsec * 1e-9; }
+static int legacy_holder_layout(const core_t *c) {
+    for(int d=0;d<c->nd;d++)if(hold_find(&c->ar[d],FLASH_BALANCE_LAYOUT_MARKER)) {
+        fprintf(stderr,"engine: row-balanced holder needs the balanced program/SASS path\n");return 0;
+    }
+    return 1;
+}
 
 #define MAXD CORE_MAXD
 #define NB 48
@@ -1353,6 +1360,11 @@ int engine_init(core_t *c) {
     xtrace_n=getenv("FLASH_XTRACE")?(unsigned)strtoul(getenv("FLASH_XTRACE"),NULL,10):0;
     if(xtrace_n>(gr_write_trace?256u:16u) || (gr_write_trace && !xtrace_n)){fprintf(stderr,"invalid trace window\n");return -1;}
 	if (c->abi != CORE_ABI) { fprintf(stderr, "engine: the core speaks ABI %d, this library was built for %d\n", c->abi, CORE_ABI); return -1; }
+    /* The legacy program interprets routed matrices as whole-expert shards.
+     * Never reinterpret a row-striped arena before the matching program and
+     * SASS bodies are integrated. This guard is replaced by the balanced
+     * descriptor path when the complete new execution layout is available. */
+    if(!legacy_holder_layout(c))return -1;
 	core = c; in_init = 1;
 	if (setjmp(init_jb)) { in_init = 0; engine_fini(); return -1; }
 	MAXT = c->maxt;

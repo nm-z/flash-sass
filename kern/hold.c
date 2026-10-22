@@ -116,20 +116,46 @@ static const gguf_tensor *blk_tensor(const gguf_file *g, int b, const char *suf)
 
 /* ---- the split: which rows (or experts) of a tensor this die keeps ---- */
 typedef struct { int r0, n; } range_t;
-typedef struct { range_t r[6]; int nr; int rows_total; int experts; } sel_t;   /* rows_total: rows the ranges index */
+typedef struct { range_t r[6]; int nr; int rows_total; int experts; unsigned row_grain,embedding_first,embedding_groups; } sel_t;   /* rows_total: rows the ranges index */
 static int split_on;
+static int balance_on;
 static split_t SP;
-static void sel_whole(sel_t *s, int rows, int experts) { s->nr = 1; s->r[0].r0 = 0; s->r[0].n = experts > 1 ? experts : rows; s->rows_total = rows; s->experts = experts; }
+#include "balance/layout.h"
+#include "balance/embedding.h"
+static void holder_split(int die,int dies,int block) {
+    if(balance_on)balance_split(&SP,(unsigned)die,(unsigned)dies);
+    else split_of(&SP,die,dies,block);
+}
+static void sel_whole(sel_t *s, int rows, int experts) { s->nr = 1; s->r[0].r0 = 0; s->r[0].n = experts > 1 ? experts : rows; s->rows_total = rows; s->experts = experts; s->row_grain=s->embedding_first=s->embedding_groups=0; }
 static void select_rows(const char *name, int rows, int experts, sel_t *s) {
 	sel_whole(s, rows, experts);
 	if (!split_on) return;
 	const split_t *p = &SP;
+    if(balance_on && !strcmp(name,"token_embd.weight")) {
+        s->embedding_first=(unsigned)p->cb0;s->embedding_groups=(unsigned)p->cbn;return;
+    }
 	/* the head: output.weight rows, output_hc_down rows, output_hc_up the 4 lanes of the z columns; token_embd whole */
 	if (!strcmp(name, "output.weight")) { s->nr = 1; s->r[0] = (range_t){ p->o0, p->on }; return; }
 	if (!strcmp(name, "output_hc_down.weight")) { s->nr = 1; s->r[0] = (range_t){ p->hd0, p->hdn }; return; }
 	if (!strcmp(name, "output_hc_up.weight")) { s->nr = 4; for (int l = 0; l < 4; l++) s->r[l] = (range_t){ 2560 * l + 32 * p->cb0, 32 * p->cbn }; return; }
 	const char *x = suffix(name);
 	if (!x) return;
+    if(balance_on) {
+        if(strstr(x,"_exps.weight") || strstr(x,"_shexp.weight")) {
+            s->row_grain=FLASH_BALANCE_EXPERT_GRAIN;return;
+        }
+        if(!strcmp(x,"attn_q.weight")) {
+            s->nr=1;s->r[0]=(range_t){512*(int)balance_attention_first((unsigned)SP.d,(unsigned)SP.n),512*(int)balance_attention_heads((unsigned)SP.d,(unsigned)SP.n)};return;
+        }
+        /* Four query heads consume one of the two GQA K/V heads. The balanced
+         * cache stores only that head. Indexer projection rows are striped and
+         * published to every die before local indexer normalization/selection. */
+        if(!strcmp(x,"attn_k.weight") || !strcmp(x,"attn_v.weight")) {
+            s->nr=1;s->r[0]=(range_t){256*(int)balance_attention_kv_head((unsigned)SP.d,(unsigned)SP.n),256};return;
+        }
+        if(!strcmp(x,"indexer_x.weight")) {s->row_grain=FLASH_BALANCE_EXPERT_GRAIN;return;}
+        if(!strcmp(x,"indexer.q_norm.weight") || !strcmp(x,"indexer.k_norm.weight"))return;
+    }
 	/* The draft block's final HC read uses the ordinary output-row split. */
 	if (!strcmp(x, "nextn.hc_head_down.weight")) { s->nr = 1; s->r[0] = (range_t){ p->hd0, p->hdn }; return; }
 	if (!strcmp(x, "nextn.hc_head_up.weight")) { s->nr = 4; for (int l = 0; l < 4; l++) s->r[l] = (range_t){ 2560 * l + 32 * p->cb0, 32 * p->cbn }; return; }
@@ -183,6 +209,12 @@ static void emit(const char *name, const uint8_t *img, size_t bytes, uint32_t ty
 }
 /* bytes the selection occupies on the device (the pass-1 size) */
 static size_t sel_bytes(const sel_t *s, size_t nbytes, int rows, int st) {
+    if(s->embedding_groups)return (size_t)rows*s->embedding_groups*16;
+	if(s->row_grain) {
+        unsigned n=balance_row_count((unsigned)rows,(unsigned)SP.d,(unsigned)SP.n,s->row_grain);
+        size_t rowb=st?(size_t)st:nbytes/(unsigned)s->experts/(unsigned)rows;
+        return rowb*n*(unsigned)s->experts;
+    }
 	size_t n = 0; for (int i = 0; i < s->nr; i++) n += s->r[i].n;
 	if (s->experts > 1) return st ? (size_t)st * rows * n : nbytes / s->experts * n;
 	size_t rowb = st ? (size_t)st : nbytes / s->rows_total;
@@ -196,6 +228,31 @@ static void emit_sel(const char *name, uint32_t type, const uint8_t *src, size_t
 	size_t bytes = sel_bytes(s, nbytes, rows, st), o = 0;
 	need(bytes);
 	int nsel = 0;
+    if(s->embedding_groups) {
+        if(type!=GG_Q3_K || K!=2560 || experts!=1 || nbytes!=(size_t)rows*1100) {
+            fprintf(stderr,"hold: balanced embedding requires raw Q3_K[rows][2560]\n");exit(1);
+        }
+        for(int r=0;r<rows;r++)for(unsigned g=0;g<s->embedding_groups;g++)
+            balance_pack_embedding_group(src+(size_t)r*1100,32*(s->embedding_first+g),
+                                         buf+((size_t)r*s->embedding_groups+g)*16);
+        emit(name,buf,bytes,type,rows,(int)(s->embedding_groups*32),(int)(s->embedding_groups*16),1);return;
+    }
+    if(s->row_grain) {
+        unsigned nr=balance_row_count((unsigned)rows,(unsigned)SP.d,(unsigned)SP.n,s->row_grain);
+        size_t per=nbytes/(unsigned)experts,rowb=per/(unsigned)rows;
+        uint8_t *raw=malloc(rowb*nr);
+        if(!raw){fprintf(stderr,"hold: row-shard scratch allocation failed\n");exit(1);}
+        for(int e=0;e<experts;e++) {
+            for(unsigned r=0;r<nr;r++) {
+                unsigned global=balance_global_row(r,(unsigned)SP.d,(unsigned)SP.n,s->row_grain);
+                memcpy(raw+rowb*r,src+per*(unsigned)e+rowb*global,rowb);
+            }
+            if(st)repack(type,raw,(int)nr,K,buf+o);
+            else memcpy(buf+o,raw,rowb*nr);
+            o+=(st?(size_t)st:rowb)*nr;
+        }
+        free(raw);emit(name,buf,bytes,type,(int)nr,K,st,experts);return;
+    }
 	if (Q6K_SLICED(type, K) && experts == 1) {
 		for (int i = 0; i < s->nr; i++) nsel += s->r[i].n;
 		size_t srow = nbytes / s->rows_total, sl = srow / 4, st1 = (size_t)q6_k_tile_stride(1536);   /* 24 blocks of 210 B; 6 per slice */
@@ -229,7 +286,7 @@ static void emit_sel(const char *name, uint32_t type, const uint8_t *src, size_t
 }
 
 int main(int argc, char **argv) {
-	if (argc < 6) { fprintf(stderr, "usage: hold <gguf> <die> <b0> <b1> <manifest> [token_embd] [output] [cache=DIR] [split=d/n]\n"); return 2; }
+	if (argc < 6) { fprintf(stderr, "usage: hold <gguf> <die> <b0> <b1> <manifest> [token_embd] [output] [cache=DIR] [split=d/n|balanced=d/6]\n"); return 2; }
 	const char *path = argv[1], *mpath = argv[5];
 	int die = atoi(argv[2]), b0 = atoi(argv[3]), b1 = atoi(argv[4]), xe = 0, xo = 0, sd = 0, sn = 1;
 	for (int i = 6; i < argc; i++) {
@@ -237,7 +294,17 @@ int main(int argc, char **argv) {
 		if (!strcmp(argv[i], "output")) xo = 1;
 		if (!strncmp(argv[i], "cache=", 6)) cache = argv[i] + 6;
 		if (!strncmp(argv[i], "split=", 6)) { if (sscanf(argv[i] + 6, "%d/%d", &sd, &sn) != 2 || sn < 1 || sn > 6 || sd < 0 || sd >= sn) { fprintf(stderr, "bad split %s\n", argv[i]); return 2; } split_on = 1; }
+        if(!strncmp(argv[i],"balanced=",9)) {
+            if(sscanf(argv[i]+9,"%d/%d",&sd,&sn)!=2 || sn!=6 || sd<0 || sd>=sn) {
+                fprintf(stderr,"bad balanced layout %s (requires die/6)\n",argv[i]);return 2;
+            }
+            split_on=balance_on=1;
+        }
 	}
+    if(balance_on)for(int i=6;i<argc;i++)if(!strncmp(argv[i],"split=",6)) {
+        fprintf(stderr,"hold: split and balanced layouts are mutually exclusive\n");return 2;
+    }
+    if(balance_on){xe=1;xo=1;}
 #ifdef HOLD_CACHE_ONLY
 	if (!cache || !*cache) { fprintf(stderr, "hold_cache requires cache=<new directory>\n"); return 2; }
 	if (split_on) { fprintf(stderr, "hold_cache requires unsplit packing\n"); return 2; }
@@ -254,12 +321,12 @@ int main(int argc, char **argv) {
 		if (!wanted(t->name, b0, b1, xe, xo)) continue;
 		int K = (int)t->dims[0], rows = t->nd > 1 ? (int)t->dims[1] : 1, experts = t->nd > 2 ? (int)t->dims[2] : 1;
 		int st = strncmp(t->name, "token_embd", 10) ? dev_row_stride(t->type, K) : 0;
-		sel_t s; if (split_on) split_of(&SP, sd, sn, strncmp(t->name, "blk.", 4) ? 0 : atoi(t->name + 4)); select_rows(t->name, rows, experts, &s);
+		sel_t s; if (split_on) holder_split(sd, sn, strncmp(t->name, "blk.", 4) ? 0 : atoi(t->name + 4)); select_rows(t->name, rows, experts, &s);
 		total = (total + 255) & ~(size_t)255;
 		total += sel_bytes(&s, t->nbytes, rows, st); count++;
 	}
 	for (int b = b0; b < b1; b++) {
-		if (split_on) split_of(&SP, sd, sn, b);
+		if (split_on) holder_split(sd, sn, b);
 		for (int i = 0; i < NMERGE; i++) {
 			const gguf_tensor *a = blk_tensor(&g, b, merges[i].a), *c = blk_tensor(&g, b, merges[i].b);
 			if (!a || !c) continue;
@@ -298,6 +365,7 @@ int main(int argc, char **argv) {
 	fprintf(m, "arena %zu die %d handle ", total, die);
 	for (size_t i = 0; i < sizeof h; i++) fprintf(m, "%02x", ((unsigned char *)&h)[i]);
 	fprintf(m, "\n");
+    if(balance_on)fprintf(m,"%s 0 0 0 %d %d %u 1\n",FLASH_BALANCE_LAYOUT_MARKER,sd,sn,FLASH_BALANCE_EXPERT_GRAIN);
 #endif
 	/* pass 2: load */
 	for (int i = 0; i < g.ntensors; i++) {
@@ -305,12 +373,12 @@ int main(int argc, char **argv) {
 		if (!wanted(t->name, b0, b1, xe, xo)) continue;
 		int K = (int)t->dims[0], rows = t->nd > 1 ? (int)t->dims[1] : 1, experts = t->nd > 2 ? (int)t->dims[2] : 1;
 		if (!t->data) { fprintf(stderr, "%s: not mapped\n", t->name); return 1; }
-		sel_t s; if (split_on) split_of(&SP, sd, sn, strncmp(t->name, "blk.", 4) ? 0 : atoi(t->name + 4)); select_rows(t->name, rows, experts, &s);
+		sel_t s; if (split_on) holder_split(sd, sn, strncmp(t->name, "blk.", 4) ? 0 : atoi(t->name + 4)); select_rows(t->name, rows, experts, &s);
 		emit_sel(t->name, t->type, t->data, t->nbytes, rows, K, experts, &s);
 	}
 	uint8_t *mb = NULL; size_t mcap = 0;
 	for (int b = b0; b < b1; b++) {
-		if (split_on) split_of(&SP, sd, sn, b);
+		if (split_on) holder_split(sd, sn, b);
 		for (int i = 0; i < NMERGE; i++) {
 			const gguf_tensor *a = blk_tensor(&g, b, merges[i].a), *c = blk_tensor(&g, b, merges[i].b);
 			if (!a || !c) continue;
