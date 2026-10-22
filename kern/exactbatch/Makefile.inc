@@ -89,6 +89,15 @@ die_phase.cubin: die_phase.sass die_phase.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ die_phase.ptx
 	$(MAXAS) -i die_phase.sass $@
 
+die_balanced.sass: die_phase.sass balance/embedding.lua phase/predicate_latency.lua
+	$(LUA) balance/embedding.lua $< $@.embedding
+	$(LUA) phase/predicate_latency.lua $@.embedding $@ $@.predicate.csv
+die_balanced.ptx: die_phase.ptx balance/marker.ptxinc
+	cat $^ > $@
+die_balanced.cubin: die_balanced.sass die_balanced.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ die_balanced.ptx
+	$(MAXAS) -i die_balanced.sass $@
+
 die_phase_grhash.sass: die_phase.sass phase/gr_write_trace.lua
 	$(LUA) phase/gr_write_trace.lua $< $@
 die_phase_grhash.ptx: die_phase.ptx phase/xtrace_marker.ptxinc phase/gr_write_marker.ptxinc

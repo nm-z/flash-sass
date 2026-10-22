@@ -50,6 +50,7 @@ CUresult cuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev);
 static jmp_buf init_jb, run_jb; static int in_init, in_run;
 #define CK(x) do { CUresult r_ = (x); if (r_ != CUDA_SUCCESS) { const char *s_ = "?"; cuGetErrorString(r_, &s_); fprintf(stderr, "engine.c:%d: %s -> %s\n", __LINE__, #x, s_); if (in_init) longjmp(init_jb, 1); if (in_run) longjmp(run_jb, 1); exit(1); } } while (0)
 static double now(void) { struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts); return ts.tv_sec + ts.tv_nsec * 1e-9; }
+static int row_balance; /* enabled only after the complete balanced path is integrated */
 static int legacy_holder_layout(const core_t *c) {
     for(int d=0;d<c->nd;d++)if(hold_find(&c->ar[d],FLASH_BALANCE_LAYOUT_MARKER)) {
         fprintf(stderr,"engine: row-balanced holder needs the balanced program/SASS path\n");return 0;
@@ -63,6 +64,10 @@ static core_t *core;
 #define nd (core->nd)
 #define ctx (core->ctx)
 #define ar (core->ar)
+static void execution_split(split_t *s,int die,int block) {
+    if(row_balance)balance_split(s,(unsigned)die,(unsigned)nd);
+    else split_of(s,die,nd,block);
+}
 static char tname[128];
 static const char *tn(int blk, const char *suffix) { snprintf(tname, sizeof tname, "blk.%d.%s", blk, suffix); return tname; }
 static CUdeviceptr dptr_raw(int d, const char *name) { CUdeviceptr p = hold_ptr(&ar[d], name); if (!p) { fprintf(stderr, "die %d: no %s\n", d, name); if (in_init) longjmp(init_jb, 1); exit(1); } return p; }
@@ -168,6 +173,12 @@ static const char *profile_op_name(unsigned op) {
 }
 static void check_fused_moe_module(CUmodule module) {
 	CUfunction marker;
+    CUresult balanced_marker=cuModuleGetFunction(&marker,module,"flash_balanced_rows_abi_v1");
+    if(row_balance)CK(balanced_marker);
+    else if(balanced_marker==CUDA_SUCCESS) {
+        fprintf(stderr,"engine: balanced SASS requires row-balanced holders and program\n");
+        CK(CUDA_ERROR_INVALID_IMAGE);
+    }
     if(getenv("FLASH_FUSED_GR") && atoi(getenv("FLASH_FUSED_GR")))CK(cuModuleGetFunction(&marker,module,"flash_gr_read_sum_abi_v1"));
     if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_phase_fused_abi_v6"));
     if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_phase_exchange_join_abi_v1"));
@@ -1532,7 +1543,7 @@ int engine_init(core_t *c) {
 	snap_dn = calloc(MAXD, sizeof *snap_dn); snap_conv = calloc(MAXD, sizeof *snap_conv); snap_ids = malloc(4 * ((size_t)MAXT + 2)); snap_s = 0;
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
-		split_t s0; split_of(&s0, d, nd, 0);
+		split_t s0; execution_split(&s0, d, 0);
 		if (kv_trace) CK(cuMemHostGetDevicePointer(&d_kv_rawmax[d], h_kv_rawmax, 0));
 		dn_bufs_t *b = &db[d]; memset(b, 0, sizeof *b);
 		unsigned nlocmax = 128u * (2u * (unsigned)s0.nk + (unsigned)s0.hn)   /* q, k of the die's key heads, v of its value heads */, cols = 32u * (unsigned)s0.cbn, hrows = 128u * (unsigned)s0.hn;
@@ -1575,8 +1586,9 @@ int engine_init(core_t *c) {
 		b->tkout = dalloc(256); b->tkpart = dalloc(16 * 256); b->tkcnt = dalloc(4); b->rnd = dalloc(4 * ((size_t)MAXT + 2));
 		/* FLASH_LAYERS fixtures need weights and state only for executed blocks. */
 		for (int bb = 0; bb < nlayers_run; bb++) {
-			split_t *s = &sp[d][bb]; split_of(s, d, nd, bb);
+			split_t *s = &sp[d][bb]; execution_split(s, d, bb);
 			dn_weights_t *w = &dw[d][bb]; int is_attn = BLK_IS_ATTN(bb);
+            w->balanced_rows=(unsigned)row_balance;
 			w->hc_attn_norm = dptr(d, bb, "hc_attn_norm.weight"); w->hc_attn_dj = dptr(d, bb, "hc_attn_dj.weight"); w->hc_attn_up = dptr(d, bb, "hc_attn_up.weight");
 			w->hc_ffn_norm = dptr(d, bb, "hc_ffn_norm.weight"); w->hc_ffn_dj = dptr(d, bb, "hc_ffn_dj.weight"); w->hc_ffn_up = dptr(d, bb, "hc_ffn_up.weight");
             if(bb<gr_replicate_ffn){w->hc_ffn_dj=replicate_gr_matrix(d,bb,0);w->hc_ffn_up=replicate_gr_matrix(d,bb,1);w->hc_ffn_replicated=1;}
@@ -1622,9 +1634,16 @@ int engine_init(core_t *c) {
 		}
 		dn_weights_t *w = &dw[d][0];
 		w->output_hc_norm = dptr_raw(d, "output_hc_norm.weight"); w->output_hc_down = dptr_raw(d, "output_hc_down.weight"); w->output_hc_up = dptr_raw(d, "output_hc_up.weight"); w->output = dptr_raw(d, "output.weight");
-		uint32_t ob[6]; for (int e = 0; e < 6; e++) ob[e] = split_bound(248320u, e, nd);
+		uint32_t ob[6]; for (int e = 0; e < 6; e++) {
+            split_t head;execution_split(&head,e,0);ob[e]=(uint32_t)head.o0;
+        }
 		w->obases = dalloc(24); CK(cuMemcpyHtoD(w->obases, ob, 24));
 		w->token_embd = hold_ptr(&ar[d], "token_embd.weight");   /* only the die that holds it embeds (see embed_die); the others get S through an exchange */
+        if(row_balance) {
+            w->embedding_first=32u*(unsigned)s0.cb0;
+            w->embedding_columns=32u*(unsigned)s0.cbn;
+            w->embedding_stride=16u*(unsigned)s0.cbn;
+        }
 		xchg_t *x = &xc[d];
 		x->inbox = dalloc(2 * XSLOT); x->flags = dalloc(512); x->xtab = dalloc(128);
 		uint32_t fl[96]; for (int e = 0; e < 96; e++) fl[e] = e / 16 < nd ? 0u : 0xffffffffu;
@@ -1655,8 +1674,14 @@ int engine_init(core_t *c) {
     }
     if(producer_quant)for(unsigned p=0;p<allocated_positions;p++) {
         CUdeviceptr targets[6];for(int e=0;e<6;e++)targets[e]=position_buf(e,p)->S;
-        CK(cuCtxSetCurrent(ctx[embed_die]));embedding_tables[p]=dalloc(sizeof targets);
-        CK(cuMemcpyHtoD(embedding_tables[p],targets,sizeof targets));
+        if(row_balance)for(int d=0;d<nd;d++) {
+            CK(cuCtxSetCurrent(ctx[d]));dn_bufs_t *b=position_buf(d,p);
+            b->embedding_targets=dalloc(sizeof targets);
+            CK(cuMemcpyHtoD(b->embedding_targets,targets,sizeof targets));
+        } else {
+            CK(cuCtxSetCurrent(ctx[embed_die]));embedding_tables[p]=dalloc(sizeof targets);
+            CK(cuMemcpyHtoD(embedding_tables[p],targets,sizeof targets));
+        }
     }
     if(residual_fp8)for(unsigned p=0;p<allocated_positions;p++)for(int d=0;d<nd;d++){CK(cuCtxSetCurrent(ctx[d]));for(unsigned k=0;k<2;k++)residual_encoded[p][d][k]=dalloc(fp8_bytes(10240));}
     if(producer_quant)for(int d=0;d<nd;d++) {

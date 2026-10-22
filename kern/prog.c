@@ -466,6 +466,16 @@ void prog_embed(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, unsigned t
 /* The token embedding with token_embd on one die only: the owner decodes the row into S (the four lanes, 40,960 bytes) and sends it, the other dies
    send nothing and copy what arrived (inbox slot 0, the program starts at an even exchange count) into their own S. */
 void prog_embed_bcast(prog_t *P, const xchg_t *x, int me, int ndies, int owner, const dn_weights_t *w, const dn_bufs_t *b, unsigned t) {
+    if(w->balanced_rows) {
+        phase_t *p=prog_add(P,OP_EMBROW,w->embedding_columns/32);
+        ph_ptr(p,0x140,w->token_embd);ph_ptr(p,0x148,b->S);ph_tokv(P,p,0x150,0,t);
+        ph_ptr(p,0x158,b->ids);ph_ptr(p,0x160,b->imap);ph_ptr(p,0x168,b->img);
+        ph_ptr(p,0x170,b->embedding_targets);ph_u32(p,0x178,w->embedding_first);
+        ph_u32(p,0x17c,w->embedding_stride);ph_u32(p,0x184,(unsigned)ndies);
+        /* Each die publishes only its own columns to all six residuals. The
+         * next real operation acquires all producer flags; no copy phase. */
+        p->w[30]|=1u;P->pending_wait=1;P->xj++;return;
+    }
 	if (me == owner) prog_embed(P, w, b, t);
 	CUdeviceptr in = ph_xchg(P, x, me, ndies, b->S, me == owner ? 4u * 10240u : 0u, 0, 4u * 10240u);
 	if (me != owner) { phase_t *p = prog_add(P, OP_XCOPY, 10); ph_ptr(p, 0x140, in); ph_ptr(p, 0x148, b->S); }

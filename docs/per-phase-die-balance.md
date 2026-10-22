@@ -62,7 +62,20 @@ Implemented:
   Q3_K embedding into16-byte code/mask/scale records. Both original six-bit
   scales and the FP16 multiplier are retained; no weight is requantized.
   Balanced holders include the embedding column shard and output head on all
-  six dies. Its matching SASS decoder/publication path is still required.
+  six dies.
+- `kern/balance/embedding.lua`: the matching production SASS decoder and
+  direct six-die residual publication, including image embeddings. Each die
+  owns its complete32-column groups; every original code/scale is decoded in
+  the original multiplication order. One embedding phase publishes disjoint
+  columns and the next operation acquires their completion flags.
+- `prog_embed_bcast` constructs the balanced embedding descriptor. Dense/GDN,
+  PLE and head allocations/ranges use the shared execution split when the
+  balanced mode is enabled; logit global offsets follow those same boundaries.
+  Each causal position has its own six-die embedding destination table.
+- `die_balanced.cubin` assembles successfully from production SASS with the
+  replacement embedding body. Its distinct module marker prevents loading it
+  with the legacy holder/program layout. It is an in-progress image, not a
+  runnable complete balanced model yet.
 - A distinct manifest marker prevents the legacy engine from accidentally
   interpreting these matrices as whole-expert shards. The balanced descriptor
   and SASS path must replace that temporary rejection before execution.
@@ -72,8 +85,10 @@ Implemented:
 
 Still required for the complete operation loop:
 
-1. Balanced embedding dequantization and publication (packing is implemented).
-2. Descriptor/buffer ownership for all dense, GDN, PLE and head stages.
+1. Finish all balanced engine ownership and activation-table bindings; enable
+   mode only when all following components are integrated. The existing
+   rejection of balanced holders remains until then.
+2. Verify complete dense/GDN/PLE/head descriptor coverage in the final program.
 3. Row-striped gate/up/shared SASS, publication of complete FP32 activations,
    and local quantization before row-striped down projections. The existing
    gate/up→down boundary carries this dependency; do not add placeholder phases.
@@ -82,7 +97,8 @@ Still required for the complete operation loop:
    partial ownership. The following GR consumer must read that revised layout.
 5. Four-head attention bodies, one-head cache layout, striped indexer projection
    publication, local selection and output publication with global head offsets.
-6. Memory placement/cache support for the constrained compute die, below.
+6. Complete and budget the physical placement below. Use six fully resident
+   balanced weight shards; no active-row cache is needed if the remap fits.
 7. Per-phase useful-work timing, explicit wait accounting and complete reports;
    full-model end-to-end run, then repeatability/output gates and±10% audit.
 
@@ -100,12 +116,64 @@ remove. Canonical document170646 identifies2110MiB for this fence,5116MiB for
 die2's holder PID323394 and140MiB for its core context in the saved snapshot.
 Equal expert-row storage on that compute GPU cannot be assumed to fit.
 The spare physical GPU6 had only71MiB allocated in the saved trace snapshot.
-Use separate backing storage and a local active-row cache for the constrained
-compute die as necessary; computation remains on all six intended compute dies.
-Budget cache, dense weights, one-head KV/indexer state and scratch together.
-Check peer accessibility and account for cache fill time in phase measurements;
-remote traffic must not be relabeled as useful arithmetic or excluded to force
-an apparent±10% pass. Do not deploy an allocation that relies on the fenced band.
+The selected approach is to remap logical compute die2 to spare physical GPU6
+and move the lightweight host-memory anchor to physical GPU2. The six logical
+compute dies and every model contribution remain; physical compute placement
+becomes0,1,6,3,4,5. The fence remains on physical GPU2. The core already creates
+each compute context using the physical `die` recorded in its holder manifest,
+independently of that manifest's logical position. A holder on physical GPU6
+can therefore pack `balanced=2/6`, record physical `die6`, and occupy logical
+slot2 without changing model head/expert identities.
+
+Canonical read-topology job`c21a14c9-b3fb-4cf9-a0c6-70f6cabe155b` reports
+peer reads OK for every directed GPU pair, including GPU6. The corresponding
+write-capability query`3d508be0-cf6b-4bd3-8c7f-e5aa8137a633` also reports OK
+for every directed pair.
+These are capability queries, not kernel or partial-model benchmarks. No
+holder/core placement has been changed yet. Budget the full new holders,
+dense weights, one-head KV/indexer state and scratch before installation.
+
+This replaces the more complex alternative of keeping compute on fenced GPU2
+with backing weights on GPU6 and a local active-row cache. Cache misses would
+introduce another source of per-phase imbalance. Remapping removes that
+constraint while retaining six-way computation. Do not rely on the fenced band.
+
+## Routed/shared implementation contract
+
+The next production component must consume all ten selected global expert IDs
+on every compute die. The holder's row mapping is independent of selected ID;
+local row r maps to`((r/8)*6+die)*8+r%8`. Gate/up expert stride is the local
+row count times the packed2560-column row stride, not the legacy fixed
+640-row expert stride. Down uses the local2560-row shard and its640-column
+packed stride. The existing SASS has literal full-expert strides that must be
+replaced; changing only descriptor row counts is incorrect.
+
+The gate/up phase can group the two routed matrices and two shared matrices,
+publishing disjoint FP32 G/U rows to all six dies. At the existing down-stage
+entry, acquire complete G/U, evaluate/quantize all eleven activations locally,
+then execute disjoint down-output row shards. A local readiness join is needed
+between parallel quantization and consumers; account for it explicitly. Run
+the preparation only on each CTA's first virtual unit, so it is not repeated
+or raced when a CTA loops over additional output-row units.
+
+Publish the completed output row shards directly. The next GR consumer must
+consume one assembled output vector, not sum six copies of that vector. Retain
+all selected contributions and document the accumulation order. Shared expert
+formats vary by layer, so reuse their appropriate production format bodies.
+
+Use eight-row work units where possible. Q2_0 K2560 uses16 lanes per row,
+so an eight-row unit has128 participating threads; Q2_0 K640 uses four lanes,
+so it has32. Keep other warps out of useless row arithmetic while retaining
+their mandatory phase/CTA participation. Do not run the old minimum256-row
+GEMV iteration on a104-row shard merely to make timings appear equal.
+
+Distributing QSA to every die also changes physical dispatch counts: the old
+499-phase programs have only two owner attention layers per die, even though
+there are twelve attention layers in the full model. The complete new
+production schedule must be counted before execution. Preserve the below500
+limit using real dependencies and the complete model, not omitted attention
+work or a relabeled count of descriptors. Any fused local readiness waits must
+remain visible in the balance report.
 
 ## Qualification and publication
 
