@@ -426,6 +426,9 @@ resident_decode_bench: resident_decode_bench.c
 balance_report: balance/report.c json.c json.h
 	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -o $@ balance/report.c json.c -lm
 
+fence_hold: balance/fence_hold.c
+	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -I$(CUDA)/include -o $@ $< -lcuda
+
 mtp_q8_gen: mtp_q8_gen.c
 	$(CC) -std=c11 -O2 -Wall -Wextra -Werror -o $@ $<
 

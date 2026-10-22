@@ -44,12 +44,14 @@ local function codegen()
 end
 local function publication(tag)
  local out,e,l,w=codegen()
+ local rows_slot=tag=='bf16k2560' and 0xbfa0 or 0xbfa8
+ local source_slot=tag=='bf16k2560' and 0xbf98 or 0xbfa0
  e('LDS br_flags, [RZ+0xbff8]','3f:-:1:-:2');w('01')
  e('LOP32I.AND br_flags, br_flags, 0x100000')
  e('ISETP.EQ.U32.AND P6, PT, br_flags, RZ, PT');e('@P6 BRA '..tag..'_STRIPE_DONE')
  e('MEMBAR.GL');e('BAR.SYNC 0x0')
  e('ISETP.NE.U32.AND P6, PT, warp, RZ, PT');e('@P6 BRA '..tag..'_STRIPE_DONE')
- for _,x in ipairs({{'br_rows',0xbfa8},{'br_global_rows',0xbfd8},{'br_ranks',0xbfdc},
+ for _,x in ipairs({{'br_rows',rows_slot},{'br_global_rows',0xbfd8},{'br_ranks',0xbfdc},
                    {'br_die',0xbfe0},{'br_base',0xbfe4}})do
   e(string.format('LDS %s, [RZ+0x%x]',x[1],x[2]),'--:-:1:-:2');w('01')
  end
@@ -67,7 +69,7 @@ local function publication(tag)
  e('LOP32I.AND br_tmp, br_row, 0x7');e('ISCADD br_global, br_global, br_tmp, 0x3')
  e('MOV br_rank, RZ')
  l(tag..'_STRIPE_RANK')
- e('@!P5 LDS.64 br_src0, [RZ+0xbfa0]','--:-:1:-:2')
+ e(string.format('@!P5 LDS.64 br_src0, [RZ+0x%x]',source_slot),'--:-:1:-:2')
  e('@P5 LDS.64 br_src0, [RZ+0xbfe8]','--:-:1:-:2');w('01')
  e('LDS.64 br_targets0, [RZ+0xbfd0]','--:-:1:-:2');w('01')
  e('XMAD br_offset, br_rank, br_rows, br_row');e('SHL br_offset, br_offset, 0x2')

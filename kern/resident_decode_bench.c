@@ -69,15 +69,19 @@ static void start_cuda_debugger(void) {
     if(debugger_child)return;
     struct timespec delay={.tv_sec=2};nanosleep(&delay,NULL);
     char pid[32],focus[6][64];snprintf(pid,sizeof pid,"%ld",(long)server_pid);
-    char *args[96];int n=0;
+    char *args[128];int n=0;
 #define ARG(s) args[n++]=(char *)(s)
-    ARG("sudo");ARG("-n");ARG("/usr/bin/timeout");ARG("--signal=TERM");ARG("--kill-after=5");ARG("30");
-    ARG("/home/nate/qwen3-next/toolchains/cuda-11.8/bin/cuda-gdb");ARG("-q");ARG("-batch");ARG("-p");ARG(pid);
+    ARG("sudo");ARG("-n");ARG("/usr/bin/env");ARG("CUDBG_USE_LEGACY_DEBUGGER=1");ARG("CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6");
+    ARG("/usr/bin/timeout");ARG("--signal=TERM");ARG("--kill-after=5");ARG("30");
+    ARG("/home/nate/qwen3-next/toolchains/cuda-11.8/bin/cuda-gdb");ARG("--disable-python");ARG("-q");ARG("-batch");ARG("-p");ARG(pid);
     ARG("-ex");ARG("set pagination off");ARG("-ex");ARG("bt 8");
-    ARG("-ex");ARG("p *(unsigned int *)&mtp_steps");ARG("-ex");ARG("info cuda kernels");
+    ARG("-ex");ARG("info cuda kernels");ARG("-ex");ARG("info cuda threads");
+    ARG("-ex");ARG("info registers");ARG("-ex");ARG("x/12i $pc");
     for(int d=0;d<6;d++) {
-        snprintf(focus[d],sizeof focus[d],"cuda device %d sm 0 warp 0 lane 0",d);
+        int physical=getenv("BENCH_ROW_BALANCE") && atoi(getenv("BENCH_ROW_BALANCE")) && d==2?6:d;
+        snprintf(focus[d],sizeof focus[d],"cuda device %d sm 0 warp 0 lane 0",physical);
         ARG("-ex");ARG(focus[d]);ARG("-ex");ARG("info registers R0 R3 R7 R8 R13 R18 R19 R20 R21 R22 R24 R25");
+        ARG("-ex");ARG("info registers R240 R241 R242 R243 R244 R245 R246 R247 R248");
         ARG("-ex");ARG("x/8i $pc");
     }
     args[n]=NULL;
@@ -134,6 +138,7 @@ static FILE *start(const char *core,const char *lib,const char *cubin,int fused)
         int fd=socket(AF_UNIX,SOCK_STREAM,0); if(fd<0) fail("socket");
         struct sockaddr_un sa={.sun_family=AF_UNIX}; strcpy(sa.sun_path,socket_path);
         if(connect(fd,(struct sockaddr *)&sa,sizeof sa)==0) {
+            server_pid=child;
             struct timeval tv={.tv_sec=120};
             setsockopt(fd,SOL_SOCKET,SO_RCVTIMEO,&tv,sizeof tv);
             setsockopt(fd,SOL_SOCKET,SO_SNDTIMEO,&tv,sizeof tv);

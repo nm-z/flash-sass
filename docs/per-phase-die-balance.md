@@ -357,6 +357,89 @@ cache traffic and residual imbalance; do not qualify only phases that pass.
 
 This goal is not complete. No±10% runtime balance or TPS improvement is claimed.
 
+## First full-model attempts and current recovery state
+
+The complete balanced cache finished successfully in job
+`823db2be-1032-44ec-92d2-905ae2965ce2`. All six binary catalogs survived
+collection. Six persistent holders were loaded and the full48-layer/head
+ordinary production path was submitted, with MTP/FP8 disabled and493 physical
+phases. No reduced model or isolated arithmetic kernel was substituted.
+
+- Job`fdbf74d2-c9b2-4486-adf8-44da8619b86f` initialized all six dies and failed
+  with a misaligned-address error before token0 completed. The owner-boundary
+  array contains adjacent u32 bounds and advances4 bytes per owner. Its64-bit
+  load was invalid at odd owners. Commit`d2cf14f` changes it to two scalar loads,
+  retaining the original six-part FP32 accumulation.
+- Job`03939111-0678-4828-807a-5b96dbba8369` then failed with an illegal memory
+  access, again with zero completed positions. Inspection found another concrete
+  invalid address: the BF16 indexer publisher used quantized-matrix parameter
+  offsets. BF16 has W/X/Y, whereas the quantized layout has W/X/scales/Y. The
+  publisher could treat the BF16 row count as a pointer. It now reads BF16 Y
+  from0xbf98 and rows from0xbfa0; other formats retain their existing offsets.
+  Both images assemble after this correction. The corrected image is staged in
+  `/home/nate/work/flash-per-phase-balance-v48` and has not completed a run yet.
+- Diagnostic jobs`4422a615-19c0-48c6-9f2a-17eb209f7c6c`,
+  `77f6667b-5b2b-4c7d-b7e3-ebbc4d93e592` and
+  `aa0c38e8-e659-464e-b856-09f0992effa5` did not provide a usable GPU PC. The
+  installed470.256.02 driver is older than the available11.8 debugger stack;
+  the default11.8 unified debugger backend also does not support Maxwell.
+  The benchmark's private-core PID tracking, legacy backend selection and
+  visible-device mask were corrected, but these diagnostics are not timing or
+  correctness evidence.
+
+After the device faults, fresh CUDA initialization stopped progressing. Compute
+holder contexts were closed; all original and redistributed weights remain on
+disk. A targeted reset of GPUs2/6 succeeded only after closing CUDA users and
+removing idle UVM/modeset frontends. The GPU2 fence was then restored with the
+exact original3770 blocks/1022 kept blocks and the GPU7 stop-hook service was
+restored at128000 context; its health endpoint returned OK. A subsequent load
+showed GPU1 was also unable to initialize, so the remaining idle compute GPUs
+were reset. An independently scheduled`recipe-gpuheat.service` temperature
+probe raced those resets; its timer/service were temporarily stopped.
+
+The reset attempts subsequently logged Xid122 SPI read failures on several
+devices. A persistence-enable command is now blocked in the NVIDIA kernel's
+`os_acquire_mutex`, in uninterruptible D state. Job
+`d9edc771-7300-4ea9-aef1-05360af83ec6` owns that live command; fence-restoration
+job`b5f8a36f-4c66-44a7-9e1e-6898a01f4822` is queued behind it. Do not start
+another loader or declare either job terminal from an observation timeout.
+
+At this checkpoint the main flash engine, GPU7 service and GPU2 fence are
+stopped/pending recovery; the CPU service on port18620 remains healthy. The
+global power monitor and interactive btop were closed to release reset-blocking
+NVML handles. Persistence was originally enabled on all eight GPUs; writeback
+was restored to2000 and DRM modeset was originally Y. Host reboot approval was
+requested because it interrupts unrelated CPU jobs/SSH sessions in addition to
+the already-authorized daemon restarts. No reboot has yet been performed.
+
+Recovery artifacts:
+
+- Original arenas/catalogs:
+  `/home/nate/work/flash-balanced-native-20261022-v1/original-cache`.
+- Balanced arenas/catalogs:
+  `/home/nate/work/flash-native-catalog-v41/balanced-cache`.
+- Model source/binaries and exact previously loaded core/library/configuration:
+  `/home/nate/work/flash-per-phase-balance-v44`.
+- Original fence binary/source/argv/ready data, GPU7 unit and monitor argv:
+  `/home/nate/work/flash-fence-maintenance-v47`.
+- `kern/balance/fence_hold.c` retains the original two-sweep reservation and
+  adds a queue-compatible persistent launch. With device2 isolated and explicit
+  expected block counts, it can restore the same band before any allocation
+  resumes on that GPU. It must run on the fresh allocation layout, not after
+  another workload has already occupied the die.
+
+Following host recovery, restore the fence first, then the original GPU7 unit
+and thermal monitor. Reload all six balanced holders with one physical device
+visible per loader and `CUDA_DEVICE_ORDER=PCI_BUS_ID`. Re-run the corrected
+complete model before repeatability/reference tests. Only after those gates
+should body/operation reports be used for the per-phase balance audit.
+
+There is still no measured balanced TPS. These failed requests have undefined
+throughput, not a measured zero TPS. Historical raw exchange data also shows
+1024 ns timestamp granularity (66432 sampled timestamps); short-phase timing
+uncertainty must be addressed before treating an observed ten-percent timing
+table as proof of the final goal.
+
 ## Next attention integration
 
 Preserve four local query heads and one local K/V head on every die. Main
