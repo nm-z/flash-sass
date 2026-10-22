@@ -88,6 +88,7 @@ static FILE *start(const char *core,const char *lib,const char *cubin,int fused)
     snprintf(socket_path,sizeof socket_path,"/tmp/flash-60-%ld.sock",(long)getpid());
     child=fork(); if(child<0) fail("fork");
     if(!child) {
+        int balanced=getenv("BENCH_ROW_BALANCE") && atoi(getenv("BENCH_ROW_BALANCE"));
         setenv("FLASH_SOCK",socket_path,1);
         setenv("CUDA_VISIBLE_DEVICES","0,1,2,3,4,5,6",1);
         setenv("FLASH_ANCHOR_DIE","6",1);
@@ -103,6 +104,25 @@ static FILE *start(const char *core,const char *lib,const char *cubin,int fused)
         setenv("SPLIT_SHARES","112,97,81,116,97,97",1);
         setenv("ATTN_MAP","1,1,1,1,4,4,4,4,5,5,5,5",1);
         setenv("FLASH_CUBIN",cubin,1);
+        if(balanced) {
+            const char *dir=getenv("BENCH_HOLDER_DIR");if(!dir || !*dir)_exit(2);
+            const char *context=getenv("BENCH_CONTEXT");if(!context)context="32768";
+            setenv("FLASH_ANCHOR_DIE","2",1);setenv("FLASH_MAXT",context,1);setenv("FLASH_ENGINE_MAXT",context,1);
+            setenv("FLASH_PLE_FILE","/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf",1);
+            setenv("FLASH_PREFILL_CHUNK","64",1);setenv("FLASH_ATTN_Q_SPLIT","0",1);
+            setenv("FLASH_ATTN_BALANCE","1",1);setenv("FLASH_FUSED_MOE","0",1);setenv("FLASH_FAST_EXCHANGE","0",1);
+            setenv("FLASH_FUSED_GR","1",1);setenv("FLASH_PRODUCER_QUANT","1",1);setenv("FLASH_MATRIX_GROUP","1",1);
+            setenv("FLASH_GR_REPLICATE_FFN","0",1);setenv("FLASH_RESIDUAL_FP8","0",1);setenv("FLASH_PHASE_BATCH","0",1);
+            setenv("FLASH_MTP_AUDIT","0",1);setenv("FLASH_LAYERS","48",1);setenv("FLASH_NBLK","512",1);
+            setenv("FLASH_XTRACE",getenv("BENCH_XTRACE")?getenv("BENCH_XTRACE"):"0",1);
+            setenv("FLASH_BODY_TRACE",getenv("BENCH_BODY_TRACE")?getenv("BENCH_BODY_TRACE"):"0",1);
+            char paths[6][1024];char *args[10]={(char *)core,"/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf",(char *)lib};
+            for(int d=0;d<6;d++) {
+                if(snprintf(paths[d],sizeof paths[d],"%s/h%d.manifest",dir,d)>=(int)sizeof paths[d])_exit(2);
+                args[d+3]=paths[d];
+            }
+            execv(core,args);perror("exec balanced flashcore");_exit(127);
+        }
         execl(core,core,"/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf",lib,
               "/tmp/hold-h0.manifest","/tmp/hold-h1.manifest","/tmp/hold-h2.manifest",
               "/tmp/hold-h3.manifest","/tmp/hold-h4.manifest","/tmp/hold-h5.manifest",(char *)0);
@@ -176,9 +196,10 @@ static void check_scope(FILE *f,int mtp_expected,int verify_expected) {
 int main(int argc,char **argv) {
     setvbuf(stdout,NULL,_IONBF,0);
     int resident=(argc==8 || argc==10) && !strcmp(argv[1],"--resident");
-    if(argc!=5 && !resident) { fprintf(stderr,"usage: resident_decode_bench CORE LIB BASE_CUBIN CANDIDATE_CUBIN\n       resident_decode_bench --resident SOCKET LIB BASE_CUBIN CANDIDATE_CUBIN RESTORE_LIB RESTORE_CUBIN [--reference IDS_FILE]\n"); return 2; }
+    int private_reference=argc==7 && !strcmp(argv[5],"--reference");
+    if(argc!=5 && !resident && !private_reference) { fprintf(stderr,"usage: resident_decode_bench CORE LIB BASE_CUBIN CANDIDATE_CUBIN [--reference IDS_FILE]\n       resident_decode_bench --resident SOCKET LIB BASE_CUBIN CANDIDATE_CUBIN RESTORE_LIB RESTORE_CUBIN [--reference IDS_FILE]\n"); return 2; }
     if(argc==10 && strcmp(argv[8],"--reference")) fail("expected --reference IDS_FILE");
-    const char *reference=argc==10?argv[9]:NULL;
+    const char *reference=argc==10?argv[9]:private_reference?argv[6]:NULL;
     if(!getenv("GPUQ_JOB_ID")) fail("run inside gpuq");
     int pair_cost=getenv("BENCH_PAIR_COST") && atoi(getenv("BENCH_PAIR_COST"));
     int collect_mismatches=getenv("BENCH_COLLECT_MISMATCHES") && atoi(getenv("BENCH_COLLECT_MISMATCHES"));
@@ -200,6 +221,10 @@ int main(int argc,char **argv) {
     int verify_matrix=getenv("BENCH_VERIFY_MATRIX")?atoi(getenv("BENCH_VERIFY_MATRIX")):0;
     int kernel_only=getenv("BENCH_KERNEL_ONLY")?atoi(getenv("BENCH_KERNEL_ONLY")):0;
     int plain_decode=getenv("BENCH_NO_MTP") && atoi(getenv("BENCH_NO_MTP"));
+    int row_balance=getenv("BENCH_ROW_BALANCE") && atoi(getenv("BENCH_ROW_BALANCE"));
+    if(row_balance && (resident || !candidate_only || !plain_decode || !getenv("BENCH_HOLDER_DIR") ||
+        mtp_audit || exact_batch || native_chunk || verify_rollback))
+        fail("balanced private core requires candidate-only ordinary full-model decode and BENCH_HOLDER_DIR");
     int separate_chunk=getenv("BENCH_SEPARATE_CHUNK") && atoi(getenv("BENCH_SEPARATE_CHUNK"));
     if(exact_batch && (exact_batch!=8 || !resident || native_chunk || pair_cost || candidate_only || prefix_hash))
         fail("exact batch requires resident matched A/B mode with width 8");
@@ -213,7 +238,7 @@ int main(int argc,char **argv) {
     if(native_chunk && (pair_cost || !resident || native_chunk<128 || native_chunk>1024 || (native_chunk&(native_chunk-1)))) fail("native chunk requires resident mode and power-of-two size 128..1024");
     if(candidate_only && !native_chunk && mtp_audit<2 && !plain_decode) fail("candidate-only requires native chunk, plain decode or unchecked MTP");
     if(separate_chunk && !native_chunk) fail("separate chunk module requires native chunk mode");
-    if(pair_cost && !resident) fail("paired cost mode requires the resident path");
+    if(pair_cost && !resident && !row_balance) fail("paired cost mode requires the resident or balanced private path");
     int copies=getenv("BENCH_PAIR_PROMPT_COPIES")?atoi(getenv("BENCH_PAIR_PROMPT_COPIES")):4;
     if(copies<1||copies>4) fail("prompt copies must be 1..4");
     int prompt_copies=plain_decode?(getenv("BENCH_PROMPT_COPIES")?atoi(getenv("BENCH_PROMPT_COPIES")):1):(native_chunk || exact_batch || mtp_audit || verify_rollback)?(getenv("BENCH_PROMPT_COPIES")?atoi(getenv("BENCH_PROMPT_COPIES")):4):1;
@@ -361,8 +386,8 @@ int main(int argc,char **argv) {
             command(active,cmd); fclose(active); active=NULL;
             f=connect_core(); if(!f) fail("post-reload connection"); active=f;
         } else { f=start(argv[1],argv[2],argv[3+arm],arm); active=f; }
-        const char *name=kernel_only?(arm?"kernel-candidate":"baseline"):verify_rollback?(arm?"rollback-audit":"baseline"):mtp_audit?(arm?(mtp_audit==4?"dflash2-full-model":mtp_audit==3?"mtp-full-model":mtp_audit==2?"mtp-rollout":"mtp-shadow"):"baseline"):pair_cost?(arm?"paired-full-head":"scalar-full-head"):exact_batch?(arm?"exact-b8":"production-b2"):(arm?(native_chunk?"native-chunk":"fused"):"baseline");
-        const char *workload=mtp_audit==4?"dflash2-full-model-unchecked":mtp_audit==3?"mtp-full-model-unchecked":mtp_audit==2?"mtp-unchecked-rollout":verify_rollback?"rollback-state-diagnostic":mtp_audit?"draft-shadow-diagnostic":pair_cost?"teacher_forced":candidate_only?(generate==1&&prefix_hash?"native-prefix-repeatability":"decode-repeatability"):"decode";
+        const char *name=row_balance?"row-balanced":kernel_only?(arm?"kernel-candidate":"baseline"):verify_rollback?(arm?"rollback-audit":"baseline"):mtp_audit?(arm?(mtp_audit==4?"dflash2-full-model":mtp_audit==3?"mtp-full-model":mtp_audit==2?"mtp-rollout":"mtp-shadow"):"baseline"):pair_cost?(arm?"paired-full-head":"scalar-full-head"):exact_batch?(arm?"exact-b8":"production-b2"):(arm?(native_chunk?"native-chunk":"fused"):"baseline");
+        const char *workload=candidate_only && repetitions==1 && !repeatability && !pair_cost?"decode-first-execution":mtp_audit==4?"dflash2-full-model-unchecked":mtp_audit==3?"mtp-full-model-unchecked":mtp_audit==2?"mtp-unchecked-rollout":verify_rollback?"rollback-state-diagnostic":mtp_audit?"draft-shadow-diagnostic":pair_cost?"teacher_forced":candidate_only?(generate==1&&prefix_hash?"native-prefix-repeatability":"decode-repeatability"):"decode";
         if(getenv("BENCH_CUDA_DEBUG") && atoi(getenv("BENCH_CUDA_DEBUG")))workload="cuda-debug-diagnostic";
         if(pair_cost && plain_decode)name=arm?"teacher-forced-candidate":"teacher-forced-baseline";
         if(plain_decode && getenv("BENCH_BASE_PHASE") && atoi(getenv("BENCH_BASE_PHASE")))name=arm?"split-candidate":"phase-baseline";
@@ -440,7 +465,7 @@ int main(int argc,char **argv) {
                 printf("stateaudit arm=%s run=%d rows=%u mismatches=%u reference=first_request_same_kernel\n",name,run_id,state_rows,state_errors);
             }
             if(mtp_audit>=2)printf("{\"arm\":\"%s\",\"run\":%d,\"correctness_checked\":false,\"generated_tokens\":%d}\n",name,run_id,n);
-            else printf("{\"arm\":\"%s\",\"run\":%d,\"output_mismatches\":%u,\"state_mismatches\":%u,\"state_checked\":%s,\"correct\":%s}\n",name,run_id,run_mismatches,run_state_errors,run_state_checked?"true":"false",run_mismatches||run_state_errors?"false":"true");
+            else printf("{\"arm\":\"%s\",\"run\":%d,\"output_mismatches\":%u,\"state_mismatches\":%u,\"state_checked\":%s,\"output_checked\":%s,\"correct\":%s}\n",name,run_id,run_mismatches,run_state_errors,run_state_checked?"true":"false",have?"true":"false",run_mismatches||run_state_errors?"false":have||run_state_checked?"true":"null");
             if(exact_batch) {
                 char stats[256];unsigned width;int batched;
                 fputs("batchstats\n",f);fflush(f);
@@ -506,6 +531,15 @@ int main(int argc,char **argv) {
             free(row);
         }
         if(getenv("BENCH_XTRACE") && atoi(getenv("BENCH_XTRACE")) && !(getenv("BENCH_XTRACE_EACH") && atoi(getenv("BENCH_XTRACE_EACH"))))exchange_dump(f,name,-1);
+        if(getenv("BENCH_BODY_TRACE") && atoi(getenv("BENCH_BODY_TRACE")))for(int d=0;d<6;d++) {
+            fprintf(f,"bodytrace %d\n",d);fflush(f);char *row=NULL;size_t cap=0;int complete=0;
+            while(getline(&row,&cap,f)>0) {
+                fputs(row,stdout);
+                if(!strncmp(row,"error:",6))fail("body trace unavailable");
+                if(!strncmp(row,"bodytrace_end",13)){complete=1;break;}
+            }
+            free(row);if(!complete)fail("body trace incomplete");
+        }
         if(!resident) { fputs("quit\n",f); fflush(f); }
         fclose(f); active=NULL;
         if(!resident) {
@@ -521,6 +555,7 @@ int main(int argc,char **argv) {
     else if(repeatability)printf("resident_decode_bench: same-kernel repeatability and GPU/stream consensus PASS; no cross-kernel oracle comparison\n");
     else if(mtp_audit>=2)printf("resident_decode_bench: unchecked MTP execution completed; no target verification, acceptance, or output comparison\n");
     else if(candidate_only && reference) printf("resident_decode_bench: %u %d-position output(s) match frozen scalar reference; no matched live A/B\n",completed_runs,positions);
+    else if(candidate_only && completed_runs==1) printf("resident_decode_bench: one complete candidate execution; no correctness or repeatability claim\n");
     else if(candidate_only) printf("resident_decode_bench: candidate repeatability PASS; no independent output reference or matched live A/B\n");
     else printf("resident_decode_bench: all %u %d-position outputs match\n",completed_runs,positions);
     return 0;

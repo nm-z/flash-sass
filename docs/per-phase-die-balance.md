@@ -277,6 +277,29 @@ and remains open. With the known stale polling shell temporarily suspended,
 the identical complete plan succeeded. No balanced holder has been loaded and
 no balanced model run has occurred yet.
 
+Original export is tracked as canonical job
+`1be7314c-ba35-4acf-ac79-803d951cd241`. The original core and holders remain
+live during its read-only device-to-host copies. Observed export stalls were
+Linux disk writeback waits (`rq_qos_wait`, `balance_dirty_pages` and `fsync`),
+not evidence that the process stopped. Re-poll the same job/process rather than
+starting another export solely because an observation timed out.
+
+The existing `resident_decode_bench` now supports a private balanced core with
+`BENCH_ROW_BALANCE=1 BENCH_HOLDER_DIR=... BENCH_CANDIDATE_ONLY=1 BENCH_NO_MTP=1`.
+It reads `h0.manifest` through `h5.manifest` under that directory, uses physical
+GPU2 for the anchor, and selects the complete scalar production path. The first
+execution should use `BENCH_RUNS=1` without repeatability, state or reference
+options. A single unchecked execution is explicitly reported without claiming
+correctness/repeatability. After it finishes, the same path supports frozen
+reference output, repeatability/state gates and scalar teacher-forced coverage.
+`BENCH_BODY_TRACE=1 BENCH_XTRACE=N` additionally collects all six body reports.
+These full-model commands have not been run on balanced holders yet.
+
+The diagnostic stream also retains the actual ten selected global expert IDs
+and selected count at each routed gate entry. Their metadata occupies an unused
+second child record, separate from poll records. Metadata is captured before
+starting the body clock; the per-CTA timestamp address is restored afterwards.
+
 Reuse canonical GPUQ evidence before starting new work. All archy GPU execution
 continues through `ssh archy gpuq run -- COMMAND`. Preserve one canonical
 history.sqlite3, immutable source/images and the exact workload. The completed

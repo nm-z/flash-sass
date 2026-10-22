@@ -39,14 +39,6 @@ local function stamp(aux,slot,composite,nonzero)
  e('ISCADD bt_temp, bt_temp, bt_clock0, 0xc');e('SHL bt_temp, bt_temp, 0xb')
  e('IADD bt_ptr0.CC, bt_ptr0, bt_temp');e('IADD.X bt_ptr1, bt_ptr1, RZ')
  e('SHL bt_temp, cta, 0x6');e('IADD bt_ptr0.CC, bt_ptr0, bt_temp');e('IADD.X bt_ptr1, bt_ptr1, RZ')
- out[#out+1]=tag..'_CLOCK:'
- load('S2R bt_clock1, SR_GLOBALTIMERHI',1)
- load('S2R bt_clock0, SR_GLOBALTIMERLO',2)
- load('S2R bt_temp, SR_GLOBALTIMERHI',3)
- out[#out+1]='07:-:-:Y:d NOP;'
- e('ISETP.NE.U32.AND P6, PT, bt_clock1, bt_temp, PT');e('@P6 BRA '..tag..'_CLOCK')
- out[#out+1]=string.format('--:2:-:-:2 STG.E.64 [bt_ptr+0x%x], bt_clock0;',8*slot)
- out[#out+1]='02:-:-:Y:d NOP;'
  if aux==0 and slot==6 then
   -- The former optional GR-hash region stores CTA residency, not a claim
   -- that every resident CTA performs the same amount of useful arithmetic.
@@ -56,9 +48,9 @@ local function stamp(aux,slot,composite,nonzero)
   load('S2R bt_clock0, SR_SMID',1);out[#out+1]='01:-:-:Y:d NOP;'
   out[#out+1]='--:2:-:-:2 STG.E [bt_ptr+0x700], bt_clock0;'
   out[#out+1]='02:-:-:Y:d NOP;'
-  e('ISETP.NE.U32.AND P6, PT, cta, RZ, PT');e('@P6 BRA '..tag..'_DONE')
+  e('ISETP.NE.U32.AND P6, PT, cta, RZ, PT');e('@P6 BRA '..tag..'_RESIDENT')
   load('LDS bt_temp, [RZ+0xbf80]',1);out[#out+1]='01:-:-:Y:d NOP;'
-  e('ISETP.NE.U32.AND P6, PT, bt_temp, 0x3d, PT');e('@P6 BRA '..tag..'_DONE')
+  e('ISETP.NE.U32.AND P6, PT, bt_temp, 0x3d, PT');e('@P6 BRA '..tag..'_RESIDENT')
   -- The routed gate starts the four-member gate/up group. Its second
   -- auxiliary record is unused by poll clocks; retain the actual selected
   -- global IDs here rather than assuming ten useful experts from static rows.
@@ -66,14 +58,28 @@ local function stamp(aux,slot,composite,nonzero)
   for i=0,9 do
    load(string.format('LDG.E.CG bt_temp, [bt_clock+0x%x]',4*i),1)
    out[#out+1]='01:-:-:Y:d NOP;'
-   out[#out+1]=string.format('--:2:-:-:2 STG.E [bt_ptr+0x%x], bt_temp;',0x900+4*i)
+   out[#out+1]=string.format('--:2:-:-:2 STG.E [bt_ptr+0x%x], bt_temp;',0x1000+4*i)
    out[#out+1]='02:-:-:Y:d NOP;'
   end
   load('LDS.64 bt_clock0, [RZ+0xbfc8]',1);out[#out+1]='01:-:-:Y:d NOP;'
   load('LDG.E.CG bt_temp, [bt_clock]',1);out[#out+1]='01:-:-:Y:d NOP;'
-  out[#out+1]='--:2:-:-:2 STG.E [bt_ptr+0x928], bt_temp;'
+  out[#out+1]='--:2:-:-:2 STG.E [bt_ptr+0x1028], bt_temp;'
   out[#out+1]='02:-:-:Y:d NOP;'
+  out[#out+1]=tag..'_RESIDENT:'
+  -- Restore the per-CTA record address, then start the body clock after
+  -- metadata capture. Expert ID logging must not inflate routed body time.
+  e('SHL bt_temp, cta, 0x6');e('SHL bt_clock0, cta, 0x4')
+  e('IADD bt_temp, bt_temp, -bt_clock0')
+  e('IADD bt_ptr0.CC, bt_ptr0, bt_temp');e('IADD.X bt_ptr1, bt_ptr1, RZ')
  end
+ out[#out+1]=tag..'_CLOCK:'
+ load('S2R bt_clock1, SR_GLOBALTIMERHI',1)
+ load('S2R bt_clock0, SR_GLOBALTIMERLO',2)
+ load('S2R bt_temp, SR_GLOBALTIMERHI',3)
+ out[#out+1]='07:-:-:Y:d NOP;'
+ e('ISETP.NE.U32.AND P6, PT, bt_clock1, bt_temp, PT');e('@P6 BRA '..tag..'_CLOCK')
+ out[#out+1]=string.format('--:2:-:-:2 STG.E.64 [bt_ptr+0x%x], bt_clock0;',8*slot)
+ out[#out+1]='02:-:-:Y:d NOP;'
  out[#out+1]=tag..'_DONE:';e('R2P PR, bt_pred, 0x7f')
  return '3f:-:-:Y:d NOP;\n'..table.concat(out,'\n')..'\n'
 end
