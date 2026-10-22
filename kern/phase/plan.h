@@ -367,9 +367,13 @@ static unsigned phase_edges_fuse(prog_t *p,unsigned position,int die,int *layers
     }
     for(int i=0;i+1<p->n;i++) {
         phase_t *a=p->p+i,*b=a+1;
+        /* Sixteen CTA winners form one128-byte payload. Keep its copy phase
+         * so the sender coalesces the payload after the producer grid joins,
+         * instead of scattering96 tiny peer writes from the argmax CTAs. */
+        if(row_balance && a->w[0]==OP_ARGMAX)continue;
         if((a->w[0]!=OP_ARGMAX && a->w[0]!=OP_TOPK) || a->w[1]!=16 ||
            a->w[30] || a->w[31] || b->w[0]!=OP_XSEND || b->w[30]!=1 || b->w[31] ||
-           b->w[6]!=(a->w[0]==OP_ARGMAX?8u:256u) || gr_pointer(a,4)!=gr_pointer(b,4))continue;
+           b->w[6]!=(a->w[0]==OP_ARGMAX?(row_balance?128u:8u):256u) || gr_pointer(a,4)!=gr_pointer(b,4))continue;
         ph_ptr(a,0x170,gr_pointer(b,2));a->w[16]=b->w[7]+b->w[8];a->w[30]|=129u;
         memmove(b,b+1,(size_t)(p->n-i-2)*sizeof *b);
         if(layers)memmove(layers+i+1,layers+i+2,(size_t)(p->n-i-2)*sizeof *layers);

@@ -549,6 +549,19 @@ publication therefore does not solve the remaining head imbalance. The next
 candidate is forwarding per-CTA winners to the existing final AMAX phase to
 remove the last-CTA atomic/reduction handoff; that change is not implemented.
 
+The v70 program now implements that change and batches the16 CTA winners per
+die through the existing exchange-copy path. It has494 physical phases, remains
+below500, matches128 original generated IDs, and passes an independent scan of
+all248320 logits against all96 retained CTA winners. Timed decode is20.10 TPS
+in the measured run. Argmax is inside ten percent at both captured positions
+(1.55% and2.11% in cycles), as is AMAX (1.81% and2.05%). The separated exchange
+phase still fails at29.55% and27.18%; transport remains unresolved. Across the
+complete988 comparisons, six cycle observations and five nanosecond observations
+fail. Full evidence and limitations are in the validation README.
+
+Physical GPUs2 and7 are reserved for Nate's work. The model compute mapping
+remains logical0..5 to physical0,1,6,3,4,5; do not move model shards onto2 or7.
+
 ## Attention implementation notes
 
 Preserve four local query heads and one local K/V head on every die. Main

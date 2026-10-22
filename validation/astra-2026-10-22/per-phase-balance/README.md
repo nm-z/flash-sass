@@ -335,3 +335,90 @@ the already-existing final AMAX reduction, with a matching wider exchange
 payload and base-index mapping. That requires a complete coordinated producer,
 descriptor and consumer change, followed by a full-model run. It has not yet
 been implemented; no completion or performance claim relies on it.
+
+## Per-CTA head reduction and batched winner transport (v68–v70)
+
+The structural head change is now implemented. Each of16 CTAs scans its
+original logit stripe, performs the unchanged warp/CTA reduction, and writes
+one `(local index, max bits)` pair. There is no last-CTA atomic increment or
+second local winner reduction. The final AMAX warp reads all96 pairs: lane l
+reduces pairs l,l+32,l+64, adds the vocabulary base for `pair_index/16`, then
+uses the existing lowest-index tie-breaking butterfly. Its six-die layout is
+guarded by `flash_balance_head_cta_abi_v1` at module load.
+
+Initial direct-CTA publication job `0d33c1e1-bc0f-4bde-9f71-998ca6801e45`
+matches all128 original IDs and measures20.106445361 TPS; [log](decode-v68.log).
+Its complete trace, job `24994125-09e9-426d-bef8-37f29447901e`, has all94656
+valid records and matches the original IDs. The [table](body-v68.tsv) and
+[summary](body-v68-summary.txt) show five cycle failures and nine nanosecond
+failures. Argmax still fails at29.578321% and19.720080% in cycles; AMAX is
+inside ten percent at both positions. Scattering each CTA pair directly to
+six peers therefore does not resolve the transport imbalance.
+
+The final v70 program retains the contiguous exchange-copy descriptor for
+the128-byte winner block from each die. The producer finishes all16 local
+pairs before that copy, and the existing exchange acquire protects the AMAX
+consumer. This replaces96 tiny peer payload writes per die with the existing
+coalesced copy path. The direct-publication branch in the compatible v68 image
+is disabled by the descriptor flag. All other producer fusions remain enabled.
+The complete program now has494 physical phases on each die, below500, with
+the same cross-die exchange count and one additional local phase boundary.
+
+The optional `headaudit` command runs only after completed full-model scalar
+inference. It reads all248320 retained logits, independently scans each CTA's
+stripe, checks all96 partial indices and exact max bits, and checks each die's
+final winner and recorded token. It includes losing partials; matching only
+the final winner is insufficient. It reports nonfinite logits as failures.
+Fixed-input job `7fa35b3b-322c-4e33-b99c-678de56e6525` has zero differences
+across all256 original-baseline outputs and zero head-audit failures;
+[log](head-audit-v69.log).
+
+The final batched-copy job `b1c3b0b4-77c8-4e02-a63b-dcf5343ea324` matches all128
+original IDs, passes all96 partial checks across248320 logits, and confirms
+the same final winner on all six dies. It records20.101631624 timed decode
+TPS and494 phases; [log](head-audit-v70.log). The audit occurs after the timed
+model execution. This remains one timing observation, not a statistical
+speedup claim.
+
+The report now also validates the routed-expert records already emitted by
+the full trace. For every captured position and all48 layers, all six dies
+must report the same ten distinct global expert IDs, each in0..511. Missing,
+duplicate or inconsistent records fail the report. The complete v67 capture
+retains identical timing columns under this additional audit and has576/576
+valid expert records. The v68 capture also passes all576 records. This proves
+the observed routing inputs agree; it is not a substitute for full useful-work
+or per-phase timing qualification.
+
+Artifacts: v68 production/body images, v69 audit client, v70 final engine on
+archy. Production image SHA256:
+`aef76ab30cef5e85f8fe5f20f1338b848761279af771f78f9a9f714b09e86932`.
+Body image SHA256:
+`cca75cf5938e60d7e7db46d7f703a676aac67dc63e83ef793b52a1d9baf825a2`.
+
+Final batched-copy trace job `adc291d7-4ebd-439b-9ab9-872a479e6d7f` completes
+all128 original-baseline IDs with zero differences. Its [full table](body-v70.tsv)
+and [summary](body-v70-summary.txt) contain94848 valid CTA records, all988 phase
+comparisons, and576/576 consistent routed-expert records. There are five
+nanosecond failures and six cycle failures. The head breakdown is:
+
+| Position | Phase | Operation | Maximum cycle deviation |
+|---:|---:|---|---:|
+|189|491|argmax|1.545057%|
+|190|491|argmax|2.111779%|
+|189|492|xsend|29.552089%|
+|190|492|xsend|27.182771%|
+|189|493|amax|1.813933%|
+|190|493|amax|2.052387%|
+
+This isolates the remaining head timing imbalance in transport: it does not
+make it disappear or satisfy the full objective. The other four cycle failures
+are two Q4 projection observations, one BF16 gated read and one RMSNorm. One
+AMAX nanosecond observation fails although its cycle variation is2.05%; the
+unchanged nanosecond gate still retains that failure. No phase has been padded,
+omitted or exempted from the complete report.
+
+Operational constraint from Nate: physical GPUs2 and7 are reserved for his
+work. Keep flash-sass computation on0,1,6,3,4,5 (logical0..5 respectively).
+Existing GPU2 protected-memory fence/anchor and GPU7 stop-hook allocations
+were disclosed; do not move a model shard or launch additional workloads onto
+either reserved GPU. The six weight holders remain resident.

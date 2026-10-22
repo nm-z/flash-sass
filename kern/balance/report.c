@@ -11,7 +11,7 @@
 #include <string.h>
 typedef struct { unsigned mask,resident,cycle_mask;int invalid;uint64_t body,poll,elapsed,cycles; } die_t;
 typedef struct { char op[64];int layer,have,invalid;die_t die[6]; } phase_t;
-typedef struct token { uint64_t request,position;phase_t *phase;struct token *next; } token_t;
+typedef struct token { uint64_t request,position;phase_t *phase;unsigned expert_mask[48],expert_ids[48][10];struct token *next; } token_t;
 static void fail(const char *s) { fprintf(stderr,"balance_report: %s\n",s);exit(2); }
 static int integer(const jv *v,uint64_t *n) { if(!v || v->k!=J_INT || v->i<0)return 0;*n=(uint64_t)v->i;return 1; }
 static int field(const jv *v,const char *key,uint64_t *n) { return integer(jv_getz(v,key),n); }
@@ -23,7 +23,31 @@ int main(int argc,char **argv) {
     if(!expected || expected>=500 || !positions || positions>256)fail("require 1..499 phases and 1..256 trace positions");
     token_t *tokens=NULL,**tail=&tokens;unsigned ntokens=0,records=0,bad_records=0;
     int physical[6]={-1,-1,-1,-1,-1,-1};char *line=NULL;size_t capacity=0;ssize_t length;
+    unsigned expert_records=0,expert_errors=0;
     while((length=getline(&line,&capacity,stdin))>0) {
+        if(strstr(line,"\"kind\":\"balanced_experts\"")) {
+            arena *a=arena_new();const char *error=NULL;jv *v=json_parse(a,line,(size_t)length,&error);
+            uint64_t request,position,die,phase,layer,selected;
+            if(!v || !field(v,"request",&request) || !field(v,"position",&position) ||
+               !field(v,"die",&die) || !field(v,"phase",&phase) || !field(v,"layer",&layer) ||
+               !field(v,"selected_count",&selected) || die>=6 || phase>=expected || layer>=48)
+                fail("invalid routed-expert metadata");
+            token_t *t=tokens;for(;t;t=t->next)if(t->request==request && t->position==position)break;
+            if(!t)fail("routed-expert record without preceding body");
+            jv *ids=jv_getz(v,"selected_global_ids");unsigned values[10];int valid=selected==10;
+            if(!ids || ids->k!=J_LIST || ids->l.n!=10)fail("invalid routed-expert ID list");
+            for(unsigned i=0;i<10;i++){
+                uint64_t id;if(!integer(ids->l.a[i],&id) || id>=512)fail("routed expert out of range");
+                values[i]=(unsigned)id;
+                for(unsigned j=0;j<i;j++)if(values[j]==values[i])valid=0;
+            }
+            valid&=t->phase[phase].have && t->phase[phase].layer==(int)layer && !strcmp(t->phase[phase].op,"q2moegn");
+            if(t->expert_mask[layer]&(1u<<die))valid=0;
+            if(t->expert_mask[layer])valid&=!memcmp(values,t->expert_ids[layer],sizeof values);
+            else memcpy(t->expert_ids[layer],values,sizeof values);
+            t->expert_mask[layer]|=1u<<die;expert_records++;expert_errors+=!valid;
+            arena_free(a);continue;
+        }
         if(!strstr(line,"\"kind\":\"balanced_body\""))continue;
         arena *a=arena_new();const char *error=NULL;jv *v=json_parse(a,line,(size_t)length,&error);
         if(!v || v->k!=J_DICT)fail("malformed body record");
@@ -95,10 +119,15 @@ int main(int argc,char **argv) {
     }
     int map_valid=1;for(unsigned d=0;d<6;d++){if(physical[d]<0)map_valid=0;for(unsigned e=0;e<d;e++)if(physical[d]==physical[e])map_valid=0;}
     int complete=ntokens==positions && records==positions*expected*6*16 && !bad_records && !bad_phases && map_valid;
+    unsigned expert_complete=0;
+    for(token_t *t=tokens;t;t=t->next)for(unsigned layer=0;layer<48;layer++)expert_complete+=t->expert_mask[layer]==63u;
+    int expert_valid=expert_complete==positions*48 && expert_records==positions*48*6 && !expert_errors;
     fprintf(stderr,"balance_report positions=%u/%u phases_per_position=%u cta_records=%u invalid_records=%u invalid_phases=%u failing_phases=%u max_deviation_pct=%.6f coverage_complete=%d body_timing_within_10pct=%d trace_overhead_included=1 resident_sm_is_not_useful_utilization=1\n",
         ntokens,positions,expected,records,bad_records,bad_phases,unbalanced,worst*100,complete,complete && !unbalanced);
     fprintf(stderr,"balance_cycles complete_phases=%u/%u failing_phases=%u max_deviation_pct=%.6f same_sm_differences_only=1 frequency_normalized=0 production_gate_unchanged=1\n",
         cycle_complete,positions*expected,cycle_unbalanced,cycle_worst*100);
+    fprintf(stderr,"balance_experts records=%u/%u complete_layer_positions=%u/%u invalid_records=%u same_ten_distinct_global_ids_on_all_six_dies=%d\n",
+        expert_records,positions*48*6,expert_complete,positions*48,expert_errors,expert_valid);
     while(tokens){token_t *next=tokens->next;free(tokens->phase);free(tokens);tokens=next;}
-    return complete && !unbalanced?0:1;
+    return complete && expert_valid && !unbalanced?0:1;
 }

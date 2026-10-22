@@ -515,8 +515,10 @@ void prog_logits(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_
 		return;
 	}
 	p = prog_add(P, OP_ARGMAX, 16);
-	ph_ptr(p, 0x140, b->hlo); ph_ptr(p, 0x148, b->amo); ph_ptr(p, 0x150, b->apart); ph_ptr(p, 0x158, b->acnt); ph_u32(p, 0x160, (unsigned)s->on); ph_u32(p, 0x164, 16);
-	CUdeviceptr PAIRS = ph_xchg(P, x, s->d, s->n, b->amo, 8, 8u * (unsigned)s->d, 8u * (unsigned)s->n);
+    CUdeviceptr winners=w->balanced_rows?b->apart:b->amo;
+    unsigned winner_bytes=w->balanced_rows?128u:8u;
+	ph_ptr(p, 0x140, b->hlo); ph_ptr(p, 0x148, winners); ph_ptr(p, 0x150, b->apart); ph_ptr(p, 0x158, b->acnt); ph_u32(p, 0x160, (unsigned)s->on); ph_u32(p, 0x164, 16);
+	CUdeviceptr PAIRS = ph_xchg(P, x, s->d, s->n, winners, winner_bytes, winner_bytes * (unsigned)s->d, winner_bytes * (unsigned)s->n);
 	p = prog_add(P, OP_AMAX, 1);
 	ph_ptr(p, 0x140, PAIRS); ph_ptr(p, 0x148, w->obases); ph_u32(p, 0x150, (unsigned)s->n); ph_ptr(p, 0x158, b->tokout);
 	ph_ptr(p, 0x160, b->ids); ph_ptr(p, 0x168, b->toks); ph_tokv(P, p, 0x170, 0, t); ph_u32(p, 0x174, nprompt);

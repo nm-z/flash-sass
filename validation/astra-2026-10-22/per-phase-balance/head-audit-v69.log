@@ -1,0 +1,122 @@
+reference_file=/home/nate/work/flash-per-phase-balance-v59/original-v39-fixed-reference.ids expected_tokens=256 validation_only=1
+flashcore: PLE rows are read from /home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf on demand (FLASH_PLE_DISK): 47 MB pinned instead of 28.8 GB, no table load
+flashcore: 6 dies, weights and PLE table resident after 1 s
+engine: PLE cache /home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf is available; original source remains available
+engine: 6 dies, 48/48 blocks, up to 32768 positions, 356 MB of buffers per die, ready in 1.2 s
+flashcore: engine /home/nate/work/flash-per-phase-balance-v69/libengine_exact.so ready in 1.2 s
+ready
+flashcore: listening on /tmp/flash-60-150390.sock
+{"arm":"teacher-forced-candidate","workload":"head-component-audit","prompt_tokens":256,"generated_tokens":0,"warmup_runs":1,"baseline_compared":false,"reference_kind":"frozen_scalar"}
+config rev=a0401ad-dirty-exact kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf maxt=32768 layers=48/48 nblk=512 dies=6 attn_dies=0,1,2,3,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=1 rope_owner=-1 trace_tokens=0 two_position=0 prefill_chunk=64 attn_q_split=0 attn_q_mask=0 cubin=/home/nate/work/flash-per-phase-balance-v68/die_balanced.cubin cubin_fnv=37d1e68d4669940c runtime_attn_map=0,1,2,3,4,5,0,1,2,3,4,5 balanced=1 row_balance=1 row_grain=8 compute_physical=0,1,6,3,4,5 body_trace=0 ple_device_rows=1 ple_device_bytes=47188800 residual_storage=fp32 fused_gr=1 producer_quant=1 matrix_group=1 gr_replica_ffn=0 xtrace=0 phase_batch=0 exact_cubin=none exact_cubin_fnv=0000000000000000
+ok: stop -1 -1
+ok: sample seed 7 temp 0 top_k 20 top_p 0.95 (greedy)
+ok: timings 1
+{"arm":"teacher-forced-candidate","run":0,"kept":0,"warmup":true}
+timings {"schema_version":1,"request_id":"1","clock":"CLOCK_MONOTONIC","prompt_tokens":256,"resumed_positions":0,"positions_completed":256,"positions_executed":256,"prompt_positions_processed":256,"generated_tokens":1,"decode_intervals":0,"counts_known":true,"counts_final":true,"error_code":0,"counter_semantics":"last_observed_completed_positions","stop_token_observed":false,"aborted":false,"build_ms":26.71375999943848,"run_ms":12727.27130200019,"first_observed_ms":12727.088072000697,"post_first_ms":0.18322999949305085,"prompt_positions_per_second":20.114577549219145,"decode_tokens_per_second":null,"device_clock":"SR_GLOBALTIMER","device_origin":"first_generated_position_start","device_first_start_ns":null,"device_first_publish_ns":null,"device_last_traced_publish_ns":null,"device_traced_tokens":0,"device_first_publish_ms":null,"device_decode_ms":null,"device_decode_tokens_per_second":null,"prompt_n":256,"cache_n":0,"prompt_ms":12727.088072000697,"prompt_per_second":20.114577549219145,"predicted_n":1,"predicted_ms":0.18322999949305085,"predicted_per_second":null,"decode_ms":0.18322999949305085}
+tokens: 846 198 2 286 248046 369 716 310 1496 11553 13 248046 1683 303 883 279 3296 321 3019 1328 30800 11 2814 6607 25605 11 321 60445 264 11 76591 11 321 16097 303 279 1534 4087 13 248046 198 248045 846 198 248046 248046 279 248046 248046 248046 248046 248046 248046 248046 248046 248046 248046 198 248045 74455 198 248068 198 1596 846 198 1596 286 25 369 716 310 830 11553 13 14235 1683 15060 1472 279 3274 11 9307 1328 30800 11 2814 47675 25605 11 321 60445 55404 11 27224 11 321 30246 303 279 1534 4087 13 14235 198 248045 846 198 9930 1503 11679 28052 9561 248046 248046 25899 303 17248 3992 248046 248046 198 248045 74455 198 248068 198 1596 846 198 1596 286 25 369 716 310 830 11553 13 5044 1683 15060 1472 279 3274 11 9307 1328 30800 11 2814 47675 25605 11 321 60445 55404 11 27224 11 321 30246 303 279 1534 4087 13 271 198 248045 74455 248046 248046 1503 11679 28052 9561 30 248046 25899 303 17248 3992 13 248046 198 248045 74455 198 248068 198 1596 846 198 24342 286 4879 369 716 310 830 11553 13 5044 1683 15060 1472 279 3274 11 9307 1328 30800 11 2814 47675 25605 11 321 60445 55404 11 27224 11 321 30246 303 279 1534 4087 13 248046 198 248045 74455 198 248046 1503 11679 28052 9561 30 248046 25899 303 17248 3992 13 248046 198 248045 74455 198 248068 198 1596
+time: 12727.3 ms for 256 positions run (0 from the snapshot; 49.72 ms per position run; first token 12727.1 ms; 980 phases; programs 27 ms; 0 paired positions; 0 prefill chunks)
+headpart die=0 cta=0 rows=2816 actual_index=40 expected_index=40 actual_bits=414cd619 expected_bits=414cd619 valid=1
+headpart die=0 cta=1 rows=2720 actual_index=24936 expected_index=24936 actual_bits=4131330a expected_bits=4131330a valid=1
+headpart die=0 cta=2 rows=2560 actual_index=760 expected_index=760 actual_bits=41900f56 expected_bits=41900f56 valid=1
+headpart die=0 cta=3 rows=2560 actual_index=846 expected_index=846 actual_bits=4154d493 expected_bits=4154d493 valid=1
+headpart die=0 cta=4 rows=2560 actual_index=1076 expected_index=1076 actual_bits=4149ec2d expected_bits=4149ec2d valid=1
+headpart die=0 cta=5 rows=2560 actual_index=1421 expected_index=1421 actual_bits=419dd014 expected_bits=419dd014 valid=1
+headpart die=0 cta=6 rows=2560 actual_index=1596 expected_index=1596 actual_bits=41bdba19 expected_bits=41bdba19 valid=1
+headpart die=0 cta=7 rows=2560 actual_index=1919 expected_index=1919 actual_bits=415556da expected_bits=415556da valid=1
+headpart die=0 cta=8 rows=2560 actual_index=18656 expected_index=18656 actual_bits=4144d7e5 expected_bits=4144d7e5 valid=1
+headpart die=0 cta=9 rows=2560 actual_index=22916 expected_index=22916 actual_bits=41981765 expected_bits=41981765 valid=1
+headpart die=0 cta=10 rows=2560 actual_index=31248 expected_index=31248 actual_bits=416ff6a2 expected_bits=416ff6a2 valid=1
+headpart die=0 cta=11 rows=2560 actual_index=11245 expected_index=11245 actual_bits=4135ddd2 expected_bits=4135ddd2 valid=1
+headpart die=0 cta=12 rows=2560 actual_index=3197 expected_index=3197 actual_bits=4125b0ac expected_bits=4125b0ac valid=1
+headpart die=0 cta=13 rows=2560 actual_index=15666 expected_index=15666 actual_bits=41370157 expected_bits=41370157 valid=1
+headpart die=0 cta=14 rows=2560 actual_index=15893 expected_index=15893 actual_bits=4147e4bd expected_bits=4147e4bd valid=1
+headpart die=0 cta=15 rows=2560 actual_index=8160 expected_index=8160 actual_bits=415fbc70 expected_bits=415fbc70 valid=1
+headpart die=1 cta=0 rows=2816 actual_index=4106 expected_index=4106 actual_bits=40fabf90 expected_bits=40fabf90 valid=1
+headpart die=1 cta=1 rows=2720 actual_index=4554 expected_index=4554 actual_bits=4123e0de expected_bits=4123e0de valid=1
+headpart die=1 cta=2 rows=2560 actual_index=17011 expected_index=17011 actual_bits=41201681 expected_bits=41201681 valid=1
+headpart die=1 cta=3 rows=2560 actual_index=21490 expected_index=21490 actual_bits=41430fb2 expected_bits=41430fb2 valid=1
+headpart die=1 cta=4 rows=2560 actual_index=29717 expected_index=29717 actual_bits=41296fe4 expected_bits=41296fe4 valid=1
+headpart die=1 cta=5 rows=2560 actual_index=21772 expected_index=21772 actual_bits=4124171e expected_bits=4124171e valid=1
+headpart die=1 cta=6 rows=2560 actual_index=22235 expected_index=22235 actual_bits=4139e46c expected_bits=4139e46c valid=1
+headpart die=1 cta=7 rows=2560 actual_index=2041 expected_index=2041 actual_bits=41153004 expected_bits=41153004 valid=1
+headpart die=1 cta=8 rows=2560 actual_index=26639 expected_index=26639 actual_bits=412553bb expected_bits=412553bb valid=1
+headpart die=1 cta=9 rows=2560 actual_index=26973 expected_index=26973 actual_bits=41086924 expected_bits=41086924 valid=1
+headpart die=1 cta=10 rows=2560 actual_index=10841 expected_index=10841 actual_bits=40f718fa expected_bits=40f718fa valid=1
+headpart die=1 cta=11 rows=2560 actual_index=7025 expected_index=7025 actual_bits=4118975f expected_bits=4118975f valid=1
+headpart die=1 cta=12 rows=2560 actual_index=35888 expected_index=35888 actual_bits=416b28e6 expected_bits=416b28e6 valid=1
+headpart die=1 cta=13 rows=2560 actual_index=19962 expected_index=19962 actual_bits=4119324a expected_bits=4119324a valid=1
+headpart die=1 cta=14 rows=2560 actual_index=28175 expected_index=28175 actual_bits=413098c0 expected_bits=413098c0 valid=1
+headpart die=1 cta=15 rows=2560 actual_index=12040 expected_index=12040 actual_bits=412a384e expected_bits=412a384e valid=1
+headpart die=2 cta=0 rows=2816 actual_index=8231 expected_index=8231 actual_bits=40e711e8 expected_bits=40e711e8 valid=1
+headpart die=2 cta=1 rows=2752 actual_index=12793 expected_index=12793 actual_bits=4117939b expected_bits=4117939b valid=1
+headpart die=2 cta=2 rows=2560 actual_index=33532 expected_index=33532 actual_bits=40eea6f8 expected_bits=40eea6f8 valid=1
+headpart die=2 cta=3 rows=2560 actual_index=37756 expected_index=37756 actual_bits=41041ad6 expected_bits=41041ad6 valid=1
+headpart die=2 cta=4 rows=2560 actual_index=13339 expected_index=13339 actual_bits=4108c1f2 expected_bits=4108c1f2 valid=1
+headpart die=2 cta=5 rows=2560 actual_index=9554 expected_index=9554 actual_bits=412c61a1 expected_bits=412c61a1 valid=1
+headpart die=2 cta=6 rows=2560 actual_index=1774 expected_index=1774 actual_bits=40f3af2a expected_bits=40f3af2a valid=1
+headpart die=2 cta=7 rows=2560 actual_index=6070 expected_index=6070 actual_bits=40e72fd1 expected_bits=40e72fd1 valid=1
+headpart die=2 cta=8 rows=2560 actual_index=14485 expected_index=14485 actual_bits=413ae944 expected_bits=413ae944 valid=1
+headpart die=2 cta=9 rows=2560 actual_index=27097 expected_index=27097 actual_bits=4155ecf0 expected_bits=4155ecf0 valid=1
+headpart die=2 cta=10 rows=2560 actual_index=2657 expected_index=2657 actual_bits=40e15f8e expected_bits=40e15f8e valid=1
+headpart die=2 cta=11 rows=2560 actual_index=3045 expected_index=3045 actual_bits=411340f4 expected_bits=411340f4 valid=1
+headpart die=2 cta=12 rows=2560 actual_index=15512 expected_index=15512 actual_bits=40f8e3fe expected_bits=40f8e3fe valid=1
+headpart die=2 cta=13 rows=2560 actual_index=7534 expected_index=7534 actual_bits=40d2a627 expected_bits=40d2a627 valid=1
+headpart die=2 cta=14 rows=2560 actual_index=7929 expected_index=7929 actual_bits=40d88a5e expected_bits=40d88a5e valid=1
+headpart die=2 cta=15 rows=2560 actual_index=7948 expected_index=7948 actual_bits=416354ca expected_bits=416354ca valid=1
+headpart die=3 cta=0 rows=2816 actual_index=28905 expected_index=28905 actual_bits=40a16228 expected_bits=40a16228 valid=1
+headpart die=3 cta=1 rows=2720 actual_index=4435 expected_index=4435 actual_bits=41187e8e expected_bits=41187e8e valid=1
+headpart die=3 cta=2 rows=2560 actual_index=8723 expected_index=8723 actual_bits=40bc3a50 expected_bits=40bc3a50 valid=1
+headpart die=3 cta=3 rows=2560 actual_index=25492 expected_index=25492 actual_bits=40e5642f expected_bits=40e5642f valid=1
+headpart die=3 cta=4 rows=2560 actual_index=9352 expected_index=9352 actual_bits=40dd2d05 expected_bits=40dd2d05 valid=1
+headpart die=3 cta=5 rows=2560 actual_index=1317 expected_index=1317 actual_bits=40a772e7 expected_bits=40a772e7 valid=1
+headpart die=3 cta=6 rows=2560 actual_index=22205 expected_index=22205 actual_bits=40cf3e6a expected_bits=40cf3e6a valid=1
+headpart die=3 cta=7 rows=2560 actual_index=1960 expected_index=1960 actual_bits=40c66392 expected_bits=40c66392 valid=1
+headpart die=3 cta=8 rows=2560 actual_index=6306 expected_index=6306 actual_bits=40e1ad6f expected_bits=40e1ad6f valid=1
+headpart die=3 cta=9 rows=2560 actual_index=35155 expected_index=35155 actual_bits=40ba1595 expected_bits=40ba1595 valid=1
+headpart die=3 cta=10 rows=2560 actual_index=31251 expected_index=31251 actual_bits=40dd9c80 expected_bits=40dd9c80 valid=1
+headpart die=3 cta=11 rows=2560 actual_index=11011 expected_index=11011 actual_bits=40b21cf6 expected_bits=40b21cf6 valid=1
+headpart die=3 cta=12 rows=2560 actual_index=15579 expected_index=15579 actual_bits=40a86da6 expected_bits=40a86da6 valid=1
+headpart die=3 cta=13 rows=2560 actual_index=3475 expected_index=3475 actual_bits=40ae9e54 expected_bits=40ae9e54 valid=1
+headpart die=3 cta=14 rows=2560 actual_index=11848 expected_index=11848 actual_bits=40b4dada expected_bits=40b4dada valid=1
+headpart die=3 cta=15 rows=2560 actual_index=24546 expected_index=24546 actual_bits=4092e155 expected_bits=4092e155 valid=1
+headpart die=4 cta=0 rows=2816 actual_index=32785 expected_index=32785 actual_bits=410fc7ba expected_bits=410fc7ba valid=1
+headpart die=4 cta=1 rows=2720 actual_index=4426 expected_index=4426 actual_bits=40e9dcaa expected_bits=40e9dcaa valid=1
+headpart die=4 cta=2 rows=2560 actual_index=4653 expected_index=4653 actual_bits=40c3c73c expected_bits=40c3c73c valid=1
+headpart die=4 cta=3 rows=2560 actual_index=21466 expected_index=21466 actual_bits=41094cf4 expected_bits=41094cf4 valid=1
+headpart die=4 cta=4 rows=2560 actual_index=21617 expected_index=21617 actual_bits=40ef0ed2 expected_bits=40ef0ed2 valid=1
+headpart die=4 cta=5 rows=2560 actual_index=5431 expected_index=5431 actual_bits=4101b3f2 expected_bits=4101b3f2 valid=1
+headpart die=4 cta=6 rows=2560 actual_index=26303 expected_index=26303 actual_bits=40c62985 expected_bits=40c62985 valid=1
+headpart die=4 cta=7 rows=2560 actual_index=6082 expected_index=6082 actual_bits=40cd14cb expected_bits=40cd14cb valid=1
+headpart die=4 cta=8 rows=2560 actual_index=22536 expected_index=22536 actual_bits=40c2f356 expected_bits=40c2f356 valid=1
+headpart die=4 cta=9 rows=2560 actual_index=10498 expected_index=10498 actual_bits=4106124c expected_bits=4106124c valid=1
+headpart die=4 cta=10 rows=2560 actual_index=27262 expected_index=27262 actual_bits=40d22248 expected_bits=40d22248 valid=1
+headpart die=4 cta=11 rows=2560 actual_index=15206 expected_index=15206 actual_bits=40bcba9d expected_bits=40bcba9d valid=1
+headpart die=4 cta=12 rows=2560 actual_index=11368 expected_index=11368 actual_bits=40ccd4fd expected_bits=40ccd4fd valid=1
+headpart die=4 cta=13 rows=2560 actual_index=15803 expected_index=15803 actual_bits=40df224e expected_bits=40df224e valid=1
+headpart die=4 cta=14 rows=2560 actual_index=3750 expected_index=3750 actual_bits=4118457f expected_bits=4118457f valid=1
+headpart die=4 cta=15 rows=2560 actual_index=20333 expected_index=20333 actual_bits=40e313df expected_bits=40e313df valid=1
+headpart die=5 cta=0 rows=2816 actual_index=41157 expected_index=41157 actual_bits=41331a8a expected_bits=41331a8a valid=1
+headpart die=5 cta=1 rows=2752 actual_index=8552 expected_index=8552 actual_bits=40907042 expected_bits=40907042 valid=1
+headpart die=5 cta=2 rows=2560 actual_index=12943 expected_index=12943 actual_bits=40c0d4d7 expected_bits=40c0d4d7 valid=1
+headpart die=5 cta=3 rows=2560 actual_index=13134 expected_index=13134 actual_bits=40c2f2e7 expected_bits=40c2f2e7 valid=1
+headpart die=5 cta=4 rows=2560 actual_index=5253 expected_index=5253 actual_bits=40aea410 expected_bits=40aea410 valid=1
+headpart die=5 cta=5 rows=2560 actual_index=13733 expected_index=13733 actual_bits=40bd04ec expected_bits=40bd04ec valid=1
+headpart die=5 cta=6 rows=2560 actual_index=1577 expected_index=1577 actual_bits=40bef6f0 expected_bits=40bef6f0 valid=1
+headpart die=5 cta=7 rows=2560 actual_index=18319 expected_index=18319 actual_bits=40ffedf1 expected_bits=40ffedf1 valid=1
+headpart die=5 cta=8 rows=2560 actual_index=34877 expected_index=34877 actual_bits=40d60342 expected_bits=40d60342 valid=1
+headpart die=5 cta=9 rows=2560 actual_index=2468 expected_index=2468 actual_bits=40d66591 expected_bits=40d66591 valid=1
+headpart die=5 cta=10 rows=2560 actual_index=31386 expected_index=31386 actual_bits=40b87bb1 expected_bits=40b87bb1 valid=1
+headpart die=5 cta=11 rows=2560 actual_index=35609 expected_index=35609 actual_bits=40cf74b6 expected_bits=40cf74b6 valid=1
+headpart die=5 cta=12 rows=2560 actual_index=15548 expected_index=15548 actual_bits=40c015a2 expected_bits=40c015a2 valid=1
+headpart die=5 cta=13 rows=2560 actual_index=32029 expected_index=32029 actual_bits=40b63c7f expected_bits=40b63c7f valid=1
+headpart die=5 cta=14 rows=2560 actual_index=16094 expected_index=16094 actual_bits=40a299ff expected_bits=40a299ff valid=1
+headpart die=5 cta=15 rows=2560 actual_index=28447 expected_index=28447 actual_bits=40c549e4 expected_bits=40c549e4 valid=1
+headwinner die=0 actual_index=1596 expected_index=1596 actual_bits=41bdba19 expected_bits=41bdba19 token=1596 valid=1
+headwinner die=1 actual_index=1596 expected_index=1596 actual_bits=41bdba19 expected_bits=41bdba19 token=1596 valid=1
+headwinner die=2 actual_index=1596 expected_index=1596 actual_bits=41bdba19 expected_bits=41bdba19 token=1596 valid=1
+headwinner die=3 actual_index=1596 expected_index=1596 actual_bits=41bdba19 expected_bits=41bdba19 token=1596 valid=1
+headwinner die=4 actual_index=1596 expected_index=1596 actual_bits=41bdba19 expected_bits=41bdba19 token=1596 valid=1
+headwinner die=5 actual_index=1596 expected_index=1596 actual_bits=41bdba19 expected_bits=41bdba19 token=1596 valid=1
+headaudit_end parts=96 rows=248320 failures=0
+{"arm":"teacher-forced-candidate","run":0,"output_mismatches":0,"state_mismatches":0,"state_checked":false,"output_checked":true,"correct":true}
+resident_decode_bench: 1 256-position output(s) match frozen scalar reference; no matched live A/B

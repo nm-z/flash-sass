@@ -401,6 +401,7 @@ int main(int argc,char **argv) {
         if(getenv("BENCH_CUDA_DEBUG") && atoi(getenv("BENCH_CUDA_DEBUG")))workload="cuda-debug-diagnostic";
         if(getenv("FLASH_FAULT_CTL") && atoi(getenv("FLASH_FAULT_CTL")))workload="fault-phase-diagnostic";
         if(getenv("BENCH_QSA_AUDIT") && atoi(getenv("BENCH_QSA_AUDIT")))workload="qsa-component-audit";
+        if(getenv("BENCH_HEAD_AUDIT") && atoi(getenv("BENCH_HEAD_AUDIT")))workload="head-component-audit";
         if(pair_cost && plain_decode)name=arm?"teacher-forced-candidate":"teacher-forced-baseline";
         if(plain_decode && getenv("BENCH_BASE_PHASE") && atoi(getenv("BENCH_BASE_PHASE")))name=arm?"split-candidate":"phase-baseline";
         printf("{\"arm\":\"%s\",\"workload\":\"%s\",\"prompt_tokens\":%d,\"generated_tokens\":%d,\"warmup_runs\":%d,\"baseline_compared\":%s,\"reference_kind\":\"%s\"}\n",name,repeatability?"same_kernel_repeatability":workload,pair_cost?positions:64*prompt_copies,pair_cost?0:generate,arm&&verify_matrix?8:1,(candidate_only||repeatability)?"false":"true",repeatability?"first_request_same_kernel":mtp_audit>=2?"none":reference?"frozen_scalar":"first_run");
@@ -453,6 +454,19 @@ int main(int argc,char **argv) {
             }
             free(line); fflush(stdout);
             if(!done||n!=positions) fail("incomplete generation");
+            if(getenv("BENCH_HEAD_AUDIT") && atoi(getenv("BENCH_HEAD_AUDIT"))) {
+                fputs("headaudit\n",f);fflush(f);char *hl=NULL;size_t hc=0;int complete=0;
+                while(getline(&hl,&hc,f)>0){
+                    fputs(hl,stdout);
+                    if(!strncmp(hl,"headaudit_end ",14)){
+                        unsigned parts,rows,bad;
+                        if(sscanf(hl,"headaudit_end parts=%u rows=%u failures=%u",&parts,&rows,&bad)!=3)fail("invalid head audit summary");
+                        mismatches+=bad;if(!bad && (parts!=96 || rows!=248320))mismatches++;
+                        complete=1;break;
+                    }
+                }
+                free(hl);if(!complete)fail("incomplete head audit");
+            }
             if(getenv("BENCH_QSA_AUDIT") && atoi(getenv("BENCH_QSA_AUDIT"))) {
                 fputs("qsaaudit\n",f);fflush(f);
                 char *al=NULL;size_t ac=0;int complete=0;

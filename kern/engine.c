@@ -197,7 +197,7 @@ static void check_fused_moe_module(CUmodule module) {
         fprintf(stderr,"engine: body trace image requires FLASH_BODY_TRACE=1\n");CK(CUDA_ERROR_INVALID_IMAGE);
     }
     CUresult balanced_marker=cuModuleGetFunction(&marker,module,"flash_balanced_rows_abi_v1");
-    if(row_balance)CK(balanced_marker);
+    if(row_balance){CK(balanced_marker);CK(cuModuleGetFunction(&marker,module,"flash_balance_head_cta_abi_v1"));}
     else if(balanced_marker==CUDA_SUCCESS) {
         fprintf(stderr,"engine: balanced SASS requires row-balanced holders and program\n");
         CK(CUDA_ERROR_INVALID_IMAGE);
@@ -1980,6 +1980,7 @@ const char *engine_reload_path(void) { return reload_path[0] ? reload_path : NUL
 #include "phase/exchange_host.inc"
 #include "balance/body_host.inc"
 #include "balance/qsa_audit.inc"
+#include "balance/head_audit.inc"
 
 int engine_session(FILE *in, FILE *out) {
 	last_timing_valid=0;
@@ -2070,6 +2071,7 @@ int engine_session(FILE *in, FILE *out) {
 			fprintf(out, "\n"); fflush(out); free(ts); continue;
 		}
 		if (!strcmp(p, "qsaaudit\n")) { qsa_audit(out); continue; }
+		if (!strcmp(p, "headaudit\n")) { balance_head_audit(out); continue; }
 		if (!strncmp(p, "statehash", 9)) { state_hashes(out,strstr(p,"detail")!=NULL); continue; }
         if(!strncmp(p,"tokenaudit",10)){token_audit(out);fflush(out);continue;}
 #ifdef FLASH_VERIFY_NATIVE
