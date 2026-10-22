@@ -13,6 +13,11 @@ local maps=[=[    64,65 : xt_ptr<0-1>
     74 : xt_hi_after
     75 : xt_tmp
     78,79 : xt_epoch<0-1>
+    80,81 : xt_hash<0-1>
+    82 : xt_value
+    83 : xt_shift
+    84 : xt_shift2
+    85 : xt_iter
     200-202 : xt_seen<0-2>
 ]=]
 local function insert(a,b)
@@ -40,7 +45,8 @@ local function address(tag,arrival)
 --:-:-:-:6 NOP;
 --:-:-:-:6 NOP;
 --:-:-:-:6 @!P1 BRA @_DONE;
---:-:-:-:6 XMAD xt_offset, xt_token, nph, pidx;
+--:-:-:-:6 SHL xt_offset, xt_token, 0xc;
+--:-:-:-:6 IADD xt_offset, xt_offset, pidx;
 --:-:-:-:6 SHL xt_offset, xt_offset, 0xb;
 01:-:-:-:6 IADD xt_ptr0.CC, xt_ptr0, xt_offset;
 --:-:-:-:6 IADD.X xt_ptr1, xt_ptr1, RZ;
@@ -111,4 +117,46 @@ local arrival=address('XT_ARRIVAL',true)..[=[
 XT_ARRIVAL_DONE:
 ]=]
 insert('04:-:-:-:6      IMNMX.U32 bar_t, bar_t, bar_one, PT;',arrival..'\n04:-:-:-:6      IMNMX.U32 bar_t, bar_t, bar_one, PT;')
+-- Fingerprint the immutable incoming residual before each GR body. Only
+-- CTA0/warp0 participates, and only within the configured trace window.
+-- This adds no phase and retains the production operation and dependencies.
+if arg[3]=='gr_input_hash' then
+for _,op in ipairs({'bf16hcrx','bf16hcrwx','grreadsum'})do
+ local anchor=op..'_SETUP:'
+ if s:find(anchor,1,true)then
+  local tag='XT_GR_'..op
+  local code=address(tag,true)..[=[
+--:-:1:-:2 LDS.64 xt_ctl0, [RZ+0xbf90];
+--:-:-:-:6 SHL xt_tmp, lane, 0x2;
+01:-:-:-:6 IADD xt_ctl0.CC, xt_ctl0, xt_tmp;
+--:-:-:-:6 IADD.X xt_ctl1, xt_ctl1, RZ;
+--:-:-:-:6 MOV32I xt_hash0, 0x811c9dc5;
+--:-:-:-:6 MOV32I xt_hash1, 0x9e3779b9;
+--:-:-:-:6 MOV xt_iter, RZ;
+@_HASH:
+--:-:1:-:2 LDG.E.CV xt_value, [xt_ctl];
+01:-:-:-:6 LOP.XOR xt_hash0, xt_hash0, xt_value;
+--:-:-:-:6 SHL xt_shift, xt_hash0, 0x5;
+--:-:-:-:6 SHR.U32 xt_shift2, xt_hash0, 0x1b;
+--:-:-:-:6 LOP.OR xt_hash0, xt_shift, xt_shift2;
+--:-:-:-:6 IADD xt_hash1, xt_hash1, xt_value;
+--:-:-:-:6 SHL xt_shift, xt_hash1, 0x7;
+--:-:-:-:6 SHR.U32 xt_shift2, xt_hash1, 0x19;
+--:-:-:-:6 LOP.OR xt_hash1, xt_shift, xt_shift2;
+--:-:-:-:6 IADD xt_ctl0.CC, xt_ctl0, 0x80;
+--:-:-:-:6 IADD.X xt_ctl1, xt_ctl1, RZ;
+--:-:-:-:6 IADD xt_iter, xt_iter, 0x1;
+--:-:-:-:6 ISETP.LT.U32.AND P1, PT, xt_iter, 0x140, PT;
+--:-:-:-:6 NOP;
+--:-:-:-:6 NOP;
+--:-:-:-:6 NOP;
+--:-:-:-:6 @P1 BRA @_HASH;
+--:1:-:-:6 STG.E.64 [xt_ptr+0x700], xt_hash0;
+01:-:-:-:6 NOP;
+]=]
+  code=code:gsub('@_',tag..'_')..tag..'_DONE:\n'
+  insert(anchor,anchor..'\n'..code)
+ end
+end
+end
 f=assert(io.open(assert(arg[2]),'w'));f:write(s);f:close()

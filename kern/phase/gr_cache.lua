@@ -60,6 +60,16 @@ body=rep(body,'--:-:-:-:6      MOV grreadsum_tid, vtid;', [=[--:-:-:-:6 XMAD grr
 --:-:-:-:6 IADD grreadsum_param_YG0.CC, grreadsum_param_YG0, grreadsum_tmp0;
 --:-:-:-:6 IADD.X grreadsum_param_YG1, grreadsum_param_YG1, RZ;
 --:-:-:-:6      MOV grreadsum_tid, vtid;]=])
+-- These arrays are rewritten inside the same persistent launch. Keep immutable
+-- weights/norms on CI, but do not read the private sum cache or residual through
+-- the noncoherent read-only path. A CTA rendezvous is not a cache-coherence rule.
+local coherent=0
+body=body:gsub('([^\n]*LDG%.E)%.CI([^\n]*%[grreadsum_([%w]+)[^\n]*)',function(a,b,ptr)
+ if ptr=='sp' or ptr=='yb' then coherent=coherent+1;return a..'.CV'..b end
+ return a..'.CI'..b
+end)
+body=body:gsub('LDG%.E%.CI%.128 grcache_tmp0','LDG.E.CV.128 grcache_tmp0')
+assert(coherent==60,'unexpected mutable GR load geometry')
 local first=assert(s:find('grreadsum_SETUP:',1,true))
 local last=assert(s:find('\nPOSITION_END:',first,true))
 s=s:sub(1,first-1)..body..s:sub(last)

@@ -102,3 +102,116 @@ request of the same arm, in addition to output and six-GPU/stream consensus.
 QSA combined hashes include unused positional padding, so those are printed
 but are not used as an equality oracle. Further cross-kernel correctness tests
 remain deferred until self-repeatability is established.
+
+## Further isolation after the first publication
+
+The all48/24-stage attempts above were not reduced model runs: they failed
+allocation while retaining the complete48-layer model. Eight replicated stages
+**do** fit. Job `3a2671b8-b5dd-40f5-842e-f056a28339be` executes all48 layers/head
+and reports **499 phases,160 local grid joins,338 peer acquires on every die**.
+That is16 fewer actual exchanges. Its three post-warmup requests average37.003
+TPS, against37.090 for its matched baseline, but one candidate request diverges
+and has216 different GDN states after autoregressive feedback. These numbers
+are diagnostic; the split is opt-in and is not claimed as a validated speedup.
+The canonical memory samples peak at7,601 of7,618 MiB on the tightest GPU, so
+another stage cannot be assumed to fit with a useful allocation margin.
+
+Long-context job `ac49077b-ef12-4395-a3b3-51966dae307d` completes two4096/16
+requests per arm. Each kernel repeats its own output, and all six GPUs agree
+with the delivered stream. This is output repeatability on that workload;
+it does not erase the short-workload failures or establish internal-state
+repeatability at long context.
+
+Further full-model diagnostics retain all fusions and499 phases:
+
+- `7151cde2-b023-41d5-bc87-aca02e624e81`: coherent GR scratch/residual loads
+  still fail64/128 repeatability. Immutable weights/norms retain cached loads.
+- `8f3b1bdf-193b-4a3d-8c69-074d89958dad`: forcing499 local grid joins while
+  retaining all merged bodies still fails. Local join elision alone does not
+  explain the failure; this mode is diagnostic and off by default.
+- `bfb4f242-d766-437f-995d-21289a439a29`: separate descriptor payload/mask
+  completion barriers, independent S2R thread/block IDs and mixed timeout-read
+  completion barriers still do not establish candidate repeatability.
+- `3094c653-53d6-4386-80f6-cda75791e37a`: a traced fixed128-token prompt,
+  four repeated requests, matches all216 GDN state hashes and GR input
+  fingerprints in positions94..97. Instrumentation changes timing; this is
+  not evidence that the uninstrumented failure is fixed.
+
+Trace ABI v2 uses a fixed4096-descriptor stride, allowing selected prompt
+windows across the prefill/decode program boundary. `BENCH_XTRACE_HASH_ONLY=1`
+prints the GR input fingerprints without incorrectly treating unexecuted
+prefill head descriptors as missing exchange records. Fingerprints are
+observational diagnostics, not an independent model-correctness oracle.
+The original v1 timing export and report input above remain bound to their
+original source snapshot and layout.
+
+GPUQ interrupted `1dd224db-acb0-456c-b496-7b8edd358bad` during a baseline
+request with `SQLite3::BusyException: database is locked`, terminating the
+client with SIGTERM. [GPUQ69](https://github.com/nm-z/gpuq/issues/69) records
+that failure; the terminal job was rerun as7151cde2 after restoration. No result
+is claimed for the interrupted run. A separate early-closed metrics pipe is
+[GPUQ68](https://github.com/nm-z/gpuq/issues/68).
+
+## Host readiness lifetime and uninstrumented failures
+
+[Issue137](https://github.com/nm-z/flash-sass/issues/137) records a second
+definite lifetime bug: core-owned PLE readiness flags survive a library reload,
+while the library-local request epoch restarts. Job
+`6c164217-8cd9-4a94-b05a-7d2cb357931a` observed191 old flags equal to the new
+epoch before launch. The engine now clears the request's readiness span before
+launch. This removes that alias; it does not establish candidate determinism.
+
+The same job includes coherent loads for mutable device data and invalidating
+loads for CPU-written compact PLE payloads. Baseline outputs and all216 GDN
+states repeat across four requests; candidate output still varies. Explicitly
+zeroing fresh-sequence scratch in `1e4f4a4b-52b3-419d-bf29-3da3d10cdd67` also
+does not resolve the candidate failure.
+
+Fixed-input full-head job `6aaba820-27ba-4889-b26f-809436fa4fe4` evaluates256
+supplied positions without autoregressive feedback. Candidate predictions and
+internal states vary. This isolates a fault before feedback amplification.
+
+Updated-residual observer job `655b56b7-51a8-4ad0-95de-71f059b4c7eb` captures
+583,680 fingerprints:95 GR writes at256 positions, six dies, four requests.
+There are no temporal or cross-die differences. This is an observer result:
+the added instructions change timing and cannot qualify the uninstrumented
+kernel. See `gr-hash-first-differences.md` and `phase/gr_hash_report.lua`.
+The initial v14 observer faulted because a branch used the distributed-output
+predicate P6, which is not warp-uniform. The corrected observer computes on
+all lanes and predicates only its final stores.
+
+Retiring residual stores before reuse in
+`e89ee2dc-22eb-4e7f-98d2-b568e16a1a07` makes the four output streams agree,
+but one request still differs in210 GDN states, beginning at layer1.
+Explicitly completing each six-word host PLE read packet in
+`cdbe6957-d73a-4cc8-91d7-6075f2b9bfad` passes all four output/state repeats.
+The latter job measures **34.7464 TPS** averaged over three warm requests,
+64 prompt positions and128 generated tokens, no MTP, no trace. All six dies
+report499 phases,144 local grid joins and354 peer exchanges. This is slower
+than the earlier approximately40 TPS kernel.
+
+The subsequent fixed-input gate
+`ec1db389-9bdd-43d6-94bf-86b7094a6535` contradicts a general determinism claim:
+baseline repeats, but candidate request2 differs at positions177 and241 and
+in210 GDN states beginning at layer1. The ordinary pass therefore remains
+unqualified. Diagnostic `c3a2d851-3fbc-41cf-bcbc-1a853dfa1ba5`, which waits
+immediately after variable-latency operations throughout operator bodies,
+also fails. It preserves the complete model and499 phases; serializing those
+bodies alone does not explain the race. Frame-inclusive completion isolation
+is the next diagnostic, not a proposed performance configuration.
+
+Whole-kernel variable-completion job
+`9c36232f-7393-4997-a71d-a84f6a4a7bd3` also fails:77,13 and2 output
+mismatches in the three repeats,216 GDN state mismatches in each. GPU/host
+stream and next-input agreement remain exact. Adding a13-cycle minimum
+scheduled gap to every original instruction as well as immediate variable
+completion waits in `e8ababfd-be5a-4192-ae35-e4e098df95b4` passes the four
+ordinary64/128 requests, including216 states each. These deliberately slow
+images retain all499 phases. A fixed-input gate is required before drawing a
+scheduling conclusion; changing issue timing can also mask a data race.
+
+`phase/predicate_cfg.lua` audits minimum predicate age through labels and
+direct branch edges, terminating paths at unknown BRX edges. It reports zero
+sub13-cycle fixed predicate candidates in the current production image. This
+extends the straight-line audit but does not prove full instruction scheduling
+or indirect control-flow correctness.

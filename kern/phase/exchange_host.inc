@@ -3,19 +3,38 @@ static void exchange_trace_dump(FILE *out,int d) {
     if(d<0 || d>=nd || !xtrace_n || !last_timing.counts_final || last_timing.error_code) {
         fprintf(out,"error: xtrace requires an enabled completed request\n");return;
     }
-    size_t bytes=(size_t)xtrace_count*prof_desc[d]*2048;
+    int hash_only=getenv("FLASH_XTRACE_HASH_ONLY") && atoi(getenv("FLASH_XTRACE_HASH_ONLY"));
+    size_t bytes=(size_t)xtrace_count*(gr_write_trace?128:4096)*2048;
     uint64_t *data=malloc(bytes);if(!data){fprintf(out,"error: xtrace allocation\n");return;}
     CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoH(data,dXTRACE[d],bytes));
     unsigned records=0,bad=0;
     for(unsigned t=0;t<xtrace_count;t++) {
-        int sender=-1;
+        int sender=-1;unsigned gr_slot=0;
         for(int p=0;p<prof_nph[d];p++) {
             unsigned flags=prof_flags[d][p],index=prof_index[d][p];
-            const uint64_t *acq=data+((size_t)t*prof_desc[d]+index)*256;
+            if(gr_write_trace) {
+                if(prof_op[d][p]!=94 && prof_op[d][p]!=OP_BF16HCRWX)continue;
+                const uint64_t *r=data+((size_t)t*128+gr_slot++)*256;
+                uint64_t seen=0,hash=14695981039346656037ull;for(unsigned k=0;k<256;k++)seen|=r[k];
+                if(!seen)continue;
+                const unsigned char *raw=(const unsigned char *)r;
+                for(unsigned k=0;k<2048;k++)hash=(hash^raw[k])*1099511628211ull;
+                fprintf(out,"grhash request=%llu position=%u die=%d phase=%d layer=%d op=%s point=updated_residual hash=%016llx\n",last_timing.request_id,xtrace_first+t,d,p,prof_layer[d][index],profile_op_name(prof_op[d][p]),(unsigned long long)hash);
+                records++;continue;
+            }
+            const uint64_t *acq=data+((size_t)t*4096+index)*256;
+            if(acq[224]) {
+                uint64_t hash=14695981039346656037ull;
+                const unsigned char *bytes=(const unsigned char *)(acq+224);
+                for(unsigned k=0;k<256;k++)hash=(hash^bytes[k])*1099511628211ull;
+                fprintf(out,"grhash request=%llu position=%u die=%d phase=%d layer=%d op=%s hash=%016llx\n",last_timing.request_id,xtrace_first+t,d,p,prof_layer[d][index],profile_op_name(prof_op[d][p]),(unsigned long long)hash);
+                if(hash_only)records++;
+            }
+            if(hash_only)continue;
             if(flags&2u) {
                 if(sender<0){bad++;continue;}
                 unsigned si=prof_index[d][sender];
-                const uint64_t *src=data+((size_t)t*prof_desc[d]+si)*256;
+                const uint64_t *src=data+((size_t)t*4096+si)*256;
                 uint64_t ready=0,pub=0,start_min=UINT64_MAX,start_max=0,end=0,epoch=acq[5],arrivals[6]={0};
                 int valid=epoch!=0;
                 for(unsigned c=0;c<16;c++) {

@@ -4,6 +4,23 @@ local function replace(a,b)
  local i=assert(s:find(a,1,true),'missing '..a);assert(not s:find(a,i+#a,true),'ambiguous '..a)
  s=s:sub(1,i-1)..b..s:sub(i+#a)
 end
+replace('--:-:6:-:1      S2R tid, SR_TID.X;', '--:-:5:-:1      S2R tid, SR_TID.X;')
+replace('20:-:-:-:6      LOP32I.AND lane, tid, 0x1f;', '30:-:-:-:6      LOP32I.AND lane, tid, 0x1f;')
+-- Descriptor payload and token-offset mask are independent global loads.
+-- Keep both completions live across the footer and wait for both consumers.
+local masks,consumers=0,0
+s=s:gsub('([^\n]*):4:%-:2([^\n]*LDG%.E vid, %[dsp%+0x7c%];)',function(a,b)masks=masks+1;return a..':5:-:2'..b end)
+s=s:gsub('09:%-:%-:%-:6      SHR%.U32 vid, vid, lane;',function()consumers=consumers+1;return '19:-:-:-:6      SHR.U32 vid, vid, lane;'end)
+assert(masks==consumers+1 and (masks==3 or masks==6),'unexpected descriptor completion geometry '..masks..'/'..consumers)
+-- Do not reuse a pending descriptor-mask completion barrier for the mixed
+-- S2R/LDS timeout pair. Different pipelines can complete out of issue order.
+local clocks,clock_uses=0,0
+s=s:gsub('%-%-:%-:6:%-:2([^\n]*LDS bar_old, %[RZ%+0xbf5c%];)',function(rest)clocks=clocks+1;return '--:-:1:-:2'..rest end)
+s=s:gsub('20:%-:%-:%-:6([^\n]*IADD (bar_[%w]+),[^\n]*%-bar_old;)',function(rest,reg)
+ if reg=='bar_t' or reg=='bar_g2' then clock_uses=clock_uses+1;return '21:-:-:-:6'..rest end
+ return '20:-:-:-:6'..rest
+end)
+assert(clocks==clock_uses and clocks>=3,'unexpected timeout completion geometry')
 replace('--:-:-:-:6      ISETP.EQ.U32.AND P2, PT, cta, RZ, P4;',
         '--:-:-:Y:d      ISETP.EQ.U32.AND P2, PT, cta, RZ, P4;')
 local old='20:3:-:-:6  @P4 STG.E [bar_cp+0x100], bar_g2;'

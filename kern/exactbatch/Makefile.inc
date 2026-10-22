@@ -31,15 +31,19 @@ die_phase.sass: die.sass die_gr.sass phase/gr_cache.lua phase/quant.lua phase/lo
 	$(LUA) phase/waits.lua $@.chain $@.waits
 	$(LUA) phase/kv_tail.lua $@.waits $@.tail
 	$(LUA) phase/frame_dependencies.lua $@.tail $@.frame
-	$(LUA) phase/predicate_latency.lua $@.frame $@ $@.predicate.csv
+	$(LUA) phase/mutable_loads.lua $@.frame $@.coherent $@.loads.csv
+	$(LUA) phase/predicate_latency.lua $@.coherent $@ $@.predicate.csv
 
 die_deterministic.sass: die.sass phase/kv_tail.lua phase/frame_dependencies.lua phase/predicate_latency.lua
 	$(LUA) phase/kv_tail.lua $< $@.tail
 	$(LUA) phase/frame_dependencies.lua $@.tail $@.frame
-	$(LUA) phase/predicate_latency.lua $@.frame $@ $@.predicate.csv
+	$(LUA) phase/mutable_loads.lua $@.frame $@.coherent $@.loads.csv
+	$(LUA) phase/predicate_latency.lua $@.coherent $@ $@.predicate.csv
 die_deterministic.cubin: die_deterministic.sass skel_die.cubin
 	cp skel_die.cubin $@
 	$(MAXAS) -i die_deterministic.sass $@
+
+die_phase.sass die_deterministic.sass: phase/mutable_loads.lua
 
 die_phase_xtrace.sass: die_phase.sass phase/exchange_trace.lua
 	$(LUA) phase/exchange_trace.lua $< $@
@@ -74,6 +78,20 @@ die_phase_replica_xtrace.cubin: die_phase_replica_xtrace.sass die_phase_replica_
 die_phase.cubin: die_phase.sass die_phase.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ die_phase.ptx
 	$(MAXAS) -i die_phase.sass $@
+
+die_phase_grhash.sass: die_phase.sass phase/gr_write_trace.lua
+	$(LUA) phase/gr_write_trace.lua $< $@
+die_phase_grhash.ptx: die_phase.ptx phase/xtrace_marker.ptxinc phase/gr_write_marker.ptxinc
+	cat $^ > $@
+die_phase_grhash.cubin: die_phase_grhash.sass die_phase_grhash.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ die_phase_grhash.ptx
+	$(MAXAS) -i die_phase_grhash.sass $@
+
+die_phase_serial.sass: die_phase.sass phase/serial_dependencies.lua
+	$(LUA) phase/serial_dependencies.lua $< $@ $(or $(SERIAL_SCOPE),body) $(SERIAL_FIXED)
+die_phase_serial.cubin: die_phase_serial.sass die_phase.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ die_phase.ptx
+	$(MAXAS) -i die_phase_serial.sass $@
 
 libengine.so libengine_exact.so libengine_mtp.so libengine_mtp_chunk.so libengine_dflash.so libengine_verify.so libengine_chunk.so: phase/plan.h phase/ownership.h phase/gr_replica.h phase/exchange_host.inc
 
