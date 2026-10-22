@@ -1,16 +1,23 @@
 # Exchange measurements, split change, and repeatability qualification
 
-This is work in progress for the three requested items. The full objective is
-not complete. V33 passes the ordinary and fixed-input self-repeatability gates
-but fails the long-context repeat. V35 and v36 repeat long-context output
-tokens but still differ in recurrent state. V38's all-writer release also fails
-the long-context state repeat. V39 passes the two-request long-context repeat
-in both arms; current-source ordinary/fixed and matched split qualification
-remain in progress. Earlier
-failures below are retained as evidence.
+The final v39 evidence covers all three requested items: per-exchange local
+timings with bounded producer-skew decomposition, an executed split change
+that removes16 peer acquires per token per die, and repeatability repairs
+qualified before cross-image output comparison. The original baseline,
+normal499-phase image and eight-stage replica all pass ordinary, fixed-input
+and long-context same-image gates. Their saved greedy output-token comparisons
+match on the tested workloads. Earlier failures below remain as evidence.
+
+The split is **not a speedup**: matched64/128 warm decode is31.4909 TPS normal
+versus30.1612 TPS replicated. It changes354 peer acquires to338, retaining499
+phases; it does not reach the earlier estimated2–4 exchanges per layer.
+See the [completion evidence](completion-audit.md),
+[final exchange measurements and overhead](v39-exchanges/README.md), and
+[matched operation table](v39-split-profile/operations.md).
 Full48-stage FFN GR replication does not fit archy's current memory placement;
 the eight-stage variant fits and reduces actual exchanges, but its earlier run
-was not qualified. No cross-kernel correctness oracle is claimed.
+was not qualified. The final v39 gates and finite output comparisons below
+supersede that earlier qualification status.
 
 ## Per-exchange observations
 
@@ -43,7 +50,7 @@ as if their origins were shared. Tracer overhead and polling resolution remain
 in the communication/polling bounds. The instrumented decode rates were
 39.087 baseline and39.912 candidate TPS; these are diagnostic, not a valid
 correctness-qualified speedup. A matched uninstrumented overhead experiment
-for the final fixed kernel remains outstanding.
+for the final fixed kernel is now recorded in `v39-exchanges/README.md`.
 
 In the candidate's routed-down → GR-read family, the observed six-die average
 is2,810 µs/token/die, with2,281–2,598 µs attributable to producer skew and
@@ -75,8 +82,8 @@ The memory snapshot in job `473aaf77-2130-47ef-b070-ab80104520c8` reports7,618
 MiB per GPU, with175–266 MiB free on the six inference GPUs in recovered startup
 configuration. The balanced runtime also copies relocated attention weights.
 The later eight-stage job below establishes a feasible actual split, but fails
-repeatability. A matched qualification on the current fixed source is still
-required. The router is already fully replicated and has no peer exchange of
+repeatability. The matched v39 qualification below passes the selected gates.
+The router is already fully replicated and has no peer exchange of
 its own to eliminate.
 
 ## Determinism evidence and fixes
@@ -501,7 +508,7 @@ Both arms pass their two4,096/16 requests: zero output,216-state,
 component-value, token-consensus and PLE input-history mismatches. Candidate
 warm decode is28.0880 TPS, matched baseline29.0467 TPS. This is a long-context
 repeatability pass, not a performance improvement or exhaustive proof.
-Current-source ordinary/fixed and split qualifications remain pending.
+Subsequent ordinary/fixed and split qualifications below also pass.
 A stale status-polling shell was
 temporarily suspended, and this retry is monitored through read-only SQLite
 queries rather than GPUQ commands that initialize a writer connection.
@@ -526,11 +533,40 @@ preserves both images' inclusive final-token profiles.
 Fixed-input job `5930993a-ed67-43cc-8e28-acc21ad9cf93` passes four
 256-position requests per image, with zero output, state, component-value,
 consensus and PLE input-history mismatches. Replicated long-context job
-`bf4c9410-f917-4b51-bc87-761bcdfe6f51` is running two4,096/16 requests of
+`bf4c9410-f917-4b51-bc87-761bcdfe6f51` passes two4,096/16 requests of
 the split image only; the unchanged normal image already passed that gate.
-Replicated long-context qualification and
-the fresh traced/untraced comparison remain pending. No cross-kernel token
-oracle comparison has been made while these repeatability gates are pending.
+Its warm decode rate is27.0895 TPS (not a matched live A/B). All216 state
+hashes and432 component-value rows repeat, with zero token consensus or
+PLE input-history mismatches.
+
+After all repeatability gates passed, an offline comparison of the saved first
+requests found zero output-token differences: normal versus replicated split
+over128 generated tokens, normal versus replicated split over256 fixed-input
+predictions, original versus normal image over16 long-context generated tokens,
+and normal versus replicated split over16 long-context generated tokens.
+These comparisons use captured full-head outputs; they are finite greedy
+workloads, not a proof for arbitrary prompts or sampling distributions.
+
+Untraced control `4c91b069-5d11-4576-942c-fb35d3b9e93e` and final traced job
+`73ed8630-36f3-47a5-9e7d-36fd7db0584f` both pass four64/16 requests per image.
+The [final report](v39-exchanges/README.md) includes12,456 warm exchange records,
+all six dies, complete354/338 epoch coverage, consistent per-request/token
+clock bounds, and the matched tracing-overhead calculation. Added mean latency
+is0.216289 ms/token normal and0.162783 ms/token replicated. The sequential
+comparison includes ordinary run drift and is not a statistical upper bound.
+
+The original unfused v39 baseline additionally passes four256-position fixed
+requests in `374f3bd1-212a-48d8-a9b4-f100c202c329` and four64/128 requests in
+`2ce8b88b-79bb-41b6-bc35-37490b36392f`. Both include component-value audits.
+Original versus normal saved outputs also match over128 generated and256
+fixed-input predictions. Original short warm decode is32.0498 TPS, measured
+in a separate job rather than a contemporaneous matched A/B.
+
+Final serving-config job `78faf82c-a716-4d9d-b31c-718b3760be34` confirms the
+restored full48-layer baseline: v8 library, `baseline-amax13.cubin`,
+FNV`d215dc737080be6d`,32768 context, FP32 residuals and MTP off. The slower
+replicated candidate is not left serving. Its validated images and sources
+remain frozen under `/home/nate/work/flash-exchange-determinism-v39/`.
 
 The dependency audit now lists mixed-pipeline reuse of a completion barrier as
 an additional review category. Some rows can be safe because of execution
@@ -549,3 +585,15 @@ direct branch edges, terminating paths at unknown BRX edges. It reports zero
 sub13-cycle fixed predicate candidates in the current production image. This
 extends the straight-line audit but does not prove full instruction scheduling
 or indirect control-flow correctness.
+
+## Consolidated database delivery
+
+The single Desktop database export has been refreshed through the final
+serving-config job: `/home/nate/Desktop/flash-sass-gpuq-history-2026-10-21.sqlite3`.
+It contains all1,166 canonical jobs at snapshot time, including interrupted and
+failed attempts. SQLite backup supplied a consistent snapshot; the transferred
+file passes `PRAGMA quick_check`, matches the canonical job count and final job,
+and is stored in DELETE journal mode as one standalone file without WAL/SHM
+sidecars. The original filename was retained; refresh completed on2026-10-22.
+The temporary remote export was removed. The suspended stale polling shell was
+resumed after measurement and backup.
