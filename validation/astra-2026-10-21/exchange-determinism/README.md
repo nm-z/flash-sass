@@ -472,6 +472,8 @@ per arm. Baseline repeats all216 states. Candidate output tokens repeat but
 absolute difference2.37673521e-6; layer0 and the layer1 convolution buffer
 match. Input-history and six-die token consensus audits are clean. Warm decode
 is28.3207 TPS candidate versus29.0633 baseline. This is not a qualified speedup.
+The [saved v38 per-operation table](v38-profile/operations.md) and CSV files
+were extracted from this completed job, without running the model again.
 
 V39 retires a pending completion barrier before reusing it across different
 execution pipelines. The physical audit identifies adjacent shared/global
