@@ -178,7 +178,10 @@ routine('q2moedn',function(body)
  e('LDS.64 bd_bounds0, [RZ+0xbfd0]','--:-:1:-:2');w('01')
  e('MOV bd_owner, RZ')
  l('BALANCED_DOWN_OWNER')
- e('LDG.E.CG.64 bd_low0, [bd_bounds]','--:-:1:-:2');w('01')
+ -- Consecutive owner ranges advance by one u32. Odd owners are only
+ -- four-byte aligned, so a vector64 load is not legal on Maxwell.
+ e('LDG.E.CG bd_low0, [bd_bounds]','--:-:1:-:2')
+ e('LDG.E.CG bd_low1, [bd_bounds+0x4]','--:-:2:-:2');w('03')
  e('LDS q2moedn_param_Y0, [RZ+0xbfa0]','--:-:1:-:2')
  e('LDS q2moedn_param_Y1, [RZ+0xbfa4]','--:-:1:-:2');w('01')
  e('XMAD q2moedn_t0, bd_owner, q2moedn_param_rows, RZ')
