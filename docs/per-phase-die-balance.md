@@ -101,6 +101,26 @@ Implemented:
 - Holder and engine build checks. No balanced holders have been loaded and no
   balanced kernel has been run. The serving baseline and persistent holders
   have not been changed.
+- Four-head attention integration now assembles: each die projects four query
+  heads and its one K/V head, publishes its striped indexer rows, updates its
+  one-head persistent cache, selects keys, gathers and computes attention, and
+  publishes quantized output at the global query-head offset. Two-head packets
+  preserve the original eight key partitions and their reduction order while
+  assigning useful attention work to all sixteen CTAs.
+- `kern/balance/composite.lua` implements one complete local QSA operation with
+  seven real child descriptors. Its normalization/indexer, gather and partition
+  stages retain three local grid readiness joins. Selection completion uses
+  one producer flag: score CTAs can enter the gather path as soon as the sole
+  selection CTA publishes the selected indices. Score-producer readiness for
+  that selection CTA remains a separate internal wait. The whole QSA operation
+  restores the descriptor cursor before the production footer publishes output.
+- The complete CPU production builder now emits **493 physical phases and980
+  descriptors on every die**, including all48 layers and the full head. It
+  reports90 phase-footer local grid boundaries and402 exchange publications/
+  acquires. In addition, twelve QSA blocks contain36 local grid joins,12
+  selection-producer joins and12 score-consumer joins; MoE preparation adds48
+  local grid joins. Native `inner_grid_barriers=0` does not mean these internal
+  waits are absent. This is descriptor/build evidence, not GPU timing evidence.
 
 Still required for the complete operation loop:
 
@@ -112,8 +132,9 @@ Still required for the complete operation loop:
    no partial-MoE GPU benchmark has been performed.
 4. Verify the six-part accumulation/publication and assembled GR path against
    completed full-model outputs and state, after the first end-to-end run.
-5. Four-head attention bodies, one-head cache layout, striped indexer projection
-   publication, local selection and output publication with global head offsets.
+5. Qualify the integrated four-head attention bodies, one-head cache layout,
+   striped indexer publication and global-offset output publication in the
+   complete model. Their CPU/SASS build is complete; runtime is unmeasured.
 6. Complete and budget the physical placement below. Use six fully resident
    balanced weight shards; no active-row cache is needed if the remap fits.
 7. Per-phase useful-work timing, explicit wait accounting and complete reports;
@@ -221,13 +242,14 @@ use local head counts, and compact/persistent KV layouts must have one head.
 
 The old owner program already groups ATTNQKQ and IDXQK as independent work.
 Fusing IDXQK with scoring alone would therefore not remove a phase. A complete
-local stage can run normalization/cache append and indexer update, join their
-producers, then perform scoring/selection. A second complete local stage can
-run KV gather, join its producers, then attention partitions and gated merge.
-These are real dependencies; retain and measure the local readiness joins.
-The intended reduction is four owner stages to two, not skipped attention work.
-Count the full production program to establish whether this meets the phase
-limit; do not assume a count from this design note.
+local operation now runs normalization/cache append and indexer update, joins
+their producers, then performs scoring/selection, KV gather, attention partitions
+and gated merge. The sole selection CTA publishes completion directly to gather
+consumers. The gather and partition producer joins remain explicit. An initial
+two-operation version counted505 physical phases; carrying selection directly
+into gather removed twelve dispatch boundaries and produces493. No attention
+work was skipped, and the internal waits remain part of the required timing
+audit. These counts come from the full production CPU builder, not a GPU run.
 
 The existing score/select body loads its auxiliary selection descriptor using
 pidx+1, while the part/merge body similarly loads an adjacent merge descriptor.

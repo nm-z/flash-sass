@@ -9,6 +9,7 @@ static int runtime_attn_owner(int bb) {
     return attn_die_of(bb);
 }
 static CUdeviceptr runtime_attn_tensor(int d,int bb,const char *suffix) {
+    if(row_balance)return dptr(d,bb,suffix);
     int source=attn_die_of(bb);
     if(d!=runtime_attn_owner(bb) || d==source)return dptr(d,bb,suffix);
     const hold_tensor *t=hold_find(&ar[source],tn(bb,suffix));

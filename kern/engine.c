@@ -168,8 +168,8 @@ static unsigned attn_q_split_mode;
 static char cubin_path[512]; static uint64_t cubin_fnv;   /* identity of the loaded kernel image: FNV-1a 64 of the cubin file */
 static const char *profile_op_name(unsigned op) {
     if(op<OP_COUNT)return die_opname[op];
-    const char *names[]={"grwrite_read","dnnormq_x","hcupq_x","router_select","dnstep_normq","gdn_full","router_full","attnmergeq_x","qsa_select","qsa_score_select","qsa_part_merge","plegate_norm","ple_rowsq"};
-    return op>=94 && op<107?names[op-94]:"extended";
+    const char *names[]={"grwrite_read","dnnormq_x","hcupq_x","router_select","dnstep_normq","gdn_full","router_full","attnmergeq_x","qsa_select","qsa_score_select","qsa_part_merge","plegate_norm","ple_rowsq","qsa_full_bal"};
+    return op>=94 && op<108?names[op-94]:"extended";
 }
 static void check_fused_moe_module(CUmodule module) {
 	CUfunction marker;
@@ -494,6 +494,7 @@ static void clone_position(int d, dn_bufs_t *b, xchg_t *x, int alias_attention) 
 	SECOND(lidx); SECOND(lw); SECOND(ne); SECOND(part);
 	SECOND(g); SECOND(gu); SECOND(hq); SECOND(hs32); SECOND(hs16); SECOND(has); SECOND(out);
     SECOND(balance_gate_local);SECOND(balance_up_local);SECOND(balance_down_local);SECOND(balance_quant_ready);
+    SECOND(balance_index_local);SECOND(balance_attn_ready);
 	SECOND(qg); SECOND(k); SECOND(v); SECOND(qo); SECOND(aout);
 	/* Wide headless programs serialize gather/partial/merge per position. */
 	if (!alias_attention) { SECOND(kc); SECOND(vc); SECOND(pm); SECOND(pd); SECOND(po); }
@@ -539,6 +540,7 @@ static void reset_fresh_sequence(int d) {
         ZERO(r);ZERO(idx);ZERO(w);ZERO(s);ZERO(lidx);ZERO(lw);ZERO(ne);ZERO(part);
         ZERO(g);ZERO(gu);ZERO(hq);ZERO(hs32);ZERO(hs16);ZERO(has);ZERO(out);
         ZERO(balance_gate_local);ZERO(balance_up_local);ZERO(balance_down_local);
+        ZERO(balance_index_local);
         ZERO(qg);ZERO(k);ZERO(v);ZERO(qo);ZERO(aout);ZERO(kc);ZERO(vc);ZERO(pm);ZERO(pd);ZERO(po);
         ZERO(iqk);ZERO(iq);ZERO(sc);ZERO(hst);ZERO(sel);
         ZERO(pg);ZERO(pgq);ZERO(pgs32);ZERO(pgs16);ZERO(pgas);
@@ -576,6 +578,7 @@ static void state_copy(int to_snapshot) {
 #include "fp8/storage.h"
 static CUdeviceptr gr_pointer(const phase_t *p,unsigned word) { uint64_t v;memcpy(&v,&p->w[word],8);return v; }
 #include "phase/plan.h"
+#include "balance/attention_plan.h"
 static unsigned fuse_gr_write_read(prog_t *p,int *layers,int die) {
     unsigned fused=0;
 #ifdef FLASH_EXACT_BATCH
@@ -648,8 +651,9 @@ static void model_program(prog_t *P, int d, unsigned position, unsigned nprompt,
     phase_q6_fuse(P);phase_shared_down_fuse(P);phase_shared_gate_group(P,b->r);
     phase_selection_fuse(P,layers);
     phase_score_selection_fuse(P,(unsigned)(trace_request*16ull*((uint64_t)MAXT+1)));
-    phase_part_merge_fuse(P);
-    phase_qsa_empty_publish(P,layers);phase_qsa_independent_group(P);phase_ple_fuse(P,b,layers);
+    if(row_balance)balanced_attention_fuse(P,b,layers);
+    else {phase_part_merge_fuse(P);phase_qsa_empty_publish(P,layers);phase_qsa_independent_group(P);}
+    phase_ple_fuse(P,b,layers);
     phase_ple_rows_fuse(P,layers);
     phase_edges_fuse(P,position,d,layers);
     phase_matrix_groups=matrix_group(P);
@@ -1094,7 +1098,10 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	if (snap_at <= resume) snap_at = 0;
     if(row_balance)for(int d=0;d<nd;d++) {
         CK(cuCtxSetCurrent(ctx[d]));
-        for(unsigned p=0;p<allocated_positions;p++)CK(cuMemsetD32(position_buf(d,p)->balance_quant_ready,0,16));
+        for(unsigned p=0;p<allocated_positions;p++) {
+            CK(cuMemsetD32(position_buf(d,p)->balance_quant_ready,0,16));
+            CK(cuMemsetD32(position_buf(d,p)->balance_attn_ready,0,16));
+        }
     }
 	if (!resume) snap_s = 0;   /* this response rewrites the attention caches from position 0 */
 	if (ple_disk) {   /* a new id for this response (never 0); the rows of the positions it runs are staged from `resume` on */
@@ -1302,6 +1309,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 static void split_attention_queries(void) {
 	attn_q_split_mask = 0;
 	attn_q_split_mode = 0;
+    if(row_balance)return;
 	const char *option = getenv("FLASH_ATTN_Q_SPLIT");
 	if (!option || !strcmp(option, "0")) return;
 	if (strcmp(option, "1")) { fprintf(stderr, "FLASH_ATTN_Q_SPLIT must be 0 or 1\n"); longjmp(init_jb, 1); }
@@ -1466,9 +1474,11 @@ int engine_init(core_t *c) {
 	unsigned cpos = qsa_compact_positions(nblk_qsa);   /* compact caches: the attended keys (4 per block + the partial one) and the kernels' stray prefetch past them */
 	kcf = ATTN_KC_FLOATS(cpos); vcf = (size_t)cpos * 512;
 	unsigned maxp = qsa_cache_positions((unsigned)MAXT);   /* positions of the int8 caches and the pool: whole groups of 32 blocks */
-	size_t kv_layer = qsa_layer_cache_bytes(maxp);   /* K, V int8 [pos][2][256] and their fp16 scales [pos][2][8] */
+	unsigned kv_width=row_balance?256u:512u,scale_width=row_balance?16u:32u;
+    size_t kv_layer=(size_t)maxp*2u*(kv_width+scale_width);
 	if (kv_host) {   /* DEVICEMAP | PORTABLE: every die reads/writes over PCIe. Initially zeroed; reuse/rollback correctness relies on logical masks, not tail contents. */
-		CK(cuCtxSetCurrent(ctx[0])); CK(cuMemHostAlloc(&h_kv, 12 * kv_layer, CU_MEMHOSTALLOC_DEVICEMAP | CU_MEMHOSTALLOC_PORTABLE)); memset(h_kv, 0, 12 * kv_layer);
+		CK(cuCtxSetCurrent(ctx[0]));size_t bytes=12*kv_layer*(row_balance?(unsigned)nd:1u);
+        CK(cuMemHostAlloc(&h_kv,bytes,CU_MEMHOSTALLOC_DEVICEMAP|CU_MEMHOSTALLOC_PORTABLE));memset(h_kv,0,bytes);
 	}
 	if (kv_trace) {
 		CK(cuCtxSetCurrent(ctx[0]));
@@ -1477,7 +1487,8 @@ int engine_init(core_t *c) {
 		memset(h_kv_rawmax, 0xff, bytes);
 	}
 	memset(has_attn, 0, sizeof has_attn);
-	for (int bb = 3; bb < nlayers_run; bb += 4) if (runtime_attn_owner(bb) >= 0 && runtime_attn_owner(bb) < nd) has_attn[runtime_attn_owner(bb)] = 1;
+    if(row_balance)for(int d=0;d<nd;d++)has_attn[d]=1;
+    else for (int bb = 3; bb < nlayers_run; bb += 4) if (runtime_attn_owner(bb) >= 0 && runtime_attn_owner(bb) < nd) has_attn[runtime_attn_owner(bb)] = 1;
 	double ts0 = now();
 	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuModuleLoad(&mod[d], cubin)); check_fused_moe_module(mod[d]); CK(cuModuleGetFunction(&fn[d], mod[d], "die")); }
 #ifdef FLASH_EXACT_BATCH
@@ -1573,10 +1584,13 @@ int engine_init(core_t *c) {
             unsigned down_rows=balance_row_count(2560,(unsigned)d,(unsigned)nd,8);
             b->balance_gate_local=dalloc(44u*gate_rows);b->balance_up_local=dalloc(44u*gate_rows);
             b->balance_down_local=dalloc(24u*down_rows);b->balance_quant_ready=dalloc(64);
+            b->balance_index_local=dalloc(4u*gate_rows);b->balance_attn_ready=dalloc(64);
         }
 		b->out = dalloc(4 * 2560);
-		b->qg = dalloc(4 * 12288); b->k = dalloc(4 * 512); b->v = dalloc(4 * 512); b->qo = dalloc(4 * 6144); b->aout = dalloc(4 * 6144);
-		b->pm = dalloc(4 * 24 * 8); b->pd = dalloc(4 * (24 * 8+16)); b->po = dalloc(4 * 24 * 8 * 256);
+        unsigned heads=row_balance?4u:24u;
+		b->qg=dalloc(4u*heads*512);b->k=dalloc(4u*kv_width);b->v=dalloc(4u*kv_width);
+        b->qo=dalloc(4u*heads*256);b->aout=dalloc(4u*heads*256);
+		b->pm=dalloc(4u*heads*8);b->pd=dalloc(4u*(heads*8+16));b->po=dalloc(4u*heads*8*256);
 		if (has_attn[d]) {   /* the attention layers of this die: RoPE tables, the indexer scratch, the compact caches of the attended keys */
 			if (rope_owner >= 0) { b->rope_cs = shared_cs; b->rope_sn = shared_sn; }
 			else {
@@ -1603,6 +1617,10 @@ int engine_init(core_t *c) {
 			split_t *s = &sp[d][bb]; execution_split(s, d, bb);
 			dn_weights_t *w = &dw[d][bb]; int is_attn = BLK_IS_ATTN(bb);
             w->balanced_rows=(unsigned)row_balance;w->balanced_layer=(unsigned)bb;
+            if(row_balance) {
+                w->attn_head_first=balance_attention_first((unsigned)d,(unsigned)nd);
+                w->attn_head_count=balance_attention_heads((unsigned)d,(unsigned)nd);w->attn_kv_heads=1;
+            }
 			w->hc_attn_norm = dptr(d, bb, "hc_attn_norm.weight"); w->hc_attn_dj = dptr(d, bb, "hc_attn_dj.weight"); w->hc_attn_up = dptr(d, bb, "hc_attn_up.weight");
 			w->hc_ffn_norm = dptr(d, bb, "hc_ffn_norm.weight"); w->hc_ffn_dj = dptr(d, bb, "hc_ffn_dj.weight"); w->hc_ffn_up = dptr(d, bb, "hc_ffn_up.weight");
             if(bb<gr_replicate_ffn){w->hc_ffn_dj=replicate_gr_matrix(d,bb,0);w->hc_ffn_up=replicate_gr_matrix(d,bb,1);w->hc_ffn_replicated=1;}
@@ -1624,13 +1642,15 @@ int engine_init(core_t *c) {
 				w->attn_output = dptr(d, bb, "attn_output.weight"); w->attn_output_type = ttype(bb, "attn_output.weight");
 				w->attn_q_norm = runtime_attn_tensor(d, bb, "attn_q_norm.weight"); w->attn_k_norm = runtime_attn_tensor(d, bb, "attn_k_norm.weight");
 				w->indexer_x = runtime_attn_tensor(d, bb, "indexer_x.weight"); w->indexer_qn = runtime_attn_tensor(d, bb, "indexer.q_norm.weight"); w->indexer_kn = runtime_attn_tensor(d, bb, "indexer.k_norm.weight");
-				if (d == runtime_attn_owner(bb)) {   /* this layer runs here: int8 K / V with fp16 scales, the pooled indexer keys, the raw key ring */
+				if (row_balance || d == runtime_attn_owner(bb)) {   /* local int8 K/V, indexer keys and raw key ring */
 					if (kv_host) {
-						CUdeviceptr base; CK(cuMemHostGetDevicePointer(&base, h_kv, 0)); base += (size_t)((bb - 3) / 4) * kv_layer;
-						dst_kq[d][bb] = base; dst_vq[d][bb] = base + (size_t)maxp * 512; dst_ks[d][bb] = base + (size_t)maxp * 1024; dst_vs[d][bb] = base + (size_t)maxp * 1024 + (size_t)maxp * 32;
+						CUdeviceptr base; CK(cuMemHostGetDevicePointer(&base, h_kv, 0));
+                        base+=((row_balance?(size_t)d*12:0)+(size_t)((bb-3)/4))*kv_layer;
+                        dst_kq[d][bb]=base;dst_vq[d][bb]=base+(size_t)maxp*kv_width;
+                        dst_ks[d][bb]=base+(size_t)maxp*2*kv_width;dst_vs[d][bb]=dst_ks[d][bb]+(size_t)maxp*scale_width;
 					} else {
-						dst_kq[d][bb] = dalloc((size_t)maxp * 512); dst_vq[d][bb] = dalloc((size_t)maxp * 512);
-						dst_ks[d][bb] = dalloc((size_t)maxp * 32); dst_vs[d][bb] = dalloc((size_t)maxp * 32);
+						dst_kq[d][bb]=dalloc((size_t)maxp*kv_width);dst_vq[d][bb]=dalloc((size_t)maxp*kv_width);
+						dst_ks[d][bb]=dalloc((size_t)maxp*scale_width);dst_vs[d][bb]=dalloc((size_t)maxp*scale_width);
 					}
 					dst_pkt[d][bb] = dalloc((size_t)maxp / 128 * 8192); dst_ring[d][bb] = dalloc(2048); snap_ring[d][bb] = dalloc(2048);
 				}
@@ -1708,6 +1728,9 @@ int engine_init(core_t *c) {
         b->balance_prepare=dalloc(sizeof prepare);CK(cuMemcpyHtoD(b->balance_prepare,prepare,sizeof prepare));
         uint32_t bounds[7];for(int e=0;e<=nd;e++)bounds[e]=split_bound(512,(int)e,nd);
         b->balance_owner_bounds=dalloc(sizeof bounds);CK(cuMemcpyHtoD(b->balance_owner_bounds,bounds,sizeof bounds));
+        CUdeviceptr index[6];for(int e=0;e<nd;e++)index[e]=position_buf(e,p)->iqk;
+        b->balance_index_targets=dalloc(sizeof index);CK(cuMemcpyHtoD(b->balance_index_targets,index,sizeof index));
+        b->balance_attention_targets=producer_tables[p][d][1];
     }
     if(residual_fp8)for(unsigned p=0;p<allocated_positions;p++)for(int d=0;d<nd;d++){CK(cuCtxSetCurrent(ctx[d]));for(unsigned k=0;k<2;k++)residual_encoded[p][d][k]=dalloc(fp8_bytes(10240));}
     if(producer_quant)for(int d=0;d<nd;d++) {

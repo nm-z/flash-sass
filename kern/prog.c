@@ -393,7 +393,8 @@ static void ph_attn_qsa(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, un
 
 void prog_attn_qsa_projected(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b,
                              unsigned t, float eps, CUdeviceptr QG) {
-	phase_t *p = prog_add(P, OP_ATTNQKQ, 26);
+    unsigned heads=w->balanced_rows?w->attn_head_count:24;
+	phase_t *p = prog_add(P, OP_ATTNQKQ, heads+(w->balanced_rows?1:2));
 	ph_ptr(p, 0x140, QG); ph_ptr(p, 0x148, b->k); ph_ptr(p, 0x150, b->v); ph_ptr(p, 0x158, w->attn_q_norm); ph_ptr(p, 0x160, w->attn_k_norm);
 	ph_ptr(p, 0x168, b->rope_cs); ph_ptr(p, 0x170, b->rope_sn); ph_ptr(p, 0x178, b->qo); ph_ptr(p, 0x180, b->kq); ph_ptr(p, 0x188, b->vq);
 	ph_tokv(P, p, 0x190, 0, t); ph_f32(p, 0x194, eps); ph_ptr(p, 0x198, b->ks); ph_ptr(p, 0x1a0, b->vs);
@@ -411,10 +412,14 @@ void prog_attn_qsa_projected(prog_t *P, const dn_weights_t *w, const dn_bufs_t *
 	p = prog_add(P, OP_KVGATHER, b->nblk + 1);
 	ph_ptr(p, 0x140, b->kq); ph_ptr(p, 0x148, b->ks); ph_ptr(p, 0x150, b->vq); ph_ptr(p, 0x158, b->vs); ph_ptr(p, 0x160, b->kc); ph_ptr(p, 0x168, b->vc);
 	ph_ptr(p, 0x170, b->sel); ph_tokv(P, p, 0x178, 0, t); ph_u32(p, 0x17c, b->nblk);
-	p = prog_add(P, OP_ATTNPARTN, 32);
+	p = prog_add(P, OP_ATTNPARTN, w->balanced_rows?16:32);
 	ph_ptr(p, 0x140, b->qo); ph_ptr(p, 0x148, b->kc); ph_ptr(p, 0x150, b->vc); ph_ptr(p, 0x158, b->pm); ph_ptr(p, 0x160, b->pd); ph_ptr(p, 0x168, b->po); ph_tokv(P, p, 0x170, 1, t + 1); ph_u32(p, 0x174, b->nblk);
-	p = prog_add(P, OP_ATTNMERGE, 24);
+	p = prog_add(P, w->balanced_rows?101:OP_ATTNMERGE, heads);
 	ph_ptr(p, 0x140, b->pm); ph_ptr(p, 0x148, b->pd); ph_ptr(p, 0x150, b->po); ph_ptr(p, 0x158, QG); ph_ptr(p, 0x160, b->aout);
+    if(w->balanced_rows) {
+        ph_ptr(p,0x168,b->balance_attention_targets);ph_u32(p,0x170,w->attn_head_first*256);
+        p->w[30]|=1u;P->pending_wait=1;P->xj++;
+    }
     checkpoint_copy(P,b->checkpoint_copy_op,b->ring,b->ring_checkpoint,2048);
 }
 
@@ -436,7 +441,9 @@ static void ph_attn_core(prog_t *P, const dn_weights_t *w, const dn_bufs_t *b, u
 	ph_ptr(p, 0x140, b->pm); ph_ptr(p, 0x148, b->pd); ph_ptr(p, 0x150, b->po); ph_ptr(p, 0x158, b->qg); ph_ptr(p, 0x160, b->aout);
 }
 
+#include "balance/attention_program.h"
 void prog_attn_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps) {
+    if(w->balanced_rows){prog_balanced_attention(P,s,x,w,b,t,eps);return;}
 	CUdeviceptr inj = b->t + 320 * 4;
 	CUdeviceptr Z = ph_hc_read(P, s, x, w->hc_attn_norm, w->hc_attn_dj, w->hc_attn_up, b, eps, 0, 0,0);
 	int here = b->qsa ? b->kq != 0 : s->d == attn_die();   /* the die that runs this layer: the one holding its KV cache (QSA), else attn_die() */
