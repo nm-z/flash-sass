@@ -322,6 +322,9 @@ for the core's parser. Their readiness files use a versioned binary marker; the
 core checks marker existence, not textual contents. This also prevents artifact
 cleanup from removing a live holder's bootstrap files at the end of its launch
 job. Source policy and tensor work remain visible in the queue's plan/log data.
+The launch child closes inherited resource-usage pipes and releases the inherited
+GPUQ/validation lock only after loading finishes. An idle persistent allocation
+must not keep the FIFO locked after the launch command reports readiness.
 
 The diagnostic stream also retains the actual ten selected global expert IDs
 and selected count at each routed gate entry. Their metadata occupies an unused

@@ -275,6 +275,19 @@ static void load(const char *dir,int physical,const char *manifest,int notify) {
         int null=open("/dev/null",O_RDWR);if(null<0)die("open /dev/null");
         if(dup2(null,0)<0 || dup2(null,1)<0 || dup2(null,2)<0)die("detach holder streams");
         if(null>2)close(null);
+        /* The queue deliberately lends its lock to the command. Allocation
+         * is now complete: an idle persistent holder must not retain it and
+         * prevent the next holder/model job from acquiring the FIFO. */
+        const char *lock_names[]={"GPUQ_LOCK_FD","FLASH_VALIDATION_LOCK_FD"};
+        int released=-1;
+        for(unsigned i=0;i<2;i++) {
+            const char *v=getenv(lock_names[i]);if(!v || !*v)continue;
+            char *end;long fd=strtol(v,&end,10);
+            if(!*end && fd>=3 && fd<1024 && fd!=notify && fd!=released) {
+                close((int)fd);released=(int)fd;
+            }
+            unsetenv(lock_names[i]);
+        }
         require(write(notify,"R",1)==1,"notify holder readiness");close(notify);
     }
     signal(SIGTERM,on_signal);signal(SIGINT,on_signal);while(!stopped)pause();
@@ -287,7 +300,15 @@ int main(int argc,char **argv) {
         char *end;long d=strtol(argv[3],&end,10);require(*argv[3] && !*end && d>=0 && d<32,"invalid physical GPU");
         if(!strcmp(argv[1],"load")){load(argv[2],(int)d,argv[4],-1);return 0;}
         int ready[2];if(pipe(ready))die("holder readiness pipe");pid_t pid=fork();if(pid<0)die("fork holder");
-        if(!pid){close(ready[0]);if(setsid()<0)die("holder session");load(argv[2],(int)d,argv[4],ready[1]);_exit(0);}
+        if(!pid) {
+            close(ready[0]);if(setsid()<0)die("holder session");
+            /* /usr/bin/time's inherited resource-usage pipe must reach EOF
+             * when its waited command exits. Do this before CUDA can allocate
+             * device descriptors, and preserve our own readiness pipe. */
+            struct stat inherited;
+            if(ready[1]!=4 && getenv("GPUQ_JOB_ID") && !fstat(4,&inherited) && S_ISFIFO(inherited.st_mode))close(4);
+            load(argv[2],(int)d,argv[4],ready[1]);_exit(0);
+        }
         close(ready[1]);char response=0;ssize_t n;do n=read(ready[0],&response,1);while(n<0 && errno==EINTR);close(ready[0]);
         if(n!=1 || response!='R'){int status;waitpid(pid,&status,0);fprintf(stderr,"native_weights: holder did not become ready\n");return 1;}
         printf("native_holder_detached pid=%ld physical=%ld manifest=%s\n",(long)pid,d,argv[4]);return 0;
