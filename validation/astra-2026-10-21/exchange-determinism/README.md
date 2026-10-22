@@ -486,8 +486,18 @@ The candidate straight-line audit reports zero mixed-pipeline reuse candidates;
 four remaining address-lifetime warnings are in unused DNSTEP/DNLOCAL bodies,
 while the production GDN has explicit operand completions. This audit is not a
 hardware correctness proof. Full-model long-context job
-`fccfe040-2f70-49d1-84cd-3cd593a6038b` is running two4,096/16 requests per arm.
-Its end-to-end qualification is pending.
+`fccfe040-2f70-49d1-84cd-3cd593a6038b` completed both baseline requests but
+GPUQ terminated capture during the first candidate request with
+`SQLite3::BusyException: database is locked`, status `capture_failed`, exit70.
+This is reported in [GPUQ#69](https://github.com/nm-z/gpuq/issues/69#issuecomment-6334522446).
+The benchmark process was confirmed absent before retrying. The first retry
+`b808c281-0173-4c00-87b5-df09baf8c17a` rejected the leftover candidate serving
+configuration before admission; no model request ran. Restore job
+`bbfdb592-1cc2-4525-aef1-774309267204` succeeded. The unchanged frozen v39
+images are now running in job `6842afd1-0e3b-4063-aaa6-56bdb6736d81`.
+Its end-to-end qualification is pending. A stale status-polling shell was
+temporarily suspended, and this retry is monitored through read-only SQLite
+queries rather than GPUQ commands that initialize a writer connection.
 
 The dependency audit now lists mixed-pipeline reuse of a completion barrier as
 an additional review category. Some rows can be safe because of execution
