@@ -1,12 +1,16 @@
 -- Input TSV: arm position die epoch producer_phase consumer_phase producer_op
--- consumer_op ready published start_min start_max acquire arrival0..arrival5.
+-- consumer_op ready published start_min start_max acquire arrival0..arrival5
+-- [request]. Repeated positions in different requests are distinct samples.
 -- Clocks are never subtracted across GPUs without causal offset bounds.
-local rows,groups={},{}
+local rows,groups={},{};local columns
+local function clock_key(r)return r[1]..':'..r[20]..':'..r[2]end
 for line in io.lines(assert(arg[1]))do
  local r={};for v in line:gmatch('[^\t]+')do r[#r+1]=tonumber(v)or v end
- assert(#r==19,'expected 19 TSV columns')
+ assert(#r==19 or #r==20,'expected19 or20 TSV columns')
+ if columns then assert(columns==#r,'mixed trace schemas')else columns=#r end
+ r[20]=r[20]or 0
  rows[#rows+1]=r
- local key=r[1]..':'..r[2];groups[key]=groups[key]or {};local g=groups[key]
+ local key=clock_key(r);groups[key]=groups[key]or {};local g=groups[key]
  g[r[4]]=g[r[4]]or {};assert(not g[r[4]][r[3]],'duplicate exchange');g[r[4]][r[3]]=r
 end
 assert(#rows>0,'empty trace')
@@ -26,22 +30,23 @@ for key,g in pairs(groups)do
  offsets[key]={lo,hi,bound}
 end
 local dir=assert(arg[2]);local csv=assert(io.open(dir..'/exchanges.csv','w'))
-csv:write('arm,position,die,epoch,producer_phase,consumer_phase,producer_op,consumer_op,finish_to_acquire_us,publication_us,pre_acquire_us,acquire_span_us,producer_skew_lower_us,producer_skew_upper_us,communication_poll_lower_us,communication_poll_upper_us,clock_bound_width_us\n')
+csv:write('arm,'..(columns==20 and 'request,'or '')..'position,die,epoch,producer_phase,consumer_phase,producer_op,consumer_op,finish_to_acquire_us,publication_us,pre_acquire_us,acquire_span_us,producer_skew_lower_us,producer_skew_upper_us,communication_poll_lower_us,communication_poll_upper_us,clock_bound_width_us\n')
 local sums,operations={},{}
 for _,r in ipairs(rows)do
- local key=r[1]..':'..r[2];local e=groups[key][r[4]];local off=offsets[key];local lo,hi=off[1],off[2];local d=r[3]
+ local key=clock_key(r);local e=groups[key][r[4]];local off=offsets[key];local lo,hi=off[1],off[2];local d=r[3]
  local latest_lo,latest_hi=-math.huge,-math.huge;local bound=off[3]
  for i=0,5 do latest_lo=math.max(latest_lo,e[i][9]-bound[d][i]);latest_hi=math.max(latest_hi,e[i][9]+bound[i][d])end
  local skew_lo=math.max(0,latest_lo-r[9]);local skew_hi=math.max(0,latest_hi-r[9])
  local comm_lo=math.max(0,r[13]-latest_hi);local comm_hi=math.max(0,r[13]-latest_lo)
  local vals={r[13]-r[9],r[10]-r[9],r[12]-r[9],r[13]-r[11],skew_lo,skew_hi,comm_lo,comm_hi,hi[d]-lo[d]}
- for i=1,8 do csv:write(tostring(r[i]),',')end
+ csv:write(tostring(r[1]),',');if columns==20 then csv:write(tostring(r[20]),',')end
+ for i=2,8 do csv:write(tostring(r[i]),',')end
  for i,v in ipairs(vals)do csv:write(string.format('%.3f%s',v/1000,i==#vals and '\n'or ','))end
  local sk=r[1]..':'..d;sums[sk]=sums[sk]or {arm=r[1],die=d,n=0,tokens={},v={0,0,0,0,0,0,0,0,0}}
- local s=sums[sk];s.n=s.n+1;s.tokens[r[2]]=true;for i,v in ipairs(vals)do s.v[i]=s.v[i]+v end
+ local s=sums[sk];s.n=s.n+1;s.tokens[r[20]..':'..r[2]]=true;for i,v in ipairs(vals)do s.v[i]=s.v[i]+v end
  local ok=r[1]..':'..r[7]..':'..r[8]
  operations[ok]=operations[ok]or {arm=r[1],producer=r[7],consumer=r[8],n=0,samples={},v={0,0,0,0,0,0,0,0,0}}
- local o=operations[ok];o.n=o.n+1;o.samples[r[2]..':'..d]=true;for i,v in ipairs(vals)do o.v[i]=o.v[i]+v end
+ local o=operations[ok];o.n=o.n+1;o.samples[r[20]..':'..r[2]..':'..d]=true;for i,v in ipairs(vals)do o.v[i]=o.v[i]+v end
 end
 csv:close()
 local md=assert(io.open(dir..'/exchange-summary.md','w'))

@@ -46,6 +46,8 @@ replace('idxqk_END:', 'idxqk_END:\n3f:-:-:-:6 MEMBAR.GL; # publish histogram res
 -- Every publishing thread must order its own peer writes before the CTA's
 -- representative publishes the flag. A fence executed only by thread zero
 -- does not order writes issued by the other seven warps.
+-- Local grid publication needs the same per-writer guarantee at device scope:
+-- fused PLE quantization, for example, writes from all eight warps in one CTA.
 replace('PHASE_END:',[=[PHASE_END:
 3f:-:1:-:2 LDS bar_old, [RZ+0xbf58];
 01:-:-:-:6 LOP32I.AND bar_old, bar_old, 0x1;
@@ -54,5 +56,6 @@ replace('PHASE_END:',[=[PHASE_END:
 --:-:-:-:6 NOP;
 --:-:-:-:6 NOP;
 --:-:-:-:6 @P0 MEMBAR.SYS;
+--:-:-:-:6 @!P0 MEMBAR.GL;
 ]=])
 f=assert(io.open(assert(arg[2]),'w'));f:write(s);f:close()

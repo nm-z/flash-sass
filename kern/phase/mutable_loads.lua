@@ -4,7 +4,8 @@
 -- the audit CSV records every decision for review against the source generator.
 local f=assert(io.open(assert(arg[1])));local s=f:read('a');f:close()
 local weights={wp=true,wq=true,ws=true,np=true,pp=true,hp=true}
-local audit={'pointer,policy,instruction_before_completion_scheduling'};local mutable,immutable=0,0
+local audit={'pointer,policy,instruction_before_completion_scheduling'};local mutable,immutable,default_mutable=0,0,0
+local cache={CA=true,CG=true,CI=true,CV=true,CS=true,LU=true}
 s=s:gsub('[^\n]+',function(line)
  -- Compact PLE rows are CPU-written mapped system memory. Invalidate cached
  -- system-memory lines on each read after RDY; adjacent 1440-byte positions
@@ -19,6 +20,21 @@ s=s:gsub('[^\n]+',function(line)
    mutable=mutable+1;line=line:gsub('LDG%.E%.CV','LDG.E.CG')
    audit[#audit+1]=string.format('%s,CG,"%s"',assert(line:match('%[([%w_]+)')),line:gsub('"','""'))
    return line
+  end
+  -- Bare LDG.E also reads mutable IDs, activations, recurrence, histograms and
+  -- descriptor tables. Do not leave its cache behavior implicit while only
+  -- rewriting CI loads. Explicit CV/CG/etc. instructions retain their policy.
+  local qual=line:match('LDG%.E%.([%w]+)')
+  if line:find('LDG.E',1,true) and (not qual or not cache[qual] or qual=='CA')then
+   local ptr=assert(line:match('%[([%w_]+)'),'unclassified default global address')
+   local suffix=ptr:match('_([^_]+)$');local policy
+   if weights[suffix]then immutable=immutable+1;policy='DEFAULT_IMMUTABLE'
+   else
+    mutable=mutable+1;default_mutable=default_mutable+1;policy='CG'
+    if qual=='CA'then line=line:gsub('LDG%.E%.CA','LDG.E.CG')
+    else line=line:gsub('LDG%.E','LDG.E.CG')end
+   end
+   audit[#audit+1]=string.format('%s,%s,"%s"',ptr,policy,line:gsub('"','""'))
   end
   return line
  end
@@ -58,6 +74,7 @@ for _,op in ipairs({'bf16hcrwx','grreadsum'})do
  end
 end
 assert(mutable>1000 and immutable>500,'unexpected global-load geometry '..mutable..'/'..immutable)
+assert(default_mutable>200,'default mutable load rewrite did not cover the model')
 f=assert(io.open(assert(arg[2]),'w'));f:write(s);f:close()
 f=assert(io.open(assert(arg[3]),'w'));f:write(table.concat(audit,'\n'),'\n');f:close()
-io.stderr:write(string.format('mutable_loads coherent=%d immutable_cached=%d\n',mutable,immutable))
+io.stderr:write(string.format('mutable_loads coherent=%d immutable_unchanged=%d default_mutable=%d\n',mutable,immutable,default_mutable))

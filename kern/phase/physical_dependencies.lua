@@ -30,10 +30,11 @@ local scalar={MOV=true,MOV32I=true,FADD=true,FMUL=true,FFMA=true,FMNMX=true,FSET
  SHF=true,BFE=true,BFI=true,SEL=true,IMNMX=true,FLO=true,POPC=true,PRMT=true,LEA=true}
 local no_dest={STG=true,STS=true,STL=true,RED=true,BRA=true,BRX=true,EXIT=true,NOP=true,
  BAR=true,MEMBAR=true,ISETP=true,FSETP=true,PSETP=true,VOTE=true}
-local defs,reads,cycle,line_no,count,unknown={},{},0,0,0,{}
-f=assert(io.open(assert(arg[2]),'w'));f:write('kind,line,physical_register,prior_line,minimum_cycles,required_cycles,instruction,prior_instruction\n')
+local defs,reads,barriers,cycle,line_no,count,unknown={},{},{},0,0,0,{}
+f=assert(io.open(assert(arg[2]),'w'));f:write('kind,line,resource,prior_line,minimum_cycles,required_cycles,instruction,prior_instruction\n')
 local function report(kind,r,old,age,required,text)
- count=count+1;f:write(string.format('%s,%d,R%d,%d,%d,%d,"%s","%s"\n',kind,line_no,r,old.line,age,required,text,old.text))
+ local resource=(kind=='BARRIER_REUSE' and 'B' or 'R')..r
+ count=count+1;f:write(string.format('%s,%d,%s,%d,%d,%d,"%s","%s"\n',kind,line_no,resource,old.line,age,required,text,old.text))
 end
 local function regset(text)
  text=text:gsub('0[xX]%x+','')
@@ -44,7 +45,7 @@ local function vector(out,name,width)
 end
 for line in source:gmatch('[^\n]+')do
  line_no=line_no+1
- if line:match('^[%w_]+:$')then defs={};reads={};cycle=0 end
+ if line:match('^[%w_]+:$')then defs={};reads={};barriers={};cycle=0 end
  local ctl,text=line:match('^(%S+)%s+(.+);')
  local wait,rd,wr,y,stall
  if ctl then wait,rd,wr,y,stall=ctl:match('^([^:]+):([^:]+):([^:]+):([^:]+):([%x])$')end
@@ -64,10 +65,22 @@ for line in source:gmatch('[^\n]+')do
    local name=operands[#operands] and operands[#operands]:match('^([%w_]+)');if name then vector(src,name,width)end
   end
   local waited=tonumber(wait,16)or 0
+  for b=1,6 do if waited&(1<<(b-1))~=0 then barriers[b]=nil end end
   for _,d in pairs(defs)do if d.bar and waited&(1<<(d.bar-1))~=0 then d.retired=true end end
   for _,list in pairs(reads)do for _,r in ipairs(list)do if r.bar and waited&(1<<(r.bar-1))~=0 then r.retired=true end end end
   local delay=(conversion[op] or op=='LDG' or op=='STG' or op=='ATOM' or op=='RED')and 4 or ((op=='LDS' or op=='STS' or op=='SHFL')and 2 or 0)
   local latency=conversion[op] and 8 or ((op=='FCMP' or op=='ICMP')and 13 or (scalar[op] and 6 or nil))
+  local pipeline=(op=='LDG' or op=='LDL' or op=='ATOM')and 'global' or
+      (op=='LDS' and 'shared' or (op=='LDC' and 'constant' or
+      ((op=='S2R' or op=='CS2R')and 'special' or (op=='SHFL' and 'shuffle' or (conversion[op] and 'sfu' or nil)))))
+  local wb=tonumber(wr)
+  if wb and pipeline then
+   local old=barriers[wb]
+   if old and (old.pipeline~=pipeline or pipeline=='special')then
+    report('BARRIER_REUSE',wb,old,cycle-old.cycle,-1,text)
+   end
+   barriers[wb]={pipeline=pipeline,cycle=cycle,line=line_no,text=text}
+  end
   for r in pairs(src)do local d=defs[r];if d and not d.retired then
    local age=cycle+delay-d.cycle
    if d.latency and age<d.latency then report('RAW',r,d,age,d.latency,text)
@@ -87,7 +100,7 @@ for line in source:gmatch('[^\n]+')do
   end
   if next(dst) and not latency and not(full:match('^LD')or op=='SHFL'or op=='S2R'or op=='CS2R'or op=='ATOM')then unknown[op]=true end
   local clocks=tonumber(stall,16);if clocks>11 and y~='Y'then clocks=6 end;cycle=cycle+clocks
-  if op=='BRA'or op=='BRX'or op=='EXIT'then defs={};reads={};cycle=0 end
+  if op=='BRA'or op=='BRX'or op=='EXIT'then defs={};reads={};barriers={};cycle=0 end
  end
 end
 f:close();local names={};for op in pairs(unknown)do names[#names+1]=op end;table.sort(names)

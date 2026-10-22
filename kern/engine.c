@@ -167,6 +167,7 @@ static void check_fused_moe_module(CUmodule module) {
     if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_phase_gr_cache_abi_v1"));
     if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_phase_amax_schedule_abi_v1"));
     if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_qsa_score_epoch_abi_v1"));
+    if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_phase_writer_release_abi_v1"));
     if(getenv("FLASH_XTRACE") && atoi(getenv("FLASH_XTRACE")))CK(cuModuleGetFunction(&marker,module,"flash_exchange_trace_abi_v2"));
     if(gr_write_trace)CK(cuModuleGetFunction(&marker,module,"flash_gr_write_trace_abi_v1"));
     if(gr_replicate_ffn)CK(cuModuleGetFunction(&marker,module,"flash_gr_local_abi_v1"));

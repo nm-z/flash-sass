@@ -33,7 +33,7 @@ die_phase.sass: die.sass die_gr.sass phase/gr_cache.lua phase/quant.lua phase/lo
 	$(LUA) phase/frame_dependencies.lua $@.tail $@.frame
 	$(LUA) phase/mutable_loads.lua $@.frame $@.coherent $@.loads.csv
 	$(LUA) phase/serial_dependencies.lua $@.coherent $@.plecomplete all fixedbody plegatherq,plenormgate,pleconv selected
-	$(LUA) phase/serial_dependencies.lua $@.plecomplete $@.grcomplete all none bf16hcrwx,grreadsum selected
+	$(LUA) phase/serial_dependencies.lua $@.plecomplete $@.grcomplete all none bf16hcrwx,grreadsum,hcwsum selected
 	$(LUA) phase/serial_dependencies.lua $@.grcomplete $@.gdncomplete all none gdn selected
 	$(LUA) phase/fixed_latency.lua $@.gdncomplete $@.fixed $@.fixed.csv
 	$(LUA) phase/predicate_latency.lua $@.fixed $@ $@.predicate.csv

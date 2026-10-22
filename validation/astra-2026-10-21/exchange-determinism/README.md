@@ -2,8 +2,9 @@
 
 This is work in progress for the three requested items. The full objective is
 not complete. V33 passes the ordinary and fixed-input self-repeatability gates
-but fails the long-context repeat. The latest v35 QSA handoff candidate is under
-long-context test; a fresh matched split measurement remains pending. Earlier
+but fails the long-context repeat. V35 and v36 repeat long-context output
+tokens but still differ in recurrent state. The latest v38 all-writer release
+candidate is under long-context test; a fresh matched split measurement remains pending. Earlier
 failures below are retained as evidence.
 Full48-stage FFN GR replication does not fit archy's current memory placement;
 the eight-stage variant fits and reduces actual exchanges, but its earlier run
@@ -430,13 +431,55 @@ using the new host descriptor layout with an older fused image.
 The complete production/split/trace images and host were rebuilt. V34 is a
 build-only checkpoint, never a GPU run; v35 includes the separate descriptor/
 token completions and request-separated epoch base. Long-context job
-`ec9165ad-bf77-43d4-86ab-dabb58caed29` is running two4,096/16 requests per arm.
-No v35 TPS or repeatability result is claimed before that job completes.
+`ec9165ad-bf77-43d4-86ab-dabb58caed29` completes two4,096/16 requests per arm.
+All output tokens repeat, but the candidate still differs in210 GDN states.
+On die0/layer1,36,054 recurrent values differ, maximum absolute difference
+7.74860382e-7; its convolution buffer matches. PLE input-history audits are
+clean. Output agreement does not qualify this candidate as deterministic.
 
 [Current recorded PROF_ALL tables](v33-profile/operations.md) preserve all
 per-opcode and per-die values for the passing short v33 workload. They remain
 inclusive intervals; they are not an invented allocation of the shared XSEND/
 ACTQ pools to individual merges or a hardware SM-activity measurement.
+
+## Complete mutable-load policy and local publication
+
+The earlier mutable-load pass rewrote CI loads but left default-policy LDG.E
+instructions implicit. V36 makes943 additional static mutable loads explicit
+CG in the candidate and360 in the baseline. Immutable weight loads retain
+their policies; CPU-written compact rows/ready flags retain CV. These are
+instruction counts, not extra phases or per-token memory traffic estimates.
+Long-context job `f894c7f8-d689-439a-9e27-00278b3065b4` still fails210 candidate
+state comparisons while output tokens and PLE input histories repeat. Baseline
+passes both requests. The cache-policy correction is not sufficient by itself.
+
+The first affected layer follows the retained standalone HCWSUM at the PLE
+boundary. That writer was not covered by the candidate's fused-GR completion
+selection even though the baseline already covered it. It is now included.
+The publication review also found that only peer-send phases fenced every
+writer. Local grid publication relied on the footer warp's fence even when a
+fused operation, notably PLE quantization, wrote from all eight warps in a CTA.
+Every writer now executes SYS for a peer send or GL for a local phase before
+the CTA can publish its completion flag. All fusions and499 phases remain.
+The module marker `flash_phase_writer_release_abi_v1` guards the new contract.
+
+V37 is a build-only checkpoint, never a GPU run. V38 includes both the retained
+writer protection and the per-thread local publication release. Its full
+baseline/candidate long-context job is
+`45806366-8fdb-40fa-9649-887225f752c7`, currently running two4,096/16 requests
+per arm. No v38 rate or qualification is claimed before completion.
+
+The dependency audit now lists mixed-pipeline reuse of a completion barrier as
+an additional review category. Some rows can be safe because of execution
+distance or are in unused bodies; the report does not automatically establish
+that each is a hardware violation.
+
+`phase/trace_to_tsv.lua` extracts canonical flattened trace records, preserving
+request identity in an optional20th column. `exchange_report.lua` keeps clock
+bounds and normalization separate for repeated request/position samples. Warm
+extraction requires per-request trace headers and excludes run0. Replaying the
+16,992-record saved trace yields identical summary and operation aggregates;
+the legacy19-column path also retains the original numeric CSV exactly.
 
 `phase/predicate_cfg.lua` audits minimum predicate age through labels and
 direct branch edges, terminating paths at unknown BRX edges. It reports zero
