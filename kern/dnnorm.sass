@@ -1,0 +1,120 @@
+# Kernel: dnnorm
+#
+# DeltaNet readout norm and gate: one warp per value head h (CTA h, 48 of them),
+# lane l owns o[128 h + 4 l .. + 3]:
+#   ss = fmaf chain over the 4 (xor 16..1 butterfly); m = ss * (1/128); v = m + eps;
+#   s = sqrt_rn(v); r = rcp_rn(s); y = ((o * r) * w) * sigmoid(gate)      (w: ssm_norm, 128)
+# gate = attn_gate output, head-major (6144). Bit-exact twin: ref/deltanet.c dnnorm_gpu.
+#
+# Params: 0:0x140 O (6144)  1:0x148 W (128)  2:0x150 G (6144)  3:0x158 Y (6144)  4:0x160 eps (f32)
+
+<CONSTANT_MAPPING>
+    param_O0  : c[0x0][0x140]
+    param_O1  : c[0x0][0x144]
+    param_W0  : c[0x0][0x148]
+    param_W1  : c[0x0][0x14c]
+    param_G0  : c[0x0][0x150]
+    param_G1  : c[0x0][0x154]
+    param_Y0  : c[0x0][0x158]
+    param_Y1  : c[0x0][0x15c]
+    param_eps : c[0x0][0x160]
+    param_xoff : c[0x0][0x168]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0-3   : x<0-3>
+    4-7   : w<0-3>
+    8-11  : g<0-3>
+    12-15 : sg<0-3>
+    16    : ss
+    17    : nrm
+    18    : rr
+    19    : ee
+    20    : hh
+    21    : s0
+    22    : t
+    23    : tid
+    24    : head
+    25    : lane
+    26    : log2e
+    27    : ln2hi
+    28    : ln2lo
+    29    : c720
+    30    : c120
+    31    : c24
+    32    : c6
+    33    : chalf
+    34    : cone
+    35    : mneg1
+    36-39 : ft<1-4>
+    40,41 : xp<0-1>
+    42,43 : wp<0-1>
+    44,45 : gp<0-1>
+    46,47 : yp<0-1>
+    48-59 : dq<00-11>
+    60    : xo
+</REGISTER_MAPPING>
+
+<CODE>
+    require './fmath.pl';
+    my %C = map { $_ => $_ } qw(log2e ln2hi ln2lo c720 c120 c24 c6 chalf cone mneg1);
+    my $xout = $ENV{DN_XOUT} ? 1 : 0;   # y goes to every die's inbox: TAB at the Y param + xoff + 16 lane + 512 head; the phase is a send
+    my $o = '';
+    $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
+    $o .= "--:-:6:-:1      S2R head, SR_CTAID.X;\n";
+    if ($xout) {
+        $o .= "--:-:-:-:6      MOV yp0, param_Y0;\n";
+        $o .= "--:-:-:-:6      MOV yp1, param_Y1;\n";
+        $o .= sprintf "--:-:4:-:%d      LDG.E.64 dq%02d, [yp+0x%x];\n", $_ == 5 ? 2 : 1, 2 * $_, 8 * $_ for 0..5;
+    }
+    $o .= fm_consts(\%C);
+    $o .= "20:-:-:-:6      LOP32I.AND lane, tid, 0x1f;\n";
+    $o .= "--:-:-:-:6      ISETP.GE.U32.AND P0, PT, tid, 0x20, PT;\n";
+    $o .= "--:-:-:-:6      SHL t, lane, 0x4;\n";                                 # 16 B per lane
+    $o .= "--:-:-:-:6      IADD wp0.CC, t, param_W0;\n";
+    $o .= "--:-:-:-:6      IADD.X wp1, RZ, param_W1;\n";
+    $o .= "--:-:-:-:6      ISCADD t, head, t, 0x9;\n";                           # + 512 head
+    $o .= "--:-:-:-:6      IADD xo, t, param_xoff;\n" if $xout;
+    $o .= "--:-:-:-:6  \@P0 EXIT;\n";
+    $o .= "--:-:-:-:6      IADD xp0.CC, t, param_O0;\n";
+    $o .= "--:-:-:-:6      IADD.X xp1, RZ, param_O1;\n";
+    $o .= "--:-:-:-:6      IADD gp0.CC, t, param_G0;\n";
+    $o .= "--:-:-:-:6      IADD.X gp1, RZ, param_G1;\n";
+    unless ($xout) {
+        $o .= "--:-:-:-:6      IADD yp0.CC, t, param_Y0;\n";
+        $o .= "--:-:-:-:6      IADD.X yp1, RZ, param_Y1;\n";
+    }
+    $o .= "--:-:1:-:1      LDG.E.128 x0, [xp];\n";
+    $o .= "--:-:2:-:1      LDG.E.128 w0, [wp];\n";
+    $o .= "--:-:2:-:2      LDG.E.128 g0, [gp];\n";
+    $o .= "01:-:-:-:6      FMUL ss, x0, x0;\n";
+    $o .= sprintf "--:-:-:-:6      FFMA ss, x%d, x%d, ss;\n", $_, $_ for 1..3;
+    for my $x (16, 8, 4, 2, 1) {
+        $o .= sprintf "--:-:5:-:2      SHFL.BFLY PT, t, ss, 0x%x, 0x1f;\n", $x;
+        $o .= "10:-:-:-:6      FADD ss, ss, t;\n";
+    }
+    $o .= "--:-:-:-:6      FMUL ss, ss, 0.0078125;\n";                           # 1/128
+    $o .= "--:-:-:-:6      FADD ss, ss, param_eps;\n";
+    $o .= "--:-:3:-:2      MUFU.RSQ rr, ss;\n";
+    $o .= "04:-:-:-:1      FMUL.FTZ s0, ss, rr;\n";
+    $o .= "--:-:-:-:6      FMUL.FTZ hh, rr, 0.5;\n";
+    $o .= "--:-:-:-:6      FADD.FTZ ee, -s0, -RZ;\n";
+    $o .= "--:-:-:-:6      FFMA ee, s0, ee, ss;\n";
+    $o .= "--:-:-:-:6      FFMA nrm, ee, hh, s0;\n";
+    $o .= "--:-:3:-:2      MUFU.RCP rr, nrm;\n";
+    $o .= "04:-:-:-:6      FFMA ee, nrm, rr, mneg1;\n";
+    $o .= "--:-:-:-:6      FADD.FTZ ee, -ee, -RZ;\n";
+    $o .= "--:-:-:-:6      FFMA rr, rr, ee, rr;\n";
+    # sigmoid of the 4 gates (interleaved chains)
+    $o .= sprintf("%s:-:-:-:6      MOV sg0, g0;\n", '02');                       # wait for w and gate
+    for my $k (0..3) { $o .= fm_sigmoid("sg$k", "g$k", 'ft1', 'ft2', 'ft3', 'ft4', \%C); }
+    $o .= sprintf "%s:-:-:-:%d      FMUL x%d, x%d, rr;\n", $_ == 0 ? '02' : '--', $_ == 3 ? 6 : 1, $_, $_ for 0..3;
+    $o .= sprintf "--:-:-:-:%d      FMUL x%d, x%d, w%d;\n", $_ == 3 ? 6 : 1, $_, $_, $_ for 0..3;
+    $o .= sprintf "--:-:-:-:%d      FMUL x%d, x%d, sg%d;\n", $_ == 3 ? 6 : 1, $_, $_, $_ for 0..3;
+    if ($xout) {
+        $o .= sprintf "%s:-:-:-:6      IADD dq%02d.CC, dq%02d, xo;\n--:-:-:-:6      IADD.X dq%02d, dq%02d, RZ;\n", $_ ? "--" : "04", 2 * $_, 2 * $_, 2 * $_ + 1, 2 * $_ + 1 for 0..5;
+        $o .= sprintf "--:1:-:-:%d      STG.E.WT.128 [dq%02d], x0;\n", $_ == 5 ? 6 : 1, 2 * $_ for 0..5;
+    } else { $o .= "--:1:-:-:6      STG.E.128 [yp], x0;\n"; }
+    $o .= "01:-:-:-:f      EXIT;\n";
+    return $o;
+</CODE>

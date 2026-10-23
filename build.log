@@ -1,0 +1,58 @@
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -o ple_eos_test ple_eos_test.c ../ref/ple.c ../ref/fmath.c -I../ref -lm
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -o plerows_test plerows_test.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c -I../ref -I/opt/cuda/include -lcuda -lm
+/opt/cuda-11.4/bin/ptxas -arch=sm_52 -o skel_plerows.cubin plerows.ptx
+perl die.pl header > dieops.h
+cp skel_plerows.cubin plerows.cubin
+PATH=/opt/cuda/bin:$PATH perl -I../maxas/lib ../maxas/bin/maxas.pl -i plerows.sass plerows.cubin
+CONFLICT at 0x0368 (R14,R18): IADD R14.CC, R14, R18; (IADD acc0.CC, acc0, p0;)
+CONFLICT at 0x0370 (R15,R19): IADD.X R15, R15, R19; (IADD.X acc1, acc1, p1;)
+CONFLICT at 0x03b0 (R15,R23): IADD R15, R15, R23; (IADD acc1, acc1, p5;)
+CONFLICT at 0x03c8 (R6,R10): XMAD R16, R6, R10, RZ; (XMAD pl0, c1, m10, RZ;)
+Modified plerows RegCnt: 2 => 108
+Modified plerows EIATTR_REGCOUNT: 2 => 108
+Modified plerows Exit Offsets: '0030' => '32d8'
+Modified plerows KernelSize: 64 => 13056
+Kernel: plerows, Instructions: 0, Register Count: 108, Bank Conflicts: 4, Reuse: 29.0% (380/1312)
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -DFLASH_REV='"d9366bf5d7aa8e004e732d4bf67ebc6a94a0c6a2"' -o libengine.so.new engine.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm && mv -f libengine.so.new libengine.so
+../ref/quant.c: In function ‘gemv_bf16_ref’:
+../ref/quant.c:315:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+  315 |                 y[r] = v[0];
+      |                        ~^~~
+../ref/quant.c:300:15: note: ‘v’ declared here
+  300 |         float v[32], w[32];
+      |               ^
+../ref/quant.c: In function ‘gemv_q4_k_ref’:
+../ref/quant.c:379:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+  379 |                 y[r] = v[0];
+      |                        ~^~~
+../ref/quant.c:354:15: note: ‘v’ declared here
+  354 |         float v[32], w[32];
+      |               ^
+../ref/quant.c: In function ‘gemv_q5_k_ref’:
+../ref/quant.c:443:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+  443 |                 y[r] = v[0];
+      |                        ~^~~
+../ref/quant.c:416:15: note: ‘v’ declared here
+  416 |         float v[32], w[32];
+      |               ^
+../ref/quant.c: In function ‘gemv_q3_k_ref’:
+../ref/quant.c:529:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+  529 |                 y[r] = v[0];
+      |                        ~^~~
+../ref/quant.c:499:15: note: ‘v’ declared here
+  499 |         float v[32], w[32];
+      |               ^
+../ref/quant.c: In function ‘gemv_q6_k_ref’:
+../ref/quant.c:622:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+  622 |                 y[r] = v[0];
+      |                        ~^~~
+../ref/quant.c:592:15: note: ‘v’ declared here
+  592 |         float v[32], w[32];
+      |               ^
+../ref/quant.c: In function ‘gemv_iq4_xs_ref’:
+../ref/quant.c:681:25: warning: ‘v’ may be used uninitialized [-Wmaybe-uninitialized]
+  681 |                 y[r] = v[0];
+      |                        ~^~~
+../ref/quant.c:661:15: note: ‘v’ declared here
+  661 |         float v[32], w[32];
+      |               ^
