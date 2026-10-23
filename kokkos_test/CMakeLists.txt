@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.16)
+project(kt CXX)
+add_subdirectory(${KOKKOS_SRC} kokkos)
+add_executable(kt kt.cpp)
+target_link_libraries(kt Kokkos::kokkos)

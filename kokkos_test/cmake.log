@@ -1,0 +1,37 @@
+-- The CXX compiler identification is GNU 11.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /home/nate/work/gpu-fw-check/kokkos/bin/nvcc_wrapper - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Setting default Kokkos CXX standard to 17
+-- Kokkos version: 4.7.1
+-- The project name is: Kokkos
+-- Using internal gtest for testing
+-- Configured git information in /home/nate/work/gpu-fw-check/kokkos_test/build/kokkos/generated/Kokkos_Version_Info.cpp
+-- Compiler Version: 11.8.89
+-- SERIAL backend is being turned on to ensure there is at least one Host space. To change this, you must enable another host execution space and configure with -DKokkos_ENABLE_SERIAL=OFF.
+-- Using -std=c++17 for C++17 standard as feature
+-- Built-in Execution Spaces:
+--     Device Parallel: Kokkos::Cuda
+--     Host Parallel: NoTypeDefined
+--       Host Serial: SERIAL
+-- 
+-- Architectures:
+--  MAXWELL52
+-- Found CUDAToolkit: /home/nate/qwen3-next/toolchains/cuda-11.8/targets/x86_64-linux/include (found version "11.8.89")
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Found TPLLIBDL: /usr/include
+-- Using internal desul_atomics copy
+-- Performing Test KOKKOS_LINK_OPTIONS_CHECK
+-- Performing Test KOKKOS_LINK_OPTIONS_CHECK - Success
+-- Performing Test KOKKOS_COMPILE_OPTIONS_CHECK
+-- Performing Test KOKKOS_COMPILE_OPTIONS_CHECK - Success
+-- Experimental mdspan support is enabled
+-- Using internal mdspan directory /home/nate/work/gpu-fw-check/kokkos/tpls/mdspan/include
+-- Kokkos Backends: SERIAL;CUDA
+-- Configuring done (13.2s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/nate/work/gpu-fw-check/kokkos_test/build
