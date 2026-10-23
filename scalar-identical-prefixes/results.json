@@ -1,0 +1,99 @@
+{
+  "status": "PASS",
+  "config": {
+    "source": "/home/nate/claude/flash-sass-prs/ple-diagnostic-nofuse-6835416",
+    "validation": "/home/nate/claude/flash-sass-prs/ple-diagnostic-nofuse-validation-6835416",
+    "label": "scalar-identical-prefixes",
+    "revision": "6835416996dc76200045cec02adf6c43b9e42c63-diagnostic-nofuse",
+    "kind": "command",
+    "library": "libengine_pleiotest.so",
+    "paired_modes": [
+      0
+    ],
+    "commands": [
+      [
+        "perl",
+        "/home/nate/claude/flash-sass-prs/owned_pair_probe32.pl",
+        "{socket}",
+        "{out}/probe-pair{paired}.json"
+      ]
+    ]
+  },
+  "commands": [
+    {
+      "label": "gpu-before",
+      "argv": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm",
+        "--format=csv"
+      ],
+      "exit": 0,
+      "seconds": 0.11449410400382476
+    },
+    {
+      "label": "command0-pair0",
+      "argv": [
+        "perl",
+        "/home/nate/claude/flash-sass-prs/owned_pair_probe32.pl",
+        "/tmp/flash-owned-scalar-identical-prefixes-pair0.sock",
+        "/home/nate/claude/flash-sass-prs/ple-diagnostic-nofuse-validation-6835416/scalar-identical-prefixes/probe-pair0.json"
+      ],
+      "exit": 0,
+      "seconds": 2.1184672149975086
+    },
+    {
+      "label": "gpu-after",
+      "argv": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm",
+        "--format=csv"
+      ],
+      "exit": 0,
+      "seconds": 0.11440424899774371
+    }
+  ],
+  "cores": [
+    {
+      "pid": 2443245,
+      "argv": [
+        "/home/nate/claude/flash-sass-prs/ple-diagnostic-nofuse-6835416/kern/flashcore",
+        "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+        "/home/nate/claude/flash-sass-prs/ple-diagnostic-nofuse-6835416/kern/libengine_pleiotest.so",
+        "/tmp/hold-h0.manifest",
+        "/tmp/hold-h1.manifest",
+        "/tmp/hold-h2.manifest",
+        "/tmp/hold-h3.manifest",
+        "/tmp/hold-h4.manifest",
+        "/tmp/hold-h5.manifest"
+      ],
+      "environment": {
+        "CUDA_VISIBLE_DEVICES": "0,1,2,3,4,5,7",
+        "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
+        "SPLIT_SHARES": "112,97,81,116,97,97",
+        "ATTN_DIE": "1",
+        "ATTN_MAP": "1,1,1,1,4,4,4,4,5,5,5,5",
+        "FLASH_ANCHOR_DIE": "7",
+        "FLASH_MAXT": "512",
+        "FLASH_ENGINE_MAXT": "512",
+        "FLASH_MAXIMG": "1",
+        "FLASH_PLE_DISK": "1",
+        "FLASH_PLE_OFF": "192",
+        "FLASH_NBLK": "512",
+        "FLASH_KV_HOST": "0",
+        "FLASH_WATCHDOG_S": "60",
+        "FLASH_TWO_POSITION": "0",
+        "FLASH_TRACE": "0",
+        "FLASH_CUBIN": "/home/nate/claude/flash-sass-prs/ple-diagnostic-nofuse-6835416/kern/die.cubin",
+        "FLASH_SOCK": "/tmp/flash-owned-scalar-identical-prefixes-pair0.sock"
+      },
+      "library_sha256": "7e9abab7da8d186715d41946dafdd8ad1f349f8a601fb79c396e519573b7611e",
+      "cubin_sha256": "9cef2c49976253efc4affbafbed347285fc74a6f2017839c806c472c6592ffef",
+      "started_utc": "2026-10-17T21:54:35.519234+00:00",
+      "config": "config rev=6835416996dc76200045cec02adf6c43b9e42c63-diagnostic-nofuse kv_host=0 ple_disk=1 maxt=512 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=1 two_position=0 cubin=/home/nate/claude/flash-sass-prs/ple-diagnostic-nofuse-6835416/kern/die.cubin cubin_fnv=805be15e22699af4",
+      "post_check_info": "info 512 1",
+      "owned_core_exit": -15,
+      "finished_utc": "2026-10-17T21:54:39.606698+00:00"
+    }
+  ],
+  "runner_sha256": "5c12b6c155d0221f4f8f50cc8085c44b8ee5ec62657d378c26457bad1ac37dc1"
+}

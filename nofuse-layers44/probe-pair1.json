@@ -1,0 +1,25 @@
+{
+   "cases" : [
+      {
+         "command" : "chat 3 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51",
+         "prompt" : 32,
+         "raw" : [
+            "tok 52",
+            "tok 53",
+            "tok 54",
+            "tok 15876",
+            "done 4 0 32 762.2 662.1 0 0"
+         ],
+         "seconds" : 0.768714189529419,
+         "status" : "PASS",
+         "tokens" : [
+            52,
+            53,
+            54,
+            15876
+         ]
+      }
+   ],
+   "socket" : "/tmp/flash-owned-nofuse-layers44-pair1.sock",
+   "status" : "PASS"
+}

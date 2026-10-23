@@ -1,0 +1,82 @@
+{
+   "cases" : [
+      {
+         "command" : "chat 3 20 21 22 23",
+         "prompt" : 4,
+         "raw" : [
+            "tok 12",
+            "tok 24",
+            "tok 19",
+            "tok 16",
+            "done 4 0 4 197.8 111.3 0 0"
+         ],
+         "seconds" : 0.202640056610107,
+         "status" : "PASS",
+         "tokens" : [
+            12,
+            24,
+            19,
+            16
+         ]
+      },
+      {
+         "command" : "chat 3 20 21 22 23 24 25",
+         "prompt" : 6,
+         "raw" : [
+            "tok 198",
+            "tok 262",
+            "tok 1133",
+            "tok 437",
+            "done 4 0 6 251.7 166.3 0 0"
+         ],
+         "seconds" : 0.255927085876465,
+         "status" : "PASS",
+         "tokens" : [
+            198,
+            262,
+            1133,
+            437
+         ]
+      },
+      {
+         "command" : "chat 3 20 21 22 23 24 25 26 27",
+         "prompt" : 8,
+         "raw" : [
+            "tok 2110",
+            "tok 30",
+            "tok 31",
+            "tok 25223",
+            "done 4 0 8 310.5 224.4 0 0"
+         ],
+         "seconds" : 0.314661979675293,
+         "status" : "PASS",
+         "tokens" : [
+            2110,
+            30,
+            31,
+            25223
+         ]
+      },
+      {
+         "command" : "chat 3 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51",
+         "prompt" : 32,
+         "raw" : [
+            "tok 21556",
+            "tok 67848",
+            "tok 25223",
+            "tok 87197",
+            "done 4 0 32 1281.8 918.8 0 0"
+         ],
+         "seconds" : 1.28589916229248,
+         "status" : "PASS",
+         "tokens" : [
+            21556,
+            67848,
+            25223,
+            87197
+         ]
+      }
+   ],
+   "socket" : "/tmp/flash-owned-scalar-identical-prefixes-pair0.sock",
+   "status" : "PASS"
+}

@@ -1,0 +1,83 @@
+{
+   "cases" : [
+      {
+         "command" : "chat 3 20 21 22 23",
+         "prompt" : 4,
+         "raw" : [
+            "tok 241216",
+            "tok 632",
+            "tok 59573",
+            "tok 207648",
+            "done 4 0 4 105.8 5.8 0 0"
+         ],
+         "seconds" : 0.109596014022827,
+         "status" : "PASS",
+         "tokens" : [
+            241216,
+            632,
+            59573,
+            207648
+         ]
+      },
+      {
+         "command" : "chat 3 20 21 22 23 24 25",
+         "prompt" : 6,
+         "raw" : [
+            "tok 167259",
+            "tok 272",
+            "tok 30915",
+            "tok 91817",
+            "done 4 0 6 90.1 8.3 0 0"
+         ],
+         "seconds" : 0.0938558578491211,
+         "status" : "PASS",
+         "tokens" : [
+            167259,
+            272,
+            30915,
+            91817
+         ]
+      },
+      {
+         "command" : "chat 3 20 21 22 23 24 25 26 27",
+         "prompt" : 8,
+         "raw" : [
+            "tok 246127",
+            "tok 62808",
+            "tok 80014",
+            "tok 110265",
+            "done 4 0 8 102.8 10.6 0 0"
+         ],
+         "seconds" : 0.106521129608154,
+         "status" : "PASS",
+         "tokens" : [
+            246127,
+            62808,
+            80014,
+            110265
+         ]
+      },
+      {
+         "command" : "chat 3 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51",
+         "prompt" : 32,
+         "raw" : [
+            "tok 84250",
+            "tok 224322",
+            "tok 228487",
+            "tok 239218",
+            "done 4 0 32 159.3 39.9 0 0"
+         ],
+         "seconds" : 0.162935972213745,
+         "status" : "PASS",
+         "tokens" : [
+            84250,
+            224322,
+            228487,
+            239218
+         ]
+      }
+   ],
+   "error" : "error: device fault; the core rebuilds the contexts and the engine\n",
+   "socket" : "/tmp/flash-owned-nofuse-layers1-pair1.sock",
+   "status" : "FAIL"
+}

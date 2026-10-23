@@ -1,0 +1,6 @@
+flashcore: PLE rows are read from /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf on demand (FLASH_PLE_DISK): 1 MB pinned instead of 28.8 GB, no table load
+flashcore: 6 dies, weights and PLE table resident after 1 s
+engine: 6 dies, 48 blocks, up to 512 positions, 63 MB of buffers per die, ready in 0.6 s
+flashcore: engine /home/nate/claude/flash-sass-prs/ple-diagnostic-nofuse-6835416/kern/libengine_pleiotest.so ready in 0.6 s
+ready
+flashcore: listening on /tmp/flash-owned-nofuse-layers4-pair1.sock
