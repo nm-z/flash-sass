@@ -1,0 +1,596 @@
+# Kernel: gemv_bf16
+#
+# y[r] = sum_k W[r][k] * x[k] for bf16 rows W (row stride 2K bytes) and fp32 x.
+# GEMV_K=2560 (default) or GEMV_K=320 at assembly time. GEMV_ROWSTRIDE overrides
+# the row stride and GEMV_ACC=1 makes the store y += partial. GEMV_SLICES=N runs
+# N consecutive K-wide column slices of a (N K)-wide row inside the kernel,
+# y = (((p0 + p1) + p2) + p3) with each p_s the full K-slice reduction, exactly
+# the numbers four separate slice launches produce: the K=10240 hyper-connection
+# matrices (hc_*_down ++ hc_*_inject) run as one phase. With slices the
+# activations are reloaded per slice and the next slice's loads are issued
+# while the current slice's FFMA chain consumes the registers.
+#
+# L lanes per row (32 for K=2560, 8 for K=320); lane l owns the 8-element chunks
+# at 8 (l + L j), j < C = K/(8L): one LDG.128 of weights and two LDG.128 of
+# activations per chunk. Without slices the activations (8C fp32) stay in
+# registers for the whole kernel. bf16 -> fp32 is a shift (low element) or a mask
+# (high element); the products go through one FFMA chain per lane in element
+# order, then a SHFL butterfly over the L lanes. The C reference (gemv_bf16_ref)
+# mirrors this order.
+#
+# Scheduling (measured rules, see SPEC): fixed-latency 6; variable-latency ops set a
+# barrier and need stall >= 2 before a dependent wait; predicates are computed at
+# the loop top, ~18+ cycles before any consumer.
+# Barriers: 1 = row loads, 2 = address/store reads and activation loads, 5 = SHFL, 6 = S2R.
+#
+# Params: 0:0x140:8 W   1:0x148:8 X   2:0x150:8 Y   3:0x158:4 rows   4:0x160:8 dbg (bias)
+
+<CONSTANT_MAPPING>
+    gridDimX   : c[0x0][0x14]
+    param_W0   : c[0x0][0x140]
+    param_W1   : c[0x0][0x144]
+    param_X0   : c[0x0][0x148]
+    param_X1   : c[0x0][0x14c]
+    param_Y0   : c[0x0][0x150]
+    param_Y1   : c[0x0][0x154]
+    param_rows : c[0x0][0x158]
+    param_D0   : c[0x0][0x160]
+    param_D1   : c[0x0][0x164]
+    param_XOFF : c[0x0][0x168]
+    param_TAB0 : c[0x0][0x170]
+    param_TAB1 : c[0x0][0x174]
+    param_XH0  : c[0x0][0x178]
+    param_XH1  : c[0x0][0x17c]
+    param_T0   : c[0x0][0x180]
+    param_T1   : c[0x0][0x184]
+    param_tn   : c[0x0][0x188]
+    param_NW0  : c[0x0][0x190]
+    param_NW1  : c[0x0][0x194]
+    param_eps  : c[0x0][0x198]
+    param_YG0  : c[0x0][0x1a0]
+    param_YG1  : c[0x0][0x1a4]
+    param_INJ0 : c[0x0][0x1a8]
+    param_INJ1 : c[0x0][0x1ac]
+</CONSTANT_MAPPING>
+
+<CODE>
+    # register mapping depends on K: act<00-..> and w<00-..> sizes
+    my $K = $ENV{GEMV_K} || 2560;
+    my $NS = $ENV{GEMV_SLICES} || 1;
+    my $L = $K >= 2560 ? 32 : 8;
+    my $C = $K / (8 * $L);
+    my $na = 8 * $C;         # activation registers
+    my $nw = 4 * $C;         # weight registers
+    my $wbase = $na;
+    my $tmp = $wbase + $nw;  # a0 a1 b0 b1 accf t
+    my $o = "<REGISTER_MAPPING>\n";
+    $o .= sprintf "    0-%d : act<00-%02d>\n", $na - 1, $na - 1;
+    $o .= sprintf "    %d-%d : w<00-%02d>\n", $wbase, $wbase + $nw - 1, $nw - 1;
+    $o .= sprintf "    %d,%d : a<0-1>\n", $tmp, $tmp + 1;
+    $o .= sprintf "    %d,%d : b<0-1>\n", $tmp + 2, $tmp + 3;
+    $o .= sprintf "    %d : accf\n", $tmp + 4;
+    $o .= sprintf "    %d : t\n", $tmp + 5;
+    $o .= sprintf "    %d : row\n", $tmp + 6;
+    $o .= sprintf "    %d : rowpair\n", $tmp + 7;
+    $o .= sprintf "    %d : rowstep\n", $tmp + 8;
+    $o .= sprintf "    %d : stepw\n", $tmp + 9;
+    $o .= sprintf "    %d : yold\n", $tmp + 10;
+    $o .= sprintf "    %d : bias\n", $tmp + 11;
+    $o .= sprintf "    %d : slice\n", $tmp + 11;  # unused bias register in four-slice HC
+    $o .= sprintf "    %d : ysum\n", $tmp + 12;
+    my $p = $tmp + 13; $p += $p & 1;
+    $o .= sprintf "    %d,%d : wp<0-1>\n", $p, $p + 1;
+    $o .= sprintf "    %d,%d : yp<0-1>\n", $p + 2, $p + 3;
+    $o .= sprintf "    %d,%d : bp<0-1>\n", $p + 4, $p + 5;
+    # the activation pointer lives for the whole kernel with slices, else only in the prologue
+    if ($NS > 1) { $o .= sprintf "    %d,%d : xp<0-1>\n", $p + 6, $p + 7; }
+    else         { $o .= sprintf "    %d,%d : xp<0-1>\n", $wbase, $wbase + 1; }
+    # GEMV_XOUT: the six inbox destinations (TAB bases + xoff + 4 row)
+    if ($ENV{GEMV_XOUT} || $ENV{GEMV_HCUP}) { my $q = $NS > 1 ? $p + 8 : $p + 6; $o .= sprintf "    %d-%d : dq<00-11>\n", $q, $q + 11; $o .= sprintf "    %d : xo\n", $q + 12; }
+    if ($ENV{GEMV_RMS}) {   # the fused RMS norm of the stream (prologue registers past dq/xo)
+        my $h = ($NS > 1 ? $p + 8 : $p + 6) + 14;
+        my @n = qw(ss mm vv s0 hh rr e mneg1 invn wq lq sw wr4);
+        push @n, qw(g ij ft1 ft2 ft3 ft4 log2e ln2hi ln2lo c720 c120 c24 c6 chalf cone) if $ENV{GEMV_RMSW};
+        $o .= sprintf "    %d : %s\n", $h + $_, $n[$_] for 0 .. @n - 1;
+        my $q = $h + @n; $q += $q & 1;
+        $o .= sprintf "    %d,%d : sp<0-1>\n    %d,%d : np<0-1>\n    %d,%d : hp<0-1>\n", $q, $q + 1, $q + 2, $q + 3, $q + 4, $q + 5;
+        $o .= sprintf "    %d,%d : ib<0-1>\n    %d,%d : yb<0-1>\n    %d,%d : ob<0-1>\n", $q + 6, $q + 7, $q + 8, $q + 9, $q + 10, $q + 11 if $ENV{GEMV_RMSW};
+    }
+    if ($ENV{GEMV_HCUP}) {   # the fused hc up: SiLU prologue, lane mix epilogue (registers past dq/xo)
+        my $h = ($NS > 1 ? $p + 8 : $p + 6) + 14;
+        my @n = qw(log2e ln2hi ln2lo c720 c120 c24 c6 chalf cone mneg1 ft1 ft2 ft3 ft4 ft5 su0 su1 sy0 sy1 sa col lq wr gg xl g0 g1 g2 g3 x0 x1 x2 x3 macc c0r c1r rlim zo zt);
+        $o .= sprintf "    %d : %s\n", $h + $_, $n[$_] for 0 .. @n - 1;
+        my $q = $h + @n; $q += $q & 1;
+        $o .= sprintf "    %d,%d : xa<0-1>\n    %d,%d : tp<0-1>\n    %d,%d : dp<0-1>\n", $q, $q + 1, $q + 2, $q + 3, $q + 4, $q + 5;
+    }
+    # prologue temporaries alias the weight registers
+    $o .= sprintf "    %d : lane\n    %d : grp\n    %d : tid\n    %d : bid\n    %d : off\n    %d : t0\n    %d : t1\n",
+        $wbase + 2, $wbase + 3, $wbase + 4, $wbase + 5, $wbase + 6, $wbase + 7, $wbase + 8;
+    $o .= "</REGISTER_MAPPING>\n";
+    return $o;
+</CODE>
+
+<CODE>
+    my $K = $ENV{GEMV_K} || 2560;
+    my $NS = $ENV{GEMV_SLICES} || 1;
+    my $L = $K >= 2560 ? 32 : 8;
+    my $C = $K / (8 * $L);
+    my $R = 256 / $L;                     # rows per CTA iteration
+    my $S = $ENV{GEMV_ROWSTRIDE} || 2 * $K * $NS;   # row stride bytes
+    my $acc = $ENV{GEMV_ACC} ? 1 : 0;     # y += partial instead of y = partial
+    my $bias = $ENV{GEMV_BIAS} ? 1 : 0;   # y = partial + bias[row], bias at the dbg pointer (ssm_dt.bias on the alpha logits)
+    my $xout = $ENV{GEMV_XOUT} ? 1 : 0;   # y rows go to every die's inbox: TAB (at the Y param) + XOFF + 4 row, and the phase is a send
+    my $xcoal = $xout && $K == 2560 && $NS == 4;   # HC down: transpose warp results into contiguous peer writes
+    if ($xcoal) {
+        my $rows = $ENV{GEMV_HC_ROWS} // 4;
+        die "GEMV_HC_ROWS must be 4 or 8" unless $rows =~ /\A[48]\z/;
+        $R = $rows;
+    }
+    my $hc_spread = $xcoal && $R == 4;
+    my $active = $hc_spread ? 'P6' : 'PT';
+    my $slice_option = $ENV{GEMV_HC_SLICE_LOOP} // 1;
+    die "GEMV_HC_SLICE_LOOP must be 0 or 1" unless $slice_option =~ /\A[01]\z/;
+    my $slice_loop = $slice_option && $xcoal && !$acc && !$bias;
+    my $rms = $ENV{GEMV_RMS} ? 1 : 0;     # x = RMSNorm(S) (4 lanes of 2560) built in shared memory by every CTA (bf16hcrx)
+    my $rmsw = $ENV{GEMV_RMSW} ? 1 : 0;   # ... after applying the pending stream write (hcwrite's update) to S, stored to SOUT
+    die "GEMV_RMSW needs GEMV_RMS" if $rmsw && !$rms;
+    require './fmath.pl' if $rmsw;
+    die "GEMV_RMS needs K = 2560, 4 slices" if $rms && ($K != 2560 || $NS != 4);
+    my $hcup = $ENV{GEMV_HCUP} ? 1 : 0;   # fused hc up (K = 320): x = SiLU(0.25 DOWN) via smem, rows ordered 4 c + l over
+                                          # weight rows l cols + c, z_c = mix of the 4 lane rows -> every die's inbox (see ph_hcup)
+    my $RB = $ENV{GEMV_HCUP} ? 'rlim' : 'param_rows';   # the row bound (hcup: this CTA's columns)
+    die "GEMV_HCUP needs K = 320, one slice" if $hcup && ($K != 320 || $NS != 1);
+    require './fmath.pl' if $hcup;
+    my %FC = map { $_ => $_ } qw(log2e ln2hi ln2lo c720 c120 c24 c6 chalf cone mneg1);
+    my $lgL = int(log($L)/log(2) + 0.5);
+    my $lgR = int(log($R)/log(2) + 0.5);
+    my $wrows = 32 / $L;
+    my $res = $NS > 1 ? 'ysum' : 'accf';  # the row result register
+    my $mulc = sub {
+        my ($d, $r, $c) = @_;
+        my @bits = grep { $c & (1 << $_) } 0..31;
+        my $first = shift @bits;
+        my $s = sprintf "--:-:-:-:6      SHL %s, %s, 0x%x;\n", $d, $r, $first;
+        $s .= sprintf "--:-:-:-:6      ISCADD %s, %s, %s, 0x%x;\n", $d, $r, $d, $_ for @bits;
+        return $s;
+    };
+    # activation chunk loads of slice s (two LDG.128 per chunk)
+    my $xload = sub {
+        my ($s, $last) = @_;
+        my $o = '';
+        for my $j (0..$C-1) {
+            if ($rms) {   # from the normalised stream in shared memory (xp0 = 32 lane)
+                $o .= sprintf "--:-:2:-:1      LDS.128 act%02d, [xp0+0x%x];\n", 8*$j, 32*$L*$j + 4*$K*$s;
+                $o .= sprintf "--:-:2:-:%s      LDS.128 act%02d, [xp0+0x%x];\n", ($last && $j == $C-1) ? '2' : '1', 8*$j + 4, 32*$L*$j + 16 + 4*$K*$s;
+                next;
+            }
+            $o .= sprintf "--:-:2:-:1      LDG.E.CI.128 act%02d, [xp+0x%x];\n", 8*$j, 32*$L*$j + 4*$K*$s;
+            $o .= sprintf "--:-:2:-:%s      LDG.E.CI.128 act%02d, [xp+0x%x];\n", ($last && $j == $C-1) ? '2' : '1', 8*$j + 4, 32*$L*$j + 16 + 4*$K*$s;
+        }
+        return $o;
+    };
+    my $o = '';
+    $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
+    $o .= "--:-:6:-:1      S2R bid, SR_CTAID.X;\n";
+    $o .= "--:-:-:-:6      MOV rowstep, gridDimX;\n";
+    if ($rms) {
+        # xh = RMSNorm of the stream's 4 lanes, rmsnorm.sass's arithmetic bit for bit: warps 0..3 sum the
+        # squares of lane w (warp lane l: chunks 4 (l + 32 j), j < 20, one FFMA chain; butterfly) and leave
+        # 1/rms in shared memory at 0xa000; then thread t normalises the float4s q = 10 t .. 10 t + 9 (stream
+        # lane t / 64) into shared memory [0, 40960) and CTA c stores q in [160 c, 160 c + 160) to XH (the
+        # global xh hcup mixes with); the GEMV reads x from shared memory.
+        # GEMV_RMSW: the stream is first updated as hcwrite would (S = fma(2 sigmoid(inj_l / 4), y_c, S),
+        # y = YG, inj = INJ, S read at X): both passes form the new values the same way, and CTA c stores
+        # its slice of the new stream to SOUT (the D parameter)
+        my $invn = unpack("L", pack("f", 1.0 / 2560));
+        my %FW = map { $_ => $_ } qw(log2e ln2hi ln2lo c720 c120 c24 c6 chalf cone mneg1);
+        my $gate = sub {   # g = 2 sigmoid(0.25 INJ[lane register]) -> g
+            my ($lreg) = @_;
+            my $s = "--:-:-:-:6      SHL ij, $lreg, 0x2;\n";
+            $s .= "--:-:-:-:6      IADD ib0.CC, ij, param_INJ0;\n";
+            $s .= "--:-:-:-:6      IADD.X ib1, RZ, param_INJ1;\n";
+            $s .= "--:-:3:-:2      LDG.E ij, [ib];\n";
+            $s .= "04:-:-:-:6      FMUL ij, ij, 0.25;\n";
+            $s .= fm_sigmoid('g', 'ij', 'ft1', 'ft2', 'ft3', 'ft4', \%FW);
+            $s .= "--:-:-:-:6      FMUL g, g, 2;\n";
+            return $s;
+        };
+        $o .= $rmsw ? fm_consts(\%FW) : "--:-:-:-:1      MOV32I mneg1, 0xbf800000;\n";
+        $o .= sprintf "--:-:-:-:1      MOV32I invn, 0x%08x;\n", $invn;
+        $o .= "20:-:-:-:6      SHR.U32 wq, tid, 0x5;\n";
+        $o .= "--:-:-:-:6      LOP32I.AND lq, tid, 0x1f;\n";
+        $o .= "--:-:-:-:6      ISETP.LT.U32.AND P4, PT, tid, 0x80, PT;\n";
+        $o .= "--:-:-:-:6      XMAD sw, wq, 0x2800, RZ;\n";
+        $o .= "--:-:-:-:6      ISCADD sw, lq, sw, 0x4;\n";
+        $o .= "--:-:-:-:6      IADD sp0.CC, sw, param_X0;\n";
+        $o .= "--:-:-:-:6      IADD.X sp1, RZ, param_X1;\n";
+        $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P5, PT, lq, RZ, P4;\n";
+        $o .= "--:-:-:-:6      MOV ss, RZ;\n";
+        if ($rmsw) {
+            $o .= "--:-:-:-:6      LOP32I.AND wr4, wq, 0x3;\n";
+            $o .= $gate->('wr4');
+            $o .= "--:-:-:-:6      SHL ij, lq, 0x4;\n";
+            $o .= "--:-:-:-:6      IADD yb0.CC, ij, param_YG0;\n";
+            $o .= "--:-:-:-:6      IADD.X yb1, RZ, param_YG1;\n";
+            for my $h (0, 1) {   # 10 chunks at a time: S into act00..39, y into act40..79
+                $o .= sprintf "--:-:1:-:1  \@P4 LDG.E.CI.128 act%02d, [sp+0x%x];\n", 4 * $_, 512 * (10 * $h + $_) for 0..9;
+                $o .= sprintf "--:-:1:-:%s  \@P4 LDG.E.CI.128 act%02d, [yb+0x%x];\n", $_ == 9 ? '2' : '1', 40 + 4 * $_, 512 * (10 * $h + $_) for 0..9;
+                $o .= sprintf "%s:-:-:-:%s      FFMA act%02d, g, act%02d, act%02d;\n", $_ == 0 ? '01' : '--', $_ == 39 ? '6' : '1', $_, 40 + $_, $_ for 0..39;
+                $o .= sprintf "--:-:-:-:6      FFMA ss, act%02d, act%02d, ss;\n", $_, $_ for 0..39;
+            }
+        } else {
+            $o .= sprintf "--:-:1:-:%s  \@P4 LDG.E.CI.128 act%02d, [sp+0x%x];\n", $_ == 19 ? '2' : '1', 4 * $_, 512 * $_ for 0..19;
+            $o .= sprintf "%s:-:-:-:6      FFMA ss, act%02d, act%02d, ss;\n", $_ == 0 ? '01' : '--', $_, $_ for 0..79;
+        }
+        for my $x (16, 8, 4, 2, 1) {
+            $o .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, ss, 0x%x, 0x1f;\n", $x;
+            $o .= "10:-:-:-:6      FADD ss, ss, t;\n";
+        }
+        $o .= "--:-:-:-:6      FMUL mm, ss, invn;\n";
+        $o .= "--:-:-:-:6      FADD vv, mm, param_eps;\n";
+        $o .= "--:-:3:-:2      MUFU.RSQ rr, vv;\n";
+        $o .= "04:-:-:-:1      FMUL.FTZ s0, vv, rr;\n";
+        $o .= "--:-:-:-:6      FMUL.FTZ hh, rr, 0.5;\n";
+        $o .= "--:-:-:-:6      FADD.FTZ e, -s0, -RZ;\n";
+        $o .= "--:-:-:-:6      FFMA e, s0, e, vv;\n";
+        $o .= "--:-:-:-:6      FFMA s0, e, hh, s0;\n";
+        $o .= "--:-:3:-:2      MUFU.RCP rr, s0;\n";
+        $o .= "04:-:-:-:6      FFMA e, s0, rr, mneg1;\n";
+        $o .= "--:-:-:-:6      FADD.FTZ e, -e, -RZ;\n";
+        $o .= "--:-:-:-:6      FFMA rr, rr, e, rr;\n";
+        $o .= "--:-:-:-:6      SHL sw, wq, 0x2;\n";
+        $o .= "--:1:-:-:6  \@P5 STS [sw+0xa000], rr;\n";
+        $o .= "01:-:-:-:6      BAR.SYNC 0x0;\n";
+        # Pass 2: thread t owns float4 (t % 64) in each of ten 256-element
+        # chunks of stream lane t / 64. Adjacent threads now access adjacent
+        # float4s, rather than starting 160 bytes apart. The RMS reduction and
+        # per-element update/multiply order are unchanged.
+        $o .= "--:-:-:-:6      SHR.U32 lq, tid, 0x6;\n";
+        $o .= "--:-:-:-:6      SHL wr4, lq, 0x2;\n";
+        $o .= "--:-:3:-:1      LDS rr, [wr4+0xa000];\n";
+        $o .= "--:-:-:-:6      LOP32I.AND sw, tid, 0x3f;\n";
+        $o .= "--:-:-:-:6      SHL sw, sw, 0x4;\n";
+        $o .= "--:-:-:-:6      XMAD sw, lq, 0x2800, sw;\n";
+        $o .= "--:-:-:-:6      IADD sp0.CC, sw, param_X0;\n";
+        $o .= "--:-:-:-:6      IADD.X sp1, RZ, param_X1;\n";
+        $o .= "--:-:-:-:6      IADD np0.CC, sw, param_NW0;\n";
+        $o .= "--:-:-:-:6      IADD.X np1, RZ, param_NW1;\n";
+        $o .= "--:-:-:-:6      IADD hp0.CC, sw, param_XH0;\n";
+        $o .= "--:-:-:-:6      IADD.X hp1, RZ, param_XH1;\n";
+        $o .= "--:-:-:-:6      SHR.U32 wq, tid, 0x4;\n";
+        $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P6, PT, wq, bid, PT;\n";       # CTA c stores threads 16 c .. 16 c + 15
+        $o .= sprintf "--:-:1:-:1      LDG.E.CI.128 act%02d, [sp+0x%x];\n", 4 * $_, 1024 * $_ for 0..9;
+        if ($rmsw) {
+            $o .= $gate->('lq');
+            $o .= "--:-:-:-:6      LOP32I.AND ij, tid, 0x3f;\n";
+            $o .= "--:-:-:-:6      SHL ij, ij, 0x4;\n";                      # y offset 16 (t mod 64)
+            $o .= "--:-:-:-:6      IADD yb0.CC, ij, param_YG0;\n";
+            $o .= "--:-:-:-:6      IADD.X yb1, RZ, param_YG1;\n";
+            $o .= "--:-:-:-:6      IADD ob0.CC, sw, param_D0;\n";             # the new stream (SOUT)
+            $o .= "--:-:-:-:6      IADD.X ob1, RZ, param_D1;\n";
+            $o .= sprintf "--:-:1:-:%s      LDG.E.CI.128 act%02d, [yb+0x%x];\n", $_ == 9 ? '2' : '1', 40 + 4 * $_, 1024 * $_ for 0..9;
+            $o .= sprintf "%s:-:-:-:%s      FFMA act%02d, g, act%02d, act%02d;\n", $_ == 0 ? '01' : '--', $_ == 39 ? '6' : '1', $_, 40 + $_, $_ for 0..39;
+            $o .= sprintf "--:4:-:-:1  \@P6 STG.E.128 [ob+0x%x], act%02d;\n", 1024 * $_, 4 * $_ for 0..9;
+        }
+        # (the norm weights go to act40..79: the w registers alias tid, bid, lane ... during the prologue)
+        $o .= sprintf "--:-:2:-:%s      LDG.E.CI.128 act%02d, [np+0x%x];\n", $_ == 9 ? '2' : '1', 40 + 4 * $_, 1024 * $_ for 0..9;
+        $o .= sprintf "%s:-:-:-:%s      FMUL act%02d, act%02d, rr;\n", $_ == 0 ? ($rmsw ? '0d' : '05') : '--', $_ == 39 ? '6' : '1', $_, $_ for 0..39;
+        $o .= sprintf "%s:-:-:-:%s      FMUL act%02d, act%02d, act%02d;\n", $_ == 0 ? '02' : '--', $_ == 39 ? '6' : '1', $_, $_, 40 + $_ for 0..39;
+        $o .= sprintf "--:1:-:-:1      STS.128 [sw+0x%x], act%02d;\n", 1024 * $_, 4 * $_ for 0..9;
+        $o .= sprintf "--:1:-:-:1  \@P6 STG.E.128 [hp+0x%x], act%02d;\n", 1024 * $_, 4 * $_ for 0..9;
+        $o .= "01:-:-:-:6      BAR.SYNC 0x0;\n";
+    }
+    if ($hcup) {
+        # t = SiLU(0.25 d) for d = DOWN[0, 320); DOWN[320, tn) copied unchanged (the inject values):
+        # thread i does elements i and i + 256, into shared memory (and CTA 0 into T for hcwrite
+        # and the checks), then every lane reads its activation chunks from shared memory
+        $o .= fm_consts(\%FC);
+        $o .= "20:-:-:-:6      SHL sa, tid, 0x2;\n";
+        $o .= "--:-:-:-:6      IADD dp0.CC, sa, param_X0;\n";
+        $o .= "--:-:-:-:6      IADD.X dp1, RZ, param_X1;\n";
+        $o .= "--:-:-:-:6      IADD tp0.CC, sa, param_T0;\n";
+        $o .= "--:-:-:-:6      IADD.X tp1, RZ, param_T1;\n";
+        $o .= "--:-:-:-:6      MOV su1, param_tn;\n";
+        $o .= "--:-:-:-:6      IADD su1, su1, -0x100;\n";
+        $o .= "--:-:-:-:6      ISETP.LT.U32.AND P4, PT, tid, su1, PT;\n";       # element i + 256 exists (< tn)
+        $o .= "--:-:-:-:6      ISETP.LT.U32.AND P5, PT, tid, 0x40, PT;\n";      # and is a SiLU element (< 320)
+        $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P6, PT, bid, RZ, PT;\n";
+        $o .= "--:-:-:-:6      NOP;\n" x 2;
+        $o .= "--:-:1:-:1      LDG.E su0, [dp];\n";
+        $o .= "--:-:1:-:2  \@P4 LDG.E su1, [dp+0x400];\n";
+        $o .= "01:-:-:-:6      FMUL gg, su0, 0.25;\n";
+        $o .= fm_silu('sy0', 'gg', 'ft1', 'ft2', 'ft3', 'ft4', 'ft5', \%FC);
+        $o .= "--:-:-:-:6      FMUL gg, su1, 0.25;\n";
+        $o .= fm_silu('sy1', 'gg', 'ft1', 'ft2', 'ft3', 'ft4', 'ft5', \%FC);
+        $o .= "--:-:-:-:6 \@!P5 MOV sy1, su1;\n";
+        $o .= "--:1:-:-:1      STS [sa], sy0;\n";
+        $o .= "--:1:-:-:1  \@P4 STS [sa+0x400], sy1;\n";
+        $o .= "--:-:-:-:6      PSETP.AND.AND P5, PT, P4, P6, PT;\n";
+        $o .= "--:-:-:-:6      NOP;\n" x 3;
+        $o .= "--:1:-:-:1  \@P6 STG.E [tp], sy0;\n";
+        $o .= "--:1:-:-:6  \@P5 STG.E [tp+0x400], sy1;\n";
+        $o .= "01:-:-:-:6      BAR.SYNC 0x0;\n";
+        # the six inbox bases (XOFF + 4 c is added once the column is known)
+        $o .= "--:-:-:-:6      MOV yp0, param_TAB0;\n";
+        $o .= "--:-:-:-:6      MOV yp1, param_TAB1;\n";
+        $o .= sprintf "--:-:2:-:%d      LDG.E.64 dq%02d, [yp+0x%x];\n", $_ == 5 ? 2 : 1, 2 * $_, 8 * $_ for 0..5;
+    }
+    if ($xout) {   # the six inbox bases, loaded first so their latency hides under the prologue
+        $o .= "--:-:-:-:6      MOV yp0, param_Y0;\n";
+        $o .= "--:-:-:-:6      MOV yp1, param_Y1;\n";
+        $o .= sprintf "--:-:2:-:%d      LDG.E.64 dq%02d, [yp+0x%x];\n", $_ == 5 ? 2 : 1, 2 * $_, 8 * $_ for 0..5;
+    }
+    $o .= sprintf "20:-:-:-:6      LOP32I.AND lane, tid, 0x%x;\n", $L - 1;
+    $o .= sprintf "--:-:-:-:%d      SHR.U32 grp, tid, 0x%x;\n", $hc_spread ? 6 : 1, $lgL;
+    if ($hc_spread) {
+        # Fifty or so HC-down rows otherwise occupy only seven of sixteen
+        # CTAs. Four rows per CTA spread that work without changing a row's
+        # reduction. All warps still participate in the RMS and store barriers.
+        $o .= "--:-:-:-:6      ISETP.LT.U32.AND P6, PT, grp, 0x4, PT;\n";
+        $o .= "--:-:-:-:6      LOP32I.AND grp, grp, 0x3;\n";
+        $o .= "--:-:-:-:6      NOP;\n" x 2;
+    }
+    $o .= sprintf "--:-:-:-:6      SHL rowstep, rowstep, 0x%x;\n", $lgR;
+    $o .= "--:-:-:-:1      ISETP.EQ.U32.AND P0, PT, lane, RZ, $active;\n";
+    $o .= sprintf "--:-:-:-:6      ISCADD row, bid, grp, 0x%x;\n", $lgR;
+    $o .= $mulc->('stepw', 'rowstep', $S);
+    if ($hcup) {
+        # CTA c takes the contiguous columns [c0, c1) (ceil(cols / 16) each), 8 per iteration (one per warp):
+        # row = 4 c0 + grp, 32 rows per step; z is collected in shared memory and written to the slots in one
+        # coalesced burst per die at the end (single-float remote stores per column stalled the switches)
+        $o .= "--:-:-:-:6      MOV gg, param_rows;\n";
+        $o .= "--:-:-:-:6      SHR.U32 gg, gg, 0x2;\n";                          # cols
+        $o .= "--:-:-:-:6      IADD xl, gg, 0xf;\n";
+        $o .= "--:-:-:-:6      SHR.U32 xl, xl, 0x4;\n";                          # per CTA
+        $o .= "--:-:-:-:6      XMAD c0r, bid, xl, RZ;\n";
+        $o .= "--:-:-:-:6      IADD c1r, c0r, xl;\n";
+        $o .= "--:-:-:-:6      IMNMX.U32 c1r, c1r, gg, PT;\n";
+        $o .= "--:-:-:-:6      IMNMX.U32 c0r, c0r, c1r, PT;\n";
+        $o .= "--:-:-:-:6      SHL rlim, c1r, 0x2;\n";
+        $o .= "--:-:-:-:6      ISCADD row, c0r, grp, 0x2;\n";
+        $o .= "--:-:-:-:6      MOV32I rowstep, 0x20;\n";
+        $o .= sprintf "--:-:-:-:6      MOV32I stepw, 0x%x;\n", 8 * $S;                # 8 weight rows
+        $o .= "--:-:-:-:6      SHR.U32 zo, tid, 0x5;\n";
+        $o .= "--:-:-:-:6      SHL zo, zo, 0x2;\n";
+        $o .= "--:-:-:-:6      IADD zo, zo, 0x600;\n";                          # z of this warp's column in smem
+    }
+    # P3: this row exists (rows beyond param_rows load nothing: the matrix may end the allocation)
+    $o .= "--:-:-:-:6      ISETP.LT.U32.AND P3, PT, row, $RB, $active;\n";
+    # The coalesced XOUT body contains CTA barriers, so its loop bound must be
+    # uniform across all eight warps, including a partially populated last group.
+    $o .= sprintf "--:-:-:-:6      LOP32I.AND rowpair, row, 0x%08x;\n", (~(($xcoal ? $R : $wrows) - 1)) & 0xffffffff;
+    if ($hcup) {   # row 4 c + l <- weight row wr = l cols + c (cols = rows / 4); the lane mix needs xh[l][c]
+        $o .= "--:-:-:-:6      SHR.U32 col, row, 0x2;\n";
+        $o .= "--:-:-:-:6      LOP32I.AND lq, row, 0x3;\n";
+        $o .= "--:-:-:-:6      MOV gg, param_rows;\n";
+        $o .= "--:-:-:-:6      SHR.U32 gg, gg, 0x2;\n";
+        $o .= "--:-:-:-:6      XMAD wr, lq, gg, col;\n";
+        $o .= $mulc->('off', 'wr', $S);
+        $o .= "--:-:-:-:6      XMAD gg, lq, 0xa00, col;\n";
+        $o .= "--:-:-:-:6      SHL gg, gg, 0x2;\n";
+        $o .= "--:-:-:-:6      IADD xa0.CC, gg, param_XH0;\n";
+        $o .= "--:-:-:-:6      IADD.X xa1, RZ, param_XH1;\n";
+        # the final store (after the loop: tid aliases a weight register): P6 = tid < c1 - c0, zt = its smem z
+        $o .= "--:-:-:-:6      IADD zt, c1r, -c0r;\n";
+        $o .= "--:-:-:-:6      ISETP.LT.U32.AND P6, PT, tid, zt, PT;\n";
+        $o .= "--:-:-:-:6      SHL zt, tid, 0x2;\n";
+        $o .= "--:-:-:-:6      IADD zt, zt, 0x600;\n";
+        $o .= "--:-:-:-:6      IADD xo, c0r, tid;\n";                           # the final store: thread t -> column c0 + t
+        $o .= "--:-:-:-:6      SHL xo, xo, 0x2;\n";
+        $o .= "--:-:-:-:6      IADD xo, xo, param_XOFF;\n";
+        $o .= "--:-:-:-:6      LOP32I.AND gg, tid, 0x1f;\n";
+        $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P4, PT, gg, RZ, PT;\n";      # P4: lane 0 of the warp (stores z_c)
+    } else {
+        $o .= $mulc->('off', 'row', $S);
+    }
+    # wp = W + off + 16 lane
+    $o .= "--:-:-:-:6      ISCADD t1, lane, off, 0x4;\n";
+    $o .= "--:-:-:-:6      IADD wp0.CC, t1, param_W0;\n";
+    $o .= "--:-:-:-:6      IADD.X wp1, RZ, param_W1;\n";
+    # yp = Y + 4 row (xout: t1 = XOFF + 4 row, added to the six bases below)
+    $o .= $hcup ? "--:-:-:-:6      SHL t1, wr, 0x2;\n" : "--:-:-:-:6      SHL t1, row, 0x2;\n";   # hcup: Y = the lane rows (u, for checks)
+    if ($xout) {   # xo = XOFF + 4 row (its own register: t1 is reused for the activation pointer below)
+        if ($xcoal) {
+            # Threads 0..7 copy this CTA's eight row results contiguously.
+            # Each thread retains its destination through all row iterations.
+            $o .= sprintf "--:-:-:-:6      LOP32I.AND xo, row, 0x%08x;\n", (~($R - 1)) & 0xffffffff;
+            $o .= "--:-:-:-:6      IADD xo, xo, tid;\n";
+            $o .= "--:-:-:-:6      SHL xo, xo, 0x2;\n";
+        } else { $o .= "--:-:-:-:6      SHL xo, row, 0x2;\n"; }
+        $o .= "--:-:-:-:6      IADD xo, xo, param_XOFF;\n";
+    } else {
+        $o .= "--:-:-:-:6      IADD yp0.CC, t1, param_Y0;\n";
+        $o .= "--:-:-:-:6      IADD.X yp1, RZ, param_Y1;\n";
+    }
+    if ($bias) {
+        $o .= "--:-:-:-:6      IADD bp0.CC, t1, param_D0;\n";
+        $o .= "--:-:-:-:6      IADD.X bp1, RZ, param_D1;\n";
+    }
+    # activations: xp = X + 32 lane; chunk j at +32 L j (two 16 B loads); slice s at +4 K s
+    $o .= "--:-:-:-:6      SHL t1, lane, 0x5;\n";
+    if ($rms) { $o .= "--:-:-:-:6      MOV xp0, t1;\n"; }   # a shared-memory address
+    else {
+        $o .= "--:-:-:-:6      IADD xp0.CC, t1, param_X0;\n";
+        $o .= "--:-:-:-:6      IADD.X xp1, RZ, param_X1;\n";
+    }
+    if ($hcup) {   # the SiLU activations from shared memory (same chunk layout: lane l, chunk j at 32 l + 32 L j)
+        for my $j (0..$C-1) {
+            $o .= sprintf "--:-:2:-:1      LDS.128 act%02d, [t1+0x%x];\n", 8*$j, 32*$L*$j;
+            $o .= sprintf "--:-:2:-:%s      LDS.128 act%02d, [t1+0x%x];\n", $j == $C-1 ? '2' : '1', 8*$j + 4, 32*$L*$j + 16;
+        }
+    } else {
+        $o .= $xload->(0, 1) if $NS == 1;     # resident for the whole kernel
+    }
+    if ($xout || $hcup) {
+        $o .= sprintf "%s:-:-:-:6      IADD dq%02d.CC, dq%02d, xo;\n--:-:-:-:6      IADD.X dq%02d, dq%02d, RZ;\n", $_ ? "--" : "02", 2 * $_, 2 * $_, 2 * $_ + 1, 2 * $_ + 1 for 0..5;
+    }
+    $o .= "\nLOOP:\n";
+    $o .= $xload->(0, 0) if $NS > 1;      # slice 0 of this row
+    $o .= "--:2:1:-:1  \@P3 LDG.E xl, [xa];\n" if $hcup;            # xh[l][c] for the lane mix
+    for my $j (0..$C-1) {
+        $o .= sprintf "--:2:1:-:%s  \@P3 LDG.E.CI.128 w%02d, [wp+0x%x];\n", ($j == $C-1 && !$acc && !$bias) ? '2' : '1', 4*$j, 16*$L*$j;
+    }
+    $o .= "--:2:1:-:2  \@P3 LDG.E yold, [yp];\n" if $acc;
+    $o .= "--:2:1:-:2  \@P3 LDG.E bias, [bp];\n" if $bias;
+    # predicates for this row, far from their consumers (see SPEC: ~18 cycles)
+    $o .= "--:-:-:-:1      ISETP.LT.U32.AND P2, PT, row, $RB, P0;\n";
+    $o .= "--:-:-:-:1      ISETP.LT.U32.AND P5, PT, row, $RB, P4;\n" if $hcup;   # lane 0 of the warp, column exists
+    $o .= "--:-:-:-:1      IADD rowpair, rowpair, rowstep;\n";
+    $o .= "--:-:-:-:6      MOV accf, RZ;\n";
+    $o .= "--:-:-:-:2      ISETP.LT.U32.AND P1, PT, rowpair, $RB, PT;\n";
+    # P6 is uniform within each warp. Inactive warps skip arithmetic but join
+    # the shared-memory handoff; their P2 stores and P3 loads remain disabled.
+    $o .= "--:-:-:-:6 \@!P6 BRA XCOAL_ROW_STORE;\n" if $hc_spread;
+    my $nwords = 4 * $C;
+    if ($slice_loop) {
+        $o .= "--:-:-:-:6      MOV slice, RZ;\nHC_SLICE:\n";
+        $o .= "--:-:-:-:6      ISETP.LT.U32.AND P4, PT, slice, 0x3, P3;\n";
+        $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P5, PT, slice, RZ, PT;\n";
+        $o .= "--:-:-:-:6      MOV accf, RZ;\n";
+    }
+    for my $s (0..($slice_loop ? 0 : $NS-1)) {
+        my $pre = $slice_loop || $s + 1 < $NS; # issue the next slice's loads inside this chain
+        $o .= "--:-:-:-:6      MOV accf, RZ;\n" if $s;
+        # software-pipelined conversion: word k's halves are ready two FFMAs before use
+        $o .= "03:-:-:-:1      SHL a0, w00, 0x10;\n";
+        $o .= "--:-:-:-:6      LOP32I.AND b0, w00, 0xffff0000;\n";
+        for my $k (0..$nwords-1) {
+            my $cur = $k & 1;
+            my $nxt = 1 - $cur;
+            my $x0 = sprintf "act%02d", 2*$k;
+            my $x1 = sprintf "act%02d", 2*$k + 1;
+            # act(4m .. 4m+3) are dead after word k = 2m+1: reload them for the next slice
+            my $xpre = $pre && (($k & 1) == 1);
+            my $m = ($k - 1) >> 1;
+            my $xldg = $xpre ? sprintf($rms ? "--:-:2:-:1      LDS.128 act%02d, [xp0+0x%x];\n" : "--:-:2:-:1      LDG.E.CI.128 act%02d, [xp+0x%x];\n", 4*$m, 32*$L*($m >> 1) + 16*($m & 1) + 4*$K*($s+1)) : '';
+            $xldg =~ s/      (LDS|LDG)/  \@P4 $1/ if $slice_loop;
+            if ($k + 1 < $nwords) {
+                my $wn = sprintf "w%02d", $k + 1;
+                # w(4j' .. 4j'+3) are dead once word k+1 = 4j'+3 is converted: reload them
+                my $wpre = $pre && ((($k + 1) & 3) == 3);
+                my $jq = ($k + 1) >> 2;
+                $o .= sprintf "--:-:-:-:1      FFMA accf, a%d, %s, accf;\n", $cur, $x0;
+                $o .= sprintf "--:-:-:-:1      SHL a%d, %s, 0x10;\n", $nxt, $wn;
+                if ($wpre) {
+                    $o .= sprintf "--:-:-:-:3      LOP32I.AND b%d, %s, 0xffff0000;\n", $nxt, $wn;
+                    $o .= sprintf "--:2:1:-:1  \@%s LDG.E.CI.128 w%02d, [wp+0x%x];\n", $slice_loop ? 'P4' : 'P3', 4*$jq, 16*$L*$jq + 2*$K*($s+1);
+                } else {
+                    $o .= sprintf "--:-:-:-:4      LOP32I.AND b%d, %s, 0xffff0000;\n", $nxt, $wn;
+                }
+                if ($xpre) {
+                    $o .= sprintf "--:-:-:-:5      FFMA accf, b%d, %s, accf;\n", $cur, $x1;
+                    $o .= $xldg;
+                } else {
+                    $o .= sprintf "--:-:-:-:6      FFMA accf, b%d, %s, accf;\n", $cur, $x1;
+                }
+            } else {
+                $o .= sprintf "--:-:-:-:6      FFMA accf, a%d, %s, accf;\n", $cur, $x0;
+                $o .= sprintf "--:-:-:-:6      FFMA accf, b%d, %s, accf;\n", $cur, $x1;
+                $o .= $xldg;
+            }
+        }
+        for (my $x = $L / 2; $x >= 1; $x >>= 1) {
+            $o .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x%x, 0x1f;\n", $x;
+            $o .= "10:-:-:-:6      FADD accf, accf, t;\n";
+        }
+        if ($NS > 1) {
+            if ($slice_loop) {
+                $o .= "--:-:-:-:6  \@P5 MOV ysum, accf;\n";
+                $o .= "--:-:-:-:6 \@!P5 FADD ysum, ysum, accf;\n";
+            } else {
+                $o .= $s ? "--:-:-:-:6      FADD ysum, ysum, accf;\n" : "--:-:-:-:6      MOV ysum, accf;\n";
+            }
+        }
+    }
+    if ($slice_loop) {
+        # The prefetched values now belong to the next slice. Keep both row
+        # pointers aligned with them, and restore their bases after slice 3.
+        $o .= sprintf "03:-:-:-:6      IADD wp0.CC, wp0, 0x%x;\n", 2*$K;
+        $o .= "--:-:-:-:6      IADD.X wp1, wp1, RZ;\n";
+        if ($rms) {
+            $o .= sprintf "--:-:-:-:6      IADD xp0, xp0, 0x%x;\n", 4*$K;
+        } else {
+            $o .= sprintf "--:-:-:-:6      IADD xp0.CC, xp0, 0x%x;\n", 4*$K;
+            $o .= "--:-:-:-:6      IADD.X xp1, xp1, RZ;\n";
+        }
+        $o .= "--:-:-:-:6      IADD slice, slice, 0x1;\n";
+        $o .= "--:-:-:-:6  \@P4 BRA HC_SLICE;\n";
+        $o .= sprintf "--:-:-:-:6  \@P3 IADD wp0.CC, wp0, -0x%x;\n", 2*$K*$NS;
+        $o .= "--:-:-:-:6  \@P3 IADD.X wp1, wp1, -0x1;\n";
+        if ($rms) {
+            $o .= sprintf "--:-:-:-:6  \@P3 IADD xp0, xp0, -0x%x;\n", 4*$K*$NS;
+        } else {
+            $o .= sprintf "--:-:-:-:6  \@P3 IADD xp0.CC, xp0, -0x%x;\n", 4*$K*$NS;
+            $o .= "--:-:-:-:6  \@P3 IADD.X xp1, xp1, -0x1;\n";
+        }
+    }
+    $o .= "--:-:-:-:6      FADD $res, yold, $res;\n" if $acc;
+    $o .= "--:-:-:-:6      FADD $res, $res, bias;\n" if $bias;
+    if ($hcup) {
+        # u (this lane row) for the checks; z_c = 0.25 (((s0 x0 + s1 x1) + s2 x2) + s3 x3), s_l = sigmoid(u_l):
+        # the warp holds the 4 lane rows of column c (lanes 8 l), hcmix's order and twin
+        $o .= "--:2:-:-:1  \@P2 STG.E [yp], accf;\n";
+        $o .= fm_sigmoid('gg', 'accf', 'ft1', 'ft2', 'ft3', 'ft4', \%FC);
+        $o .= sprintf "--:-:5:-:1      SHFL.IDX PT, g%d, gg, 0x%x, 0x1f;\n", $_, 8 * $_ for 0..3;
+        $o .= sprintf "--:-:5:-:%d      SHFL.IDX PT, x%d, xl, 0x%x, 0x1f;\n", $_ == 3 ? 2 : 1, $_, 8 * $_ for 0..3;
+        $o .= "10:-:-:-:6      FMUL macc, g0, x0;\n";
+        $o .= sprintf "--:-:-:-:6      FFMA macc, g%d, x%d, macc;\n", $_, $_ for 1..3;
+        $o .= "--:-:-:-:6      FMUL macc, macc, 0.25;\n";
+        $o .= "--:2:-:-:1  \@P5 STS [zo], macc;\n";
+    }
+    elsif ($xcoal) {
+        $o .= "XCOAL_ROW_STORE:\n" if $hc_spread;
+        # One lane per warp leaves the unchanged row reduction in CTA-local
+        # scratch above the RMS factors. The first eight threads then issue
+        # one contiguous store per peer, bounded by the actual row count.
+        $o .= sprintf "--:-:-:-:6      LOP32I.AND xo, row, 0x%x;\n", $R - 1;
+        $o .= "--:-:-:-:6      SHL xo, xo, 0x2;\n";
+        $o .= "--:2:-:-:2  \@P2 STS [xo+0xa020], $res;\n";
+        $o .= "02:-:-:-:6      BAR.SYNC 0x0;\n";
+        # tid/lane alias weight registers, so recover the physical thread ID.
+        # die.pl replaces this S2R with the unit's virtual thread ID as usual.
+        $o .= "--:-:6:-:2      S2R xo, SR_TID.X;\n";
+        $o .= sprintf "20:-:-:-:6      ISETP.LT.U32.AND P4, PT, xo, 0x%x, PT;\n", $R;
+        $o .= "--:-:-:-:6      IADD t, row, xo;\n";
+        $o .= "--:-:-:-:6      SHL xo, xo, 0x2;\n";
+        $o .= "--:-:-:-:6      NOP;\n";
+        $o .= "--:-:-:-:6      ISETP.LT.U32.AND P5, PT, t, param_rows, P4;\n";
+        $o .= "--:-:3:-:2  \@P4 LDS $res, [xo+0xa020];\n";
+        $o .= "--:-:-:-:6      NOP;\n" x 3;
+        $o .= sprintf "%s:2:-:-:%d  \@P5 STG.E.WT [dq%02d], $res;\n", $_ ? '--' : '04', $_ == 5 ? 2 : 1, 2 * $_ for 0..5;
+        # All readers finish before the next row iteration reuses scratch.
+        $o .= "02:-:-:-:6      BAR.SYNC 0x0;\n";
+    }
+    elsif ($xout) { $o .= sprintf "--:2:-:-:1  \@P2 STG.E.WT [dq%02d], $res;\n", 2 * $_ for 0..5; }
+    else { $o .= "--:2:-:-:1  \@P2 STG.E [yp], $res;\n"; }
+    $o .= "--:-:-:-:1      IADD row, row, rowstep;\n";
+    $o .= "02:-:-:-:6      IADD wp0.CC, wp0, stepw;\n";
+    $o .= "--:-:-:-:6      IADD.X wp1, wp1, RZ;\n";
+    $o .= "--:-:-:-:6      ISETP.LT.U32.AND P3, PT, row, $RB, $active;\n";   # next row (row is 12 cycles old)
+    $o .= $hcup ? "--:-:-:-:6      MOV t, rowstep;\n" : "--:-:-:-:6      SHL t, rowstep, 0x2;\n";   # hcup: c advances rowstep / 4 (4 bytes each)
+    if ($hcup) {
+        $o .= "--:-:-:-:6      IADD xa0.CC, xa0, t;\n";
+        $o .= "--:-:-:-:6      IADD.X xa1, xa1, RZ;\n";
+        $o .= "--:-:-:-:6      IADD yp0.CC, yp0, t;\n";
+        $o .= "--:-:-:-:6      IADD.X yp1, yp1, RZ;\n";
+        $o .= "--:-:-:-:6      IADD zo, zo, t;\n";
+    }
+    if ($xout) { $o .= sprintf "--:-:-:-:6      IADD dq%02d.CC, dq%02d, t;\n--:-:-:-:6      IADD.X dq%02d, dq%02d, RZ;\n", 2 * $_, 2 * $_, 2 * $_ + 1, 2 * $_ + 1 for 0..5; }
+    elsif (!$hcup) {   # (hcup stepped yp above)
+        $o .= "--:-:-:-:6      IADD yp0.CC, yp0, t;\n";
+        $o .= "--:-:-:-:6      IADD.X yp1, yp1, RZ;\n";
+    }
+    if ($bias) {
+        $o .= "--:-:-:-:6      IADD bp0.CC, bp0, t;\n";
+        $o .= "--:-:-:-:6      IADD.X bp1, bp1, RZ;\n";
+    }
+    $o .= "--:-:-:-:6  \@P1 BRA LOOP;\n";
+    if ($hcup) {   # this CTA's z (columns c0 .. c1 - 1, in smem) to every die's slot, one coalesced store each
+        $o .= "02:-:-:-:6      BAR.SYNC 0x0;\n";
+        $o .= "--:-:3:-:2      LDS macc, [zt];\n";
+        $o .= sprintf "%s:2:-:-:%d  \@P6 STG.E.WT [dq%02d], macc;\n", $_ ? '--' : '04', $_ == 5 ? 6 : 1, 2 * $_ for 0..5;
+        $o .= "02:-:-:-:6      NOP;\n";
+    }
+    $o .= "--:-:-:-:f      EXIT;\n";
+    return $o;
+</CODE>
