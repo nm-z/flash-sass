@@ -112,6 +112,13 @@ module GPUQ
         loop do
           if waiter.join(0)
             status,ended,ended_mono=waiter.value
+            if process_group_alive?(@pid)
+              survivor=terminate_process_group(@pid)
+              @capture_incomplete=true
+              message=survivor ? 'A background descendant remained after bounded TERM/KILL cleanup; its inherited queue lease remains held until it exits.' : 'A background descendant remained after the command leader exited; TERM/KILL cleanup completed within six seconds.'
+              @db.document(@id,'capture_error','process group',message)
+            end
+            traps.each_key { |s| Signal.trap(s,'DEFAULT') }
             break
           end
           if (@signal || @fatal || (deadline && GPUQ.mono_ns>=deadline)) && !sent
@@ -138,7 +145,8 @@ module GPUQ
         @db.update_job(@id,status:'collecting',ended_ns:ended,exit_code:code,termination_signal:status.termsig||@signal)
         @db.metric(@id,'job.command_wall_ns',elapsed,unit:'ns') unless excluded.include?('timing')
         if usage_r
-          raw=usage_r.read;usage_r.close
+          raw=usage_r.gets || ''
+          usage_r.close
           doc=@db.document(@id,'resource_usage','waited command and children',raw)
           begin
             JSON.parse(raw).each { |k,v| @db.metric(@id,"process.#{k}",v,unit:k.end_with?('_s') ? 's' : k.end_with?('_kib') ? 'KiB' : 'count',document:doc) }
@@ -220,6 +228,33 @@ module GPUQ
       @db.metric(@id,'job.queue_wait_ns',GPUQ.mono_ns-start,unit:'ns')
       File.unlink(@ticket_file) if File.exist?(@ticket_file)
       @ticket_file=nil
+    end
+    def process_group_alive?(pid)
+      Process.kill(0,-pid)
+      true
+    rescue Errno::ESRCH
+      false
+    rescue Errno::EPERM
+      true
+    end
+    def terminate_process_group(pid)
+      Process.kill('TERM',-pid)
+      deadline=GPUQ.mono_ns+5_000_000_000
+      while GPUQ.mono_ns<deadline
+        return false unless process_group_alive?(pid)
+        sleep 0.02
+      end
+      Process.kill('KILL',-pid)
+      deadline=GPUQ.mono_ns+1_000_000_000
+      while GPUQ.mono_ns<deadline
+        return false unless process_group_alive?(pid)
+        sleep 0.02
+      end
+      process_group_alive?(pid)
+    rescue Errno::ESRCH
+      false
+    rescue Errno::EPERM
+      true
     end
     def capture(io,stream)
       Thread.new do
