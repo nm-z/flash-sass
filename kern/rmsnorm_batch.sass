@@ -1,0 +1,11 @@
+# Ordinary RMS across eight positions. One CTA unit retains the scalar vector
+# index, one warp owns a position. The shared emitter keeps both passes and
+# every floating-point/reduction instruction unchanged. No shared activation RAM.
+<CODE>
+    require './rmsnorm.pl';
+    return rmsnorm_regmap(2560, 1);
+</CODE>
+<CODE>
+    require './rmsnorm.pl';
+    return rmsnorm_code(2560, 1);
+</CODE>

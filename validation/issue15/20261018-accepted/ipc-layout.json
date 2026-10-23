@@ -1,0 +1,45 @@
+{
+   "captured_utc" : "2026-10-18T06:42:57Z",
+   "manifests" : {
+      "/tmp/hold-h0.manifest" : "94112cb11544279a753411c9005c6549105938167611091298e9ce7da2a63ba7",
+      "/tmp/hold-h1.manifest" : "11a00e7fb074abc8f3a48732acb9f649d3a1bfe30b9bc8ecbc8034256815f440",
+      "/tmp/hold-h2.manifest" : "a009077049b65fd08238da809e3c026af6fb7c818e81db945dde0a38a5419e11",
+      "/tmp/hold-h3.manifest" : "cefb939ddbca4d8b3774465f74d14a7c19b2aee4fce1bea28144beb170271e15",
+      "/tmp/hold-h4.manifest" : "1e9b3a0b446ed15f3d8ed7d8171da6e6e3b6652433baf187da01ce6d8b812950",
+      "/tmp/hold-h5.manifest" : "ed6037d1452b8f59f93fd205eb83443a82ddda4e508cc9bb1479d2966804d544"
+   },
+   "processes" : {
+      "753710" : {
+         "comm" : "flashd",
+         "start_tick" : "8276117"
+      },
+      "974018" : {
+         "comm" : "hold",
+         "start_tick" : "240471"
+      },
+      "974061" : {
+         "comm" : "hold",
+         "start_tick" : "240473"
+      },
+      "974103" : {
+         "comm" : "fence",
+         "start_tick" : "240475"
+      },
+      "988060" : {
+         "comm" : "hold",
+         "start_tick" : "242016"
+      },
+      "988067" : {
+         "comm" : "hold",
+         "start_tick" : "242018"
+      },
+      "988072" : {
+         "comm" : "hold",
+         "start_tick" : "242021"
+      },
+      "988080" : {
+         "comm" : "hold",
+         "start_tick" : "242026"
+      }
+   }
+}
