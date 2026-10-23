@@ -266,3 +266,23 @@ latency rather than weight bandwidth; it is also the main candidate for why the
 paired layout's scalar decode (26.6 TPS) trails the whole-expert layout (40 TPS).
 Next measurement: time moe_local_columns' compute separately from its transport
 stages, then compare against a direct row-owner reduction.
+
+### Update 1:05 PM: paired MoE down
+
+Stage stamps inside moe_local_columns (scalar, last layer, per CTA): quantize+join
+~4 us, tile compute ~130 us on three-tile CTAs (~93 us on two-tile CTAs), transport
+16–40 us (dies 2–3 slowest). Compute, not transport, dominated: each expert record
+waited for its scale header, then its codes, before issuing its activation loads.
+
+| Change | scalar moe us/layer | scalar TPS | B4 MoE ms | B4 TPS (0 mismatches) | gpuq |
+|---|---|---|---|---|---|
+| before | 198 | 26.6 | 16.7 | 25.60 | 0ff1e18c |
+| tile transports deferred and overlapped | 166 | 27.6 | 15.7 | 25.85 | 4aea1195 |
+| record loads hoisted / one wait | 152 | **28.09** | 14.2 | **26.10** | 3e6dc50c |
+
+Scalar output is bit-identical across both changes. The remaining cost is about one
+exposed global-load latency per expert record (records are serial within a CTA and the
+persistent kernel has one 8-warp CTA per SM); overlapping consecutive records needs
+roughly 70 more registers than the 249-register image has. Next steps, in measured
+order: pipeline records with a smaller per-record footprint, the same treatment for
+q2moegn (3.8 ms scalar, 13.1 ms B4), then hcupq_x and the GR pair.
