@@ -1,0 +1,100 @@
+# Kernel: moesel
+#
+# Expert selection for one die of the expert split: of the routed experts
+# idx[10] / w[10] (every die holds the same router result), keep the ones this
+# die owns (map[idx] != 0xffffffff, map = global expert id -> local tile index)
+# in slot order: lidx[j] = map[idx[e]], lw[j] = w[e], *ne = count. Also zero-fills
+# this die's partial sum (2560 floats), so a die with no routed expert still
+# contributes zeros to the reduction. One warp.
+#
+# Params: 0:0x140 IDX  1:0x148 W  2:0x150 MAP  3:0x158 LIDX  4:0x160 LW  5:0x168 NE  6:0x170 PART
+
+<CONSTANT_MAPPING>
+    param_IDX0  : c[0x0][0x140]
+    param_IDX1  : c[0x0][0x144]
+    param_W0    : c[0x0][0x148]
+    param_W1    : c[0x0][0x14c]
+    param_MAP0  : c[0x0][0x150]
+    param_MAP1  : c[0x0][0x154]
+    param_LIDX0 : c[0x0][0x158]
+    param_LIDX1 : c[0x0][0x15c]
+    param_LW0   : c[0x0][0x160]
+    param_LW1   : c[0x0][0x164]
+    param_NE0   : c[0x0][0x168]
+    param_NE1   : c[0x0][0x16c]
+    param_PART0 : c[0x0][0x170]
+    param_PART1 : c[0x0][0x174]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0-3   : z<0-3>
+    4     : tid
+    5     : lane
+    6     : id
+    7     : w
+    8     : loc
+    9     : v
+    10    : t
+    11    : pos
+    12    : ne
+    13    : one
+    14,15 : ap<0-1>
+    16,17 : bp<0-1>
+    18,19 : cp<0-1>
+    20,21 : pp<0-1>
+</REGISTER_MAPPING>
+
+<CODE>
+    my $o = '';
+    $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
+    $o .= "--:-:-:-:6      MOV one, 0x1;\n";
+    $o .= "--:-:-:-:6      MOV32I loc, 0xffffffff;\n";
+    $o .= "--:-:-:-:6      MOV z0, RZ;\n";
+    $o .= "--:-:-:-:6      MOV z1, RZ;\n";
+    $o .= "--:-:-:-:6      MOV z2, RZ;\n";
+    $o .= "--:-:-:-:6      MOV z3, RZ;\n";
+    $o .= "20:-:-:-:6      LOP32I.AND lane, tid, 0x1f;\n";
+    $o .= "--:-:-:-:6      ISETP.LT.U32.AND P0, PT, lane, 0xa, PT;\n";          # routed slot e = lane < 10
+    $o .= "--:-:-:-:6      SHL t, lane, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD ap0.CC, t, param_IDX0;\n";
+    $o .= "--:-:-:-:6      IADD.X ap1, RZ, param_IDX1;\n";
+    $o .= "--:-:-:-:6      IADD bp0.CC, t, param_W0;\n";
+    $o .= "--:-:-:-:6      IADD.X bp1, RZ, param_W1;\n";
+    # zero the partial sum meanwhile: 2560 floats = 20 x 32 lanes x 16 B
+    $o .= "--:-:-:-:6      SHL t, lane, 0x4;\n";
+    $o .= "--:-:-:-:6      IADD pp0.CC, t, param_PART0;\n";
+    $o .= "--:-:-:-:6      IADD.X pp1, RZ, param_PART1;\n";
+    $o .= "--:-:1:-:1  \@P0 LDG.E id, [ap];\n";
+    $o .= "--:-:1:-:2  \@P0 LDG.E w, [bp];\n";
+    $o .= sprintf "--:%s:-:-:1      STG.E.128 [pp+0x%x], z0;\n", $_ == 19 ? '2' : '-', 512 * $_ for 0..19;
+    $o .= "01:-:-:-:6      SHL t, id, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD cp0.CC, t, param_MAP0;\n";
+    $o .= "--:-:-:-:6      IADD.X cp1, RZ, param_MAP1;\n";
+    $o .= "--:-:1:-:2  \@P0 LDG.E loc, [cp];\n";
+    $o .= "01:-:-:-:6      IADD t, loc, 0x1;\n";                              # owned: loc != 0xffffffff
+    $o .= "--:-:-:-:6      ISETP.NE.U32.AND P1, PT, t, RZ, PT;\n";
+    $o .= "--:-:-:-:6      NOP;\n" x 3;
+    $o .= "--:-:-:-:6      SEL v, one, RZ, P1;\n";
+    # inclusive prefix sum of v over the warp
+    for my $d (1, 2, 4, 8, 16) {
+        $o .= sprintf "--:-:2:-:2      SHFL.UP P2, t, v, 0x%x, 0x0;\n", $d;
+        $o .= "02:-:-:-:6      NOP;\n";
+        $o .= "--:-:-:-:6      NOP;\n" x 2;
+        $o .= "--:-:-:-:6  \@P2 IADD v, v, t;\n";
+    }
+    $o .= "--:-:2:-:2      SHFL.IDX PT, ne, v, 0x1f, 0x1f;\n";                 # total = lane 31's inclusive sum
+    $o .= "02:-:-:-:6      IADD pos, v, -one;\n";                             # exclusive position (owned lanes)
+    $o .= "--:-:-:-:6      SHL pos, pos, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD ap0.CC, pos, param_LIDX0;\n";
+    $o .= "--:-:-:-:6      IADD.X ap1, RZ, param_LIDX1;\n";
+    $o .= "--:-:-:-:6      IADD bp0.CC, pos, param_LW0;\n";
+    $o .= "--:-:-:-:6      IADD.X bp1, RZ, param_LW1;\n";
+    $o .= "--:-:-:-:6      MOV cp0, param_NE0;\n";
+    $o .= "--:-:-:-:6      MOV cp1, param_NE1;\n";
+    $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P3, PT, lane, RZ, PT;\n";
+    $o .= "--:2:-:-:1  \@P1 STG.E [ap], loc;\n";
+    $o .= "--:2:-:-:6  \@P1 STG.E [bp], w;\n";
+    $o .= "--:2:-:-:1  \@P3 STG.E [cp], ne;\n";
+    $o .= "02:-:-:-:f      EXIT;\n";
+    return $o;
+</CODE>
