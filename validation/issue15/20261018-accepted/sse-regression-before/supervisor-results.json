@@ -1,0 +1,317 @@
+{
+   "artifacts" : {
+      "die.cubin" : "116d828f20139d144d46d7d8115a28e35313dac1f6c24ba81c1b5c0984f50e14",
+      "die_trace.cubin" : "9879f0ebd02fa8e5a38069863132395a49926938123bac5936711192b1a0dc0d",
+      "flashd" : "6d8a68dd171b538e161a7fdf66094a8d9bee0d7dbbf6761082794ec7f8f296e8",
+      "libengine.so" : "37a98e59029fbcdecce90a3d9d44a0e934459b5ec1ccfbe791d58e4d090b7847"
+   },
+   "baseline" : {
+      "config" : {
+         "attn_dies" : "1,4,5",
+         "attn_map" : "1,1,1,1,4,4,4,4,5,5,5,5",
+         "cubin" : "/home/nate/codex/flash-astra-perf-20261018/decode-round4/original-die.cubin",
+         "cubin_fnv" : "ddf4c2d71eac39dd",
+         "dies" : "6",
+         "img_rows" : "4096",
+         "kv_host" : "0",
+         "layers" : "48/48",
+         "maxt" : "230000",
+         "nblk" : "512",
+         "ple_disk" : "1",
+         "prefill_chunk" : "0",
+         "rev" : "edc66d9-dirty",
+         "split" : "112,97,81,116,97,97",
+         "two_position" : "0"
+      },
+      "cubin_file" : "/home/nate/codex/flash-astra-perf-20261018/decode-round4/original-die.cubin",
+      "cubin_sha256" : "6cc2bb946cfea6343ed74c3854e07d9d509a153a96d102ae5396c99383271c6e",
+      "engine_sha256" : "8ecd2476d48082be2655e1ad4b20a23163a9495a2ebbfd5126ff2990ee478b1b",
+      "logical_library" : "/home/nate/claude/flash-sass-live/kern/libengine.so",
+      "private_image" : "/tmp/flashcore-1321713-gen1.so",
+      "trace_restore_basis" : "candidate config readback before any environment assignment"
+   },
+   "candidate_configs" : [
+      {
+         "attn_dies" : "1,4,5",
+         "attn_map" : "1,1,1,1,4,4,4,4,5,5,5,5",
+         "cubin" : "/home/nate/claude/flash-sass-resolve/timing-0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae/kern/die_trace.cubin",
+         "cubin_fnv" : "c58301f72e223de1",
+         "dies" : "6",
+         "img_rows" : 1,
+         "kv_host" : "0",
+         "layers" : "48/48",
+         "maxt" : 512,
+         "nblk" : "512",
+         "ple_disk" : "1",
+         "prefill_chunk" : "0",
+         "rev" : "0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae",
+         "split" : "112,97,81,116,97,97",
+         "trace_tokens" : 4,
+         "two_position" : 0
+      }
+   ],
+   "candidate_cubin_fnv" : "c58301f72e223de1",
+   "commands" : [
+      {
+         "argv" : [
+            "nvidia-smi",
+            "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm",
+            "--format=csv"
+         ],
+         "exit_code" : 0,
+         "name" : "gpu-before",
+         "seconds" : 0.100766897201538,
+         "timed_out" : false
+      },
+      {
+         "argv" : [
+            "/home/nate/claude/flash-sass-resolve/timing-0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae/kern/trace_session_test"
+         ],
+         "exit_code" : 0,
+         "name" : "session-fixtures",
+         "seconds" : 0.0505440235137939,
+         "timed_out" : false
+      },
+      {
+         "argv" : [
+            "/home/nate/claude/flash-sass-resolve/timing-0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae/kern/output_tokens_test",
+            "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf"
+         ],
+         "exit_code" : 0,
+         "name" : "output-token-regression",
+         "seconds" : 0.250838041305542,
+         "timed_out" : false
+      },
+      {
+         "argv" : [
+            "perl",
+            "/home/nate/claude/flash-sass-resolve/timing-0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae/kern/timings_core_check.pl",
+            "--socket",
+            "/tmp/flash.sock",
+            "--source-sha",
+            "0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae",
+            "--resident-pid",
+            1321713,
+            "--resident-start",
+            "8922484",
+            "--lease-fd",
+            4,
+            "--out",
+            "/home/nate/claude/flash-sass-resolve/issue15-adaptive-0f8b09c-20261018/evidence/cli-pair0"
+         ],
+         "exit_code" : 0,
+         "name" : "cli-pair0",
+         "seconds" : 1.30293703079224,
+         "timed_out" : false
+      },
+      {
+         "argv" : [
+            "perl",
+            "/home/nate/claude/flash-sass-resolve/timing-0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae/kern/timings_http_real.pl",
+            "--socket",
+            "/tmp/flash.sock",
+            "--source-sha",
+            "0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae",
+            "--resident-pid",
+            1321713,
+            "--resident-start",
+            "8922484",
+            "--lease-fd",
+            4,
+            "--flashd",
+            "/home/nate/claude/flash-sass-resolve/timing-0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae/kern/flashd",
+            "--gguf",
+            "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf",
+            "--out",
+            "/home/nate/claude/flash-sass-resolve/issue15-adaptive-0f8b09c-20261018/evidence/http-pair0"
+         ],
+         "exit_code" : 25,
+         "name" : "http-pair0",
+         "seconds" : 1.15291786193848,
+         "timed_out" : false
+      },
+      {
+         "argv" : [
+            "nvidia-smi",
+            "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm",
+            "--format=csv"
+         ],
+         "exit_code" : 0,
+         "name" : "gpu-after",
+         "seconds" : 0.100852012634277,
+         "timed_out" : false
+      }
+   ],
+   "core_cwd" : "/home/nate/claude/flash-sass-live/kern",
+   "error" : "http-pair0 failed (exit 25); see /home/nate/claude/flash-sass-resolve/issue15-adaptive-0f8b09c-20261018/evidence/http-pair0.log\n",
+   "finished_utc" : "2026-10-18T06:57:11Z",
+   "hostname" : "archy",
+   "lock_acquired_utc" : "2026-10-18T06:57:03Z",
+   "mutation_started_utc" : "2026-10-18T06:57:04Z",
+   "plan" : {
+      "baseline" : {
+         "attn_dies" : "1,4,5",
+         "attn_map" : "1,1,1,1,4,4,4,4,5,5,5,5",
+         "cubin" : "/home/nate/codex/flash-astra-perf-20261018/decode-round4/original-die.cubin",
+         "cubin_fnv" : "ddf4c2d71eac39dd",
+         "dies" : "6",
+         "img_rows" : 4096,
+         "kv_host" : "0",
+         "layers" : "48/48",
+         "maxt" : 230000,
+         "nblk" : "512",
+         "ple_disk" : "1",
+         "prefill_chunk" : "0",
+         "rev" : "edc66d9-dirty",
+         "split" : "112,97,81,116,97,97",
+         "trace_tokens" : "0",
+         "two_position" : "0"
+      },
+      "candidates" : [
+         {
+            "FLASH_CUBIN" : "/home/nate/claude/flash-sass-resolve/timing-0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae/kern/die_trace.cubin",
+            "FLASH_ENGINE_MAXT" : "512",
+            "FLASH_MAXIMG" : "1",
+            "FLASH_TRACE" : "4",
+            "FLASH_TWO_POSITION" : "0"
+         },
+         {
+            "FLASH_CUBIN" : "/home/nate/claude/flash-sass-resolve/timing-0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae/kern/die_trace.cubin",
+            "FLASH_ENGINE_MAXT" : "512",
+            "FLASH_MAXIMG" : "1",
+            "FLASH_TRACE" : "4",
+            "FLASH_TWO_POSITION" : "1"
+         }
+      ],
+      "restore" : {
+         "FLASH_CUBIN" : "/home/nate/codex/flash-astra-perf-20261018/decode-round4/original-die.cubin",
+         "FLASH_ENGINE_MAXT" : "230000",
+         "FLASH_MAXIMG" : "4096",
+         "FLASH_TRACE" : 0,
+         "FLASH_TWO_POSITION" : "0"
+      },
+      "trace_restore_basis" : "baseline effective trace_tokens=0"
+   },
+   "protocol" : [
+      {
+         "direction" : "send",
+         "line" : "config",
+         "utc" : "2026-10-18T06:57:03Z"
+      },
+      {
+         "direction" : "receive",
+         "line" : "config rev=edc66d9-dirty kv_host=0 ple_disk=1 maxt=230000 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=4096 two_position=0 prefill_chunk=0 cubin=/home/nate/codex/flash-astra-perf-20261018/decode-round4/original-die.cubin cubin_fnv=ddf4c2d71eac39dd",
+         "utc" : "2026-10-18T06:57:03Z"
+      },
+      {
+         "direction" : "send",
+         "line" : "reload /home/nate/claude/flash-sass-resolve/timing-0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae/kern/libengine.so",
+         "utc" : "2026-10-18T06:57:04Z"
+      },
+      {
+         "direction" : "receive",
+         "line" : "ok: engine reloaded",
+         "utc" : "2026-10-18T06:57:06Z"
+      },
+      {
+         "direction" : "send",
+         "line" : "config",
+         "utc" : "2026-10-18T06:57:06Z"
+      },
+      {
+         "direction" : "receive",
+         "line" : "config rev=0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae kv_host=0 ple_disk=1 maxt=230000 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=4096 trace_tokens=0 two_position=0 prefill_chunk=0 cubin=/home/nate/codex/flash-astra-perf-20261018/decode-round4/original-die.cubin cubin_fnv=ddf4c2d71eac39dd",
+         "utc" : "2026-10-18T06:57:06Z"
+      },
+      {
+         "direction" : "send",
+         "line" : "reload /home/nate/claude/flash-sass-resolve/timing-0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae/kern/libengine.so FLASH_CUBIN=/home/nate/claude/flash-sass-resolve/timing-0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae/kern/die_trace.cubin FLASH_ENGINE_MAXT=512 FLASH_MAXIMG=1 FLASH_TRACE=4 FLASH_TWO_POSITION=0",
+         "utc" : "2026-10-18T06:57:06Z"
+      },
+      {
+         "direction" : "receive",
+         "line" : "ok: engine reloaded",
+         "utc" : "2026-10-18T06:57:07Z"
+      },
+      {
+         "direction" : "send",
+         "line" : "config",
+         "utc" : "2026-10-18T06:57:07Z"
+      },
+      {
+         "direction" : "receive",
+         "line" : "config rev=0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae kv_host=0 ple_disk=1 maxt=512 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=1 trace_tokens=4 two_position=0 prefill_chunk=0 cubin=/home/nate/claude/flash-sass-resolve/timing-0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae/kern/die_trace.cubin cubin_fnv=c58301f72e223de1",
+         "utc" : "2026-10-18T06:57:07Z"
+      },
+      {
+         "direction" : "send",
+         "line" : "reload /home/nate/claude/flash-sass-live/kern/libengine.so FLASH_CUBIN=/home/nate/codex/flash-astra-perf-20261018/decode-round4/original-die.cubin FLASH_ENGINE_MAXT=230000 FLASH_MAXIMG=4096 FLASH_TRACE=0 FLASH_TWO_POSITION=0",
+         "utc" : "2026-10-18T06:57:09Z"
+      },
+      {
+         "direction" : "receive",
+         "line" : "ok: engine reloaded",
+         "utc" : "2026-10-18T06:57:11Z"
+      },
+      {
+         "direction" : "send",
+         "line" : "config",
+         "utc" : "2026-10-18T06:57:11Z"
+      },
+      {
+         "direction" : "receive",
+         "line" : "config rev=edc66d9-dirty kv_host=0 ple_disk=1 maxt=230000 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=4096 two_position=0 prefill_chunk=0 cubin=/home/nate/codex/flash-astra-perf-20261018/decode-round4/original-die.cubin cubin_fnv=ddf4c2d71eac39dd",
+         "utc" : "2026-10-18T06:57:11Z"
+      }
+   ],
+   "resident_pid" : 1321713,
+   "resident_start_tick" : "8922484",
+   "restoration" : {
+      "config" : {
+         "attn_dies" : "1,4,5",
+         "attn_map" : "1,1,1,1,4,4,4,4,5,5,5,5",
+         "cubin" : "/home/nate/codex/flash-astra-perf-20261018/decode-round4/original-die.cubin",
+         "cubin_fnv" : "ddf4c2d71eac39dd",
+         "dies" : "6",
+         "img_rows" : "4096",
+         "kv_host" : "0",
+         "layers" : "48/48",
+         "maxt" : "230000",
+         "nblk" : "512",
+         "ple_disk" : "1",
+         "prefill_chunk" : "0",
+         "rev" : "edc66d9-dirty",
+         "split" : "112,97,81,116,97,97",
+         "two_position" : "0"
+      },
+      "engine_sha256" : "8ecd2476d48082be2655e1ad4b20a23163a9495a2ebbfd5126ff2990ee478b1b",
+      "status" : "PASS",
+      "verified_utc" : "2026-10-18T06:57:11Z"
+   },
+   "restoration_scope" : "Exact library bytes and effective configuration; reload clears engine snapshots and caches. Startup environment is not used as effective readback.",
+   "runner_sha256" : "0024687cdb1ff0e773ffeeff312ae3eae42a5b10248a72cb11dc406cd3b53e2e",
+   "shared_lock" : "/tmp/flash-sass-engine-validation.lock",
+   "socket" : "/tmp/flash.sock",
+   "source" : "/home/nate/claude/flash-sass-resolve/timing-0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae",
+   "source_sha" : "0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae",
+   "started_utc" : "2026-10-18T06:57:03Z",
+   "status" : "FAIL",
+   "unchanged_environment_config" : {
+      "attn_dies" : "1,4,5",
+      "attn_map" : "1,1,1,1,4,4,4,4,5,5,5,5",
+      "cubin" : "/home/nate/codex/flash-astra-perf-20261018/decode-round4/original-die.cubin",
+      "cubin_fnv" : "ddf4c2d71eac39dd",
+      "dies" : "6",
+      "img_rows" : "4096",
+      "kv_host" : "0",
+      "layers" : "48/48",
+      "maxt" : "230000",
+      "nblk" : "512",
+      "ple_disk" : "1",
+      "prefill_chunk" : "0",
+      "rev" : "0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae",
+      "split" : "112,97,81,116,97,97",
+      "trace_tokens" : "0",
+      "two_position" : "0"
+   }
+}
