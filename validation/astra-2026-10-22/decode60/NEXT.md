@@ -1,35 +1,44 @@
-# Current work toward 60 TPS
+# Current work toward60 TPS
 
-The retained default is v97:25.146432488TPS,492 phases, maximum pairwise
-assigned-work ratio1.076923077. Its128 short-reference outputs,288 retained
-state hashes, full head audit and4096-token baseline fixture pass.60TPS has
-not been achieved. Physical GPUs2 and7 remain reserved for Nate.
+The retained default is v104:25.721831473 and25.792883107TPS on two requests,
+492 phases and maximum pairwise assigned-work ratio1.076923077. Both requests
+match128 reference outputs and288 retained state hashes each; full head and
+work audits pass. The4096-token fixture also passes.60TPS is not achieved.
+Physical GPUs2 and7 remain reserved for Nate.
 
-Two larger matrix-execution alternatives are now complete and preserved in
-normal build targets. `die_balanced_split.cubin` uses eight lanes per routed
-down row (v98,24.992749323TPS). `die_balanced_lut.cubin` uses exact activation
-pair lookup tables (v100,24.804969555TPS). The first LUT version, v99, retained
-unused register activation loads and measured24.464268428TPS. Removing those
-loads recovered some time, but neither alternative beat the retained default.
-All three match128 reference outputs and288 state hashes. See README.md for
-canonical DB jobs and implementation details. These are individual observations,
-not randomized estimates of small performance differences.
+The latest retained change batches independent predicated loads and stores,
+then tightens issue spacing inside long bursts. It preserves all final waits,
+original wait bits, memory fences and instruction order. The compiled image
+has125 bursts, including36 predicated and29 store bursts;856 intermediate
+waits and5,165 static scheduled cycles are removed. Those are compile-time
+counts, not measured cycles saved per token. v103 and v104 have essentially
+similar measured request times; no isolated store-batching gain is established.
 
-The distributed-quantization experiment remains complete at commit29c92ec on
-`perf/distributed-quant-20261022`. Its best run was23.635491116TPS, slower than
-local preparation; it is not an unimplemented next step.
+The true streamed Q2 down body is now complete in `die_balanced_stream.cubin`.
+It uses two alternating register banks and two arithmetic bodies, pipelines
+all five half-blocks without register-copy dispatch, and keeps the original
+FP32 association. v101 matched all outputs/state hashes but measured24.664605312
+TPS. It remains opt-in. The lane-split and LUT alternatives are also complete,
+with historical results in README.md. They are not pending implementation.
 
-Objective weights: throughput1.0, fidelity1.0, phase/work constraints1.0,
-engineering time0.8, cost0.8. The lower-effort lane split was expected to shorten
-per-lane integer work and use the idle half of each routed-down CTA. It did
-so structurally, but did not improve the request time. The larger lookup-table
-alternative removed the multiplies from the row body; table preparation,
-shared reads and added joins did not earn back their cost in these runs.
+The distributed-quantization experiment remains at commit29c92ec on
+`perf/distributed-quant-20261022`; its best full-model run was23.635491116TPS.
 
-A remaining implementation direction is a genuinely looped Q2 body with
-per-half-block activation loads, instead of the earlier compact-Q2 experiment's
-large register-copy dispatch. The original five FP32 accumulation steps must
-remain in order. Any implementation must include producer/shared-memory
-lifetime, all tail warps, weight addressing and the real full-model path before
-running. The lane and LUT results warn against treating a smaller instruction
-body or more active warps as proof of better throughput.
+Objective weights remain throughput1.0, fidelity1.0, phase/work constraints1.0,
+engineering time0.8 and cost0.8. The larger streamed-body alternative was
+expected to improve overlap and instruction locality; it was correct but
+slower. The lower-effort shared memory-scheduling pass produced a measurable
+request-time improvement and was retained after repeated-request and longer
+context checks. Measurements are separate observations, not randomized A/B
+estimates of small differences.
+
+Current per-operation evidence is in `memory-bursts/operations.md` and its
+per-die CSV, extracted directly from DB jobs. GR read/update intervals fell
+by about1ms on the final token; hcupq_x remains the largest inclusive family
+at about6ms, followed by routed gate/up and down. These phase intervals include
+synchronization and are not isolated body timings. Remaining diagnostic waits
+are concentrated in GDN, GR and QSA bodies, often around non-adjacent accesses.
+Any further scheduling transformation must account for physical aliases,
+result dependencies, register-read lifetimes and scoreboard reuse across
+pipelines. Do not infer safety merely from different symbolic register names,
+or count elapsed wait time as pure link latency.

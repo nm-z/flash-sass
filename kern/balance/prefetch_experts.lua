@@ -31,7 +31,8 @@ local function gen()
  end
  return out,e
 end
-for _,tag in ipairs({'q2moegn','q2moedn'})do
+assert(arg[3]==nil or arg[3]=='gate_only','unknown prefetch scope')
+for _,tag in ipairs(arg[3]=='gate_only' and {'q2moegn'} or {'q2moegn','q2moedn'})do
  local down=tag=='q2moedn';local stride=down and 1 or 2;local lanes=down and 4 or 16
  local a=assert(s:find(tag..'_SETUP:',1,true));local b=assert(s:find('\n[%w_]+_SETUP:',a+1))
  local body=s:sub(a,b-1)

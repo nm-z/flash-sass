@@ -5,9 +5,9 @@ correct outputs, fewer than500 physical phases/token and the pairwise
 assigned-work bound. Physical GPUs2 and7 remain reserved for Nate.
 **The target is not achieved.**
 
-Retained default: **v97,25.146432488 TPS**, with492 phases/token.
-All128 short-context reference outputs and all288 retained state hashes match.
-The4096-token long-context fixture also passes. These are individual
+Retained default: **v104,25.721831473 and25.792883107 TPS**, with492 phases/token.
+Both short requests match all128 reference outputs and all288 retained state
+hashes each. The4096-token long-context fixture also passes. These are individual
 measurements, not a controlled estimate of the small differences between them.
 
 Priority scores for this work: throughput1.0, fidelity1.0, retaining the
@@ -44,6 +44,10 @@ A/B estimates. Raw output and metadata remain in archy's canonical GPUq DB
 | v98,eight-lane routed down | `7c27fc6e-2970-4170-be87-1cdfd68f71b1` |24.992749323|128 reference tokens, head audit and work readback pass;288 state hashes match v78; opt-in |
 | v99,exact activation-pair lookup tables | `ee8b6f3f-aff5-4e94-9511-47b616844d8a` |24.464268428|Same output/state/audit checks pass; slower |
 | v100,lookup tables without superseded register loads | `4a4ceadf-e881-4523-a616-09e3a880c46c` |24.804969555|Same output/state/audit checks pass; opt-in |
+| v101,two-body streamed routed down | `27fc9a0f-1fb3-4b3b-8164-3f8e1e05d80b` |24.664605312|128 reference tokens,288 state hashes, head and work audits pass; opt-in |
+| v102,predicated load bursts | `2d6d9d94-aa9c-4a9e-8d07-520487806b47` |25.666102532|128 reference tokens,288 state hashes and full head audit pass |
+| v103,tighter burst issue spacing | `e39478c4-a505-4031-a682-edf067e957c1` |25.735693691 /25.773191368|Two requests match all reference tokens and576 state hashes; full head audits pass |
+| v104,store bursts as well | `96ed25b0-6c12-4470-aebd-9577dbbb4076` |25.721831473 /25.792883107|Two requests match all reference tokens and576 state hashes; full head/work audits pass |
 
 The down-projection phase contains both routed and shared projections. On
 logical die5 its accumulated profile time falls from10.670ms/token in v79 to
@@ -159,6 +163,40 @@ head audit passes. All six dies have identical512-value indexer queries,
 This is a long-context baseline-preservation check, not an independent
 original-model oracle or a two-token throughput benchmark.
 
+## Memory scheduling retained in v104
+
+The burst pass now covers adjacent predicated loads when the predicates match,
+and adjacent stores with matching predicates and scoreboard slots. It retains
+the last completion wait and all original wait bits, checks physical register
+aliases and vector widths, and never reorders arithmetic, stores or fences.
+Long bursts keep at least18 cycles after the first instruction for preceding
+fixed results to become ready, then issue independent operations two cycles
+apart. The final wait retains the original instruction spacing. Store completion
+here means retirement of address/data-register reads, not a replacement for
+the existing memory fences.
+
+The image contains125 bursts:36 predicated and29 store bursts. It removes856
+intermediate diagnostic waits and5,165 static scheduled cycles across the
+compiled image. Those compile-time counts are not a measured per-token time
+reduction. Register count remains249, with the same492 phases and979 descriptors
+per die. The [work audit](work-v104.tsv) and [summary](work-v104-summary.txt)
+pass7,428 component comparisons; maximum pairwise ratio is1.076923077.
+
+The [saved PROF_ALL comparison](memory-bursts/operations.md) and
+[per-die CSV](memory-bursts/operations.csv) compare v97 and v104 directly from
+their DB stdout. They report inclusive final-token phase intervals, not request
+averages or isolated body timings. Across six dies, `bf16hcrwx` falls from
+3,545.9 to3,064.0 microseconds and `grwrite_read` from3,469.2 to2,939.1.
+The small difference between v103 and v104 does not establish a separate
+throughput benefit from store batching.
+
+Long-context job `989775df-8bbb-4503-b55f-22a1ec386c18` completes4097 causal
+positions after a4096-token prompt in164017.6ms. Output IDs760 and1156 match
+the retained v80 fixture, and the full head and retained-work audits pass.
+See the [long work audit](work-v104-long.tsv) and
+[summary](work-v104-long-summary.txt). This checks the longer attention path;
+it is not a two-token throughput benchmark.
+
 ## Completed experiments not enabled by default
 
 The complete distributed activation quantization path is preserved on
@@ -203,10 +241,13 @@ The routed-down lane split and lookup-table paths are complete production
 images. Build `die_balanced_split.cubin` for v98 or `die_balanced_lut.cubin`
 for v100. Both use the ordinary balanced engine/program and all48 layers;
 their weight and activation storage ABI is unchanged. The default
-`die_balanced.cubin` retains the faster v97 implementation.
-After adding the separate build targets, all three rebuilt cubins were
+`die_balanced.cubin` retains the native routed-down implementation, now with
+the v104 memory scheduling changes.
+At commitbaed457, after adding the separate build targets, all three rebuilt cubins were
 byte-for-byte identical to the measured v97, v98 and v100 artifacts respectively;
 no GPU run was repeated just for the build-rule change.
+Later changes to the shared burst pass apply to these optional builds too;
+their historical measurements above identify the exact remote artifacts.
 
 `balance/split_down.lua` assigns eight lanes to each32-row routed-down tile,
 doubling useful warps from four to eight on a full tile. Each partner computes
@@ -234,6 +275,16 @@ across the six dies is4.783–4.955ms/token in v97,4.897–5.107ms in v98,
 projection, preparation and phase-boundary effects. The experiments do not
 justify claiming an isolated arithmetic speedup from the shorter instruction
 body. No long-context run was added for these slower alternatives.
+
+The complete `die_balanced_stream.cubin` variant uses
+`balance/stream_down.lua`: two alternating arithmetic bodies load the next
+half-block into a separate register bank while computing the current one.
+It retains the same five FP32 accumulation steps and four-lane reduction,
+without register-copy dispatch, new shared buffers or extra CTA barriers.
+It replaces eager down activation/weight loads, while retaining next-expert
+prefetch for gate/up. Its v101 full-model run matches128 reference outputs and
+288 state hashes, but measures24.664605312TPS; the routed-down phase totals
+5.405–5.579ms on the six dies. It remains opt-in.
 
 `balance/compact_q2.lua` folds five identical68-instruction half-block bodies
 into one loop, binding operands into free registers while preserving all

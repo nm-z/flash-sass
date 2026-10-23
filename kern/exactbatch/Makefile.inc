@@ -89,14 +89,14 @@ die_phase.cubin: die_phase.sass die_phase.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ die_phase.ptx
 	$(MAXAS) -i die_phase.sass $@
 
-BALANCED_DOWN_IMAGES = die_balanced.sass die_balanced_split.sass die_balanced_lut.sass
+BALANCED_DOWN_IMAGES = die_balanced.sass die_balanced_split.sass die_balanced_lut.sass die_balanced_stream.sass
 $(BALANCED_DOWN_IMAGES): die_phase.sass balance/embedding.lua balance/ple.lua balance/moe.lua balance/prepare.lua balance/attention.lua balance/attention_heads.lua balance/head.lua balance/head_producer.lua balance/publish.lua balance/quant_publish.lua balance/schedule.lua balance/composite.lua phase/quant_emit.lua phase/serial_dependencies.lua phase/predicate_latency.lua
 	$(LUA) balance/embedding.lua $< $@.embedding
 	$(LUA) balance/ple.lua $@.embedding $@.ple
 	$(LUA) balance/moe.lua $@.ple $@.moe
-	$(LUA) balance/prefetch_experts.lua $@.moe $@.prefetched
+	$(LUA) balance/prefetch_experts.lua $@.moe $@.prefetched $(if $(filter die_balanced_stream.sass,$@),gate_only)
 	$(if $(filter die_balanced_split.sass die_balanced_lut.sass,$@),$(LUA) balance/split_down.lua $@.prefetched $@.splitdown,cp $@.prefetched $@.splitdown)
-	$(if $(filter die_balanced_lut.sass,$@),$(LUA) balance/down_lut.lua $@.splitdown $@.downimpl,cp $@.splitdown $@.downimpl)
+	$(if $(filter die_balanced_lut.sass,$@),$(LUA) balance/down_lut.lua $@.splitdown $@.downimpl,$(if $(filter die_balanced_stream.sass,$@),$(LUA) balance/stream_down.lua $@.splitdown $@.downimpl,cp $@.splitdown $@.downimpl))
 	$(LUA) balance/attention.lua $@.downimpl $@.attention
 	$(LUA) balance/head.lua $@.attention $@.head
 	$(LUA) balance/publish.lua $@.head $@.published
@@ -108,11 +108,11 @@ $(BALANCED_DOWN_IMAGES): die_phase.sass balance/embedding.lua balance/ple.lua ba
 	$(LUA) phase/predicate_latency.lua $@.bursts $@ $@.predicate.csv
 die_balanced.ptx: die_phase.ptx balance/marker.ptxinc
 	cat $^ > $@
-$(BALANCED_DOWN_IMAGES): exactbatch/Makefile.inc balance/load_bursts.lua balance/prefetch_experts.lua balance/split_down.lua balance/down_lut.lua
+$(BALANCED_DOWN_IMAGES): exactbatch/Makefile.inc balance/load_bursts.lua balance/prefetch_experts.lua balance/split_down.lua balance/down_lut.lua balance/stream_down.lua
 die_balanced.cubin: die_balanced.sass die_balanced.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ die_balanced.ptx
 	$(MAXAS) -i die_balanced.sass $@
-die_balanced_split.cubin die_balanced_lut.cubin: %.cubin: %.sass die_balanced.ptx
+die_balanced_split.cubin die_balanced_lut.cubin die_balanced_stream.cubin: %.cubin: %.sass die_balanced.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ die_balanced.ptx
 	$(MAXAS) -i $< $@
 
