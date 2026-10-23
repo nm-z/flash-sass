@@ -1,0 +1,13 @@
+target datalayout = "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v16:16:16-v32:32:32-v64:64:64-v128:128:128-n16:32:64"
+target triple = "nvptx64-nvidia-cuda"
+define void @k(float* %a) {
+  %t = call i32 @llvm.nvvm.read.ptx.sreg.tid.x()
+  %f = uitofp i32 %t to float
+  %v = fmul float %f, 2.0
+  %p = getelementptr float, float* %a, i32 %t
+  store float %v, float* %p
+  ret void
+}
+declare i32 @llvm.nvvm.read.ptx.sreg.tid.x()
+!nvvm.annotations = !{!0}
+!0 = !{void (float*)* @k, !"kernel", i32 1}

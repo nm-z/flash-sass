@@ -1,0 +1,299 @@
+[  0%] Generating libkernel-sscp-host-barrier.bc
+[  1%] Building CXX object src/tools/acpp-pcuda-pp/CMakeFiles/acpp-pcuda-pp.dir/acpp-pcuda-pp.cpp.o
+[  3%] Generating libkernel-sscp-host-atomic.bc
+[  3%] Building CXX object src/tools/acpp-hcf-tool/CMakeFiles/acpp-hcf-tool.dir/acpp-hcf-tool.cpp.o
+[  3%] Generating libkernel-sscp-host-assert.bc
+[  3%] Generating libkernel-sscp-host-collpredicate.bc
+[  4%] Generating libkernel-sscp-ptx-collpredicate.bc
+[  5%] Building CXX object src/common/CMakeFiles/acpp-common.dir/filesystem.cpp.o
+[  6%] Generating libkernel-sscp-host-fast-collpredicate.bc
+[  7%] Building CXX object src/compiler/CMakeFiles/acpp-clang-cbs.dir/cbs/LoopSplitterInlining.cpp.o
+[  7%] Linking CXX executable acpp-pcuda-pp
+[  7%] Built target acpp-pcuda-pp
+[  7%] Generating libkernel-sscp-host-fast-assert.bc
+[  8%] Generating libkernel-sscp-host-core.bc
+[  8%] Building CXX object src/compiler/CMakeFiles/acpp-clang-cbs.dir/cbs/SplitterAnnotationAnalysis.cpp.o
+[  9%] Generating libkernel-sscp-host-fast-atomic.bc
+[ 10%] Generating libkernel-sscp-ptx-assert.bc
+[ 11%] Building CXX object src/common/CMakeFiles/acpp-common.dir/appdb.cpp.o
+[ 11%] Generating libkernel-sscp-host-fast-barrier.bc
+[ 11%] Generating libkernel-sscp-host-fast-core.bc
+[ 11%] Generating libkernel-sscp-ptx-atomic.bc
+[ 12%] Generating libkernel-sscp-ptx-barrier.bc
+[ 13%] Generating libkernel-sscp-host-integer.bc
+[ 13%] Generating libkernel-sscp-host-half.bc
+[ 13%] Building CXX object src/common/CMakeFiles/acpp-common.dir/dylib_loader.cpp.o
+[ 13%] Generating libkernel-sscp-host-fast-integer.bc
+[ 14%] Building CXX object src/compiler/CMakeFiles/acpp-clang-cbs.dir/cbs/IRUtils.cpp.o
+[ 14%] Generating libkernel-sscp-host-math.bc
+[ 15%] Generating libkernel-sscp-host-fast-half.bc
+[ 15%] Generating libkernel-sscp-ptx-core.bc
+[ 15%] Generating libkernel-sscp-host-fast-math.bc
+[ 16%] Generating libkernel-sscp-ptx-half.bc
+[ 16%] Generating libkernel-sscp-ptx-integer.bc
+[ 16%] Generating libkernel-sscp-ptx-print.bc
+[ 17%] Generating libkernel-sscp-ptx-relational.bc
+[ 17%] Generating libkernel-sscp-ptx-math.bc
+[ 18%] Generating libkernel-sscp-ptx-native.bc
+[ 19%] Generating libkernel-sscp-ptx-localmem.bc
+[ 20%] Building CXX object src/common/CMakeFiles/acpp-common.dir/settings.cpp.o
+[ 21%] Generating libkernel-sscp-ptx-subgroup.bc
+[ 22%] Generating libkernel-sscp-host-fast-native.bc
+[ 22%] Generating libkernel-sscp-ptx-shuffle.bc
+[ 23%] Generating libkernel-sscp-host-native.bc
+[ 24%] Generating libkernel-sscp-host-fast-shuffle.bc
+[ 25%] Generating libkernel-sscp-ptx-reduction.bc
+[ 26%] Generating libkernel-sscp-host-shuffle.bc
+[ 26%] Generating libkernel-sscp-host-fast-print.bc
+[ 26%] Generating libkernel-sscp-host-print.bc
+[ 26%] Generating libkernel-sscp-host-fast-relational.bc
+[ 26%] Generating libkernel-sscp-host-relational.bc
+/home/nate/work/gpu-fw-check/acpp-src/src/libkernel/sscp/host/relational.cpp:23:1: warning: use of NaN is undefined behavior due to the currently enabled floating-point options [-Wnan-infinity-disabled]
+   23 | HIPSYCL_SSCP_MAP_HOST_REL_BUILTIN(isnan)
+      | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/nate/work/gpu-fw-check/acpp-src/src/libkernel/sscp/host/relational.cpp:17:12: note: expanded from macro 'HIPSYCL_SSCP_MAP_HOST_REL_BUILTIN'
+   17 |     return __builtin_##name(x);                                                \
+      |            ^~~~~~~~~~~~~~~~~~~
+<scratch space>:297:1: note: expanded from here
+  297 | __builtin_isnan
+      | ^
+/home/nate/work/gpu-fw-check/acpp-src/src/libkernel/sscp/host/relational.cpp:23:1: warning: use of NaN is undefined behavior due to the currently enabled floating-point options [-Wnan-infinity-disabled]
+   23 | HIPSYCL_SSCP_MAP_HOST_REL_BUILTIN(isnan)
+      | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/nate/work/gpu-fw-check/acpp-src/src/libkernel/sscp/host/relational.cpp:20:12: note: expanded from macro 'HIPSYCL_SSCP_MAP_HOST_REL_BUILTIN'
+   20 |     return __builtin_##name(x);                                                \
+      |            ^~~~~~~~~~~~~~~~~~~
+<scratch space>:300:1: note: expanded from here
+  300 | __builtin_isnan
+      | ^
+/home/nate/work/gpu-fw-check/acpp-src/src/libkernel/sscp/host/relational.cpp:25:1: warning: use of infinity is undefined behavior due to the currently enabled floating-point options [-Wnan-infinity-disabled]
+   25 | HIPSYCL_SSCP_MAP_HOST_REL_BUILTIN(isinf)
+      | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/nate/work/gpu-fw-check/acpp-src/src/libkernel/sscp/host/relational.cpp:17:12: note: expanded from macro 'HIPSYCL_SSCP_MAP_HOST_REL_BUILTIN'
+   17 |     return __builtin_##name(x);                                                \
+      |            ^~~~~~~~~~~~~~~~~~~
+<scratch space>:303:1: note: expanded from here
+  303 | __builtin_isinf
+      | ^
+/home/nate/work/gpu-fw-check/acpp-src/src/libkernel/sscp/host/relational.cpp:25:1: warning: use of infinity is undefined behavior due to the currently enabled floating-point options [-Wnan-infinity-disabled]
+   25 | HIPSYCL_SSCP_MAP_HOST_REL_BUILTIN(isinf)
+      | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/nate/work/gpu-fw-check/acpp-src/src/libkernel/sscp/host/relational.cpp:20:12: note: expanded from macro 'HIPSYCL_SSCP_MAP_HOST_REL_BUILTIN'
+   20 |     return __builtin_##name(x);                                                \
+      |            ^~~~~~~~~~~~~~~~~~~
+<scratch space>:306:1: note: expanded from here
+  306 | __builtin_isinf
+      | ^
+/home/nate/work/gpu-fw-check/acpp-src/src/libkernel/sscp/host/relational.cpp:27:1: warning: use of infinity is undefined behavior due to the currently enabled floating-point options [-Wnan-infinity-disabled]
+   27 | HIPSYCL_SSCP_MAP_HOST_REL_BUILTIN(isfinite)
+      | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/nate/work/gpu-fw-check/acpp-src/src/libkernel/sscp/host/relational.cpp:17:12: note: expanded from macro 'HIPSYCL_SSCP_MAP_HOST_REL_BUILTIN'
+   17 |     return __builtin_##name(x);                                                \
+      |            ^~~~~~~~~~~~~~~~~~~
+<scratch space>:309:1: note: expanded from here
+  309 | __builtin_isfinite
+      | ^
+/home/nate/work/gpu-fw-check/acpp-src/src/libkernel/sscp/host/relational.cpp:27:1: warning: use of infinity is undefined behavior due to the currently enabled floating-point options [-Wnan-infinity-disabled]
+   27 | HIPSYCL_SSCP_MAP_HOST_REL_BUILTIN(isfinite)
+      | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/nate/work/gpu-fw-check/acpp-src/src/libkernel/sscp/host/relational.cpp:20:12: note: expanded from macro 'HIPSYCL_SSCP_MAP_HOST_REL_BUILTIN'
+   20 |     return __builtin_##name(x);                                                \
+      |            ^~~~~~~~~~~~~~~~~~~
+<scratch space>:312:1: note: expanded from here
+  312 | __builtin_isfinite
+      | ^
+[ 27%] Generating libkernel-sscp-host-localmem.bc
+[ 27%] Generating libkernel-sscp-host-subgroup.bc
+6 warnings generated.
+[ 28%] Generating libkernel-sscp-host-fast-localmem.bc
+[ 29%] Generating libkernel-sscp-host-reduction.bc
+[ 29%] Generating libkernel-sscp-host-fast-subgroup.bc
+[ 30%] Generating libkernel-sscp-host-fast-reduction.bc
+[ 30%] Linking CXX executable acpp-hcf-tool
+[ 30%] Built target acpp-hcf-tool
+[ 30%] Building CXX object src/compiler/CMakeFiles/acpp-clang-cbs.dir/cbs/KernelFlattening.cpp.o
+[ 31%] Generating libkernel-sscp-host-fast-broadcast.bc
+[ 32%] Generating libkernel-sscp-host-broadcast.bc
+[ 32%] Generating libkernel-sscp-host-fast-scan_inclusive.bc
+[ 32%] Generating libkernel-sscp-ptx-broadcast.bc
+[ 33%] Building CXX object src/compiler/CMakeFiles/acpp-clang-cbs.dir/cbs/LoopsParallelMarker.cpp.o
+[ 34%] Generating libkernel-sscp-ptx-scan_inclusive.bc
+[ 34%] Generating libkernel-sscp-host-scan_inclusive.bc
+[ 35%] Generating libkernel-sscp-host-fast-scan_exclusive.bc
+[ 36%] Building CXX object src/compiler/CMakeFiles/acpp-clang-cbs.dir/cbs/PHIsToAllocas.cpp.o
+[ 37%] Generating libkernel-sscp-host-scan_exclusive.bc
+[ 37%] Generating libkernel-sscp-ptx-scan_exclusive.bc
+[ 37%] Building CXX object src/compiler/CMakeFiles/acpp-clang-cbs.dir/cbs/RemoveBarrierCalls.cpp.o
+[ 38%] Generating libkernel-sscp-host-fast-full.bc
+[ 38%] Built target libkernel-sscp-host-fast
+[ 39%] Building CXX object src/compiler/CMakeFiles/acpp-clang-cbs.dir/cbs/CanonicalizeBarriers.cpp.o
+/home/nate/work/gpu-fw-check/acpp-src/src/compiler/cbs/IRUtils.cpp: In function 'bool hipsycl::compiler::utils::startsWithBarrier(const llvm::BasicBlock*, const hipsycl::compiler::SplitterAnnotationInfo&)':
+/home/nate/work/gpu-fw-check/acpp-src/src/compiler/cbs/IRUtils.cpp:74:38: warning: 'const llvm::Instruction* llvm::BasicBlock::getFirstNonPHI() const' is deprecated: Use iterators as instruction positions [-Wdeprecated-declarations]
+   74 |   return isBarrier(BB->getFirstNonPHI(), SAA);
+      |                    ~~~~~~~~~~~~~~~~~~^~
+In file included from /usr/include/llvm/IR/CFG.h:25,
+                 from /usr/include/llvm/IR/Instructions.h:26,
+                 from /usr/include/llvm/Analysis/LoopInfo.h:17,
+                 from /home/nate/work/gpu-fw-check/acpp-src/include/hipSYCL/compiler/cbs/IRUtils.hpp:16,
+                 from /home/nate/work/gpu-fw-check/acpp-src/src/compiler/cbs/IRUtils.cpp:11:
+/usr/include/llvm/IR/BasicBlock.h:282:20: note: declared here
+  282 |       Instruction *getFirstNonPHI() const;
+      |                    ^~~~~~~~~~~~~~
+/home/nate/work/gpu-fw-check/acpp-src/src/compiler/cbs/IRUtils.cpp: In function 'llvm::AllocaInst* hipsycl::compiler::utils::arrayifyInstruction(llvm::Instruction*, llvm::Instruction*, llvm::Value*, llvm::Value*, llvm::MDTuple*)':
+/home/nate/work/gpu-fw-check/acpp-src/src/compiler/cbs/IRUtils.cpp:457:61: warning: 'llvm::Instruction* llvm::BasicBlock::getFirstNonPHI()' is deprecated: Use iterators as instruction positions instead [-Wdeprecated-declarations]
+  457 |     InsertionPoint = ToArrayify->getParent()->getFirstNonPHI();
+      |                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~
+/usr/include/llvm/IR/BasicBlock.h:284:61: note: declared here
+  284 |                            "getFirstNonPHIIt") Instruction *getFirstNonPHI();
+      |                                                             ^~~~~~~~~~~~~~
+[ 39%] Building CXX object src/compiler/CMakeFiles/acpp-clang-cbs.dir/cbs/SimplifyKernel.cpp.o
+[ 40%] Generating libkernel-sscp-host-full.bc
+[ 40%] Built target libkernel-sscp-host
+[ 41%] Building CXX object src/compiler/CMakeFiles/acpp-clang-cbs.dir/cbs/LoopSimplify.cpp.o
+[ 42%] Generating libkernel-sscp-ptx-full.bc
+[ 42%] Built target libkernel-sscp-ptx
+[ 42%] Building CXX object src/compiler/CMakeFiles/acpp-clang-cbs.dir/cbs/PipelineBuilder.cpp.o
+[ 43%] Building CXX object src/compiler/CMakeFiles/acpp-clang-cbs.dir/cbs/SubCfgFormation.cpp.o
+/home/nate/work/gpu-fw-check/acpp-src/src/compiler/cbs/PHIsToAllocas.cpp: In function 'llvm::Instruction* {anonymous}::breakPHIToAllocas(llvm::PHINode*)':
+/home/nate/work/gpu-fw-check/acpp-src/src/compiler/cbs/PHIsToAllocas.cpp:64:58: warning: 'llvm::Instruction* llvm::BasicBlock::getFirstNonPHI()' is deprecated: Use iterators as instruction positions instead [-Wdeprecated-declarations]
+   64 |   Builder.SetInsertPoint(Phi->getParent()->getFirstNonPHI());
+      |                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~
+In file included from /usr/include/llvm/IR/CFG.h:25,
+                 from /usr/include/llvm/IR/Instructions.h:26,
+                 from /usr/include/llvm/Analysis/LoopInfo.h:17,
+                 from /home/nate/work/gpu-fw-check/acpp-src/include/hipSYCL/compiler/cbs/PHIsToAllocas.hpp:14,
+                 from /home/nate/work/gpu-fw-check/acpp-src/src/compiler/cbs/PHIsToAllocas.cpp:24:
+/usr/include/llvm/IR/BasicBlock.h:284:61: note: declared here
+  284 |                            "getFirstNonPHIIt") Instruction *getFirstNonPHI();
+      |                                                             ^~~~~~~~~~~~~~
+[ 43%] Building CXX object src/compiler/CMakeFiles/acpp-clang-cbs.dir/cbs/UniformityAnalysis.cpp.o
+[ 44%] Building CXX object src/compiler/CMakeFiles/acpp-clang-cbs.dir/cbs/VectorShape.cpp.o
+[ 44%] Building CXX object src/compiler/CMakeFiles/acpp-clang-cbs.dir/cbs/VectorizationInfo.cpp.o
+[ 45%] Building CXX object src/compiler/CMakeFiles/acpp-clang-cbs.dir/cbs/AllocaSSA.cpp.o
+[ 45%] Linking CXX shared library libacpp-common.so
+[ 45%] Built target acpp-common
+[ 45%] Building CXX object src/compiler/CMakeFiles/acpp-clang-cbs.dir/cbs/VectorShapeTransformer.cpp.o
+[ 46%] Building CXX object src/compiler/CMakeFiles/acpp-clang-cbs.dir/cbs/Region.cpp.o
+[ 46%] Building CXX object src/compiler/CMakeFiles/acpp-clang-cbs.dir/cbs/SyncDependenceAnalysis.cpp.o
+[ 46%] Building CXX object src/compiler/llvm-to-backend/CMakeFiles/llvm-to-backend.dir/LLVMToBackend.cpp.o
+/home/nate/work/gpu-fw-check/acpp-src/src/compiler/cbs/SubCfgFormation.cpp: In function 'llvm::LoadInst* {anonymous}::mergeGVLoadsInEntry(llvm::Function&, llvm::StringRef)':
+/home/nate/work/gpu-fw-check/acpp-src/src/compiler/cbs/SubCfgFormation.cpp:98:26: warning: 'void llvm::Instruction::moveBefore(llvm::Instruction*)' is deprecated: Use iterators as instruction positions [-Wdeprecated-declarations]
+   98 |     FirstLoad->moveBefore(&F.getEntryBlock().front());
+      |     ~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/llvm/IR/DebugProgramInstruction.h:55,
+                 from /usr/include/llvm/IR/BasicBlock.h:23,
+                 from /usr/include/llvm/IR/CFG.h:25,
+                 from /usr/include/llvm/IR/Instructions.h:26,
+                 from /usr/include/llvm/Analysis/LoopInfo.h:17,
+                 from /home/nate/work/gpu-fw-check/acpp-src/include/hipSYCL/compiler/cbs/SubCfgFormation.hpp:14,
+                 from /home/nate/work/gpu-fw-check/acpp-src/src/compiler/cbs/SubCfgFormation.cpp:11:
+/usr/include/llvm/IR/Instruction.h:246:37: note: declared here
+  246 |                            "") void moveBefore(Instruction *MovePos);
+      |                                     ^~~~~~~~~~
+/home/nate/work/gpu-fw-check/acpp-src/src/compiler/cbs/SubCfgFormation.cpp: In function 'llvm::SmallVector<llvm::Value*, 3> {anonymous}::getLocalSizeValues(llvm::Function&, int, bool)':
+/home/nate/work/gpu-fw-check/acpp-src/src/compiler/cbs/SubCfgFormation.cpp:262:23: warning: 'void llvm::Instruction::moveBefore(llvm::Instruction*)' is deprecated: Use iterators as instruction positions [-Wdeprecated-declarations]
+  262 |       Load->moveBefore(F.getEntryBlock().getTerminator());
+      |       ~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/llvm/IR/Instruction.h:246:37: note: declared here
+  246 |                            "") void moveBefore(Instruction *MovePos);
+      |                                     ^~~~~~~~~~
+/home/nate/work/gpu-fw-check/acpp-src/src/compiler/cbs/SubCfgFormation.cpp: In member function 'void {anonymous}::SubCFG::loadUniformAndRecalcContValues(llvm::DenseMap<llvm::Instruction*, llvm::AllocaInst*>&, llvm::DenseMap<llvm::Instruction*, llvm::SmallVector<llvm::Instruction*, 8> >&, llvm::BasicBlock*, llvm::ValueToValueMapTy&)':
+/home/nate/work/gpu-fw-check/acpp-src/src/compiler/cbs/SubCfgFormation.cpp:889:25: warning: 'void llvm::Instruction::insertBefore(llvm::Instruction*)' is deprecated: Use iterators as instruction positions [-Wdeprecated-declarations]
+  889 |     IClone->insertBefore(LoadTerm);
+      |     ~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~
+/usr/include/llvm/IR/Instruction.h:217:37: note: declared here
+  217 |                            "") void insertBefore(Instruction *InsertPos);
+      |                                     ^~~~~~~~~~~~
+/home/nate/work/gpu-fw-check/acpp-src/src/compiler/cbs/SubCfgFormation.cpp: In function 'void {anonymous}::moveAllocasToEntry(llvm::Function&, llvm::ArrayRef<llvm::BasicBlock*>)':
+/home/nate/work/gpu-fw-check/acpp-src/src/compiler/cbs/SubCfgFormation.cpp:1430:18: warning: 'void llvm::Instruction::moveBefore(llvm::Instruction*)' is deprecated: Use iterators as instruction positions [-Wdeprecated-declarations]
+ 1430 |     I->moveBefore(F.getEntryBlock().getTerminator());
+      |     ~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/llvm/IR/Instruction.h:246:37: note: declared here
+  246 |                            "") void moveBefore(Instruction *MovePos);
+      |                                     ^~~~~~~~~~
+/home/nate/work/gpu-fw-check/acpp-src/src/compiler/cbs/SubCfgFormation.cpp: In function 'void {anonymous}::formSubCfgs(llvm::Function&, llvm::LoopInfo&, llvm::DominatorTree&, llvm::PostDominatorTree&, const hipsycl::compiler::SplitterAnnotationInfo&, bool)':
+/home/nate/work/gpu-fw-check/acpp-src/src/compiler/cbs/SubCfgFormation.cpp:1462:20: warning: 'void llvm::Instruction::moveBefore(llvm::Instruction*)' is deprecated: Use iterators as instruction positions [-Wdeprecated-declarations]
+ 1462 |       I->moveBefore(Entry->getTerminator());
+      |       ~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/llvm/IR/Instruction.h:246:37: note: declared here
+  246 |                            "") void moveBefore(Instruction *MovePos);
+      |                                     ^~~~~~~~~~
+/home/nate/work/gpu-fw-check/acpp-src/src/compiler/cbs/SubCfgFormation.cpp:1499:79: warning: 'static llvm::PointerType* llvm::PointerType::get(llvm::Type*, unsigned int)' is deprecated: PointerType::get with pointee type is pending removal. Use Context overload. [-Wdeprecated-declarations]
+ 1499 |       Builder.CreateLoad(IndVarT, llvm::UndefValue::get(llvm::PointerType::get(IndVarT, 0)));
+      |                                                         ~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~
+In file included from /usr/include/llvm/IR/Function.h:29,
+                 from /usr/include/llvm/IR/CFG.h:26:
+/usr/include/llvm/IR/DerivedTypes.h:713:32: note: declared here
+  713 |   LLVM_ABI static PointerType *get(Type *ElementType, unsigned AddressSpace);
+      |                                ^~~
+/home/nate/work/gpu-fw-check/acpp-src/src/compiler/cbs/SubCfgFormation.cpp: In function 'void {anonymous}::createLoopsAroundKernel(llvm::Function&, llvm::DominatorTree&, llvm::LoopInfo&, llvm::PostDominatorTree&, bool)':
+/home/nate/work/gpu-fw-check/acpp-src/src/compiler/cbs/SubCfgFormation.cpp:1592:79: warning: 'static llvm::PointerType* llvm::PointerType::get(llvm::Type*, unsigned int)' is deprecated: PointerType::get with pointee type is pending removal. Use Context overload. [-Wdeprecated-declarations]
+ 1592 |       Builder.CreateLoad(IndVarT, llvm::UndefValue::get(llvm::PointerType::get(IndVarT, 0)));
+      |                                                         ~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~
+/usr/include/llvm/IR/DerivedTypes.h:713:32: note: declared here
+  713 |   LLVM_ABI static PointerType *get(Type *ElementType, unsigned AddressSpace);
+      |                                ^~~
+[ 47%] Building CXX object src/compiler/llvm-to-backend/CMakeFiles/llvm-to-backend.dir/AddressSpaceInferencePass.cpp.o
+[ 48%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/allocator.cpp.o
+[ 48%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/allocation_tracker.cpp.o
+[ 48%] Building CXX object src/compiler/llvm-to-backend/CMakeFiles/llvm-to-backend.dir/KnownGroupSizeOptPass.cpp.o
+[ 48%] Building CXX object src/tools/acpp-appdb-tool/CMakeFiles/acpp-appdb-tool.dir/acpp-appdb-tool.cpp.o
+[ 49%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/application.cpp.o
+[ 50%] Building CXX object src/compiler/llvm-to-backend/CMakeFiles/llvm-to-backend.dir/KnownPtrParamAlignmentOptPass.cpp.o
+[ 50%] Building CXX object src/compiler/llvm-to-backend/CMakeFiles/llvm-to-backend.dir/GlobalSizesFitInI32OptPass.cpp.o
+[ 51%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/runtime.cpp.o
+[ 52%] Building CXX object src/compiler/llvm-to-backend/CMakeFiles/llvm-to-backend.dir/GlobalInliningAttributorPass.cpp.o
+[ 53%] Linking CXX executable acpp-appdb-tool
+[ 53%] Built target acpp-appdb-tool
+[ 53%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/error.cpp.o
+[ 54%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/backend.cpp.o
+[ 54%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/backend_loader.cpp.o
+[ 54%] Building CXX object src/compiler/llvm-to-backend/CMakeFiles/llvm-to-backend.dir/DeadArgumentEliminationPass.cpp.o
+[ 55%] Building CXX object src/compiler/llvm-to-backend/CMakeFiles/llvm-to-backend.dir/ProcessS2ReflectionPass.cpp.o
+[ 56%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/device_id.cpp.o
+[ 56%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/operations.cpp.o
+[ 56%] Building CXX object src/compiler/llvm-to-backend/CMakeFiles/llvm-to-backend.dir/__/sscp/KernelOutliningPass.cpp.o
+[ 57%] Building CXX object src/compiler/llvm-to-backend/CMakeFiles/llvm-to-backend.dir/Utils.cpp.o
+[ 58%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/data.cpp.o
+[ 58%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/inorder_executor.cpp.o
+[ 59%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/kernel_cache.cpp.o
+[ 59%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/kernel_configuration.cpp.o
+[ 60%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/multi_queue_executor.cpp.o
+[ 60%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/runtime_event_handlers.cpp.o
+[ 61%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/dag.cpp.o
+[ 61%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/dag_node.cpp.o
+[ 61%] Built target acpp-clang-cbs
+[ 62%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/dag_builder.cpp.o
+[ 62%] Building CXX object src/compiler/CMakeFiles/acpp-clang.dir/AdaptiveCppLlvmPasses.cpp.o
+[ 63%] Building CXX object src/compiler/CMakeFiles/acpp-clang.dir/GlobalsPruningPass.cpp.o
+/home/nate/work/gpu-fw-check/acpp-src/src/compiler/AdaptiveCppLlvmPasses.cpp:42:10: fatal error: llvm/Passes/PassPlugin.h: No such file or directory
+   42 | #include "llvm/Passes/PassPlugin.h"
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~
+compilation terminated.
+make[2]: *** [src/compiler/CMakeFiles/acpp-clang.dir/build.make:79: src/compiler/CMakeFiles/acpp-clang.dir/AdaptiveCppLlvmPasses.cpp.o] Error 1
+make[2]: *** Waiting for unfinished jobs....
+[ 64%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/dag_direct_scheduler.cpp.o
+[ 64%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/dag_unbound_scheduler.cpp.o
+[ 65%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/dag_manager.cpp.o
+[ 65%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/dag_submitted_ops.cpp.o
+[ 66%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/settings.cpp.o
+[ 66%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/adaptivity_engine.cpp.o
+make[1]: *** [CMakeFiles/Makefile2:733: src/compiler/CMakeFiles/acpp-clang.dir/all] Error 2
+make[1]: *** Waiting for unfinished jobs....
+[ 67%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/generic/async_worker.cpp.o
+[ 67%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/hw_model/memcpy.cpp.o
+[ 68%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/serialization/serialization.cpp.o
+[ 68%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/support/reflection.cpp.o
+[ 69%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/support/minicoro_wrapper.cpp.o
+[ 69%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/pcuda/pcuda_device_topology.cpp.o
+[ 70%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/pcuda/pcuda_error.cpp.o
+[ 70%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/pcuda/pcuda_stream.cpp.o
+[ 71%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/pcuda/pcuda_runtime_api.cpp.o
+[ 72%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/pcuda/pcuda_runtime.cpp.o
+[ 72%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/pcuda/pcuda_thread_state.cpp.o
+[ 73%] Building CXX object src/runtime/CMakeFiles/acpp-rt.dir/pcuda/pcuda_event.cpp.o
+[ 74%] Linking CXX shared library libllvm-to-backend.so
+[ 74%] Built target llvm-to-backend
+[ 74%] Linking CXX shared library libacpp-rt.so
+[ 74%] Built target acpp-rt
+make: *** [Makefile:136: all] Error 2

@@ -1,0 +1,378 @@
+  Installing known registries into `~/work/gpu-fw-check/jdepot`
+       Added `General` registry to ~/work/gpu-fw-check/jdepot/registries
+    Updating registry at `~/work/gpu-fw-check/jdepot/registries/General.toml`
+   Resolving package versions...
+   Installed GPUArraysCore ─────────────── v0.2.1
+   Installed Crayons ───────────────────── v4.2.0
+   Installed NVML ──────────────────────── v6.4.2
+   Installed demumble_jll ──────────────── v1.3.0+0
+   Installed Adapt ─────────────────────── v4.7.4
+   Installed Scratch ───────────────────── v1.3.0
+   Installed LMDB ──────────────────────── v3.0.1
+   Installed PrettyTables ──────────────── v3.5.0
+   Installed TableTraits ───────────────── v1.0.1
+   Installed CUDA_Driver_jll ───────────── v13.3.5+0
+   Installed cuFFT ─────────────────────── v6.4.2
+   Installed tree_sitter_llvm_jll ──────── v1.1.0+0
+   Installed CUPTI ─────────────────────── v6.4.2
+   Installed Preferences ───────────────── v1.6.1
+   Installed cuSOLVER ──────────────────── v6.4.2
+   Installed GPUCompiler ───────────────── v2.16.0
+   Installed LLVMLoopInfo ──────────────── v1.0.0
+   Installed HashArrayMappedTries ──────── v0.2.0
+   Installed tree_sitter_gcn_jll ───────── v0.1.0+0
+   Installed DataAPI ───────────────────── v1.16.0
+   Installed Tables ────────────────────── v1.14.0
+   Installed CUDACore ──────────────────── v6.4.2
+   Installed AbstractFFTs ──────────────── v1.5.0
+   Installed StaticArrays ──────────────── v1.9.24
+   Installed CUDATools ─────────────────── v6.4.2
+   Installed IteratorInterfaceExtensions ─ v1.0.0
+   Installed Tracy ─────────────────────── v0.1.6
+   Installed StaticArraysCore ──────────── v1.4.4
+   Installed PrecompileTools ───────────── v1.2.1
+   Installed CUDA_Runtime_Discovery ────── v2.1.1
+   Installed NVTX ──────────────────────── v1.0.3
+   Installed LLVMExtra_jll ─────────────── v0.0.56+0
+   Installed DataValueInterfaces ───────── v1.0.0
+   Installed NVTX_jll ──────────────────── v3.2.2+0
+   Installed OrderedCollections ────────── v2.0.3
+   Installed JLLWrappers ───────────────── v1.8.0
+   Installed GPUToolbox ────────────────── v3.4.3
+   Installed LMDB_jll ──────────────────── v1.0.3+0
+   Installed CompilerCaching ───────────── v0.5.1
+   Installed CUDA_Compiler_jll ─────────── v0.6.3+2
+   Installed LaTeXStrings ──────────────── v1.4.1
+   Installed cuSPARSE ──────────────────── v6.4.2
+   Installed CEnum ─────────────────────── v0.5.0
+   Installed MSVCRuntime_jll ───────────── v14.51.36247+0
+   Installed JuliaNVTXCallbacks_jll ────── v0.2.1+0
+   Installed Reexport ──────────────────── v1.2.2
+   Installed BFloat16s ─────────────────── v0.6.3
+   Installed StyledStrings ─────────────── v1.0.3
+   Installed GPUArrays ─────────────────── v11.5.16
+   Installed RandomNumbers ─────────────── v1.6.0
+   Installed ScopedValues ──────────────── v1.6.2
+   Installed LibTracyClient_jll ────────── v0.13.1+0
+   Installed Requires ──────────────────── v1.3.1
+   Installed tree_sitter_spirv_jll ─────── v0.1.0+0
+   Installed Random123 ─────────────────── v1.7.1
+   Installed cuRAND ────────────────────── v6.4.2
+   Installed MacroTools ────────────────── v0.5.16
+   Installed KernelAbstractions ────────── v0.9.45
+   Installed ExprTools ─────────────────── v0.1.11
+   Installed UnsafeAtomics ─────────────── v0.4.0
+   Installed NVPTX_LLVM_Backend_jll ────── v23.1.2+1
+   Installed CUDA_Runtime_jll ──────────── v0.25.0+3
+   Installed tree_sitter_ptx_jll ───────── v0.1.0+0
+   Installed StringManipulation ────────── v0.6.1
+   Installed Atomix ────────────────────── v1.5.0
+   Installed LLVM ──────────────────────── v10.4.0
+   Installed cuBLAS ────────────────────── v6.4.2
+   Installed CUDA ──────────────────────── v6.4.2
+    Updating `~/work/gpu-fw-check/jdepot/environments/v1.10/Project.toml`
+  [052768ef] + CUDA v6.4.2
+    Updating `~/work/gpu-fw-check/jdepot/environments/v1.10/Manifest.toml`
+  [621f4979] + AbstractFFTs v1.5.0
+  [79e6a3ab] + Adapt v4.7.4
+⌃ [a9b6321e] + Atomix v1.5.0
+  [ab4f0b2a] + BFloat16s v0.6.3
+⌅ [fa961155] + CEnum v0.5.0
+  [052768ef] + CUDA v6.4.2
+  [bd0ed864] + CUDACore v6.4.2
+  [9ec180c6] + CUDATools v6.4.2
+  [1af6417a] + CUDA_Runtime_Discovery v2.1.1
+  [9e67e8f6] + CUPTI v6.4.2
+  [9db33cc3] + CompilerCaching v0.5.1
+  [a8cc5b0e] + Crayons v4.2.0
+  [9a962f9c] + DataAPI v1.16.0
+  [e2d170a0] + DataValueInterfaces v1.0.0
+  [e2ba6199] + ExprTools v0.1.11
+⌅ [0c68f7d7] + GPUArrays v11.5.16
+  [46192b85] + GPUArraysCore v0.2.1
+  [61eb1bfa] + GPUCompiler v2.16.0
+  [096a3bc2] + GPUToolbox v3.4.3
+  [076d061b] + HashArrayMappedTries v0.2.0
+  [82899510] + IteratorInterfaceExtensions v1.0.0
+  [692b3bcd] + JLLWrappers v1.8.0
+⌅ [63c18a36] + KernelAbstractions v0.9.45
+  [929cbde3] + LLVM v10.4.0
+  [8b046642] + LLVMLoopInfo v1.0.0
+  [11f193de] + LMDB v3.0.1
+  [b964fa9f] + LaTeXStrings v1.4.1
+  [1914dd2f] + MacroTools v0.5.16
+  [611af6d1] + NVML v6.4.2
+  [5da4648a] + NVTX v1.0.3
+  [bac558e1] + OrderedCollections v2.0.3
+⌅ [aea7be01] + PrecompileTools v1.2.1
+  [21216c6a] + Preferences v1.6.1
+  [08abe8d2] + PrettyTables v3.5.0
+  [74087812] + Random123 v1.7.1
+  [e6cf234a] + RandomNumbers v1.6.0
+  [189a3867] + Reexport v1.2.2
+  [ae029012] + Requires v1.3.1
+  [7e506255] + ScopedValues v1.6.2
+  [6c6a2e73] + Scratch v1.3.0
+  [90137ffa] + StaticArrays v1.9.24
+  [1e83bf80] + StaticArraysCore v1.4.4
+  [892a3eda] + StringManipulation v0.6.1
+  [f489334b] + StyledStrings v1.0.3
+  [3783bdb8] + TableTraits v1.0.1
+  [bd369af6] + Tables v1.14.0
+  [e689c965] + Tracy v0.1.6
+  [013be700] + UnsafeAtomics v0.4.0
+  [182d3088] + cuBLAS v6.4.2
+  [533571aa] + cuFFT v6.4.2
+  [20fd9a0b] + cuRAND v6.4.2
+  [887afef0] + cuSOLVER v6.4.2
+  [b26da814] + cuSPARSE v6.4.2
+  [d1e2174e] + CUDA_Compiler_jll v0.6.3+2
+  [4ee394cb] + CUDA_Driver_jll v13.3.5+0
+  [76a88914] + CUDA_Runtime_jll v0.25.0+3
+  [9c1d0b0a] + JuliaNVTXCallbacks_jll v0.2.1+0
+  [dad2f222] + LLVMExtra_jll v0.0.56+0
+  [6206cf0b] + LMDB_jll v1.0.3+0
+  [ad6e5548] + LibTracyClient_jll v0.13.1+0
+  [ce32ce21] + MSVCRuntime_jll v14.51.36247+0
+  [ef6e0fe3] + NVPTX_LLVM_Backend_jll v23.1.2+1
+  [e98f9f5b] + NVTX_jll v3.2.2+0
+  [1e29f10c] + demumble_jll v1.3.0+0
+  [8b5cbfcf] + tree_sitter_gcn_jll v0.1.0+0
+  [44208993] + tree_sitter_llvm_jll v1.1.0+0
+  [71e3f6e6] + tree_sitter_ptx_jll v0.1.0+0
+  [f0e86581] + tree_sitter_spirv_jll v0.1.0+0
+  [0dad84c5] + ArgTools v1.1.1
+  [56f22d72] + Artifacts
+  [2a0f44e3] + Base64
+  [ade2ca70] + Dates
+  [f43a241f] + Downloads v1.6.0
+  [7b1f6079] + FileWatching
+  [b77e0a4c] + InteractiveUtils
+  [4af54fe1] + LazyArtifacts
+  [b27032c2] + LibCURL v0.6.4
+  [76f85450] + LibGit2
+  [8f399da3] + Libdl
+  [37e2e46d] + LinearAlgebra
+  [56ddb016] + Logging
+  [d6f4376e] + Markdown
+  [ca575930] + NetworkOptions v1.2.0
+  [44cfe95a] + Pkg v1.10.0
+  [de0858da] + Printf
+  [3fa0cd96] + REPL
+  [9a3f8284] + Random
+  [ea8e919c] + SHA v0.7.0
+  [9e88b42a] + Serialization
+  [6462fe0b] + Sockets
+  [2f01184e] + SparseArrays v1.10.0
+  [10745b16] + Statistics v1.10.0
+  [fa267f1f] + TOML v1.0.3
+  [a4e569a6] + Tar v1.10.0
+  [cf7118a7] + UUIDs
+  [4ec0a83e] + Unicode
+  [e66e0078] + CompilerSupportLibraries_jll v1.1.1+0
+  [deac9b47] + LibCURL_jll v8.4.0+0
+  [e37daf67] + LibGit2_jll v1.6.4+0
+  [29816b5a] + LibSSH2_jll v1.11.0+1
+  [c8ffd9c3] + MbedTLS_jll v2.28.2+1
+  [14a3606d] + MozillaCACerts_jll v2023.1.10
+  [4536629a] + OpenBLAS_jll v0.3.23+4
+  [bea87d4a] + SuiteSparse_jll v7.2.1+1
+  [83775a58] + Zlib_jll v1.2.13+1
+  [8e850b90] + libblastrampoline_jll v5.11.0+0
+  [8e850ede] + nghttp2_jll v1.52.0+1
+  [3f19e933] + p7zip_jll v17.4.0+2
+        Info Packages marked with ⌃ and ⌅ have new versions available. Those with ⌃ may be upgradable, but those with ⌅ are restricted by compatibility constraints from upgrading. To see why use `status --outdated -m`
+Precompiling packages...
+    945.7 ms  ✓ IteratorInterfaceExtensions
+   1006.1 ms  ✓ Reexport
+   1014.4 ms  ✓ DataValueInterfaces
+   1088.3 ms  ✓ LaTeXStrings
+   1399.4 ms  ✓ LLVMLoopInfo
+   1167.2 ms  ✓ Adapt
+   1178.1 ms  ✓ ExprTools
+   1327.7 ms  ✓ Requires
+   1394.0 ms  ✓ AbstractFFTs
+   1409.2 ms  ✓ Zlib_jll
+   1427.3 ms  ✓ OrderedCollections
+   1425.9 ms  ✓ DataAPI
+    725.2 ms  ✓ LazyArtifacts
+   1787.4 ms  ✓ GPUToolbox
+    769.1 ms  ✓ CEnum
+    866.3 ms  ✓ SuiteSparse_jll
+    828.4 ms  ✓ Scratch
+   1068.4 ms  ✓ BFloat16s
+    696.3 ms  ✓ HashArrayMappedTries
+    963.2 ms  ✓ StaticArraysCore
+    648.7 ms  ✓ TableTraits
+    834.0 ms  ✓ GPUArraysCore
+   1208.9 ms  ✓ Preferences
+    631.5 ms  ✓ ScopedValues
+   1529.7 ms  ✓ RandomNumbers
+   2294.5 ms  ✓ Crayons
+    653.5 ms  ✓ PrecompileTools
+   2089.5 ms  ✓ CUDA_Runtime_Discovery
+    796.1 ms  ✓ JLLWrappers
+    857.7 ms  ✓ NVTX_jll
+   1013.7 ms  ✓ JuliaNVTXCallbacks_jll
+   1079.3 ms  ✓ tree_sitter_spirv_jll
+   1817.3 ms  ✓ Random123
+   2289.3 ms  ✓ Tables
+   1186.0 ms  ✓ LMDB_jll
+   1305.7 ms  ✓ LibTracyClient_jll
+   1402.0 ms  ✓ LLVMExtra_jll
+   4130.4 ms  ✓ MacroTools
+   1048.5 ms  ✓ NVPTX_LLVM_Backend_jll
+    861.6 ms  ✓ MSVCRuntime_jll
+   1008.4 ms  ✓ tree_sitter_gcn_jll
+    950.3 ms  ✓ demumble_jll
+   1156.5 ms  ✓ tree_sitter_llvm_jll
+   1029.4 ms  ✓ tree_sitter_ptx_jll
+   2880.8 ms  ✓ CUDA_Driver_jll
+   1638.9 ms  ✓ NVTX
+   1581.1 ms  ✓ LMDB
+   1214.1 ms  ✓ Tracy
+    396.4 ms  ✓ CompilerCaching
+   6021.7 ms  ✓ SparseArrays
+   1927.8 ms  ✓ CUDA_Compiler_jll
+    689.5 ms  ✓ Adapt → AdaptSparseArraysExt
+    897.6 ms  ✓ Statistics
+   1977.6 ms  ✓ CUDA_Runtime_jll
+   9815.5 ms  ✓ StaticArrays
+   1056.6 ms  ✓ Adapt → AdaptStaticArraysExt
+   1336.2 ms  ✓ StaticArrays → StaticArraysStatisticsExt
+  12154.8 ms  ✓ StyledStrings
+   3566.2 ms  ✓ StringManipulation
+  21872.0 ms  ✓ LLVM
+    574.4 ms  ✓ LLVM → BFloat16sExt
+   2609.9 ms  ✓ UnsafeAtomics
+    730.7 ms  ✓ Atomix
+   3720.8 ms  ✓ KernelAbstractions
+    908.8 ms  ✓ KernelAbstractions → LinearAlgebraExt
+   1241.3 ms  ✓ KernelAbstractions → SparseArraysExt
+   4244.8 ms  ✓ GPUArrays
+  27042.9 ms  ✓ PrettyTables
+  38372.1 ms  ✓ GPUCompiler
+    797.5 ms  ✓ UnsafeAtomics → UnsafeAtomicsGPUCompilerExt
+  21934.8 ms  ✓ CUDACore
+   2929.7 ms  ✓ Atomix → AtomixCUDACoreExt
+   4293.1 ms  ✓ cuFFT
+   5260.3 ms  ✓ cuRAND
+   7405.4 ms  ✓ NVML
+   8245.1 ms  ✓ CUPTI
+  11057.3 ms  ✓ cuSPARSE
+  15492.5 ms  ✓ cuBLAS
+  11087.2 ms  ✓ cuSOLVER
+  19064.5 ms  ✓ CUDATools
+   5141.3 ms  ✓ CUDA
+  81 dependencies successfully precompiled in 125 seconds
+  10 dependencies had output during precompilation:
+┌ cuFFT
+│  ┌ Warning: CUDA runtime library `libnvrtc.so` was loaded from a system path, `/opt/cuda/lib64/libnvrtc.so`.
+│  │ This may cause errors.
+│  │ 
+│  │ If you're running under a profiler, this situation is expected. Otherwise,
+│  │ ensure that your library path environment variable (e.g., `PATH` on Windows
+│  │ or `LD_LIBRARY_PATH` on Linux) does not include CUDA library paths.
+│  │ 
+│  │ In any other case, please file an issue.
+│  └ @ CUDACore ~/work/gpu-fw-check/jdepot/packages/CUDACore/6N8AA/src/initialization.jl:203
+└  
+┌ NVML
+│  ┌ Warning: CUDA runtime library `libnvrtc.so` was loaded from a system path, `/opt/cuda/lib64/libnvrtc.so`.
+│  │ This may cause errors.
+│  │ 
+│  │ If you're running under a profiler, this situation is expected. Otherwise,
+│  │ ensure that your library path environment variable (e.g., `PATH` on Windows
+│  │ or `LD_LIBRARY_PATH` on Linux) does not include CUDA library paths.
+│  │ 
+│  │ In any other case, please file an issue.
+│  └ @ CUDACore ~/work/gpu-fw-check/jdepot/packages/CUDACore/6N8AA/src/initialization.jl:203
+└  
+┌ CUPTI
+│  ┌ Warning: CUDA runtime library `libnvrtc.so` was loaded from a system path, `/opt/cuda/lib64/libnvrtc.so`.
+│  │ This may cause errors.
+│  │ 
+│  │ If you're running under a profiler, this situation is expected. Otherwise,
+│  │ ensure that your library path environment variable (e.g., `PATH` on Windows
+│  │ or `LD_LIBRARY_PATH` on Linux) does not include CUDA library paths.
+│  │ 
+│  │ In any other case, please file an issue.
+│  └ @ CUDACore ~/work/gpu-fw-check/jdepot/packages/CUDACore/6N8AA/src/initialization.jl:203
+└  
+┌ Atomix → AtomixCUDACoreExt
+│  ┌ Warning: CUDA runtime library `libnvrtc.so` was loaded from a system path, `/opt/cuda/lib64/libnvrtc.so`.
+│  │ This may cause errors.
+│  │ 
+│  │ If you're running under a profiler, this situation is expected. Otherwise,
+│  │ ensure that your library path environment variable (e.g., `PATH` on Windows
+│  │ or `LD_LIBRARY_PATH` on Linux) does not include CUDA library paths.
+│  │ 
+│  │ In any other case, please file an issue.
+│  └ @ CUDACore ~/work/gpu-fw-check/jdepot/packages/CUDACore/6N8AA/src/initialization.jl:203
+└  
+┌ CUDATools
+│  ┌ Warning: CUDA runtime library `libnvrtc.so` was loaded from a system path, `/opt/cuda/lib64/libnvrtc.so`.
+│  │ This may cause errors.
+│  │ 
+│  │ If you're running under a profiler, this situation is expected. Otherwise,
+│  │ ensure that your library path environment variable (e.g., `PATH` on Windows
+│  │ or `LD_LIBRARY_PATH` on Linux) does not include CUDA library paths.
+│  │ 
+│  │ In any other case, please file an issue.
+│  └ @ CUDACore ~/work/gpu-fw-check/jdepot/packages/CUDACore/6N8AA/src/initialization.jl:203
+└  
+┌ cuSOLVER
+│  ┌ Warning: CUDA runtime library `libnvrtc.so` was loaded from a system path, `/opt/cuda/lib64/libnvrtc.so`.
+│  │ This may cause errors.
+│  │ 
+│  │ If you're running under a profiler, this situation is expected. Otherwise,
+│  │ ensure that your library path environment variable (e.g., `PATH` on Windows
+│  │ or `LD_LIBRARY_PATH` on Linux) does not include CUDA library paths.
+│  │ 
+│  │ In any other case, please file an issue.
+│  └ @ CUDACore ~/work/gpu-fw-check/jdepot/packages/CUDACore/6N8AA/src/initialization.jl:203
+└  
+┌ CUDA
+│  ┌ Warning: CUDA runtime library `libnvrtc.so` was loaded from a system path, `/opt/cuda/lib64/libnvrtc.so`.
+│  │ This may cause errors.
+│  │ 
+│  │ If you're running under a profiler, this situation is expected. Otherwise,
+│  │ ensure that your library path environment variable (e.g., `PATH` on Windows
+│  │ or `LD_LIBRARY_PATH` on Linux) does not include CUDA library paths.
+│  │ 
+│  │ In any other case, please file an issue.
+│  └ @ CUDACore ~/work/gpu-fw-check/jdepot/packages/CUDACore/6N8AA/src/initialization.jl:203
+└  
+┌ cuSPARSE
+│  ┌ Warning: CUDA runtime library `libnvrtc.so` was loaded from a system path, `/opt/cuda/lib64/libnvrtc.so`.
+│  │ This may cause errors.
+│  │ 
+│  │ If you're running under a profiler, this situation is expected. Otherwise,
+│  │ ensure that your library path environment variable (e.g., `PATH` on Windows
+│  │ or `LD_LIBRARY_PATH` on Linux) does not include CUDA library paths.
+│  │ 
+│  │ In any other case, please file an issue.
+│  └ @ CUDACore ~/work/gpu-fw-check/jdepot/packages/CUDACore/6N8AA/src/initialization.jl:203
+└  
+┌ cuBLAS
+│  ┌ Warning: CUDA runtime library `libnvrtc.so` was loaded from a system path, `/opt/cuda/lib64/libnvrtc.so`.
+│  │ This may cause errors.
+│  │ 
+│  │ If you're running under a profiler, this situation is expected. Otherwise,
+│  │ ensure that your library path environment variable (e.g., `PATH` on Windows
+│  │ or `LD_LIBRARY_PATH` on Linux) does not include CUDA library paths.
+│  │ 
+│  │ In any other case, please file an issue.
+│  └ @ CUDACore ~/work/gpu-fw-check/jdepot/packages/CUDACore/6N8AA/src/initialization.jl:203
+└  
+┌ cuRAND
+│  ┌ Warning: CUDA runtime library `libnvrtc.so` was loaded from a system path, `/opt/cuda/lib64/libnvrtc.so`.
+│  │ This may cause errors.
+│  │ 
+│  │ If you're running under a profiler, this situation is expected. Otherwise,
+│  │ ensure that your library path environment variable (e.g., `PATH` on Windows
+│  │ or `LD_LIBRARY_PATH` on Linux) does not include CUDA library paths.
+│  │ 
+│  │ In any other case, please file an issue.
+│  └ @ CUDACore ~/work/gpu-fw-check/jdepot/packages/CUDACore/6N8AA/src/initialization.jl:203
+└  
