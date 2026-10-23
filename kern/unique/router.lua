@@ -175,6 +175,8 @@ e('LDS ur_max, [RZ+0xb528]','--:-:1:-:2')
 e('@P4 LDS ur_value, [ur_index+0xb528]','--:-:1:-:2')
 e('@P4 LDS ur_selected, [ur_index+0xb500]','--:-:1:-:2');e('NOP','01:-:-:-:6')
 e('@P4 FADD ur_value, ur_value, -ur_max');e('@P4 FMUL ur_value, ur_value, ur_log2e')
+-- sm_5x MUFU.EX2 consumes the RRO.EX2 range-reduced operand, not a float.
+e('@P4 RRO.EX2 ur_value, ur_value')
 e('@P4 MUFU.EX2 ur_exp, ur_value','--:-:3:-:2');e('NOP','04:-:-:-:6')
 e('MOV ur_sum, ur_exp')
 for _,distance in ipairs({16,8,4,2,1})do
@@ -193,7 +195,7 @@ end
 e('LDS ur_gate, [RZ+0xb400]','--:-:1:-:2')
 e('LDG.E.CG.64 ur_output0, [ur_config+0x28]','--:-:2:-:2');e('NOP','03:-:-:-:6')
 e('FADD ur_gate, -ur_gate, RZ');e('FMNMX ur_gate, ur_gate, 87, PT');e('FMNMX ur_gate, ur_gate, -87, !PT')
-e('FMUL ur_gate, ur_gate, ur_log2e');e('MUFU.EX2 ur_gate, ur_gate','--:-:3:-:2')
+e('FMUL ur_gate, ur_gate, ur_log2e');e('RRO.EX2 ur_gate, ur_gate');e('MUFU.EX2 ur_gate, ur_gate','--:-:3:-:2')
 e('FADD ur_gate, ur_gate, 1','04:-:-:-:6');e('MUFU.RCP ur_inverse, ur_gate','--:-:3:-:2')
 e('FFMA ur_error, ur_gate, ur_inverse, ur_negative_one','04:-:-:-:6')
 e('FADD.FTZ ur_error, -ur_error, -RZ');e('FFMA ur_gate, ur_inverse, ur_error, ur_inverse')

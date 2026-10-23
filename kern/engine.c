@@ -521,10 +521,88 @@ static void state_values(FILE *out,int d,int b,int k,CUdeviceptr p,size_t bytes)
         uint32_t y=(*ref)[i]&0x80000000u?~(*ref)[i]:(*ref)[i]|0x80000000u;
         uint64_t ulp=x>y?(uint64_t)x-y:(uint64_t)y-x;if(ulp>max_ulp)max_ulp=ulp;
     }
+    /* Absolute content, independent of the self reference. */
+    size_t bad=0,zero=0;double peak=0;
+    for(size_t i=0;i<bytes/4;i++) {
+        float v;memcpy(&v,current+i,4);
+        if(!isfinite(v)){bad++;continue;}
+        if(v==0)zero++;
+        if(fabs(v)>peak)peak=fabs(v);
+    }
     float a,c;memcpy(&a,current+first_index,4);memcpy(&c,*ref+first_index,4);
-    fprintf(out,"statevalues die=%d layer=%d buffer=%s values=%zu changed=%zu first=%zu current_bits=%08x reference_bits=%08x current=%.9g reference=%.9g max_abs=%.9g max_rel=%.9g max_ulp=%llu nonfinite=%u reference_kind=%s\n",
-        d,b,k?"conv":"dn",bytes/4,changed,first_index,current[first_index],(*ref)[first_index],a,c,max_abs,max_rel,(unsigned long long)max_ulp,nonfinite,first?"capture":"first_completed_request_same_library");
+    fprintf(out,"statevalues die=%d layer=%d buffer=%s values=%zu changed=%zu first=%zu current_bits=%08x reference_bits=%08x current=%.9g reference=%.9g max_abs=%.9g max_rel=%.9g max_ulp=%llu nonfinite=%u reference_kind=%s all_nonfinite=%zu all_zero=%zu all_peak=%.9g\n",
+        d,b,k?"conv":"dn",bytes/4,changed,first_index,current[first_index],(*ref)[first_index],a,c,max_abs,max_rel,(unsigned long long)max_ulp,nonfinite,first?"capture":"first_completed_request_same_library",bad,zero,peak);
     free(current);
+}
+/* Diagnostic: absolute content of the last position's FFN buffers. */
+static void buffer_stats(FILE *out,int d,const char *name,CUdeviceptr p,size_t bytes) {
+    if(!p){fprintf(out,"pairdump die=%d buffer=%s absent\n",d,name);return;}
+    float *v=malloc(bytes);if(!v){fprintf(out,"pairdump error=allocation\n");return;}
+    CK(cuMemcpyDtoH(v,p,bytes));
+    size_t n=bytes/4,bad=0,zero=0;double peak=0,sum2=0;
+    for(size_t i=0;i<n;i++){if(!isfinite(v[i])){bad++;continue;}if(v[i]==0)zero++;if(fabs(v[i])>peak)peak=fabs(v[i]);sum2+=(double)v[i]*v[i];}
+    fprintf(out,"pairdump die=%d buffer=%s values=%zu nonfinite=%zu zero=%zu peak=%.6g rms=%.6g head=%.6g,%.6g,%.6g,%.6g\n",
+        d,name,n,bad,zero,peak,n?sqrt(sum2/n):0,v[0],n>1?v[1]:0,n>2?v[2]:0,n>3?v[3]:0);
+    free(v);
+}
+static void pair_dump(FILE *out) {
+    for(int d=0;d<nd;d++) {
+        CK(cuCtxSetCurrent(ctx[d]));dn_bufs_t *b=position_buf(d,last_position_slot);
+        buffer_stats(out,d,"S",b->S,4u*10240);
+        buffer_stats(out,d,"out",b->out,4u*2560);
+        buffer_stats(out,d,"paired_partial",b->paired_partial,4u*2560);
+        buffer_stats(out,d,"paired_pair",b->paired_pair,4u*2560);
+        buffer_stats(out,d,"paired_reduce",b->paired_reduce,12u*2560);
+        buffer_stats(out,d,"paired_received",b->paired_received,4u*2560);
+        buffer_stats(out,d,"gate_local",b->balance_gate_local,4u*64);
+        buffer_stats(out,d,"up_local",b->balance_up_local,4u*64);
+        buffer_stats(out,d,"lw",b->lw,4u*10);
+        buffer_stats(out,d,"router_logits",b->r,4u*(513+16));
+        buffer_stats(out,d,"shared_gate",b->s,16);
+        if(b->unique_router_packets) {
+            uint32_t packet[6][UNIQUE_ROUTE_PACKET_WORDS],ids[10];
+            CK(cuMemcpyDtoH(packet,b->unique_router_packets,sizeof packet));
+            CK(cuMemcpyDtoH(ids,b->lidx,sizeof ids));
+            fprintf(out,"pairdump die=%d lidx=",d);for(unsigned i=0;i<10;i++)fprintf(out,"%s%u",i?",":"",ids[i]);fputc('\n',out);
+            for(unsigned s=0;s<6;s++) {
+                fprintf(out,"pairdump die=%d packet_from=%u ids=",d,s);
+                for(unsigned i=0;i<10;i++)fprintf(out,"%s%u",i?",":"",packet[s][i]);
+                fprintf(out," values=");
+                for(unsigned i=0;i<10;i++){float v;memcpy(&v,&packet[s][10+i],4);fprintf(out,"%s%.4g",i?",":"",v);}
+                float g;memcpy(&g,&packet[s][20],4);fprintf(out," gate=%.4g\n",g);
+            }
+        }
+    }
+    /* Cross-die invariants: replicated buffers agree, and the received MoE
+     * output equals the sum of the six local partials. */
+    if(paired_columns) {
+        static float part[6][2560],recv[6][2560],res[6][10240];
+        for(int d=0;d<nd;d++) {
+            CK(cuCtxSetCurrent(ctx[d]));dn_bufs_t *b=position_buf(d,last_position_slot);
+            CK(cuMemcpyDtoH(part[d],b->paired_partial,sizeof part[d]));
+            CK(cuMemcpyDtoH(recv[d],b->paired_received,sizeof recv[d]));
+            CK(cuMemcpyDtoH(res[d],b->S,sizeof res[d]));
+        }
+        double worst=0,scale=0;unsigned worst_i=0;
+        for(unsigned i=0;i<2560;i++) {
+            double sum=0;for(int d=0;d<nd;d++)sum+=part[d][i];
+            double e=fabs(sum-recv[0][i]);if(e>worst){worst=e;worst_i=i;}
+            if(fabs(sum)>scale)scale=fabs(sum);
+        }
+        fprintf(out,"pairdump check=partial_sum_vs_received max_abs=%.6g at=%u scale=%.6g\n",worst,worst_i,scale);
+        for(int d=1;d<nd;d++) {
+            unsigned r=0,s=0;for(unsigned i=0;i<2560;i++)r+=memcmp(&recv[d][i],&recv[0][i],4)!=0;
+            for(unsigned i=0;i<10240;i++)s+=memcmp(&res[d][i],&res[0][i],4)!=0;
+            fprintf(out,"pairdump check=replica die=%d received_differs=%u residual_differs=%u\n",d,r,s);
+        }
+        /* Which output rows does each die's partial cover? */
+        for(int d=0;d<nd;d++) {
+            unsigned nonzero=0,first=UINT_MAX,last=0;
+            for(unsigned i=0;i<2560;i++)if(part[d][i]!=0){nonzero++;if(i<first)first=i;last=i;}
+            fprintf(out,"pairdump check=partial_rows die=%d nonzero=%u first=%u last=%u\n",d,nonzero,first,last);
+        }
+    }
+    CK(cuCtxSetCurrent(ctx[0]));fprintf(out,"pairdump_end\n");fflush(out);
 }
 static void state_hashes(FILE *out,int detail) {
 	const uint64_t seed = 0xcbf29ce484222325ull;
@@ -1802,7 +1880,7 @@ int engine_init(core_t *c) {
 	h_imap = calloc((size_t)MAXT + 2, 4); imap_dirty = 0; rope_dirty_T = 0;
 	kv_host = getenv("FLASH_KV_HOST") ? atoi(getenv("FLASH_KV_HOST")) : 1;
 	nlayers_run = getenv("FLASH_LAYERS") ? atoi(getenv("FLASH_LAYERS")) : NB; if (nlayers_run < 1 || nlayers_run > NB) nlayers_run = NB;
-    if(row_balance && nlayers_run!=NB) {
+    if(row_balance && nlayers_run!=NB && !(getenv("FLASH_DIAG_LAYERS") && atoi(getenv("FLASH_DIAG_LAYERS")))) {
         fprintf(stderr,"engine: balanced production requires all %d layers\n",NB);longjmp(init_jb,1);
     }
 	if (getenv("FLASH_NBLK")) nblk_qsa = (unsigned)atoi(getenv("FLASH_NBLK"));
@@ -2432,6 +2510,7 @@ int engine_session(FILE *in, FILE *out) {
 		}
 		if (!strcmp(p, "qsaaudit\n")) { qsa_audit(out); continue; }
 		if (!strcmp(p, "headaudit\n")) { balance_head_audit(out); continue; }
+		if (!strcmp(p, "pairdump\n")) { pair_dump(out); continue; }
 		if (!strcmp(p, "workdump\n")) { balance_work_dump(out); continue; }
 		if (!strncmp(p, "statehash", 9)) { state_hashes(out,strstr(p,"detail")!=NULL); continue; }
         if(!strncmp(p,"tokenaudit",10)){token_audit(out);fflush(out);continue;}

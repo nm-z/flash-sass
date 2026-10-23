@@ -142,7 +142,8 @@ static FILE *start(const char *core,const char *lib,const char *cubin,int fused,
             setenv("FLASH_ATTN_BALANCE","1",1);setenv("FLASH_FUSED_MOE","0",1);setenv("FLASH_FAST_EXCHANGE","0",1);
             setenv("FLASH_FUSED_GR","1",1);setenv("FLASH_PRODUCER_QUANT","1",1);setenv("FLASH_MATRIX_GROUP","1",1);
             setenv("FLASH_GR_REPLICATE_FFN","0",1);setenv("FLASH_RESIDUAL_FP8","0",1);setenv("FLASH_PHASE_BATCH","0",1);
-            setenv("FLASH_MTP_AUDIT","0",1);setenv("FLASH_LAYERS","48",1);setenv("FLASH_NBLK","512",1);
+            setenv("FLASH_MTP_AUDIT","0",1);setenv("FLASH_NBLK","512",1);
+            setenv("FLASH_LAYERS",getenv("BENCH_LAYERS")?getenv("BENCH_LAYERS"):"48",1);
             if(speculation) {
                 const char *batch=getenv("BENCH_BALANCED_BATCH_CUBIN");if(!batch || !*batch)_exit(2);
                 setenv("FLASH_PHASE_BATCH",dflash?"4":"5",1);setenv("FLASH_EXACT_CUBIN",batch,1);
@@ -239,7 +240,8 @@ static void check_scope(FILE *f,int mtp_expected,int verify_expected,int spec_ex
     value(line,"layers","",layers,sizeof layers);
     value(line,"dies","",dies,sizeof dies);
     value(line,"nblk","",blocks,sizeof blocks);
-    if(strcmp(layers,"48/48") || strcmp(dies,"6") || strcmp(blocks,"512"))
+    /* BENCH_LAYERS is a bisection diagnostic; its outputs are meaningless. */
+    if((!getenv("BENCH_LAYERS") && strcmp(layers,"48/48")) || strcmp(dies,"6") || strcmp(blocks,"512"))
         fail("benchmark requires full 48 layers, six dies, and 512 attention blocks");
     if(spec_expected>=0) {
         char spec[16],proposer[80];value(line,"balanced_speculative","missing",spec,sizeof spec);
@@ -529,6 +531,11 @@ int main(int argc,char **argv) {
                     }
                 }
                 free(wl);if(!complete)fail("incomplete work descriptor readback");
+            }
+            if(getenv("BENCH_PAIR_DUMP") && atoi(getenv("BENCH_PAIR_DUMP"))) {
+                fputs("pairdump\n",f);fflush(f);char *hl=NULL;size_t hc=0;int complete=0;
+                while(getline(&hl,&hc,f)>0){fputs(hl,stdout);if(!strcmp(hl,"pairdump_end\n")){complete=1;break;}}
+                free(hl);if(!complete)fail("incomplete pair dump");
             }
             if(getenv("BENCH_HEAD_AUDIT") && atoi(getenv("BENCH_HEAD_AUDIT"))) {
                 fputs("headaudit\n",f);fflush(f);char *hl=NULL;size_t hc=0;int complete=0;
