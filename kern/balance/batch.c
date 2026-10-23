@@ -28,6 +28,25 @@ static unsigned native_matrix(const phase_t *a,unsigned span,unsigned *k) {
     }
 }
 
+/* Generic children of one wrapper run back to back without a grid join. A
+ * recurrent operation whose position p+1 reads state another CTA wrote for
+ * position p (or a retained bank an earlier position still reads) must join
+ * between positions. FLASH_B4_JOIN_OPS overrides the default opcode set. */
+static int position_join(unsigned op) {
+    static unsigned ops[32],n;static int loaded;
+    if(!loaded) {
+        const char *list=getenv("FLASH_B4_JOIN_OPS");
+        if(!list)list="15,16,24,98";
+        for(const char *p=list;*p && n<32;) {
+            char *end;unsigned long v=strtoul(p,&end,0);if(end==p)break;
+            ops[n++]=(unsigned)v;p=*end==','?end+1:end;
+        }
+        loaded=1;
+    }
+    if(op==OP_BALANCED_SELECT)return 1;
+    for(unsigned i=0;i<n;i++)if(ops[i]==op)return 1;
+    return 0;
+}
 static int balance_batch_impl(prog_t *out,const prog_t *const *positions,
                        unsigned count,balance_batch_work *work,CUdeviceptr local_quant_ready) {
     if(!out || !positions || count<2 || count>BALANCED_BATCH_MAX)return -1;
@@ -122,7 +141,7 @@ static int balance_batch_impl(prog_t *out,const prog_t *const *positions,
         stats.peer_acquires+=(a->w[30]&2u)!=0;
         /* QSA owns shared rolling indexer state and possibly aliased gather
          * scratch. Every CTA must finish one position before another starts. */
-        if(strict || a->w[0]==OP_BALANCED_SELECT)stats.inner_grid_joins+=count;
+        if(strict || position_join(a->w[0]))stats.inner_grid_joins+=count;
         preceding_hcup=native_hcup && a->w[0]==96u;
         i+=(int)span;
     }
@@ -169,7 +188,7 @@ static int balance_batch_impl(prog_t *out,const prog_t *const *positions,
         }
         if(localq && a->w[0]==96u)wrap->w[6]=1;
         wrap->w[2]=count;wrap->w[3]=span;wrap->w[4]=a->w[0];
-        wrap->w[5]=strict || a->w[0]==OP_BALANCED_SELECT;
+        wrap->w[5]=strict || position_join(a->w[0]);
         wrap->w[30]=(a->w[30]&~(PHASE_GROUP_FLAG|PHASE_FUSED_FLAG|
                        PHASE_CHAIN_FLAG|PHASE_WIDTH_MASK))|
                        PHASE_GROUP_FLAG|PHASE_FUSED_FLAG|((1+count*span)<<8);
@@ -179,7 +198,7 @@ static int balance_batch_impl(prog_t *out,const prog_t *const *positions,
              * publish together at its final system release. Native child
              * chains and their internal dependencies remain untouched. */
             image[at].w[30]=(image[at].w[30]&~3u)|4u;
-            if(strict || a->w[0]==OP_BALANCED_SELECT)
+            if(strict || position_join(a->w[0]))
                 image[at].w[30]&=~(4u|0x20000u);
             at+=span;
         }
