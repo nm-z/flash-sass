@@ -27,7 +27,7 @@ struct ple_read_pool {
 	pthread_cond_t work, done;
 	pthread_t threads[PLE_READ_HEADS];
 	struct ple_read_worker workers[PLE_READ_HEADS];
-	unsigned readers, started, remaining;
+	unsigned readers, started, remaining, count;
 	int sync_ready, stopping;
 	uint64_t generation;
 	/* Published under mutex; immutable until the batch completes. */
@@ -79,11 +79,12 @@ static void *ple_read_worker_main(void *opaque) {
 		seen = pool->generation;
 		int fd = pool->fd;
 		unsigned readers = pool->readers;
+		unsigned count = pool->count;
 		const off_t *offsets = pool->offsets;
 		uint8_t *dst = pool->dst;
 		struct ple_read_result *results = pool->results;
 		pthread_mutex_unlock(&pool->mutex);
-		for (unsigned h = worker->head; h < PLE_READ_HEADS; h += readers)
+		for (unsigned h = worker->head; h < count; h += readers)
 			ple_read_one(fd, offsets[h], dst + h * PLE_READ_ROW_BYTES, &results[h]);
 		pthread_mutex_lock(&pool->mutex);
 		if (--pool->remaining == 0) pthread_cond_signal(&pool->done);
@@ -135,21 +136,27 @@ static int ple_read_pool_init(struct ple_read_pool *pool, unsigned readers) {
 }
 
 /* One producer, synchronous completion; all row writes precede the return. */
-static void ple_read_batch(struct ple_read_pool *pool, int fd,
-                          const off_t offsets[PLE_READ_HEADS], void *dst,
-                          struct ple_read_result results[PLE_READ_HEADS]) {
+static void ple_read_batch_n(struct ple_read_pool *pool, int fd,
+                            const off_t *offsets, void *dst,
+                            struct ple_read_result *results,unsigned count) {
 	if (pool->readers == 1) {
-		for (unsigned h = 0; h < PLE_READ_HEADS; h++)
+		for (unsigned h = 0; h < count; h++)
 			ple_read_one(fd, offsets[h], (uint8_t *)dst + h * PLE_READ_ROW_BYTES, &results[h]);
 		return;
 	}
 	pthread_mutex_lock(&pool->mutex);
 	pool->fd = fd; pool->offsets = offsets; pool->dst = dst; pool->results = results;
+	pool->count=count;
 	pool->remaining = pool->started;
 	pool->generation++;
 	pthread_cond_broadcast(&pool->work);
 	while (pool->remaining) pthread_cond_wait(&pool->done, &pool->mutex);
 	pool->offsets = NULL; pool->dst = NULL; pool->results = NULL;
 	pthread_mutex_unlock(&pool->mutex);
+}
+static void ple_read_batch(struct ple_read_pool *pool,int fd,
+                          const off_t offsets[PLE_READ_HEADS],void *dst,
+                          struct ple_read_result results[PLE_READ_HEADS]) {
+    ple_read_batch_n(pool,fd,offsets,dst,results,PLE_READ_HEADS);
 }
 #endif

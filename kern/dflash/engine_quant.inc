@@ -41,6 +41,7 @@ static void dflash_quant_init(void) {
         CK(cuModuleGetFunction(&marker,exact_mod[d],"flash_dflash_prefix_abi_v1"));
         CK(cuModuleGetFunction(&marker,exact_mod[d],"flash_dflash_features_abi_v1"));
         CK(cuModuleGetFunction(&marker,exact_mod[d],"flash_dflash_matrix4_abi_v1"));
+        CK(cuModuleGetFunction(&marker,exact_mod[d],"flash_dflash_router4_abi_v1"));
         dflash_state_selector[d]=dalloc(4);
         CUdeviceptr banks[4];
         for(unsigned p=0;p<4;p++)banks[p]=dflash_ple_bank[p][d]=p==3?dst_ple[d]:dalloc(4u*10u*10240u);

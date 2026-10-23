@@ -134,6 +134,7 @@ typedef struct {
     CUdeviceptr unique_router_packets,unique_router_targets,unique_router_config;
     CUdeviceptr unique_k_local,unique_v_local,unique_k_targets,unique_v_targets;
     CUdeviceptr paired_partial,paired_received,paired_targets,paired_config;
+    CUdeviceptr paired_pair,paired_reduce,paired_flags;
 	CUdeviceptr S2;                   /* 10240 scratch stream: the attention side's write lands here (bf16hcrwx), the MoE end writes S */
 	CUdeviceptr xh, t;                /* 10240; 324 = SiLU(0.25 down) ++ inj */
 	CUdeviceptr ldown, lup, lz;       /* djn; 4 x 32 cbn; 32 cbn */

@@ -4,7 +4,7 @@
 local function read(p)local f=assert(io.open(p));local s=f:read('a');f:close();return s end
 local s=read(assert(arg[1]));local output=assert(arg[2])
 local function replace(a,b)
- local i,j=assert(s:find(a,1,true),'missing '..a);assert(not s:find(a,j+1,true),'ambiguous '..a)
+ local i,j=s:find(a,1,true);assert(i,'missing '..a);assert(not s:find(a,j+1,true),'ambiguous '..a)
  s=s:sub(1,i-1)..b..s:sub(j+1)
 end
 local map=[=[
@@ -241,7 +241,7 @@ for _,bits in ipairs({4,5,2,3,6,8})do
  for p=0,3 do
   if affine then e(string.format('FMUL dqm_value%d, dqm_value%d, dqm_scfloat',p,p))end
   e(string.format('FMUL dqm_value%d, dqm_d, dqm_value%d',p,p))
-  if affine then e(string.format('FFMA dqm_value%d, -dqm_dm, dqm_sum%d, dqm_value%d',p,p,p))end
+  if affine then e(string.format('FFMA dqm_value%d, dqm_dm, -dqm_sum%d, dqm_value%d',p,p,p))end
   e(string.format('FFMA dqm_acc%d, dqm_as%d, dqm_value%d, dqm_acc%d',p,p,p,p))
  end
  e('IADD dqm_group, dqm_group, dqm_lanes');pred('ISETP.LT.U32.AND P6, PT, dqm_group, dqm_groups, PT')

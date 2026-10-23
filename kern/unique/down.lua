@@ -1,7 +1,7 @@
 -- Compact paired MoE columns. Scalar and B4 share the same local arithmetic.
 local f=assert(io.open(assert(arg[1])));local s=f:read('a');f:close()
 local function replace(a,b)
- local i,j=assert(s:find(a,1,true),'missing '..a);assert(not s:find(a,j+1,true),'ambiguous '..a)
+ local i,j=s:find(a,1,true);assert(i,'missing '..a);assert(not s:find(a,j+1,true),'ambiguous '..a)
  s=s:sub(1,i-1)..b..s:sub(j+1)
 end
 local maps={[=[
@@ -305,20 +305,8 @@ for p=0,3 do
  e(string.format('LDS.64 pc_ptr0, [RZ+0x%x]',0x8038+p*128),'--:-:1:-:2');e('SHL pc_offset, pc_row, 0x2');wait('01');addr('pc_ptr','pc_ptr','pc_offset')
  e(string.format('@P5 STG.E [pc_ptr], pc_sum%d',p),'--:2:-:-:2');wait('02')
 end
-e('BAR.SYNC 0x0','3f:-:-:Y:d');pred('ISETP.GE.U32.AND P6, PT, warp, 0x6, PT');e('@P6 BRA PCOL_PUBLISH_JOIN')
--- Coalesced, completed output tiles publish while later tiles still compute.
-for p=0,3 do
- pred(string.format('ISETP.LE.U32.AND P6, PT, pc_count, 0x%x, PT',p));e('@P6 BRA PCOL_PUBLISH_DONE_'..p)
- e(string.format('LDS.64 pc_targets0, [RZ+0x%x]',0x8030+p*128),'--:-:1:-:2');e('SHL pc_temp, warp, 0x3');wait('01')
- addr('pc_addr','pc_targets','pc_temp');e('LDG.E.CG.64 pc_transfer0, [pc_addr]','--:-:1:-:2');wait('01')
- for half=0,1 do
-  e(string.format('IADD pc_index, lane, 0x%x',half*32));e('SHL pc_memoffset, pc_index, 0x2')
-  e(string.format('LDS pc_word, [pc_memoffset+0x%x]',0x3000+p*256),'--:-:1:-:2')
-  e('IADD pc_index, pc_index, pc_rowbase');e('SHL pc_temp, pc_index, 0x2');addr('pc_addr','pc_transfer','pc_temp')
-  e('STG.E.WT [pc_addr], pc_word','01:2:-:-:2');wait('02')
- end
- l('PCOL_PUBLISH_DONE_'..p)
-end
+e('BAR.SYNC 0x0','3f:-:-:Y:d')
+o[#o+1]=dofile('unique/pair_transport.lua')(maps)
 l('PCOL_PUBLISH_JOIN');e('BAR.SYNC 0x0','3f:-:-:Y:d');e('IADD pc_rowbase, pc_rowbase, 0x400');e('BRA PCOL_TILE')
 replace('</REGISTER_MAPPING>',table.concat(maps,'\n')..'\n</REGISTER_MAPPING>')
 replace('ISETP.GE.U32.AND P6, PT, op, 0x70, PT;','ISETP.GE.U32.AND P6, PT, op, 0x71, PT;')

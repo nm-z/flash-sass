@@ -90,20 +90,22 @@ static void start_cuda_debugger(void) {
 #undef ARG
     execvp(args[0],args);perror("cuda debugger exec");_exit(127);
 }
-static FILE *start(const char *core,const char *lib,const char *cubin,int fused) {
+static FILE *start(const char *core,const char *lib,const char *cubin,int fused,int dflash_arm) {
     snprintf(socket_path,sizeof socket_path,"/tmp/flash-60-%ld.sock",(long)getpid());
     child=fork(); if(child<0) fail("fork");
     if(!child) {
         int balanced=getenv("BENCH_ROW_BALANCE") && atoi(getenv("BENCH_ROW_BALANCE"));
         int speculation=getenv("BENCH_BALANCED_SPEC") && atoi(getenv("BENCH_BALANCED_SPEC"));
+        int dflash=getenv("BENCH_DFLASH2") && atoi(getenv("BENCH_DFLASH2"));
+        if(dflash)speculation=dflash_arm;
         if(speculation && !balanced)_exit(2);
-        setenv("FLASH_BALANCED_SPECULATE",speculation?"lookup":"0",1);
+        setenv("FLASH_BALANCED_SPECULATE",speculation?(dflash?"dflash2":"lookup"):"0",1);
         setenv("FLASH_SOCK",socket_path,1);
         setenv("CUDA_VISIBLE_DEVICES","0,1,2,3,4,5,6",1);
         setenv("FLASH_ANCHOR_DIE","6",1);
         setenv("FLASH_MAXT","16384",1); setenv("FLASH_ENGINE_MAXT","16384",1);
         setenv("FLASH_MAXIMG","1",1); setenv("FLASH_PLE_DISK","1",1);
-        setenv("FLASH_PLE_OFF","192",1); setenv("FLASH_PLE_READERS","1",1);
+        setenv("FLASH_PLE_OFF","192",1); setenv("FLASH_PLE_READERS",getenv("BENCH_PLE_READERS")?getenv("BENCH_PLE_READERS"):"1",1);
         setenv("FLASH_PLE_FILE","",1); setenv("FLASH_TWO_POSITION","0",1);
         setenv("FLASH_PREFILL_CHUNK","0",1); setenv("FLASH_TRACE","0",1);
         setenv("FLASH_KV_TRACE","0",1); setenv("FLASH_KV_HOST","0",1);
@@ -116,11 +118,12 @@ static FILE *start(const char *core,const char *lib,const char *cubin,int fused)
         if(balanced) {
             const char *dir=getenv("BENCH_HOLDER_DIR");if(!dir || !*dir)_exit(2);
             const char *context=getenv("BENCH_CONTEXT");if(!context)context="32768";
-            /* GPUs2 and7 are reserved for Nate. Keep even the non-compute
-             * anchor context on a compute GPU, in a separate CUDA context. */
-            setenv("CUDA_VISIBLE_DEVICES","0,1,3,4,5,6",1);
-            setenv("FLASH_ANCHOR_DIE","3",1);setenv("FLASH_MAXT",context,1);setenv("FLASH_ENGINE_MAXT",context,1);
-            dprintf(STDERR_FILENO,"balanced_runtime visible=0,1,3,4,5,6 anchor_physical=3\n");
+            const char *visible=getenv("BENCH_VISIBLE_DEVICES"),*anchor=getenv("BENCH_ANCHOR_DIE");
+            if(!visible)visible="0,1,3,4,5,6";
+            if(!anchor)anchor="3";
+            setenv("CUDA_VISIBLE_DEVICES",visible,1);
+            setenv("FLASH_ANCHOR_DIE",anchor,1);setenv("FLASH_MAXT",context,1);setenv("FLASH_ENGINE_MAXT",context,1);
+            dprintf(STDERR_FILENO,"balanced_runtime visible=%s anchor_physical=%s\n",visible,anchor);
             setenv("FLASH_PLE_FILE","/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf",1);
             setenv("FLASH_PREFILL_CHUNK","64",1);setenv("FLASH_ATTN_Q_SPLIT","0",1);
             setenv("FLASH_ATTN_BALANCE","1",1);setenv("FLASH_FUSED_MOE","0",1);setenv("FLASH_FAST_EXCHANGE","0",1);
@@ -129,7 +132,7 @@ static FILE *start(const char *core,const char *lib,const char *cubin,int fused)
             setenv("FLASH_MTP_AUDIT","0",1);setenv("FLASH_LAYERS","48",1);setenv("FLASH_NBLK","512",1);
             if(speculation) {
                 const char *batch=getenv("BENCH_BALANCED_BATCH_CUBIN");if(!batch || !*batch)_exit(2);
-                setenv("FLASH_PHASE_BATCH","5",1);setenv("FLASH_EXACT_CUBIN",batch,1);
+                setenv("FLASH_PHASE_BATCH",dflash?"4":"5",1);setenv("FLASH_EXACT_CUBIN",batch,1);
             }
             setenv("FLASH_XTRACE",getenv("BENCH_XTRACE")?getenv("BENCH_XTRACE"):"0",1);
             setenv("FLASH_BODY_TRACE",getenv("BENCH_BODY_TRACE")?getenv("BENCH_BODY_TRACE"):"0",1);
@@ -207,7 +210,7 @@ static void value(const char *cfg,const char *key,const char *fallback,char *dst
     size_t n=strcspn(p," \r\n"); if(n>=size) fail("config field too long");
     memcpy(dst,p,n); dst[n]=0;
 }
-static void check_scope(FILE *f,int mtp_expected,int verify_expected) {
+static void check_scope(FILE *f,int mtp_expected,int verify_expected,int spec_expected) {
     char line[4096],layers[32],dies[32],blocks[32];
     fputs("config\n",f);fflush(f);
     if(!fgets(line,sizeof line,f)) fail("config EOF");
@@ -217,7 +220,11 @@ static void check_scope(FILE *f,int mtp_expected,int verify_expected) {
     value(line,"nblk","",blocks,sizeof blocks);
     if(strcmp(layers,"48/48") || strcmp(dies,"6") || strcmp(blocks,"512"))
         fail("benchmark requires full 48 layers, six dies, and 512 attention blocks");
-    if(getenv("BENCH_BALANCED_SPEC") && atoi(getenv("BENCH_BALANCED_SPEC"))) {
+    if(spec_expected>=0) {
+        char spec[16],proposer[80];value(line,"balanced_speculative","missing",spec,sizeof spec);
+        if(strcmp(spec,spec_expected?"1":"0"))fail("DFlash2 arm did not select the requested target mode");
+        if(spec_expected){value(line,"proposer","missing",proposer,sizeof proposer);if(strcmp(proposer,"dflash2_q4km_b4"))fail("unexpected DFlash2 proposer");}
+    } else if(getenv("BENCH_BALANCED_SPEC") && atoi(getenv("BENCH_BALANCED_SPEC"))) {
         char spec[16];value(line,"balanced_speculative","missing",spec,sizeof spec);
         if(strcmp(spec,"1"))fail("balanced speculative mode was not enabled");
     }
@@ -263,7 +270,9 @@ int main(int argc,char **argv) {
     int kernel_only=getenv("BENCH_KERNEL_ONLY")?atoi(getenv("BENCH_KERNEL_ONLY")):0;
     int plain_decode=getenv("BENCH_NO_MTP") && atoi(getenv("BENCH_NO_MTP"));
     int row_balance=getenv("BENCH_ROW_BALANCE") && atoi(getenv("BENCH_ROW_BALANCE"));
-    if(row_balance && (resident || !candidate_only || !plain_decode || !getenv("BENCH_HOLDER_DIR") ||
+    int dflash2=getenv("BENCH_DFLASH2") && atoi(getenv("BENCH_DFLASH2"));
+    if(dflash2 && (!row_balance || !plain_decode || resident || !getenv("BENCH_BALANCED_BATCH_CUBIN")))fail("DFlash2 requires a private full-target comparison and its B4 module");
+    if(row_balance && (resident || (!candidate_only && !dflash2) || !plain_decode || !getenv("BENCH_HOLDER_DIR") ||
         mtp_audit || exact_batch || native_chunk || verify_rollback))
         fail("balanced private core requires candidate-only ordinary full-model decode and BENCH_HOLDER_DIR");
     int separate_chunk=getenv("BENCH_SEPARATE_CHUNK") && atoi(getenv("BENCH_SEPARATE_CHUNK"));
@@ -426,7 +435,7 @@ int main(int argc,char **argv) {
             {size_t used=strlen(cmd);snprintf(cmd+used,sizeof cmd-used," FLASH_GR_WRITE_TRACE=%d",getenv("BENCH_GR_WRITE_TRACE")?atoi(getenv("BENCH_GR_WRITE_TRACE")):0);}
             command(active,cmd); fclose(active); active=NULL;
             f=connect_core(); if(!f) fail("post-reload connection"); active=f;
-        } else { f=start(argv[1],argv[2],argv[3+arm],arm && !kernel_only); active=f; }
+        } else { f=start(argv[1],argv[2],argv[dflash2?3:3+arm],arm && !kernel_only,dflash2 && arm); active=f; }
         const char *name=row_balance?"row-balanced":kernel_only?(arm?"kernel-candidate":"baseline"):verify_rollback?(arm?"rollback-audit":"baseline"):mtp_audit?(arm?(mtp_audit==4?"dflash2-full-model":mtp_audit==3?"mtp-full-model":mtp_audit==2?"mtp-rollout":"mtp-shadow"):"baseline"):pair_cost?(arm?"paired-full-head":"scalar-full-head"):exact_batch?(arm?"exact-b8":"production-b2"):(arm?(native_chunk?"native-chunk":"fused"):"baseline");
         const char *workload=candidate_only && repetitions==1 && !repeatability && !pair_cost?"decode-first-execution":mtp_audit==4?"dflash2-full-model-unchecked":mtp_audit==3?"mtp-full-model-unchecked":mtp_audit==2?"mtp-unchecked-rollout":verify_rollback?"rollback-state-diagnostic":mtp_audit?"draft-shadow-diagnostic":pair_cost?"teacher_forced":candidate_only?(generate==1&&prefix_hash?"native-prefix-repeatability":"decode-repeatability"):"decode";
         if(getenv("BENCH_CUDA_DEBUG") && atoi(getenv("BENCH_CUDA_DEBUG")))workload="cuda-debug-diagnostic";
@@ -436,9 +445,10 @@ int main(int argc,char **argv) {
         if(getenv("BENCH_BALANCED_SPEC") && atoi(getenv("BENCH_BALANCED_SPEC")))workload="lossless-speculative-decode";
         if(pair_cost && plain_decode)name=arm?"teacher-forced-candidate":"teacher-forced-baseline";
         if(plain_decode && getenv("BENCH_BASE_PHASE") && atoi(getenv("BENCH_BASE_PHASE")))name=arm?"split-candidate":"phase-baseline";
+        if(dflash2)name=arm?"dflash2-q4km-b4":"paired-scalar-target";
         printf("{\"arm\":\"%s\",\"workload\":\"%s\",\"prompt_tokens\":%d,\"generated_tokens\":%d,\"warmup_runs\":%d,\"baseline_compared\":%s,\"reference_kind\":\"%s\"}\n",name,repeatability?"same_kernel_repeatability":workload,pair_cost?positions:64*prompt_copies,pair_cost?0:generate,arm&&verify_matrix?8:1,(candidate_only||repeatability)?"false":"true",repeatability?"first_request_same_kernel":mtp_audit>=2?"none":reference?"frozen_scalar":"first_run");
         if(mtp_audit>=2)command(f,"config");
-        else check_scope(f,mtp_audit?arm:-1,verify_rollback?(arm?verify_rollback:0):-1);
+        else check_scope(f,mtp_audit?arm:-1,verify_rollback?(arm?verify_rollback:0):-1,dflash2?arm:-1);
         command(f,"stop");
         if(getenv("BENCH_SAMPLING") && atoi(getenv("BENCH_SAMPLING")))command(f,"sample 7 1 20 0.95");
         else command(f,"sample 7 0 20 0.95");
@@ -528,7 +538,7 @@ int main(int argc,char **argv) {
                 free(al);if(!complete)fail("incomplete QSA audit");
             }
             if(getenv("BENCH_PLE_CACHE_STATS") && atoi(getenv("BENCH_PLE_CACHE_STATS")))command(f,"plecache");
-            if(getenv("BENCH_BALANCED_SPEC") && atoi(getenv("BENCH_BALANCED_SPEC")))command(f,"specstats");
+            if(dflash2 || (getenv("BENCH_BALANCED_SPEC") && atoi(getenv("BENCH_BALANCED_SPEC"))))command(f,"specstats");
             if(getenv("BENCH_PLE_HANDOFF") && atoi(getenv("BENCH_PLE_HANDOFF"))) {
                 fputs("plehandoff\n",f);fflush(f);char *hl=NULL;size_t hc=0;int complete=0;unsigned rows=0;
                 while(getline(&hl,&hc,f)>0){

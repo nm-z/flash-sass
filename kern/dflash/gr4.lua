@@ -6,7 +6,7 @@
 local function read(p)local f=assert(io.open(p));local s=f:read('a');f:close();return s end
 local s=read(assert(arg[1]));local output=assert(arg[2])
 local function replace(a,b)
- local i,j=assert(s:find(a,1,true),'missing '..a);assert(not s:find(a,j+1,true),'ambiguous '..a)
+ local i,j=s:find(a,1,true);assert(i,'missing '..a);assert(not s:find(a,j+1,true),'ambiguous '..a)
  s=s:sub(1,i-1)..b..s:sub(j+1)
 end
 local maps={};local prefixes={}

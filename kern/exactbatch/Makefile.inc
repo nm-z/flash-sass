@@ -174,9 +174,10 @@ die_unique.cubin: die_unique.sass die_unique.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ die_unique.ptx
 	$(MAXAS) -i die_unique.sass $@
 
-die_paired.sass: die_unique.sass unique/down.lua phase/quant_emit.lua
+die_paired.sass: die_unique.sass unique/down.lua unique/pair_transport.lua unique/board.lua phase/quant_emit.lua
 	$(LUA) unique/down.lua $< $@.raw
-	$(LUA) phase/predicate_latency.lua $@.raw $@ $@.predicate.csv
+	$(LUA) unique/board.lua $@.raw $@.board
+	$(LUA) phase/predicate_latency.lua $@.board $@ $@.predicate.csv
 die_paired.ptx: die_unique.ptx unique/paired_marker.ptxinc
 	cat $^ > $@
 die_paired.cubin: die_paired.sass die_paired.ptx
@@ -193,7 +194,7 @@ die_dflash2_scalar.ptx: die_paired.ptx dflash/target_marker.ptxinc
 die_dflash2_scalar.cubin: die_dflash2_scalar.sass die_dflash2_scalar.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ die_dflash2_scalar.ptx
 	$(MAXAS) -i die_dflash2_scalar.sass $@
-die_dflash2_b4.sass: die_balanced.sass balance/batch_frame.lua balance/hcup5.lua balance/receiver_quant.lua unique/gdn.lua unique/router.lua unique/collective.lua unique/down.lua unique/down4.lua dflash/target.lua dflash/dn4.lua dflash/gr4.lua dflash/matrix4.lua dflash/bf16_4.lua
+die_dflash2_b4.sass: die_balanced.sass balance/batch_frame.lua balance/hcup5.lua balance/receiver_quant.lua unique/gdn.lua unique/router.lua unique/collective.lua unique/down.lua unique/down4.lua unique/pair_transport.lua unique/board.lua dflash/target.lua dflash/dn4.lua dflash/gr4.lua dflash/matrix4.lua dflash/bf16_4.lua dflash/router4.lua
 	$(LUA) balance/batch_frame.lua $< $@.frame
 	$(LUA) balance/hcup5.lua $@.frame $@.hcup4 4
 	$(LUA) balance/receiver_quant.lua $@.hcup4 $@.localq
@@ -207,7 +208,9 @@ die_dflash2_b4.sass: die_balanced.sass balance/batch_frame.lua balance/hcup5.lua
 	$(LUA) dflash/matrix4.lua $@.gr4 $@.matrix
 	$(LUA) dflash/bf16_4.lua $@.matrix $@.bf16
 	$(LUA) unique/down4.lua $@.bf16 $@.down4
-	$(LUA) phase/predicate_latency.lua $@.down4 $@ $@.predicate.csv
+	$(LUA) dflash/router4.lua $@.down4 $@.router4
+	$(LUA) unique/board.lua $@.router4 $@.board
+	$(LUA) phase/predicate_latency.lua $@.board $@ $@.predicate.csv
 die_dflash2_b4.ptx: die_paired.ptx dflash/batch_marker.ptxinc dflash/target_marker.ptxinc
 	cat $^ > $@
 die_dflash2_b4.cubin: die_dflash2_b4.sass die_dflash2_b4.ptx
@@ -216,10 +219,11 @@ die_dflash2_b4.cubin: die_dflash2_b4.sass die_dflash2_b4.ptx
 
 # CUDA 11.x is required for Maxwell code generation; the target stays SASS.
 DFLASH_NVCC ?= /home/nate/qwen3-next/toolchains/cuda-11.8/bin/nvcc
+DFLASH_CCBIN ?= /home/nate/qwen3-next/toolchains/gcc11/usr/bin
 dflash/device.cubin: dflash/device.cu dflash/device.h
-	$(DFLASH_NVCC) -cubin -arch=sm_52 -O3 --fmad=true -o $@ $<
+	$(DFLASH_NVCC) -ccbin $(DFLASH_CCBIN) -cubin -arch=sm_52 -O3 --fmad=true -o $@ $<
 DFLASH_QUANT_SRC = dflash/gguf_model.c dflash/resident.c
-libengine_dflash2.so: $(ENGINE_SRC) $(DFLASH_QUANT_SRC) dflash/engine_quant.inc dflash/target.h dflash/device.h dflash/resident.h dflash/gguf_model.h exactbatch/prog_group.c exactbatch/prog_group.h balance/batch.c balance/batch.h balance/speculate.c exact_ops.h prog.h engine.h core.h prefill.h trace_host.inc timings.h qsa_state.h ple_read_pool.h ple_read_reload.h phase/plan.h balance/attention_plan.h
+libengine_dflash2.so: $(ENGINE_SRC) $(DFLASH_QUANT_SRC) dflash/engine_quant.inc dflash/target.h dflash/device.h dflash/resident.h dflash/gguf_model.h exactbatch/prog_group.c exactbatch/prog_group.h balance/batch.c balance/batch.h balance/speculate.c unique/board_host.inc unique/transport.h exact_ops.h prog.h engine.h core.h prefill.h trace_host.inc timings.h qsa_state.h ple_read_pool.h ple_read_reload.h phase/plan.h balance/attention_plan.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -pthread -DFLASH_EXACT_BATCH -DFLASH_BALANCED_SPEC_NATIVE -DFLASH_DFLASH_QUANT -DFLASH_REV='"$(FLASH_REV)-dflash2"' -o $@.new $(ENGINE_SRC) $(DFLASH_QUANT_SRC) exactbatch/prog_group.c balance/batch.c -I. -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
 
 # Complete production-image experiment: replicated local GR-up. It has a

@@ -14,6 +14,7 @@
 #include "prog.h"
 #include "balance/layout.h"
 #include "unique/layout.h"
+#include "unique/transport.h"
 #include "split.h"
 #include "qsa.h"
 #include "qsa_state.h"
@@ -241,6 +242,7 @@ static const char *profile_op_name(unsigned op) {
     if(dflash_quant && op==OP_DFLASH_Q5K4)return "q5k_matrix4";
     if(dflash_quant && op==OP_DFLASH_Q2_4)return "q2_matrix4";
     if(dflash_quant && op==OP_DFLASH_BF16_4)return "bf16_matrix4";
+    if(dflash_quant && op==OP_DFLASH_ROUTER4)return "router4";
     if(dflash_quant && op==OP_DFLASH_Q3K4)return "q3k_matrix4";
     if(dflash_quant && op==OP_DFLASH_Q6K4)return "q6k_matrix4";
     if(dflash_quant && op==OP_DFLASH_IQ4_4)return "iq4_matrix4";
@@ -276,6 +278,8 @@ static void check_fused_moe_module(CUmodule module) {
     if((paired_marker==CUDA_SUCCESS)!=!!paired_columns) {
         fprintf(stderr,"engine: paired-column holder and kernel layouts must agree\n");longjmp(init_jb,1);
     }
+    if(paired_columns)CK(cuModuleGetFunction(&marker,module,"flash_pair_transport_abi_v1"));
+    if(paired_columns)CK(cuModuleGetFunction(&marker,module,"flash_board_forward_abi_v1"));
     if(row_balance)CK(cuModuleGetFunction(&marker,module,"flash_balance_head_producer_abi_v2"));
     if(row_balance)CK(cuModuleGetFunction(&marker,module,"flash_balance_down_owner_map_abi_v3"));
     if(getenv("FLASH_FUSED_GR") && atoi(getenv("FLASH_FUSED_GR")))CK(cuModuleGetFunction(&marker,module,"flash_gr_read_sum_abi_v1"));
@@ -619,7 +623,7 @@ static xchg_t *position_xchg(int d, unsigned position) {
 static void clone_position(int d, dn_bufs_t *b, xchg_t *x, int alias_attention) {
 	*b = db[d];
 	*x = xc[d];
-	struct { CUdeviceptr *destination; size_t bytes; } fields[96];
+	struct { CUdeviceptr *destination; size_t bytes; } fields[128];
 	unsigned count=0;size_t total=0;
 #define CLONE(ptr) do { if(*(ptr)) { size_t bytes=scratch_bytes(*(ptr),ctx[d]); fields[count].destination=(ptr);fields[count++].bytes=bytes; total=((total+255)&~(size_t)255)+bytes+256; } } while(0)
 #define SECOND(field) CLONE(&b->field)
@@ -635,6 +639,7 @@ static void clone_position(int d, dn_bufs_t *b, xchg_t *x, int alias_attention) 
     SECOND(balance_index_local);SECOND(balance_attn_ready);
     SECOND(unique_router_packets);SECOND(unique_k_local);SECOND(unique_v_local);
     SECOND(paired_partial);SECOND(paired_received);
+    SECOND(paired_pair);SECOND(paired_reduce);SECOND(paired_flags);
 	SECOND(qg); SECOND(k); SECOND(v); SECOND(qo); SECOND(aout);
 	/* Wide headless programs serialize gather/partial/merge per position. */
 	if (!alias_attention) { SECOND(kc); SECOND(vc); SECOND(pm); SECOND(pd); SECOND(po); }
@@ -719,6 +724,7 @@ static void state_copy(int to_snapshot) {
 static CUdeviceptr gr_pointer(const phase_t *p,unsigned word) { uint64_t v;memcpy(&v,&p->w[word],8);return v; }
 #include "phase/plan.h"
 #include "balance/attention_plan.h"
+#include "unique/board_host.inc"
 static unsigned fuse_gr_write_read(prog_t *p,int *layers,int die) {
     unsigned fused=0;
 #ifdef FLASH_EXACT_BATCH
@@ -878,6 +884,7 @@ static int fuse_exact_program(prog_t *out,int d) {
 #endif
 
 static void upload_programs(const prog_t *P, unsigned *nph, unsigned positions) {
+    board_bind_programs(P,positions);
 	unsigned previous_positions=active_program_positions;
 	active_program_positions = positions;
 #ifdef FLASH_DFLASH_QUANT
@@ -967,8 +974,10 @@ static void deliver_token(runctx *r, int position, uint32_t token) {
 /* stage the PLE rows of the positions that are known and close ([ple_next, min(known, finished + PLE_AHEAD)), at most `budget` of them): position q is known when
    q < nprompt or the token q - 1 has arrived (q <= count); its 16 row numbers are the hash of ids[q-2..q].
    WILLNEED hints precede a batch of parallel row reads; the flag is stored after every reader completes. */
+#include "balance/ple_block.inc"
 static void ple_pump(runctx *r, int budget) {
 	if (!ple_disk) return;
+    if(budget>0 && balanced_ple_block(r,budget))return;
 	int c = r->count < ple_start ? ple_start : r->count;
 	int known = r->nprompt > c + 1 ? r->nprompt : c + 1;
 	if (known > r->T) known = r->T;
@@ -1250,6 +1259,7 @@ static int prepare_images(const engine_img *imgs, int nimg, int nprompt, int T) 
 
 int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], const sampling *sm, int snap_at, const engine_img *imgs, int nimg, const engine_cb *cb, run_stats *st) {
     last_extra_executed=0;last_position_slot=0;
+    board_forget_programs();
 #ifdef FLASH_DFLASH_QUANT
     memset(dflash_program_source,0,sizeof dflash_program_source);
 #endif
@@ -1328,11 +1338,13 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	if (snap_at <= resume) snap_at = 0;
     if(row_balance)for(int d=0;d<nd;d++) {
         CK(cuCtxSetCurrent(ctx[d]));
+        if(paired_columns)CK(cuMemsetD32(board_flags[d],0,128));
         if(ple_device_cache)CK(cuMemsetD32(ple_device_ready[d]+4u*(size_t)resume,0,(size_t)(T-resume)));
         for(unsigned p=0;p<allocated_positions;p++) {
             CK(cuMemsetD32(position_buf(d,p)->balance_quant_ready,0,16));
             CK(cuMemsetD32(position_buf(d,p)->balance_attn_ready,0,16));
             if(unique_rows)CK(cuMemsetD32(position_buf(d,p)->ne+4,0,1));
+            if(paired_columns)CK(cuMemsetD32(position_buf(d,p)->paired_flags,0,PAIR_FLAG_WORDS));
         }
     }
 	if (!resume) snap_s = 0;   /* this response rewrites the attention caches from position 0 */
@@ -1662,6 +1674,17 @@ int engine_init(core_t *c) {
     }
 	core = c; in_init = 1;
 	if (setjmp(init_jb)) { in_init = 0; engine_fini(); return -1; }
+    if(paired_columns) {
+        int boards[6];
+        for(int d=0;d<nd;d++) {
+            CUdevice device;CK(cuCtxSetCurrent(ctx[d]));CK(cuCtxGetDevice(&device));
+            CK(cuDeviceGetAttribute(boards+d,CU_DEVICE_ATTRIBUTE_MULTI_GPU_BOARD_GROUP_ID,device));
+        }
+        for(int d=0;d<nd;d+=2)if(boards[d]!=boards[d+1] ||
+            (d>=2 && boards[d]==boards[0]) || (d>=4 && boards[d]==boards[2])) {
+            fprintf(stderr,"engine: paired transport requires three distinct physical board pairs\n");longjmp(init_jb,1);
+        }
+    }
 	MAXT = c->maxt;
 	last_positions = last_paired_positions = last_prefill_chunks = 0;
 	const char *trace_env = getenv("FLASH_KV_TRACE");
@@ -1907,7 +1930,11 @@ int engine_init(core_t *c) {
                 unsigned kv_rows=balance_row_count(512,(unsigned)d,(unsigned)nd,8);
                 b->unique_k_local=dalloc(4u*kv_rows);b->unique_v_local=dalloc(4u*kv_rows);
             }
-            if(paired_columns){b->paired_partial=dalloc(4u*2560);b->paired_received=dalloc(24u*2560);}
+            if(paired_columns) {
+                b->paired_partial=dalloc(4u*2560);b->paired_received=dalloc(4u*2560);
+                b->paired_pair=dalloc(4u*2560);b->paired_reduce=dalloc(12u*2560);
+                b->paired_flags=dalloc(4u*PAIR_FLAG_WORDS);
+            }
         }
 		b->out = dalloc(4 * 2560);
         unsigned heads=row_balance?4u:24u;
@@ -2043,7 +2070,7 @@ int engine_init(core_t *c) {
     if(producer_quant)for(unsigned p=0;p<allocated_positions;p++)for(unsigned kind=0;kind<2;kind++) {
         CUdeviceptr table[6][4];
         for(int e=0;e<6;e++){const dn_bufs_t *b=position_buf(e,p);table[e][0]=kind?b->oq:b->zq;table[e][1]=kind?b->os32:b->zs32;table[e][2]=kind?b->os16:b->zs16;table[e][3]=kind?b->oas:b->zas;}
-        for(int d=0;d<nd;d++){CK(cuCtxSetCurrent(ctx[d]));producer_tables[p][d][kind]=dalloc(sizeof table);CK(cuMemcpyHtoD(producer_tables[p][d][kind],table,sizeof table));}
+        for(int d=0;d<nd;d++){CK(cuCtxSetCurrent(ctx[d]));producer_tables[p][d][kind]=dalloc(sizeof table);board_table_upload((unsigned)d,producer_tables[p][d][kind],(const CUdeviceptr *)table,4);}
     }
     if(gr_replicate_ffn || balanced_local_up)for(unsigned p=0;p<allocated_positions;p++)for(int d=0;d<nd;d++) {
         CUdeviceptr table[6][4];const dn_bufs_t *b=position_buf(d,p);
@@ -2055,7 +2082,7 @@ int engine_init(core_t *c) {
         if(row_balance)for(int d=0;d<nd;d++) {
             CK(cuCtxSetCurrent(ctx[d]));dn_bufs_t *b=position_buf(d,p);
             b->embedding_targets=dalloc(sizeof targets);
-            CK(cuMemcpyHtoD(b->embedding_targets,targets,sizeof targets));
+            board_table_upload((unsigned)d,b->embedding_targets,targets,1);
         } else {
             CK(cuCtxSetCurrent(ctx[embed_die]));embedding_tables[p]=dalloc(sizeof targets);
             CK(cuMemcpyHtoD(embedding_tables[p],targets,sizeof targets));
@@ -2065,9 +2092,9 @@ int engine_init(core_t *c) {
         CK(cuCtxSetCurrent(ctx[d]));dn_bufs_t *b=position_buf(d,p);
         CUdeviceptr gate[6],up[6],down[6];
         for(int e=0;e<nd;e++){gate[e]=position_buf(e,p)->g;up[e]=position_buf(e,p)->gu;down[e]=position_buf(e,p)->part;}
-        b->balance_gate_targets=dalloc(sizeof gate);CK(cuMemcpyHtoD(b->balance_gate_targets,gate,sizeof gate));
-        b->balance_up_targets=dalloc(sizeof up);CK(cuMemcpyHtoD(b->balance_up_targets,up,sizeof up));
-        b->balance_down_targets=dalloc(sizeof down);CK(cuMemcpyHtoD(b->balance_down_targets,down,sizeof down));
+        b->balance_gate_targets=dalloc(sizeof gate);board_table_upload((unsigned)d,b->balance_gate_targets,gate,1);
+        b->balance_up_targets=dalloc(sizeof up);board_table_upload((unsigned)d,b->balance_up_targets,up,1);
+        b->balance_down_targets=dalloc(sizeof down);board_table_upload((unsigned)d,b->balance_down_targets,down,1);
         uint32_t gate_map[7040];for(unsigned i=0;i<7040;i++)gate_map[i]=balance_gate_packed_index(i);
         CUdeviceptr packed_map=dalloc(sizeof gate_map);CK(cuMemcpyHtoD(packed_map,gate_map,sizeof gate_map));
         CUdeviceptr prepare[8]={b->g,b->gu,b->hq,b->hs32,b->hs16,b->has,b->balance_quant_ready,packed_map};
@@ -2076,12 +2103,26 @@ int engine_init(core_t *c) {
         for(unsigned owner=0;owner<6;owner++)for(unsigned e=bounds[owner];e<bounds[owner+1];e++)bounds[7+e]=owner;
         b->balance_owner_bounds=dalloc(sizeof bounds);CK(cuMemcpyHtoD(b->balance_owner_bounds,bounds,sizeof bounds));
         CUdeviceptr index[6];for(int e=0;e<nd;e++)index[e]=position_buf(e,p)->iqk;
-        b->balance_index_targets=dalloc(sizeof index);CK(cuMemcpyHtoD(b->balance_index_targets,index,sizeof index));
+        b->balance_index_targets=dalloc(sizeof index);board_table_upload((unsigned)d,b->balance_index_targets,index,1);
         b->balance_attention_targets=producer_tables[p][d][1];
         CUdeviceptr heads[6];for(int e=0;e<nd;e++)heads[e]=position_buf(e,p)->amo;
         b->balance_head_sources=dalloc(sizeof heads);CK(cuMemcpyHtoD(b->balance_head_sources,heads,sizeof heads));
         if(paired_columns) {
-            CUdeviceptr targets[6];for(int e=0;e<nd;e++)targets[e]=position_buf(e,p)->paired_received+4u*2560u*(unsigned)d;
+            dn_bufs_t *buddy=position_buf(d^1,p);
+            CUdeviceptr targets[PAIR_TABLE_POINTERS]={
+                buddy->paired_pair,buddy->paired_flags+4u*PAIR_PARTIAL_READY,
+                b->paired_pair,b->paired_flags+4u*PAIR_PARTIAL_READY,
+                b->paired_reduce,b->paired_flags+4u*PAIR_REDUCE_READY,
+                b->paired_received,b->paired_flags+4u*PAIR_FINAL_READY,
+                buddy->paired_received,buddy->paired_flags+4u*PAIR_FINAL_READY
+            };
+            for(unsigned board=0;board<3;board++) {
+                dn_bufs_t *leader=position_buf((int)(2*board),p);
+                targets[10+board]=leader->paired_reduce+(unsigned)(d/2)*10240u;
+                targets[13+board]=leader->paired_flags+4u*(PAIR_REDUCE_READY+(unsigned)(d/2)*PAIR_TILES);
+                targets[16+board]=leader->paired_received;
+                targets[19+board]=leader->paired_flags+4u*PAIR_FINAL_READY;
+            }
             b->paired_targets=dalloc(sizeof targets);CK(cuMemcpyHtoD(b->paired_targets,targets,sizeof targets));
             CUdeviceptr config[9]={b->balance_gate_local,b->balance_up_local,b->hq,b->hs32,b->hs16,b->has,b->lidx,b->lw,b->s};
             b->paired_config=dalloc(sizeof config);CK(cuMemcpyHtoD(b->paired_config,config,sizeof config));
@@ -2092,9 +2133,9 @@ int engine_init(core_t *c) {
                 packet[e]=position_buf(e,p)->unique_router_packets;
                 keys[e]=position_buf(e,p)->k;values[e]=position_buf(e,p)->v;
             }
-            b->unique_router_targets=dalloc(sizeof packet);CK(cuMemcpyHtoD(b->unique_router_targets,packet,sizeof packet));
-            b->unique_k_targets=dalloc(sizeof keys);CK(cuMemcpyHtoD(b->unique_k_targets,keys,sizeof keys));
-            b->unique_v_targets=dalloc(sizeof values);CK(cuMemcpyHtoD(b->unique_v_targets,values,sizeof values));
+            b->unique_router_targets=dalloc(sizeof packet);board_table_upload((unsigned)d,b->unique_router_targets,packet,1);
+            b->unique_k_targets=dalloc(sizeof keys);board_table_upload((unsigned)d,b->unique_k_targets,keys,1);
+            b->unique_v_targets=dalloc(sizeof values);board_table_upload((unsigned)d,b->unique_v_targets,values,1);
             CUdeviceptr route[7]={b->unique_router_packets,b->lidx,b->lw,b->idx,b->w,b->s,b->ne};
             b->unique_router_config=dalloc(sizeof route);CK(cuMemcpyHtoD(b->unique_router_config,route,sizeof route));
             CK(cuMemcpyHtoD(b->ne+8,&b->unique_router_config,sizeof b->unique_router_config));
@@ -2107,7 +2148,7 @@ int engine_init(core_t *c) {
 	uint64_t tab[12] = { 0 };
 	for (int d = 0; d < 6; d++) { tab[d] = (uint64_t)xc[d < nd ? d : 0].inbox; tab[6 + d] = (uint64_t)xc[d < nd ? d : 0].flags; }
 	for (int d = 0; d < nd; d++) {
-		CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(xc[d].xtab, tab, sizeof tab));
+		CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(xc[d].xtab, tab, sizeof tab)); board_table_upload((unsigned)d,xc[d].xtab,(const CUdeviceptr *)tab,1);
 		uint32_t hdr[32] = { 0 }; hdr[3] = (uint32_t)d; hdr[4] = (uint32_t)nd;
 		for (int e = 0; e < 6; e++) { uint64_t a = e < nd ? (uint64_t)xc[e].flags + (unique_rows?4u:64u) * (unsigned)d : (uint64_t)dCTL[d] + 0xc0; memcpy(&hdr[16 + 2 * e], &a, 8); }
 		uint64_t mf = (uint64_t)xc[d].flags; memcpy(&hdr[28], &mf, 8);
@@ -2115,8 +2156,9 @@ int engine_init(core_t *c) {
 	}
 	for (unsigned p = 1; p < allocated_positions; p++) {
 		for (int d = 0; d < 6; d++) tab[d] = (uint64_t)position_xchg(d < nd ? d : 0, p)->inbox;
-		for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(position_xchg(d, p)->xtab, tab, sizeof tab)); }
+		for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(position_xchg(d, p)->xtab, tab, sizeof tab)); board_table_upload((unsigned)d,position_xchg(d,p)->xtab,(const CUdeviceptr *)tab,1); }
 	}
+    board_init();
 	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuStreamCreate(&pollst[d], CU_STREAM_NON_BLOCKING)); }
     if(ple_device_cache){
         CUresult bound;int err=ple_dma_init(&ple_dma,(unsigned)nd,ctx,pollst,ple_device_rows,ple_device_ready,&bound);
@@ -2148,6 +2190,7 @@ int engine_init(core_t *c) {
 
 void engine_fini(void) {
 	release_request_programs();
+    board_fini();
 #ifdef FLASH_DFLASH_QUANT
     dflash_quant_fini();
 #endif

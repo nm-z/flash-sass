@@ -96,6 +96,7 @@ static int balance_batch_impl(prog_t *out,const prog_t *const *positions,
             if(span!=1 || a->w[8]<1 || a->w[8]>2)return -1;
             stats.native_moe_phases++;stats.inner_grid_joins++;
         }
+        if(hcup4 && a->w[0]==OP_UNIQUE_ROUTER){if(span!=1)return -1;stats.native_matrix_phases++;}
         if(hcup4 && span==1 && (a->w[0]==OP_BF16HCRX || a->w[0]==OP_BF16HCRWX || a->w[0]==94u)) {
             if(!(a->w[30]&1u) || a->w[31] || a->w[1]!=16 || !a->w[8])return -1;
             for(unsigned p=1;p<count;p++) {
@@ -141,11 +142,13 @@ static int balance_batch_impl(prog_t *out,const prog_t *const *positions,
             }
             if(matrix_op==OP_DFLASH_BF16_4) {
                 wrap->w[9]=matrix_k*2;wrap->w[10]=a->w[0]==OP_BF16BIAS;
-                wrap->w[11]=(a->w[30]&PHASE_BALANCED_ROW8)?3:5;
+                wrap->w[12]=matrix_k==320?3:5;
+                wrap->w[11]=(a->w[30]&PHASE_BALANCED_ROW8)?3:8-wrap->w[12];
             }
         }
         if(native_hcup && a->w[0]==96u)wrap->w[0]=OP_BALANCED_HCUP5;
         if(hcup4 && a->w[0]==OP_PAIRED_DOWN)wrap->w[0]=OP_PAIRED_DOWN4;
+        if(hcup4 && a->w[0]==OP_UNIQUE_ROUTER)wrap->w[0]=OP_DFLASH_ROUTER4;
         if(hcup4 && a->w[0]==OP_DNSTEP && span==1 && (a->w[24]|a->w[25]) && (a->w[26]|a->w[27]))
             wrap->w[0]=OP_DFLASH_DN4;
         if(hcup4 && span==1 && (a->w[0]==OP_BF16HCRX || a->w[0]==OP_BF16HCRWX || a->w[0]==94u)) {

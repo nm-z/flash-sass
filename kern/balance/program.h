@@ -72,8 +72,9 @@ static void prog_balanced_moe(prog_t *p,const split_t *s,const dn_weights_t *w,
         a->w[30]|=1u;p->pending_wait=1;p->xj++;
         a=prog_add(p,OP_HCWSUM,16);
         ph_ptr(a,0x140,inj);ph_ptr(a,0x148,b->paired_received);ph_ptr(a,0x150,b->S);
-        ph_u32(a,0x158,2560);ph_u32(a,0x15c,10240);ph_u32(a,0x164,6);
+        ph_u32(a,0x158,2560);ph_u32(a,0x15c,10240);ph_u32(a,0x164,1);
         ph_ptr(a,0x168,b->out);ph_ptr(a,0x170,sin);
+        a->w[30]|=PHASE_BALANCED_ASSEMBLED;
         return;
     }
     balance_group(p,first,4);

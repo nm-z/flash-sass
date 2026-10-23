@@ -70,6 +70,7 @@ static void balanced_spec_profile(const prog_t *program,unsigned start,unsigned 
             int fused=op==OP_BALANCED_HCUP5;
             if(op>=OP_DFLASH_DN4 && op<=OP_DFLASH_BF16_4)op=a->w[4];
             if(op==OP_PAIRED_DOWN4)op=a->w[4];
+            if(op==OP_DFLASH_ROUTER4)op=a->w[4];
             if(op==OP_BALANCED_BATCH || op==OP_BALANCED_PREQUANT || fused)op=a->w[4];
             if(previous>=0 && op<128) {
                 total[op]+=(uint32_t)(ts[i]-ts[previous])/1e3;count[op]++;native[op]+=fused;
@@ -96,7 +97,8 @@ static void balanced_spec_profile(const prog_t *program,unsigned start,unsigned 
         }
     }
 }
-static void balanced_stage(runctx *r,unsigned start,unsigned width,const uint32_t *input) {
+static void balanced_stage(runctx *r,unsigned start,unsigned width,const uint32_t *input,int replay) {
+    (void)r;
     memcpy(h_ids+start,input,4u*width);
     for(unsigned p=0;p<width;p++)ple_seq[start+p]=input[p];
     /* A previous launch may have queued lookahead DMA. Complete it before
@@ -116,13 +118,13 @@ static void balanced_stage(runctx *r,unsigned start,unsigned width,const uint32_
             CK(cuMemsetD32(b->balance_quant_ready,0,16));
             CK(cuMemsetD32(b->balance_attn_ready,0,16));
             if(unique_rows)CK(cuMemsetD32(b->ne+4,0,1));
+            if(replay && paired_columns)CK(cuMemsetD32(b->paired_flags,0,PAIR_FLAG_WORDS));
         }
     }
     if(ple_disk) {
         memset(h_rdy+start,0,4u*width);__atomic_thread_fence(__ATOMIC_RELEASE);
         ple_next=(int)start;
-        runctx staging=*r;staging.count=(int)start;staging.T=staging.nprompt=(int)(start+width);
-        ple_pump(&staging,(int)width);
+        /* Launch first; PLE staging overlaps embedding and the first layer. */
     }
 }
 static void balanced_execute(runctx *r,const prog_t *program,unsigned start,unsigned width,
@@ -221,7 +223,7 @@ static void balanced_spec_run(runctx *r,const prog_t *full,const prog_t *prefix,
         bspec.draft_ms+=(now()-draft_start)*1e3;
         unsigned width=drafts+1;bspec.blocks++;bspec.drafted+=drafts;
         if(width>1 && !retained_prefixes){state_copy(1);bspec.snapshot_bytes+=state_bytes;}
-        balanced_stage(r,start,width,input);
+        balanced_stage(r,start,width,input,0);
         balanced_execute(r,program[width],start,width,&work[width],0);bspec.verified+=width;
         CK(cuCtxSetCurrent(ctx[0]));CK(cuMemcpyDtoH(output,db[0].toks+4ull*start,4u*width));
         unsigned matched=drafts;
@@ -244,7 +246,7 @@ static void balanced_spec_run(runctx *r,const prog_t *full,const prog_t *prefix,
         if(keep<width) {
             bspec.recoveries++;
             state_copy(0);bspec.restore_bytes+=state_bytes;
-            balanced_stage(r,start,keep,input);
+            balanced_stage(r,start,keep,input,1);
             balanced_execute(r,program[keep],start,keep,&work[keep],1);bspec.replayed+=keep;
         }
         bspec.accepted+=matched<keep?matched:keep;bspec.committed+=keep;

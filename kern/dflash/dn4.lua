@@ -5,13 +5,17 @@
 local function read(p)local f=assert(io.open(p));local s=f:read('a');f:close();return s end
 local s=read(assert(arg[1]));local output=assert(arg[2]);local scalar=read(assert(arg[3]))
 local function rep(a,b)
- local i,j=assert(s:find(a,1,true),'missing '..a);assert(not s:find(a,j+1,true),'ambiguous '..a)
+ local i,j=s:find(a,1,true);assert(i,'missing '..a);assert(not s:find(a,j+1,true),'ambiguous '..a)
  s=s:sub(1,i-1)..b..s:sub(j+1)
 end
 local maps={};for line in assert(scalar:match('<REGISTER_MAPPING>(.-)</REGISTER_MAPPING>')):gmatch('[^\n]+')do
- if line:find(': dnstep_',1,true)then maps[#maps+1]=line:gsub('dnstep_','dfdn_')end
+ if line:find(': dnstep_',1,true) and not line:match('dnstep_param_[SO][01]%s*$')then
+  maps[#maps+1]=line:gsub('dnstep_','dfdn_')
+ end
 end
 maps[#maps+1]=[=[
+    134,135 : dfdn_param_S<0-1>
+    148,149 : dfdn_param_O<0-1>
     200 : dfdn_descriptor
     201 : dfdn_position
     202 : dfdn_shared

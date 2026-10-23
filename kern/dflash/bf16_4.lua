@@ -1,8 +1,8 @@
 -- Native B4 ordinary BF16 projections (including alpha/beta and indexer).
--- Eight dot-product lanes keep each scalar result's existing addition order.
+-- Match the scalar lanes: 32 for K2560, eight for K320.
 local f=assert(io.open(assert(arg[1])));local s=f:read('a');f:close()
 local function replace(a,b)
- local i,j=assert(s:find(a,1,true),'missing '..a);assert(not s:find(a,j+1,true),'ambiguous '..a)
+ local i,j=s:find(a,1,true);assert(i,'missing '..a);assert(not s:find(a,j+1,true),'ambiguous '..a)
  s=s:sub(1,i-1)..b..s:sub(j+1)
 end
 -- Reuse the DQM register map, with float activations and BF16 packed weights.
@@ -13,8 +13,11 @@ l('SETUP');e('NOP','3f:-:-:Y:d')
 e('LDS dqm_groups, [RZ+0xbfa0]','--:-:1:-:2')
 e('LDS dqm_stride, [RZ+0xbfa4]','--:-:1:-:2')
 e('LDS dqm_head, [RZ+0xbfa8]','--:-:1:-:2') -- optional bias, not vocabulary head
-e('LDS dqm_logrows, [RZ+0xbfac]','--:-:1:-:2');e('NOP','01:-:-:-:6')
-e('SHR.U32 dqm_groups, dqm_groups, 0x6');e('LOP32I.AND dqm_lane, tid, 0x7')
+e('LDS dqm_logrows, [RZ+0xbfac]','--:-:1:-:2');e('LDS dqm_loglanes, [RZ+0xbfb0]','--:-:1:-:2');e('NOP','01:-:-:-:6')
+e('IADD dqm_temp, dqm_loglanes, 0x3');e('SHR.U32 dqm_groups, dqm_groups, dqm_temp')
+e('MOV dqm_lanes, 0x1');e('SHL dqm_lanes, dqm_lanes, dqm_loglanes')
+e('IADD dqm_temp, dqm_lanes, -0x1');e('LOP.AND dqm_lane, tid, dqm_temp')
+e('SHL dqm_header_bytes, dqm_lanes, 0x5');e('SHL dqm_high_base, dqm_lanes, 0x4')
 e('MOV dqm_rowstep, 0x10');e('SHL dqm_rowstep, dqm_rowstep, dqm_logrows')
 pred('ISETP.LT.U32.AND P5, PT, warp, 0x4, PT')
 e('IADD dqm_offset, pidx, 0x1');e('IADD dqm_offset, dqm_offset, warp');e('SHL dqm_offset, dqm_offset, 0x7')
@@ -31,10 +34,10 @@ for p=0,3 do
  e(string.format('LDS.64 dqm_ybase%02d, [RZ+0x%x]',p*2,0x8018+p*128),'--:-:1:-:2')
 end
 e('NOP','01:-:-:-:6')
-e('MOV dqm_temp, 0x1');e('SHL dqm_temp, dqm_temp, dqm_logrows');e('SHL dqm_temp, dqm_temp, 0x3')
+e('MOV dqm_temp, 0x1');e('SHL dqm_temp, dqm_temp, dqm_logrows');e('SHL dqm_temp, dqm_temp, dqm_loglanes')
 pred('ISETP.GE.U32.AND P6, PT, tid, dqm_temp, PT');e('@P6 BRA DBF_ROWS_DONE','--:-:-:Y:d')
-e('SHL dqm_row, cta, dqm_logrows');e('SHR.U32 dqm_temp, tid, 0x3');e('IADD dqm_row, dqm_row, dqm_temp')
-l('ROW');e('SHR.U32 dqm_temp, lane, 0x3');e('IADD dqm_temp, dqm_row, -dqm_temp')
+e('SHL dqm_row, cta, dqm_logrows');e('SHR.U32 dqm_temp, tid, dqm_loglanes');e('IADD dqm_row, dqm_row, dqm_temp')
+l('ROW');e('SHR.U32 dqm_temp, lane, dqm_loglanes');e('IADD dqm_temp, dqm_row, -dqm_temp')
 pred('ISETP.GE.U32.AND P6, PT, dqm_temp, dqm_rows, PT');e('@P6 BRA DBF_ROWS_DONE','--:-:-:Y:d')
 pred('ISETP.LT.U32.AND P1, PT, dqm_row, dqm_rows, PT')
 e('XMAD dqm_offset, dqm_row, dqm_stride, RZ');e('ISCADD dqm_offset, dqm_lane, dqm_offset, 0x4')
@@ -56,16 +59,18 @@ for j=0,7 do
  else e(string.format('LOP32I.AND dqm_code, dqm_codes%d, 0xffff0000',j//2))end
  for p=0,3 do e(string.format('FFMA dqm_acc%d, dqm_code.reuse, dqm_x%02d, dqm_acc%d',p,p*8+j,p),p==3 and '--:-:-:-:3' or '--:-:-:-:1')end
 end
-e('IADD dqm_rowbase0.CC, dqm_rowbase0, 0x80','02:-:-:-:6');e('IADD.X dqm_rowbase1, dqm_rowbase1, RZ');e('NOP','04:-:-:-:6')
+e('IADD dqm_rowbase0.CC, dqm_rowbase0, dqm_high_base','02:-:-:-:6');e('IADD.X dqm_rowbase1, dqm_rowbase1, RZ');e('NOP','04:-:-:-:6')
 for p=0,3 do
- e(string.format('IADD dqm_sbase%02d.CC, dqm_sbase%02d, 0x100',p*2,p*2))
+ e(string.format('IADD dqm_sbase%02d.CC, dqm_sbase%02d, dqm_header_bytes',p*2,p*2))
  e(string.format('IADD.X dqm_sbase%02d, dqm_sbase%02d, RZ',p*2+1,p*2+1))
 end
 e('IADD dqm_group, dqm_group, 0x1');pred('ISETP.LT.U32.AND P6, PT, dqm_group, dqm_groups, PT');e('@P6 BRA DBF_K','--:-:-:Y:d')
-for _,distance in ipairs({4,2,1})do
+for _,distance in ipairs({16,8,4,2,1})do
+ pred(string.format('ISETP.LE.U32.AND P6, PT, dqm_lanes, 0x%x, PT',distance));e('@P6 BRA DBF_REDUCE_DONE_'..distance)
  for p=0,3 do e(string.format('SHFL.BFLY PT, dqm_value%d, dqm_acc%d, 0x%x, 0x1f',p,p,distance),'--:-:5:-:2')end
  e('NOP','10:-:-:-:6')
  for p=0,3 do e(string.format('FADD dqm_acc%d, dqm_acc%d, dqm_value%d',p,p,p))end
+ l('REDUCE_DONE_'..distance)
 end
 pred('ISETP.EQ.U32.AND P2, PT, dqm_lane, RZ, P1')
 pred('ISETP.NE.U32.AND P5, PT, dqm_head, RZ, P2')
