@@ -1,0 +1,134 @@
+# Kernel: plegate
+#
+# PLE per-lane gate and value broadcast. Grid = 4 CTAs (lane l) x 256 threads:
+#   s_l  = sum_c KN[l][c] QN[l][c]     (thread t: c = t + 256 k, k = 0..9, FMUL then
+#          fmaf chain; xor 16..1 warp butterfly; the 8 warp sums added in order)
+#   s'   = s_l * (1/sqrt(2560)); mag = max(|s'|, 1e-6); root = sqrt_rn(mag)
+#   sign = (s' > 0) - (0 > s'); gate_l = sigmoid(sign * root)
+#   G[l][c] = gate_l * V[c]
+# Bit-exact twin: ple_gate_gpu.
+#
+# Params: 0:0x140 KN (10240)  1:0x148 QN (10240)  2:0x150 V (2560)  3:0x158 G (10240)  4:0x160 GATES (4)
+
+<CONSTANT_MAPPING>
+    param_KN0 : c[0x0][0x140]
+    param_KN1 : c[0x0][0x144]
+    param_QN0 : c[0x0][0x148]
+    param_QN1 : c[0x0][0x14c]
+    param_V0  : c[0x0][0x150]
+    param_V1  : c[0x0][0x154]
+    param_G0  : c[0x0][0x158]
+    param_G1  : c[0x0][0x15c]
+    param_GT0 : c[0x0][0x160]
+    param_GT1 : c[0x0][0x164]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0     : tid
+    1     : l
+    2     : lane
+    3     : warp
+    4     : s
+    5     : t
+    6     : t2
+    7     : mag
+    8     : root
+    9     : sgn
+    10    : rr
+    11    : gate
+    12    : mneg1
+    13    : log2e
+    14    : ln2hi
+    15    : ln2lo
+    16    : c720
+    17    : c120
+    18    : c24
+    19    : c6
+    20    : chalf
+    21    : cone
+    22    : rsc
+    23    : eps6
+    24-28 : ft<1-5>
+    29    : s0
+    30    : hh
+    31    : ee
+    32-41 : a<0-9>
+    44-53 : b<0-9>
+    56-63 : r<0-7>
+    64,65 : kp<0-1>
+    66,67 : qp<0-1>
+    68,69 : vp<0-1>
+    70,71 : gp<0-1>
+    72,73 : op<0-1>
+</REGISTER_MAPPING>
+
+<CODE>
+    require './fmath.pl';
+    my %C = map { $_ => $_ } qw(log2e ln2hi ln2lo c720 c120 c24 c6 chalf cone mneg1);
+    my $rsc = unpack 'L', pack 'f', 1 / sqrt(2560);
+    my $o = '';
+    $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
+    $o .= "--:-:6:-:1      S2R l, SR_CTAID.X;\n";
+    $o .= fm_consts(\%C);
+    $o .= sprintf "--:-:-:-:1      MOV32I rsc, 0x%08x;\n", $rsc;
+    $o .= "--:-:-:-:6      MOV32I eps6, 0x358637bd;\n";                 # 1e-6
+    $o .= "20:-:-:-:6      LOP32I.AND lane, tid, 0x1f;\n";
+    $o .= "--:-:-:-:6      SHR.U32 warp, tid, 0x5;\n";
+    $o .= "--:-:-:-:6      ISETP.EQ.AND P4, PT, lane, RZ, PT;\n";
+    $o .= "--:-:-:-:6      ISETP.EQ.AND P5, PT, tid, RZ, PT;\n";
+    # kp = KN + 4 (2560 l + tid), qp likewise, gp = G + same, vp = V + 4 tid, op = GATES + 4 l
+    $o .= "--:-:-:-:6      XMAD t, l, 0xa00, RZ;\n";                    # 2560 l
+    $o .= "--:-:-:-:6      IADD t, t, tid;\n";
+    $o .= "--:-:-:-:6      SHL t, t, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD kp0.CC, t, param_KN0;\n";
+    $o .= "--:-:-:-:6      IADD.X kp1, RZ, param_KN1;\n";
+    $o .= "--:-:-:-:6      IADD qp0.CC, t, param_QN0;\n";
+    $o .= "--:-:-:-:6      IADD.X qp1, RZ, param_QN1;\n";
+    $o .= "--:-:-:-:6      IADD gp0.CC, t, param_G0;\n";
+    $o .= "--:-:-:-:6      IADD.X gp1, RZ, param_G1;\n";
+    $o .= "--:-:-:-:6      SHL t, tid, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD vp0.CC, t, param_V0;\n";
+    $o .= "--:-:-:-:6      IADD.X vp1, RZ, param_V1;\n";
+    $o .= "--:-:-:-:6      SHL t, l, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD op0.CC, t, param_GT0;\n";
+    $o .= "--:-:-:-:6      IADD.X op1, RZ, param_GT1;\n";
+    $o .= sprintf "--:-:1:-:1      LDG.E a%d, [kp+0x%x];\n", $_, 1024 * $_ for 0..9;
+    $o .= sprintf "--:-:1:-:%d      LDG.E b%d, [qp+0x%x];\n", $_ == 9 ? 2 : 1, $_, 1024 * $_ for 0..9;
+    $o .= "01:-:-:-:6      FMUL s, a0, b0;\n";
+    $o .= sprintf "--:-:-:-:6      FFMA s, a%d, b%d, s;\n", $_, $_ for 1..9;
+    for my $x (16, 8, 4, 2, 1) {
+        $o .= sprintf "--:-:5:-:2      SHFL.BFLY PT, t, s, 0x%x, 0x1f;\n", $x;
+        $o .= "10:-:-:-:6      FADD s, s, t;\n";
+    }
+    $o .= "--:-:-:-:6      SHL t, warp, 0x2;\n";
+    $o .= "--:1:-:-:6  \@P4 STS [t], s;\n";
+    $o .= "01:-:-:-:6      BAR.SYNC 0x0;\n";
+    $o .= "--:-:2:-:1      LDS.128 r0, [RZ];\n";
+    $o .= "--:-:2:-:2      LDS.128 r4, [RZ+0x10];\n";
+    $o .= "02:-:-:-:6      FADD s, r0, r1;\n";
+    $o .= sprintf "--:-:-:-:6      FADD s, s, r%d;\n", $_ for 2..7;
+    # gate
+    $o .= "--:-:-:-:6      FMUL s, s, rsc;\n";
+    $o .= "--:-:-:-:6      FSETP.GT.AND P0, PT, s, RZ, PT;\n";
+    $o .= "--:-:-:-:6      FSETP.GT.AND P1, PT, RZ, s, PT;\n";
+    $o .= "--:-:-:-:6      FMNMX mag, s, -s, !PT;\n";                   # |s|
+    $o .= "--:-:-:-:6      FMNMX mag, mag, eps6, !PT;\n";               # max(|s|, 1e-6)
+    $o .= "--:-:3:-:2      MUFU.RSQ rr, mag;\n";
+    $o .= "04:-:-:-:1      FMUL.FTZ s0, mag, rr;\n";
+    $o .= "--:-:-:-:6      FMUL.FTZ hh, rr, 0.5;\n";
+    $o .= "--:-:-:-:6      FADD.FTZ ee, -s0, -RZ;\n";
+    $o .= "--:-:-:-:6      FFMA ee, s0, ee, mag;\n";
+    $o .= "--:-:-:-:6      FFMA root, ee, hh, s0;\n";                   # sqrt_rn(mag)
+    $o .= "--:-:-:-:6      MOV sgn, RZ;\n";
+    $o .= "--:-:-:-:6  \@P0 MOV sgn, cone;\n";
+    $o .= "--:-:-:-:6  \@P1 MOV sgn, mneg1;\n";
+    $o .= "--:-:-:-:6      FMUL root, sgn, root;\n";                    # sign * root
+    $o .= fm_sigmoid('gate', 'root', 'ft1', 'ft2', 'ft3', 'ft4', \%C);
+    $o .= "--:1:-:-:6  \@P5 STG.E [op], gate;\n";
+    # G = gate * V
+    $o .= sprintf "--:-:1:-:%d      LDG.E a%d, [vp+0x%x];\n", $_ == 9 ? 2 : 1, $_, 1024 * $_ for 0..9;
+    $o .= sprintf "%s:-:-:-:%d      FMUL a%d, gate, a%d;\n", $_ == 0 ? '01' : '--', $_ == 9 ? 6 : 1, $_, $_ for 0..9;
+    $o .= sprintf "--:1:-:-:%d      STG.E [gp+0x%x], a%d;\n", $_ == 9 ? 6 : 1, 1024 * $_, $_ for 0..9;
+    $o .= "01:-:-:-:f      EXIT;\n";
+    return $o;
+</CODE>
