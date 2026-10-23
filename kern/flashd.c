@@ -15,7 +15,7 @@
  * others wait in a FIFO queue (see "the request queue"; GET endpoints never wait).
  *
  *   flashd <shard-1.gguf> <flash-socket> <host:port>      env FLASHD_NAME, FLASHD_THINKING (0: off by default),
- *   FLASHD_QUEUE_MAX (waiting requests, default 8), FLASHD_QUEUE_WAIT_S (default 600) */
+ *   FLASHD_QUEUE_MAX (waiting requests, default 8), FLASHD_QUEUE_WAIT_S (default 600), FLASHD_REQUEST_MAX_S (default 300) */
 #define _GNU_SOURCE
 #include "jinja.h"
 #include "tok.h"
@@ -54,7 +54,7 @@ static int wr(int fd, const char *s, size_t n) {
 static int wrs(int fd, const char *s) { return wr(fd, s, strlen(s)); }
 static int chunk(int fd, const char *s, size_t n) { char h[24]; int k = snprintf(h, sizeof h, "%zx\r\n", n); return wr(fd, h, (size_t)k) || wr(fd, s, n) || wr(fd, "\r\n", 2); }
 static void reply(int fd, int status, const char *ctype, const char *body, size_t n) {
-	char h[256]; const char *r = status == 200 ? "OK" : status == 400 ? "Bad Request" : status == 404 ? "Not Found" : status == 413 ? "Payload Too Large" : "Internal Server Error";
+	char h[256]; const char *r = status == 200 ? "OK" : status == 400 ? "Bad Request" : status == 404 ? "Not Found" : status == 413 ? "Payload Too Large" : status == 504 ? "Gateway Timeout" : "Internal Server Error";
 	int k = snprintf(h, sizeof h, "HTTP/1.1 %d %s\r\nContent-Type: %s\r\nCache-Control: no-store\r\nContent-Length: %zu\r\nConnection: close\r\n\r\n", status, r, ctype, n);
 	wr(fd, h, (size_t)k); wr(fd, body, n);
 }
@@ -67,10 +67,12 @@ static void error(int fd, int status, const char *msg) {
 /* ---- the request queue ----
    The engine runs one sequence, so one request runs at a time and the others wait here in arrival order. A request whose client goes away
    leaves the queue (or, running, stops the engine) instead of being served to nobody; a full queue or a long wait is a 503 with Retry-After.
-   FLASHD_QUEUE_MAX (waiting requests, default 8), FLASHD_QUEUE_WAIT_S (default 600). GET /queue shows the depth. */
+   FLASHD_QUEUE_MAX (waiting requests, default 8), FLASHD_QUEUE_WAIT_S (default 600). GET /queue shows the depth.
+   FLASHD_REQUEST_MAX_S (default 300, 0: no limit) bounds a whole request from its arrival, the wait and the run together: a request still waiting
+   leaves the queue, a running one closes its engine connection (the core aborts the turn when its client goes) and the next one starts. */
 typedef struct waiter { struct waiter *next; } waiter;
 static pthread_mutex_t QM = PTHREAD_MUTEX_INITIALIZER; static pthread_cond_t QC = PTHREAD_COND_INITIALIZER;
-static waiter *QHEAD, *QTAIL; static int QBUSY, QLEN, QMAX = 8, QWAIT_S = 600;
+static waiter *QHEAD, *QTAIL; static int QBUSY, QLEN, QMAX = 8, QWAIT_S = 600, REQ_MAX_S = 300;
 static int client_gone(int fd) {   /* the peer closed or reset its end */
 	struct pollfd p = { .fd = fd, .events = POLLRDHUP };
 	return poll(&p, 1, 0) > 0 && (p.revents & (POLLRDHUP | POLLHUP | POLLERR));
@@ -80,8 +82,9 @@ static void q_remove(waiter *w) {   /* QM held */
 }
 static double mono_ms(void) { struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t); return t.tv_sec * 1e3 + t.tv_nsec / 1e6; }
 static int try_send(int fd, const char *s, size_t n) { return send(fd, s, n, MSG_NOSIGNAL | MSG_DONTWAIT) == (ssize_t)n ? 0 : -1; }
-/* 0: the engine is yours (queue_leave when done); -1: the client left; -2: the queue is full; -3: waited too long. *hdr is set once SSE headers have gone out while waiting. */
-static int queue_enter(int fd, int stream, int *hdr, double *waited_ms) {
+/* 0: the engine is yours (queue_leave when done); -1: the client left; -2: the queue is full; -3: waited too long; -4: the request deadline
+   (mono_ms, 0: none) passed. *hdr is set once SSE headers have gone out while waiting. */
+static int queue_enter(int fd, int stream, int *hdr, double *waited_ms, double deadline) {
 	double t0 = mono_ms(), last_note = t0; waiter me = { 0 };
 	pthread_mutex_lock(&QM);
 	if (!QBUSY && !QHEAD) { QBUSY = 1; pthread_mutex_unlock(&QM); *waited_ms = 0; return 0; }
@@ -96,6 +99,7 @@ static int queue_enter(int fd, int stream, int *hdr, double *waited_ms) {
 		double now = mono_ms();
 		if (client_gone(fd)) { rc = -1; break; }
 		if (QWAIT_S > 0 && now - t0 > QWAIT_S * 1e3) { rc = -3; break; }
+		if (deadline > 0 && now >= deadline) { rc = -4; break; }
 		if (stream && now - last_note > 10e3) {   /* keep the connection open through proxies, and say where it stands */
 			int pos = 1; for (waiter *x = QHEAD; x && x != &me; x = x->next) pos++;
 			char c[160], m[96]; int mn = snprintf(m, sizeof m, ": queued, position %d\n\n", pos), k = 0;
@@ -105,6 +109,7 @@ static int queue_enter(int fd, int stream, int *hdr, double *waited_ms) {
 			*hdr = 1; last_note = now;
 		}
 	}
+	if (!rc && deadline > 0 && mono_ms() >= deadline) rc = -4;   /* its turn came too late: leave rather than start a cancelled run */
 	if (rc) q_remove(&me);
 	else { QHEAD = me.next; if (!QHEAD) QTAIL = NULL; QLEN--; QBUSY = 1; }
 	pthread_cond_broadcast(&QC); pthread_mutex_unlock(&QM);
@@ -116,6 +121,15 @@ static void busy(int fd, const char *msg, int retry_after) {
 	sbuf b = {0}; sb_puts(&b, "{\"error\":{\"message\":"); sb_json_str(&b, msg, strlen(msg)); sb_puts(&b, ",\"code\":503}}");
 	char h[256]; int k = snprintf(h, sizeof h, "HTTP/1.1 503 Service Unavailable\r\nContent-Type: application/json\r\nRetry-After: %d\r\nCache-Control: no-store\r\nContent-Length: %zu\r\nConnection: close\r\n\r\n", retry_after, b.n);
 	wr(fd, h, (size_t)k); wr(fd, b.s, b.n); sb_free(&b);
+}
+/* FLASHD_REQUEST_MAX_S ran out: an error event ending the stream (whose headers went out once hdr is set), or a 504 */
+static void timed_out(int fd, int stream, int hdr) {
+	char m[96]; snprintf(m, sizeof m, "the request took longer than %d s and was cancelled", REQ_MAX_S);
+	if (stream && hdr) {
+		sbuf b = {0}; sb_puts(&b, "data: {\"error\":{\"message\":"); sb_json_str(&b, m, strlen(m)); sb_puts(&b, ",\"type\":\"request_timeout\"}}\n\n");
+		chunk(fd, b.s, b.n); sb_free(&b);
+		chunk(fd, "data: [DONE]\n\n", 14); wrs(fd, "0\r\n\r\n");
+	} else error(fd, 504, m);
 }
 
 /* ---- the engine socket ---- */
@@ -235,6 +249,7 @@ static const char *vis_image(const unsigned char *bytes, size_t n, imgrec *r) {
 
 /* ---- POST /v1/chat/completions ---- */
 static void chat(int fd, const char *body, size_t bn) {
+	double deadline = REQ_MAX_S > 0 ? mono_ms() + REQ_MAX_S * 1e3 : 0;
 	arena *a = arena_new(); const char *je = NULL;
 	jv *req = json_parse(a, body, bn, &je);
 	if (!req || req->k != J_DICT) { error(fd, 400, "the body is not a JSON object"); arena_free(a); return; }
@@ -300,10 +315,11 @@ static void chat(int fd, const char *body, size_t bn) {
 	if (!prompt) { error(fd, 400, err); arena_free(a); return; }
 
 	int hdr = 0; double qwait = 0;
-	int qr = queue_enter(fd, stream, &hdr, &qwait);
+	int qr = queue_enter(fd, stream, &hdr, &qwait, deadline);
 	if (qr) {
 		free(prompt); arena_free(a);
 		if (qr == -1) fprintf(stderr, "flashd: the client left the queue after %.1f s\n", qwait / 1e3);
+		else if (qr == -4) { fprintf(stderr, "flashd: the request reached FLASHD_REQUEST_MAX_S (%d s) while queued (%.1f s): cancelled\n", REQ_MAX_S, qwait / 1e3); timed_out(fd, stream, hdr); }
 		else if (qr == -2) { fprintf(stderr, "flashd: queue full (%d waiting): 503\n", QMAX); busy(fd, "the request queue is full", 30); }
 		else { fprintf(stderr, "flashd: waited %.0f s in the queue: 503\n", qwait / 1e3); if (hdr) { chunk(fd, "data: {\"error\":{\"message\":\"waited too long in the request queue\",\"type\":\"queue_timeout\"}}\n\n", 90); chunk(fd, "data: [DONE]\n\n", 14); wrs(fd, "0\r\n\r\n"); } else busy(fd, "waited too long in the request queue", 30); }
 		return;
@@ -370,11 +386,12 @@ static void chat(int fd, const char *body, size_t bn) {
 		if (!g.gone && chunk(fd, b.s, b.n)) g.gone = 1;
 		sb_free(&b);
 	}
-	char line[256]; int quiet = 0, ngen = 0, ended = 0, resumed = 0, snapped = 0, done = 0, failed = 0; double run_ms = 0, first_ms = 0;
+	char line[256]; int quiet = 0, ngen = 0, ended = 0, resumed = 0, snapped = 0, done = 0, failed = 0, expired = 0; double run_ms = 0, first_ms = 0;
 	/* a long prompt takes minutes before the first token: an idle stream is cut by proxies (Cloudflare closes after 100 s), so an SSE comment goes out
 	   every 10 s while the engine is silent */
 	{ struct timeval tv = { 2, 0 }; setsockopt(fileno(in), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv); }
 	for (;;) {
+		if (deadline > 0 && mono_ms() >= deadline) { expired = 1; break; }   /* checked at least every 2 s (the receive timeout) */
 		if (!fgets(line, sizeof line, in)) {
 			if ((errno == EAGAIN || errno == EWOULDBLOCK) && !g.gone) { clearerr(in); if (client_gone(fd)) { g.gone = 1; break; } if (stream && ++quiet >= 5) { quiet = 0; if (chunk(fd, ": keepalive\n\n", 13)) { g.gone = 1; break; } } continue; }
 			break;
@@ -384,10 +401,16 @@ static void chat(int fd, const char *body, size_t bn) {
 		else if (sscanf(line, "done %d %d %d %lf %lf %d %d", &ngen, &e, &npm, &r, &f, &resumed, &snapped) >= 5) { ended = e; run_ms = r; first_ms = f; done = 1; break; }
 		else if (!strncmp(line, "error", 5)) { fprintf(stderr, "flashd: engine: %s", line); failed = 1; break; }
 	}
-	if (!done && !g.gone && !g.cap_hit) failed = 1;   /* the engine's stream ended without its "done" line: the response is not complete */
-	fclose(in); fclose(out);
+	if (!done && !g.gone && !g.cap_hit && !expired) failed = 1;   /* the engine's stream ended without its "done" line: the response is not complete */
+	fclose(in); fclose(out);   /* before the response is done this is what stops the engine */
 	queue_leave();
 	free(prompt);
+	if (expired) {
+		fprintf(stderr, "flashd: the request reached FLASHD_REQUEST_MAX_S (%d s) after %.1f s queued and %ld reasoning + %ld answer tokens: cancelled, the engine is told to stop\n", REQ_MAX_S, qwait / 1e3, g.n_reason, g.n_answer);
+		if (!g.gone) timed_out(fd, stream, stream);   /* a stream's headers went out when it started */
+		sb_free(&g.content); sb_free(&g.reasoning); arena_free(a);
+		return;
+	}
 	if (failed) {   /* an engine error or an engine that went away is an error to the client, not a normal completion with finish_reason "length" */
 		fprintf(stderr, "flashd: the engine failed during the response (%ld reasoning + %ld answer tokens had been generated)\n", g.n_reason, g.n_answer);
 		if (stream) {
@@ -473,6 +496,7 @@ int main(int argc, char **argv) {
 	if (getenv("FLASHD_THINKING")) THINK_DEFAULT = atoi(getenv("FLASHD_THINKING"));
 	if (getenv("FLASHD_QUEUE_MAX")) QMAX = atoi(getenv("FLASHD_QUEUE_MAX"));
 	if (getenv("FLASHD_QUEUE_WAIT_S")) QWAIT_S = atoi(getenv("FLASHD_QUEUE_WAIT_S"));
+	if (getenv("FLASHD_REQUEST_MAX_S")) REQ_MAX_S = atoi(getenv("FLASHD_REQUEST_MAX_S"));
 	V = tok_load(argv[1]); if (!V) return 1;
 	VIS_SOCK = getenv("FLASHVIS_SOCK"); if (getenv("FLASHD_IMGDIR")) snprintf(IMGDIR, sizeof IMGDIR, "%s", getenv("FLASHD_IMGDIR"));
 	ID_IMGPAD = tok_find(V, "<|image_pad|>");

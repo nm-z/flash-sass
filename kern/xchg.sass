@@ -164,8 +164,25 @@
         $o .= "--:-:-:-:6      IMNMX.U32 m, m, t2, PT;\n";
         $o .= "--:-:-:-:6      ISETP.GE.U32.AND P4, PT, m, g, PT;\n";
         $o .= "--:-:-:-:6      NOP;\n" x 3;
+        if ($ENV{DIE_T0_OFF}) {   # inside the die kernel: leave the wait 300 s after launch (the framework then ends the kernel)
+            $o .= "--:-:6:-:2      S2R t, SR_GLOBALTIMERHI;\n";
+            $o .= sprintf "--:-:6:-:2      LDS t2, [RZ+0x%x];\n", $ENV{DIE_T0_OFF};
+            $o .= "20:-:-:-:6      IADD t, t, -t2;\n";
+            $o .= "--:-:-:-:6      ISETP.GE.U32.AND P5, PT, t, 0x46, PT;\n";
+            $o .= "--:-:-:-:6      NOP;\n" x 3;
+            $o .= "--:-:-:-:6      VOTE.ANY P5, P5;\n";
+            $o .= "--:-:-:-:6      NOP;\n" x 3;
+            $o .= "--:-:-:-:6  \@P5 BRA SPINEXP;\n";
+        }
         $o .= "--:-:-:-:6 \@!P4 BRA SPIN;\n";
         $o .= "--:-:-:-:6      MEMBAR.SYS;\n";
+        if ($ENV{DIE_T0_OFF}) {
+            $o .= "--:-:-:-:6      BRA WAITED;\n";
+            $o .= "SPINEXP:\n";
+            $o .= "--:-:-:-:6      MOV32I t, 0x1;\n";
+            $o .= sprintf "--:2:-:-:6      STS [RZ+0x%x], t;\n", $ENV{DIE_EXP_OFF};
+            $o .= "02:-:-:-:6      NOP;\n";
+        }
         $o .= "WAITED:\n";
         $o .= "--:-:-:-:6      BAR.SYNC 0x0;\n";
         # Refresh: this die's L2 may still hold the slot's lines from the slot's previous
