@@ -1,0 +1,10 @@
+.version 7.4
+.target sm_52
+.address_size 64
+.visible .entry q3_nibble_dot(
+    .param .u64 input, .param .u64 output, .param .u32 count)
+{
+    .reg .u32 %r;
+    ld.param.u32 %r, [count];
+    ret;
+}

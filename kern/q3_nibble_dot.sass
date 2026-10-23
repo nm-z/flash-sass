@@ -1,0 +1,40 @@
+# Kernel: q3_nibble_dot
+# Independent integer fixture: 80-byte input {cw0,cw1,hw,pad,int16 act[32]},
+# output {int32 dot0,dot1}. No FP conversion or persistent dispatcher involved.
+<CONSTANT_MAPPING>
+    param_IN0 : c[0x0][0x140]
+    param_IN1 : c[0x0][0x144]
+    param_OUT0 : c[0x0][0x148]
+    param_OUT1 : c[0x0][0x14c]
+    param_count : c[0x0][0x150]
+</CONSTANT_MAPPING>
+<REGISTER_MAPPING>
+    0-15 : act<00-15>
+    16,17 : cw<00-01>
+    18 : hw0
+    20-35 : m<00-15>
+    36-51 : acc<00-15>
+    52-59 : acch<0-7>
+    60-62 : hs<1-3>
+    63 : dh0
+    64 : dh1
+    66,67 : dot<0-1>
+    68,69 : bias<00-01>
+    70 : tid
+    71 : bid
+    72 : off
+    74,75 : ip<0-1>
+    76,77 : op<0-1>
+</REGISTER_MAPPING>
+<CODE>
+    my $o="--:-:6:-:1      S2R tid, SR_TID.X;\n--:-:6:-:2      S2R bid, SR_CTAID.X;\n20:-:-:-:6      ISCADD tid, bid, tid, 0x8;\n--:-:-:-:6      ISETP.GE.U32.AND P0, PT, tid, param_count, PT;\n";
+    $o.="--:-:-:-:6      NOP;\n" x3;
+    $o.="--:-:-:-:6  \@P0 EXIT;\n--:-:-:-:6      SHL off, tid, 0x4;\n--:-:-:-:6      ISCADD off, tid, off, 0x6;\n--:-:-:-:6      IADD ip0.CC, off, param_IN0;\n--:-:-:-:6      IADD.X ip1, RZ, param_IN1;\n--:-:-:-:6      SHL off, tid, 0x3;\n--:-:-:-:6      IADD op0.CC, off, param_OUT0;\n--:-:-:-:6      IADD.X op1, RZ, param_OUT1;\n--:2:1:-:1      LDG.E.64 cw00, [ip];\n--:2:1:-:1      LDG.E hw0, [ip+0x8];\n";
+    $o.=sprintf "--:2:1:-:%d      LDG.E.128 act%02d, [ip+0x%x];\n",$_==3?2:1,4*$_,16+16*$_ for 0..3;
+    $o.="03:-:-:-:6      NOP;\n";
+    require './q3_nibble_math.pl';
+    $o.=q3_nibble_pair_bias_code();
+    $o.=q3_nibble_integer_code(0);
+    $o.="--:2:-:-:2      STG.E.64 [op], dot0;\n02:-:-:-:f      EXIT;\n";
+    return $o;
+</CODE>

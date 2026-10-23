@@ -1,0 +1,160 @@
+# Eight scalar-compatible position descriptors, one shared BF16 weight load.
+# A fragment's weights stay resident while eight activation fragments stream
+# through eight small fragment banks. Each position retains its scalar FFMA,
+# butterfly and slice-add order. RMS, stream writes and HCUP are separate ops.
+<CODE>
+    die "B8 RMS/HCUP/accumulation is not implemented" if $ENV{GEMV_RMS} || $ENV{GEMV_RMSW} || $ENV{GEMV_HCUP} || $ENV{GEMV_ACC};
+    my $o = "<CONSTANT_MAPPING>\n    gridDimX : c[0x0][0x14]\n    param_W0 : c[0x0][0x140]\n    param_W1 : c[0x0][0x144]\n    param_rows : c[0x0][0x158]\n";
+    for my $p (0..7) {
+        my $bank = $p ? $p + 1 : 0;
+        for my $v (['X',0x148],['Y',0x150]) {
+            $o .= sprintf "    param_%s%d_0 : c[0x%x][0x%x]\n    param_%s%d_1 : c[0x%x][0x%x]\n", $v->[0],$p,$bank,$v->[1],$v->[0],$p,$bank,$v->[1]+4;
+        }
+        $o .= sprintf "    param_D%d_0 : c[0x%x][0x160]\n    param_D%d_1 : c[0x%x][0x164]\n", $p,$bank,$p,$bank if $ENV{GEMV_BIAS};
+        $o .= sprintf "    param_XOFF%d : c[0x%x][0x168]\n", $p,$bank if $ENV{GEMV_XOUT};
+    }
+    return $o . "</CONSTANT_MAPPING>\n";
+</CODE>
+<REGISTER_MAPPING>
+    0-7   : a<0-7>
+    8-15  : y<0-7>
+    16-19 : wl<0-3>
+    20-23 : wh<0-3>
+    24-87 : x<00-63>
+    88 : t
+    89 : row
+    90 : rowstep
+    91 : stepw
+    92 : lane
+    93 : grp
+    94 : tid
+    95 : bid
+    96 : off
+    97 : tmp
+    98 : rownext
+    100,101 : wp<0-1>
+    102,103 : yp<0-1>
+    104,105 : bp<0-1>
+    106 : bias
+    107 : xo
+    108,109 : tab<0-1>
+    110,111 : peer<0-1>
+    112,113 : xp0_<0-1>
+    114,115 : xp1_<0-1>
+    116,117 : xp2_<0-1>
+    118,119 : xp3_<0-1>
+    120,121 : xp4_<0-1>
+    122,123 : xp5_<0-1>
+    124,125 : xp6_<0-1>
+    126,127 : xp7_<0-1>
+</REGISTER_MAPPING>
+<CODE>
+    my $K = $ENV{GEMV_K} || 2560;
+    my $NS = $ENV{GEMV_SLICES} || 1;
+    die "unsupported B8 BF16 geometry" unless ($K == 2560 || $K == 320) && ($NS == 1 || $NS == 4);
+    my $L = $K >= 2560 ? 32 : 8;
+    my $C = $K / (8 * $L);
+    my $lgL = $L == 32 ? 5 : 3;
+    my $lgR = $L == 32 ? 3 : 5;
+    my $S = 2 * $K * $NS;
+    my $bias = $ENV{GEMV_BIAS} || 0;
+    my $xout = $ENV{GEMV_XOUT} || 0;
+    my $xcoal = $xout && $K == 2560 && $NS == 4 && $ENV{BF16_BATCH_XCOAL};
+    my $mul = sub {
+        my ($d,$r,$n) = @_;
+        my @b = grep { $n & (1 << $_) } 0..30;
+        my $s = sprintf "--:-:-:-:6      SHL %s, %s, 0x%x;\n", $d,$r,shift @b;
+        $s .= sprintf "--:-:-:-:6      ISCADD %s, %s, %s, 0x%x;\n", $d,$r,$d,$_ for @b;
+        return $s;
+    };
+    my $o = "--:-:6:-:1      S2R tid, SR_TID.X;\n--:-:6:-:2      S2R bid, SR_CTAID.X;\n";
+    $o .= sprintf "20:-:-:-:6      LOP32I.AND lane, tid, 0x%x;\n", $L-1;
+    $o .= sprintf "--:-:-:-:6      SHR.U32 grp, tid, 0x%x;\n", $lgL;
+    $o .= "--:-:-:-:6      MOV rowstep, gridDimX;\n";
+    $o .= sprintf "--:-:-:-:6      SHL rowstep, rowstep, 0x%x;\n--:-:-:-:6      ISCADD row, bid, grp, 0x%x;\n",$lgR,$lgR;
+    $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P0, PT, lane, RZ, PT;\n";
+    $o .= $mul->('off','row',$S) . $mul->('stepw','rowstep',$S);
+    $o .= "--:-:-:-:6      ISCADD tmp, lane, off, 0x4;\n--:-:-:-:6      IADD wp0.CC, tmp, param_W0;\n--:-:-:-:6      IADD.X wp1, RZ, param_W1;\n--:-:-:-:6      SHL tmp, lane, 0x5;\n";
+    for my $p (0..7) {
+        $o .= sprintf "--:-:-:-:6      IADD xp%d_0.CC, tmp, param_X%d_0;\n--:-:-:-:6      IADD.X xp%d_1, RZ, param_X%d_1;\n",$p,$p,$p,$p;
+    }
+    $o .= "\nLOOP:\n--:-:-:-:6      ISETP.LT.U32.AND P3, PT, row, param_rows, PT;\n--:-:-:-:6      ISETP.LT.U32.AND P2, PT, row, param_rows, P0;\n";
+    # Coalesced stores add CTA barriers: all eight warps must agree whether
+    # another eight-row block exists, including a partially populated block.
+    $o .= sprintf "--:-:-:-:6      LOP32I.AND rownext, row, 0x%08x;\n", (~($xcoal ? 7 : 32/$L-1)) & 0xffffffff;
+    $o .= "--:-:-:-:6      IADD rownext, rownext, rowstep;\n--:-:-:-:6      ISETP.LT.U32.AND P1, PT, rownext, param_rows, PT;\n";
+    for my $s (0..$NS-1) {
+        $o .= "--:-:-:-:6      MOV a$_, RZ;\n" for 0..7;
+        for my $j (0..$C-1) {
+            my $wo = 16*$L*$j + 2*$K*$s;
+            my $xo = 32*$L*$j + 4*$K*$s;
+            $o .= sprintf "--:2:1:-:2  \@P3 LDG.E.CI.128 wl0, [wp+0x%x];\n", $wo;
+            for my $w (0..3) {
+                $o .= sprintf "%s:-:-:-:6      LOP32I.AND wh%d, wl%d, 0xffff0000;\n--:-:-:-:6      SHL wl%d, wl%d, 0x10;\n", $w ? '--' : '01',$w,$w,$w,$w;
+            }
+            # Eight floats per position, never an entire activation vector.
+            # Eight independent accumulation chains provide >= 8 issue slots
+            # between dependent FFMAs while sharing the same weight fragment.
+            for my $p (0..7) {
+                $o .= sprintf "--:2:1:-:1      LDG.E.CI.128 x%02d, [xp%d_+0x%x];\n--:2:1:-:2      LDG.E.CI.128 x%02d, [xp%d_+0x%x];\n",8*$p,$p,$xo,8*$p+4,$p,$xo+16;
+            }
+            for my $w (0..3) {
+                for my $half (0..1) {
+                    my $weight = $half ? "wh$w" : "wl$w";
+                    for my $p (0..7) {
+                        my $wait = !$w && !$half && !$p ? '01' : '--';
+                        my $stall = $w == 3 && $half && $p == 7 ? 6 : 1;
+                        $o .= sprintf "%s:-:-:-:%d      FFMA a%d, %s, x%02d, a%d;\n",$wait,$stall,$p,$weight,8*$p+2*$w+$half,$p;
+                    }
+                }
+            }
+        }
+        for (my $x=$L/2;$x>=1;$x>>=1) {
+            for my $p (0..7) {
+                $o .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, a%d, 0x%x, 0x1f;\n10:-:-:-:6      FADD a%d, a%d, t;\n",$p,$x,$p,$p;
+            }
+        }
+        for my $p (0..7) {
+            $o .= $s ? "--:-:-:-:6      FADD y$p, y$p, a$p;\n" : "--:-:-:-:6      MOV y$p, a$p;\n";
+        }
+    }
+    for my $p (0..7) {
+        $o .= "02:-:-:-:6      SHL tmp, row, 0x2;\n";
+        if ($bias) {
+            $o .= sprintf "--:-:-:-:6      IADD bp0.CC, tmp, param_D%d_0;\n--:-:-:-:6      IADD.X bp1, RZ, param_D%d_1;\n--:2:1:-:2  \@P3 LDG.E bias, [bp];\n01:-:-:-:6      FADD y%d, y%d, bias;\n",$p,$p,$p,$p;
+        }
+        if ($xcoal) {
+            # One lane per warp stages row r of position p at [8*p+r].
+            # No arithmetic or reduction order changes; only the stores move.
+            $o .= sprintf "--:-:-:-:6      LOP32I.AND tmp, row, 0x7;\n--:-:-:-:6      SHL tmp, tmp, 0x2;\n--:2:-:-:2  \@P2 STS [tmp+0x%x], y%d;\n", 32*$p,$p;
+        } elsif ($xout) {
+            $o .= sprintf "--:-:-:-:6      IADD xo, tmp, param_XOFF%d;\n--:-:-:-:6      MOV tab0, param_Y%d_0;\n--:-:-:-:6      MOV tab1, param_Y%d_1;\n",$p,$p,$p;
+            for my $d (0..5) {
+                $o .= sprintf "02:2:1:-:2      LDG.E.64 peer0, [tab+0x%x];\n01:-:-:-:6      IADD peer0.CC, peer0, xo;\n--:-:-:-:6      IADD.X peer1, peer1, RZ;\n--:2:-:-:6  \@P2 STG.E.WT [peer], y%d;\n",8*$d,$p;
+            }
+        } else {
+            $o .= sprintf "--:-:-:-:6      IADD yp0.CC, tmp, param_Y%d_0;\n--:-:-:-:6      IADD.X yp1, RZ, param_Y%d_1;\n--:2:-:-:6  \@P2 STG.E [yp], y%d;\n",$p,$p,$p;
+        }
+    }
+    if ($xcoal) {
+        $o .= "02:-:-:-:6      BAR.SYNC 0x0;\n";
+        # Threads0..63 select position=tid/8 and row=tid%8, so each group
+        # issues eight adjacent floats for one position and peer destination.
+        $o .= "--:-:-:-:6      ISETP.LT.U32.AND P4, PT, tid, 0x40, PT;\n";
+        $o .= "--:-:-:-:6      SHR.U32 grp, tid, 0x3;\n--:-:-:-:6      ISETP.EQ.U32.AND P5, PT, grp, RZ, PT;\n";
+        $o .= "--:-:-:-:6      LOP32I.AND off, tid, 0x7;\n--:-:-:-:6      LOP32I.AND rownext, row, 0xfffffff8;\n--:-:-:-:6      IADD off, off, rownext;\n";
+        $o .= "--:-:-:-:6      ISETP.LT.U32.AND P6, PT, off, param_rows, P4;\n--:-:-:-:6      SHL xo, off, 0x2;\n";
+        # The primary bank is0xbf80; secondary banks descend from0xbe80.
+        # Mask upper threads before any dynamic descriptor or peer load.
+        $o .= "--:-:-:-:6      SHL tmp, grp, 0x7;\n--:-:-:-:6      MOV32I bp0, 0xbf00;\n--:-:-:-:6      IADD bp0, bp0, -tmp;\n--:-:-:-:6  \@P5 MOV32I bp0, 0xbf80;\n";
+        $o .= "--:-:1:-:1  \@P4 LDS.64 tab0, [bp0+0x18];\n--:-:1:-:2  \@P4 LDS tmp, [bp0+0x30];\n01:-:-:-:6      IADD xo, xo, tmp;\n";
+        $o .= "--:-:-:-:6      SHL tmp, tid, 0x2;\n--:-:1:-:2  \@P4 LDS bias, [tmp];\n";
+        for my $d (0..5) {
+            $o .= sprintf "02:2:1:-:2  \@P6 LDG.E.64 peer0, [tab+0x%x];\n01:-:-:-:6      IADD peer0.CC, peer0, xo;\n--:-:-:-:6      IADD.X peer1, peer1, RZ;\n--:2:-:-:6  \@P6 STG.E.WT [peer], bias;\n",8*$d;
+        }
+        # Every shared-memory reader finishes before the next row block.
+        $o .= "02:-:-:-:6      BAR.SYNC 0x0;\n";
+    }
+    $o .= "02:-:-:-:6      IADD row, row, rowstep;\n--:-:-:-:6      IADD wp0.CC, wp0, stepw;\n--:-:-:-:6      IADD.X wp1, wp1, RZ;\n--:-:-:-:6  \@P1 BRA LOOP;\n--:-:-:-:f      EXIT;\n";
+    return $o;
+</CODE>
