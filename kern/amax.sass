@@ -74,6 +74,9 @@
         $o .= sprintf "--:-:2:-:2      SHFL.BFLY PT, io, i, 0x%x, 0x1f;\n", $x;
         $o .= "02:-:-:-:6      FSETP.GT.AND P1, PT, mo, m, PT;\n";              # other greater
         $o .= "--:-:-:-:6      FSETP.EQ.AND P2, PT, mo, m, PT;\n";
+        # A boolean predicate input has the same latency requirement as @P.
+        # Keep P2 at least 18 scheduled cycles old before ISETP consumes it.
+        $o .= "--:-:-:-:6      NOP;\n" x 2;
         $o .= "--:-:-:-:6      ISETP.LT.U32.AND P2, PT, io, i, P2;\n";          # or equal with a lower index
         $o .= "--:-:-:-:6      NOP;\n" x 3;
         $o .= "--:-:-:-:6      PSETP.OR.AND P1, PT, P1, P2, PT;\n";

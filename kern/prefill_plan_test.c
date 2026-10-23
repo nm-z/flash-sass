@@ -18,6 +18,60 @@ static void parse_tests(void) {
         assert(prefill_parse_chunk(bad[i],&size)==-1 && size==77);
     }
     assert(prefill_parse_chunk("64",NULL)==-1);
+    int batch=-1;
+    assert(!prefill_parse_batch(NULL,&batch) && batch==0);
+    assert(!prefill_parse_batch("0",&batch) && batch==0);
+    assert(!prefill_parse_batch("8",&batch) && batch==8);
+    assert(!prefill_parse_batch("16",&batch) && batch==16);
+    assert(!prefill_parse_batch("32",&batch) && batch==32);
+    const char *bad_batch[]={"","1","2","4","08","64","-8","+8"," 8","8 ","8x","016","32x"};
+    for(unsigned i=0;i<sizeof bad_batch/sizeof bad_batch[0];i++) {
+        batch=77;assert(prefill_parse_batch(bad_batch[i],&batch)==-1 && batch==77);
+    }
+    assert(prefill_parse_batch("8",NULL)==-1);
+}
+static void batch_tests(void) {
+    const int batches[]={8,16,32};
+    for(unsigned batch=0;batch<3;batch++)
+    for(int nprompt=1;nprompt<=96;nprompt++)
+    for(int resume=0;resume<nprompt;resume++)
+    for(int until=resume;until<nprompt;until++) {
+        int pos=resume,seen[96]={0};
+        const int widths[]={batches[batch],2,1};
+        for(unsigned k=0;k<3;k++) {
+            int end=prefill_batch_end(pos,until,widths[k]);
+            assert(end>=pos && end<=until && (end-pos)%widths[k]==0);
+            for(;pos<end;pos+=widths[k])for(int j=0;j<widths[k];j++)seen[pos+j]++;
+        }
+        assert(pos==until);
+        for(int p=0;p<nprompt;p++)assert(seen[p]==(p>=resume && p<until));
+    }
+    assert(prefill_batch_end(INT_MAX-9,INT_MAX-1,8)==INT_MAX-1);
+    assert(prefill_batch_end(INT_MAX-33,INT_MAX-1,32)==INT_MAX-1);
+    assert(prefill_batch_end(-1,8,8)==-1);
+    assert(prefill_batch_end(9,8,8)==-1);
+    assert(prefill_batch_end(0,8,0)==-1);
+    assert(prefill_batch_end(0,8,4)==-1);
+}
+static void wide_chunks(void) {
+    for(int width=16;width<=32;width*=2)
+    for(int size=1;size<=65;size++)
+    for(int snap=1;snap<80;snap++) {
+        int seen[81]={0},position=0;
+        const int stops[]={snap,80};
+        for(unsigned stage=0;stage<2;stage++)while(position<stops[stage]) {
+            prefill_chunk_t chunk;
+            assert(prefill_plan_chunk(position,81,stops[stage],size,1,&chunk)==1);
+            const int widths[]={width,2,1};
+            for(unsigned j=0;j<3;j++) {
+                int end=prefill_batch_end(position,chunk.end,widths[j]);
+                for(;position<end;position+=widths[j])for(int k=0;k<widths[j];k++)seen[position+k]++;
+            }
+            assert(position==chunk.end);
+        }
+        assert(position==80 && !seen[80]);
+        for(int p=0;p<80;p++)assert(seen[p]==1);
+    }
 }
 static int collect(int pos,int nprompt,int until,int size,int paired,
                    int *seen,int *chunks,int cancel_after) {
@@ -93,7 +147,7 @@ static void edge_tests(void) {
     assert(prefill_plan_chunk(0,2,2,64,1,NULL)==-1);
 }
 int main(void) {
-    parse_tests();range_tests();snapshot_cancel_tests();edge_tests();
+    parse_tests();batch_tests();wide_chunks();range_tests();snapshot_cancel_tests();edge_tests();
     puts("prefill planner: configuration, exhaustive boundaries, snapshot, cancellation, overflow PASS");
     return 0;
 }

@@ -64,13 +64,23 @@ gemv_q5_k_k6144.cubin: gemv_q4_k.sass skel_q5_k.cubin
 skel_q3_k.cubin: gemv_q3_k.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ $<
 
-gemv_q3_k_k2560.cubin: gemv_q3_k.sass skel_q3_k.cubin
+gemv_q3_k_k2560.cubin: gemv_q3_k.sass q3_k_math.pl skel_q3_k.cubin
 	cp skel_q3_k.cubin $@
 	GEMV_K=2560 $(MAXAS) -i gemv_q3_k.sass $@
 
-gemv_q3_k_k6144.cubin: gemv_q3_k.sass skel_q3_k.cubin
+gemv_q3_k_k6144.cubin: gemv_q3_k.sass q3_k_math.pl skel_q3_k.cubin
 	cp skel_q3_k.cubin $@
 	GEMV_K=6144 $(MAXAS) -i gemv_q3_k.sass $@
+
+# Separate opt-in artifacts avoid silently reusing a default image after an
+# environment-only switch. Persistent die images also accept Q3_ROW_PREFETCH=1.
+gemv_q3_k_prefetch_k2560.cubin: gemv_q3_k.sass q3_k_math.pl skel_q3_k.cubin
+	cp skel_q3_k.cubin $@
+	Q3_ROW_PREFETCH=1 GEMV_K=2560 $(MAXAS) -i gemv_q3_k.sass $@
+
+gemv_q3_k_prefetch_k6144.cubin: gemv_q3_k.sass q3_k_math.pl skel_q3_k.cubin
+	cp skel_q3_k.cubin $@
+	Q3_ROW_PREFETCH=1 GEMV_K=6144 $(MAXAS) -i gemv_q3_k.sass $@
 
 skel_q6_k.cubin: gemv_q6_k.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ $<
@@ -115,7 +125,7 @@ test-gemv: all
 	./gemv_test $(SHARD1) blk.4.ffn_down_exps.weight 0 20
 
 clean:
-	rm -f *.cubin *.dis *.so *.so.new die.sass die_trace.sass die_trace16.sass dieops.h flashcore flashd flashvis hold memtest fence *_test ple_read_bench ple_read_audit
+	rm -f *.cubin *.dis *.so *.so.new die.sass die_q2_*.sass die_trace.sass die_trace16.sass dieops.h flashcore flashd flashvis hold memtest fence *_test ple_read_bench ple_read_audit
 
 .PHONY: all test test-gemv clean
 
@@ -382,7 +392,7 @@ plegate: plegate.cubin plegate_test
 ple: plerows.cubin plerows_ng.cubin plerows_test plegate pleconv
 
 # ---- the persistent per-die kernel (die.pl stitches the ops together) ----
-DIE_OPS = $(filter-out die.sass die_trace%.sass semtest%.sass bartest.sass fmath.sass gridbar.sass mailbox.sass xmadbench.sass, $(wildcard *.sass)) actq.pl fmath.pl
+DIE_OPS = $(filter-out die.sass die_q2_%.sass die_q3_%.sass die_trace%.sass semtest%.sass bartest.sass fmath.sass gridbar.sass mailbox.sass xmadbench.sass, $(wildcard *.sass)) actq.pl fmath.pl q3_k_math.pl
 die.sass: die.pl trace.pl $(DIE_OPS)
 	DIE_TRACE=0 perl die.pl > $@
 
@@ -396,8 +406,25 @@ die.cubin: die.sass skel_die.cubin
 	cp skel_die.cubin $@
 	$(MAXAS) -i die.sass $@
 
-die_test: die_test.c dieops.h ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/ple.c ../ref/ple.h
-	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ die_test.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/ple.c -I../ref -I$(CUDA)/include -lcuda -lm
+die_q2_skip.sass: die.pl trace.pl $(DIE_OPS)
+	Q2_RESIDENT_INPUT=0 Q2_COMPACT_ACTIVE=0 Q2_WEIGHT_TILE=0 Q2_POSITION_LOOP=0 Q2_SKIP_ABSENT=1 DIE_TRACE=0 perl die.pl > $@
+die_q2_skip.cubin: die_q2_skip.sass skel_die.cubin
+	cp skel_die.cubin $@
+	$(MAXAS) -i die_q2_skip.sass $@
+
+die_q2_loop.sass: die.pl trace.pl $(DIE_OPS)
+	Q2_RESIDENT_INPUT=0 Q2_COMPACT_ACTIVE=0 Q2_WEIGHT_TILE=0 Q2_POSITION_LOOP=1 Q2_SKIP_ABSENT=0 DIE_TRACE=0 perl die.pl > $@
+die_q2_loop_skip.sass: die.pl trace.pl $(DIE_OPS)
+	Q2_RESIDENT_INPUT=0 Q2_COMPACT_ACTIVE=0 Q2_WEIGHT_TILE=0 Q2_POSITION_LOOP=1 Q2_SKIP_ABSENT=1 DIE_TRACE=0 perl die.pl > $@
+die_q2_loop.cubin: die_q2_loop.sass skel_die.cubin
+	cp skel_die.cubin $@
+	$(MAXAS) -i die_q2_loop.sass $@
+die_q2_loop_skip.cubin: die_q2_loop_skip.sass skel_die.cubin
+	cp skel_die.cubin $@
+	$(MAXAS) -i die_q2_loop_skip.sass $@
+
+die_test: die_test.c hcup_batch_test.inc hcr_batch_test.inc prog.c dieops.h prog.h test_guards.h ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/ple.c ../ref/ple.h ../ref/hc.c ../ref/hc.h ../ref/split.c ../ref/split.h
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ die_test.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/ple.c ../ref/hc.c ../ref/split.c -I../ref -I$(CUDA)/include -lcuda -lm
 
 .PHONY: die
 die: die.cubin die_test
@@ -414,11 +441,25 @@ dnnorm.cubin: dnnorm.sass fmath.pl skel_dnnorm.cubin
 	cp skel_dnnorm.cubin $@
 	$(MAXAS) -i dnnorm.sass $@
 
-dnnorm_test: dnnorm_test.c ../ref/deltanet.c ../ref/deltanet.h ../ref/fmath.c
-	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ dnnorm_test.c ../ref/deltanet.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
+skel_dnnorm_xout.cubin: dnnorm_xout.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+dnnorm_xout.cubin: dnnorm.sass fmath.pl skel_dnnorm_xout.cubin
+	cp skel_dnnorm_xout.cubin $@
+	DN_XOUT=1 $(MAXAS) -i dnnorm.sass $@
+
+skel_hcops_xout.cubin: hcops_xout.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
+
+hc_mix_xout.cubin: hcops.sass fmath.pl skel_hcops_xout.cubin
+	cp skel_hcops_xout.cubin $@
+	HC_OP=mix HC_XOUT=1 $(MAXAS) -i hcops.sass $@
+
+dnnorm_test: dnnorm_test.c ../ref/deltanet.c ../ref/deltanet.h ../ref/hc.c ../ref/hc.h ../ref/fmath.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ dnnorm_test.c ../ref/deltanet.c ../ref/hc.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
 
 .PHONY: dnnorm
-dnnorm: dnnorm.cubin dnnorm_test
+dnnorm: dnnorm.cubin dnnorm_xout.cubin hc_mix_xout.cubin dnnorm_test
 
 # ---- MoE / accumulate / bias GEMV variants ----
 gemv_q2_0_moeg.cubin: gemv_q2_0.sass skel_q2_0.cubin
@@ -550,8 +591,11 @@ qsa_direct_test: qsa_direct_test.c qsa_direct_projection.h qsa_direct_fixtures.h
 pair_prog_test: pair_prog_test.c prog.c prog.h dieops.h ../ref/quant.c ../ref/gguf.c ../ref/split.c
 	$(CC) -std=gnu99 -O2 -Wall -o $@ pair_prog_test.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I$(CUDA)/include -lm
 
-pair_state_test: pair_state_test.c prog.c prog.h dieops.h ../ref/quant.c ../ref/gguf.c ../ref/split.c
-	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ pair_state_test.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I$(CUDA)/include -lcuda -lm
+pair_state_test: pair_state_test.c test_guards.h prog.c prog.h dieops.h ../ref/quant.c ../ref/gguf.c ../ref/split.c ../ref/deltanet.c ../ref/deltanet.h ../ref/fmath.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ pair_state_test.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c ../ref/deltanet.c ../ref/fmath.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+group_attention_test: group_attention_test.c test_guards.h prog.c prog.h dieops.h ../ref/qsa.c ../ref/attn.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/split.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -Wextra -o $@ group_attention_test.c prog.c ../ref/qsa.c ../ref/attn.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/split.c -I../ref -I$(CUDA)/include -lcuda -lm
 
 pair_bf16_test: pair_bf16_test.c dieops.h
 	$(CC) -std=gnu99 -O2 -Wall -o $@ pair_bf16_test.c -I$(CUDA)/include -lcuda
@@ -611,3 +655,54 @@ test-ple: ple_read_test ple_read_bench_test ple_read_audit_test
 	bash ./ple_prewarm_test.sh
 	bash ./ple_io_run_test.sh
 	bash ./ple_io_validate_test.sh
+
+# Run this GPU fixture only through gpuq; --cpu-only checks host eligibility.
+batch_actq_test: batch_actq_test.c prog.c prog.h dieops.h test_guards.h ../ref/quant.c ../ref/gguf.c ../ref/split.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ batch_actq_test.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+batch_q2_test: batch_q2_test.c prog.c prog.h dieops.h ../ref/quant.c ../ref/gguf.c ../ref/split.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ batch_q2_test.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+# Dense-only position-parallel component image; routed bodies retain control.
+die_q2_parallel_dense.sass: die.pl trace.pl $(DIE_OPS)
+	Q2_RESIDENT_INPUT=0 Q2_COMPACT_ACTIVE=0 Q2_WEIGHT_TILE=0 Q2_PARALLEL_DENSE=1 Q2_POSITION_PARALLEL=0 Q2_POSITION_LOOP=0 Q2_SKIP_ABSENT=0 DIE_TRACE=0 perl die.pl > $@
+die_q2_parallel_dense.cubin: die_q2_parallel_dense.sass skel_die.cubin
+	cp skel_die.cubin $@
+	$(MAXAS) -i die_q2_parallel_dense.sass $@
+
+# Full position-parallel image includes packed routed incidence and rank tiles.
+die_q2_parallel.sass: die.pl trace.pl $(DIE_OPS)
+	Q2_RESIDENT_INPUT=0 Q2_COMPACT_ACTIVE=0 Q2_WEIGHT_TILE=0 Q2_POSITION_PARALLEL=1 Q2_PARALLEL_DENSE=0 Q2_POSITION_LOOP=0 Q2_SKIP_ABSENT=0 DIE_TRACE=0 perl die.pl > $@
+die_q2_parallel.cubin: die_q2_parallel.sass skel_die.cubin
+	cp skel_die.cubin $@
+	$(MAXAS) -i die_q2_parallel.sass $@
+
+# Canonical signed-byte inputs leave room for a complete shared weight tile.
+die_q2_tile.sass: die.pl trace.pl $(DIE_OPS)
+	Q2_RESIDENT_INPUT=0 Q2_COMPACT_ACTIVE=0 Q2_WEIGHT_TILE=1 Q2_POSITION_PARALLEL=0 Q2_PARALLEL_DENSE=0 Q2_POSITION_LOOP=0 Q2_SKIP_ABSENT=0 DIE_TRACE=0 perl die.pl > $@
+die_q2_tile.cubin: die_q2_tile.sass skel_die.cubin
+	cp skel_die.cubin $@
+	$(MAXAS) -i die_q2_tile.sass $@
+
+# Compacted routed groups visit one/two/four/eight active-position slots.
+die_q2_compact.sass: die.pl trace.pl $(DIE_OPS)
+	Q2_RESIDENT_INPUT=0 Q2_COMPACT_ACTIVE=1 Q2_WEIGHT_TILE=1 Q2_POSITION_PARALLEL=0 Q2_PARALLEL_DENSE=0 Q2_POSITION_LOOP=0 Q2_SKIP_ABSENT=0 DIE_TRACE=0 perl die.pl > $@
+die_q2_compact.cubin: die_q2_compact.sass skel_die.cubin
+	cp skel_die.cubin $@
+	$(MAXAS) -i die_q2_compact.sass $@
+# Focused Q3 B8 scalar GPU / independent C reference parity (run via gpuq).
+batch_q3_test: batch_q3_test.c prog.c prog.h dieops.h ../ref/quant.c ../ref/gguf.c ../ref/split.c
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ batch_q3_test.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I$(CUDA)/include -lcuda -lm
+
+# Direct int16 inputs stay in registers across all rows for the current expert.
+die_q2_resident.sass: die.pl trace.pl $(DIE_OPS)
+	Q2_RESIDENT_INPUT=1 Q2_COMPACT_ACTIVE=1 Q2_WEIGHT_TILE=1 Q2_POSITION_PARALLEL=0 Q2_PARALLEL_DENSE=0 Q2_POSITION_LOOP=0 Q2_SKIP_ABSENT=0 DIE_TRACE=0 perl die.pl > $@
+die_q2_resident.cubin: die_q2_resident.sass skel_die.cubin
+	cp skel_die.cubin $@
+	$(MAXAS) -i die_q2_resident.sass $@
+# Same Q3 B8 opcode ABI, with integer weights decoded once per shared tile.
+die_q3_decode.sass: die.pl trace.pl $(DIE_OPS)
+	Q3_WEIGHT_DECODE=1 DIE_TRACE=0 perl die.pl > $@
+die_q3_decode.cubin: die_q3_decode.sass skel_die.cubin
+	cp skel_die.cubin $@
+	$(MAXAS) -i die_q3_decode.sass $@

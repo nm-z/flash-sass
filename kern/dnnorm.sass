@@ -5,6 +5,7 @@
 #   ss = fmaf chain over the 4 (xor 16..1 butterfly); m = ss * (1/128); v = m + eps;
 #   s = sqrt_rn(v); r = rcp_rn(s); y = ((o * r) * w) * sigmoid(gate)      (w: ssm_norm, 128)
 # gate = attn_gate output, head-major (6144). Bit-exact twin: ref/deltanet.c dnnorm_gpu.
+# Build with DN_SIGMOID_ZIP=1 to interleave the four unchanged sigmoid chains.
 #
 # Params: 0:0x140 O (6144)  1:0x148 W (128)  2:0x150 G (6144)  3:0x158 Y (6144)  4:0x160 eps (f32)
 
@@ -53,6 +54,9 @@
     46,47 : yp<0-1>
     48-59 : dq<00-11>
     60    : xo
+<CODE>
+    return $ENV{DN_SIGMOID_ZIP} ? "    61-72 : ft<5-16>\n" : '';
+</CODE>
 </REGISTER_MAPPING>
 
 <CODE>
@@ -105,14 +109,19 @@
     $o .= "04:-:-:-:6      FFMA ee, nrm, rr, mneg1;\n";
     $o .= "--:-:-:-:6      FADD.FTZ ee, -ee, -RZ;\n";
     $o .= "--:-:-:-:6      FFMA rr, rr, ee, rr;\n";
-    # sigmoid of the 4 gates (interleaved chains)
+    # Sigmoid of the four gates. Each zipped chain owns four temporaries;
+    # fm_zip changes issue order/stalls while preserving each chain's operations.
     $o .= sprintf("%s:-:-:-:6      MOV sg0, g0;\n", '02');                       # wait for w and gate
-    for my $k (0..3) { $o .= fm_sigmoid("sg$k", "g$k", 'ft1', 'ft2', 'ft3', 'ft4', \%C); }
+    if ($ENV{DN_SIGMOID_ZIP}) {
+        $o .= fm_zip(map { my $k = $_; fm_sigmoid("sg$k", "g$k", map({ 'ft' . (4 * $k + $_) } 1..4), \%C) } 0..3);
+    } else {
+        for my $k (0..3) { $o .= fm_sigmoid("sg$k", "g$k", 'ft1', 'ft2', 'ft3', 'ft4', \%C); }
+    }
     $o .= sprintf "%s:-:-:-:%d      FMUL x%d, x%d, rr;\n", $_ == 0 ? '02' : '--', $_ == 3 ? 6 : 1, $_, $_ for 0..3;
     $o .= sprintf "--:-:-:-:%d      FMUL x%d, x%d, w%d;\n", $_ == 3 ? 6 : 1, $_, $_, $_ for 0..3;
     $o .= sprintf "--:-:-:-:%d      FMUL x%d, x%d, sg%d;\n", $_ == 3 ? 6 : 1, $_, $_, $_ for 0..3;
     if ($xout) {
-        $o .= sprintf "%s:-:-:-:6      IADD dq%02d.CC, dq%02d, xo;\n--:-:-:-:6      IADD.X dq%02d, dq%02d, RZ;\n", $_ ? "--" : "04", 2 * $_, 2 * $_, 2 * $_ + 1, 2 * $_ + 1 for 0..5;
+        $o .= sprintf "%s:-:-:-:6      IADD dq%02d.CC, dq%02d, xo;\n--:-:-:-:6      IADD.X dq%02d, dq%02d, RZ;\n", $_ ? "--" : "08", 2 * $_, 2 * $_, 2 * $_ + 1, 2 * $_ + 1 for 0..5;
         $o .= sprintf "--:1:-:-:%d      STG.E.WT.128 [dq%02d], x0;\n", $_ == 5 ? 6 : 1, 2 * $_ for 0..5;
     } else { $o .= "--:1:-:-:6      STG.E.128 [yp], x0;\n"; }
     $o .= "01:-:-:-:f      EXIT;\n";

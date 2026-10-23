@@ -16,12 +16,15 @@ typedef struct {
 	size_t bytes;
 	const char *name;
 } test_guard_allocation;
-static test_guard_allocation test_guard_allocations[256];
+#ifndef TEST_GUARD_MAX_ALLOCATIONS
+#define TEST_GUARD_MAX_ALLOCATIONS 256u
+#endif
+static test_guard_allocation test_guard_allocations[TEST_GUARD_MAX_ALLOCATIONS];
 static unsigned test_guard_count;
 
 static CUdeviceptr test_guard_alloc(const char *name, size_t bytes, int host) {
 	if (!bytes) bytes = 4;
-	if (test_guard_count == 256 || bytes > SIZE_MAX - 2 * TEST_GUARD_BYTES) {
+	if (test_guard_count == TEST_GUARD_MAX_ALLOCATIONS || bytes > SIZE_MAX - 2 * TEST_GUARD_BYTES) {
 		fprintf(stderr, "guard allocation limit: %s\n", name); exit(2);
 	}
 	test_guard_allocation *a = &test_guard_allocations[test_guard_count++];

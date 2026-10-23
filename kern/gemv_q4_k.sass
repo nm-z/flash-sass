@@ -172,6 +172,8 @@
         $o .= sprintf "--:-:2:-:%s      LDG.E.CI as%d, [ap+0x%x];\n", $i == $n-1 ? '6' : '1', $i, 4*$L*$i;
     }
 
+    # Weight registers alias the activation/scale addresses from the prologue.
+    $o .= "02:-:-:-:6      NOP;\n";
     $o .= "\nLOOP:\n";
     for my $i (0..$n-1) {
         $o .= sprintf "--:2:1:-:1      LDG.E.CI.128 hdr%02d, [hb+0x%x];\n", 4*$i, 16*$bstep*$i;
