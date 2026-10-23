@@ -1,0 +1,194 @@
+{
+  "argv": [
+    "/home/nate/claude/flash-sass-prs/issue-14/kern/paired_depth_bench.py",
+    "--host-socket",
+    "/tmp/flash-bench-host4.sock",
+    "--vram-socket",
+    "/tmp/flash.sock",
+    "--out",
+    "/home/nate/claude/flash-sass-prs/paired-depth-untraced4/runs",
+    "--source-sha",
+    "bac5b88b665ee6973488dd40b363ded3134136f6",
+    "--depths",
+    "3100,8000",
+    "--build-record",
+    "/home/nate/claude/flash-sass-prs/paired-depth-untraced4/build.json",
+    "--weight-manifest",
+    "/home/nate/claude/flash-sass-prs/weights-sha256.json",
+    "--artifact",
+    "/home/nate/claude/flash-sass-prs/issue-10/kern/libengine.so",
+    "--artifact",
+    "/home/nate/claude/flash-sass-prs/issue-10/kern/die.cubin",
+    "--artifact",
+    "/home/nate/claude/flash-sass-next/kern/flashcore"
+  ],
+  "source_sha": "bac5b88b665ee6973488dd40b363ded3134136f6",
+  "dirty_patch": null,
+  "runner": {
+    "path": "/home/nate/claude/flash-sass-prs/issue-14/kern/paired_depth_bench.py",
+    "bytes": 14544,
+    "mtime_ns": 1792231152706279225,
+    "sha256": "7e698a86c46f01309a71c638635ec2f9d5ad529f694ad8e646f4ce86971d92d0"
+  },
+  "artifacts": [
+    {
+      "path": "/home/nate/claude/flash-sass-prs/issue-10/kern/libengine.so",
+      "bytes": 165192,
+      "mtime_ns": 1792229202482831791,
+      "sha256": "b79e49574b3765b9046aaa23eb617346bb068204fecac8a054dc85ebbb99c750"
+    },
+    {
+      "path": "/home/nate/claude/flash-sass-prs/issue-10/kern/die.cubin",
+      "bytes": 444968,
+      "mtime_ns": 1792228949739612106,
+      "sha256": "370a45834ad30d63a9092d62fa12080c4b49531ca24992da3e9bb38d747d0a0b"
+    },
+    {
+      "path": "/home/nate/claude/flash-sass-next/kern/flashcore",
+      "bytes": 41328,
+      "mtime_ns": 1792221568442182340,
+      "sha256": "0257e1fbf4a6505bc54ed230b93abe22d5f21ed66daa22345a85b73f6a673d06"
+    }
+  ],
+  "weights": [
+    {
+      "path": "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf",
+      "bytes": 37623740192,
+      "mtime_ns": 1791944014788160106,
+      "sha256": "69820c02ec7d0b45ef2ebb19d6620299db749fe2aded7f39f93c6b88b199b720",
+      "elapsed_s": 480.01616939199994
+    },
+    {
+      "path": "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+      "bytes": 28800138432,
+      "mtime_ns": 1791941957442757198,
+      "sha256": "316b46f3a2dbd68c900f43136ab9449f9dcc3725dfd8c794847c204bc161e113",
+      "elapsed_s": 343.53846833100033
+    }
+  ],
+  "build": {
+    "engine_source": "bac5b88b665ee6973488dd40b363ded3134136f6",
+    "core_source": "resident core executable; source revision not embedded; binary SHA256 recorded",
+    "command": "make CUDA=/opt/cuda PTXAS11=/opt/cuda-11.4/bin/ptxas die.cubin die.cubin libengine.so",
+    "compiler": {
+      "argv": [
+        "cc",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "cc (GCC) 16.2.1 20260810\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+      "stderr": ""
+    },
+    "assembler": {
+      "argv": [
+        "/opt/cuda-11.4/bin/ptxas",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "ptxas: NVIDIA (R) Ptx optimizing assembler\nCopyright (c) 2005-2021 NVIDIA Corporation\nBuilt on Mon_Oct_11_21:26:15_PDT_2021\nCuda compilation tools, release 11.4, V11.4.152\nBuild cuda_11.4.r11.4/compiler.30521435_0\n",
+      "stderr": ""
+    },
+    "flags": "-std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared",
+    "original_checkpoint": "Qwen/Qwen3.8-Flash-Next @ de4b8e4d43b917e7706784d8bb445c9af86a3540",
+    "gguf": "ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF @ ed59f92082b1e93c0e96d60a8b11aab089b52f09",
+    "conversion_revision": null,
+    "ple": "disk, offset192, same NFS shard; warmup/repetitions; storage cache not flushed",
+    "authoritative": false,
+    "note": "uninstrumented matched decode; shared holders and private host core; comparison against earlier traces requires clock/temperature qualification"
+  },
+  "prompt": {
+    "path": "/home/nate/claude/flash-sass-prs/paired-depth-untraced4/runs/prompt-ids.json",
+    "bytes": 54615,
+    "mtime_ns": 1792265466975626956,
+    "sha256": "e864f6f85990835d91a43850abd24a84f8816ad9b2a9636358d9389bb6917e39"
+  },
+  "sampling": {
+    "seed": 0,
+    "temperature": 0,
+    "stop_ids": []
+  },
+  "warmup_outputs": 9,
+  "pairs": 5,
+  "outputs": 129,
+  "fixture": "synthetic fixed token IDs; real checkpoint forward; no answer-quality acceptance",
+  "utc": "2026-10-17T19:31:06Z",
+  "gpu_before": {
+    "argv": [
+      "nvidia-smi",
+      "--query-gpu=index,uuid,driver_version,pci.bus_id,memory.used,memory.free,utilization.gpu,temperature.gpu,clocks.current.sm,clocks.current.memory,ecc.mode.current,pcie.link.gen.current,pcie.link.width.current",
+      "--format=csv"
+    ],
+    "exit": 0,
+    "stdout": "index, uuid, driver_version, pci.bus_id, memory.used [MiB], memory.free [MiB], utilization.gpu [%], temperature.gpu, clocks.current.sm [MHz], clocks.current.memory [MHz], ecc.mode.current, pcie.link.gen.current, pcie.link.width.current\n0, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, 470.256.02, 00000000:03:00.0, 7475 MiB, 143 MiB, 0 %, 71, 1177 MHz, 2505 MHz, Enabled, 3, 16\n1, GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, 470.256.02, 00000000:04:00.0, 6465 MiB, 1153 MiB, 0 %, 53, 1177 MHz, 2505 MHz, Enabled, 3, 16\n2, GPU-c767d250-4454-d181-d648-8706b5f2fb64, 470.256.02, 00000000:07:00.0, 7449 MiB, 169 MiB, 0 %, 70, 1177 MHz, 2505 MHz, Enabled, 3, 16\n3, GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, 470.256.02, 00000000:08:00.0, 7518 MiB, 100 MiB, 0 %, 53, 1177 MHz, 2505 MHz, Enabled, 3, 16\n4, GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, 470.256.02, 00000000:0B:00.0, 6477 MiB, 1141 MiB, 0 %, 85, 1075 MHz, 2505 MHz, Enabled, 3, 16\n5, GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, 470.256.02, 00000000:0C:00.0, 6484 MiB, 1134 MiB, 0 %, 62, 1177 MHz, 2505 MHz, Enabled, 3, 16\n6, GPU-431371bd-b482-96b2-4b70-04f83c6d075b, 470.256.02, 00000000:12:00.0, 3 MiB, 7615 MiB, 0 %, 40, 405 MHz, 324 MHz, Enabled, 1, 16\n7, GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4, 470.256.02, 00000000:13:00.0, 71 MiB, 7547 MiB, 0 %, 35, 873 MHz, 2505 MHz, Enabled, 3, 16\n",
+    "stderr": ""
+  },
+  "host": {
+    "argv": [
+      "uname",
+      "-a"
+    ],
+    "exit": 0,
+    "stdout": "Linux archy 6.18.39-1-lts-k80 #2 SMP PREEMPT_DYNAMIC Tue, 21 Jul 2026 00:09:28 +0000 x86_64 GNU/Linux\n",
+    "stderr": ""
+  },
+  "environment": {
+    "FLASH_MAXT": "8192",
+    "FLASH_ENGINE_MAXT": "8192",
+    "FLASH_TRACE": "0",
+    "FLASH_NBLK": "512",
+    "FLASH_MAXIMG": "1",
+    "FLASH_PLE_DISK": "1",
+    "FLASH_PLE_OFF": "192",
+    "FLASH_CUBIN": "/home/nate/claude/flash-sass-prs/issue-10/kern/die.cubin",
+    "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
+    "CUDA_VISIBLE_DEVICES": "0,1,2,3,4,5,7",
+    "SPLIT_SHARES": "112,97,81,116,97,97",
+    "ATTN_DIE": "1",
+    "ATTN_MAP": "1,1,1,1,4,4,4,4,5,5,5,5"
+  },
+  "driver_counters_before": {
+    "argv": [
+      "nvidia-smi",
+      "-q",
+      "-d",
+      "ECC,PCIE,CLOCK,TEMPERATURE"
+    ],
+    "exit": 2,
+    "stdout": "Failed to parse --display/-d flags\n",
+    "stderr": ""
+  },
+  "configs": {
+    "host": {
+      "rev": "bac5b88b665ee6973488dd40b363ded3134136f6",
+      "kv_host": "1",
+      "ple_disk": "1",
+      "maxt": "8192",
+      "layers": "48/48",
+      "nblk": "512",
+      "dies": "6",
+      "attn_dies": "1,4,5",
+      "split": "112,97,81,116,97,97",
+      "attn_map": "1,1,1,1,4,4,4,4,5,5,5,5",
+      "img_rows": "1",
+      "trace_tokens": "0",
+      "cubin": "/home/nate/claude/flash-sass-prs/issue-10/kern/die.cubin",
+      "cubin_fnv": "7e7f74fbd71bd973"
+    },
+    "vram": {
+      "rev": "bac5b88b665ee6973488dd40b363ded3134136f6",
+      "kv_host": "0",
+      "ple_disk": "1",
+      "maxt": "8192",
+      "layers": "48/48",
+      "nblk": "512",
+      "dies": "6",
+      "attn_dies": "1,4,5",
+      "split": "112,97,81,116,97,97",
+      "attn_map": "1,1,1,1,4,4,4,4,5,5,5,5",
+      "img_rows": "1",
+      "trace_tokens": "0",
+      "cubin": "/home/nate/claude/flash-sass-prs/issue-10/kern/die.cubin",
+      "cubin_fnv": "7e7f74fbd71bd973"
+    }
+  }
+}
