@@ -1,0 +1,299 @@
+# Position-parallel B8 Q2 with resident int16 inputs and full weight tiles.
+# Each lane retains all five activation fragments, sums and scales.
+<CONSTANT_MAPPING>
+    gridDimX : c[0x0][0x14]
+    param_W0 : c[0x0][0x140]
+    param_W1 : c[0x0][0x144]
+    param_rows : c[0x0][0x160]
+</CONSTANT_MAPPING>
+<REGISTER_MAPPING>
+    0-79 : act<00-79>
+    80,81 : code<0-1>
+    82 : d
+    83 : wd
+    86-101 : m<00-15>
+    102 : acc7
+    103-109 : acc<0-6>
+    110 : fac
+    111 : nsum
+    112 : ascale
+    113 : dot
+    114 : dotf
+    115 : u
+    116 : tid
+    117 : bid
+    118 : lane
+    119 : position
+    120 : rowgroup
+    121 : row
+    122 : rowbase
+    123 : rowstep
+    124 : wave
+    125 : localrow
+    126 : entry
+    127 : expert
+    128 : packed
+    129 : rank
+    130 : index
+    131 : uniq
+    132 : pack_build
+    133 : prev
+    134 : ne
+    135 : total
+    136 : negone
+    137 : tmp
+    138 : off
+    139 : addr
+    140 : codeaddr
+    141 : scaleaddr
+    142 : widx
+    143 : value
+    144 : weight
+    145 : result
+    146 : stage_rank
+    147 : stmp
+    148 : saddr
+    149 : desc
+    150 : rownext
+    152,153 : xp<0-1>
+    154,155 : yp<0-1>
+    156,157 : ws<0-1>
+    158,159 : wq<0-1>
+    160-164 : nsumv<0-4>
+    165-169 : ascv<0-4>
+</REGISTER_MAPPING>
+<CODE>
+    my $K=$ENV{GEMV_K}||2560;
+    my $mode=$ENV{GEMV_MOE}||'';
+    my $acc=$ENV{GEMV_ACC}||0;
+    die 'unsupported parallel Q2 geometry' unless $K==2560 || $K==640;
+    my $moe=$mode ne '';my $down=$mode eq 'down';
+    my $compact=$moe && ($ENV{Q2_COMPACT_ACTIVE}//0);
+    die 'unsupported routed geometry' if $moe && !(($mode eq 'gather'&&$K==2560)||($down&&$K==640));
+    my $L=($K/32)/5;my $R=256/$L/8;
+    my $lgL=$L==16?4:2;my $lgR=$R==2?1:3;
+    my $pad=16*int((2*($K/64)+15)/16);my $S=$pad+16*($K/64);
+    # Retain the previous metadata/weight offsets; the input region is unused.
+    my $sbytes=4*($K/32);my $input=$K+2*$sbytes;
+    my $meta=8*$input;
+    my($IDX,$UNIQ,$WE,$PACK,$NE)=map{$meta+$_}(0,320,640,960,1280);
+    my $tile_rows=8*$R;my $lgTile=$K==2560?4:6;
+    my $APOS=$meta+1312;
+    my $WBASE=$meta+($moe?($compact?1632:1312):0);
+    my $WEND=$WBASE+$tile_rows*$S;
+    my $TILE=($WEND+255)&~255;
+    my $scratch=$down?$TILE+8*10*64*4:$WEND;
+    die 'tiled Q2 shared overflow' if $scratch>0xbb80;
+    my $o='';my $nop="--:-:-:-:6      NOP;\n";
+    my $bank=sub{my($p)=@_;$p?0xbf00-128*$p:0xbf80};
+    my $ptr=sub{
+        my($pair,$p,$param)=@_;my $at=$bank->($p)+8+$param-0x140;
+        $o.=sprintf "02:-:1:-:1      LDS %s0, [RZ+0x%x];\n--:-:1:-:2      LDS %s1, [RZ+0x%x];\n01:-:-:-:6      NOP;\n",$pair,$at,$pair,$at+4;
+    };
+    my $mul=sub{
+        my($d,$r,$c)=@_;my @b=grep{$c&(1<<$_)}0..30;
+        $o.=sprintf "--:-:-:-:6      SHL %s, %s, 0x%x;\n",$d,$r,shift @b;
+        $o.=sprintf "--:-:-:-:6      ISCADD %s, %s, %s, 0x%x;\n",$d,$r,$d,$_ for @b;
+    };
+    my $descriptor=sub{
+        $o.="02:-:-:-:6      SHL tmp, position, 0x7;\n--:-:-:-:6      MOV32I desc, 0xbf00;\n--:-:-:-:6      IADD desc, desc, -tmp;\n--:-:-:-:6      ISETP.EQ.U32.AND P6, PT, position, RZ, PT;\n";
+        $o.=$nop x3;
+        $o.="--:-:-:-:6  \@P6 IADD desc, desc, 0x80;\n";
+    };
+    my $resident_load=sub{
+        # Inputs remain in registers through every row tile for this expert.
+        # Load all pointers before issuing input reads so their latency overlaps.
+        $descriptor->();
+        $o.="--:-:1:-:1      LDS xp0, [desc+0x10];\n--:-:1:-:1      LDS xp1, [desc+0x14];\n--:-:1:-:1      LDS yp0, [desc+0x18];\n--:-:1:-:1      LDS yp1, [desc+0x1c];\n--:-:1:-:1      LDS ws0, [desc+0x38];\n--:-:1:-:2      LDS ws1, [desc+0x3c];\n01:-:-:-:6      SHL off, lane, 0x6;\n";
+        if($down){
+            $o.="--:-:-:-:6      IMNMX.U32 stage_rank, rank, 0x9, PT;\n";
+            $mul->('tmp','stage_rank',2*$K);
+            $o.="--:-:-:-:6      IADD off, off, tmp;\n";
+        }
+        $o.="--:-:-:-:6      IADD xp0.CC, xp0, off;\n--:-:-:-:6      IADD.X xp1, xp1, RZ;\n--:-:-:-:6      SHL off, lane, 0x2;\n";
+        if($down){$mul->('tmp','stage_rank',$sbytes);$o.="--:-:-:-:6      IADD off, off, tmp;\n";}
+        $o.="--:-:-:-:6      IADD yp0.CC, yp0, off;\n--:-:-:-:6      IADD.X yp1, yp1, RZ;\n--:-:-:-:6      IADD ws0.CC, ws0, off;\n--:-:-:-:6      IADD.X ws1, ws1, RZ;\n";
+        $o.=$moe?"--:-:-:-:6      ISETP.LT.U32.AND P4, PT, rank, 0xa, PT;\n":"--:-:-:-:6      ISETP.EQ.U32.AND P4, PT, RZ, RZ, PT;\n";
+        $o.=$nop x3;
+        for my $i(0..4){for my $j(0..3){
+            $o.=sprintf "--:2:1:-:1  \@P4 LDG.E.CI.128 act%02d, [xp+0x%x];\n",16*$i+4*$j,64*$L*$i+16*$j;
+        }}
+        for my $i(0..4){$o.=sprintf "--:2:1:-:1  \@P4 LDG.E.CI nsumv%d, [yp+0x%x];\n",$i,4*$L*$i;}
+        for my $i(0..4){$o.=sprintf "--:2:1:-:%d  \@P4 LDG.E.CI ascv%d, [ws+0x%x];\n",$i==4?2:1,$i,4*$L*$i;}
+        $o.="03:-:-:-:6      NOP;\n";
+        for my $i(0..4){$o.=sprintf "--:-:-:-:6  \@P4 IADD3 nsumv%d, RZ, -nsumv%d, RZ;\n",$i,$i;}
+    };
+    my $load_weights=sub{
+        # Join every prior reader before replacing a shared weight tile.
+        $o.="02:-:-:-:6      BAR.SYNC 0x0;\n";
+        $o.=sprintf "--:-:-:-:6      SHR.U32 tmp, tid, 0x%x;\n--:-:-:-:6      IADD row, rowbase, tmp;\n--:-:-:-:6      ISETP.LT.U32.AND P6, PT, row, param_rows, PT;\n",$lgL;
+        $mul->('saddr','tmp',$S);
+        $o.=sprintf "--:-:-:-:6      ISCADD saddr, lane, saddr, 0x4;\n--:-:-:-:6      IADD saddr, saddr, 0x%x;\n",$WBASE;
+        $mul->('off','row',$S);
+        if($moe){$mul->('addr','expert',($down?2560:640)*$S);$o.="--:-:-:-:6      IADD off, off, addr;\n";}
+        $o.="--:-:-:-:6      ISCADD off, lane, off, 0x4;\n--:-:-:-:6      IADD ws0.CC, off, param_W0;\n--:-:-:-:6      IADD.X ws1, RZ, param_W1;\n";
+        for my $j(0..2){
+            my $n=$S/16-$j*$L;$n=$L if$n>$L;
+            $o.=sprintf "02:-:-:-:6      ISETP.LT.U32.AND P4, PT, lane, 0x%x, P6;\n",$n;
+            $o.=$nop x3;
+            $o.=sprintf "--:2:1:-:2  \@P4 LDG.E.CI.128 m02, [ws+0x%x];\n01:2:-:-:2  \@P4 STS.128 [saddr+0x%x], m02;\n",16*$L*$j,16*$L*$j;
+        }
+        $o.="03:-:-:-:6      BAR.SYNC 0x0;\n";
+    };
+    my $metadata=sub{
+        $o.="--:-:-:-:6      MOV total, RZ;\n";
+        for my $p(0..7){
+            $ptr->('xp',$p,0x180);
+            $o.="--:2:1:-:2      LDG.E ne, [xp];\n01:-:-:-:6      IMNMX.U32 ne, ne, 0xa, PT;\n--:-:-:-:6      IADD total, total, ne;\n--:-:-:-:6      ISETP.EQ.U32.AND P6, PT, tid, RZ, PT;\n";
+            $o.=$nop x3;
+            $o.=sprintf "--:2:-:-:2  \@P6 STS [RZ+0x%x], ne;\n",$NE+4*$p;
+        }
+        $o.="02:-:-:-:6      BAR.SYNC 0x0;\n--:-:-:-:6      ISETP.EQ.U32.AND P4, PT, total, RZ, PT;\n";
+        $o.=$nop x3;$o.="--:-:-:-:6  \@P4 EXIT;\n";
+        for my $p(0..7){
+            $o.=sprintf "--:-:1:-:2      LDS ne, [RZ+0x%x];\n01:-:-:-:6      NOP;\n",$NE+4*$p;
+            $ptr->('xp',$p,0x168);
+            $o.="--:-:-:-:6      SHL stmp, tid, 0x2;\n--:-:-:-:6      IADD xp0.CC, xp0, stmp;\n--:-:-:-:6      IADD.X xp1, xp1, RZ;\n--:-:-:-:6      ISETP.LT.U32.AND P4, PT, tid, ne, PT;\n--:-:-:-:6      ISETP.LT.U32.AND P5, PT, tid, 0xa, PT;\n--:-:-:-:6      MOV index, negone;\n";
+            $o.=$nop x3;
+            $o.=sprintf "--:2:1:-:2  \@P4 LDG.E index, [xp];\n--:-:-:-:6      IADD saddr, stmp, 0x%x;\n01:2:-:-:2  \@P5 STS [saddr], index;\n",$IDX+40*$p;
+            if($down){
+                $ptr->('xp',$p,0x178);
+                $o.="--:-:-:-:6      IADD xp0.CC, xp0, stmp;\n--:-:-:-:6      IADD.X xp1, xp1, RZ;\n--:-:-:-:6      MOV weight, RZ;\n--:2:1:-:2  \@P4 LDG.E weight, [xp];\n";
+                $o.=sprintf "--:-:-:-:6      IADD saddr, stmp, 0x%x;\n01:2:-:-:2  \@P5 STS [saddr], weight;\n",$WE+40*$p;
+            }
+        }
+        $o.="02:-:-:-:6      BAR.SYNC 0x0;\n--:-:-:-:6      ISETP.GE.U32.AND P4, PT, tid, 0x60, PT;\n";
+        $o.=$nop x3;$o.="--:-:-:-:6  \@P4 BRA METADATA_DONE;\n";
+        $o.="--:-:-:-:6      ISETP.LT.U32.AND P6, PT, tid, 0x50, PT;\n--:-:-:-:6      SHL stmp, tid, 0x2;\n--:-:-:-:6      MOV index, negone;\n";
+        $o.=sprintf "--:-:-:-:6      IADD saddr, stmp, 0x%x;\n--:-:1:-:2  \@P6 LDS index, [saddr];\n01:-:-:-:6      MOV uniq, index;\n--:-:-:-:6      MOV pack_build, negone;\n",$IDX;
+        for my $j(0..79){
+            $o.=sprintf "--:-:1:-:2      LDS prev, [RZ+0x%x];\n--:-:-:-:6      ISETP.GT.U32.AND P4, PT, tid, 0x%x, PT;\n",$IDX+4*$j,$j;
+            $o.=$nop x3;$o.="01:-:-:-:6      ISETP.EQ.U32.AND P5, PT, prev, index, PT;\n";
+            $o.=$nop x3;
+            my $shift=4*int($j/10);my $mask=(~(15<<$shift))&0xffffffff;
+            $o.=sprintf "--:-:-:-:6  \@P5 LOP32I.AND pack_build, pack_build, 0x%08x;\n--:-:-:-:6  \@P5 LOP32I.OR pack_build, pack_build, 0x%08x;\n",$mask,($j%10)<<$shift;
+            $o.="--:-:-:-:6      PSETP.AND.AND P4, PT, P4, P5, PT;\n";
+            $o.=$nop x3;$o.="--:-:-:-:6  \@P4 MOV uniq, negone;\n";
+        }
+        if($compact){
+            # index[0:23] packs actual positions; [24:25] holds lgNP and
+            # [26:29] the active count. Missing compact groups are predicated.
+            $o.="--:-:-:-:6      MOV index, RZ;\n--:-:-:-:6      MOV total, RZ;\n";
+            for my $p(0..7){
+                $o.=sprintf "--:-:-:-:6      SHR.U32 prev, pack_build, 0x%x;\n--:-:-:-:6      LOP32I.AND prev, prev, 0xf;\n--:-:-:-:6      ISETP.LT.U32.AND P4, PT, prev, 0xa, PT;\n--:-:-:-:6      ISCADD tmp, total, total, 0x1;\n--:-:-:-:6      MOV32I off, 0x%x;\n--:-:-:-:6      SHL off, off, tmp;\n--:-:-:-:6  \@P4 LOP.OR index, index, off;\n--:-:-:-:6  \@P4 IADD total, total, 0x1;\n",4*$p,$p;
+            }
+            # Two-bit table indexed by count: ceil(log2(count)), with zero=0.
+            $o.="--:-:-:-:6      SHL tmp, total, 0x1;\n--:-:-:-:6      MOV32I prev, 0x3fe90;\n--:-:-:-:6      SHR.U32 prev, prev, tmp;\n--:-:-:-:6      LOP32I.AND prev, prev, 0x3;\n--:-:-:-:6      SHL prev, prev, 0x18;\n--:-:-:-:6      LOP.OR index, index, prev;\n--:-:-:-:6      SHL tmp, total, 0x1a;\n--:-:-:-:6      LOP.OR index, index, tmp;\n";
+        }
+        $o.=sprintf "--:-:-:-:6      IADD saddr, stmp, 0x%x;\n--:2:-:-:2  \@P6 STS [saddr], uniq;\n02:-:-:-:6      IADD saddr, stmp, 0x%x;\n--:2:-:-:2  \@P6 STS [saddr], pack_build;\n",$UNIQ,$PACK;
+        $o.=sprintf "02:-:-:-:6      IADD saddr, stmp, 0x%x;\n--:2:-:-:2  \@P6 STS [saddr], index;\n",$APOS if$compact;
+        $o.="METADATA_DONE:\n02:-:-:-:6      BAR.SYNC 0x0;\n";
+    };
+    my $expert_entry=sub{
+        $o.=sprintf "--:-:-:-:6      SHL tmp, entry, 0x2;\n--:-:-:-:6      IADD saddr, tmp, 0x%x;\n--:-:1:-:2      LDS expert, [saddr];\n01:-:-:-:6      ISETP.EQ.U32.AND P4, PT, expert, negone, PT;\n",$UNIQ;
+        $o.=$nop x3;$o.="--:-:-:-:6  \@P4 BRA EXPERT_NEXT;\n";
+        $o.=sprintf "--:-:-:-:6      IADD saddr, tmp, 0x%x;\n--:-:1:-:2      LDS packed, [saddr];\n01:-:-:-:6      NOP;\n",$PACK;
+        if($compact){
+            $o.=sprintf "--:-:-:-:6      IADD saddr, tmp, 0x%x;\n--:-:1:-:2      LDS pack_build, [saddr];\n01:-:-:-:6      SHR.U32 uniq, pack_build, 0x18;\n--:-:-:-:6      LOP32I.AND uniq, uniq, 0x3;\n--:-:-:-:6      SHR.U32 prev, pack_build, 0x1a;\n--:-:-:-:6      LOP32I.AND prev, prev, 0xf;\n--:-:-:-:6      MOV32I total, 0x1;\n--:-:-:-:6      SHL total, total, uniq;\n--:-:-:-:6      MOV32I widx, 0x%x;\n--:-:-:-:6      IADD widx, widx, -uniq;\n--:-:-:-:6      SHR.U32 tmp, tid, 0x%x;\n--:-:-:-:6      IADD index, total, -0x1;\n--:-:-:-:6      LOP.AND index, tmp, index;\n--:-:-:-:6      SHR.U32 rowgroup, tmp, uniq;\n--:-:-:-:6      ISCADD tmp, index, index, 0x1;\n--:-:-:-:6      SHR.U32 position, pack_build, tmp;\n--:-:-:-:6      LOP32I.AND position, position, 0x7;\n",$APOS,$lgTile,$lgL;
+        }
+        $o.="--:-:-:-:6      SHL tmp, position, 0x2;\n--:-:-:-:6      SHR.U32 rank, packed, tmp;\n--:-:-:-:6      LOP32I.AND rank, rank, 0xf;\n";
+        if($compact){
+            $o.="--:-:-:-:6      ISETP.LT.U32.AND P4, PT, index, prev, PT;\n";
+            $o.=$nop x3;$o.="--:-:-:-:6 \@!P4 MOV32I rank, 0xf;\n";
+        }
+        $resident_load->();
+    };
+    my $expert_next=sub{
+        $o.="EXPERT_NEXT:\n--:-:-:-:6      IADD entry, entry, 0x1;\n--:-:-:-:6      ISETP.LT.U32.AND P6, PT, entry, 0x50, PT;\n";
+        $o.=$nop x3;$o.="--:-:-:-:6  \@P6 BRA EXPERT;\n";
+    };
+    my $store=sub{
+        if($down){
+            $o.="--:-:-:-:6      PSETP.AND.AND P2, PT, P2, P4, PT;\n--:-:-:-:6      IMNMX.U32 off, rank, 0x9, PT;\n--:-:-:-:6      XMAD tmp, position, 0xa, off;\n--:-:-:-:6      SHL tmp, tmp, 0x8;\n--:-:-:-:6      ISCADD addr, localrow, tmp, 0x2;\n";
+            $o.=sprintf "--:-:-:-:6      IADD addr, addr, 0x%x;\n--:2:-:-:2  \@P2 STS [addr], fac;\n02:-:-:-:6      NOP;\n",$TILE;
+        }else{
+            $descriptor->();
+            $o.="--:-:1:-:1      LDS yp0, [desc+0x20];\n--:-:1:-:2      LDS yp1, [desc+0x24];\n01:-:-:-:6      SHL tmp, row, 0x2;\n";
+            if($moe){$o.="--:-:-:-:6      PSETP.AND.AND P2, PT, P2, P4, PT;\n--:-:-:-:6      IMNMX.U32 off, rank, 0x9, PT;\n--:-:-:-:6      XMAD off, off, 0xa00, RZ;\n--:-:-:-:6      IADD tmp, tmp, off;\n";}
+            $o.="--:-:-:-:6      IADD yp0.CC, yp0, tmp;\n--:-:-:-:6      IADD.X yp1, yp1, RZ;\n";
+            if($acc){$o.="--:-:1:-:1      LDS xp0, [desc+0x40];\n--:-:1:-:2      LDS xp1, [desc+0x44];\n01:2:1:-:1      LDG.E weight, [xp];\n--:2:1:-:2  \@P3 LDG.E value, [yp];\n01:-:-:-:6  \@P3 FFMA fac, weight, fac, value;\n";}
+            $o.="--:2:-:-:2  \@P2 STG.E [yp], fac;\n02:-:-:-:6      NOP;\n";
+        }
+    };
+    my $math=sub{
+        $o.="--:-:-:-:6      IADD row, rowbase, localrow;\n--:-:-:-:6      ISETP.LT.U32.AND P2, PT, row, param_rows, P0;\n--:-:-:-:6      ISETP.LT.U32.AND P3, PT, row, param_rows, PT;\n";
+        $mul->('off','localrow',$S);
+        $o.="--:-:-:-:6      SHR.U32 tmp, lane, 0x1;\n--:-:-:-:6      ISCADD scaleaddr, tmp, off, 0x1;\n";
+        $o.=sprintf "--:-:-:-:6      IADD scaleaddr, scaleaddr, 0x%x;\n--:-:-:-:6      ISCADD codeaddr, lane, off, 0x3;\n--:-:-:-:6      IADD codeaddr, codeaddr, 0x%x;\n",$WBASE,$WBASE+$pad;
+    $o.=$moe?"--:-:-:-:6      ISETP.LT.U32.AND P4, PT, rank, 0xa, P3;\n":
+        "--:-:-:-:6      ISETP.LT.U32.AND P4, PT, row, param_rows, PT;\n";
+    $o.=$nop x3;$o.="--:-:-:-:6      VOTE.ANY P5, P4;\n--:-:-:-:6      MOV fac, RZ;\n";
+    $o.=$nop x3;
+    for my $i(0..4){
+        $o.=sprintf "--:-:-:-:6 \@!P5 BRA MATH_DONE_%d;\n--:2:1:-:1      LDS.64 code0, [codeaddr+0x%x];\n--:2:1:-:2      LDS.U16 d, [scaleaddr+0x%x];\n",$i,8*$L*$i,$L*$i;
+        $o.=sprintf "03:-:-:-:6      MOV nsum, nsumv%d;\n--:-:-:-:6      MOV ascale, ascv%d;\n--:-:4:-:2      F2F.F32.F16 wd, d;\n",$i,$i;
+        for my $w(0..1){for my $s(0..7){$o.=sprintf "--:-:-:-:1      LOP32I.AND m%02d, code%d, 0x%08x;\n",8*$w+$s,$w,(0x00030003<<(2*$s))&0xffffffff;}}
+        for my $w(0..1){for my $h(0..1){for my $s(0..7){my$el=16*$w+8*$h+$s;
+            $o.=sprintf "--:-:-:-:1      XMAD.U16.S16 acc%d, m%02d.%s, act%02d.%s, %s;\n",$s,8*$w+$s,$h?'H1':'H0',16*$i+int($el/2),($el&1)?'H1':'H0',!$w&&!$h?($s?'RZ':'nsum'):"acc$s";
+        }}}
+        $o.=sprintf "--:-:-:-:1      SHR acc%d, acc%d, 0x%x;\n",$_,$_,2*$_ for 1..7;
+        $o.="--:-:-:-:1      IADD acc0, acc0, acc1;\n--:-:-:-:2      IADD acc2, acc2, acc3;\n--:-:-:-:2      IADD acc4, acc4, acc5;\n--:-:-:-:2      IADD acc6, acc6, acc7;\n--:-:-:-:4      IADD acc0, acc0, acc2;\n--:-:-:-:6      IADD acc4, acc4, acc6;\n--:-:-:-:6      IADD dot, acc0, acc4;\n--:-:3:-:6      I2F.F32.S32 dotf, dot;\n0c:-:-:-:6      FMUL u, wd, dotf;\n--:-:-:-:6  \@P4 FFMA fac, ascale, u, fac;\n";
+        $o.=sprintf "MATH_DONE_%d:\n",$i;
+    }
+    for(my$x=$L/2;$x>=1;$x>>=1){$o.=sprintf "--:-:5:-:3      SHFL.BFLY PT, tmp, fac, 0x%x, 0x1f;\n10:-:-:-:6      FADD fac, fac, tmp;\n",$x;}
+    };
+    my $reduce=sub{
+        $o.="--:-:-:-:6      IADD row, rowbase, localrow;\n--:-:-:-:6      ISETP.LT.U32.AND P2, PT, row, param_rows, P0;\n--:-:-:-:6      SHL tmp, position, 0x2;\n";
+        $o.=sprintf "--:-:-:-:6      IADD addr, tmp, 0x%x;\n--:-:1:-:2      LDS ne, [addr];\n01:-:-:-:6      MOV result, RZ;\n",$NE;
+        for my $r(0..9){
+            $o.=sprintf "--:-:-:-:6      ISETP.GT.U32.AND P4, PT, ne, 0x%x, PT;\n--:-:-:-:6      XMAD tmp, position, 0xa, RZ;\n--:-:-:-:6      IADD tmp, tmp, 0x%x;\n--:-:-:-:6      SHL tmp, tmp, 0x8;\n--:-:-:-:6      ISCADD addr, localrow, tmp, 0x2;\n--:-:-:-:6      IADD addr, addr, 0x%x;\n--:-:1:-:1  \@P4 LDS value, [addr];\n",$r,$r,$TILE;
+            $mul->('tmp','position',40);
+            # Complete the contribution load before its address register changes.
+            $o.=sprintf "01:-:-:-:6      IADD addr, tmp, 0x%x;\n--:-:1:-:2  \@P4 LDS weight, [addr];\n",$WE+4*$r;
+            $o.=$r?"01:-:-:-:6  \@P4 FFMA result, weight, value, result;\n":"01:-:-:-:6  \@P4 FMUL result, value, weight;\n";
+        }
+        $descriptor->();
+        $o.="--:-:1:-:1      LDS yp0, [desc+0x20];\n--:-:1:-:2      LDS yp1, [desc+0x24];\n01:-:-:-:6      SHL tmp, row, 0x2;\n--:-:-:-:6      IADD yp0.CC, yp0, tmp;\n--:-:-:-:6      IADD.X yp1, yp1, RZ;\n--:-:-:-:6      ISETP.NE.U32.AND P2, PT, ne, RZ, P2;\n";
+        $o.=$nop x3;$o.="--:2:-:-:2  \@P2 STG.E [yp], result;\n02:-:-:-:6      NOP;\n";
+    };
+    my $wave_next=sub{
+        my($label)=@_;my $bound=$compact&&$label eq 'WAVE'?'total':'0x8';
+        $o.="--:-:-:-:6      IADD wave, wave, 0x1;\n--:-:-:-:6      ISETP.LT.U32.AND P5, PT, wave, $bound, PT;\n";
+        $o.=$nop x3;$o.="--:-:-:-:6  \@P5 BRA $label;\n";
+    };
+    my $wave_row=sub{
+        $o.=$compact?"--:-:-:-:6      SHL localrow, wave, widx;\n--:-:-:-:6      IADD localrow, localrow, rowgroup;\n":sprintf "--:-:-:-:6      ISCADD localrow, wave, rowgroup, 0x%x;\n",$lgR;
+    };
+    my $tile_shift=$lgTile;
+    $o.="--:-:6:-:1      S2R tid, SR_TID.X;\n--:-:6:-:2      S2R bid, SR_CTAID.X;\n20:-:-:-:6      MOV32I negone, 0xffffffff;\n";
+    $o.=sprintf "--:-:-:-:6      SHL rowbase, bid, 0x%x;\n--:-:-:-:6      ISETP.LT.U32.AND P6, PT, rowbase, param_rows, PT;\n",$tile_shift;
+    $o.=$nop x3;$o.="--:-:-:-:6 \@!P6 EXIT;\n";
+    $metadata->() if$moe;
+    $o.=sprintf "--:-:-:-:6      LOP32I.AND lane, tid, 0x%x;\n--:-:-:-:6      SHR.U32 tmp, tid, 0x%x;\n--:-:-:-:6      LOP32I.AND position, tmp, 0x7;\n--:-:-:-:6      SHR.U32 rowgroup, tmp, 0x3;\n--:-:-:-:6      MOV rowstep, gridDimX;\n--:-:-:-:6      SHL rowstep, rowstep, 0x%x;\n--:-:-:-:6      ISETP.EQ.U32.AND P0, PT, lane, RZ, PT;\n",$L-1,$lgL,$tile_shift;
+    $resident_load->() unless$moe;
+    if($down){
+        $o.="ROW_TILE:\n--:-:-:-:6      IADD rownext, rowbase, rowstep;\n--:-:-:-:6      ISETP.LT.U32.AND P1, PT, rownext, param_rows, PT;\n--:-:-:-:6      MOV entry, RZ;\nEXPERT:\n";
+        $expert_entry->();$load_weights->();
+        $o.="--:-:-:-:6      MOV wave, RZ;\nWAVE:\n";
+        $wave_row->();
+        $math->();$store->();$wave_next->('WAVE');$expert_next->();
+        $o.="02:-:-:-:6      BAR.SYNC 0x0;\n";
+        # Expert owners can change with incidence. Ordered down reduction uses
+        # the original fixed-eight position/row map after all writers join.
+        $o.=sprintf "--:-:-:-:6      SHR.U32 tmp, tid, 0x%x;\n--:-:-:-:6      LOP32I.AND position, tmp, 0x7;\n--:-:-:-:6      SHR.U32 rowgroup, tmp, 0x3;\n",$lgL if$compact;
+        $o.="--:-:-:-:6      MOV wave, RZ;\nREDUCE_WAVE:\n";
+        $o.=sprintf "--:-:-:-:6      ISCADD localrow, wave, rowgroup, 0x%x;\n",$lgR;
+        $reduce->();$wave_next->('REDUCE_WAVE');
+        $o.="--:-:-:-:6      IADD rowbase, rowbase, rowstep;\n--:-:-:-:6  \@P1 BRA ROW_TILE;\n";
+    }else{
+        if($moe){$o.="--:-:-:-:6      MOV entry, RZ;\nEXPERT:\n";$expert_entry->();$o.=sprintf "--:-:-:-:6      SHL rowbase, bid, 0x%x;\n",$lgTile;}
+        $o.="ROW_TILE:\n--:-:-:-:6      IADD rownext, rowbase, rowstep;\n--:-:-:-:6      ISETP.LT.U32.AND P1, PT, rownext, param_rows, PT;\n";
+        $load_weights->();$o.="--:-:-:-:6      MOV wave, RZ;\nWAVE:\n";
+        $wave_row->();
+        $math->();$store->();$wave_next->('WAVE');
+        $o.="--:-:-:-:6      IADD rowbase, rowbase, rowstep;\n--:-:-:-:6  \@P1 BRA ROW_TILE;\n";
+        $expert_next->() if$moe;
+    }
+    $o.="--:-:-:-:f      EXIT;\n";
+    return$o;
+</CODE>
