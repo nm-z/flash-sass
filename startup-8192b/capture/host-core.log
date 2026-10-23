@@ -1,0 +1,7 @@
+flashcore: PLE rows are read from /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf on demand (FLASH_PLE_DISK): 12 MB pinned instead of 28.8 GB, no table load
+flashcore: 6 dies, weights and PLE table resident after 1 s
+engine.c:53: cuMemAlloc(&p, bytes) -> out of memory
+flashcore: engine_init failed in /home/nate/claude/pr38-runtime-bac5b88/kern/libengine.so
+flashcore: starting without an engine; "reload <path>" loads one (the weights and the table stay resident)
+ready
+flashcore: listening on /tmp/flash-pair-eT97fbtT/host.sock

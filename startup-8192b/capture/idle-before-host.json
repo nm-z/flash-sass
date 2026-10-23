@@ -1,0 +1,149 @@
+{
+   "apps" : {
+      "argv" : [
+         "nvidia-smi",
+         "--query-compute-apps=pid,gpu_uuid,process_name",
+         "--format=csv,noheader"
+      ],
+      "exit" : 0,
+      "stderr" : "",
+      "stdout" : "974018, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, ./hold\n1575007, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, ./flashcore\n974061, GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, ./hold\n1575007, GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, ./flashcore\n974103, GPU-c767d250-4454-d181-d648-8706b5f2fb64, ./fence\n988060, GPU-c767d250-4454-d181-d648-8706b5f2fb64, ./hold\n1575007, GPU-c767d250-4454-d181-d648-8706b5f2fb64, ./flashcore\n988067, GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, ./hold\n1575007, GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, ./flashcore\n988072, GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, ./hold\n1575007, GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, ./flashcore\n988080, GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, ./hold\n1575007, GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, ./flashcore\n"
+   },
+   "attempt" : 0,
+   "busy" : [],
+   "gpu" : {
+      "argv" : [
+         "nvidia-smi",
+         "--query-gpu=index,uuid,utilization.gpu",
+         "--format=csv,noheader,nounits"
+      ],
+      "exit" : 0,
+      "stderr" : "",
+      "stdout" : "0, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, 0\n1, GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, 0\n2, GPU-c767d250-4454-d181-d648-8706b5f2fb64, 0\n3, GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, 0\n4, GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, 0\n5, GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, 0\n6, GPU-431371bd-b482-96b2-4b70-04f83c6d075b, 0\n7, GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4, 0\n"
+   },
+   "known" : [
+      {
+         "exe" : "/home/nate/claude/flash-sass-next/kern/hold",
+         "pid" : 974018,
+         "ppid" : 974015,
+         "start_ticks" : "240471",
+         "state" : "S",
+         "wchan" : "__do_sys_pause"
+      },
+      {
+         "exe" : "/home/nate/claude/flash-sass-live/kern/flashcore",
+         "pid" : 1575007,
+         "ppid" : 1,
+         "start_ticks" : "5084045",
+         "state" : "S",
+         "wchan" : "__skb_wait_for_more_packets"
+      },
+      {
+         "exe" : "/home/nate/claude/flash-sass-next/kern/hold",
+         "pid" : 974061,
+         "ppid" : 974058,
+         "start_ticks" : "240473",
+         "state" : "S",
+         "wchan" : "__do_sys_pause"
+      },
+      {
+         "exe" : "/home/nate/claude/flash-sass-live/kern/flashcore",
+         "pid" : 1575007,
+         "ppid" : 1,
+         "start_ticks" : "5084045",
+         "state" : "S",
+         "wchan" : "__skb_wait_for_more_packets"
+      },
+      {
+         "exe" : "/home/nate/claude/flash-sass-next/kern/fence",
+         "pid" : 974103,
+         "ppid" : 974100,
+         "start_ticks" : "240475",
+         "state" : "S",
+         "wchan" : "__do_sys_pause"
+      },
+      {
+         "exe" : "/home/nate/claude/flash-sass-next/kern/hold",
+         "pid" : 988060,
+         "ppid" : 988058,
+         "start_ticks" : "242016",
+         "state" : "S",
+         "wchan" : "__do_sys_pause"
+      },
+      {
+         "exe" : "/home/nate/claude/flash-sass-live/kern/flashcore",
+         "pid" : 1575007,
+         "ppid" : 1,
+         "start_ticks" : "5084045",
+         "state" : "S",
+         "wchan" : "__skb_wait_for_more_packets"
+      },
+      {
+         "exe" : "/home/nate/claude/flash-sass-next/kern/hold",
+         "pid" : 988067,
+         "ppid" : 988065,
+         "start_ticks" : "242018",
+         "state" : "S",
+         "wchan" : "__do_sys_pause"
+      },
+      {
+         "exe" : "/home/nate/claude/flash-sass-live/kern/flashcore",
+         "pid" : 1575007,
+         "ppid" : 1,
+         "start_ticks" : "5084045",
+         "state" : "S",
+         "wchan" : "__skb_wait_for_more_packets"
+      },
+      {
+         "exe" : "/home/nate/claude/flash-sass-next/kern/hold",
+         "pid" : 988072,
+         "ppid" : 988070,
+         "start_ticks" : "242021",
+         "state" : "S",
+         "wchan" : "__do_sys_pause"
+      },
+      {
+         "exe" : "/home/nate/claude/flash-sass-live/kern/flashcore",
+         "pid" : 1575007,
+         "ppid" : 1,
+         "start_ticks" : "5084045",
+         "state" : "S",
+         "wchan" : "__skb_wait_for_more_packets"
+      },
+      {
+         "exe" : "/home/nate/claude/flash-sass-next/kern/hold",
+         "pid" : 988080,
+         "ppid" : 988079,
+         "start_ticks" : "242026",
+         "state" : "S",
+         "wchan" : "__do_sys_pause"
+      },
+      {
+         "exe" : "/home/nate/claude/flash-sass-live/kern/flashcore",
+         "pid" : 1575007,
+         "ppid" : 1,
+         "start_ticks" : "5084045",
+         "state" : "S",
+         "wchan" : "__skb_wait_for_more_packets"
+      }
+   ],
+   "nvidia_smi" : {
+      "argv" : [
+         "nvidia-smi"
+      ],
+      "exit" : 0,
+      "stderr" : "",
+      "stdout" : "Sat Oct 17 16:48:21 2026       \n+-----------------------------------------------------------------------------+\n| NVIDIA-SMI 470.256.02   Driver Version: 470.256.02   CUDA Version: 11.4     |\n|-------------------------------+----------------------+----------------------+\n| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |\n| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |\n|                               |                      |               MIG M. |\n|===============================+======================+======================|\n|   0  Tesla M60           On   | 00000000:03:00.0 Off |                    0 |\n| N/A   65C    P0    42W / 150W |   7499MiB /  7618MiB |      0%      Default |\n|                               |                      |                  N/A |\n+-------------------------------+----------------------+----------------------+\n|   1  Tesla M60           On   | 00000000:04:00.0 Off |                    0 |\n| N/A   48C    P0    39W / 150W |   6450MiB /  7618MiB |      0%      Default |\n|                               |                      |                  N/A |\n+-------------------------------+----------------------+----------------------+\n|   2  Tesla M60           On   | 00000000:07:00.0 Off |                    0 |\n| N/A   62C    P0    43W / 150W |   7478MiB /  7618MiB |      0%      Default |\n|                               |                      |                  N/A |\n+-------------------------------+----------------------+----------------------+\n|   3  Tesla M60           On   | 00000000:08:00.0 Off |                    0 |\n| N/A   45C    P0    41W / 150W |   7511MiB /  7618MiB |      0%      Default |\n|                               |                      |                  N/A |\n+-------------------------------+----------------------+----------------------+\n|   4  Tesla M60           On   | 00000000:0B:00.0 Off |                    0 |\n| N/A   76C    P0    46W / 150W |   6463MiB /  7618MiB |      0%      Default |\n|                               |                      |                  N/A |\n+-------------------------------+----------------------+----------------------+\n|   5  Tesla M60           On   | 00000000:0C:00.0 Off |                    0 |\n| N/A   54C    P0    41W / 150W |   6401MiB /  7618MiB |      0%      Default |\n|                               |                      |                  N/A |\n+-------------------------------+----------------------+----------------------+\n|   6  Tesla M60           On   | 00000000:12:00.0 Off |                    0 |\n| N/A   50C    P0    38W / 150W |      3MiB /  7618MiB |      0%      Default |\n|                               |                      |                  N/A |\n+-------------------------------+----------------------+----------------------+\n|   7  Tesla M60           On   | 00000000:13:00.0 Off |                    0 |\n| N/A   32C    P8    13W / 150W |    138MiB /  7618MiB |      0%      Default |\n|                               |                      |                  N/A |\n+-------------------------------+----------------------+----------------------+\n                                                                               \n+-----------------------------------------------------------------------------+\n| Processes:                                                                  |\n|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |\n|        ID   ID                                                   Usage      |\n|=============================================================================|\n|    0   N/A  N/A    974018      C   ./hold                           7177MiB |\n|    0   N/A  N/A   1575007      C   ./flashcore                       133MiB |\n|    1   N/A  N/A    974061      C   ./hold                           6160MiB |\n|    1   N/A  N/A   1575007      C   ./flashcore                        66MiB |\n|    2   N/A  N/A    974103      C   ./fence                          2110MiB |\n|    2   N/A  N/A    988060      C   ./hold                           5116MiB |\n|    2   N/A  N/A   1575007      C   ./flashcore                        66MiB |\n|    3   N/A  N/A    988067      C   ./hold                           7224MiB |\n|    3   N/A  N/A   1575007      C   ./flashcore                        66MiB |\n|    4   N/A  N/A    988072      C   ./hold                           6172MiB |\n|    4   N/A  N/A   1575007      C   ./flashcore                        66MiB |\n|    5   N/A  N/A    988080      C   ./hold                           6179MiB |\n|    5   N/A  N/A   1575007      C   ./flashcore                        66MiB |\n+-----------------------------------------------------------------------------+\n"
+   },
+   "ps" : {
+      "argv" : [
+         "ps",
+         "-eo",
+         "pid,ppid,state,comm"
+      ],
+      "exit" : 0,
+      "stderr" : "",
+      "stdout" : "    PID    PPID S COMMAND\n      1       0 S systemd\n      2       0 S kthreadd\n      3       2 S pool_workqueue_release\n      4       2 I kworker/R-rcu_gp\n      5       2 I kworker/R-sync_wq\n      6       2 I kworker/R-kvfree_rcu_reclaim\n      7       2 I kworker/R-slub_flushwq\n      8       2 I kworker/R-netns\n     10       2 I kworker/0:0H-events_highpri\n     13       2 I kworker/R-mm_percpu_wq\n     14       2 S ksoftirqd/0\n     16       2 I rcu_preempt\n     17       2 S rcub/0\n     18       2 S rcu_exp_par_gp_kthread_worker/0\n     19       2 S rcu_exp_gp_kthread_worker\n     20       2 S migration/0\n     21       2 S idle_inject/0\n     22       2 S cpuhp/0\n     23       2 S cpuhp/1\n     24       2 S idle_inject/1\n     25       2 S migration/1\n     26       2 S ksoftirqd/1\n     28       2 I kworker/1:0H-events_highpri\n     29       2 S cpuhp/2\n     30       2 S idle_inject/2\n     31       2 S migration/2\n     32       2 S ksoftirqd/2\n     34       2 I kworker/2:0H-events_highpri\n     35       2 S cpuhp/3\n     36       2 S idle_inject/3\n     37       2 S migration/3\n     38       2 S ksoftirqd/3\n     40       2 I kworker/3:0H-events_highpri\n     41       2 S cpuhp/4\n     42       2 S idle_inject/4\n     43       2 S migration/4\n     44       2 S ksoftirqd/4\n     46       2 I kworker/4:0H-events_highpri\n     47       2 S cpuhp/5\n     48       2 S idle_inject/5\n     49       2 S migration/5\n     50       2 S ksoftirqd/5\n     52       2 I kworker/5:0H-events_highpri\n     53       2 S cpuhp/6\n     54       2 S idle_inject/6\n     55       2 S migration/6\n     56       2 S ksoftirqd/6\n     58       2 I kworker/6:0H-events_highpri\n     59       2 S cpuhp/7\n     60       2 S idle_inject/7\n     61       2 S migration/7\n     62       2 S ksoftirqd/7\n     64       2 I kworker/7:0H-events_highpri\n     65       2 S cpuhp/8\n     66       2 S idle_inject/8\n     67       2 S migration/8\n     68       2 S ksoftirqd/8\n     70       2 I kworker/8:0H-events_highpri\n     71       2 S cpuhp/9\n     72       2 S idle_inject/9\n     73       2 S migration/9\n     74       2 S ksoftirqd/9\n     76       2 I kworker/9:0H-events_highpri\n     77       2 S cpuhp/10\n     78       2 S idle_inject/10\n     79       2 S migration/10\n     80       2 S ksoftirqd/10\n     82       2 I kworker/10:0H-events_highpri\n     83       2 S cpuhp/11\n     84       2 S idle_inject/11\n     85       2 S migration/11\n     86       2 S ksoftirqd/11\n     88       2 I kworker/11:0H-events_highpri\n     89       2 S kdevtmpfs\n     90       2 I kworker/R-inet_frag_wq\n     91       2 I rcu_tasks_kthread\n     92       2 I rcu_tasks_rude_kthread\n     93       2 I rcu_tasks_trace_kthread\n     94       2 S kauditd\n     95       2 S khungtaskd\n     96       2 S oom_reaper\n     98       2 I kworker/R-writeback\n     99       2 S kcompactd0\n    100       2 S ksmd\n    101       2 S khugepaged\n    102       2 I kworker/R-kblockd\n    103       2 I kworker/R-blkcg_punt_bio\n    104       2 I kworker/R-kintegrityd\n    105       2 S irq/9-acpi\n    107       2 I kworker/R-tpm_dev_wq\n    108       2 I kworker/R-ata_sff\n    109       2 I kworker/R-edac-poller\n    110       2 I kworker/R-devfreq_wq\n    111       2 S watchdogd\n    112       2 I kworker/R-quota_events_unbound\n    113       2 I kworker/0:1H-kblockd\n    115       2 S kswapd0\n    116       2 I kworker/R-kthrotld\n    117       2 I kworker/R-acpi_thermal_pm\n    118       2 S scsi_eh_0\n    119       2 I kworker/R-scsi_tmf_0\n    120       2 S scsi_eh_1\n    121       2 I kworker/R-scsi_tmf_1\n    122       2 S scsi_eh_2\n    123       2 I kworker/R-scsi_tmf_2\n    124       2 S scsi_eh_3\n    125       2 I kworker/R-scsi_tmf_3\n    136       2 I kworker/R-mld\n    138       2 I kworker/2:1H-kblockd\n    139       2 I kworker/R-ipv6_addrconf\n    140       2 I kworker/R-kstrp\n    147       2 I kworker/R-zswap-shrink\n    148       2 I kworker/u49:0\n    153       2 I kworker/9:1H-kblockd\n    170       2 I kworker/11:1H-kblockd\n    171       2 I kworker/10:1H-kblockd\n    172       2 I kworker/3:1H-kblockd\n    173       2 I kworker/1:1H-kblockd\n    177       2 I kworker/7:1H-kblockd\n    181       2 I kworker/5:1H-kblockd\n    224       2 I kworker/4:1H-kblockd\n    225       2 I kworker/6:1H-kblockd\n    226       2 I kworker/8:1H-kblockd\n    250       2 S jbd2/sdb3-8\n    251       2 I kworker/R-ext4-rsv-conversion\n    331       1 S systemd-userdbd\n    335       2 S nv_queue\n    336       2 S nv_queue\n    344       2 S psimon\n    347       1 S systemd-timesyn\n    352       1 S systemd-udevd\n    354       2 S psimon\n    356       2 S UVM global queue\n    357       2 S UVM deferred release queue\n    358       2 S UVM Tools Event Queue\n    425       2 S irq/42-mei_me\n    431       2 S nvidia-modeset/kthread_q\n    432       2 S nvidia-modeset/deferred_close_kthread_q\n    435       2 S irq/44-nvidia\n    436       2 S nvidia\n    437       2 S nv_queue\n    492       1 S dbus-broker-lau\n    497     492 S dbus-broker\n    498       1 S NetworkManager\n    499       1 S avahi-daemon\n    500       1 S lms\n    501       1 S systemd-logind\n    530     499 S avahi-daemon\n    565       1 S sshd\n    576       1 S systemd\n    578       1 S containerd\n    582     576 S (sd-pam)\n    604       2 S irq/46-nvidia\n    605       2 S nvidia\n    606       2 S nv_queue\n    615     576 S dbus-broker-lau\n    621     615 S dbus-broker\n    622     576 S node-MainThread\n    623     576 S nmz-chat-gw\n    624     576 S pipewire\n    625     576 S bash\n    626     576 S wireplumber\n    627     576 S pipewire-pulse\n    628     576 S llama-server\n    631     576 S socat\n    632     576 S socat\n    655       1 S rtkit-daemon\n    662       1 S polkitd\n    738       2 S irq/47-nvidia\n    739       2 S nvidia\n    740       2 S nv_queue\n    749       1 S cloudflared\n    750       1 S dockerd\n    751       1 S ollama\n    783       2 S irq/49-nvidia\n    784       2 S nvidia\n    785       2 S nv_queue\n    802       2 S jbd2/sda3-8\n    803       2 I kworker/R-ext4-rsv-conversion\n    806     565 S sshd-session\n    807     565 S sshd-session\n    831     565 S sshd-session\n    857       2 S irq/50-nvidia\n    858       2 S nvidia\n    859       2 S nv_queue\n    863     806 S sshd-session\n    871     807 S sshd-session\n    878     831 S sshd-session\n    966     565 S sshd-session\n    973     966 S sshd-session\n   1230       1 S containerd-shim\n   1231       1 S containerd-shim\n   1278    1230 S mlflow\n   1279    1231 S nginx\n   1308     750 S docker-proxy\n   1355    1279 S nginx\n   1356    1279 S nginx\n   1357    1279 S nginx\n   1358    1279 S nginx\n   1359    1279 S nginx\n   1360    1279 S nginx\n   1361    1279 S nginx\n   1362    1279 S nginx\n   1363    1279 S nginx\n   1364    1279 S nginx\n   1365    1279 S nginx\n   1366    1279 S nginx\n   1471       1 S codex\n   1488       2 S irq/51-nvidia\n   1489       2 S nvidia\n   1491       2 S nv_queue\n   1686       2 S irq/52-nvidia\n   1687       2 S nvidia\n   1688       2 S nv_queue\n   1821     565 S sshd-session\n   1824    1821 S sshd-session\n   1825    1824 S bash\n   1851       2 S irq/53-nvidia\n   1852       2 S nvidia\n   1853       2 S nv_queue\n   1877       1 S plasmalogin\n   1947       2 I kworker/R-rpciod\n   1948       2 I kworker/R-xprtiod\n   1960       2 I kworker/R-nfsiod\n   1982    1877 S plasmalogin-hel\n   2003       1 S rpcbind\n   2009       1 S systemd\n   2011    2009 S (sd-pam)\n   2017       1 S rpc.statd\n   2151    1982 S startplasma-log\n   2154       2 I lockd\n   2262    2009 S dbus-broker-lau\n   2267    2262 S dbus-broker\n   2343     565 S sshd-session\n   2359    2343 S sshd-session\n   2360    2359 S codex\n   3013    1278 S python3.11\n   3014    1278 S python3.11\n   3077    3013 S python3.11\n   3078    3013 S python3.11\n   3079    3013 S python3.11\n   3080    3013 S python3.11\n   3081    3013 S python3.11\n   3401    3014 S python3.11\n   3403    3014 S python3.11\n   3405    3014 S python3.11\n   3407    3014 S python3.11\n   3411    3014 S python3.11\n   3412    3014 S python3.11\n   3413    3014 S python3.11\n   3780     565 S sshd-session\n   3784    3780 S sshd-session\n   4496     565 S sshd-session\n   4497     565 S sshd-session\n   4514    4497 S sshd-session\n   4517    4496 S sshd-session\n   4891     565 S sshd-session\n   4911    4891 S sshd-session\n   6840     576 S nates-dsh\n   6925    6840 S pw-top\n 950518       1 S bash\n 950520       1 S nvidia-smi\n 974015       1 S flock\n 974018  974015 S hold\n 974058       1 S flock\n 974061  974058 S hold\n 974100       1 S flock\n 974103  974100 S fence\n 988058       1 S flock\n 988060  988058 S hold\n 988065       1 S flock\n 988067  988065 S hold\n 988070       1 S flock\n 988072  988070 S hold\n 988079       1 S flock\n 988080  988079 S hold\n1009083       2 S psimon\n1575007       1 S flashcore\n1578451       1 S flashd\n1875170       1 S systemd-journal\n2272251       2 I kworker/u48:3-nfsiod\n2455932       2 I kworker/u48:7-xprtiod\n2615199       2 I kworker/u48:0-nfsiod\n2688617       2 I kworker/9:0-events\n2695449       2 I kworker/1:2-mm_percpu_wq\n2726949       2 I kworker/5:2-mm_percpu_wq\n2774433       2 I kworker/7:0-mm_percpu_wq\n2798045       2 I kworker/3:0-mm_percpu_wq\n2800170       2 I kworker/4:0-mm_percpu_wq\n2805936     576 S llama-server\n2809424       2 I kworker/2:1-mm_percpu_wq\n2861200       2 I kworker/8:0-cgroup_free\n2867792       2 I kworker/6:1-cgroup_free\n2871085     576 S llama-server\n2872195     565 S sshd-session\n2872212 2872195 S sshd-session\n2872213 2872212 S bash\n2880285       2 I kworker/11:1-events\n2885545       2 I kworker/0:2-mm_percpu_wq\n2886092       2 I kworker/9:1-cgroup_release\n2895480       2 I kworker/10:1-events\n2905447       2 I kworker/8:2-events\n2907081       2 I kworker/u48:1-rpciod\n2911670    1825 S btop\n2917333       2 I kworker/11:2-mm_percpu_wq\n2920030     565 S sshd-session\n2920039 2920030 S sshd-session\n2920040 2920039 S bash\n2920041 2920040 S bash\n2931467       2 I kworker/10:0-cgroup_release\n2932394       2 I kworker/6:0-mm_percpu_wq\n2935144       2 I kworker/3:1-mm_percpu_wq\n2935986       2 I kworker/2:0-cgroup_free\n2941412       2 I kworker/4:1-cgroup_free\n2941723       2 I kworker/0:1-events\n2943151       2 I kworker/7:2-events\n2947065       2 I kworker/5:1-cgroup_free\n2954201       2 I kworker/1:1-events\n2962783       2 I kworker/9:2-events\n2965599     331 S systemd-userwor\n2965600     331 S systemd-userwor\n2965615       2 I kworker/8:1-events\n2968009     565 S sshd-session\n2968027 2968009 S sshd-session\n2968028 2968027 S bash\n2968029 2968028 D model_reference\n2968092       2 I kworker/11:0\n2971706       2 I kworker/u48:2-xprtiod\n2972539       2 I kworker/2:2-cgroup_free\n2976703       2 I kworker/3:2-events\n2977866       2 I kworker/10:2-cgroup_free\n2981538     331 S systemd-userwor\n2981564       2 I kworker/6:2\n2985076     625 S sleep\n2986409       2 I kworker/4:2-cgroup_free\n2988249       1 S bash\n2989223 2872213 S sleep\n2989445 2988249 S perl\n2989608 2920041 S sleep\n2989625  950518 S bash\n2989626 2989625 S nvidia-smi\n2989627 2989625 S awk\n2989637 2989445 R ps\n"
+   },
+   "stage" : "before-host"
+}

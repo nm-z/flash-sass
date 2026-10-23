@@ -1,0 +1,76 @@
+{
+  "core": "/home/nate/claude/pr38-runtime-bac5b88/kern/flashcore",
+  "library": "/home/nate/claude/pr38-runtime-bac5b88/kern/libengine.so",
+  "cubin": "/home/nate/claude/pr38-runtime-bac5b88/kern/die.cubin",
+  "trace_cubin": "/home/nate/claude/pr38-runtime-bac5b88/kern/die_trace.cubin",
+  "ple_file": "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+  "holder_manifests": [
+    "/tmp/hold-h0.manifest",
+    "/tmp/hold-h1.manifest",
+    "/tmp/hold-h2.manifest",
+    "/tmp/hold-h3.manifest",
+    "/tmp/hold-h4.manifest",
+    "/tmp/hold-h5.manifest"
+  ],
+  "source_sha": "bac5b88b665ee6973488dd40b363ded3134136f6",
+  "dirty_patch": "/home/nate/claude/pr38-runtime-bac5b88/runtime-controls.patch",
+  "weight_manifest": "/home/nate/claude/flash-sass-prs/weights-sha256.json",
+  "build_record": "/home/nate/claude/pr38-runtime-bac5b88/build-record.json",
+  "launch_environment": {
+    "PATH": "/usr/local/sbin:/usr/local/bin:/usr/bin:/bin",
+    "LD_LIBRARY_PATH": "/usr/lib",
+    "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
+    "CUDA_VISIBLE_DEVICES": "0,1,2,3,4,5,7",
+    "FLASH_MAXT": "8192",
+    "FLASH_ENGINE_MAXT": "8192",
+    "FLASH_TRACE": "129",
+    "FLASH_NBLK": "512",
+    "FLASH_LAYERS": "48",
+    "FLASH_MAXIMG": "1",
+    "FLASH_PLE_DISK": "1",
+    "FLASH_PLE_OFF": "192",
+    "FLASH_ANCHOR_DIE": "7",
+    "SPLIT_SHARES": "112,97,81,116,97,97",
+    "ATTN_DIE": "1",
+    "ATTN_MAP": "1,1,1,1,4,4,4,4,5,5,5,5"
+  },
+  "depths": [
+    2048,
+    2051,
+    2052,
+    3100,
+    8000,
+    65000,
+    262000
+  ],
+  "pairs": 5,
+  "outputs": 129,
+  "poll_ms": 100,
+  "clock_policy": {
+    "sm_min_mhz": 870,
+    "sm_max_mhz": 876,
+    "memory_mhz": 2505,
+    "max_pair_mean_delta_mhz": 3,
+    "max_sample_gap_ms": 500,
+    "allowed_throttle_mask": 3
+  },
+  "lock_path": "/tmp/flash-sass-engine-validation.lock",
+  "passive_pids": [],
+  "parking": {
+    "pid": 1575007,
+    "socket": "/tmp/flash.sock",
+    "library": "/home/nate/claude/flash-sass-live/kern/libengine.so",
+    "executable": "/home/nate/claude/flash-sass-live/kern/flashcore",
+    "null_library": "/home/nate/claude/pr38-runtime-bac5b88/kern/nullengine.so",
+    "clock_gpus": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "sm_mhz": 873,
+    "memory_mhz": 2505
+  }
+}

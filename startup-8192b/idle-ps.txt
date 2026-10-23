@@ -1,0 +1,341 @@
+    PID    PPID S WCHAN                            %CPU     ELAPSED COMMAND
+      1       0 S -                                 0.1    17:42:55 /usr/lib/systemd/systemd --switched-root --system --deserialize=52
+      2       0 S -                                 0.0    17:42:55 [kthreadd]
+      3       2 S -                                 0.0    17:42:55 [pool_workqueue_release]
+      4       2 I -                                 0.0    17:42:55 [kworker/R-rcu_gp]
+      5       2 I -                                 0.0    17:42:55 [kworker/R-sync_wq]
+      6       2 I -                                 0.0    17:42:55 [kworker/R-kvfree_rcu_reclaim]
+      7       2 I -                                 0.0    17:42:55 [kworker/R-slub_flushwq]
+      8       2 I -                                 0.0    17:42:55 [kworker/R-netns]
+     10       2 I -                                 0.0    17:42:55 [kworker/0:0H-events_highpri]
+     13       2 I -                                 0.0    17:42:55 [kworker/R-mm_percpu_wq]
+     14       2 S -                                 0.0    17:42:55 [ksoftirqd/0]
+     16       2 I -                                 0.1    17:42:55 [rcu_preempt]
+     17       2 S -                                 0.0    17:42:55 [rcub/0]
+     18       2 S -                                 0.0    17:42:55 [rcu_exp_par_gp_kthread_worker/0]
+     19       2 S -                                 0.0    17:42:55 [rcu_exp_gp_kthread_worker]
+     20       2 S -                                 0.0    17:42:55 [migration/0]
+     21       2 S -                                 0.0    17:42:55 [idle_inject/0]
+     22       2 S -                                 0.0    17:42:55 [cpuhp/0]
+     23       2 S -                                 0.0    17:42:55 [cpuhp/1]
+     24       2 S -                                 0.0    17:42:55 [idle_inject/1]
+     25       2 S -                                 0.0    17:42:55 [migration/1]
+     26       2 S -                                 0.0    17:42:55 [ksoftirqd/1]
+     28       2 I -                                 0.0    17:42:55 [kworker/1:0H-events_highpri]
+     29       2 S -                                 0.0    17:42:55 [cpuhp/2]
+     30       2 S -                                 0.0    17:42:55 [idle_inject/2]
+     31       2 S -                                 0.0    17:42:55 [migration/2]
+     32       2 S -                                 0.0    17:42:55 [ksoftirqd/2]
+     34       2 I -                                 0.0    17:42:55 [kworker/2:0H-events_highpri]
+     35       2 S -                                 0.0    17:42:55 [cpuhp/3]
+     36       2 S -                                 0.0    17:42:55 [idle_inject/3]
+     37       2 S -                                 0.0    17:42:55 [migration/3]
+     38       2 S -                                 0.0    17:42:55 [ksoftirqd/3]
+     40       2 I -                                 0.0    17:42:55 [kworker/3:0H-events_highpri]
+     41       2 S -                                 0.0    17:42:55 [cpuhp/4]
+     42       2 S -                                 0.0    17:42:55 [idle_inject/4]
+     43       2 S -                                 0.0    17:42:55 [migration/4]
+     44       2 S -                                 0.0    17:42:55 [ksoftirqd/4]
+     46       2 I -                                 0.0    17:42:55 [kworker/4:0H-events_highpri]
+     47       2 S -                                 0.0    17:42:55 [cpuhp/5]
+     48       2 S -                                 0.0    17:42:55 [idle_inject/5]
+     49       2 S -                                 0.0    17:42:55 [migration/5]
+     50       2 S -                                 0.0    17:42:55 [ksoftirqd/5]
+     52       2 I -                                 0.0    17:42:55 [kworker/5:0H-events_highpri]
+     53       2 S -                                 0.0    17:42:55 [cpuhp/6]
+     54       2 S -                                 0.0    17:42:55 [idle_inject/6]
+     55       2 S -                                 0.0    17:42:55 [migration/6]
+     56       2 S -                                 0.0    17:42:55 [ksoftirqd/6]
+     58       2 I -                                 0.0    17:42:55 [kworker/6:0H-events_highpri]
+     59       2 S -                                 0.0    17:42:55 [cpuhp/7]
+     60       2 S -                                 0.0    17:42:55 [idle_inject/7]
+     61       2 S -                                 0.0    17:42:55 [migration/7]
+     62       2 S -                                 0.0    17:42:55 [ksoftirqd/7]
+     64       2 I -                                 0.0    17:42:55 [kworker/7:0H-events_highpri]
+     65       2 S -                                 0.0    17:42:55 [cpuhp/8]
+     66       2 S -                                 0.0    17:42:55 [idle_inject/8]
+     67       2 S -                                 0.0    17:42:55 [migration/8]
+     68       2 S -                                 0.0    17:42:55 [ksoftirqd/8]
+     70       2 I -                                 0.0    17:42:55 [kworker/8:0H-events_highpri]
+     71       2 S -                                 0.0    17:42:55 [cpuhp/9]
+     72       2 S -                                 0.0    17:42:55 [idle_inject/9]
+     73       2 S -                                 0.0    17:42:55 [migration/9]
+     74       2 S -                                 0.0    17:42:55 [ksoftirqd/9]
+     76       2 I -                                 0.0    17:42:55 [kworker/9:0H-events_highpri]
+     77       2 S -                                 0.0    17:42:55 [cpuhp/10]
+     78       2 S -                                 0.0    17:42:55 [idle_inject/10]
+     79       2 S -                                 0.0    17:42:55 [migration/10]
+     80       2 S -                                 0.0    17:42:55 [ksoftirqd/10]
+     82       2 I -                                 0.0    17:42:55 [kworker/10:0H-events_highpri]
+     83       2 S -                                 0.0    17:42:55 [cpuhp/11]
+     84       2 S -                                 0.0    17:42:55 [idle_inject/11]
+     85       2 S -                                 0.0    17:42:55 [migration/11]
+     86       2 S -                                 0.0    17:42:55 [ksoftirqd/11]
+     88       2 I -                                 0.0    17:42:55 [kworker/11:0H-events_highpri]
+     89       2 S -                                 0.0    17:42:55 [kdevtmpfs]
+     90       2 I -                                 0.0    17:42:55 [kworker/R-inet_frag_wq]
+     91       2 I -                                 0.0    17:42:55 [rcu_tasks_kthread]
+     92       2 I -                                 0.0    17:42:55 [rcu_tasks_rude_kthread]
+     93       2 I -                                 0.0    17:42:55 [rcu_tasks_trace_kthread]
+     94       2 S -                                 0.0    17:42:55 [kauditd]
+     95       2 S -                                 0.0    17:42:55 [khungtaskd]
+     96       2 S -                                 0.0    17:42:55 [oom_reaper]
+     98       2 I -                                 0.0    17:42:55 [kworker/R-writeback]
+     99       2 S -                                 0.1    17:42:55 [kcompactd0]
+    100       2 S -                                 0.0    17:42:55 [ksmd]
+    101       2 S -                                 0.0    17:42:55 [khugepaged]
+    102       2 I -                                 0.0    17:42:55 [kworker/R-kblockd]
+    103       2 I -                                 0.0    17:42:55 [kworker/R-blkcg_punt_bio]
+    104       2 I -                                 0.0    17:42:55 [kworker/R-kintegrityd]
+    105       2 S -                                 0.0    17:42:55 [irq/9-acpi]
+    107       2 I -                                 0.0    17:42:55 [kworker/R-tpm_dev_wq]
+    108       2 I -                                 0.0    17:42:55 [kworker/R-ata_sff]
+    109       2 I -                                 0.0    17:42:55 [kworker/R-edac-poller]
+    110       2 I -                                 0.0    17:42:55 [kworker/R-devfreq_wq]
+    111       2 S -                                 0.0    17:42:55 [watchdogd]
+    112       2 I -                                 0.0    17:42:55 [kworker/R-quota_events_unbound]
+    113       2 I -                                 0.0    17:42:55 [kworker/0:1H-kblockd]
+    115       2 S -                                 0.1    17:42:55 [kswapd0]
+    116       2 I -                                 0.0    17:42:55 [kworker/R-kthrotld]
+    117       2 I -                                 0.0    17:42:55 [kworker/R-acpi_thermal_pm]
+    118       2 S -                                 0.0    17:42:55 [scsi_eh_0]
+    119       2 I -                                 0.0    17:42:55 [kworker/R-scsi_tmf_0]
+    120       2 S -                                 0.0    17:42:55 [scsi_eh_1]
+    121       2 I -                                 0.0    17:42:55 [kworker/R-scsi_tmf_1]
+    122       2 S -                                 0.0    17:42:55 [scsi_eh_2]
+    123       2 I -                                 0.0    17:42:55 [kworker/R-scsi_tmf_2]
+    124       2 S -                                 0.0    17:42:55 [scsi_eh_3]
+    125       2 I -                                 0.0    17:42:55 [kworker/R-scsi_tmf_3]
+    136       2 I -                                 0.0    17:42:55 [kworker/R-mld]
+    138       2 I -                                 0.0    17:42:55 [kworker/2:1H-kblockd]
+    139       2 I -                                 0.0    17:42:55 [kworker/R-ipv6_addrconf]
+    140       2 I -                                 0.0    17:42:55 [kworker/R-kstrp]
+    147       2 I -                                 0.0    17:42:55 [kworker/R-zswap-shrink]
+    148       2 I -                                 0.0    17:42:55 [kworker/u49:0]
+    153       2 I -                                 0.0    17:42:54 [kworker/9:1H-kblockd]
+    170       2 I -                                 0.0    17:42:54 [kworker/11:1H-kblockd]
+    171       2 I -                                 0.0    17:42:54 [kworker/10:1H-kblockd]
+    172       2 I -                                 0.0    17:42:54 [kworker/3:1H-kblockd]
+    173       2 I -                                 0.0    17:42:54 [kworker/1:1H-kblockd]
+    177       2 I -                                 0.0    17:42:54 [kworker/7:1H-kblockd]
+    181       2 I -                                 0.0    17:42:54 [kworker/5:1H-kblockd]
+    224       2 I -                                 0.0    17:42:54 [kworker/4:1H-kblockd]
+    225       2 I -                                 0.0    17:42:54 [kworker/6:1H-kblockd]
+    226       2 I -                                 0.0    17:42:54 [kworker/8:1H-kblockd]
+    250       2 S -                                 0.0    17:42:53 [jbd2/sdb3-8]
+    251       2 I -                                 0.0    17:42:53 [kworker/R-ext4-rsv-conversion]
+    331       1 S -                                 0.0    17:42:51 /usr/lib/systemd/systemd-userdbd
+    335       2 S -                                 0.0    17:42:51 [nv_queue]
+    336       2 S -                                 0.0    17:42:51 [nv_queue]
+    344       2 S -                                 0.0    17:42:50 [psimon]
+    347       1 S -                                 0.0    17:42:50 /usr/lib/systemd/systemd-timesyncd
+    352       1 S -                                 0.0    17:42:49 /usr/lib/systemd/systemd-udevd
+    354       2 S -                                 0.0    17:42:49 [psimon]
+    356       2 S -                                 0.0    17:42:49 [UVM global queue]
+    357       2 S -                                 0.0    17:42:49 [UVM deferred release queue]
+    358       2 S -                                 0.0    17:42:49 [UVM Tools Event Queue]
+    425       2 S -                                 0.0    17:42:49 [irq/42-mei_me]
+    431       2 S -                                 0.0    17:42:49 [nvidia-modeset/kthread_q]
+    432       2 S -                                 0.0    17:42:49 [nvidia-modeset/deferred_close_kthread_q]
+    435       2 S -                                 0.0    17:42:49 [irq/44-nvidia]
+    436       2 S -                                 0.0    17:42:49 [nvidia]
+    437       2 S -                                 0.0    17:42:49 [nv_queue]
+    492       1 S -                                 0.0    17:42:49 /usr/bin/dbus-broker-launch --scope system --audit
+    497     492 S -                                 0.0    17:42:49 dbus-broker --log 10 --controller 9 --machine-id 819081fae74c49418fb92eb3ced90bfd --max-bytes 536870912 --max-fds 4096 --max-matches 131072 --audit
+    498       1 S -                                 0.0    17:42:49 /usr/bin/NetworkManager --no-daemon
+    499       1 S -                                 0.0    17:42:49 avahi-daemon: running [archy.local]
+    500       1 S -                                 0.0    17:42:49 /usr/bin/lms
+    501       1 S -                                 0.0    17:42:49 /usr/lib/systemd/systemd-logind
+    530     499 S -                                 0.0    17:42:49 avahi-daemon: chroot helper
+    565       1 S -                                 0.0    17:42:48 sshd: /usr/bin/sshd -D [listener] 0 of 200-400 startups
+    576       1 S -                                 0.0    17:42:48 /usr/lib/systemd/systemd --user
+    578       1 S -                                 0.0    17:42:48 /usr/bin/containerd
+    582     576 S -                                 0.0    17:42:48 (sd-pam)
+    604       2 S -                                 0.0    17:42:47 [irq/46-nvidia]
+    605       2 S -                                 0.0    17:42:47 [nvidia]
+    606       2 S -                                 0.0    17:42:47 [nv_queue]
+    615     576 S do_epoll_wait                     0.0    17:42:47 /usr/bin/dbus-broker-launch --scope user
+    621     615 S do_epoll_wait                     0.0    17:42:47 dbus-broker --log 11 --controller 10 --machine-id 819081fae74c49418fb92eb3ced90bfd --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+    622     576 S do_epoll_wait                     0.0    17:42:47 /usr/bin/node /home/nate/kestrel-tilt-web/server.mjs
+    623     576 S inet_csk_accept                   0.0    17:42:47 /home/nate/.local/bin/nmz-chat-gw
+    624     576 S do_epoll_wait                     0.1    17:42:47 /usr/bin/pipewire
+    625     576 S do_wait                           0.0    17:42:47 /usr/bin/bash /home/nate/codex/ci-trials-ingest.sh
+    626     576 S poll_schedule_timeout.constprop.  0.3    17:42:47 /usr/bin/wireplumber
+    627     576 S do_epoll_wait                     0.0    17:42:47 /usr/bin/pipewire-pulse
+    628     576 S futex_do_wait                     0.0    17:42:47 /home/nate/codex/sol-stop-hook-jev/query-cpu/bin/llama-server --model /home/nate/models/stop-hook/Nemotron-3-Embed-8B-Q8_0.gguf --device none --n-gpu-layers 0 --embedding --pooling mean --metrics --load-mode mmap --threads 4 --threads-batch 4 --host 127.0.0.1 --port 18767 --ctx-size 2048 --parallel 1 --batch-size 512 --ubatch-size 512
+    631     576 S poll_schedule_timeout.constprop.  0.0    17:42:47 /usr/bin/socat TCP-LISTEN:18464,bind=127.0.0.1,reuseaddr,fork TCP:127.0.0.1:18462
+    632     576 S poll_schedule_timeout.constprop.  0.0    17:42:47 /usr/bin/socat TCP-LISTEN:18465,bind=127.0.0.1,reuseaddr,fork TCP:127.0.0.1:18462
+    655       1 S -                                 0.0    17:42:46 /usr/lib/rtkit-daemon
+    662       1 S -                                 0.0    17:42:46 /usr/lib/polkit-1/polkitd --no-debug --log-level=notice
+    738       2 S -                                 0.0    17:42:45 [irq/47-nvidia]
+    739       2 S -                                 0.0    17:42:45 [nvidia]
+    740       2 S -                                 0.0    17:42:45 [nv_queue]
+    749       1 S futex_do_wait                     0.2    17:42:45 /usr/bin/cloudflared --no-autoupdate tunnel --config /home/nate/.cloudflared/llamacpp-archy.yml run
+    750       1 S -                                 0.0    17:42:45 /usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock
+    751       1 S -                                 0.0    17:42:45 /usr/bin/ollama serve
+    783       2 S -                                 0.0    17:42:43 [irq/49-nvidia]
+    784       2 S -                                 0.0    17:42:43 [nvidia]
+    785       2 S -                                 0.0    17:42:43 [nv_queue]
+    802       2 S -                                 0.0    17:42:42 [jbd2/sda3-8]
+    803       2 I -                                 0.0    17:42:42 [kworker/R-ext4-rsv-conversion]
+    806     565 S -                                 0.0    17:42:42 sshd-session: nate [postauth]
+    807     565 S -                                 0.0    17:42:42 sshd-session: nate [postauth]
+    831     565 S -                                 0.0    17:42:41 sshd-session: nate [postauth]
+    857       2 S -                                 0.0    17:42:41 [irq/50-nvidia]
+    858       2 S -                                 0.0    17:42:41 [nvidia]
+    859       2 S -                                 0.0    17:42:41 [nv_queue]
+    863     806 S -                                 0.0    17:42:41 sshd-session: nate
+    871     807 S -                                 0.0    17:42:41 sshd-session: nate
+    878     831 S -                                 0.0    17:42:40 sshd-session: nate
+    966     565 S -                                 0.0    17:42:38 sshd-session: nate [postauth]
+    973     966 S -                                 0.0    17:42:38 sshd-session: nate
+   1230       1 S -                                 0.0    17:42:36 /usr/bin/containerd-shim-runc-v2 -namespace moby -id 27e8add84bc5e58102ec8b3f3fc7fc7bb167d31f3963c8855c43500492e40de7 -address /run/containerd/containerd.sock
+   1231       1 S -                                 0.0    17:42:36 /usr/bin/containerd-shim-runc-v2 -namespace moby -id 56921008b76722271df8cee0b66bbce8e3a1deff3c3034057970e005d3096f78 -address /run/containerd/containerd.sock
+   1278    1230 S -                                 0.0    17:42:36 /usr/local/bin/python3.11 /usr/local/bin/mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:////mlflow/db/mlflow.db --default-artifact-root mlflow-artifacts:/ --serve-artifacts --artifacts-destination /mlflow/artifacts --allowed-hosts mlflow.nm-z.com,localhost,127.0.0.1,192.168.1.218,archy,archy.local,localhost:5000,127.0.0.1:5000,192.168.1.218:5000,archy:5000,archy.local:5000 --cors-allowed-origins https://mlflow.nm-z.com
+   1279    1231 S -                                 0.0    17:42:36 nginx: master process nginx -g daemon off;
+   1308     750 S -                                 0.0    17:42:36 /usr/bin/docker-proxy -proto tcp -host-ip 127.0.0.1 -host-port 8094 -container-ip 172.17.0.2 -container-port 80 -use-listen-fd
+   1355    1279 S -                                 0.0    17:42:35 nginx: worker process
+   1356    1279 S -                                 0.0    17:42:35 nginx: worker process
+   1357    1279 S -                                 0.0    17:42:35 nginx: worker process
+   1358    1279 S -                                 0.0    17:42:35 nginx: worker process
+   1359    1279 S -                                 0.0    17:42:35 nginx: worker process
+   1360    1279 S -                                 0.0    17:42:35 nginx: worker process
+   1361    1279 S -                                 0.0    17:42:35 nginx: worker process
+   1362    1279 S -                                 0.0    17:42:35 nginx: worker process
+   1363    1279 S -                                 0.0    17:42:35 nginx: worker process
+   1364    1279 S -                                 0.0    17:42:35 nginx: worker process
+   1365    1279 S -                                 0.0    17:42:35 nginx: worker process
+   1366    1279 S -                                 0.0    17:42:35 nginx: worker process
+   1471       1 S futex_do_wait                     0.0    17:42:32 codex -c features.code_mode_host=true app-server --listen unix://
+   1488       2 S -                                 0.0    17:42:32 [irq/51-nvidia]
+   1489       2 S -                                 0.0    17:42:32 [nvidia]
+   1491       2 S -                                 0.0    17:42:32 [nv_queue]
+   1686       2 S -                                 0.0    17:42:23 [irq/52-nvidia]
+   1687       2 S -                                 0.0    17:42:23 [nvidia]
+   1688       2 S -                                 0.0    17:42:23 [nv_queue]
+   1821     565 S -                                 0.0    17:42:21 sshd-session: nate [postauth]
+   1824    1821 S -                                 0.1    17:42:20 sshd-session: nate@pts/1
+   1825    1824 S do_wait                           0.0    17:42:20 -bash
+   1851       2 S -                                 0.0    17:42:20 [irq/53-nvidia]
+   1852       2 S -                                 0.0    17:42:20 [nvidia]
+   1853       2 S -                                 0.0    17:42:20 [nv_queue]
+   1877       1 S -                                 0.0    17:42:18 /usr/bin/plasmalogin
+   1947       2 I -                                 0.0    17:42:17 [kworker/R-rpciod]
+   1948       2 I -                                 0.0    17:42:17 [kworker/R-xprtiod]
+   1960       2 I -                                 0.0    17:42:17 [kworker/R-nfsiod]
+   1982    1877 S -                                 0.0    17:42:17 /usr/lib/plasmalogin-helper --socket /tmp/plasmalogin-auth-ec4ebdb4-de8d-498b-aba7-0a76412c3cfe --id 2 --start /usr/bin/startplasma-login-wayland --user plasmalogin --greeter
+   2003       1 S -                                 0.0    17:42:16 /usr/bin/rpcbind -w -f
+   2009       1 S -                                 0.0    17:42:16 /usr/lib/systemd/systemd --user
+   2011    2009 S -                                 0.0    17:42:16 (sd-pam)
+   2017       1 S -                                 0.0    17:42:16 /usr/sbin/rpc.statd
+   2151    1982 S -                                 0.0    17:42:16 /usr/bin/startplasma-login-wayland
+   2154       2 I -                                 0.0    17:42:16 [lockd]
+   2262    2009 S -                                 0.0    17:42:15 /usr/bin/dbus-broker-launch --scope user
+   2267    2262 S -                                 0.0    17:42:14 dbus-broker --log 11 --controller 10 --machine-id 819081fae74c49418fb92eb3ced90bfd --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+   2343     565 S -                                 0.0    17:42:14 sshd-session: nate [postauth]
+   2359    2343 S -                                 0.0    17:42:14 sshd-session: nate@notty
+   2360    2359 S futex_do_wait                     0.0    17:42:14 codex app-server proxy
+   3013    1278 S -                                 0.0    17:42:06 /usr/local/bin/python3.11 -m uvicorn --log-config /usr/local/lib/python3.11/site-packages/mlflow/server/uvicorn_log_config.yaml --host 0.0.0.0 --port 5000 --workers 4 mlflow.server.fastapi_app:app
+   3014    1278 S -                                 0.0    17:42:06 /usr/local/bin/python3.11 -m mlflow.server.jobs._job_runner
+   3077    3013 S -                                 0.0    17:42:06 /usr/local/bin/python3.11 -c from multiprocessing.resource_tracker import main;main(6)
+   3078    3013 S -                                 0.1    17:42:06 /usr/local/bin/python3.11 -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=7, pipe_handle=9) --multiprocessing-fork
+   3079    3013 S -                                 0.1    17:42:06 /usr/local/bin/python3.11 -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=7, pipe_handle=13) --multiprocessing-fork
+   3080    3013 S -                                 0.1    17:42:06 /usr/local/bin/python3.11 -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=7, pipe_handle=17) --multiprocessing-fork
+   3081    3013 S -                                 0.1    17:42:06 /usr/local/bin/python3.11 -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=7, pipe_handle=21) --multiprocessing-fork
+   3401    3014 S -                                 0.0    17:42:03 /usr/local/bin/python3.11 -m huey.bin.huey_consumer mlflow.server.jobs._huey_consumer.huey_instance -w 10 -q
+   3403    3014 S -                                 0.0    17:42:03 /usr/local/bin/python3.11 -m huey.bin.huey_consumer mlflow.server.jobs._huey_consumer.huey_instance -w 10 -q
+   3405    3014 S -                                 0.0    17:42:03 /usr/local/bin/python3.11 -m huey.bin.huey_consumer mlflow.server.jobs._huey_consumer.huey_instance -w 5 -q
+   3407    3014 S -                                 0.0    17:42:03 /usr/local/bin/python3.11 -m huey.bin.huey_consumer mlflow.server.jobs._huey_consumer.huey_instance -w 10 -q
+   3411    3014 S -                                 0.1    17:42:03 /usr/local/bin/python3.11 -m huey.bin.huey_consumer mlflow.server.jobs._periodic_tasks_consumer.huey_instance -w 5 -q -f
+   3412    3014 S -                                 0.0    17:42:03 /usr/local/bin/python3.11 -m huey.bin.huey_consumer mlflow.server.jobs._huey_consumer.huey_instance -w 2 -q
+   3413    3014 S -                                 0.0    17:42:03 /usr/local/bin/python3.11 -m huey.bin.huey_consumer mlflow.server.jobs._huey_consumer.huey_instance -w 5 -q
+   3780     565 S -                                 0.0    17:42:00 sshd-session: nate [postauth]
+   3784    3780 S -                                 0.0    17:42:00 sshd-session: nate
+   4496     565 S -                                 0.0    17:41:52 sshd-session: nate [postauth]
+   4497     565 S -                                 0.0    17:41:52 sshd-session: nate [postauth]
+   4514    4497 S -                                 0.0    17:41:51 sshd-session: nate
+   4517    4496 S -                                 0.0    17:41:51 sshd-session: nate
+   4891     565 S -                                 0.0    17:41:47 sshd-session: nate [postauth]
+   4911    4891 S -                                 0.0    17:41:47 sshd-session: nate
+   6840     576 S skb_wait_for_more_packets         0.4    17:41:25 /home/nate/.local/bin/nates-dsh --config /home/nate/.config/nates-dsh.toml serve
+   6925    6840 S do_epoll_wait                     0.0    17:41:24 pw-top -b
+ 950518       1 S do_wait                           0.0    17:03:26 bash /home/nate/thermalwd.sh 92
+ 950520       1 S hrtimer_nanosleep                 2.1    17:03:26 nvidia-smi --query-gpu=timestamp,index,power.draw,temperature.gpu,clocks.sm,memory.used,clocks_throttle_reasons.active --format=csv,noheader -l 2 -f /home/nate/flash-power2.csv
+ 974015       1 S do_wait                           0.0    17:02:51 flock -s -n /home/nate/codex/asm-port/GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974018  974015 S do_sys_pause                      0.0    17:02:51 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974058       1 S do_wait                           0.0    17:02:51 flock -s -n /home/nate/codex/asm-port/GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974061  974058 S do_sys_pause                      0.0    17:02:51 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974100       1 S do_wait                           0.0    17:02:51 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./fence 2 2 2750-3769
+ 974103  974100 S do_sys_pause                      0.0    17:02:51 ./fence 2 2 2750-3769
+ 988058       1 S do_wait                           0.0    17:02:36 flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988060  988058 S do_sys_pause                      0.0    17:02:36 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988065       1 S do_wait                           0.0    17:02:36 flock -s -n /home/nate/codex/asm-port/GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988067  988065 S do_sys_pause                      0.0    17:02:36 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988070       1 S do_wait                           0.0    17:02:36 flock -s -n /home/nate/codex/asm-port/GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988072  988070 S do_sys_pause                      0.0    17:02:36 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988079       1 S do_wait                           0.0    17:02:35 flock -s -n /home/nate/codex/asm-port/GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+ 988080  988079 S do_sys_pause                      0.0    17:02:35 ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+1009083       2 S -                                 0.0    04:21:15 [psimon]
+1575007       1 S skb_wait_for_more_packets         0.4    03:35:35 ./flashcore /home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf /home/nate/claude/flash-sass-live/kern/libengine.so /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+1578451       1 S inet_csk_accept                   0.0    03:35:31 ./flashd /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf /tmp/flash.sock 127.0.0.1:18090
+1875170       1 S -                                 0.0    03:24:10 /usr/lib/systemd/systemd-journald
+2272251       2 I -                                 0.0    02:29:42 [kworker/u48:3-xprtiod]
+2455932       2 I -                                 0.0    01:50:47 [kworker/u48:7-nfsiod]
+2615199       2 I -                                 0.0    01:15:41 [kworker/u48:0-xprtiod]
+2688617       2 I -                                 0.0       59:47 [kworker/9:0-events]
+2695449       2 I -                                 0.0       58:17 [kworker/1:2-events]
+2726949       2 I -                                 0.0       51:20 [kworker/5:2-mm_percpu_wq]
+2774433       2 I -                                 0.0       41:04 [kworker/7:0-events]
+2798045       2 I -                                 0.0       35:52 [kworker/3:0-events]
+2800170       2 I -                                 0.0       35:25 [kworker/4:0-mm_percpu_wq]
+2805936     576 S futex_do_wait                     0.0    15:53:41 /home/nate/llama-cuda118-master-bin/llama-server -m /home/nate/models/persuader/LFM2-1.2B-Q8_0.gguf -ngl 0 -t 4 -c 8192 --parallel 4 --host 0.0.0.0 --port 18620
+2809424       2 I -                                 0.0       33:21 [kworker/2:1-events]
+2861200       2 I -                                 0.0       22:05 [kworker/8:0-cgroup_free]
+2867792       2 I -                                 0.0       20:36 [kworker/6:1-cgroup_free]
+2871085     576 S futex_do_wait                     0.0    15:50:00 /home/nate/codex/llama-ref/build/bin/llama-server --model /home/nate/models/embed/Qwen3-Embedding-0.6B-Q8_0.gguf --embedding --pooling last --host 127.0.0.1 --port 18615 --ctx-size 4096 --parallel 1 --batch-size 512 --ubatch-size 512 --threads 4 --n-gpu-layers 0 --metrics
+2872195     565 S -                                 0.0    15:49:49 sshd-session: nate [postauth]
+2872212 2872195 S -                                 0.0    15:49:49 sshd-session: nate@notty
+2872213 2872212 S do_wait                           0.0    15:49:49 bash -c while curl -fsS --connect-timeout 2 --max-time 5 --output /dev/null http://127.0.0.1:18615/health; do printf . || exit 1; sleep 5; done; exit 1
+2880285       2 I -                                 0.0       17:57 [kworker/11:1-events]
+2885545       2 I -                                 0.0       16:54 [kworker/0:2-events]
+2886092       2 I -                                 0.0       16:47 [kworker/9:1-cgroup_release]
+2895480       2 I -                                 0.0       14:47 [kworker/10:1-events]
+2905447       2 I -                                 0.0       12:48 [kworker/8:2-events]
+2907081       2 I -                                 0.2       12:28 [kworker/u48:1-rpciod]
+2911670    1825 S -                                26.2       11:23 btop
+2917333       2 I -                                 0.0       10:25 [kworker/11:2-events]
+2920030     565 S -                                 0.0       09:54 sshd-session: nate [postauth]
+2920039 2920030 S -                                 0.0       09:54 sshd-session: nate@notty
+2920040 2920039 S do_wait                           0.0       09:54 bash -s
+2920041 2920040 S do_wait                           0.4       09:54 bash /tmp/pr45-attention.qsog2y/candidate/validation/issue18/run.sh --run --suite padding --repo /tmp/pr45-attention.qsog2y/candidate --parent /tmp/pr45-attention.qsog2y/control --out /tmp/pr45-attention.qsog2y/evidence/padding --gpu GPU-431371bd-b482-96b2-4b70-04f83c6d075b --lock /home/nate/codex/asm-port/GPU-431371bd-b482-96b2-4b70-04f83c6d075b.lock
+2931467       2 I -                                 0.0       08:17 [kworker/10:0-cgroup_release]
+2932394       2 I -                                 0.0       08:09 [kworker/6:0-events]
+2935144       2 I -                                 0.0       07:45 [kworker/3:1-mm_percpu_wq]
+2935986       2 I -                                 0.0       07:37 [kworker/2:0-cgroup_free]
+2941412       2 I -                                 0.0       06:49 [kworker/4:1-cgroup_free]
+2941723       2 I -                                 0.0       06:47 [kworker/0:1-events]
+2943151       2 I -                                 0.0       06:36 [kworker/7:2-events]
+2947065       2 I -                                 0.0       06:04 [kworker/5:1-cgroup_free]
+2954201       2 I -                                 0.0       05:05 [kworker/1:1-events]
+2962783       2 I -                                 0.0       03:47 [kworker/9:2-events]
+2965599     331 S -                                 0.0       03:22 systemd-userwork: waiting...
+2965600     331 S -                                 0.0       03:22 systemd-userwork: waiting...
+2965615       2 I -                                 0.0       03:22 [kworker/8:1-events]
+2968009     565 S -                                 0.0       03:01 sshd-session: nate [postauth]
+2968027 2968009 S -                                 0.0       03:01 sshd-session: nate@notty
+2968028 2968027 S do_wait                           0.0       03:01 bash -c cd /home/nate/claude/flash-sass-prs/issue22-reference-review-20261017 && CUDA_VISIBLE_DEVICES=-1 OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 nice -n 10 ./model_reference /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf t4-budget512-kv0-ids.txt t4-cpu 2 1800 > reference.stdout 2> reference.stderr; result=$?; printf "%s\n" "$result" > reference.exit; exit "$result"
+2968029 2968028 D folio_wait_bit_common             2.3       03:01 ./model_reference /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf t4-budget512-kv0-ids.txt t4-cpu 2 1800
+2968092       2 I -                                 0.0       03:01 [kworker/11:0]
+2971706       2 I -                                 1.6       02:31 [kworker/u48:2-xprtiod]
+2972539       2 I -                                 0.0       02:24 [kworker/2:2-cgroup_free]
+2976703       2 I -                                 0.0       01:47 [kworker/3:2-events]
+2977866       2 I -                                 0.0       01:37 [kworker/10:2-cgroup_free]
+2981538     331 S -                                 0.0       01:04 systemd-userwork: waiting...
+2981564       2 I -                                 0.0       01:04 [kworker/6:2]
+2985076     625 S hrtimer_nanosleep                 0.0       00:34 sleep 120
+2986409       2 I -                                 0.0       00:23 [kworker/4:2-cgroup_free]
+2988249       1 S do_wait                           0.1       00:08 bash kern/decode_park_core.sh controlled-config.json startup-8192b --startup-only
+2989123  950518 S hrtimer_nanosleep                 0.0       00:00 sleep 1
+2989223 2872213 S hrtimer_nanosleep                 0.0       00:00 sleep 5
+2989233 2920041 D os_acquire_mutex                  9.5       00:00 nvidia-smi --query-compute-apps=gpu_uuid,pid,process_name --format=csv,noheader
+2989244 2988249 R -                                 0.0       00:00 ps -eo pid,ppid,state,wchan:32,pcpu,etime,args

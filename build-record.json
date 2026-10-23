@@ -1,0 +1,165 @@
+{
+   "artifacts" : [
+      {
+         "bytes" : 53743,
+         "path" : "/home/nate/claude/pr38-runtime-bac5b88/kern/engine.c",
+         "sha256" : "a8ab9a7ecf81e858e19e2b29a68fcfae069229c3720b0cb34de2b3b6e8d286b4"
+      },
+      {
+         "bytes" : 29894,
+         "path" : "/home/nate/claude/pr38-runtime-bac5b88/kern/prog.c",
+         "sha256" : "7644ac73d5714b94eb7206d2d66ca40ff5f4ac8c20eede1b4b5e32282ebca6d7"
+      },
+      {
+         "bytes" : 14090,
+         "path" : "/home/nate/claude/pr38-runtime-bac5b88/kern/flashcore.c",
+         "sha256" : "9d86bfba3fd397deaa03a1925c4497eccf9ea1b80c05b425484b70131e0d7940"
+      },
+      {
+         "bytes" : 21601,
+         "path" : "/home/nate/claude/pr38-runtime-bac5b88/kern/Makefile",
+         "sha256" : "d9e5db53daa154818067f2169e36a13b08956ba72987354e338b63697885050a"
+      },
+      {
+         "bytes" : 444968,
+         "path" : "/home/nate/claude/pr38-runtime-bac5b88/kern/die.cubin",
+         "sha256" : "370a45834ad30d63a9092d62fa12080c4b49531ca24992da3e9bb38d747d0a0b"
+      },
+      {
+         "bytes" : 448744,
+         "path" : "/home/nate/claude/pr38-runtime-bac5b88/kern/die_trace.cubin",
+         "sha256" : "3380ccac53951a6b5f769129f3220664b1e45c103a6d3d6438577adb8f6a2138"
+      },
+      {
+         "bytes" : 165312,
+         "path" : "/home/nate/claude/pr38-runtime-bac5b88/kern/libengine.so",
+         "sha256" : "1c23e229996b48cc8dcfa96b2bc61eead9190a20608470403f1b0add6345a8bb"
+      },
+      {
+         "bytes" : 41328,
+         "path" : "/home/nate/claude/pr38-runtime-bac5b88/kern/flashcore",
+         "sha256" : "0257e1fbf4a6505bc54ed230b93abe22d5f21ed66daa22345a85b73f6a673d06"
+      },
+      {
+         "bytes" : 15912,
+         "path" : "/home/nate/claude/pr38-runtime-bac5b88/kern/nullengine.so",
+         "sha256" : "353f6faa9419c5e5f9c8d6cd87fcb545a8f53b951783076f1068820d0ae9db4f"
+      },
+      {
+         "bytes" : 5722,
+         "path" : "/home/nate/claude/pr38-runtime-bac5b88/runtime-controls.patch",
+         "sha256" : "320325343c6659e9c252791ed708d9c3be8d98aa0fc4953b687d9cd580d28a2d"
+      },
+      {
+         "bytes" : 6345,
+         "path" : "/home/nate/claude/pr38-runtime-bac5b88/maxas-executed.patch",
+         "sha256" : "b34d3f663cb1778eefd0feb0734c28e67c1f73c1bfed6ed6a368ebc59bab162e"
+      },
+      {
+         "bytes" : 1522619,
+         "path" : "/home/nate/claude/pr38-runtime-bac5b88/build-final.log",
+         "sha256" : "f2dd908a1661088e3c5d8eb4645fc9034b5f5a5d0526fff52a5b46744eeff5f0"
+      },
+      {
+         "bytes" : 2419,
+         "path" : "/home/nate/claude/pr38-runtime-bac5b88/controls-build.log",
+         "sha256" : "3fe137914f7c099c855510330d02c27e3bccf70f1a68774ac4a1642e7c68ada2"
+      }
+   ],
+   "assembler" : {
+      "commit" : "54eda7af086a46c9dae1688b691968235d560164",
+      "patch" : "maxas-executed.patch",
+      "repository" : "https://github.com/NervanaSystems/maxas"
+   },
+   "builds" : [
+      {
+         "argv" : [
+            "make",
+            "-B",
+            "-j2",
+            "CUDA=/opt/cuda",
+            "PTXAS11=/opt/cuda-11.4/bin/ptxas",
+            "FLASH_REV=bac5b88b665ee6973488dd40b363ded3134136f6",
+            "die.cubin",
+            "die_trace.cubin",
+            "libengine.so",
+            "flashcore",
+            "nullengine.so"
+         ],
+         "cwd" : "/home/nate/claude/pr38-runtime-bac5b88/kern",
+         "exit" : 0,
+         "log" : "build-final.log"
+      },
+      {
+         "argv" : [
+            "make",
+            "CUDA=/opt/cuda",
+            "FLASH_REV=bac5b88b665ee6973488dd40b363ded3134136f6-pr38-controls",
+            "libengine.so"
+         ],
+         "cwd" : "/home/nate/claude/pr38-runtime-bac5b88/kern",
+         "exit" : 0,
+         "log" : "controls-build.log"
+      }
+   ],
+   "dependency_artifacts" : [
+      {
+         "bytes" : 22045960,
+         "path" : "/usr/lib/libcuda.so.470.256.02",
+         "sha256" : "6f379857a042713f8c4c28e689006b9143889c7a465044074d99a614a64e2fa2"
+      },
+      {
+         "bytes" : 1168299,
+         "path" : "/opt/cuda/include/cuda.h",
+         "sha256" : "fda3285d055a9f05e40cd76352f9f073d0ab45d42fb5bb0db4bb33b0df506d28"
+      },
+      {
+         "bytes" : 9943424,
+         "path" : "/opt/cuda-11.4/bin/ptxas",
+         "sha256" : "6180efbc0877b5cf127bc99c5d51be6a779d98a03811cc1c24ef61621dc20976"
+      }
+   ],
+   "recorded_at_utc" : "2026-10-17T23:45:00Z",
+   "schema" : "issue10.executed-runtime.v1",
+   "source" : {
+      "archive_sha256" : "a569a28c73f8cf51bffa2df726372c37f3b8c2d7083a15b56fb938e0d2e0fc59",
+      "commit" : "bac5b88b665ee6973488dd40b363ded3134136f6",
+      "note" : "Exact historical measured runtime rebuilt with the published C benchmark controls; kernel SASS bodies unchanged.",
+      "patch" : "runtime-controls.patch",
+      "repository" : "https://github.com/nm-z/flash-sass"
+   },
+   "tools" : [
+      {
+         "argv" : [
+            "cc",
+            "--version"
+         ],
+         "exit" : 0,
+         "stdout" : "cc (GCC) 16.2.1 20260810\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
+      },
+      {
+         "argv" : [
+            "/opt/cuda-11.4/bin/ptxas",
+            "--version"
+         ],
+         "exit" : 0,
+         "stdout" : "ptxas: NVIDIA (R) Ptx optimizing assembler\nCopyright (c) 2005-2021 NVIDIA Corporation\nBuilt on Mon_Oct_11_21:26:15_PDT_2021\nCuda compilation tools, release 11.4, V11.4.152\nBuild cuda_11.4.r11.4/compiler.30521435_0\n"
+      },
+      {
+         "argv" : [
+            "perl",
+            "-V:version"
+         ],
+         "exit" : 0,
+         "stdout" : "version='5.42.2';\n"
+      },
+      {
+         "argv" : [
+            "uname",
+            "-a"
+         ],
+         "exit" : 0,
+         "stdout" : "Linux archy 6.18.39-1-lts-k80 #2 SMP PREEMPT_DYNAMIC Tue, 21 Jul 2026 00:09:28 +0000 x86_64 GNU/Linux\n"
+      }
+   ]
+}

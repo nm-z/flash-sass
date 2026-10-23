@@ -1,0 +1,97 @@
+--- a/kern/engine.c
++++ b/kern/engine.c
+@@ -105,7 +105,9 @@
+ static CUdeviceptr (*snap_dn)[NB], (*snap_conv)[NB], snap_ple[MAXD];
+ static uint32_t *snap_ids; static int snap_s;
+ static int embed_die;   /* the die that holds token_embd (the lowest one when several do) */
+-static CUdeviceptr dTRACE[MAXD]; static unsigned trace_n, trace_first, trace_valid;
++static CUdeviceptr dTRACE[MAXD]; static unsigned trace_n, trace_first, trace_valid, trace_capacity;
++static int bench_last_position = -1;
++static run_stats bench_stats;
+ static uint64_t trace_request;
+ static int prof_layer[MAXD][4096];
+ typedef struct {
+@@ -288,6 +290,8 @@
+ 
+ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], const sampling *sm, int snap_at, const engine_img *imgs, int nimg, const engine_cb *cb, run_stats *st) {
+ 	int T = nprompt + n_new;
++	bench_last_position = -1;
++	memset(&bench_stats, 0, sizeof bench_stats);
+ 	trace_first = (unsigned)(nprompt - 1); trace_valid = 0;
+ 	if (nprompt < 1 || n_new < 0 || T > MAXT) return -1;
+ 	trace_request++; memset(trace_host, 0, sizeof trace_host);
+@@ -373,8 +377,10 @@
+ 	}
+ 	if (!r.aborted) run_segment(&r, nph, T);
+ 	double t2 = now();
++	bench_last_position = r.aborted ? -1 : r.count - 1;
+ 	if (trace_n && r.count > (int)trace_first) { trace_valid = (unsigned)r.count - trace_first; if (trace_valid > trace_n) trace_valid = trace_n; }
+ 	if (st) { st->ntok = r.count; st->ended = r.ended; st->nph = nph[0]; st->resumed = resume; st->snapshot = snap_at; st->build_ms = (t1 - t0) * 1e3; st->run_ms = (t2 - t1) * 1e3; st->first_ms = r.tfirst ? (r.tfirst - t1) * 1e3 : 0; }
++	if (st) bench_stats = *st;
+ 	for (int d = 0; d < nd; d++) prog_free(&P[d]);
+ 	free(P);
+ 	in_run = 0;
+@@ -385,6 +391,7 @@
+ int engine_init(core_t *c) {
+ 	trace_n = getenv("FLASH_TRACE") ? (unsigned)strtoul(getenv("FLASH_TRACE"), NULL, 10) : 0;
+ 	if (trace_n > 256) { fprintf(stderr, "FLASH_TRACE must be 0..256\n"); return -1; }
++	trace_capacity = trace_n;
+ 	if (c->abi != CORE_ABI) { fprintf(stderr, "engine: the core speaks ABI %d, this library was built for %d\n", c->abi, CORE_ABI); return -1; }
+ 	core = c; in_init = 1;
+ 	if (setjmp(init_jb)) { in_init = 0; engine_fini(); return -1; }
+@@ -606,6 +613,55 @@
+ 			for (char *tok = strtok(p + 6, " \t\n"); tok; tok = strtok(NULL, " \t\n")) { char *eq = strchr(tok, '='); if (eq && !strncmp(tok, "FLASH_", 6)) { *eq = 0; setenv(tok, eq + 1, 1); } }
+ 			free(line); return 2;
+ 		}
++        /* Benchmark controls: keep allocation and snapshots identical while changing
++         * tracing execution. These commands run only between completed requests. */
++        if (!strncmp(p, "benchtrace ", 11)) {
++            unsigned count; char extra;
++            if (sscanf(p + 11, "%u %c", &count, &extra) != 1 ||
++                (count != 0 && count != trace_capacity)) {
++                fprintf(out, "error: benchtrace accepts 0 or preallocated capacity %u\n", trace_capacity);
++            } else {
++                trace_n = count; trace_valid = 0;
++                fprintf(out, "ok: trace_tokens=%u trace_capacity=%u\n", trace_n, trace_capacity);
++            }
++            fflush(out); continue;
++        }
++        if (!strcmp(p, "benchstats")) {
++            if (bench_last_position < 0) {
++                fprintf(out, "error: no completed request for stats\n");
++            } else {
++                fprintf(out, "{\"build_ms\":%.9f,\"run_ms\":%.9f,\"first_ms\":%.9f,\"ntok\":%d,\"resumed\":%d,\"snapshot\":%d,\"ended\":%d}\n",
++                    bench_stats.build_ms, bench_stats.run_ms, bench_stats.first_ms,
++                    bench_stats.ntok, bench_stats.resumed, bench_stats.snapshot, bench_stats.ended);
++            }
++            fflush(out); continue;
++        }
++        if (!strcmp(p, "benchblocks")) {
++            if (bench_last_position < 0) {
++                fprintf(out, "error: no completed request for selected-block export\n");
++                fflush(out); continue;
++            }
++            unsigned full = ((unsigned)bench_last_position + 1) / 4;
++            unsigned count = full < nblk_qsa ? full : nblk_qsa;
++            uint32_t *ids = malloc((size_t)(count ? count : 1) * sizeof *ids);
++            if (!ids) { fprintf(out, "error: selected-block export allocation\n"); fflush(out); continue; }
++            fprintf(out, "{\"position\":%d,\"block_budget\":%u,\"frames\":[", bench_last_position, nblk_qsa);
++            int first = 1;
++            for (int d = 0; d < nd; d++) if (has_attn[d]) {
++                int layer = -1;
++                for (int b = 0; b < nlayers_run; b++) if (BLK_IS_ATTN(b) && attn_die_of(b) == d) layer = b;
++                if (layer < 0) continue;
++                if (full > nblk_qsa) {
++                    CK(cuCtxSetCurrent(ctx[d]));
++                    CK(cuMemcpyDtoH(ids, db[d].sel, (size_t)count * sizeof *ids));
++                } else for (unsigned i = 0; i < count; i++) ids[i] = i;
++                fprintf(out, "%s{\"die\":%d,\"layer\":%d,\"count\":%u,\"source\":\"%s\",\"ids\":[", first ? "" : ",", d, layer, count, full > nblk_qsa ? "device_idxsel" : "dense_implicit");
++                first = 0;
++                for (unsigned i = 0; i < count; i++) fprintf(out, "%s%u", i ? "," : "", ids[i]);
++                fprintf(out, "]}");
++            }
++            fprintf(out, "]}\n"); free(ids); fflush(out); continue;
++        }
+ 		if (!strncmp(p, "trace", 5)) { trace_dump(out, atoi(p + 5)); fflush(out); continue; }
+ 		if (!strncmp(p, "hosttrace", 9)) { host_trace_dump(out); fflush(out); continue; }
+ 		if (!strncmp(p, "prof", 4)) {   /* where the last token of the last response spent its time, from the phase timestamps CTA 0 writes at each phase end */
