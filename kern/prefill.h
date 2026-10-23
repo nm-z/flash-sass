@@ -1,13 +1,30 @@
 #ifndef FLASH_PREFILL_H
 #define FLASH_PREFILL_H
 
-/* Known positions per host chunk; device programs remain B1 or B2. */
+/* Known positions per host chunk. Batched replay is separately opt-in; the legacy
+ * device programs remain B1/B2 when FLASH_PREFILL_BATCH is absent or zero. */
 #define FLASH_PREFILL_CHUNK_MAX 4096
 typedef struct {
     int begin;
     int end;      /* exclusive; excludes the final prompt position */
     int pair_end; /* [begin,pair_end) uses B2; an odd tail uses B1 */
 } prefill_chunk_t;
+
+static inline int prefill_parse_batch(const char *text, int *size) {
+    if (!size) return -1;
+    if (!text || (text[0] == '0' && !text[1])) { *size = 0; return 0; }
+    if (text[0] == '8' && !text[1]) { *size = 8; return 0; }
+    if (text[0] == '1' && text[1] == '6' && !text[2]) { *size = 16; return 0; }
+    if (text[0] == '3' && text[1] == '2' && !text[2]) { *size = 32; return 0; }
+    return -1;
+}
+
+/* Largest whole batch before an exclusive known-prefix or snapshot boundary.
+ * Difference-before-addition also handles boundaries near INT_MAX. */
+static inline int prefill_batch_end(int position, int end, int width) {
+    if (position < 0 || end < position || (width != 1 && width != 2 && width != 8 && width != 16 && width != 32)) return -1;
+    return position + ((end - position) / width) * width;
+}
 
 /* Absent/zero disables. Malformed settings must not silently select a path. */
 static inline int prefill_parse_chunk(const char *text, int *size) {

@@ -31,7 +31,7 @@ sub actq_shape {
 }
 
 sub actq_regmap {
-    my ($n, $silu) = @_;
+    my ($n, $silu, $batch) = @_;
     my ($C, $U, $NI) = actq_shape($n);
     my $o = "<REGISTER_MAPPING>\n";
     my $r = 0;
@@ -49,12 +49,19 @@ sub actq_regmap {
     my @ptr = qw(xp qp hp gp ap);
     push @ptr, 'up' if $silu;
     for my $p (@ptr) { $o .= sprintf "    %d,%d : %s<0-1>\n", $r, $r + 1, $p; $r += 2; }
+    if ($batch) {
+        die 'ACTQ batch currently supports plain K256 only' if $silu || $n != 256;
+        $o .= sprintf "    %d : position\n    %d : descriptor\n",$r,$r+1;$r+=2;
+        for my $name (qw(X Q S32 S16 AS)) {
+            $o .= sprintf "    %d,%d : param_%s<0-1>\n",$r,$r+1,$name;$r+=2;
+        }
+    }
     $o .= "</REGISTER_MAPPING>\n";
     return $o;
 }
 
 sub actq_code {
-    my ($n, $silu) = @_;
+    my ($n, $silu, $batch) = @_;
     my ($C, $U, $NI) = actq_shape($n);
     my $rs = $U >= 6 ? '1' : (7 - $U);     # stall on the last instruction of a round
     my %FC = map { $_ => $_ } qw(log2e ln2hi ln2lo c720 c120 c24 c6 chalf cone mneg1);
@@ -85,6 +92,19 @@ sub actq_code {
     };
     $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
     $o .= "--:-:6:-:1      S2R bid, SR_CTAID.X;\n";
+    if ($batch) {
+        die 'ACTQ batch currently supports plain K256 only' if $silu || $n != 256;
+        # CTA unit remains the original256-element vector; its eight warps
+        # select eight independent position descriptors. The arithmetic below
+        # is unchanged and sees the original warp lane and vector index.
+        $o .= "20:-:-:-:6      SHR.U32 position, tid, 0x5;\n--:-:-:-:6      LOP32I.AND tid, tid, 0x1f;\n";
+        $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P6, PT, position, RZ, PT;\n--:-:-:-:6      SHL descriptor, position, 0x7;\n--:-:-:-:6      MOV32I t2, 0xbf00;\n--:-:-:-:6      IADD descriptor, t2, -descriptor;\n--:-:-:-:6  \@P6 MOV32I descriptor, 0xbf80;\n";
+        my @names=qw(X Q S32 S16 AS);
+        for my $j (0..4) {
+            $o .= sprintf "--:-:1:-:%d      LDS.64 param_%s0, [descriptor+0x%x];\n",$j==4?2:1,$names[$j],8+8*$j;
+        }
+        $o .= "01:-:-:-:6      NOP;\n";
+    }
     $o .= "--:-:-:-:1      MOV32I mneg1, 0xbf800000;\n";
     $o .= "--:-:-:-:1      MOV32I c127, 0x3c010204;\n";          # 1/127
     $o .= fm_consts({ map { $_ => $_ } qw(log2e ln2hi ln2lo c720 c120 c24 c6 chalf cone) }) if $silu;

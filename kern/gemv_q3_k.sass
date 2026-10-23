@@ -26,6 +26,8 @@
 # a combine reads an accumulator >= 6 issues after its last XMAD.
 # Barriers: 1 = row loads, 2 = store reads and prologue loads, 3 = I2F, 4 = F2F,
 # 5 = SHFL, 6 = S2R.
+# Q3_ROW_PREFETCH=1 overlaps the next row's loads with the current row's
+# arithmetic. Default 0 retains the original instruction stream.
 #
 # Params: 0:0x140:8 W  1:0x148:8 X16  2:0x150:8 S32 (unused)  3:0x158:8 Y
 #         4:0x160:4 rows  5:0x164:4 xs  6:0x168:8 dbg
@@ -97,6 +99,8 @@
     my $lgR = int(log($R)/log(2) + 0.5);
     my $wrows = 32 / $L;
     my $bstep = 112 * $Q;                   # bytes between a lane's consecutive blocks
+    my $prefetch = $ENV{Q3_ROW_PREFETCH} // 0;
+    die "Q3_ROW_PREFETCH must be 0 or 1" unless $prefetch =~ /\A[01]\z/;
     my $mulc = sub {
         my ($d, $rr, $cst) = @_;
         my @bits = grep { $cst & (1 << $_) } 0..31;
@@ -160,118 +164,35 @@
         }
     }
 
-    $o .= "\nLOOP:\n";
+    # xp aliases cw00/cw01. Retire activation loads before weight loads
+    # overwrite those address registers; LDG may consume its address late.
+    $o .= "02:-:-:-:6      NOP;\n";
+    $o .= "\nLOOP:\n" unless $prefetch;
     $o .= "--:2:1:-:1      LDG.E.CI.128 dp0, [pp];\n";
     for my $i (0..$n-1) { $o .= sprintf "--:2:1:-:1      LDG.E.CI.64 cw%02d, [cp+0x%x];\n", 2*$i, $bstep*$i; }
     for my $i (0..$n-1) { $o .= sprintf "--:2:1:-:1      LDG.E.CI hw%d, [hp+0x%x];\n", $i, $bstep*$i; }
     for my $i (0..$n-1) { $o .= sprintf "--:2:1:-:%s      LDG.E.CI.U16 sw%d, [sp+0x%x];\n", $i == $n-1 ? '2' : '1', $i, $bstep*$i; }
+    if ($prefetch) {
+        # Initial weights are complete before their pointers move. During LOOP
+        # these four pointers name the following row; yp still names this row.
+        $o .= "03:-:-:-:6      NOP;\n";
+        for my $p (qw(pp cp hp sp)) {
+            $o .= sprintf "--:-:-:-:6      IADD %s0.CC, %s0, stepw;\n", $p, $p;
+            $o .= sprintf "--:-:-:-:6      IADD.X %s1, %s1, RZ;\n", $p, $p;
+        }
+        $o .= "\nLOOP:\n";
+        # P1 controls the warp-uniform loop. P3 additionally excludes invalid
+        # row groups in a partially populated final warp from future loads.
+        $o .= "--:-:-:-:6      IADD t, row, rowstep;\n";
+        $o .= "--:-:-:-:6      ISETP.LT.U32.AND P3, PT, t, param_rows, PT;\n";
+    }
     $o .= "--:-:-:-:1      ISETP.LT.U32.AND P2, PT, row, param_rows, P0;\n";
     $o .= "--:-:-:-:1      IADD rowpair, rowpair, rowstep;\n";
     $o .= "--:-:-:-:6      MOV accf, RZ;\n";
     $o .= "--:-:-:-:2      ISETP.LT.U32.AND P1, PT, rowpair, param_rows, PT;\n";
 
-    # 2-bit code stream of one group word into acc (base index $ab), masks m[$ms..$ms+7]
-    my $cmasks = sub {
-        my ($word, $ms, $laststall) = @_;
-        my $x = '';
-        $x .= sprintf "--:-:-:-:%s      LOP32I.AND m%02d, %s, 0x%08x;\n", ($_ == 7 ? $laststall : '1'), $ms + $_, $word, (0x00030003 << (2*$_)) & 0xffffffff for 0..7;
-        return $x;
-    };
-    my $cxmads = sub {
-        my ($i, $gg, $ms, $ab) = @_;
-        my $x = '';
-        for my $hh (0, 1) {
-            for my $s (0..7) {
-                $x .= sprintf "--:-:-:-:1      XMAD.U16.S16 acc%02d, m%02d.%s, act%02d.%s, %s;\n",
-                    $ab + $s, $ms + $s, $hh ? 'H1' : 'H0', 16*$i + 8*$gg + 4*$hh + ($s >> 1), ($s & 1) ? 'H1' : 'H0',
-                    $hh ? sprintf("acc%02d", $ab + $s) : 'RZ';
-            }
-        }
-        return $x;
-    };
-    # inverted-high-bit stream: source u = hw >> u, masks 0x00010001 << 4v in m[4(u&1) .. +3]
-    my $hmasks = sub {
-        my ($src, $u) = @_;
-        my $x = '';
-        $x .= sprintf "--:-:-:-:1      LOP32I.AND m%02d, %s, 0x%08x;\n", 4*($u & 1) + $_, $src, (0x00010001 << (4*$_)) & 0xffffffff for 0..3;
-        return $x;
-    };
-    my $hxmads = sub {
-        my ($i, $u) = @_;
-        my $x = '';
-        for my $hh (0, 1) {
-            for my $v (0..3) {
-                $x .= sprintf "--:-:-:-:1      XMAD.U16.S16 acch%d, m%02d.%s, act%02d.%s, %s;\n",
-                    4*$hh + $v, 4*($u & 1) + $v, $hh ? 'H1' : 'H0', 16*$i + 8*$hh + 2*$v + ($u >> 1), ($u & 1) ? 'H1' : 'H0',
-                    $u ? sprintf("acch%d", 4*$hh + $v) : 'RZ';
-            }
-        }
-        return $x;
-    };
-    # dot = sum_s acc_s >> 2s over 8 accumulators (first SHR >= 7 issues after the last XMAD of acc_7)
-    my $ccombine = sub {
-        my ($ab, $dst) = @_;
-        my $x = '';
-        $x .= sprintf "--:-:-:-:%s      SHR acc%02d, acc%02d, 0x%x;\n", ($_ == 7 ? '4' : '1'), $ab + $_, $ab + $_, 2*$_ for 1..7;
-        $x .= sprintf "--:-:-:-:1      IADD acc%02d, acc%02d, acc%02d;\n", $ab, $ab, $ab + 1;
-        $x .= sprintf "--:-:-:-:1      IADD acc%02d, acc%02d, acc%02d;\n", $ab + 2, $ab + 2, $ab + 3;
-        $x .= sprintf "--:-:-:-:1      IADD acc%02d, acc%02d, acc%02d;\n", $ab + 4, $ab + 4, $ab + 5;
-        $x .= sprintf "--:-:-:-:6      IADD acc%02d, acc%02d, acc%02d;\n", $ab + 6, $ab + 6, $ab + 7;
-        $x .= sprintf "--:-:-:-:1      IADD acc%02d, acc%02d, acc%02d;\n", $ab, $ab, $ab + 2;
-        $x .= sprintf "--:-:-:-:6      IADD acc%02d, acc%02d, acc%02d;\n", $ab + 4, $ab + 4, $ab + 6;
-        $x .= sprintf "--:-:-:-:6      IADD %s, acc%02d, acc%02d;\n", $dst, $ab, $ab + 4;
-        return $x;
-    };
-    # dh_hh = sum_v acch_{4hh+v} >> 4v, both halves interleaved
-    my $hcombine = sub {
-        my $x = '';
-        for my $v (1..3) {
-            $x .= sprintf "--:-:-:-:1      SHR acch%d, acch%d, 0x%x;\n", $v, $v, 4*$v;
-            $x .= sprintf "--:-:-:-:%s      SHR acch%d, acch%d, 0x%x;\n", ($v == 3 ? '3' : '1'), 4 + $v, 4 + $v, 4*$v;
-        }
-        $x .= "--:-:-:-:1      IADD acch0, acch0, acch1;\n";
-        $x .= "--:-:-:-:1      IADD acch4, acch4, acch5;\n";
-        $x .= "--:-:-:-:1      IADD acch2, acch2, acch3;\n";
-        $x .= "--:-:-:-:6      IADD acch6, acch6, acch7;\n";
-        $x .= "--:-:-:-:1      IADD dh0, acch0, acch2;\n";
-        $x .= "--:-:-:-:6      IADD dh1, acch4, acch6;\n";
-        return $x;
-    };
-
-    for my $i (0..$n-1) {
-        my $wait = $i == 0 ? '03' : '--';
-        my $w0 = sprintf "cw%02d", 2*$i;
-        my $w1 = sprintf "cw%02d", 2*$i + 1;
-        $o .= sprintf "%s:-:4:-:1      F2F.F32.F16 dd, dp%d%s;\n", $wait, $i >> 1, ($i & 1) ? '.H1' : '';
-        $o .= sprintf "--:-:-:-:1      PRMT scw, sw%d, 0x9180, RZ;\n", $i;
-        $o .= $cmasks->($w0, 0, '1');
-        $o .= $cmasks->($w1, 8, '1');
-        $o .= $cxmads->($i, 0, 0, 0);
-        $o .= sprintf "--:-:-:-:1      SHR.U32 hs1, hw%d, 0x1;\n", $i;
-        $o .= sprintf "--:-:-:-:1      SHR.U32 hs2, hw%d, 0x2;\n", $i;
-        $o .= sprintf "--:-:-:-:1      SHR.U32 hs3, hw%d, 0x3;\n", $i;
-        $o .= $hmasks->("hw$i", 0);
-        $o .= $cxmads->($i, 1, 8, 8);
-        $o .= $hmasks->('hs1', 1);
-        $o .= $hxmads->($i, 0);
-        $o .= $hmasks->('hs2', 2);
-        $o .= $hxmads->($i, 1);
-        $o .= $hmasks->('hs3', 3);
-        $o .= $hxmads->($i, 2);
-        $o .= $hxmads->($i, 3);
-        $o .= $ccombine->(0, 'dot0');
-        $o .= $ccombine->(8, 'dot1');
-        $o .= $hcombine->();
-        $o .= "--:-:-:-:1      SHL dh0, dh0, 0x2;\n";
-        $o .= "--:-:-:-:6      SHL dh1, dh1, 0x2;\n";
-        $o .= "--:-:-:-:1      IADD3 dot0, dot0, -dh0, RZ;\n";
-        $o .= "--:-:-:-:6      IADD3 dot1, dot1, -dh1, RZ;\n";
-        $o .= "--:-:-:-:6      XMAD.S16.S16 sumi, dot0, scw, RZ;\n";
-        $o .= "--:-:-:-:6      XMAD.S16.S16 sumi, dot1, scw.H1, sumi;\n";
-        $o .= "--:-:3:-:6      I2F.F32.S32 sumif, sumi;\n";
-        $o .= "0c:-:-:-:6      FMUL u, dd, sumif;\n";
-        $o .= sprintf "--:-:-:-:6      FFMA accf, as%d, u, accf;\n", $i;
-    }
+    require './q3_k_math.pl';
+    $o .= q3_k_dot_code($n, $prefetch, $bstep);
     for (my $x = $L / 2; $x >= 1; $x >>= 1) {
         $o .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x%x, 0x1f;\n", $x;
         $o .= "10:-:-:-:6      FADD accf, accf, t;\n";
