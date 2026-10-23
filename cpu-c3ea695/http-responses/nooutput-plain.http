@@ -1,0 +1,7 @@
+HTTP/1.1 502 Internal Server Error
+Content-Type: application/json
+Cache-Control: no-store
+Content-Length: 880
+Connection: close
+
+{"error":{"message":"the engine failed during the response","code":502},"timings":{"prompt_n":20,"cache_n":null,"prompt_ms":null,"prompt_per_second":null,"predicted_n":null,"predicted_ms":null,"predicted_per_second":null,"decode_intervals":null,"decode_ms":null,"schema_version":1,"engine":null,"http":{"clock":"CLOCK_MONOTONIC","start_event":"request_worker_entry","complete":false,"aborted":false,"engine_timing_available":false,"raw_token_events":0,"request_read_ms":0.030464999377727509,"prequeue_ms":0.013427995145320892,"queue_ms":0,"tokenization_ms":0.014052994549274445,"setup_ms":0.081783995032310486,"engine_submitted_ms":0.12942599505186081,"completion_record_created_ms":0.56888400018215179,"first_token_observed_ms":null,"last_token_observed_ms":null,"first_text_send_ms":null,"ttft_ms":null,"socket_decode_tokens_per_second":null,"response_write_complete_ms":null}}}

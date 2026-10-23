@@ -1,0 +1,21 @@
+HTTP/1.1 200 OK
+Content-Type: text/event-stream
+Cache-Control: no-cache
+Transfer-Encoding: chunked
+Connection: close
+
+dd
+data: {"choices":[{"index":0,"delta":{"role":"assistant","content":null},"finish_reason":null}],"created":1792275377,"id":"chatcmpl-flash","model":"Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass","object":"chat.completion.chunk"}
+
+
+84f
+data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"created":1792275377,"id":"chatcmpl-flash","model":"Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass","object":"chat.completion.chunk","usage":{"completion_tokens":1,"prompt_tokens":20,"total_tokens":21},"timings":{"prompt_n":20,"cache_n":19,"prompt_ms":12.345678899999999,"prompt_per_second":81.000000737100009,"predicted_n":1,"predicted_ms":0,"predicted_per_second":null,"decode_intervals":0,"decode_ms":0,"schema_version":1,"engine":{"schema_version":1,"clock":"CLOCK_MONOTONIC","prompt_tokens":20,"resumed_positions":19,"positions_completed":20,"positions_executed":1,"prompt_positions_processed":1,"generated_tokens":1,"decode_intervals":0,"counts_known":true,"counts_final":true,"error_code":0,"counter_semantics":"last_observed_completed_positions","stop_token_observed":true,"aborted":false,"build_ms":2.123456789,"run_ms":12.345678899999999,"first_observed_ms":12.345678899999999,"post_first_ms":0,"prompt_positions_per_second":81.000000737100009,"decode_tokens_per_second":null,"device_clock":"SR_GLOBALTIMER","device_origin":"first_generated_position_start","device_first_start_ns":null,"device_first_publish_ns":null,"device_last_traced_publish_ns":null,"device_traced_tokens":0,"device_first_publish_ms":null,"device_decode_ms":null,"device_decode_tokens_per_second":null,"prompt_n":20,"cache_n":19,"prompt_ms":12.345678899999999,"prompt_per_second":81.000000737100009,"predicted_n":1,"predicted_ms":0,"predicted_per_second":null,"decode_ms":0}
+,"http":{"clock":"CLOCK_MONOTONIC","start_event":"request_worker_entry","complete":true,"aborted":false,"engine_timing_available":true,"raw_token_events":1,"request_read_ms":0.029788002371788025,"prequeue_ms":0.0086509957909584045,"queue_ms":0,"tokenization_ms":0.0082050040364265442,"setup_ms":0.050506003201007843,"engine_submitted_ms":0.091200999915599823,"completion_record_created_ms":93.974384002387524,"first_token_observed_ms":83.740648999810219,"last_token_observed_ms":83.740648999810219,"first_text_send_ms":null,"ttft_ms":null,"socket_decode_tokens_per_second":null,"response_write_complete_ms":null}}}
+
+
+e
+data: [DONE]
+
+
+0
+

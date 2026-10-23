@@ -1,0 +1,32 @@
+HTTP/1.1 200 OK
+Content-Type: text/event-stream
+Cache-Control: no-cache
+Transfer-Encoding: chunked
+Connection: close
+
+dd
+data: {"choices":[{"index":0,"delta":{"role":"assistant","content":null},"finish_reason":null}],"created":1792275378,"id":"chatcmpl-flash","model":"Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass","object":"chat.completion.chunk"}
+
+
+c9
+data: {"choices":[{"index":0,"delta":{"content":"a"},"finish_reason":null}],"created":1792275378,"id":"chatcmpl-flash","model":"Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass","object":"chat.completion.chunk"}
+
+
+c9
+data: {"choices":[{"index":0,"delta":{"content":"b"},"finish_reason":null}],"created":1792275378,"id":"chatcmpl-flash","model":"Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass","object":"chat.completion.chunk"}
+
+
+c9
+data: {"choices":[{"index":0,"delta":{"content":"c"},"finish_reason":null}],"created":1792275378,"id":"chatcmpl-flash","model":"Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass","object":"chat.completion.chunk"}
+
+
+493
+data: {"choices":[{"index":0,"delta":{},"finish_reason":"length"}],"created":1792275378,"id":"chatcmpl-flash","model":"Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass","object":"chat.completion.chunk","usage":{"completion_tokens":3,"prompt_tokens":20,"total_tokens":23},"timings":{"prompt_n":20,"cache_n":19,"prompt_ms":12.300000000000001,"prompt_per_second":81.300813008130078,"predicted_n":3,"predicted_ms":44.5,"predicted_per_second":44.943820224719104,"decode_intervals":2,"decode_ms":44.5,"schema_version":1,"engine":null,"http":{"clock":"CLOCK_MONOTONIC","start_event":"request_worker_entry","complete":true,"aborted":false,"engine_timing_available":false,"raw_token_events":3,"request_read_ms":0.24025999754667282,"prequeue_ms":0.0095169991254806519,"queue_ms":0,"tokenization_ms":0.0080920010805130005,"setup_ms":0.05646900087594986,"engine_submitted_ms":0.30865000188350677,"completion_record_created_ms":114.57446499913931,"first_token_observed_ms":84.107776001095772,"last_token_observed_ms":104.40517000108957,"first_text_send_ms":84.187320001423359,"ttft_ms":84.187320001423359,"socket_decode_tokens_per_second":98.534816834151755,"response_write_complete_ms":null}}}
+
+
+e
+data: [DONE]
+
+
+0
+

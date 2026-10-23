@@ -1,0 +1,29 @@
+HTTP/1.1 200 OK
+Content-Type: text/event-stream
+Cache-Control: no-cache
+Transfer-Encoding: chunked
+Connection: close
+
+dd
+data: {"choices":[{"index":0,"delta":{"role":"assistant","content":null},"finish_reason":null}],"created":1792275377,"id":"chatcmpl-flash","model":"Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass","object":"chat.completion.chunk"}
+
+
+c9
+data: {"choices":[{"index":0,"delta":{"content":"a"},"finish_reason":null}],"created":1792275377,"id":"chatcmpl-flash","model":"Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass","object":"chat.completion.chunk"}
+
+
+c9
+data: {"choices":[{"index":0,"delta":{"content":"b"},"finish_reason":null}],"created":1792275377,"id":"chatcmpl-flash","model":"Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass","object":"chat.completion.chunk"}
+
+
+7c7
+data: {"error":{"message":"the engine failed during the response","type":"engine_error"},"timings":{"prompt_n":20,"cache_n":19,"prompt_ms":12.345678899999999,"prompt_per_second":null,"predicted_n":2,"predicted_ms":44.4433334,"predicted_per_second":null,"decode_intervals":1,"decode_ms":44.4433334,"schema_version":1,"engine":{"schema_version":1,"clock":"CLOCK_MONOTONIC","prompt_tokens":20,"resumed_positions":19,"positions_completed":21,"positions_executed":2,"prompt_positions_processed":1,"generated_tokens":2,"decode_intervals":1,"counts_known":true,"counts_final":false,"error_code":-2,"counter_semantics":"last_observed_completed_positions","stop_token_observed":null,"aborted":false,"build_ms":2.123456789,"run_ms":56.789012300000003,"first_observed_ms":12.345678899999999,"post_first_ms":44.4433334,"prompt_positions_per_second":null,"decode_tokens_per_second":null,"device_clock":"SR_GLOBALTIMER","device_origin":"first_generated_position_start","device_first_start_ns":null,"device_first_publish_ns":null,"device_last_traced_publish_ns":null,"device_traced_tokens":0,"device_first_publish_ms":null,"device_decode_ms":null,"device_decode_tokens_per_second":null,"prompt_n":20,"cache_n":19,"prompt_ms":12.345678899999999,"prompt_per_second":null,"predicted_n":2,"predicted_ms":44.4433334,"predicted_per_second":null,"decode_ms":44.4433334}
+,"http":{"clock":"CLOCK_MONOTONIC","start_event":"request_worker_entry","complete":false,"aborted":false,"engine_timing_available":true,"raw_token_events":2,"request_read_ms":0.018313005566596985,"prequeue_ms":0.0067119970917701721,"queue_ms":0,"tokenization_ms":0.007530994713306427,"setup_ms":0.05063299834728241,"engine_submitted_ms":0.077797003090381622,"completion_record_created_ms":103.65900700539351,"first_token_observed_ms":83.246026001870632,"last_token_observed_ms":93.381725005805492,"first_text_send_ms":83.325343005359173,"ttft_ms":83.325343005359173,"socket_decode_tokens_per_second":null,"response_write_complete_ms":null}}}
+
+
+e
+data: [DONE]
+
+
+0
+

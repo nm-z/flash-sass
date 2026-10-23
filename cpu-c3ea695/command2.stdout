@@ -1,0 +1,623 @@
+ok 1 - compiled actual frontend exists
+ok 2 - compiled canonical C fixture exists
+flashd_timing_test: actual role, keepalive, delivery and admitted-error helpers PASS
+ok 3 - actual C role/keepalive/admitted-error tests
+# Subtest: multi nonstreaming
+    ok 1 - multi-plain has timing object
+    ok 2 - multi-plain host clock
+    ok 3 - multi-plain host origin
+    ok 4 - multi-plain does not predict future write completion
+    ok 5 - multi-plain request_read_ms is nonnegative
+    ok 6 - multi-plain prequeue_ms is nonnegative
+    ok 7 - multi-plain queue_ms is nonnegative
+    ok 8 - multi-plain tokenization_ms is nonnegative
+    ok 9 - multi-plain setup_ms is nonnegative
+    ok 10 - multi-plain engine_submitted_ms is nonnegative
+    ok 11 - multi-plain completion_record_created_ms is nonnegative
+    ok 12 - multi-plain exact canonical values forwarded
+    ok 13 - multi-plain raw JSON forwarded without reformatting
+    ok 14 - multi-plain engine timing available
+    ok 15 - multi-plain alias prompt_n equals canonical source
+    ok 16 - multi-plain alias cache_n equals canonical source
+    ok 17 - multi-plain alias prompt_ms equals canonical source
+    ok 18 - multi-plain alias prompt_per_second equals canonical source
+    ok 19 - multi-plain alias predicted_n equals canonical source
+    ok 20 - multi-plain alias predicted_ms equals canonical source
+    ok 21 - multi-plain alias predicted_per_second equals canonical source
+    ok 22 - multi-plain alias decode_intervals equals canonical source
+    ok 23 - multi-plain alias decode_ms equals canonical source
+    ok 24 - multi-plain actual tokenizer prompt size
+    ok 25 - multi-plain resumed count
+    ok 26 - multi-plain successful transport
+    ok 27 - multi-plain no error
+    ok 28 - multi-plain unrounded first
+    ok 29 - multi-plain unrounded run
+    ok 30 - multi-plain engine rate
+    ok 31 - multi-plain socket rate
+    ok 32 - multi-plain complete
+    ok 33 - multi-plain first token includes engine delay
+    ok 34 - multi-plain nonstream future delivery null
+    ok 35 - multi-plain nonstream future TTFT null
+    1..35
+ok 4 - multi nonstreaming
+# Subtest: nooutput nonstreaming
+    ok 1 - nooutput-plain has timing object
+    ok 2 - nooutput-plain host clock
+    ok 3 - nooutput-plain host origin
+    ok 4 - nooutput-plain does not predict future write completion
+    ok 5 - nooutput-plain request_read_ms is nonnegative
+    ok 6 - nooutput-plain prequeue_ms is nonnegative
+    ok 7 - nooutput-plain queue_ms is nonnegative
+    ok 8 - nooutput-plain tokenization_ms is nonnegative
+    ok 9 - nooutput-plain setup_ms is nonnegative
+    ok 10 - nooutput-plain engine_submitted_ms is nonnegative
+    ok 11 - nooutput-plain completion_record_created_ms is nonnegative
+    ok 12 - nooutput-plain no stale canonical JSON
+    ok 13 - nooutput-plain unavailable
+    ok 14 - nooutput-plain no observed tokens
+    ok 15 - nooutput-plain first_token_observed_ms null
+    ok 16 - nooutput-plain first_text_send_ms null
+    ok 17 - nooutput-plain ttft_ms null
+    ok 18 - nooutput-plain socket_decode_tokens_per_second null
+    ok 19 - nooutput-plain unknown engine rate null
+    ok 20 - nooutput-plain error response
+    ok 21 - nooutput-plain error transport status
+    1..21
+ok 5 - nooutput nonstreaming
+# Subtest: one nonstreaming
+    ok 1 - one-plain has timing object
+    ok 2 - one-plain host clock
+    ok 3 - one-plain host origin
+    ok 4 - one-plain does not predict future write completion
+    ok 5 - one-plain request_read_ms is nonnegative
+    ok 6 - one-plain prequeue_ms is nonnegative
+    ok 7 - one-plain queue_ms is nonnegative
+    ok 8 - one-plain tokenization_ms is nonnegative
+    ok 9 - one-plain setup_ms is nonnegative
+    ok 10 - one-plain engine_submitted_ms is nonnegative
+    ok 11 - one-plain completion_record_created_ms is nonnegative
+    ok 12 - one-plain exact canonical values forwarded
+    ok 13 - one-plain raw JSON forwarded without reformatting
+    ok 14 - one-plain engine timing available
+    ok 15 - one-plain alias prompt_n equals canonical source
+    ok 16 - one-plain alias cache_n equals canonical source
+    ok 17 - one-plain alias prompt_ms equals canonical source
+    ok 18 - one-plain alias prompt_per_second equals canonical source
+    ok 19 - one-plain alias predicted_n equals canonical source
+    ok 20 - one-plain alias predicted_ms equals canonical source
+    ok 21 - one-plain alias predicted_per_second equals canonical source
+    ok 22 - one-plain alias decode_intervals equals canonical source
+    ok 23 - one-plain alias decode_ms equals canonical source
+    ok 24 - one-plain actual tokenizer prompt size
+    ok 25 - one-plain resumed count
+    ok 26 - one-plain successful transport
+    ok 27 - one-plain no error
+    ok 28 - one-plain one generated token
+    ok 29 - one-plain zero decode intervals
+    ok 30 - one-plain canonical rate null
+    ok 31 - one-plain legacy rate null
+    ok 32 - one-plain socket rate null
+    ok 33 - one-plain first token includes engine delay
+    ok 34 - one-plain nonstream future delivery null
+    ok 35 - one-plain nonstream future TTFT null
+    1..35
+ok 6 - one nonstreaming
+# Subtest: stop nonstreaming
+    ok 1 - stop-plain has timing object
+    ok 2 - stop-plain host clock
+    ok 3 - stop-plain host origin
+    ok 4 - stop-plain does not predict future write completion
+    ok 5 - stop-plain request_read_ms is nonnegative
+    ok 6 - stop-plain prequeue_ms is nonnegative
+    ok 7 - stop-plain queue_ms is nonnegative
+    ok 8 - stop-plain tokenization_ms is nonnegative
+    ok 9 - stop-plain setup_ms is nonnegative
+    ok 10 - stop-plain engine_submitted_ms is nonnegative
+    ok 11 - stop-plain completion_record_created_ms is nonnegative
+    ok 12 - stop-plain exact canonical values forwarded
+    ok 13 - stop-plain raw JSON forwarded without reformatting
+    ok 14 - stop-plain engine timing available
+    ok 15 - stop-plain alias prompt_n equals canonical source
+    ok 16 - stop-plain alias cache_n equals canonical source
+    ok 17 - stop-plain alias prompt_ms equals canonical source
+    ok 18 - stop-plain alias prompt_per_second equals canonical source
+    ok 19 - stop-plain alias predicted_n equals canonical source
+    ok 20 - stop-plain alias predicted_ms equals canonical source
+    ok 21 - stop-plain alias predicted_per_second equals canonical source
+    ok 22 - stop-plain alias decode_intervals equals canonical source
+    ok 23 - stop-plain alias decode_ms equals canonical source
+    ok 24 - stop-plain actual tokenizer prompt size
+    ok 25 - stop-plain resumed count
+    ok 26 - stop-plain successful transport
+    ok 27 - stop-plain no error
+    ok 28 - stop-plain one generated token
+    ok 29 - stop-plain zero decode intervals
+    ok 30 - stop-plain canonical rate null
+    ok 31 - stop-plain legacy rate null
+    ok 32 - stop-plain socket rate null
+    ok 33 - stop-plain stop observed
+    ok 34 - stop-plain stop finish reason
+    ok 35 - stop-plain hidden stop not delivery
+    ok 36 - stop-plain role not delivery
+    ok 37 - stop-plain first token includes engine delay
+    ok 38 - stop-plain nonstream future delivery null
+    ok 39 - stop-plain nonstream future TTFT null
+    1..39
+ok 7 - stop nonstreaming
+# Subtest: partial nonstreaming
+    ok 1 - partial-plain has timing object
+    ok 2 - partial-plain host clock
+    ok 3 - partial-plain host origin
+    ok 4 - partial-plain does not predict future write completion
+    ok 5 - partial-plain request_read_ms is nonnegative
+    ok 6 - partial-plain prequeue_ms is nonnegative
+    ok 7 - partial-plain queue_ms is nonnegative
+    ok 8 - partial-plain tokenization_ms is nonnegative
+    ok 9 - partial-plain setup_ms is nonnegative
+    ok 10 - partial-plain engine_submitted_ms is nonnegative
+    ok 11 - partial-plain completion_record_created_ms is nonnegative
+    ok 12 - partial-plain exact canonical values forwarded
+    ok 13 - partial-plain raw JSON forwarded without reformatting
+    ok 14 - partial-plain engine timing available
+    ok 15 - partial-plain alias prompt_n equals canonical source
+    ok 16 - partial-plain alias cache_n equals canonical source
+    ok 17 - partial-plain alias prompt_ms equals canonical source
+    ok 18 - partial-plain alias prompt_per_second equals canonical source
+    ok 19 - partial-plain alias predicted_n equals canonical source
+    ok 20 - partial-plain alias predicted_ms equals canonical source
+    ok 21 - partial-plain alias predicted_per_second equals canonical source
+    ok 22 - partial-plain alias decode_intervals equals canonical source
+    ok 23 - partial-plain alias decode_ms equals canonical source
+    ok 24 - partial-plain actual tokenizer prompt size
+    ok 25 - partial-plain resumed count
+    ok 26 - partial-plain engine failure
+    ok 27 - partial-plain failure transport
+    ok 28 - partial-plain failure incomplete
+    ok 29 - partial-plain engine decode rate null
+    ok 30 - partial-plain engine prompt rate null
+    ok 31 - partial-plain failed socket rate null
+    ok 32 - partial-plain legacy decode rate null
+    ok 33 - partial-plain fault preserved
+    ok 34 - partial-plain partial counters
+    ok 35 - partial-plain partial output count
+    ok 36 - partial-plain observed count
+    ok 37 - partial-plain unknown stop null
+    ok 38 - partial-plain first token includes engine delay
+    ok 39 - partial-plain nonstream future delivery null
+    ok 40 - partial-plain nonstream future TTFT null
+    1..40
+ok 8 - partial nonstreaming
+# Subtest: abort nonstreaming
+    ok 1 - abort-plain has timing object
+    ok 2 - abort-plain host clock
+    ok 3 - abort-plain host origin
+    ok 4 - abort-plain does not predict future write completion
+    ok 5 - abort-plain request_read_ms is nonnegative
+    ok 6 - abort-plain prequeue_ms is nonnegative
+    ok 7 - abort-plain queue_ms is nonnegative
+    ok 8 - abort-plain tokenization_ms is nonnegative
+    ok 9 - abort-plain setup_ms is nonnegative
+    ok 10 - abort-plain engine_submitted_ms is nonnegative
+    ok 11 - abort-plain completion_record_created_ms is nonnegative
+    ok 12 - abort-plain exact canonical values forwarded
+    ok 13 - abort-plain raw JSON forwarded without reformatting
+    ok 14 - abort-plain engine timing available
+    ok 15 - abort-plain alias prompt_n equals canonical source
+    ok 16 - abort-plain alias cache_n equals canonical source
+    ok 17 - abort-plain alias prompt_ms equals canonical source
+    ok 18 - abort-plain alias prompt_per_second equals canonical source
+    ok 19 - abort-plain alias predicted_n equals canonical source
+    ok 20 - abort-plain alias predicted_ms equals canonical source
+    ok 21 - abort-plain alias predicted_per_second equals canonical source
+    ok 22 - abort-plain alias decode_intervals equals canonical source
+    ok 23 - abort-plain alias decode_ms equals canonical source
+    ok 24 - abort-plain actual tokenizer prompt size
+    ok 25 - abort-plain resumed count
+    ok 26 - abort-plain successful transport
+    ok 27 - abort-plain no error
+    ok 28 - abort-plain engine abort
+    ok 29 - abort-plain HTTP reflects abort
+    ok 30 - abort-plain abort incomplete
+    ok 31 - abort-plain abort is not model stop
+    ok 32 - abort-plain aborted socket rate null
+    ok 33 - abort-plain first token includes engine delay
+    ok 34 - abort-plain nonstream future delivery null
+    ok 35 - abort-plain nonstream future TTFT null
+    1..35
+ok 9 - abort nonstreaming
+# Subtest: unknown nonstreaming
+    ok 1 - unknown-plain has timing object
+    ok 2 - unknown-plain host clock
+    ok 3 - unknown-plain host origin
+    ok 4 - unknown-plain does not predict future write completion
+    ok 5 - unknown-plain request_read_ms is nonnegative
+    ok 6 - unknown-plain prequeue_ms is nonnegative
+    ok 7 - unknown-plain queue_ms is nonnegative
+    ok 8 - unknown-plain tokenization_ms is nonnegative
+    ok 9 - unknown-plain setup_ms is nonnegative
+    ok 10 - unknown-plain engine_submitted_ms is nonnegative
+    ok 11 - unknown-plain completion_record_created_ms is nonnegative
+    ok 12 - unknown-plain exact canonical values forwarded
+    ok 13 - unknown-plain raw JSON forwarded without reformatting
+    ok 14 - unknown-plain engine timing available
+    ok 15 - unknown-plain alias prompt_n equals canonical source
+    ok 16 - unknown-plain alias cache_n equals canonical source
+    ok 17 - unknown-plain alias prompt_ms equals canonical source
+    ok 18 - unknown-plain alias prompt_per_second equals canonical source
+    ok 19 - unknown-plain alias predicted_n equals canonical source
+    ok 20 - unknown-plain alias predicted_ms equals canonical source
+    ok 21 - unknown-plain alias predicted_per_second equals canonical source
+    ok 22 - unknown-plain alias decode_intervals equals canonical source
+    ok 23 - unknown-plain alias decode_ms equals canonical source
+    ok 24 - unknown-plain actual tokenizer prompt size
+    ok 25 - unknown-plain unknown resumed count is null
+    ok 26 - unknown-plain engine failure
+    ok 27 - unknown-plain failure transport
+    ok 28 - unknown-plain failure incomplete
+    ok 29 - unknown-plain engine decode rate null
+    ok 30 - unknown-plain engine prompt rate null
+    ok 31 - unknown-plain failed socket rate null
+    ok 32 - unknown-plain legacy decode rate null
+    ok 33 - unknown-plain unknown counters
+    ok 34 - unknown-plain generated count null
+    ok 35 - unknown-plain positions null
+    ok 36 - unknown-plain zero observations
+    ok 37 - unknown-plain first observation null
+    ok 38 - unknown-plain delivery null
+    ok 39 - unknown-plain nonstream future delivery null
+    ok 40 - unknown-plain nonstream future TTFT null
+    1..40
+ok 10 - unknown nonstreaming
+# Subtest: legacy nonstreaming
+    ok 1 - legacy-plain has timing object
+    ok 2 - legacy-plain host clock
+    ok 3 - legacy-plain host origin
+    ok 4 - legacy-plain does not predict future write completion
+    ok 5 - legacy-plain request_read_ms is nonnegative
+    ok 6 - legacy-plain prequeue_ms is nonnegative
+    ok 7 - legacy-plain queue_ms is nonnegative
+    ok 8 - legacy-plain tokenization_ms is nonnegative
+    ok 9 - legacy-plain setup_ms is nonnegative
+    ok 10 - legacy-plain engine_submitted_ms is nonnegative
+    ok 11 - legacy-plain completion_record_created_ms is nonnegative
+    ok 12 - legacy-plain engine JSON unavailable
+    ok 13 - legacy-plain availability false
+    ok 14 - legacy-plain old engine supported
+    ok 15 - legacy-plain legacy output count
+    1..15
+ok 11 - legacy nonstreaming
+# Subtest: frontendcap nonstreaming
+    ok 1 - frontendcap-plain has timing object
+    ok 2 - frontendcap-plain host clock
+    ok 3 - frontendcap-plain host origin
+    ok 4 - frontendcap-plain does not predict future write completion
+    ok 5 - frontendcap-plain request_read_ms is nonnegative
+    ok 6 - frontendcap-plain prequeue_ms is nonnegative
+    ok 7 - frontendcap-plain queue_ms is nonnegative
+    ok 8 - frontendcap-plain tokenization_ms is nonnegative
+    ok 9 - frontendcap-plain setup_ms is nonnegative
+    ok 10 - frontendcap-plain engine_submitted_ms is nonnegative
+    ok 11 - frontendcap-plain completion_record_created_ms is nonnegative
+    ok 12 - frontendcap-plain frontend cap is cancellation
+    ok 13 - frontendcap-plain incomplete
+    ok 14 - frontendcap-plain no invented final engine snapshot
+    ok 15 - frontendcap-plain engine JSON null
+    ok 16 - frontendcap-plain fourth token triggers cap three
+    ok 17 - frontendcap-plain cancelled socket rate null
+    ok 18 - frontendcap-plain unknown final engine rate null
+    1..18
+ok 12 - frontendcap nonstreaming
+# Subtest: multi streaming
+    ok 1 - multi-stream has timing object
+    ok 2 - multi-stream host clock
+    ok 3 - multi-stream host origin
+    ok 4 - multi-stream does not predict future write completion
+    ok 5 - multi-stream request_read_ms is nonnegative
+    ok 6 - multi-stream prequeue_ms is nonnegative
+    ok 7 - multi-stream queue_ms is nonnegative
+    ok 8 - multi-stream tokenization_ms is nonnegative
+    ok 9 - multi-stream setup_ms is nonnegative
+    ok 10 - multi-stream engine_submitted_ms is nonnegative
+    ok 11 - multi-stream completion_record_created_ms is nonnegative
+    ok 12 - multi-stream exact canonical values forwarded
+    ok 13 - multi-stream raw JSON forwarded without reformatting
+    ok 14 - multi-stream engine timing available
+    ok 15 - multi-stream alias prompt_n equals canonical source
+    ok 16 - multi-stream alias cache_n equals canonical source
+    ok 17 - multi-stream alias prompt_ms equals canonical source
+    ok 18 - multi-stream alias prompt_per_second equals canonical source
+    ok 19 - multi-stream alias predicted_n equals canonical source
+    ok 20 - multi-stream alias predicted_ms equals canonical source
+    ok 21 - multi-stream alias predicted_per_second equals canonical source
+    ok 22 - multi-stream alias decode_intervals equals canonical source
+    ok 23 - multi-stream alias decode_ms equals canonical source
+    ok 24 - multi-stream actual tokenizer prompt size
+    ok 25 - multi-stream resumed count
+    ok 26 - multi-stream successful transport
+    ok 27 - multi-stream no error
+    ok 28 - multi-stream unrounded first
+    ok 29 - multi-stream unrounded run
+    ok 30 - multi-stream engine rate
+    ok 31 - multi-stream socket rate
+    ok 32 - multi-stream complete
+    ok 33 - multi-stream first token includes engine delay
+    ok 34 - multi-stream first delivery measured
+    ok 35 - multi-stream role excluded
+    ok 36 - multi-stream TTFT aliases delivery
+    ok 37 - multi-stream delivery follows observation
+    ok 38 - multi-stream actual role event
+    1..38
+ok 13 - multi streaming
+# Subtest: nooutput streaming
+    ok 1 - nooutput-stream has timing object
+    ok 2 - nooutput-stream host clock
+    ok 3 - nooutput-stream host origin
+    ok 4 - nooutput-stream does not predict future write completion
+    ok 5 - nooutput-stream request_read_ms is nonnegative
+    ok 6 - nooutput-stream prequeue_ms is nonnegative
+    ok 7 - nooutput-stream queue_ms is nonnegative
+    ok 8 - nooutput-stream tokenization_ms is nonnegative
+    ok 9 - nooutput-stream setup_ms is nonnegative
+    ok 10 - nooutput-stream engine_submitted_ms is nonnegative
+    ok 11 - nooutput-stream completion_record_created_ms is nonnegative
+    ok 12 - nooutput-stream no stale canonical JSON
+    ok 13 - nooutput-stream unavailable
+    ok 14 - nooutput-stream no observed tokens
+    ok 15 - nooutput-stream first_token_observed_ms null
+    ok 16 - nooutput-stream first_text_send_ms null
+    ok 17 - nooutput-stream ttft_ms null
+    ok 18 - nooutput-stream socket_decode_tokens_per_second null
+    ok 19 - nooutput-stream unknown engine rate null
+    ok 20 - nooutput-stream error response
+    ok 21 - nooutput-stream error transport status
+    1..21
+ok 14 - nooutput streaming
+# Subtest: one streaming
+    ok 1 - one-stream has timing object
+    ok 2 - one-stream host clock
+    ok 3 - one-stream host origin
+    ok 4 - one-stream does not predict future write completion
+    ok 5 - one-stream request_read_ms is nonnegative
+    ok 6 - one-stream prequeue_ms is nonnegative
+    ok 7 - one-stream queue_ms is nonnegative
+    ok 8 - one-stream tokenization_ms is nonnegative
+    ok 9 - one-stream setup_ms is nonnegative
+    ok 10 - one-stream engine_submitted_ms is nonnegative
+    ok 11 - one-stream completion_record_created_ms is nonnegative
+    ok 12 - one-stream exact canonical values forwarded
+    ok 13 - one-stream raw JSON forwarded without reformatting
+    ok 14 - one-stream engine timing available
+    ok 15 - one-stream alias prompt_n equals canonical source
+    ok 16 - one-stream alias cache_n equals canonical source
+    ok 17 - one-stream alias prompt_ms equals canonical source
+    ok 18 - one-stream alias prompt_per_second equals canonical source
+    ok 19 - one-stream alias predicted_n equals canonical source
+    ok 20 - one-stream alias predicted_ms equals canonical source
+    ok 21 - one-stream alias predicted_per_second equals canonical source
+    ok 22 - one-stream alias decode_intervals equals canonical source
+    ok 23 - one-stream alias decode_ms equals canonical source
+    ok 24 - one-stream actual tokenizer prompt size
+    ok 25 - one-stream resumed count
+    ok 26 - one-stream successful transport
+    ok 27 - one-stream no error
+    ok 28 - one-stream one generated token
+    ok 29 - one-stream zero decode intervals
+    ok 30 - one-stream canonical rate null
+    ok 31 - one-stream legacy rate null
+    ok 32 - one-stream socket rate null
+    ok 33 - one-stream first token includes engine delay
+    ok 34 - one-stream first delivery measured
+    ok 35 - one-stream role excluded
+    ok 36 - one-stream TTFT aliases delivery
+    ok 37 - one-stream delivery follows observation
+    ok 38 - one-stream actual role event
+    1..38
+ok 15 - one streaming
+# Subtest: stop streaming
+    ok 1 - stop-stream has timing object
+    ok 2 - stop-stream host clock
+    ok 3 - stop-stream host origin
+    ok 4 - stop-stream does not predict future write completion
+    ok 5 - stop-stream request_read_ms is nonnegative
+    ok 6 - stop-stream prequeue_ms is nonnegative
+    ok 7 - stop-stream queue_ms is nonnegative
+    ok 8 - stop-stream tokenization_ms is nonnegative
+    ok 9 - stop-stream setup_ms is nonnegative
+    ok 10 - stop-stream engine_submitted_ms is nonnegative
+    ok 11 - stop-stream completion_record_created_ms is nonnegative
+    ok 12 - stop-stream exact canonical values forwarded
+    ok 13 - stop-stream raw JSON forwarded without reformatting
+    ok 14 - stop-stream engine timing available
+    ok 15 - stop-stream alias prompt_n equals canonical source
+    ok 16 - stop-stream alias cache_n equals canonical source
+    ok 17 - stop-stream alias prompt_ms equals canonical source
+    ok 18 - stop-stream alias prompt_per_second equals canonical source
+    ok 19 - stop-stream alias predicted_n equals canonical source
+    ok 20 - stop-stream alias predicted_ms equals canonical source
+    ok 21 - stop-stream alias predicted_per_second equals canonical source
+    ok 22 - stop-stream alias decode_intervals equals canonical source
+    ok 23 - stop-stream alias decode_ms equals canonical source
+    ok 24 - stop-stream actual tokenizer prompt size
+    ok 25 - stop-stream resumed count
+    ok 26 - stop-stream successful transport
+    ok 27 - stop-stream no error
+    ok 28 - stop-stream one generated token
+    ok 29 - stop-stream zero decode intervals
+    ok 30 - stop-stream canonical rate null
+    ok 31 - stop-stream legacy rate null
+    ok 32 - stop-stream socket rate null
+    ok 33 - stop-stream stop observed
+    ok 34 - stop-stream stop finish reason
+    ok 35 - stop-stream hidden stop not delivery
+    ok 36 - stop-stream role not delivery
+    ok 37 - stop-stream first token includes engine delay
+    1..37
+ok 16 - stop streaming
+# Subtest: partial streaming
+    ok 1 - partial-stream has timing object
+    ok 2 - partial-stream host clock
+    ok 3 - partial-stream host origin
+    ok 4 - partial-stream does not predict future write completion
+    ok 5 - partial-stream request_read_ms is nonnegative
+    ok 6 - partial-stream prequeue_ms is nonnegative
+    ok 7 - partial-stream queue_ms is nonnegative
+    ok 8 - partial-stream tokenization_ms is nonnegative
+    ok 9 - partial-stream setup_ms is nonnegative
+    ok 10 - partial-stream engine_submitted_ms is nonnegative
+    ok 11 - partial-stream completion_record_created_ms is nonnegative
+    ok 12 - partial-stream exact canonical values forwarded
+    ok 13 - partial-stream raw JSON forwarded without reformatting
+    ok 14 - partial-stream engine timing available
+    ok 15 - partial-stream alias prompt_n equals canonical source
+    ok 16 - partial-stream alias cache_n equals canonical source
+    ok 17 - partial-stream alias prompt_ms equals canonical source
+    ok 18 - partial-stream alias prompt_per_second equals canonical source
+    ok 19 - partial-stream alias predicted_n equals canonical source
+    ok 20 - partial-stream alias predicted_ms equals canonical source
+    ok 21 - partial-stream alias predicted_per_second equals canonical source
+    ok 22 - partial-stream alias decode_intervals equals canonical source
+    ok 23 - partial-stream alias decode_ms equals canonical source
+    ok 24 - partial-stream actual tokenizer prompt size
+    ok 25 - partial-stream resumed count
+    ok 26 - partial-stream engine failure
+    ok 27 - partial-stream failure transport
+    ok 28 - partial-stream failure incomplete
+    ok 29 - partial-stream engine decode rate null
+    ok 30 - partial-stream engine prompt rate null
+    ok 31 - partial-stream failed socket rate null
+    ok 32 - partial-stream legacy decode rate null
+    ok 33 - partial-stream fault preserved
+    ok 34 - partial-stream partial counters
+    ok 35 - partial-stream partial output count
+    ok 36 - partial-stream observed count
+    ok 37 - partial-stream unknown stop null
+    ok 38 - partial-stream first token includes engine delay
+    ok 39 - partial-stream first delivery measured
+    ok 40 - partial-stream role excluded
+    ok 41 - partial-stream TTFT aliases delivery
+    ok 42 - partial-stream delivery follows observation
+    ok 43 - partial-stream actual role event
+    1..43
+ok 17 - partial streaming
+# Subtest: abort streaming
+    ok 1 - abort-stream has timing object
+    ok 2 - abort-stream host clock
+    ok 3 - abort-stream host origin
+    ok 4 - abort-stream does not predict future write completion
+    ok 5 - abort-stream request_read_ms is nonnegative
+    ok 6 - abort-stream prequeue_ms is nonnegative
+    ok 7 - abort-stream queue_ms is nonnegative
+    ok 8 - abort-stream tokenization_ms is nonnegative
+    ok 9 - abort-stream setup_ms is nonnegative
+    ok 10 - abort-stream engine_submitted_ms is nonnegative
+    ok 11 - abort-stream completion_record_created_ms is nonnegative
+    ok 12 - abort-stream exact canonical values forwarded
+    ok 13 - abort-stream raw JSON forwarded without reformatting
+    ok 14 - abort-stream engine timing available
+    ok 15 - abort-stream alias prompt_n equals canonical source
+    ok 16 - abort-stream alias cache_n equals canonical source
+    ok 17 - abort-stream alias prompt_ms equals canonical source
+    ok 18 - abort-stream alias prompt_per_second equals canonical source
+    ok 19 - abort-stream alias predicted_n equals canonical source
+    ok 20 - abort-stream alias predicted_ms equals canonical source
+    ok 21 - abort-stream alias predicted_per_second equals canonical source
+    ok 22 - abort-stream alias decode_intervals equals canonical source
+    ok 23 - abort-stream alias decode_ms equals canonical source
+    ok 24 - abort-stream actual tokenizer prompt size
+    ok 25 - abort-stream resumed count
+    ok 26 - abort-stream successful transport
+    ok 27 - abort-stream no error
+    ok 28 - abort-stream engine abort
+    ok 29 - abort-stream HTTP reflects abort
+    ok 30 - abort-stream abort incomplete
+    ok 31 - abort-stream abort is not model stop
+    ok 32 - abort-stream aborted socket rate null
+    ok 33 - abort-stream first token includes engine delay
+    ok 34 - abort-stream first delivery measured
+    ok 35 - abort-stream role excluded
+    ok 36 - abort-stream TTFT aliases delivery
+    ok 37 - abort-stream delivery follows observation
+    ok 38 - abort-stream actual role event
+    1..38
+ok 18 - abort streaming
+# Subtest: unknown streaming
+    ok 1 - unknown-stream has timing object
+    ok 2 - unknown-stream host clock
+    ok 3 - unknown-stream host origin
+    ok 4 - unknown-stream does not predict future write completion
+    ok 5 - unknown-stream request_read_ms is nonnegative
+    ok 6 - unknown-stream prequeue_ms is nonnegative
+    ok 7 - unknown-stream queue_ms is nonnegative
+    ok 8 - unknown-stream tokenization_ms is nonnegative
+    ok 9 - unknown-stream setup_ms is nonnegative
+    ok 10 - unknown-stream engine_submitted_ms is nonnegative
+    ok 11 - unknown-stream completion_record_created_ms is nonnegative
+    ok 12 - unknown-stream exact canonical values forwarded
+    ok 13 - unknown-stream raw JSON forwarded without reformatting
+    ok 14 - unknown-stream engine timing available
+    ok 15 - unknown-stream alias prompt_n equals canonical source
+    ok 16 - unknown-stream alias cache_n equals canonical source
+    ok 17 - unknown-stream alias prompt_ms equals canonical source
+    ok 18 - unknown-stream alias prompt_per_second equals canonical source
+    ok 19 - unknown-stream alias predicted_n equals canonical source
+    ok 20 - unknown-stream alias predicted_ms equals canonical source
+    ok 21 - unknown-stream alias predicted_per_second equals canonical source
+    ok 22 - unknown-stream alias decode_intervals equals canonical source
+    ok 23 - unknown-stream alias decode_ms equals canonical source
+    ok 24 - unknown-stream actual tokenizer prompt size
+    ok 25 - unknown-stream unknown resumed count is null
+    ok 26 - unknown-stream engine failure
+    ok 27 - unknown-stream failure transport
+    ok 28 - unknown-stream failure incomplete
+    ok 29 - unknown-stream engine decode rate null
+    ok 30 - unknown-stream engine prompt rate null
+    ok 31 - unknown-stream failed socket rate null
+    ok 32 - unknown-stream legacy decode rate null
+    ok 33 - unknown-stream unknown counters
+    ok 34 - unknown-stream generated count null
+    ok 35 - unknown-stream positions null
+    ok 36 - unknown-stream zero observations
+    ok 37 - unknown-stream first observation null
+    ok 38 - unknown-stream delivery null
+    1..38
+ok 19 - unknown streaming
+# Subtest: legacy streaming
+    ok 1 - legacy-stream has timing object
+    ok 2 - legacy-stream host clock
+    ok 3 - legacy-stream host origin
+    ok 4 - legacy-stream does not predict future write completion
+    ok 5 - legacy-stream request_read_ms is nonnegative
+    ok 6 - legacy-stream prequeue_ms is nonnegative
+    ok 7 - legacy-stream queue_ms is nonnegative
+    ok 8 - legacy-stream tokenization_ms is nonnegative
+    ok 9 - legacy-stream setup_ms is nonnegative
+    ok 10 - legacy-stream engine_submitted_ms is nonnegative
+    ok 11 - legacy-stream completion_record_created_ms is nonnegative
+    ok 12 - legacy-stream engine JSON unavailable
+    ok 13 - legacy-stream availability false
+    ok 14 - legacy-stream old engine supported
+    ok 15 - legacy-stream legacy output count
+    1..15
+ok 20 - legacy streaming
+# Subtest: frontendcap streaming
+    ok 1 - frontendcap-stream has timing object
+    ok 2 - frontendcap-stream host clock
+    ok 3 - frontendcap-stream host origin
+    ok 4 - frontendcap-stream does not predict future write completion
+    ok 5 - frontendcap-stream request_read_ms is nonnegative
+    ok 6 - frontendcap-stream prequeue_ms is nonnegative
+    ok 7 - frontendcap-stream queue_ms is nonnegative
+    ok 8 - frontendcap-stream tokenization_ms is nonnegative
+    ok 9 - frontendcap-stream setup_ms is nonnegative
+    ok 10 - frontendcap-stream engine_submitted_ms is nonnegative
+    ok 11 - frontendcap-stream completion_record_created_ms is nonnegative
+    ok 12 - frontendcap-stream frontend cap is cancellation
+    ok 13 - frontendcap-stream incomplete
+    ok 14 - frontendcap-stream no invented final engine snapshot
+    ok 15 - frontendcap-stream engine JSON null
+    ok 16 - frontendcap-stream fourth token triggers cap three
+    ok 17 - frontendcap-stream cancelled socket rate null
+    ok 18 - frontendcap-stream unknown final engine rate null
+    1..18
+ok 21 - frontendcap streaming
+1..21

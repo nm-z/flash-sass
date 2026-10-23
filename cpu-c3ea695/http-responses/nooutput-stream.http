@@ -1,0 +1,20 @@
+HTTP/1.1 200 OK
+Content-Type: text/event-stream
+Cache-Control: no-cache
+Transfer-Encoding: chunked
+Connection: close
+
+dd
+data: {"choices":[{"index":0,"delta":{"role":"assistant","content":null},"finish_reason":null}],"created":1792275377,"id":"chatcmpl-flash","model":"Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass","object":"chat.completion.chunk"}
+
+
+384
+data: {"error":{"message":"the engine failed during the response","type":"engine_error"},"timings":{"prompt_n":20,"cache_n":null,"prompt_ms":null,"prompt_per_second":null,"predicted_n":null,"predicted_ms":null,"predicted_per_second":null,"decode_intervals":null,"decode_ms":null,"schema_version":1,"engine":null,"http":{"clock":"CLOCK_MONOTONIC","start_event":"request_worker_entry","complete":false,"aborted":false,"engine_timing_available":false,"raw_token_events":0,"request_read_ms":0.048489995300769806,"prequeue_ms":0.010227002203464508,"queue_ms":0,"tokenization_ms":0.0080419927835464478,"setup_ms":0.071957997977733612,"engine_submitted_ms":0.13364099711179733,"completion_record_created_ms":0.50362599641084671,"first_token_observed_ms":null,"last_token_observed_ms":null,"first_text_send_ms":null,"ttft_ms":null,"socket_decode_tokens_per_second":null,"response_write_complete_ms":null}}}
+
+
+e
+data: [DONE]
+
+
+0
+

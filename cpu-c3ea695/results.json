@@ -1,0 +1,37 @@
+{
+  "status": "PASS",
+  "source": "c3ea6950b91382d40a8d74fea46675594d6ded3a",
+  "commands": [
+    {
+      "argv": [
+        "/home/nate/claude/flash-sass-prs/timing-build-c3ea695/kern/timings_test"
+      ],
+      "exit": 0,
+      "seconds": 0.0018031479994533584
+    },
+    {
+      "argv": [
+        "/home/nate/claude/flash-sass-prs/timing-build-c3ea695/kern/trace_session_test"
+      ],
+      "exit": 0,
+      "seconds": 0.0036928900008206256
+    },
+    {
+      "argv": [
+        "perl",
+        "/home/nate/claude/flash-sass-prs/timing-build-c3ea695/kern/flashd_timing_test.pl",
+        "/home/nate/claude/flash-sass-prs/timing-build-c3ea695/kern/flashd_timing_test",
+        "/home/nate/claude/flash-sass-prs/timing-build-c3ea695/kern/timings_test",
+        "/tmp/timing-http-c3ea695"
+      ],
+      "exit": 0,
+      "seconds": 2.0688813689994277
+    }
+  ],
+  "files": {
+    "/home/nate/claude/flash-sass-prs/timing-build-c3ea695/kern/timings_test": "db4f05a9955451ff01b1fd171995aae81ada8957d83d906046139202459bc1c5",
+    "/home/nate/claude/flash-sass-prs/timing-build-c3ea695/kern/trace_session_test": "3c4ae6e3cc79d0df5d34bc62b4742728b4a975876f353ca63625eaf880bbba35",
+    "/home/nate/claude/flash-sass-prs/timing-build-c3ea695/kern/flashd_timing_test": "61b5a4de31624592d18d6abd5d42730a0eb02a208670cb35a01e00ba26112615",
+    "/home/nate/claude/flash-sass-prs/timing-build-c3ea695/kern/flashd_timing_test.pl": "977e2168677d6994d88eadc06a4af106677f962b86f3dbe432e73e6d2ec8efc1"
+  }
+}

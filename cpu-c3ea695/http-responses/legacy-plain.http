@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Cache-Control: no-store
+Content-Length: 1165
+Connection: close
+
+{"choices":[{"index":0,"finish_reason":"length","message":{"role":"assistant","content":"abc"}}],"created":1792275377,"id":"chatcmpl-flash","model":"Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass","object":"chat.completion","usage":{"completion_tokens":3,"prompt_tokens":20,"total_tokens":23},"timings":{"prompt_n":20,"cache_n":19,"prompt_ms":12.300000000000001,"prompt_per_second":81.300813008130078,"predicted_n":3,"predicted_ms":44.5,"predicted_per_second":44.943820224719104,"decode_intervals":2,"decode_ms":44.5,"schema_version":1,"engine":null,"http":{"clock":"CLOCK_MONOTONIC","start_event":"request_worker_entry","complete":true,"aborted":false,"engine_timing_available":false,"raw_token_events":3,"request_read_ms":0.037568002939224243,"prequeue_ms":0.010795995593070984,"queue_ms":0,"tokenization_ms":0.010162994265556335,"setup_ms":0.075757995247840881,"engine_submitted_ms":0.12696199864149094,"completion_record_created_ms":114.45496000349522,"first_token_observed_ms":84.061240002512932,"last_token_observed_ms":104.23201600462198,"first_text_send_ms":null,"ttft_ms":null,"socket_decode_tokens_per_second":99.153349369943953,"response_write_complete_ms":null}}}
