@@ -1,0 +1,5 @@
+make: Entering directory '/home/nate/codex/flash-pr44-integration-evidence-20261018/build/bounded/kern'
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -DFLASH_REV='"d46d188a435c5d959993f16dc1f78c837cc9f70d"' -o qsa_direct_test qsa_direct_test.c prog.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm
+cc -std=c11 -O2 -Wall -Wextra -Werror -o prefill_plan_test prefill_plan_test.c
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -o checked_test checked_test.c ../ref/checked.c ../ref/attn.c ../ref/qsa.c ../ref/fmath.c -I../ref -lm
+make: Leaving directory '/home/nate/codex/flash-pr44-integration-evidence-20261018/build/bounded/kern'
