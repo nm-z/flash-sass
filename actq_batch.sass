@@ -1,0 +1,11 @@
+# Position-parallel K256 ACTQ. One CTA unit owns the original256-element
+# vector and its eight warps own eight positions. The existing emitter keeps
+# every quantizer operation, lane reduction and output layout unchanged.
+<CODE>
+    require './actq.pl';
+    return actq_regmap(256, 0, 1);
+</CODE>
+<CODE>
+    require './actq.pl';
+    return actq_code(256, 0, 1);
+</CODE>
