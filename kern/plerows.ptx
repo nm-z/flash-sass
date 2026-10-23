@@ -1,0 +1,16 @@
+// Skeleton for MaxAs: same entry name and parameter layout as plerows.sass.
+.version 7.4
+.target sm_52
+.address_size 64
+
+.visible .entry plerows(.param .u64 pids, .param .u64 ppc, .param .u64 ptab, .param .u64 pg, .param .u64 prows, .param .u32 pos)
+{
+	.shared .align 16 .b8 smem[64];
+	.reg .u32 %r<2>;
+	.reg .pred %p;
+	ld.param.u32 %r0, [pos];
+	mov.u32 %r1, %tid.x;
+	setp.lt.u32 %p, %r1, %r0;
+	@%p ret;
+	ret;
+}
