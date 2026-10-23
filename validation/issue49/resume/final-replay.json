@@ -1,0 +1,108 @@
+{
+   "data" : {
+      "local" : {
+         "batches" : 2304,
+         "fully_resident_warm_pairs" : 1024,
+         "groups" : [
+            {
+               "batches" : 128,
+               "cache_class" : "client_mixed",
+               "median_ns" : 575602.5,
+               "p95_ns" : 781909,
+               "phase" : "unprimed",
+               "readers" : 1
+            },
+            {
+               "batches" : 128,
+               "cache_class" : "client_mixed",
+               "median_ns" : 561535,
+               "p95_ns" : 864530,
+               "phase" : "unprimed",
+               "readers" : 16
+            },
+            {
+               "batches" : 1024,
+               "cache_class" : "client_resident",
+               "median_ns" : 23297,
+               "p95_ns" : 27096,
+               "phase" : "warm",
+               "readers" : 1
+            },
+            {
+               "batches" : 1024,
+               "cache_class" : "client_resident",
+               "median_ns" : 60947,
+               "p95_ns" : 77431,
+               "phase" : "warm",
+               "readers" : 16
+            }
+         ],
+         "median_paired_serial_over_parallel" : 0.388660791536194,
+         "seed" : 20261019
+      },
+      "nfs" : {
+         "batches" : 2304,
+         "fully_resident_warm_pairs" : 1024,
+         "groups" : [
+            {
+               "batches" : 124,
+               "cache_class" : "client_absent",
+               "median_ns" : 95973701,
+               "p95_ns" : 134982009,
+               "phase" : "unprimed",
+               "readers" : 1
+            },
+            {
+               "batches" : 125,
+               "cache_class" : "client_absent",
+               "median_ns" : 97934603,
+               "p95_ns" : 142548734,
+               "phase" : "unprimed",
+               "readers" : 16
+            },
+            {
+               "batches" : 4,
+               "cache_class" : "client_mixed",
+               "median_ns" : 90473028.5,
+               "p95_ns" : 123522999,
+               "phase" : "unprimed",
+               "readers" : 1
+            },
+            {
+               "batches" : 3,
+               "cache_class" : "client_mixed",
+               "median_ns" : 93769563,
+               "p95_ns" : 96017238,
+               "phase" : "unprimed",
+               "readers" : 16
+            },
+            {
+               "batches" : 1024,
+               "cache_class" : "client_resident",
+               "median_ns" : 24989.5,
+               "p95_ns" : 30434,
+               "phase" : "warm",
+               "readers" : 1
+            },
+            {
+               "batches" : 1024,
+               "cache_class" : "client_resident",
+               "median_ns" : 68249,
+               "p95_ns" : 89106,
+               "phase" : "warm",
+               "readers" : 16
+            }
+         ],
+         "median_paired_serial_over_parallel" : 0.368733654352138,
+         "seed" : 20261019
+      }
+   },
+   "limitations" : [
+      "Original final pass records are present; this replay does not recreate missing command-exit files.",
+      "Unprimed arms are randomized disjoint inputs, not same-offset cold pairs.",
+      "Warm comparisons cover measured client-cache residency only.",
+      "No new GPU, disk benchmark, model validation, or issue acceptance is claimed."
+   ],
+   "source_sha" : "7f37f6bdc69a0286869ead4d0e8231fa601b23c1",
+   "status" : "historical_replayed"
+}
