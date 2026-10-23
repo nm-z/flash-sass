@@ -1,0 +1,15 @@
+{
+"schema":"flash-sass.independent-gguf-capture.v1",
+"teacher_forced":true,"positions":4,"vocab_size":248320,
+"dtype":"<f4","byte_order":"little",
+"input_semantics":"row t predicts after supplied token t; no inserted tokens",
+"independent_checkpoint_evidence":false,"quality_validation":false,
+"scope":"CPU llama.cpp same-quantized-GGUF numerical capture",
+"gpu_layers":0,"offload_kqv":false,"op_offload":false,
+"kv_dtype":"f32","flash_attention":false,"mmap":true,
+"lazy_marked_tensors":true,"extra_buffer_types":false,"mtp":false,
+"threads":2,"context_capacity":256,"elapsed_seconds":535.857938,
+"system_info":"CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | LLAMAFILE = 1 | OPENMP = 1 | REPACK = 1 | ",
+"command":["./model_reference","/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf","t4-budget512-kv0-ids.txt","t4-cpu","2","1800"],
+"complete":true
+}
