@@ -176,3 +176,52 @@ document IDs are being used to read the same canonical database.
 The older dependency-scheduler prototypes are retained as research. The
 memory-scheduling prototype produced incorrect output and is not used by this
 image. None of its diagnostic timings is a valid speed claim for this work.
+
+## Salvage, 2026-10-23 12:00 PM – 2:00 PM (measured)
+
+First correct end-to-end committed decode for this architecture. All numbers are
+single 128-token greedy runs of the fixture prompt on the paired target, B4 output
+compared token by token with the paired scalar arm in the same job.
+
+| Configuration | Committed TPS | vs scalar | Tokens/round | gpuq |
+|---|---|---|---|---|
+| Paired scalar target | 26.56 | — | 1 | af3809a0 |
+| B4, all generic, every child joined | 15.27 | 0 mismatches | 2.37 | cc70623c |
+| B4, native matrix/DN/MoE/router (`FLASH_B4_GENERIC=74`) | 18.55 | 0 mismatches | 2.67 | b40f2686 |
+| + native GR4 (`66`) | 18.59 | 0 mismatches | 2.67 | 72d82e35 |
+| + PTX four-row Q4_K draft matrix (current default) | **22.20** | 0 mismatches | 2.67 | af3809a0 |
+
+Current round: draft 16.4 ms (backbone 10.0, head 6.2), B4 verify 103.7 ms,
+maintenance 1.5 ms. Acceptance: 80/143 drafts, committed-length histogram
+1/2/3/4 = 11/12/7/18. The NEXT.md budget is 24 ms/round with 4.5 ms draft.
+
+Defects found and fixed (each confirmed by a GPU run):
+- Unique router: `MUFU.EX2` without `RRO.EX2` on sm_52 made every routed weight NaN;
+  the whole target emitted token 0.
+- `PRMT` operand order (selector is the middle operand) in the native IQ4 matrix and
+  the paired MoE IQ4 column decoder: wrong IQ4 table entries in both scalar and B4.
+- Generic B4 children ran back to back without a join; conv1d, dnstep, pleconv,
+  dnnormq_x, dnstep_normq and dflash_features need per-position joins
+  (`position_join` in `balance/batch.c`). Without them logits drifted ~0.4 and
+  tokens flipped intermittently at widths 2 and 4.
+- Native GR4 ran the residual prologue on CTA0 only, but the scalar prologue stores
+  only its own 640-value slice per CTA; 9600/10240 residual values stayed stale.
+- `gpuq logs` returns only the newest 100 documents (nm-z/gpuq#76); read complete
+  stdout/stderr with `~/.cache/gpuq-readonly-stream-logs`.
+
+Still wrong, left generic: native HCUP4 (`hcup5.lua` at width 4, garbage output) and
+matrix-bundle transposition (small drift: 25.2510 vs 25.1375 final top logit).
+Paired scalar matches the whole-expert verified output for 33 of 128 tokens, then
+takes a different near-tie; not yet attributed to reduction order versus a defect.
+
+Verify cost per B4 round on die 0 (us, specprofile): moe_local_columns 16 703,
+q2moegn 13 110 (generic: no native routed gate/up), bf16hcrwx 7 965, hcupq_x 7 857
+(generic), grwrite_read 7 039, q3kk2560 5 601, iq4k6144 5 165, qsa_full_bal 4 357,
+q4kk6144 4 286, iq4k2560 4 222, router_shard 4 103, q5kk2560 (head) 3 889,
+dnnormq_x 3 231, q5kk6144 2 108, dnstep 1 462; total ~98 ms. A B4 verify currently
+costs about 2.8 scalar tokens; the plan needs it near one.
+
+Diagnostics added: `FLASH_B4_GENERIC`, `FLASH_B4_MATRIX_MASK`, `FLASH_B4_JOIN_OPS`,
+`FLASH_DFLASH_TIMING`, `FLASH_DFLASH_MATRIX_CHECK`, engine `pairdump` (router packets,
+FFN buffers, cross-die invariants, logits), absolute state statistics in
+`statehash detail`, `BENCH_LAYERS` + `FLASH_DIAG_LAYERS`, `BENCH_PAIR_DUMP`.
