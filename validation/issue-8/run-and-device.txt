@@ -1,0 +1,66 @@
+unitmap-clean: qsa-status-results/unitmap
+old decode: bijection onto (kv, hh, c)
+new decode: bijection onto (kv, hh, c)
+n keys | old: busy units / CTAs / deepest CTA | new: busy units / CTAs / deepest CTA
+   500 |  4 units /  2 CTAs / 2 sequential  |  4 units /  4 CTAs / 1 sequential 
+  1024 |  4 units /  2 CTAs / 2 sequential  |  4 units /  4 CTAs / 1 sequential 
+  2048 |  8 units /  4 CTAs / 2 sequential  |  8 units /  8 CTAs / 1 sequential 
+  2049 | 12 units /  6 CTAs / 2 sequential  | 12 units / 12 CTAs / 1 sequential 
+  2050 | 12 units /  6 CTAs / 2 sequential  | 12 units / 12 CTAs / 1 sequential 
+  2051 | 12 units /  6 CTAs / 2 sequential  | 12 units / 12 CTAs / 1 sequential 
+  4096 | 16 units /  8 CTAs / 2 sequential  | 16 units / 16 CTAs / 1 sequential 
+  8192 | 32 units / 16 CTAs / 2 sequential  | 32 units / 16 CTAs / 2 sequential 
+unitmap-clean exit=0 expected=0
+unitmap-duplicate: qsa-status-results/unitmap --inject-duplicate
+old decode: NOT a bijection
+new decode: NOT a bijection
+n keys | old: busy units / CTAs / deepest CTA | new: busy units / CTAs / deepest CTA
+   500 |  4 units /  2 CTAs / 2 sequential  |  4 units /  4 CTAs / 1 sequential 
+  1024 |  4 units /  2 CTAs / 2 sequential  |  4 units /  4 CTAs / 1 sequential 
+  2048 |  8 units /  4 CTAs / 2 sequential  |  8 units /  8 CTAs / 1 sequential 
+  2049 | 12 units /  6 CTAs / 2 sequential  | 12 units / 12 CTAs / 1 sequential 
+  2050 | 12 units /  6 CTAs / 2 sequential  | 12 units / 12 CTAs / 1 sequential 
+  2051 | 12 units /  6 CTAs / 2 sequential  | 12 units / 12 CTAs / 1 sequential 
+  4096 | 16 units /  8 CTAs / 2 sequential  | 16 units / 16 CTAs / 1 sequential 
+  8192 | 32 units / 16 CTAs / 2 sequential  | 32 units / 16 CTAs / 2 sequential 
+unitmap-duplicate exit=1 expected=1
+unitmap-missing: qsa-status-results/unitmap --inject-missing
+old decode: NOT a bijection
+new decode: NOT a bijection
+n keys | old: busy units / CTAs / deepest CTA | new: busy units / CTAs / deepest CTA
+   500 |  4 units /  2 CTAs / 2 sequential  |  4 units /  4 CTAs / 1 sequential 
+  1024 |  4 units /  2 CTAs / 2 sequential  |  4 units /  4 CTAs / 1 sequential 
+  2048 |  8 units /  4 CTAs / 2 sequential  |  8 units /  8 CTAs / 1 sequential 
+  2049 | 12 units /  6 CTAs / 2 sequential  | 12 units / 12 CTAs / 1 sequential 
+  2050 | 12 units /  6 CTAs / 2 sequential  | 12 units / 12 CTAs / 1 sequential 
+  2051 | 12 units /  6 CTAs / 2 sequential  | 12 units / 12 CTAs / 1 sequential 
+  4096 | 16 units /  8 CTAs / 2 sequential  | 16 units / 16 CTAs / 1 sequential 
+  8192 | 32 units / 16 CTAs / 2 sequential  | 32 units / 16 CTAs / 2 sequential 
+unitmap-missing exit=1 expected=1
+kv-1-clean: env QSA_KV_LAST_ONLY=1 ./qsa_test kv 1 512
+kv: 1 tokens, NBLK 512: BIT-EXACT (0 tokens differ; query/append checks 1, gather/attention checks 1)
+kv-1-clean exit=0 expected=0
+kv-1-query-byte: env QSA_KV_LAST_ONLY=1 QSA_INJECT_QO_MISMATCH=1 ./qsa_test kv 1 512
+  qo differs at byte 0: gpu f6 ref f7
+  (qo differs at t = 0)
+first mismatch at t = 0 (n = 1 keys, 0 blocks selected)
+kv: 1 tokens, NBLK 512: MISMATCH (1 tokens differ; query/append checks 1, gather/attention checks 1)
+kv-1-query-byte exit=1 expected=1
+kv-2052-clean: env QSA_KV_LAST_ONLY=1 ./qsa_test kv 2052 512
+kv: 2052 tokens, NBLK 512: BIT-EXACT (0 tokens differ; query/append checks 2052, gather/attention checks 1)
+kv-2052-clean exit=0 expected=0
+kv-2052-query-byte: env QSA_KV_LAST_ONLY=1 QSA_INJECT_QO_MISMATCH=1 ./qsa_test kv 2052 512
+  qo differs at byte 0: gpu 8e ref 8f
+  (qo differs at t = 2051)
+first mismatch at t = 2051 (n = 2048 keys, 512 blocks selected)
+kv: 2052 tokens, NBLK 512: MISMATCH (1 tokens differ; query/append checks 2052, gather/attention checks 1)
+kv-2052-query-byte exit=1 expected=1
+PASS: QSA query mismatches and non-bijective unit maps return failure
+0, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, 470.256.02, 64, 1177 MHz, 2505 MHz
+1, GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, 470.256.02, 47, 1177 MHz, 2505 MHz
+2, GPU-c767d250-4454-d181-d648-8706b5f2fb64, 470.256.02, 63, 1177 MHz, 2505 MHz
+3, GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, 470.256.02, 46, 1177 MHz, 2505 MHz
+4, GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, 470.256.02, 78, 1177 MHz, 2505 MHz
+5, GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, 470.256.02, 56, 1177 MHz, 2505 MHz
+6, GPU-431371bd-b482-96b2-4b70-04f83c6d075b, 470.256.02, 42, 405 MHz, 324 MHz
+7, GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4, 470.256.02, 29, 405 MHz, 324 MHz
