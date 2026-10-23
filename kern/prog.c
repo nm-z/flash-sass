@@ -9,34 +9,85 @@
 
 void prog_init(prog_t *P) { P->cap = 64; P->n = 0; P->xj = 0; P->loop = 0; P->token_offset = 0; P->pending_wait = 0; P->stop[0] = P->stop[1] = 0xffffffffu; P->end = 0; P->samp_k = 0; P->samp_topp = 1.0f; P->samp_invT = 1.0f; P->p = malloc(sizeof(phase_t) * P->cap); }
 void prog_free(prog_t *P) { free(P->p); P->p = NULL; P->n = P->cap = 0; }
-int prog_pair(prog_t *out, const prog_t *a, const prog_t *b) {
-    /* Validate before changing out. Parameters name separate activations and
-       consecutive causal positions; logical exchanges are published once. */
-    if (!out || !a || !b || out == a || out == b || a->n <= 0 || a->n != b->n ||
-        a->n > INT_MAX / 2 || !a->p || !b->p || a->xj != b->xj ||
-        a->loop != b->loop || a->pending_wait != b->pending_wait ||
-        a->stop[0] != b->stop[0] || a->stop[1] != b->stop[1] || a->end != b->end ||
-        a->samp_k != b->samp_k || a->samp_topp != b->samp_topp ||
-        a->samp_invT != b->samp_invT ||
-        (a->loop && (a->token_offset == UINT32_MAX || b->token_offset != a->token_offset + 1u)))
-        return -1;
-    for (int i = 0; i < a->n; i++) {
-        const phase_t *x = &a->p[i], *y = &b->p[i];
-        if (x->w[0] != y->w[0] || x->w[1] != y->w[1] || x->w[30] != y->w[30] ||
-            (x->w[30] & 24u)) return -1;
+/* Return a strictly validated position-major region, or one grouped phase.
+ * Every region retains grid barriers. Its first operation may consume a prior
+ * publication, but no operation publishes or advances the exchange count. */
+static int serial_span(const prog_t *p, int i, unsigned count, int aliased) {
+    static const int indexer[]={OP_IDXQK,OP_IDXSCORE,OP_IDXSEL,OP_IDXSEL,OP_IDXSEL,OP_IDXSEL,OP_IDXSEL,OP_KVGATHER,OP_ATTNPARTN,OP_ATTNMERGE};
+    static const int ple[]={OP_PLEGATE,OP_RMS2560,OP_PLECONV};
+    static const int compact[]={OP_KVGATHER,OP_ATTNPARTN,OP_ATTNMERGE};
+    const int *ops=NULL;int n=1;
+    if(aliased && p->p[i].w[0]==OP_IDXQK){ops=indexer;n=10;}
+    else if(aliased && p->p[i].w[0]==OP_PLEGATE){ops=ple;n=3;}
+    else if((aliased || count>2) && p->p[i].w[0]==OP_KVGATHER){ops=compact;n=3;}
+    if(!ops)return 1;
+    if(i+n>p->n)return -1;
+    for(int j=0;j<n;j++) {
+        if(p->p[i+j].w[0]!=(unsigned)ops[j] ||
+            (p->p[i+j].w[30] & ~((ops==ple && j==0)?2u:0u)))return -1;
     }
-    size_t n = (size_t)a->n * 2u;
+    /* Selection passes must retain their increasing radix pass parameters. */
+    if(ops==indexer)for(int j=2;j<7;j++)if(p->p[i+j].w[10]!=(unsigned)j)return -1;
+    return n;
+}
+static int prog_group_impl(prog_t *out, const prog_t *const *positions, unsigned count, int aliased) {
+    if (!out || !positions || count < 2 || count > PROG_MAX_POSITIONS) return -1;
+    const prog_t *a = positions[0];
+    if (!a || a->n <= 0 || !a->p || a->n > INT_MAX / (int)count ||
+        (a->loop && a->token_offset > UINT32_MAX - (count - 1u))) return -1;
+    /* Validate every position before allocating or changing out. */
+    for (unsigned k = 0; k < count; k++) {
+        const prog_t *b = positions[k];
+        if (!b || out == b || a->n != b->n || !b->p || a->xj != b->xj ||
+            a->loop != b->loop || a->pending_wait != b->pending_wait ||
+            a->stop[0] != b->stop[0] || a->stop[1] != b->stop[1] || a->end != b->end ||
+            a->samp_k != b->samp_k || a->samp_topp != b->samp_topp ||
+            a->samp_invT != b->samp_invT ||
+            (a->loop && b->token_offset != a->token_offset + k)) return -1;
+        for (int i = 0; i < a->n; i++) {
+            const phase_t *x = &a->p[i], *y = &b->p[i];
+            if (x->w[0] != y->w[0] || x->w[1] != y->w[1] || x->w[30] != y->w[30] ||
+                (x->w[30] & (PHASE_GROUP_FLAG | PHASE_FUSED_FLAG | PHASE_WIDTH_MASK))) return -1;
+        }
+    }
+    /* Validate every shared-lifetime region before allocation. No region may
+     * publish or skip a grid barrier; the PLE region may consume its incoming
+     * publication. Reject changed shapes rather than reuse live scratch. */
+    for (int i = 0; i < a->n; ) {
+        int span=serial_span(a,i,count,aliased);
+        if(span<0)return -1;
+        for(unsigned k=1;k<count;k++)if(serial_span(positions[k],i,count,aliased)!=span)return -1;
+        i+=span;
+    }
+    size_t n = (size_t)a->n * count;
     if (n > SIZE_MAX / sizeof(phase_t)) return -2;
     phase_t *p = malloc(n * sizeof *p);
     if (!p) return -2;
-    for (int i = 0; i < a->n; i++) {
-        p[2*i] = a->p[i]; p[2*i+1] = b->p[i];
-        p[2*i].w[30] |= 8u;
+    size_t next = 0;
+    for (int i = 0; i < a->n; ) {
+        int span=serial_span(a,i,count,aliased);
+        if (span > 1) {
+            for (unsigned k = 0; k < count; k++)
+                for (int j = 0; j < span; j++) p[next++] = positions[k]->p[i + j];
+            i += span;
+        } else {
+            size_t primary = next;
+            for (unsigned k = 0; k < count; k++) p[next++] = positions[k]->p[i];
+            p[primary].w[30] |= PHASE_GROUP_FLAG;
+            if (count != 2) p[primary].w[30] |= count << PHASE_WIDTH_SHIFT;
+            i++;
+        }
     }
     free(out->p);
     *out = *a;
     out->p = p; out->n = out->cap = (int)n;
     return 0;
+}
+int prog_group(prog_t *out, const prog_t *const *positions, unsigned count) { return prog_group_impl(out,positions,count,0); }
+int prog_group_aliased(prog_t *out, const prog_t *const *positions, unsigned count) { return prog_group_impl(out,positions,count,1); }
+int prog_pair(prog_t *out, const prog_t *a, const prog_t *b) {
+    const prog_t *positions[] = { a, b };
+    return prog_group(out, positions, 2);
 }
 static uint64_t desc_ptr(const phase_t *p, int word) {
     return p->w[word] | ((uint64_t)p->w[word + 1] << 32);
@@ -44,42 +95,164 @@ static uint64_t desc_ptr(const phase_t *p, int word) {
 static int overlaps(uint64_t a, uint64_t an, uint64_t b, uint64_t bn) {
     return an && bn && (a <= b ? b - a < an : a - b < bn);
 }
-int prog_pair_fuse_bf16(prog_t *P, int disjoint_xout) {
+static int prog_fuse_bf16(prog_t *P, unsigned width, int disjoint_xout) {
     int fused = 0;
-    for (int i = 0; i + 1 < P->n; i++) {
-        phase_t *a = &P->p[i], *b = a + 1;
-        if ((a->w[30] & 24u) != 8u) continue;
-        i++;
-        if (a->w[0] != b->w[0] || a->w[1] != b->w[1] ||
-            desc_ptr(a, 2) != desc_ptr(b, 2) || a->w[8] != b->w[8] ||
-            a->w[31] || b->w[31]) continue;
+    for (int i = 0; i + 1 < P->n; ) {
+        phase_t *a = &P->p[i];
+        unsigned count = phase_positions(a);
+        if (count > (unsigned)(P->n - i)) break;
+        i += (int)count;
+        if ((width==8 ? (count!=8 && count!=16 && count!=32) : count!=width) || (a->w[30] & 24u) != 8u) continue;
+        int compatible = !a->w[31];
+        for (unsigned j = 1; j < count; j++) {
+            const phase_t *other = a + j;
+            if (a->w[0] != other->w[0] || a->w[1] != other->w[1] ||
+                desc_ptr(a, 2) != desc_ptr(other, 2) || a->w[8] != other->w[8] ||
+                other->w[30] != (a->w[30] & ~(PHASE_GROUP_FLAG | PHASE_FUSED_FLAG | PHASE_WIDTH_MASK)) ||
+                other->w[31]) compatible = 0;
+        }
+        if (!compatible) continue;
         int op, k = 2560, slices = 1, bias = 0, xout = 0;
         switch (a->w[0]) {
-        case OP_BF16BIAS: op = OP_BF16BIASP; bias = 1; break;
-        case OP_BF16K2560: op = OP_BF16K2560P; break;
-        case OP_BF16K320: op = OP_BF16K320P; k = 320; break;
-        case OP_BF16HC: op = OP_BF16HCP; slices = 4; break;
-        case OP_BF16HCX: op = OP_BF16HCXP; slices = 4; xout = 1; break;
+        case OP_BF16BIAS: op = width == 8 ? OP_BF16BIAS8 : OP_BF16BIASP; bias = 1; break;
+        case OP_BF16K2560: op = width == 8 ? OP_BF16K25608 : OP_BF16K2560P; break;
+        case OP_BF16K320: op = width == 8 ? OP_BF16K3208 : OP_BF16K320P; k = 320; break;
+        case OP_BF16HC: op = width == 8 ? OP_BF16HC8 : OP_BF16HCP; slices = 4; break;
+        case OP_BF16HCX: op = width == 8 ? OP_BF16HCX8 : OP_BF16HCXP; slices = 4; xout = 1; break;
         default: continue;
         }
         if (xout && !disjoint_xout) continue;
         if (!xout) {
             uint64_t yn = 4ull * a->w[8], xn = 4ull * k * slices;
             uint64_t wn = 2ull * k * slices * a->w[8];
-            uint64_t y[2] = { desc_ptr(a, 6), desc_ptr(b, 6) };
-            int alias = overlaps(y[0], yn, y[1], yn);
-            for (int j = 0; j < 2; j++) {
-                alias |= overlaps(y[j], yn, desc_ptr(a, 2), wn);
-                alias |= overlaps(y[j], yn, desc_ptr(a, 4), xn);
-                alias |= overlaps(y[j], yn, desc_ptr(b, 4), xn);
-                if (bias) {
-                    alias |= overlaps(y[j], yn, desc_ptr(a, 10), yn);
-                    alias |= overlaps(y[j], yn, desc_ptr(b, 10), yn);
+            int alias = 0;
+            for (unsigned j = 0; j < count; j++) {
+                uint64_t y = desc_ptr(a + j, 6);
+                alias |= overlaps(y, yn, desc_ptr(a, 2), wn);
+                for (unsigned kpos = 0; kpos < count; kpos++) {
+                    if (j != kpos) alias |= overlaps(y, yn, desc_ptr(a + kpos, 6), yn);
+                    alias |= overlaps(y, yn, desc_ptr(a + kpos, 4), xn);
+                    if (bias) alias |= overlaps(y, yn, desc_ptr(a + kpos, 10), yn);
                 }
             }
             if (alias) continue;
         }
-        a->w[0] = (uint32_t)op; a->w[30] |= 16u; fused++;
+        if(width==8) {
+            uint32_t flags=a->w[30] & ~(PHASE_GROUP_FLAG|PHASE_FUSED_FLAG|PHASE_WIDTH_MASK);
+            for(unsigned first=0;first<count;first+=8) {
+                uint32_t part_flags=flags;
+                if(first)part_flags&=~2u; /* only the initial subgroup waits */
+                if(first+8<count)part_flags=(part_flags&~1u)|4u;
+                a[first].w[0]=(uint32_t)op;
+                a[first].w[30]=part_flags|PHASE_GROUP_FLAG|PHASE_FUSED_FLAG|(8u<<PHASE_WIDTH_SHIFT);
+                fused++;
+            }
+        } else { a->w[0] = (uint32_t)op; a->w[30] |= 16u; fused++; }
+    }
+    return fused;
+}
+int prog_pair_fuse_bf16(prog_t *P, int disjoint_xout) { return prog_fuse_bf16(P, 2, disjoint_xout); }
+int prog_batch_fuse_bf16(prog_t *P, int disjoint_xout) { return prog_fuse_bf16(P, 8, disjoint_xout); }
+int prog_batch_fuse_q2(prog_t *P, int routed_disjoint) {
+    int fused=0;
+    for (int i=0;i<P->n;) {
+        phase_t *a=&P->p[i];unsigned width=phase_positions(a);
+        if (!width || width>(unsigned)(P->n-i)) break;
+        i+=(int)width;
+        if ((width!=8 && width!=16 && width!=32) || (a->w[30]&24u)!=8u || a->w[31] || !a->w[1]) continue;
+        int op=0,k=0,moe=0,acc=0;
+        switch(a->w[0]) {
+        case OP_Q2K2560: op=OP_Q2K25608;k=2560;break;
+        case OP_Q2K640: op=OP_Q2K6408;k=640;break;
+        case OP_Q2ACC640: op=OP_Q2ACC6408;k=640;acc=1;break;
+        case OP_Q2MOEGN: op=OP_Q2MOEGN8;k=2560;moe=1;break;
+        case OP_Q2MOEDN: op=OP_Q2MOEDN8;k=640;moe=2;break;
+        default: continue;
+        }
+        if (!a->w[10] || (moe && (!routed_disjoint || a->w[10]!=(moe==1?640u:2560u)))) continue;
+        int valid=1;
+        for (unsigned p=0;p<width;p++) {
+            const phase_t *b=a+p;
+            if (b->w[0]!=a->w[0] || b->w[1]!=a->w[1] || b->w[10]!=a->w[10] || b->w[31] ||
+                b->w[30]!=(p?(a->w[30]&~(PHASE_GROUP_FLAG|PHASE_FUSED_FLAG|PHASE_WIDTH_MASK)):a->w[30]) ||
+                desc_ptr(b,2)!=desc_ptr(a,2) || !desc_ptr(b,4) || !desc_ptr(b,6) ||
+                !desc_ptr(b,8) || !desc_ptr(b,14) || (moe&&(!desc_ptr(b,12)||!desc_ptr(b,18))) ||
+                ((acc||moe==2)&&!desc_ptr(b,16))) valid=0;
+        }
+        uint64_t yn=4ull*a->w[10]*(moe==1?10u:1u);
+        uint64_t xn=2ull*(unsigned)k*(moe==2?10u:1u),sn=2*xn/32;
+        uint64_t wn=(uint64_t)a->w[10]*(unsigned)q2_0_tile_stride(k);
+        for (unsigned p=0;p<width;p++) for (unsigned q=0;q<width;q++) {
+            uint64_t y=desc_ptr(a+p,8);
+            valid&=p==q || !overlaps(y,yn,desc_ptr(a+q,8),yn);
+            valid&=!overlaps(y,yn,desc_ptr(a+q,4),xn);
+            valid&=!overlaps(y,yn,desc_ptr(a+q,6),sn);
+            valid&=!overlaps(y,yn,desc_ptr(a+q,14),sn);
+            if(moe){valid&=!overlaps(y,yn,desc_ptr(a+q,12),40);valid&=!overlaps(y,yn,desc_ptr(a+q,18),4);}
+            if(acc||moe==2) valid&=!overlaps(y,yn,desc_ptr(a+q,16),moe==2?40:4);
+            if(!moe) valid&=!overlaps(y,yn,desc_ptr(a,2),wn);
+        }
+        if(valid){
+            uint32_t flags=a->w[30]&~(PHASE_GROUP_FLAG|PHASE_FUSED_FLAG|PHASE_WIDTH_MASK);
+            for(unsigned first=0;first<width;first+=8){
+                uint32_t part=flags;
+                if(first)part&=~2u;
+                if(first+8<width)part=(part&~1u)|4u;
+                a[first].w[0]=(uint32_t)op;
+                a[first].w[30]=part|PHASE_GROUP_FLAG|PHASE_FUSED_FLAG|(8u<<PHASE_WIDTH_SHIFT);
+                fused++;
+            }
+        }
+    }
+    return fused;
+}
+int prog_batch_fuse_hcup(prog_t *P, int disjoint_xout) {
+    int fused=0;
+    for(int i=0;i<P->n;) {
+        phase_t *a=P->p+i;unsigned width=phase_positions(a);
+        if(!width || width>(unsigned)(P->n-i))break;
+        i+=(int)width;
+        if(!disjoint_xout || (width!=8 && width!=16 && width!=32) ||
+            a->w[0]!=OP_BF16HCUP || a->w[1]!=16 || a->w[31] ||
+            (a->w[30]&(PHASE_GROUP_FLAG|PHASE_FUSED_FLAG))!=PHASE_GROUP_FLAG ||
+            (a->w[30]&~(PHASE_GROUP_FLAG|PHASE_WIDTH_MASK|3u)) || !(a->w[30]&1u) ||
+            !a->w[8] || a->w[8]>4u*2560u || a->w[8]%4u ||
+            a->w[12]%4u || a->w[12]>=2u*XSLOT || a->w[12]%XSLOT+a->w[8]>XSLOT ||
+            (a->w[20]!=320 && a->w[20]!=324))continue;
+        int valid=1;
+        uint64_t un=4ull*a->w[8],tn=4ull*a->w[20],wn=640ull*a->w[8];
+        uint64_t xhn=4ull*(3u*2560u+a->w[8]/4u);
+        for(unsigned p=0;p<width;p++) {
+            const phase_t *b=a+p;
+            if(b->w[0]!=OP_BF16HCUP || b->w[1]!=16 || b->w[31] ||
+                b->w[8]!=a->w[8] || b->w[12]!=a->w[12] || b->w[20]!=a->w[20] ||
+                b->w[30]!=(p?(a->w[30]&~(PHASE_GROUP_FLAG|PHASE_WIDTH_MASK)):a->w[30]) ||
+                !desc_ptr(b,2) || desc_ptr(b,2)!=desc_ptr(a,2) || !desc_ptr(b,4) ||
+                !desc_ptr(b,6) || !desc_ptr(b,14) || !desc_ptr(b,16) || !desc_ptr(b,18))valid=0;
+            for(unsigned q=0;q<width;q++) {
+                const phase_t *c=a+q;
+                uint64_t outputs[]={desc_ptr(b,6),desc_ptr(b,18)},sizes[]={un,tn};
+                for(unsigned j=0;j<2;j++) {
+                    valid&=!overlaps(outputs[j],sizes[j],desc_ptr(c,2),wn);
+                    valid&=!overlaps(outputs[j],sizes[j],desc_ptr(c,4),tn);
+                    valid&=!overlaps(outputs[j],sizes[j],desc_ptr(c,16),xhn);
+                    valid&=!overlaps(outputs[j],sizes[j],desc_ptr(c,14),96);
+                    if(p!=q)for(unsigned k=0;k<2;k++)valid&=!overlaps(outputs[j],sizes[j],desc_ptr(c,k?18:6),sizes[k]);
+                }
+                if(p!=q)valid&=!overlaps(desc_ptr(b,14),96,desc_ptr(c,14),96);
+            }
+            valid&=!overlaps(desc_ptr(b,6),un,desc_ptr(b,18),tn);
+        }
+        if(!valid)continue;
+        uint32_t flags=a->w[30]&~(PHASE_GROUP_FLAG|PHASE_WIDTH_MASK);
+        for(unsigned first=0;first<width;first+=8) {
+            uint32_t part=flags;
+            if(first)part&=~2u;
+            if(first+8<width)part=(part&~1u)|4u;
+            a[first].w[0]=OP_BF16HCUP8;
+            a[first].w[30]=part|PHASE_GROUP_FLAG|PHASE_FUSED_FLAG|(8u<<PHASE_WIDTH_SHIFT);
+            fused++;
+        }
     }
     return fused;
 }

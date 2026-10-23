@@ -9,16 +9,55 @@
 #include <stdint.h>
 
 typedef struct { uint32_t w[32]; } phase_t;
+/* Logical phases retain the scalar parameter ABI. Grouped programs store one
+ * descriptor per known position, with the group width in primary word 30.
+ * Legacy B2 descriptors omit the width and retain bit 3 exactly as before. */
+#define PROG_MAX_PHASES 4096u
+#define PROG_MAX_POSITIONS 32u
+#define PROG_MAX_DESCRIPTORS (PROG_MAX_PHASES * PROG_MAX_POSITIONS)
+#define PROG_MAX_PROFILE_PHASES PROG_MAX_DESCRIPTORS
+#define PHASE_GROUP_FLAG 8u
+#define PHASE_FUSED_FLAG 16u
+#define PHASE_WIDTH_SHIFT 8u
+#define PHASE_WIDTH_MASK (255u << PHASE_WIDTH_SHIFT)
+static inline unsigned phase_positions(const phase_t *p) {
+    if (!(p->w[30] & PHASE_GROUP_FLAG)) return 1;
+    unsigned n = (p->w[30] & PHASE_WIDTH_MASK) >> PHASE_WIDTH_SHIFT;
+    return n ? n : 2;
+}
 typedef struct { phase_t *p; int n, cap; int xj; int loop; unsigned token_offset; int pending_wait; uint32_t stop[2]; CUdeviceptr end; int samp_k; float samp_topp, samp_invT; } prog_t;   /* stop[2], end: a generated token equal to stop[0] or stop[1] sets *end (ctl[5]) = 0x80000000 and the kernel exits after that token (0xffffffff: none) */
    /* pending_wait: the next phase consumes an exchange */   /* xj: exchanges issued (slot parity); loop: token-relative
  * parameters are marked for the kernel's token loop instead of taking the position literally */
 
 void prog_init(prog_t *P);
+/* Group consecutive known positions in phase-major order. Scalar fallbacks run
+ * in causal order with one grid barrier and publication per logical phase.
+ * For widths above two, the validated KVGATHER/ATTNPARTN/ATTNMERGE region runs
+ * position-major, retaining its per-op barriers so compact scratch can alias.
+ * out is initialized and unchanged on failure; no nested groups are accepted. */
+int prog_group(prog_t *out, const prog_t *const *positions, unsigned count);
+/* Wide arena lifetimes also serialize IDXQK..ATTNMERGE and
+ * PLEGATE/RMS/PLECONV. Apply the same policy to wide-mode B2 tails. */
+int prog_group_aliased(prog_t *out, const prog_t *const *positions, unsigned count);
 /* Pair consecutive known positions. out is initialized; unchanged on failure. */
 int prog_pair(prog_t *out, const prog_t *a, const prog_t *b);
 /* Fuse validated BF16 pairs. disjoint_xout asserts that both peer-inbox tables
  * point to separate output storage, also disjoint from inputs and weights. */
 int prog_pair_fuse_bf16(prog_t *P, int disjoint_xout);
+/* Shared-weight BF16 bodies use eight positions. A B16/B32 phase is split into
+ * two/four subgroups, with one initial wait and one final publication.
+ * Unsupported operations retain their full-width causal scalar replay. */
+int prog_batch_fuse_bf16(prog_t *P, int disjoint_xout);
+/* Shared-weight Q2 B8 (B16/B32 split into independent eight-position bodies).
+ * routed_disjoint asserts that routed weight arenas are
+ * separate from every position's activations/outputs. Moesel supplies unique
+ * local expert indices per position, NE<=10, in original rank order. */
+int prog_batch_fuse_q2(prog_t *P, int routed_disjoint);
+/* HC up shares one four-row BF16 tile across eight positions. The caller
+ * guarantees all peer destinations are disjoint from inputs and local outputs,
+ * and that position tables point to separate inbox storage. Wide phases retain
+ * one initial wait and one final publication across their eight-position bodies. */
+int prog_batch_fuse_hcup(prog_t *P, int disjoint_xout);
 void prog_free(prog_t *P);
 void prog_nobar(prog_t *P);   /* no grid barrier after the last phase (independent next phase) */
 phase_t *prog_add(prog_t *P, int op, unsigned units);

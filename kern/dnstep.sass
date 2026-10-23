@@ -188,11 +188,11 @@
     $o .= "--:-:-:-:6      SHL t, head, 0x2;\n";
     $o .= "--:-:-:-:6      IADD ap0.CC, t, param_A0;\n";
     $o .= "--:-:-:-:6      IADD.X ap1, RZ, param_A1;\n";
-    $o .= "--:-:1:-:1      LDG.E fa, [ap];\n";
-    $o .= "--:-:-:-:6      IADD ap0.CC, t, param_B0;\n";
+    $o .= "--:6:1:-:2      LDG.E fa, [ap];\n";
+    $o .= "20:-:-:-:6      IADD ap0.CC, t, param_B0;\n";
     $o .= "--:-:-:-:6      IADD.X ap1, RZ, param_B1;\n";
-    $o .= "--:-:1:-:1      LDG.E fb, [ap];\n";
-    $o .= "--:-:-:-:6      IADD ap0.CC, t, param_SA0;\n";
+    $o .= "--:6:1:-:2      LDG.E fb, [ap];\n";
+    $o .= "20:-:-:-:6      IADD ap0.CC, t, param_SA0;\n";
     $o .= "--:-:-:-:6      IADD.X ap1, RZ, param_SA1;\n";
     $o .= "--:-:1:-:2      LDG.E fsa, [ap];\n";
     $o .= fm_consts(\%C);

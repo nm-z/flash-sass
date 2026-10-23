@@ -199,6 +199,9 @@
         $o .= "--:-:-:-:6      MOV32I t, 0x1;\n";
         $o .= sprintf "--:2:-:-:6  \@P5 STS [RZ+0x%x], t;\n", $ENV{DIE_EXP_OFF};
         $o .= "02:-:-:-:6  \@P5 PSETP.AND.AND P3, PT, PT, !PT, PT;\n";
+        # The timeout clears the loop predicate; its branch needs the same
+        # predicate readiness interval as the normal flag comparison above.
+        $o .= "--:-:-:-:6      NOP;\n" x 2;
     }
     $o .= "--:-:-:-:6  \@P3 BRA WAITRDY;\n";
     # tp = TAB + 90 row (64-bit)

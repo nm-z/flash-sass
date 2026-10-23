@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <stdint.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -216,8 +217,39 @@ static void check_reload_preflight(void) {
 	else { assert(!unsetenv("FLASH_PLE_READERS")); }
 }
 
+static void check_reload_readiness(void) {
+	enum { CORE_POSITIONS = 33, SMALL_ENGINE_POSITIONS = 7 };
+	struct {
+		unsigned char rows[CORE_POSITIONS * 16 * PLE_READ_ROW_BYTES];
+		uint32_t ready[CORE_POSITIONS + 2];
+		unsigned char guard[32];
+	} table;
+	memset(&table, 0xa5, sizeof table);
+	uint32_t *ready = table.ready;
+	for (unsigned reload = 0; reload < 3; reload++) {
+		/* Old requests leave IDs 1 and 2 ready across the entire core. A new
+		 * library would accept these IDs before restaging its own row data. */
+		for (unsigned q = 0; q < CORE_POSITIONS + 2; q++) ready[q] = 1 + (q & 1);
+		assert(ready[0] == 1 && ready[CORE_POSITIONS] == 2);
+		ready = ple_read_reset_ready(&table, offsetof(__typeof__(table), ready), CORE_POSITIONS);
+		assert(ready == table.ready);
+		for (unsigned q = 0; q < CORE_POSITIONS + 2; q++) assert(ready[q] == 0);
+		assert(ready[SMALL_ENGINE_POSITIONS + 1] == 0);
+		for (size_t i = 0; i < sizeof table.rows; i++) assert(table.rows[i] == 0xa5);
+		for (size_t i = 0; i < sizeof table.guard; i++) assert(table.guard[i] == 0xa5);
+		/* Only the position that has been restaged becomes visible for the
+		 * restarted request ID; subsequent positions must still wait. */
+		table.rows[0] = (unsigned char)reload;
+		__atomic_store_n(&ready[0], 1, __ATOMIC_RELEASE);
+		assert(__atomic_load_n(&ready[0], __ATOMIC_ACQUIRE) == 1);
+		assert(table.rows[0] == reload && ready[1] == 0);
+		table.rows[0] = 0xa5;
+	}
+}
+
 int main(void) {
 	check_reload_preflight();
+	check_reload_readiness();
 	unsigned readers;
 	assert(!ple_read_parse_readers(NULL, &readers) && readers == 1);
 	const char *bad[] = {"", "0", "17", "-1", "+1", " 1", "1 ", "1x", "999999999999999999"};
@@ -279,6 +311,6 @@ int main(void) {
 	ple_read_pool_destroy(&pool);
 	check_concurrency(fd);
 	assert(!close(fd));
-	puts("ple_read_pool: readers 1..16, 2048 reused batches, byte/guard parity, partial/EINTR/EOF/EIO/EBADF, 16 startup-failure points, reload preflight, and 16 concurrent persistent workers with delayed completion passed");
+	puts("ple_read_pool: readers 1..16, 2048 reused batches, byte/guard parity, partial/EINTR/EOF/EIO/EBADF, 16 startup-failure points, reload preflight/readiness, and 16 concurrent persistent workers with delayed completion passed");
 	return 0;
 }
