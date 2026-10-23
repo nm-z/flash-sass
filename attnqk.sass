@@ -1,0 +1,179 @@
+# Kernel: attnqk
+#
+# Attention q/k RMSNorm + RoPE + KV-cache append. Grid = 26 warps (one CTA of 32
+# threads each): CTA h < 24 normalises query head h (Q + 512 h, the gate half is
+# left where it is) with q_norm and writes QO + 256 h; CTA h >= 24 normalises key
+# head h-24 (K + 256 (h-24)) with k_norm, writes it to the blocked K cache (below),
+# and copies V + 256 (h-24) to VC + 2048 t + 256 (h-24).
+# Lane l owns dims 8l..8l+7; RoPE pairs (p, p+32) for p < 32 live in lanes 0-3 and
+# 4-7 and exchange through SHFL.BFLY xor 4. Bit-exact twin: qk_norm_rope_gpu.
+#
+# Params: 0:0x140 Q  1:0x148 K  2:0x150 V  3:0x158 QN  4:0x160 KN  5:0x168 CS  6:0x170 SN
+#         7:0x178 QO  8:0x180 KC  9:0x188 VC  10:0x190 t (u32)  11:0x194 eps (f32)
+# K cache layout is blocked (ref/attn.h attn_kidx): position t, kv head kh, dims 4c..4c+3
+# live at KC + 65536 (t>>5) + 32768 kh + 512 c + 16 (t&31); lane l holds chunks 2l, 2l+1.
+
+<CONSTANT_MAPPING>
+    param_Q0  : c[0x0][0x140]
+    param_Q1  : c[0x0][0x144]
+    param_K0  : c[0x0][0x148]
+    param_K1  : c[0x0][0x14c]
+    param_V0  : c[0x0][0x150]
+    param_V1  : c[0x0][0x154]
+    param_QN0 : c[0x0][0x158]
+    param_QN1 : c[0x0][0x15c]
+    param_KN0 : c[0x0][0x160]
+    param_KN1 : c[0x0][0x164]
+    param_CS0 : c[0x0][0x168]
+    param_CS1 : c[0x0][0x16c]
+    param_SN0 : c[0x0][0x170]
+    param_SN1 : c[0x0][0x174]
+    param_QO0 : c[0x0][0x178]
+    param_QO1 : c[0x0][0x17c]
+    param_KC0 : c[0x0][0x180]
+    param_KC1 : c[0x0][0x184]
+    param_VC0 : c[0x0][0x188]
+    param_VC1 : c[0x0][0x18c]
+    param_t   : c[0x0][0x190]
+    param_eps : c[0x0][0x194]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0-7   : x<0-7>
+    8-15  : w<0-7>
+    16-23 : o<0-7>
+    24-31 : cs<0-7>
+    32-39 : sn<0-7>
+    40-43 : vv<0-3>
+    44-47 : vw<0-3>
+    48    : ss
+    49    : nrm
+    50    : rr
+    51    : ee
+    52    : hh
+    53    : s0
+    54    : t
+    55    : mneg1
+    56    : tid
+    57    : head
+    58    : lane
+    59    : kh
+    60,61 : xp<0-1>
+    62,63 : wp<0-1>
+    64,65 : op<0-1>
+    66,67 : cp<0-1>
+    68,69 : sp<0-1>
+    70,71 : vp<0-1>
+    72,73 : vo<0-1>
+    74    : tt
+</REGISTER_MAPPING>
+
+<CODE>
+    my $o = '';
+    $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
+    $o .= "--:-:6:-:1      S2R head, SR_CTAID.X;\n";
+    $o .= "--:-:-:-:6      MOV32I mneg1, 0xbf800000;\n";
+    $o .= "20:-:-:-:6      LOP32I.AND lane, tid, 0x1f;\n";
+    $o .= "--:-:-:-:1      ISETP.GE.U32.AND P0, PT, head, 0x18, PT;\n";          # P0: key head
+    $o .= "--:-:-:-:1      ISETP.LT.U32.AND P1, PT, lane, 0x8, PT;\n";           # P1: lanes 0-7 take part in RoPE
+    $o .= "--:-:-:-:6      ISETP.LT.U32.AND P2, PT, lane, 0x4, PT;\n";           # P2: lanes 0-3 hold p, 4-7 hold p+32
+    $o .= "--:-:-:-:6      IADD kh, head, -0x18;\n";
+    $o .= "--:-:-:-:6      SHL t, lane, 0x5;\n";                                 # 32 lane: byte offset of 8 dims
+    # x: Q + 512 head + 32 lane  |  K + 256 kh + 32 lane
+    $o .= "--:-:-:-:6 \@!P0 SHL xp0, head, 0xb;\n";
+    $o .= "--:-:-:-:6  \@P0 SHL xp0, kh, 0xa;\n";
+    $o .= "--:-:-:-:6      IADD xp0, xp0, t;\n";
+    $o .= "--:-:-:-:6      MOV op0, xp0;\n";
+    $o .= "--:-:-:-:6 \@!P0 IADD xp0.CC, xp0, param_Q0;\n";
+    $o .= "--:-:-:-:6 \@!P0 IADD.X xp1, RZ, param_Q1;\n";
+    $o .= "--:-:-:-:6  \@P0 IADD xp0.CC, xp0, param_K0;\n";
+    $o .= "--:-:-:-:6  \@P0 IADD.X xp1, RZ, param_K1;\n";
+    # weights: QN / KN + 32 lane
+    $o .= "--:-:-:-:6 \@!P0 IADD wp0.CC, t, param_QN0;\n";
+    $o .= "--:-:-:-:6 \@!P0 IADD.X wp1, RZ, param_QN1;\n";
+    $o .= "--:-:-:-:6  \@P0 IADD wp0.CC, t, param_KN0;\n";
+    $o .= "--:-:-:-:6  \@P0 IADD.X wp1, RZ, param_KN1;\n";
+    # output: QO + 256 head + 32 lane  |  KC + 2048 t + 256 kh + 32 lane ; V copy for key heads
+    $o .= "--:-:-:-:6 \@!P0 SHL op0, head, 0xa;\n";
+    $o .= "--:-:-:-:6 \@!P0 IADD op0, op0, t;\n";
+    $o .= "--:-:-:-:6 \@!P0 IADD op0.CC, op0, param_QO0;\n";
+    $o .= "--:-:-:-:6 \@!P0 IADD.X op1, RZ, param_QO1;\n";
+    $o .= "--:-:-:-:6  \@P0 MOV ss, param_t;\n";
+    $o .= "--:-:-:-:6  \@P0 SHL ss, ss, 0xb;\n";                                 # 2048 t
+    $o .= "--:-:-:-:6  \@P0 IADD op0, op0, ss;\n";                               # op0 = 256 kh + 32 lane + 2048 t
+    $o .= "--:-:-:-:6  \@P0 IADD vp0.CC, op0, param_VC0;\n";
+    $o .= "--:-:-:-:6  \@P0 IADD.X vp1, RZ, param_VC1;\n";
+    # K: KC + 65536 (t>>5) + 32768 kh + 1024 lane + 16 (t&31)
+    $o .= "--:-:-:-:6  \@P0 SHR.U32 ee, ss, 0x10;\n";                             # (2048 t) >> 16 = t >> 5
+    $o .= "--:-:-:-:6  \@P0 SHL ee, ee, 0x10;\n";
+    $o .= "--:-:-:-:6  \@P0 LOP32I.AND hh, ss, 0xf800;\n";                        # (t & 31) << 11
+    $o .= "--:-:-:-:6  \@P0 SHR.U32 hh, hh, 0x7;\n";                              # (t & 31) << 4
+    $o .= "--:-:-:-:6  \@P0 IADD ee, ee, hh;\n";
+    $o .= "--:-:-:-:6  \@P0 SHL hh, kh, 0xf;\n";
+    $o .= "--:-:-:-:6  \@P0 IADD ee, ee, hh;\n";
+    $o .= "--:-:-:-:6  \@P0 SHL hh, lane, 0xa;\n";
+    $o .= "--:-:-:-:6  \@P0 IADD ee, ee, hh;\n";
+    $o .= "--:-:-:-:6  \@P0 IADD op0.CC, ee, param_KC0;\n";
+    $o .= "--:-:-:-:6  \@P0 IADD.X op1, RZ, param_KC1;\n";
+    $o .= "--:-:-:-:6  \@P0 SHL vo0, kh, 0xa;\n";
+    $o .= "--:-:-:-:6  \@P0 IADD vo0, vo0, t;\n";
+    $o .= "--:-:-:-:6  \@P0 IADD vo0.CC, vo0, param_V0;\n";
+    $o .= "--:-:-:-:6  \@P0 IADD.X vo1, RZ, param_V1;\n";
+    # cos/sin for the lane's pairs: CS + 128 t + 32 (lane & 3)  (CS, SN: tables over positions)
+    $o .= "--:-:-:-:6      LOP32I.AND t, lane, 0x3;\n";
+    $o .= "--:-:-:-:6      SHL t, t, 0x5;\n";
+    $o .= "--:-:-:-:6      MOV tt, param_t;\n";
+    $o .= "--:-:-:-:6      SHL tt, tt, 0x7;\n";
+    $o .= "--:-:-:-:6      IADD t, t, tt;\n";
+    $o .= "--:-:-:-:6      IADD cp0.CC, t, param_CS0;\n";
+    $o .= "--:-:-:-:6      IADD.X cp1, RZ, param_CS1;\n";
+    $o .= "--:-:-:-:6      IADD sp0.CC, t, param_SN0;\n";
+    $o .= "--:-:-:-:6      IADD.X sp1, RZ, param_SN1;\n";
+    $o .= "--:-:1:-:1      LDG.E.128 x0, [xp];\n";
+    $o .= "--:-:1:-:1      LDG.E.128 x4, [xp+0x10];\n";
+    $o .= "--:-:2:-:1      LDG.E.128 w0, [wp];\n";
+    $o .= "--:-:2:-:1      LDG.E.128 w4, [wp+0x10];\n";
+    $o .= "--:-:2:-:1      LDG.E.128 cs0, [cp];\n";
+    $o .= "--:-:2:-:1      LDG.E.128 cs4, [cp+0x10];\n";
+    $o .= "--:-:2:-:1      LDG.E.128 sn0, [sp];\n";
+    $o .= "--:-:2:-:1      LDG.E.128 sn4, [sp+0x10];\n";
+    $o .= "--:-:2:-:1  \@P0 LDG.E.128 vv0, [vo];\n";
+    $o .= "--:-:2:-:2  \@P0 LDG.E.128 vw0, [vo+0x10];\n";
+    # ss
+    $o .= "01:-:-:-:6      FMUL ss, x0, x0;\n";
+    $o .= sprintf "--:-:-:-:6      FFMA ss, x%d, x%d, ss;\n", $_, $_ for 1..7;
+    for my $x (16, 8, 4, 2, 1) {
+        $o .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, ss, 0x%x, 0x1f;\n", $x;
+        $o .= "10:-:-:-:6      FADD ss, ss, t;\n";
+    }
+    $o .= "--:-:-:-:6      FMUL ss, ss, 0.00390625;\n";
+    $o .= "--:-:-:-:6      FADD ss, ss, param_eps;\n";
+    $o .= "--:-:3:-:2      MUFU.RSQ rr, ss;\n";
+    $o .= "04:-:-:-:1      FMUL.FTZ s0, ss, rr;\n";
+    $o .= "--:-:-:-:6      FMUL.FTZ hh, rr, 0.5;\n";
+    $o .= "--:-:-:-:6      FADD.FTZ ee, -s0, -RZ;\n";
+    $o .= "--:-:-:-:6      FFMA ee, s0, ee, ss;\n";
+    $o .= "--:-:-:-:6      FFMA nrm, ee, hh, s0;\n";
+    $o .= "--:-:3:-:2      MUFU.RCP rr, nrm;\n";
+    $o .= "04:-:-:-:6      FFMA ee, nrm, rr, mneg1;\n";
+    $o .= "--:-:-:-:6      FADD.FTZ ee, -ee, -RZ;\n";
+    $o .= "--:-:-:-:6      FFMA rr, rr, ee, rr;\n";
+    # V copy first (key heads): vv0-3 and o4-7 hold V's 8 dims
+    $o .= "02:2:-:-:1  \@P0 STG.E.128 [vp], vv0;\n";
+    $o .= "--:2:-:-:6  \@P0 STG.E.128 [vp+0x10], vw0;\n";
+    # y = (x r) w
+    $o .= sprintf "--:-:-:-:%s      FMUL x%d, x%d, rr;\n", $_ == 7 ? '6' : '1', $_, $_ for 0..7;
+    $o .= sprintf "--:-:-:-:%s      FMUL x%d, x%d, w%d;\n", $_ == 7 ? '6' : '1', $_, $_, $_ for 0..7;
+    # RoPE: partner values from lane ^ 4 (lanes 0-7 only, but every lane shuffles)
+    $o .= sprintf "--:-:5:-:%s      SHFL.BFLY PT, o%d, x%d, 0x4, 0x1f;\n", $_ == 7 ? '2' : '1', $_, $_ for 0..7;
+    # lanes 0-3: y'_p = fma(y_q, -sin, y_p cos) ; lanes 4-7: y'_q = fma(y_p, sin, y_q cos)
+    $o .= sprintf "%s:-:-:-:%s      FMUL w%d, x%d, cs%d;\n", $_ == 0 ? '10' : '--', $_ == 7 ? '6' : '1', $_, $_, $_ for 0..7;
+    $o .= sprintf "--:-:-:-:%s  \@P2 FFMA w%d, o%d, -sn%d, w%d;\n", $_ == 7 ? '6' : '1', $_, $_, $_, $_ for 0..7;
+    $o .= sprintf "--:-:-:-:%s \@!P2 FFMA w%d, o%d, sn%d, w%d;\n", $_ == 7 ? '6' : '1', $_, $_, $_, $_ for 0..7;
+    $o .= sprintf "--:-:-:-:%s  \@P1 MOV x%d, w%d;\n", $_ == 7 ? '6' : '1', $_, $_ for 0..7;
+    $o .= "--:2:-:-:1      STG.E.128 [op], x0;\n";
+    $o .= "--:2:-:-:1 \@!P0 STG.E.128 [op+0x10], x4;\n";
+    $o .= "--:2:-:-:1  \@P0 STG.E.128 [op+0x200], x4;\n";
+    $o .= "02:-:-:-:f      EXIT;\n";
+    return $o;
+</CODE>
