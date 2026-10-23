@@ -1,0 +1,140 @@
+# Kernel: embrow
+#
+# Token embedding row: decodes the raw Q3_K row `id` of token_embd (2560 values =
+# 10 blocks of 256, 110 bytes each, row stride 1100 B) and writes it to the four
+# lanes of the hyper stream S (S + 10240 l + 4 v). Grid = 10 CTAs x 256 threads,
+# CTA b = block b, thread v = value v of the block, exactly as ref/quant.c
+# decodes Q3_K:
+#   nn = v >> 7, j = (v >> 5) & 3, which = (v >> 4) & 1, l = v & 15
+#   code = (qs[32 nn + 16 which + l] >> 2j) & 3 ; h = (hm[16 which + l] >> (4 nn + j)) & 1
+#   is = 8 nn + 2 j + which ; sc = 6-bit scale is (ggml unpack) - 32
+#   y = (d * sc) * (code - (h ? 0 : 4))
+# Bit-exact twin: dequant(GG_Q3_K, ...).
+#
+# Params: 0:0x140 E (token_embd)  1:0x148 S (stream out)  2:0x150 pos (u32)  3:0x158 IDS (u32 tokens; the row is IDS[pos])
+
+<CONSTANT_MAPPING>
+    param_E0 : c[0x0][0x140]
+    param_E1 : c[0x0][0x144]
+    param_S0 : c[0x0][0x148]
+    param_S1 : c[0x0][0x14c]
+    param_id : c[0x0][0x150]
+    param_IDS0 : c[0x0][0x158]
+    param_IDS1 : c[0x0][0x15c]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0     : v
+    1     : b
+    2     : nn
+    3     : j
+    4     : which
+    5     : l
+    6     : is
+    7     : t
+    8     : t2
+    9     : code
+    10    : hb
+    11    : sclo
+    12    : schi
+    13    : d
+    14    : y
+    15    : k
+    16,17 : bp<0-1>
+    18,19 : sp<0-1>
+    20,21 : qp<0-1>
+    22,23 : hp<0-1>
+    24,25 : lp<0-1>
+    26,27 : kp<0-1>
+    28,29 : ip<0-1>
+</REGISTER_MAPPING>
+
+<CODE>
+    my $o = '';
+    $o .= "--:-:6:-:1      S2R v, SR_TID.X;\n";
+    $o .= "--:-:6:-:1      S2R b, SR_CTAID.X;\n";
+    # the token: IDS[id] (param_id is the position into the id array)
+    $o .= "--:-:-:-:6      MOV t, param_id;\n";
+    $o .= "--:-:-:-:6      SHL t, t, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD ip0.CC, t, param_IDS0;\n";
+    $o .= "--:-:-:-:6      IADD.X ip1, RZ, param_IDS1;\n";
+    $o .= "--:-:1:-:2      LDG.E t, [ip];\n";
+    # block base: E + 1100 id + 110 b
+    $o .= "01:-:-:-:6      MOV t, t;\n";
+    $o .= "--:-:-:-:6      XMAD t2, t, 0x44c, RZ;\n";                 # low 16 bits of id * 1100
+    $o .= "--:-:-:-:6      XMAD.PSL t2, t.H1, 0x44c, t2;\n";          # + (id_hi * 1100) << 16
+    $o .= "20:-:-:-:6      XMAD t, b, 0x6e, RZ;\n";                    # 110 b
+    $o .= "--:-:-:-:6      IADD t2, t2, t;\n";
+    $o .= "--:-:-:-:6      IADD bp0.CC, t2, param_E0;\n";
+    $o .= "--:-:-:-:6      IADD.X bp1, RZ, param_E1;\n";
+    # indices
+    $o .= "--:-:-:-:6      SHR.U32 nn, v, 0x7;\n";
+    $o .= "--:-:-:-:6      SHR.U32 j, v, 0x5;\n";
+    $o .= "--:-:-:-:6      LOP32I.AND j, j, 0x3;\n";
+    $o .= "--:-:-:-:6      SHR.U32 which, v, 0x4;\n";
+    $o .= "--:-:-:-:6      LOP32I.AND which, which, 0x1;\n";
+    $o .= "--:-:-:-:6      LOP32I.AND l, v, 0xf;\n";
+    $o .= "--:-:-:-:6      SHL is, nn, 0x3;\n";
+    $o .= "--:-:-:-:6      ISCADD is, j, is, 0x1;\n";                  # 8 nn + 2 j
+    $o .= "--:-:-:-:6      IADD is, is, which;\n";
+    # qs byte: 32 + 32 nn + 16 which + l ; hm byte: 16 which + l
+    $o .= "--:-:-:-:6      SHL t, which, 0x4;\n";
+    $o .= "--:-:-:-:6      IADD t, t, l;\n";
+    $o .= "--:-:-:-:6      IADD hp0.CC, bp0, t;\n";
+    $o .= "--:-:-:-:6      IADD.X hp1, bp1, RZ;\n";
+    $o .= "--:-:-:-:6      ISCADD t, nn, t, 0x5;\n";
+    $o .= "--:-:-:-:6      IADD t, t, 0x20;\n";
+    $o .= "--:-:-:-:6      IADD qp0.CC, bp0, t;\n";
+    $o .= "--:-:-:-:6      IADD.X qp1, bp1, RZ;\n";
+    # scale bytes: lo from sc12[is & 7] (low or high nibble), hi from sc12[8 + (is & 3)]
+    $o .= "--:-:-:-:6      LOP32I.AND t, is, 0x7;\n";
+    $o .= "--:-:-:-:6      IADD t, t, 0x60;\n";
+    $o .= "--:-:-:-:6      IADD lp0.CC, bp0, t;\n";
+    $o .= "--:-:-:-:6      IADD.X lp1, bp1, RZ;\n";
+    $o .= "--:-:-:-:6      LOP32I.AND t, is, 0x3;\n";
+    $o .= "--:-:-:-:6      IADD t, t, 0x68;\n";
+    $o .= "--:-:-:-:6      IADD kp0.CC, bp0, t;\n";
+    $o .= "--:-:-:-:6      IADD.X kp1, bp1, RZ;\n";
+    $o .= "--:-:1:-:1      LDG.E.U8 code, [qp];\n";
+    $o .= "--:-:1:-:1      LDG.E.U8 hb, [hp];\n";
+    $o .= "--:-:1:-:1      LDG.E.U8 sclo, [lp];\n";
+    $o .= "--:-:1:-:1      LDG.E.U8 schi, [kp];\n";
+    $o .= "--:-:1:-:2      LDG.E.U16 d, [bp+0x6c];\n";
+    # output: S + 4 v (lanes at + 10240 l)
+    $o .= "--:-:-:-:6      SHL t, v, 0x2;\n";
+    $o .= "--:-:-:-:6      ISCADD t, b, t, 0xa;\n";                    # + 1024 b (256 values per block)
+    $o .= "--:-:-:-:6      IADD sp0.CC, t, param_S0;\n";
+    $o .= "--:-:-:-:6      IADD.X sp1, RZ, param_S1;\n";
+    # code = (qs >> 2j) & 3 ; h = (hm >> (4 nn + j)) & 1
+    $o .= "--:-:-:-:6      SHL t, j, 0x1;\n";
+    $o .= "01:-:-:-:6      SHR.U32 code, code, t;\n";
+    $o .= "--:-:-:-:6      LOP32I.AND code, code, 0x3;\n";
+    $o .= "--:-:-:-:6      ISCADD t, nn, j, 0x2;\n";
+    $o .= "--:-:-:-:6      SHR.U32 hb, hb, t;\n";
+    $o .= "--:-:-:-:6      LOP32I.AND hb, hb, 0x1;\n";
+    $o .= "--:-:-:-:6      ISCADD k, hb, -0x4, 0x2;\n";                # 4 h - 4
+    $o .= "--:-:-:-:6      IADD k, k, code;\n";                        # code - (h ? 0 : 4)
+    # sc: lo nibble = is < 8 ? sclo & 15 : sclo >> 4 ; hi = (schi >> 2 (is >> 2)) & 3
+    $o .= "--:-:-:-:6      ISETP.LT.U32.AND P0, PT, is, 0x8, PT;\n";
+    $o .= "--:-:-:-:6      SHR.U32 t, sclo, 0x4;\n";
+    $o .= "--:-:-:-:6      LOP32I.AND sclo, sclo, 0xf;\n";
+    $o .= "--:-:-:-:6      SHR.U32 t2, is, 0x2;\n";
+    $o .= "--:-:-:-:6      SHL t2, t2, 0x1;\n";
+    $o .= "--:-:-:-:6      SHR.U32 schi, schi, t2;\n";
+    $o .= "--:-:-:-:6      LOP32I.AND schi, schi, 0x3;\n";
+    $o .= "--:-:-:-:6      SHL schi, schi, 0x4;\n";
+    $o .= "--:-:-:-:6 \@!P0 MOV sclo, t;\n";
+    $o .= "--:-:-:-:6      IADD schi, schi, sclo;\n";
+    $o .= "--:-:-:-:6      IADD schi, schi, -0x20;\n";                 # sc - 32
+    $o .= "--:-:-:-:6      F2F.F32.F16 d, d;\n";
+    $o .= "--:-:3:-:2      I2F.F32.S32 schi, schi;\n";
+    $o .= "--:-:3:-:2      I2F.F32.S32 k, k;\n";
+    $o .= "04:-:-:-:6      FMUL d, d, schi;\n";                        # dl = d * sc
+    $o .= "--:-:-:-:6      FMUL y, d, k;\n";
+    $o .= "--:1:-:-:1      STG.E [sp], y;\n";
+    $o .= "--:1:-:-:1      STG.E [sp+0x2800], y;\n";
+    $o .= "--:1:-:-:1      STG.E [sp+0x5000], y;\n";
+    $o .= "--:1:-:-:6      STG.E [sp+0x7800], y;\n";
+    $o .= "01:-:-:-:f      EXIT;\n";
+    return $o;
+</CODE>
