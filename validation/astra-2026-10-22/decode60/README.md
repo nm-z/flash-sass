@@ -48,6 +48,7 @@ A/B estimates. Raw output and metadata remain in archy's canonical GPUq DB
 | v102,predicated load bursts | `2d6d9d94-aa9c-4a9e-8d07-520487806b47` |25.666102532|128 reference tokens,288 state hashes and full head audit pass |
 | v103,tighter burst issue spacing | `e39478c4-a505-4031-a682-edf067e957c1` |25.735693691 /25.773191368|Two requests match all reference tokens and576 state hashes; full head audits pass |
 | v104,store bursts as well | `96ed25b0-6c12-4470-aebd-9577dbbb4076` |25.721831473 /25.792883107|Two requests match all reference tokens and576 state hashes; full head/work audits pass |
+| v105,parallel router tie comparisons and exponential chains | `697f968e-c3c0-4d47-8f85-3215924781c1` |25.597726149 /25.761084376|Two requests match all reference tokens and576 state hashes; full head audits pass; opt-in |
 
 The down-projection phase contains both routed and shared projections. On
 logical die5 its accumulated profile time falls from10.670ms/token in v79 to
@@ -236,6 +237,15 @@ throughput. See the [long work table](work-v97-long.tsv) and
 [summary](work-v97-long-summary.txt).
 
 ## Other retained experiments
+
+`die_balanced_router.cubin` includes `balance/router_schedule.lua`. It evaluates
+sixteen independent tie candidates together and reduces their unsigned indices
+with the same lowest-index rule. Winner invalidations are also issued together.
+The ten routing-weight exponentials use independent temporary registers and
+interleaved copies of the same polynomial; the normalization sum order remains
+unchanged. Register count stays249. Its v105 observations do not demonstrate a
+throughput improvement, so the default retains v104's router. The complete
+implementation remains available for further work.
 
 The routed-down lane split and lookup-table paths are complete production
 images. Build `die_balanced_split.cubin` for v98 or `die_balanced_lut.cubin`
