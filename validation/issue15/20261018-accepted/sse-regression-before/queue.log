@@ -1,0 +1,15 @@
+2026-10-18T06:57:03Z
+QUEUED pid=1343875
+2026-10-18T06:57:03Z
+LEASE_GRANTED pid=1343875
+2026-10-18T06:57:03Z SELECTED resident
+2026-10-18T06:57:03Z gpu-before exit=0
+2026-10-18T06:57:03Z session-fixtures exit=0
+2026-10-18T06:57:04Z output-token-regression exit=0
+2026-10-18T06:57:08Z cli-pair0 exit=0
+2026-10-18T06:57:09Z http-pair0 exit=25
+2026-10-18T06:57:11Z baseline library and effective configuration restored
+2026-10-18T06:57:11Z gpu-after exit=0
+2026-10-18T06:57:11Z FAIL resident CLI/HTTP timing validation
+http-pair0 failed (exit 25); see /home/nate/claude/flash-sass-resolve/issue15-adaptive-0f8b09c-20261018/evidence/http-pair0.log
+RUN_EXIT=1
