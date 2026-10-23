@@ -1,0 +1,39 @@
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -o output_tokens_test output_tokens_test.c tok.c jinja.c json.c ../ref/gguf.c -I../ref -lm -lpthread
+cc -std=gnu99 -O2 -Wall -o flashd flashd.c tok.c jinja.c json.c ../ref/gguf.c -I../ref -lm -lpthread
+flashd.c: In function ‘chat’:
+flashd.c:173:162: warning: ‘%s’ directive output may be truncated writing up to 255 bytes into a region of size between 100 and 299 [-Wformat-truncation=]
+  173 |           while (d && (e = readdir(d))) { if (e->d_name[0] == '.' || strstr(e->d_name, ".tmp")) continue; struct stat st; char p[300]; snprintf(p, sizeof p, "%s/%s", dir, e->d_name); if (stat(p, &st)) continue; if (nk < 64) { keep[nk].t = st.st_mtime; snprintf(keep[nk].name, sizeof keep[nk].name, "%s", e->d_name); nk++; } }
+      |                                                                                                                                                                  ^~
+In function ‘vis_image’,
+    inlined from ‘chat’ at flashd.c:211:21:
+flashd.c:173:136: note: ‘snprintf’ output between 2 and 456 bytes into a destination of size 300
+  173 |           while (d && (e = readdir(d))) { if (e->d_name[0] == '.' || strstr(e->d_name, ".tmp")) continue; struct stat st; char p[300]; snprintf(p, sizeof p, "%s/%s", dir, e->d_name); if (stat(p, &st)) continue; if (nk < 64) { keep[nk].t = st.st_mtime; snprintf(keep[nk].name, sizeof keep[nk].name, "%s", e->d_name); nk++; } }
+      |                                                                                                                                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+flashd.c: In function ‘chat’:
+flashd.c:173:300: warning: ‘%s’ directive output may be truncated writing up to 255 bytes into a region of size 64 [-Wformat-truncation=]
+  173 |           while (d && (e = readdir(d))) { if (e->d_name[0] == '.' || strstr(e->d_name, ".tmp")) continue; struct stat st; char p[300]; snprintf(p, sizeof p, "%s/%s", dir, e->d_name); if (stat(p, &st)) continue; if (nk < 64) { keep[nk].t = st.st_mtime; snprintf(keep[nk].name, sizeof keep[nk].name, "%s", e->d_name); nk++; } }
+      |                                                                                                                                                                                                                                                                                                            ^~
+In function ‘vis_image’,
+    inlined from ‘chat’ at flashd.c:211:21:
+flashd.c:173:253: note: ‘snprintf’ output between 1 and 256 bytes into a destination of size 64
+  173 |           while (d && (e = readdir(d))) { if (e->d_name[0] == '.' || strstr(e->d_name, ".tmp")) continue; struct stat st; char p[300]; snprintf(p, sizeof p, "%s/%s", dir, e->d_name); if (stat(p, &st)) continue; if (nk < 64) { keep[nk].t = st.st_mtime; snprintf(keep[nk].name, sizeof keep[nk].name, "%s", e->d_name); nk++; } }
+      |                                                                                                                                                                                                                                                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from output_tokens_test.c:3:
+flashd.c: In function ‘chat’:
+flashd.c:173:162: warning: ‘%s’ directive output may be truncated writing up to 255 bytes into a region of size between 100 and 299 [-Wformat-truncation=]
+  173 |           while (d && (e = readdir(d))) { if (e->d_name[0] == '.' || strstr(e->d_name, ".tmp")) continue; struct stat st; char p[300]; snprintf(p, sizeof p, "%s/%s", dir, e->d_name); if (stat(p, &st)) continue; if (nk < 64) { keep[nk].t = st.st_mtime; snprintf(keep[nk].name, sizeof keep[nk].name, "%s", e->d_name); nk++; } }
+      |                                                                                                                                                                  ^~
+In function ‘vis_image’,
+    inlined from ‘chat’ at flashd.c:211:21:
+flashd.c:173:136: note: ‘snprintf’ output between 2 and 456 bytes into a destination of size 300
+  173 |           while (d && (e = readdir(d))) { if (e->d_name[0] == '.' || strstr(e->d_name, ".tmp")) continue; struct stat st; char p[300]; snprintf(p, sizeof p, "%s/%s", dir, e->d_name); if (stat(p, &st)) continue; if (nk < 64) { keep[nk].t = st.st_mtime; snprintf(keep[nk].name, sizeof keep[nk].name, "%s", e->d_name); nk++; } }
+      |                                                                                                                                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+flashd.c: In function ‘chat’:
+flashd.c:173:300: warning: ‘%s’ directive output may be truncated writing up to 255 bytes into a region of size 64 [-Wformat-truncation=]
+  173 |           while (d && (e = readdir(d))) { if (e->d_name[0] == '.' || strstr(e->d_name, ".tmp")) continue; struct stat st; char p[300]; snprintf(p, sizeof p, "%s/%s", dir, e->d_name); if (stat(p, &st)) continue; if (nk < 64) { keep[nk].t = st.st_mtime; snprintf(keep[nk].name, sizeof keep[nk].name, "%s", e->d_name); nk++; } }
+      |                                                                                                                                                                                                                                                                                                            ^~
+In function ‘vis_image’,
+    inlined from ‘chat’ at flashd.c:211:21:
+flashd.c:173:253: note: ‘snprintf’ output between 1 and 256 bytes into a destination of size 64
+  173 |           while (d && (e = readdir(d))) { if (e->d_name[0] == '.' || strstr(e->d_name, ".tmp")) continue; struct stat st; char p[300]; snprintf(p, sizeof p, "%s/%s", dir, e->d_name); if (stat(p, &st)) continue; if (nk < 64) { keep[nk].t = st.st_mtime; snprintf(keep[nk].name, sizeof keep[nk].name, "%s", e->d_name); nk++; } }
+      |                                                                                                                                                                                                                                                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
