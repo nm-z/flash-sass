@@ -1,0 +1,14 @@
+.version 7.4
+.target sm_52
+.address_size 64
+
+.visible .entry semtest(.param .u64 pin, .param .u64 pout)
+{
+	.reg .u64 %a;
+	.reg .u32 %r;
+	ld.param.u64 %a, [pout];
+	cvta.to.global.u64 %a, %a;
+	mov.u32 %r, %tid.x;
+	st.global.u32 [%a], %r;
+	ret;
+}

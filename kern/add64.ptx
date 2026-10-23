@@ -1,0 +1,12 @@
+.version 7.4
+.target sm_52
+.address_size 64
+.visible .entry add64(.param .u64 pa, .param .u64 pb, .param .u64 po)
+{
+	.reg .u64 %a, %b, %o, %s;
+	ld.param.u64 %a, [pa]; ld.param.u64 %b, [pb]; ld.param.u64 %o, [po];
+	cvta.to.global.u64 %o, %o;
+	add.u64 %s, %a, %b;
+	st.global.u64 [%o], %s;
+	ret;
+}
