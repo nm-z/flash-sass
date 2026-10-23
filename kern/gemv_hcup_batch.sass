@@ -1,0 +1,153 @@
+# Eight positions share each four-row BF16 HC-up tile. A physical warp owns
+# one position: four stream rows, eight lanes per row, unchanged scalar FFMA
+# and butterfly order. SiLU inputs stay resident after one staging pass.
+# CTA c owns contiguous columns [c0,c1), ceil(cols/16) columns each. Mixed Z
+# accumulates in shared memory and leaves in coalesced per-position peer bursts.
+# Scratch: weights[2560], SiLU[8][320] fp32, Z[8][160] fp32 = 17920 bytes.
+# The scalar descriptor ABI and the existing eight shared descriptor banks stay
+# unchanged. Only OP_BF16HCUP8 may enter this body, with eight valid descriptors.
+<CONSTANT_MAPPING>
+    param_W0 : c[0x0][0x140]
+    param_W1 : c[0x0][0x144]
+    param_rows : c[0x0][0x158]
+</CONSTANT_MAPPING>
+<REGISTER_MAPPING>
+    0-39 : act<00-39>
+    40-59 : w<00-19>
+    60,61 : a<0-1>
+    62,63 : b<0-1>
+    64 : acc
+    65 : t
+    66 : tid
+    67 : bid
+    68 : position
+    69 : lane32
+    70 : lane
+    71 : stream
+    72 : descriptor
+    73 : cols
+    74 : count
+    75 : c0
+    76 : c1
+    77 : col
+    78 : off
+    79 : tmp
+    80 : sa
+    81 : wa
+    82 : za
+    83 : at
+    84 : tn
+    85 : xoff
+    86 : su
+    87 : sy
+    88 : gg
+    89 : xl
+    90-93 : g<0-3>
+    94-97 : x<0-3>
+    98 : mixed
+    99 : log2e
+    100 : ln2hi
+    101 : ln2lo
+    102 : c720
+    103 : c120
+    104 : c24
+    105 : c6
+    106 : chalf
+    107 : cone
+    108 : mneg1
+    109-113 : ft<1-5>
+    114,115 : down<0-1>
+    116,117 : up<0-1>
+    118,119 : xh<0-1>
+    120,121 : tp<0-1>
+    122,123 : tab<0-1>
+    124,125 : wp<0-1>
+    126,127 : peer<0-1>
+</REGISTER_MAPPING>
+<CODE>
+    require './fmath.pl';
+    my %FC = map { $_ => $_ } qw(log2e ln2hi ln2lo c720 c120 c24 c6 chalf cone mneg1);
+    my $o = "--:-:6:-:1      S2R tid, SR_TID.X;\n--:-:6:-:2      S2R bid, SR_CTAID.X;\n";
+    $o .= "20:-:-:-:6      SHR.U32 position, tid, 0x5;\n";
+    $o .= "--:-:-:-:6      LOP32I.AND lane32, tid, 0x1f;\n--:-:-:-:6      LOP32I.AND lane, tid, 0x7;\n";
+    $o .= "--:-:-:-:6      SHR.U32 stream, lane32, 0x3;\n--:-:-:-:6      ISETP.EQ.U32.AND P0, PT, position, RZ, PT;\n";
+    # Bank0=0xbf80; positions1..7 descend from0xbe80 in128-byte steps.
+    $o .= "--:-:-:-:6      SHL tmp, position, 0x7;\n--:-:-:-:6      MOV32I descriptor, 0xbf00;\n--:-:-:-:6      IADD descriptor, descriptor, -tmp;\n--:-:-:-:6  \@P0 MOV32I descriptor, 0xbf80;\n";
+    for my $v (['down',16],['up',24],['tab',56],['xh',64],['tp',72]) {
+        $o .= sprintf "--:-:1:-:1      LDS.64 %s0, [descriptor+0x%x];\n", @$v;
+    }
+    $o .= "--:-:1:-:1      LDS xoff, [descriptor+0x30];\n--:-:1:-:2      LDS tn, [descriptor+0x50];\n01:-:-:-:6      NOP;\n";
+    $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P2, PT, lane, RZ, PT;\n--:-:-:-:6      ISETP.EQ.U32.AND P3, PT, lane32, RZ, PT;\n--:-:-:-:6      ISETP.EQ.U32.AND P4, PT, bid, RZ, PT;\n";
+    $o .= "--:-:-:-:6      SHL tmp, lane32, 0x2;\n--:-:-:-:6      IADD down0.CC, down0, tmp;\n--:-:-:-:6      IADD.X down1, down1, RZ;\n--:-:-:-:6      IADD tp0.CC, tp0, tmp;\n--:-:-:-:6      IADD.X tp1, tp1, RZ;\n";
+    $o .= "--:-:-:-:6      XMAD sa, position, 0x500, tmp;\n--:-:-:-:6      IADD sa, sa, 0xa00;\n";
+    $o .= fm_consts(\%FC);
+    # Each warp stages ten contiguous32-element segments for its position.
+    # fmath is the scalar emitter, including its IEEE operations and clamp.
+    for my $j (0..9) {
+        $o .= sprintf "02:2:1:-:2      LDG.E su, [down+0x%x];\n01:-:-:-:6      FMUL gg, su, 0.25;\n",128*$j;
+        $o .= fm_silu('sy','gg','ft1','ft2','ft3','ft4','ft5',\%FC);
+        $o .= sprintf "--:2:-:-:1      STS [sa+0x%x], sy;\n--:2:-:-:2  \@P4 STG.E [tp+0x%x], sy;\n",128*$j,128*$j;
+    }
+    $o .= "02:-:-:-:6      IADD tmp, tn, -0x140;\n--:-:-:-:6      ISETP.LT.U32.AND P5, PT, lane32, tmp, P4;\n";
+    $o .= "--:-:-:-:6      NOP;\n" x 3;
+    $o .= "--:2:1:-:2  \@P5 LDG.E su, [down+0x500];\n01:2:-:-:2  \@P5 STG.E [tp+0x500], su;\n03:-:-:-:6      BAR.SYNC 0x0;\n";
+    # Forty activation values per thread, shared by its stream row's GEMVs.
+    $o .= "--:-:-:-:6      SHL tmp, lane, 0x5;\n--:-:-:-:6      XMAD at, position, 0x500, tmp;\n--:-:-:-:6      IADD at, at, 0xa00;\n";
+    for my $j (0..4) {
+        $o .= sprintf "--:-:1:-:1      LDS.128 act%02d, [at+0x%x];\n--:-:1:-:%d      LDS.128 act%02d, [at+0x%x];\n",8*$j,256*$j,$j==4?2:1,8*$j+4,256*$j+16;
+    }
+    $o .= "01:-:-:-:6      SHR.U32 cols, param_rows, 0x2;\n--:-:-:-:6      IADD count, cols, 0xf;\n--:-:-:-:6      SHR.U32 count, count, 0x4;\n--:-:-:-:6      XMAD c0, bid, count, RZ;\n--:-:-:-:6      IADD c1, c0, count;\n--:-:-:-:6      IMNMX.U32 c1, c1, cols, PT;\n--:-:-:-:6      IMNMX.U32 c0, c0, c1, PT;\n--:-:-:-:6      MOV col, c0;\n";
+    $o .= "--:-:-:-:6      XMAD off, stream, cols, col;\n--:-:-:-:6      XMAD off, off, 0x280, RZ;\n--:-:-:-:6      ISCADD off, lane, off, 0x4;\n--:-:-:-:6      IADD wp0.CC, off, param_W0;\n--:-:-:-:6      IADD.X wp1, RZ, param_W1;\n";
+    $o .= "--:-:-:-:6      XMAD tmp, stream, cols, col;\n--:-:-:-:6      SHL tmp, tmp, 0x2;\n--:-:-:-:6      IADD up0.CC, up0, tmp;\n--:-:-:-:6      IADD.X up1, up1, RZ;\n";
+    $o .= "--:-:-:-:6      XMAD tmp, stream, 0xa00, col;\n--:-:-:-:6      SHL tmp, tmp, 0x2;\n--:-:-:-:6      IADD xh0.CC, xh0, tmp;\n--:-:-:-:6      IADD.X xh1, xh1, RZ;\n";
+    $o .= "--:-:-:-:6      SHL tmp, lane, 0x4;\n--:-:-:-:6      XMAD wa, stream, 0x280, tmp;\n--:-:-:-:6      XMAD za, position, 0x280, RZ;\n--:-:-:-:6      IADD za, za, 0x3200;\n";
+    $o .= "--:-:-:-:6      ISETP.LT.U32.AND P1, PT, col, c1, PT;\n" . ("--:-:-:-:6      NOP;\n" x 3);
+    $o .= "--:-:-:-:6 \@!P1 BRA COLUMNS_DONE;\nCOLUMN:\n";
+    # Only the first warp fetches the four weight rows; all positions then
+    # consume exactly the same packed BF16 words through CTA-local shared RAM.
+    for my $j (0..4) {
+        $o .= sprintf "--:2:1:-:%d  \@P0 LDG.E.CI.128 w%02d, [wp+0x%x];\n",$j==4?2:1,4*$j,128*$j;
+    }
+    for my $j (0..4) {
+        $o .= sprintf "%s:2:-:-:%d  \@P0 STS.128 [wa+0x%x], w%02d;\n",$j?'--':'01',$j==4?2:1,128*$j,4*$j;
+    }
+    $o .= "02:-:-:-:6      BAR.SYNC 0x0;\n--:2:4:-:2      LDG.E xl, [xh];\n";
+    for my $j (0..4) {
+        $o .= sprintf "--:-:1:-:%d      LDS.128 w%02d, [wa+0x%x];\n",$j==4?2:1,4*$j,128*$j;
+    }
+    $o .= "01:-:-:-:6      MOV acc, RZ;\n--:-:-:-:1      SHL a0, w00, 0x10;\n--:-:-:-:6      LOP32I.AND b0, w00, 0xffff0000;\n";
+    for my $k (0..19) {
+        my $cur=$k&1; my $next=1-$cur;
+        if($k<19) {
+            $o .= sprintf "--:-:-:-:1      FFMA acc, a%d, act%02d, acc;\n--:-:-:-:1      SHL a%d, w%02d, 0x10;\n--:-:-:-:4      LOP32I.AND b%d, w%02d, 0xffff0000;\n--:-:-:-:6      FFMA acc, b%d, act%02d, acc;\n",$cur,2*$k,$next,$k+1,$next,$k+1,$cur,2*$k+1;
+        } else {
+            $o .= sprintf "--:-:-:-:6      FFMA acc, a%d, act%02d, acc;\n--:-:-:-:6      FFMA acc, b%d, act%02d, acc;\n",$cur,2*$k,$cur,2*$k+1;
+        }
+    }
+    for my $delta (4,2,1) {
+        $o .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, acc, 0x%x, 0x1f;\n10:-:-:-:6      FADD acc, acc, t;\n",$delta;
+    }
+    $o .= "--:2:-:-:1  \@P2 STG.E [up], acc;\n";
+    $o .= fm_sigmoid('gg','acc','ft1','ft2','ft3','ft4',\%FC);
+    for my $l (0..3) { $o .= sprintf "--:-:5:-:1      SHFL.IDX PT, g%d, gg, 0x%x, 0x1f;\n",$l,8*$l; }
+    for my $l (0..3) { $o .= sprintf "%s:-:5:-:%d      SHFL.IDX PT, x%d, xl, 0x%x, 0x1f;\n",$l?'--':'08',$l==3?2:1,$l,8*$l; }
+    $o .= "10:-:-:-:6      FMUL mixed, g0, x0;\n";
+    $o .= sprintf "--:-:-:-:6      FFMA mixed, g%d, x%d, mixed;\n",$_,$_ for 1..3;
+    $o .= "--:-:-:-:6      FMUL mixed, mixed, 0.25;\n--:2:-:-:2  \@P3 STS [za], mixed;\n02:-:-:-:6      BAR.SYNC 0x0;\n";
+    # The rendezvous retires every reader before warp0 replaces its weight tile.
+    $o .= "--:-:-:-:6      IADD col, col, 0x1;\n--:-:-:-:6      ISETP.LT.U32.AND P1, PT, col, c1, PT;\n--:-:-:-:6      IADD wp0.CC, wp0, 0x280;\n--:-:-:-:6      IADD.X wp1, wp1, RZ;\n--:-:-:-:6      IADD up0.CC, up0, 0x4;\n--:-:-:-:6      IADD.X up1, up1, RZ;\n--:-:-:-:6      IADD xh0.CC, xh0, 0x4;\n--:-:-:-:6      IADD.X xh1, xh1, RZ;\n--:-:-:-:6      IADD za, za, 0x4;\n--:-:-:-:6  \@P1 BRA COLUMN;\nCOLUMNS_DONE:\n";
+    # One warp per position writes successive32-column bursts. The full CTA
+    # has already joined the final column barrier, including empty CTAs.
+    $o .= "--:-:-:-:6      IADD count, c1, -c0;\n--:-:-:-:6      MOV off, lane32;\n--:-:-:-:6      MOV tn, RZ;\n--:-:-:-:6      XMAD za, position, 0x280, RZ;\n--:-:-:-:6      IADD za, za, 0x3200;\n--:-:-:-:6      ISETP.LT.U32.AND P5, PT, tn, count, PT;\n";
+    $o .= "--:-:-:-:6      NOP;\n" x 3;
+    $o .= "--:-:-:-:6 \@!P5 BRA DONE;\nBURST:\n--:-:-:-:6      ISETP.LT.U32.AND P6, PT, off, count, PT;\n--:-:-:-:6      ISCADD at, off, za, 0x2;\n--:-:-:-:6      MOV mixed, RZ;\n--:-:-:-:6      NOP;\n--:-:4:-:2  \@P6 LDS mixed, [at];\n--:-:-:-:6      IADD tmp, c0, off;\n--:-:-:-:6      SHL tmp, tmp, 0x2;\n--:-:-:-:6      IADD tmp, tmp, xoff;\n";
+    for my $e (0..5) {
+        $o .= sprintf "02:2:1:-:2      LDG.E.64 peer0, [tab+0x%x];\n01:-:-:-:6      IADD peer0.CC, peer0, tmp;\n--:-:-:-:6      IADD.X peer1, peer1, RZ;\n%s:2:-:-:2  \@P6 STG.E.WT [peer], mixed;\n",8*$e,$e?'--':'08';
+    }
+    $o .= "02:-:-:-:6      IADD off, off, 0x20;\n--:-:-:-:6      IADD tn, tn, 0x20;\n--:-:-:-:6      ISETP.LT.U32.AND P5, PT, tn, count, PT;\n" . ("--:-:-:-:6      NOP;\n" x 3);
+    # Persistent CTA-kind EXIT reaches die.pl's3f BAR.SYNC0 and POSITION_END
+    # rendezvous even for intermediate wide subgroups with NO_BAR. Those drains
+    # retire every burst before the next body reuses the shared tiles and Z.
+    $o .= "--:-:-:-:6  \@P5 BRA BURST;\nDONE:\n02:-:-:-:f      EXIT;\n";
+    return $o;
+</CODE>

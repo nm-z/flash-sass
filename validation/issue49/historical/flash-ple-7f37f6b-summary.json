@@ -1,0 +1,116 @@
+{
+  "nfs": [
+    {
+      "phase": "unprimed",
+      "cache": "mixed",
+      "readers": 1,
+      "n": 4,
+      "median_us": 90473.0285,
+      "p95_us": 123522.999,
+      "hint_median_us": 174.33550000000002,
+      "read_median_us": 90329.4925,
+      "errors": 0
+    },
+    {
+      "phase": "unprimed",
+      "cache": "mixed",
+      "readers": 16,
+      "n": 3,
+      "median_us": 93769.563,
+      "p95_us": 96017.238,
+      "hint_median_us": 127.526,
+      "read_median_us": 93642.037,
+      "errors": 0
+    },
+    {
+      "phase": "unprimed",
+      "cache": "nonresident",
+      "readers": 1,
+      "n": 124,
+      "median_us": 95973.701,
+      "p95_us": 134982.009,
+      "hint_median_us": 136.3995,
+      "read_median_us": 95808.456,
+      "errors": 0
+    },
+    {
+      "phase": "unprimed",
+      "cache": "nonresident",
+      "readers": 16,
+      "n": 125,
+      "median_us": 97934.603,
+      "p95_us": 142548.734,
+      "hint_median_us": 137.118,
+      "read_median_us": 97763.224,
+      "errors": 0
+    },
+    {
+      "phase": "warm",
+      "cache": "resident",
+      "readers": 1,
+      "n": 1024,
+      "median_us": 24.9895,
+      "p95_us": 30.434,
+      "hint_median_us": 10.897,
+      "read_median_us": 14.0445,
+      "errors": 0
+    },
+    {
+      "phase": "warm",
+      "cache": "resident",
+      "readers": 16,
+      "n": 1024,
+      "median_us": 68.249,
+      "p95_us": 89.106,
+      "hint_median_us": 10.849,
+      "read_median_us": 57.1785,
+      "errors": 0
+    }
+  ],
+  "local": [
+    {
+      "phase": "unprimed",
+      "cache": "mixed",
+      "readers": 1,
+      "n": 128,
+      "median_us": 575.6025,
+      "p95_us": 781.909,
+      "hint_median_us": 51.1315,
+      "read_median_us": 510.385,
+      "errors": 0
+    },
+    {
+      "phase": "unprimed",
+      "cache": "mixed",
+      "readers": 16,
+      "n": 128,
+      "median_us": 561.535,
+      "p95_us": 864.53,
+      "hint_median_us": 50.423500000000004,
+      "read_median_us": 502.071,
+      "errors": 0
+    },
+    {
+      "phase": "warm",
+      "cache": "resident",
+      "readers": 1,
+      "n": 1024,
+      "median_us": 23.297,
+      "p95_us": 27.096,
+      "hint_median_us": 10.213,
+      "read_median_us": 12.9475,
+      "errors": 0
+    },
+    {
+      "phase": "warm",
+      "cache": "resident",
+      "readers": 16,
+      "n": 1024,
+      "median_us": 60.947,
+      "p95_us": 77.431,
+      "hint_median_us": 10.265,
+      "read_median_us": 50.601,
+      "errors": 0
+    }
+  ]
+}
