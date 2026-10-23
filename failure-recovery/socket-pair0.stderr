@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/home/nate/claude/flash-sass-prs/ple-build-4ba9e11/kern/ple_io_check.py", line 44, in <module>
+    control(mode,160,3,17);before=status()['launches'];toks,done,error=ask([10,11],190);assert not done and error,(done,error);assert 'PLE I/O position 160 head 3' in error and 'bytes 17/90' in error,error;assert toks==longbase[:len(toks)] and len(toks)==159,(len(toks),error);st=status();assert st['launches']>before and st['snapshot']==0,st
+                                                                                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: error: device fault; the core rebuilds the contexts and the engine
