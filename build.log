@@ -1,0 +1,2 @@
+perl die.pl header > dieops.h
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -o attnpartn_regress attnpartn_regress.c ../ref/attn.c ../ref/fmath.c -I../ref -I/opt/cuda/include -lcuda -lm

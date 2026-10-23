@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/home/nate/claude/flash-sass-prs/issue-12/kern/cta_remap_matrix.py", line 72, in <module>
+    if __name__=="__main__": sys.exit(main())
+                                      ~~~~^^
+  File "/home/nate/claude/flash-sass-prs/issue-12/kern/cta_remap_matrix.py", line 39, in main
+    fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+BlockingIOError: [Errno 11] Resource temporarily unavailable
