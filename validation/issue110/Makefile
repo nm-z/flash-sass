@@ -3,6 +3,10 @@ include $(ISSUE110_DIR)/../issue9/Makefile
 .DEFAULT_GOAL := phase-check
 PHASE_OUT := $(ISSUE110_DIR)/bin
 PHASE_MAXAS := env PATH=/opt/cuda/bin:/usr/bin:/bin perl -I$(MAXAS_ROOT)/lib $(MAXAS_ROOT)/bin/maxas.pl
+XCHG_FENCE_SASS := $(PHASE_OUT)/die-xchg-sys-fence.sass
+XCHG_FENCE_CUBIN := $(PHASE_OUT)/die-xchg-sys-fence.cubin
+XCHG_PEER_FENCE_SASS := $(PHASE_OUT)/die-xchg-peer-sys-fence.sass
+XCHG_PEER_FENCE_CUBIN := $(PHASE_OUT)/die-xchg-peer-sys-fence.cubin
 HOLDER_PIDS ?= $(shell ps -C hold -o pid=,args= | gawk -v gguf='$(GGUF)' -f $(ISSUE110_DIR)/holders.awk)
 
 ifneq ($(GPUQ_JOB_ID),)
@@ -11,7 +15,7 @@ $(error Run phase probe builds/checks through dsh build outside gpuq)
 endif
 endif
 
-.PHONY: phase-check phase-fixture-build phase-engine-build phase-build phase-gpu phase-canary phase-matrix phase-failure-gpu
+.PHONY: phase-check phase-fixture-build phase-engine-build phase-build phase-gpu phase-canary phase-matrix phase-failure-gpu xchg-fence-build xchg-peer-fence-build
 $(PHASE_OUT):
 	mkdir -p $@
 
@@ -40,6 +44,22 @@ phase-build: kernel-build $(PHASE_OUT)/phase_probe_gpu | $(PHASE_OUT)
 	$(MAKE) -f $(ISSUE110_DIR)/../issue9/Makefile ENGINE_REVISION=$(ENGINE_REVISION) engine-build engine-check
 	$(MAKE) -C $(ROOT)/kern model_test
 	sha256sum $(ROOT)/kern/die.cubin $(ROOT)/kern/libengine.so $(ROOT)/kern/flashcore $(OUT_DIR)/engine_check $(PHASE_OUT)/phase_probe_gpu
+
+# Diagnostic cubin only: add a system-scope fence from each xsend writer thread
+# before its CTA rendezvous and the framework's peer completion flag publication.
+xchg-fence-build: kernel-build | $(PHASE_OUT)
+	gawk -f $(ISSUE110_DIR)/xchg_sys_fence.awk $(ROOT)/kern/die.sass > $(XCHG_FENCE_SASS)
+	cp $(ROOT)/kern/skel_die.cubin $(XCHG_FENCE_CUBIN)
+	$(PHASE_MAXAS) -i $(XCHG_FENCE_SASS) $(XCHG_FENCE_CUBIN)
+	sha256sum $(XCHG_FENCE_SASS) $(XCHG_FENCE_CUBIN)
+
+# Diagnostic cubin: fence every operation that writes peer inbox memory before
+# its CTA barrier; the framework publishes the send flag after that barrier.
+xchg-peer-fence-build: kernel-build | $(PHASE_OUT)
+	gawk -f $(ISSUE110_DIR)/xchg_peer_fence.awk $(ROOT)/kern/die.sass > $(XCHG_PEER_FENCE_SASS)
+	cp $(ROOT)/kern/skel_die.cubin $(XCHG_PEER_FENCE_CUBIN)
+	$(PHASE_MAXAS) -i $(XCHG_PEER_FENCE_SASS) $(XCHG_PEER_FENCE_CUBIN)
+	sha256sum $(XCHG_PEER_FENCE_SASS) $(XCHG_PEER_FENCE_CUBIN)
 
 phase-gpu: identity
 	env --chdir=$(ROOT)/kern CUDA_VISIBLE_DEVICES=6 $(PHASE_OUT)/phase_probe_gpu $(ROOT)/kern/die.cubin
