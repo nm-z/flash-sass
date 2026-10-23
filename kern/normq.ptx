@@ -1,0 +1,16 @@
+// Skeleton for MaxAs: same entry name and parameter layout as normq.sass.
+.version 7.4
+.target sm_52
+.address_size 64
+
+.visible .entry normq(.param .u64 px, .param .u64 pw, .param .u64 py, .param .u64 pq, .param .u64 ps32, .param .u64 ps16, .param .u64 pas, .param .f32 eps)
+{
+	.reg .u32 %r<2>;
+	.reg .f32 %f<1>;
+	.reg .pred %p;
+	ld.param.f32 %f0, [eps];
+	mov.u32 %r1, %tid.x;
+	setp.lt.u32 %p, %r1, %r1;
+	@%p ret;
+	ret;
+}

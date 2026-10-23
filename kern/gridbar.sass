@@ -1,0 +1,137 @@
+# Kernel: gridbar
+#
+# Software grid barrier for co-resident CTAs (the primitive of the persistent
+# kernel), with a visibility test around it.
+#
+# Per iteration i: thread 0 of each CTA stores i into its slot of `data`; all CTAs
+# pass the barrier; thread 0 then reads the next CTA's slot and counts a mismatch
+# if it is not i. out[cta] = mismatches after `iters` iterations.
+#
+# Barrier (warp 0 of each CTA, after BAR.SYNC): read the generation word, fence,
+# lane 0 atomically counts in and the count is broadcast with SHFL; the last
+# arriver resets the counter, fences and bumps the generation; the others spin on
+# the generation word with LDG.CV. Then a fence and BAR.SYNC release the CTA. The
+# loads bypass L1 (.CV), the stores are write-through (.WT), the fences are
+# MEMBAR.GL.IVALLD as ptxas emits for membar.gl. Every branch predicate is >= 18
+# cycles old when consumed (NOP padding in the spin loop).
+#
+# Params: 0:0x140:8 ctr  1:0x148:8 gen  2:0x150:4 nctas  3:0x154:4 iters
+#         4:0x158:8 out  5:0x160:8 data (128 B per CTA)
+
+<CONSTANT_MAPPING>
+    param_ctr0  : c[0x0][0x140]
+    param_ctr1  : c[0x0][0x144]
+    param_gen0  : c[0x0][0x148]
+    param_gen1  : c[0x0][0x14c]
+    param_nctas : c[0x0][0x150]
+    param_iters : c[0x0][0x154]
+    param_out0  : c[0x0][0x158]
+    param_out1  : c[0x0][0x15c]
+    param_data0 : c[0x0][0x160]
+    param_data1 : c[0x0][0x164]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0-1   : cp<0-1>
+    2-3   : gp<0-1>
+    4-5   : dp<0-1>
+    6-7   : np<0-1>
+    8-9   : op<0-1>
+    10    : tid
+    11    : bid
+    12    : i
+    13    : g
+    14    : g2
+    15    : old
+    16    : t
+    17    : one
+    18    : bad
+    19    : v
+    20    : nxt
+    21    : t2
+</REGISTER_MAPPING>
+
+--:-:6:-:1      S2R tid, SR_TID.X;
+--:-:6:-:1      S2R bid, SR_CTAID.X;
+--:-:-:-:6      MOV one, 0x1;
+--:-:-:-:1      MOV i, RZ;
+--:-:-:-:6      MOV bad, RZ;
+20:-:-:-:6      ISETP.NE.U32.AND P0, PT, tid, RZ, PT;         # P0: not lane 0 of warp 0 (tid != 0)
+--:-:-:-:6      ISETP.GE.U32.AND P5, PT, tid, 0x20, PT;       # P5: not warp 0
+# cp = ctr, gp = gen
+--:-:-:-:6      MOV cp0, param_ctr0;
+--:-:-:-:6      MOV cp1, param_ctr1;
+--:-:-:-:6      MOV gp0, param_gen0;
+--:-:-:-:6      MOV gp1, param_gen1;
+# dp = data + 128 bid ; np = data + 128 ((bid + 1) mod nctas) ; op = out + 4 bid
+--:-:-:-:6      SHL t, bid, 0x7;
+--:-:-:-:6      IADD dp0.CC, t, param_data0;
+--:-:-:-:6      IADD.X dp1, RZ, param_data1;
+--:-:-:-:6      IADD nxt, bid, 0x1;
+--:-:-:-:6      ISETP.GE.U32.AND P1, PT, nxt, param_nctas, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P1 MOV nxt, RZ;
+--:-:-:-:6      SHL t, nxt, 0x7;
+--:-:-:-:6      IADD np0.CC, t, param_data0;
+--:-:-:-:6      IADD.X np1, RZ, param_data1;
+--:-:-:-:6      SHL t, bid, 0x2;
+--:-:-:-:6      IADD op0.CC, t, param_out0;
+--:-:-:-:6      IADD.X op1, RZ, param_out1;
+# slot parity predicates: P6 = even iteration, P2 = odd (two slots so a CTA that is
+# already one iteration ahead cannot overwrite the value being checked)
+--:-:-:-:6      ISETP.EQ.U32.AND P6, PT, i, RZ, PT;
+--:-:-:-:6      ISETP.NE.U32.AND P2, PT, i, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+
+LOOP:
+--:-:-:-:6  @P6 STG.E [dp], i;                                  # publish i
+--:-:-:-:6  @P2 STG.E [dp+0x4], i;
+# ---- barrier ----
+--:-:-:-:6      BAR.SYNC 0x0;
+--:-:-:-:6  @P5 BRA BDONE;
+--:-:1:-:2      LDG.E.CV g, [gp];
+--:-:-:-:6      MEMBAR.GL.IVALLD;
+01:-:2:-:2 @!P0 ATOM.E.ADD old, [cp], one;
+02:-:3:-:2      SHFL.IDX PT, old, old, RZ, 0x1f;
+04:-:-:-:6      IADD t, old, 0x1;
+--:-:-:-:6      ISETP.EQ.U32.AND P3, PT, t, param_nctas, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6 @!P3 BRA SPIN;
+# last arriver: reset the counter, fence, bump the generation
+--:-:-:-:6 @!P0 STG.E.WT [cp], RZ;
+--:-:-:-:6      MEMBAR.GL.IVALLD;
+--:-:-:-:6      IADD g2, g, 0x1;
+--:-:-:-:6 @!P0 STG.E.WT [gp], g2;
+--:-:-:-:6      BRA BREL;
+SPIN:
+--:-:1:-:2      LDG.E.CV g2, [gp];
+01:-:-:-:6      ISETP.NE.U32.AND P4, PT, g2, g, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6 @!P4 BRA SPIN;
+BREL:
+--:-:-:-:6      MEMBAR.GL.IVALLD;
+BDONE:
+--:-:-:-:6      BAR.SYNC 0x0;
+# ---- end barrier ----
+--:-:1:-:2  @P6 LDG.E.CV v, [np];
+--:-:1:-:2  @P2 LDG.E.CV v, [np+0x4];
+01:-:-:-:6      ISETP.NE.U32.AND P4, PT, v, i, PT;
+--:-:-:-:6      IADD i, i, 0x1;
+--:-:-:-:6      LOP32I.AND t2, i, 0x1;
+--:-:-:-:6      ISETP.LT.U32.AND P1, PT, i, param_iters, PT;
+--:-:-:-:6      ISETP.NE.U32.AND P2, PT, t2, RZ, PT;
+--:-:-:-:6      ISETP.EQ.U32.AND P6, PT, t2, RZ, PT;
+--:-:-:-:6  @P4 IADD bad, bad, 0x1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P1 BRA LOOP;
+--:-:-:-:6 @!P0 STG.E [op], bad;
+--:-:-:-:f      EXIT;
