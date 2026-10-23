@@ -1,0 +1,239 @@
+# Kernel: plerows
+#
+# PLE (n-gram) row lookup for one token: one warp, lane h < 16 = head h.
+#   context c_b = ids[pos - b] for b = 0..2, or `absent` when pos < b or an end id
+#   lies in ids[pos-b, pos); mixed = c0 m0 ^ c1 m1 (heads 0-7) ^ c2 m2 (heads 8-15),
+#   64-bit wrapping (16x16-bit XMAD partials added with carries); row_h = off[h] +
+#   mixed mod voc[h] (64-step restoring division, branch free via IMNMX.U32); the
+#   90-byte IQ4_NL row (5 blocks: fp16 d + 16 nibble bytes) is read from the
+#   host-mapped table and decoded, y = d * kvalues[nibble], into G[160 h + j].
+# Bit-exact twin: ple_rows_c + dequant(GG_IQ4_NL).
+#
+# Params: 0:0x140 IDS (u32 tokens)  1:0x148 PC  2:0x150 TAB (host-mapped)  3:0x158 G (2560 f32)
+#         4:0x160 ROWS (u32[16], debug)  5:0x168 pos (u32)
+# PC layout: u64 mult[3] @0, u32 off[16] @24, u32 voc[16] @88, u32 absent @152, u32 end @156
+
+<CONSTANT_MAPPING>
+    param_IDS0  : c[0x0][0x140]
+    param_IDS1  : c[0x0][0x144]
+    param_PC0   : c[0x0][0x148]
+    param_PC1   : c[0x0][0x14c]
+    param_TAB0  : c[0x0][0x150]
+    param_TAB1  : c[0x0][0x154]
+    param_G0    : c[0x0][0x158]
+    param_G1    : c[0x0][0x15c]
+    param_ROWS0 : c[0x0][0x160]
+    param_ROWS1 : c[0x0][0x164]
+    param_pos   : c[0x0][0x168]
+    param_cmp   : c[0x0][0x16c]
+    param_RDY0  : c[0x0][0x170]
+    param_RDY1  : c[0x0][0x174]
+    param_rid   : c[0x0][0x178]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0     : h
+    1     : pos
+    2     : id0
+    3     : id1
+    4     : id2
+    5     : c0
+    6     : c1
+    7     : c2
+    8,9   : m0<0-1>
+    10,11 : m1<0-1>
+    12,13 : m2<0-1>
+    14,15 : acc<0-1>
+    16,17 : pl<0-1>
+    18-24 : p<0-6>
+    25    : t
+    26    : t2
+    27    : t3
+    28    : v
+    29    : off
+    30    : rem
+    31    : rem2
+    32    : word
+    33    : absent
+    34    : endid
+    36,37 : ip<0-1>
+    38,39 : pp<0-1>
+    40,41 : tp<0-1>
+    42,43 : gp<0-1>
+    44,45 : rp<0-1>
+    48-92 : hw<00-44>
+    93    : d
+    96-99 : y<0-3>
+    100-103 : q<0-3>
+    104-107 : k<0-3>
+</REGISTER_MAPPING>
+
+<CODE>
+    my $o = '';
+    my @kv = (-127, -104, -83, -65, -49, -35, -22, -10, 1, 13, 25, 38, 53, 69, 89, 113);
+    # 64-bit product (lo, hi) = a (32-bit) * (mlo, mhi), mod 2^64
+    my $mul64 = sub {
+        my ($a, $mlo, $mhi, $lo, $hi) = @_;
+        my $x = '';
+        $x .= sprintf "--:-:-:-:1      XMAD %s, %s, %s, RZ;\n", $lo, $a, $mlo;            # aL m0
+        $x .= sprintf "--:-:-:-:1      XMAD p1, %s, %s.H1, RZ;\n", $a, $mlo;              # aL m1
+        $x .= sprintf "--:-:-:-:1      XMAD p2, %s.H1, %s, RZ;\n", $a, $mlo;              # aH m0
+        $x .= sprintf "--:-:-:-:1      XMAD %s, %s, %s, RZ;\n", $hi, $a, $mhi;            # aL m2
+        $x .= sprintf "--:-:-:-:1      XMAD p4, %s.H1, %s.H1, RZ;\n", $a, $mlo;           # aH m1
+        $x .= sprintf "--:-:-:-:1      XMAD p5, %s, %s.H1, RZ;\n", $a, $mhi;              # aL m3
+        $x .= sprintf "--:-:-:-:6      XMAD p6, %s.H1, %s, RZ;\n", $a, $mhi;              # aH m2
+        $x .= "--:-:-:-:1      SHL p0, p1, 0x10;\n";
+        $x .= "--:-:-:-:1      SHR.U32 p1, p1, 0x10;\n";
+        $x .= "--:-:-:-:1      SHL p3, p2, 0x10;\n";
+        $x .= "--:-:-:-:6      SHR.U32 p2, p2, 0x10;\n";
+        $x .= sprintf "--:-:-:-:6      IADD %s.CC, %s, p0;\n", $lo, $lo;
+        $x .= sprintf "--:-:-:-:6      IADD.X %s, %s, p1;\n", $hi, $hi;
+        $x .= sprintf "--:-:-:-:6      IADD %s.CC, %s, p3;\n", $lo, $lo;
+        $x .= sprintf "--:-:-:-:6      IADD.X %s, %s, p2;\n", $hi, $hi;
+        $x .= sprintf "--:-:-:-:6      IADD %s, %s, p4;\n", $hi, $hi;
+        $x .= "--:-:-:-:1      SHL p5, p5, 0x10;\n";
+        $x .= "--:-:-:-:6      SHL p6, p6, 0x10;\n";
+        $x .= sprintf "--:-:-:-:6      IADD %s, %s, p5;\n", $hi, $hi;
+        $x .= sprintf "--:-:-:-:6      IADD %s, %s, p6;\n", $hi, $hi;
+        return $x;
+    };
+    $o .= "--:-:6:-:1      S2R h, SR_TID.X;\n";
+    $o .= "--:-:-:-:6      MOV pos, param_pos;\n";
+    # lanes 16..31 mirror heads 0..15 (same rows, same stores) instead of leaving early:
+    # a branch that splits the warp never reconverges inside the persistent kernel
+    $o .= "20:-:-:-:6      LOP32I.AND h, h, 0xf;\n";
+    $o .= "--:-:-:-:6      MOV pp0, param_PC0;\n";
+    $o .= "--:-:-:-:6      MOV pp1, param_PC1;\n";
+    $o .= "--:-:-:-:6      ISETP.GE.U32.AND P1, PT, pos, 0x1, PT;\n";
+    $o .= "--:-:-:-:6      ISETP.GE.U32.AND P2, PT, pos, 0x2, PT;\n";
+    $o .= "--:-:-:-:6      ISETP.GE.U32.AND P5, PT, h, 0x8, PT;\n";                   # order-3 heads
+    $o .= "--:-:-:-:6      SHL t, h, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD rp0.CC, pp0, t;\n";
+    $o .= "--:-:-:-:6      IADD.X rp1, pp1, RZ;\n";
+    # constants
+    $o .= "--:-:1:-:1      LDG.E.64 m00, [pp];\n";
+    $o .= "--:-:1:-:1      LDG.E.64 m10, [pp+0x8];\n";
+    $o .= "--:-:1:-:1      LDG.E.64 m20, [pp+0x10];\n";
+    $o .= "--:-:1:-:1      LDG.E off, [rp+0x18];\n";
+    $o .= "--:-:1:-:1      LDG.E v, [rp+0x58];\n";
+    $o .= "--:-:1:-:1      LDG.E absent, [pp+0x98];\n";
+    $o .= "--:-:1:-:1      LDG.E endid, [pp+0x9c];\n";
+    # ids[pos-2 .. pos]
+    $o .= "--:-:-:-:6      IADD t, pos, -0x2;\n";
+    $o .= "--:-:-:-:6      SHL t, t, 0x2;\n";
+    $o .= "--:-:-:-:6      SHR t2, t, 0x1f;\n";                                       # sign word of the (possibly negative) offset
+    $o .= "--:-:-:-:6      IADD ip0.CC, t, param_IDS0;\n";
+    $o .= "--:-:-:-:6      IADD.X ip1, t2, param_IDS1;\n";
+    $o .= "--:-:1:-:1      LDG.E id0, [ip+0x8];\n";
+    $o .= "--:-:1:-:1  \@P1 LDG.E id1, [ip+0x4];\n";
+    $o .= "--:-:1:-:2  \@P2 LDG.E id2, [ip];\n";
+    # kvalues as floats into smem (every lane writes the same 16 words)
+    for my $k (0..15) {
+        my $f = unpack 'L', pack 'f', $kv[$k];
+        $o .= sprintf "--:-:-:-:6      MOV32I t, 0x%08x;\n", $f;            # 6 cycles before the STS reads it
+        $o .= sprintf "--:-:-:-:6      STS [RZ+0x%x], t;\n", 4 * $k;
+    }
+    # contexts
+    $o .= "01:-:-:-:6      MOV c0, id0;\n";
+    $o .= "--:-:-:-:6      ISETP.NE.AND P3, PT, id1, endid, P1;\n";                   # id1 present, not an end
+    $o .= "--:-:-:-:6      ISETP.NE.AND P4, PT, id2, endid, P2;\n";
+    $o .= "--:-:-:-:6      NOP;\n" x 3;
+    $o .= "--:-:-:-:6      ISETP.NE.AND P4, PT, id1, endid, P4;\n";                   # and id1 not an end
+    $o .= "--:-:-:-:6      SEL c1, id1, absent, P3;\n";
+    $o .= "--:-:-:-:6      NOP;\n" x 3;
+    $o .= "--:-:-:-:6      SEL c2, id2, absent, P4;\n";
+    # mixed
+    $o .= $mul64->('c0', 'm00', 'm01', 'acc0', 'acc1');
+    $o .= $mul64->('c1', 'm10', 'm11', 'pl0', 'pl1');
+    $o .= "--:-:-:-:6      LOP.XOR acc0, acc0, pl0;\n";
+    $o .= "--:-:-:-:6      LOP.XOR acc1, acc1, pl1;\n";
+    $o .= $mul64->('c2', 'm20', 'm21', 'pl0', 'pl1');
+    $o .= "--:-:-:-:6  \@P5 LOP.XOR acc0, acc0, pl0;\n";
+    $o .= "--:-:-:-:6  \@P5 LOP.XOR acc1, acc1, pl1;\n";
+    # rem = mixed mod v, one bit at a time from the top
+    $o .= "--:-:-:-:6      MOV rem, RZ;\n";
+    for my $w ('acc1', 'acc0') {
+        $o .= sprintf "--:-:-:-:6      MOV word, %s;\n", $w;
+        for my $b (0..31) {
+            $o .= "--:-:-:-:6      SHR.U32 t, word, 0x1f;\n";
+            $o .= "--:-:-:-:6      SHL word, word, 0x1;\n";
+            $o .= "--:-:-:-:6      ISCADD rem, rem, t, 0x1;\n";
+            $o .= "--:-:-:-:6      IADD rem2, rem, -v;\n";
+            $o .= "--:-:-:-:6      IMNMX.U32 rem, rem, rem2, PT;\n";
+        }
+    }
+    $o .= "--:-:-:-:6      IADD off, off, rem;\n";                                    # row
+    # compact mode (param_cmp != 0): the host staged the 16 rows of every position at
+    # TAB + 90 (16 pos + h) (teacher-forced runs with the real table, which CUDA 11.4
+    # cannot pin from a file mapping); the hash above still runs and lands in ROWS
+    $o .= "--:-:-:-:6      MOV t, param_cmp;\n";
+    $o .= "--:-:-:-:6      ISETP.NE.U32.AND P6, PT, t, RZ, PT;\n";
+    $o .= "--:-:-:-:6      ISCADD rem2, pos, h, 0x4;\n";
+    $o .= "--:-:-:-:6      NOP;\n" x 2;
+    $o .= "--:-:-:-:6  \@P6 MOV off, rem2;\n";
+    # ROWS[h] = row (debug / host check)
+    $o .= "--:-:-:-:6      SHL t, h, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD rp0.CC, t, param_ROWS0;\n";
+    $o .= "--:-:-:-:6      IADD.X rp1, RZ, param_ROWS1;\n";
+    $o .= "--:2:-:-:1      STG.E [rp], off;\n";
+    if ($ENV{PLE_NOGATHER}) { $o .= "02:-:-:-:f      EXIT;\n"; return $o; }
+    # the host stager (param_rid != 0, FLASH_PLE_DISK): wait until it has staged the rows of this position, RDY[pos] == rid. LDG.CV: the flag is written by the CPU and a cached
+    # line would be stale. rid is never 0 and is a new value for every response, so the flags need no reset. Every lane polls the same word.
+    $o .= "--:-:-:-:6      MOV t3, param_rid;\n";
+    $o .= "--:-:-:-:6      ISETP.NE.U32.AND P0, PT, t3, RZ, PT;\n";                    # P0: a stager is running
+    $o .= "--:-:-:-:6      SHL t, pos, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD ip0.CC, t, param_RDY0;\n";
+    $o .= "--:-:-:-:6      IADD.X ip1, RZ, param_RDY1;\n";
+    $o .= "\nWAITRDY:\n";
+    $o .= "--:-:5:-:2  \@P0 LDG.E.CV t2, [ip];\n";
+    $o .= "10:-:-:-:6      ISETP.NE.U32.AND P3, PT, t2, t3, P0;\n";                   # P3: a stager is running and the flag is not there yet
+    $o .= "--:-:-:-:6      NOP;\n" x 3;
+    if ($ENV{DIE_T0_OFF}) {   # inside the die kernel: stop waiting 300 s after launch (the framework then ends the kernel)
+        $o .= "--:-:6:-:2      S2R t, SR_GLOBALTIMERHI;\n";
+        $o .= sprintf "--:-:6:-:2      LDS p0, [RZ+0x%x];\n", $ENV{DIE_T0_OFF};
+        $o .= "20:-:-:-:6      IADD t, t, -p0;\n";
+        $o .= "--:-:-:-:6      ISETP.GE.U32.AND P5, PT, t, 0x46, P3;\n";
+        $o .= "--:-:-:-:6      NOP;\n" x 3;
+        $o .= "--:-:-:-:6      VOTE.ANY P5, P5;\n";
+        $o .= "--:-:-:-:6      NOP;\n" x 3;
+        $o .= "--:-:-:-:6      MOV32I t, 0x1;\n";
+        $o .= sprintf "--:2:-:-:6  \@P5 STS [RZ+0x%x], t;\n", $ENV{DIE_EXP_OFF};
+        $o .= "02:-:-:-:6  \@P5 PSETP.AND.AND P3, PT, PT, !PT, PT;\n";
+    }
+    $o .= "--:-:-:-:6  \@P3 BRA WAITRDY;\n";
+    # tp = TAB + 90 row (64-bit)
+    $o .= "--:-:-:-:1      XMAD p0, off, 0x5a, RZ;\n";
+    $o .= "--:-:-:-:6      XMAD p1, off.H1, 0x5a, RZ;\n";
+    $o .= "--:-:-:-:1      SHL p2, p1, 0x10;\n";
+    $o .= "--:-:-:-:6      SHR.U32 p1, p1, 0x10;\n";
+    $o .= "--:-:-:-:6      IADD p0.CC, p0, p2;\n";
+    $o .= "--:-:-:-:6      IADD.X p1, p1, RZ;\n";
+    $o .= "--:-:-:-:6      IADD tp0.CC, p0, param_TAB0;\n";
+    $o .= "--:-:-:-:6      IADD.X tp1, p1, param_TAB1;\n";
+    # the 45 halfwords of the row
+    $o .= sprintf "--:-:3:-:%d      LDG.E.U16 hw%02d, [tp+0x%x];\n", $_ == 44 ? 2 : 1, $_, 2 * $_ for 0..44;
+    # G + 640 h
+    $o .= "--:-:-:-:6      XMAD t, h, 0x280, RZ;\n";
+    $o .= "--:-:-:-:6      IADD gp0.CC, t, param_G0;\n";
+    $o .= "--:-:-:-:6      IADD.X gp1, RZ, param_G1;\n";
+    # decode: block b: d = hw[9b]; bytes from hw[9b+1..9b+8]
+    for my $b (0..4) {
+        $o .= sprintf "%s:-:-:-:6      F2F.F32.F16 d, hw%02d;\n", $b == 0 ? '04' : '--', 9 * $b;
+        for my $k (0..3) {
+            my ($ha, $hb) = (sprintf("hw%02d", 9 * $b + 1 + 2 * $k), sprintf("hw%02d", 9 * $b + 2 + 2 * $k));
+            for my $half (0, 1) {           # 0: low nibbles (values 4k..), 1: high nibbles (values 16 + 4k..)
+                my $s = $half ? 4 : 0;
+                $o .= sprintf "--:-:-:-:1      BFE.U32 q0, %s, 0x%x;\n", $ha, 0x400 + $s;
+                $o .= sprintf "--:-:-:-:1      BFE.U32 q1, %s, 0x%x;\n", $ha, 0x408 + $s;
+                $o .= sprintf "--:-:-:-:1      BFE.U32 q2, %s, 0x%x;\n", $hb, 0x400 + $s;
+                $o .= sprintf "--:-:-:-:6      BFE.U32 q3, %s, 0x%x;\n", $hb, 0x408 + $s;
+                $o .= sprintf "--:-:-:-:%d      SHL q%d, q%d, 0x2;\n", $_ == 3 ? 6 : 1, $_, $_ for 0..3;
+                $o .= sprintf "--:-:4:-:%d      LDS k%d, [q%d];\n", $_ == 3 ? 2 : 1, $_, $_ for 0..3;
+                $o .= sprintf "%s:-:-:-:%d      FMUL y%d, d, k%d;\n", $_ == 0 ? '08' : '--', $_ == 3 ? 6 : 1, $_, $_ for 0..3;
+                $o .= sprintf "--:2:-:-:6      STG.E.128 [gp+0x%x], y0;\n", 4 * (32 * $b + 16 * $half + 4 * $k);
+            }
+        }
+    }
+    $o .= "02:-:-:-:f      EXIT;\n";
+    return $o;
+</CODE>
