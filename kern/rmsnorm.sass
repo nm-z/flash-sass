@@ -1,0 +1,32 @@
+# Kernel: rmsnorm
+#
+# fp32 RMSNorm of one vector of n = GEMV_K elements (2560 or 10240), one warp;
+# CTA b handles vector b (X, W, Y offset by 4 n b: the 4 hyper lanes in one launch):
+#   ss = sum x_i^2 (one FFMA chain per lane over its 4-element chunks at
+#   4 (l + 32 j), j in order; SHFL butterfly xor 16..1), m = ss * (1/n),
+#   v = m + eps, s = sqrt_rn(v), r = rcp_rn(s), y_i = (x_i * r) * w_i.
+# Two streaming passes over U chunks per iteration (x is reloaded for the apply
+# pass). Bit-exact twin: ref/quant.c rmsnorm_gpu.
+# Barriers: 1 = x loads, 2 = w loads, 3 = MUFU, 4 = y store reads, 5 = SHFL, 6 = S2R.
+#
+# Params: 0:0x140:8 X  1:0x148:8 W  2:0x150:8 Y  3:0x158:4 eps
+
+<CONSTANT_MAPPING>
+    param_X0   : c[0x0][0x140]
+    param_X1   : c[0x0][0x144]
+    param_W0   : c[0x0][0x148]
+    param_W1   : c[0x0][0x14c]
+    param_Y0   : c[0x0][0x150]
+    param_Y1   : c[0x0][0x154]
+    param_eps  : c[0x0][0x158]
+</CONSTANT_MAPPING>
+
+<CODE>
+    require './rmsnorm.pl';
+    return rmsnorm_regmap($ENV{GEMV_K} || 2560, 0);
+</CODE>
+
+<CODE>
+    require './rmsnorm.pl';
+    return rmsnorm_code($ENV{GEMV_K} || 2560, 0);
+</CODE>
