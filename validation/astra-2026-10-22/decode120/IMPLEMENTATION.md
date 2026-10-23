@@ -57,6 +57,22 @@ intermediate benchmark loop.
   draft features, so this mode rebuilds prompt conditioning.
 - Native four-position GR-up using one weight stream and four accumulation
   chains. The five-position mode is retained through a generator parameter.
+- Native four-position GR-down now prepares all four residual inputs with the
+  existing residual-write/RMS arithmetic, then runs one BF16 weight stream
+  through four independent chains. A producer CTA releases the prepared
+  vectors to the matrix CTAs. This removes repeated normalization across all
+  matrix CTAs, adds one local readiness handoff, and preserves the original
+  four-branch addition and warp reduction order.
+- Native four-position dense Q2_0, Q3_K, Q4_K, Q5_K, Q6_K, IQ4_XS and ordinary
+  BF16 projections, including the complete Q5_K output head and its existing
+  winner reduction. The packed formats and per-result FP accumulation order
+  are retained. Integer scaled dots stay within their exact integer range.
+  These bodies loop over K groups instead of expanding every group inline.
+- The B4 builder transposes independent mixed matrix bundles from position
+  order into matrix order. QKV, gate and alpha/beta projections can each share
+  their weights across four positions. Only the final member publishes the
+  original peer epoch, so this does not add peer exchanges. Four dependent Q6
+  output slices retain their original slice order and explicit local joins.
 - Native B4 GDN precomputes all four q/k/value/gate records before loading
   state, avoiding the scalar phase-A register aliases. It loads each state tile
   once, performs four ordered updates, and stores all four prefix states.
@@ -73,9 +89,11 @@ intermediate benchmark loop.
 
 ## Work still required to earn the budget
 
-1. Native B4 target matrix coverage beyond GR-up. The remaining generic phase
-   wrappers still execute scalar matrix bodies separately. The target is not
-   yet entitled to the 8.243 ms modeled B4 matrix service.
+1. Complete native B4 router and block-32 shared-down coverage, then integrate
+   them with the new MoE split. Routed expert weights are still handled by the
+   existing operators. The dense native matrix bodies have been written but
+   their instruction scheduling, assembly and execution are not yet verified.
+   The target is not yet entitled to the 8.243 ms modeled B4 matrix service.
 2. Pair MoE gate/up row shards with compact down-column shards; eliminate the
    exchanged expert intermediate. Current unique placement still uses the
    older row-sharded MoE intermediate exchange. Implement the ten 64-channel

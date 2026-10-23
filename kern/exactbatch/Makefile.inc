@@ -184,7 +184,7 @@ die_dflash2_scalar.ptx: die_unique.ptx dflash/target_marker.ptxinc
 die_dflash2_scalar.cubin: die_dflash2_scalar.sass die_dflash2_scalar.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ die_dflash2_scalar.ptx
 	$(MAXAS) -i die_dflash2_scalar.sass $@
-die_dflash2_b4.sass: die_balanced.sass balance/batch_frame.lua balance/hcup5.lua balance/receiver_quant.lua unique/gdn.lua unique/router.lua unique/collective.lua dflash/target.lua dflash/dn4.lua
+die_dflash2_b4.sass: die_balanced.sass balance/batch_frame.lua balance/hcup5.lua balance/receiver_quant.lua unique/gdn.lua unique/router.lua unique/collective.lua dflash/target.lua dflash/dn4.lua dflash/gr4.lua dflash/matrix4.lua dflash/bf16_4.lua
 	$(LUA) balance/batch_frame.lua $< $@.frame
 	$(LUA) balance/hcup5.lua $@.frame $@.hcup4 4
 	$(LUA) balance/receiver_quant.lua $@.hcup4 $@.localq
@@ -193,7 +193,10 @@ die_dflash2_b4.sass: die_balanced.sass balance/batch_frame.lua balance/hcup5.lua
 	$(LUA) unique/collective.lua $@.router $@.collective
 	$(LUA) dflash/target.lua $@.collective $@.target
 	$(LUA) dflash/dn4.lua $@.target $@.dn4 $@.collective
-	$(LUA) phase/predicate_latency.lua $@.dn4 $@ $@.predicate.csv
+	$(LUA) dflash/gr4.lua $@.dn4 $@.gr4
+	$(LUA) dflash/matrix4.lua $@.gr4 $@.matrix
+	$(LUA) dflash/bf16_4.lua $@.matrix $@.bf16
+	$(LUA) phase/predicate_latency.lua $@.bf16 $@ $@.predicate.csv
 die_dflash2_b4.ptx: die_unique.ptx dflash/batch_marker.ptxinc dflash/target_marker.ptxinc
 	cat $^ > $@
 die_dflash2_b4.cubin: die_dflash2_b4.sass die_dflash2_b4.ptx

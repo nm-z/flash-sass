@@ -15,6 +15,8 @@ typedef struct {
     unsigned peer_acquires;
     unsigned native_hcup_phases;
     unsigned native_dn_phases;
+    unsigned native_gr_phases;
+    unsigned native_matrix_phases;
     unsigned local_quant_phases;
 } balance_batch_work;
 /* Every input is a complete, already-fused balanced position program. The

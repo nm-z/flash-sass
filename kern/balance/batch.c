@@ -7,7 +7,28 @@
 #include <stdlib.h>
 #include <string.h>
 
-int prog_balance_batch(prog_t *out,const prog_t *const *positions,
+static unsigned native_matrix(const phase_t *a,unsigned span,unsigned *k) {
+    if(span!=1 || a->w[31] || (a->w[30]&PHASE_BALANCED_ROW8 && a->w[23]!=1))return 0;
+    switch(a->w[0]) {
+    case OP_Q4KK2560:*k=2560;return OP_DFLASH_Q4K4;
+    case OP_Q4KK6144:*k=6144;return OP_DFLASH_Q4K4;
+    case OP_Q5KK2560:*k=2560;return OP_DFLASH_Q5K4;
+    case OP_Q5KK6144:*k=6144;return OP_DFLASH_Q5K4;
+    case OP_Q2K2560:*k=2560;return OP_DFLASH_Q2_4;
+    case OP_Q2K640:*k=640;return OP_DFLASH_Q2_4;
+    case OP_Q3KK2560:*k=2560;return OP_DFLASH_Q3K4;
+    case OP_Q3KK6144:*k=6144;return OP_DFLASH_Q3K4;
+    case OP_Q6KK2560:*k=2560;return OP_DFLASH_Q6K4;
+    case OP_Q6KK1536:case OP_Q6KK1536ACC:*k=1536;return OP_DFLASH_Q6K4;
+    case OP_IQ4K2560:*k=2560;return OP_DFLASH_IQ4_4;
+    case OP_IQ4K6144:*k=6144;return OP_DFLASH_IQ4_4;
+    case OP_BF16BIAS:case OP_BF16K2560:*k=2560;return OP_DFLASH_BF16_4;
+    case OP_BF16K320:*k=320;return OP_DFLASH_BF16_4;
+    default:return 0;
+    }
+}
+
+static int balance_batch_impl(prog_t *out,const prog_t *const *positions,
                        unsigned count,balance_batch_work *work,CUdeviceptr local_quant_ready) {
     if(!out || !positions || count<2 || count>BALANCED_BATCH_MAX)return -1;
     const prog_t *first=positions[0];
@@ -32,6 +53,7 @@ int prog_balance_batch(prog_t *out,const prog_t *const *positions,
     const char *proposer=getenv("FLASH_BALANCED_SPECULATE");
     int hcup4=count==4 && ((hcup4_env && atoi(hcup4_env)) || (proposer && !strcmp(proposer,"dflash2")));
     int native_hcup=hcup5 || hcup4;
+    if(hcup4 && !local_quant_ready)return -1;
     const char *localq_env=getenv("FLASH_BALANCED_HCUP5_LOCALQ");
     int localq=localq_env && atoi(localq_env)!=0 && hcup5;
     if(localq && !local_quant_ready)return -1;
@@ -58,8 +80,26 @@ int prog_balance_batch(prog_t *out,const prog_t *const *positions,
             stats.native_hcup_phases++;
         }
         stats.outer_phases++;
+        unsigned matrix_k=0,matrix_op=hcup4?native_matrix(a,span,&matrix_k):0;
+        if(matrix_op) {
+            for(unsigned p=1;p<count;p++) {
+                const phase_t *q=positions[p]->p+i;
+                unsigned rows_word=matrix_op==OP_DFLASH_BF16_4?8:10;
+                if(q->w[2]!=a->w[2] || q->w[3]!=a->w[3] || q->w[rows_word]!=a->w[rows_word])return -1;
+                if(a->w[0]==OP_BF16BIAS && (q->w[10]!=a->w[10] || q->w[11]!=a->w[11]))return -1;
+            }
+            stats.native_matrix_phases++;
+        }
         if(hcup4 && a->w[0]==OP_DNSTEP && span==1 && (a->w[24]|a->w[25]) && (a->w[26]|a->w[27]))
             stats.native_dn_phases++;
+        if(hcup4 && span==1 && (a->w[0]==OP_BF16HCRX || a->w[0]==OP_BF16HCRWX || a->w[0]==94u)) {
+            if(!(a->w[30]&1u) || a->w[31] || a->w[1]!=16 || !a->w[8])return -1;
+            for(unsigned p=1;p<count;p++) {
+                const phase_t *q=positions[p]->p+i;
+                if(q->w[2]!=a->w[2] || q->w[3]!=a->w[3] || q->w[8]!=a->w[8] || q->w[12]!=a->w[12])return -1;
+            }
+            stats.native_gr_phases++;stats.inner_grid_joins++;
+        }
         if(localq && preceding_hcup) {
             if(!(a->w[30]&2u) || a->w[0]==96u)return -1;
             stats.local_quant_phases++;stats.inner_grid_joins++;
@@ -83,9 +123,30 @@ int prog_balance_batch(prog_t *out,const prog_t *const *positions,
         unsigned span=phase_descriptors(a);
         phase_t *wrap=image+at++;memset(wrap,0,sizeof *wrap);
         wrap->w[0]=OP_BALANCED_BATCH;wrap->w[1]=16;
+        unsigned matrix_k=0,matrix_op=hcup4?native_matrix(a,span,&matrix_k):0;
+        if(matrix_op) {
+            wrap->w[0]=matrix_op;wrap->w[8]=matrix_k;
+            wrap->w[9]=matrix_op==OP_DFLASH_Q2_4?((matrix_k/32+15u)&~15u)+matrix_k/4:
+                (matrix_op==OP_DFLASH_Q4K4?144u:176u)*(matrix_k/256u);
+            wrap->w[10]=matrix_k>=6144?5:matrix_k==640?2:4;
+            wrap->w[12]=(a->w[30]&PHASE_BALANCED_ROW8)?3:0;
+            if(matrix_op==OP_DFLASH_Q3K4 || matrix_op==OP_DFLASH_Q6K4 || matrix_op==OP_DFLASH_IQ4_4) {
+                unsigned block=matrix_op==OP_DFLASH_Q3K4?112:matrix_op==OP_DFLASH_Q6K4?208:136;
+                wrap->w[9]=(matrix_k>=6144?64:32)+block*(matrix_k/256);
+                wrap->w[11]=a->w[0]==OP_Q6KK1536ACC;
+            }
+            if(matrix_op==OP_DFLASH_BF16_4) {
+                wrap->w[9]=matrix_k*2;wrap->w[10]=a->w[0]==OP_BF16BIAS;
+                wrap->w[11]=(a->w[30]&PHASE_BALANCED_ROW8)?3:5;
+            }
+        }
         if(native_hcup && a->w[0]==96u)wrap->w[0]=OP_BALANCED_HCUP5;
         if(hcup4 && a->w[0]==OP_DNSTEP && span==1 && (a->w[24]|a->w[25]) && (a->w[26]|a->w[27]))
             wrap->w[0]=OP_DFLASH_DN4;
+        if(hcup4 && span==1 && (a->w[0]==OP_BF16HCRX || a->w[0]==OP_BF16HCRWX || a->w[0]==94u)) {
+            wrap->w[0]=OP_DFLASH_GR4;
+            wrap->w[6]=(uint32_t)local_quant_ready;wrap->w[7]=(uint32_t)(local_quant_ready>>32);
+        }
         if(localq && preceding_hcup) {
             wrap->w[0]=OP_BALANCED_PREQUANT;
             wrap->w[6]=(uint32_t)local_quant_ready;wrap->w[7]=(uint32_t)(local_quant_ready>>32);
@@ -113,4 +174,62 @@ int prog_balance_batch(prog_t *out,const prog_t *const *positions,
     out->p=image;out->n=out->cap=(int)n;out->xr=NULL;out->nxr=out->xrcap=0;
     if(work)*work=stats;
     return 0;
+}
+
+/* Transpose independent matrix bundles into matrix-major B4 operations. The
+ * old bundle executes (QKV, gate, alpha/beta) for one position at a time. Each
+ * resulting operation can now reuse one matrix over all four positions. Only
+ * the last member publishes the original exchange epoch; no peer handoff is
+ * added. Dependent fused bodies and stateful composites retain their layout. */
+static int independent_matrix(unsigned op) {
+    switch(op) {
+    case OP_BF16BIAS:case OP_BF16K2560:case OP_BF16K320:
+    case OP_Q2K2560:case OP_Q2K640:case OP_Q2MOEGN:
+    case OP_Q3KK2560:case OP_Q3KK6144:case OP_Q4KK2560:case OP_Q4KK6144:
+    case OP_Q5KK2560:case OP_Q5KK6144:case OP_Q6KK2560:
+    case OP_IQ4K2560:case OP_IQ4K6144:
+    case OP_B32Q40:case OP_B32Q50:case OP_B32Q80:case OP_B32IQ4NL:return 1;
+    default:return 0;
+    }
+}
+static int transpose_matrix_bundles(prog_t *p) {
+    for(int i=0;i<p->n;) {
+        phase_t *a=p->p+i;unsigned span=phase_descriptors(a);
+        if(!span || span>(unsigned)(p->n-i))return -1;
+        int split=span>1 && !(a->w[30]&PHASE_FUSED_FLAG);
+        for(unsigned j=0;j<span;j++)split&=independent_matrix(a[j].w[0]) && !a[j].w[31];
+        int slices=span==4 && !(a->w[30]&PHASE_FUSED_FLAG) && a->w[0]==OP_Q6KK1536;
+        for(unsigned j=0;j<span && slices;j++)slices&=a[j].w[0]==(j?OP_Q6KK1536ACC:OP_Q6KK1536) && !a[j].w[31];
+        split|=slices;
+        if(split) {
+            unsigned flags=a->w[30],publish=flags&1u;
+            for(unsigned j=0;j<span;j++)publish|=a[j].w[30]&1u;
+            for(unsigned j=0;j<span;j++) {
+                a[j].w[30]&=~(PHASE_GROUP_FLAG|PHASE_FUSED_FLAG|PHASE_CHAIN_FLAG|
+                               PHASE_CHAIN_BAR_FLAG|PHASE_WIDTH_MASK|0x80020007u);
+                if(!j)a[j].w[30]|=flags&2u;
+                a[j].w[30]|=j+1==span?publish|(flags&4u):slices?0u:4u;
+            }
+        }
+        i+=(int)span;
+    }
+    return 0;
+}
+int prog_balance_batch(prog_t *out,const prog_t *const *positions,
+                       unsigned count,balance_batch_work *work,CUdeviceptr ready) {
+    const char *mode=getenv("FLASH_BALANCED_SPECULATE");
+    if(count!=4 || !mode || strcmp(mode,"dflash2"))return balance_batch_impl(out,positions,count,work,ready);
+    if(!out || !positions)return -1;
+    prog_t copies[4]={{0}};const prog_t *inputs[4]={copies,copies+1,copies+2,copies+3};int result=-1;
+    for(unsigned p=0;p<4;p++) {
+        if(!positions[p] || !positions[p]->p || positions[p]->n<=0 || positions[p]->xr)goto done;
+        copies[p]=*positions[p];copies[p].p=malloc((size_t)copies[p].n*sizeof(phase_t));
+        if(!copies[p].p){result=-2;goto done;}
+        memcpy(copies[p].p,positions[p]->p,(size_t)copies[p].n*sizeof(phase_t));
+        if(transpose_matrix_bundles(copies+p))goto done;
+    }
+    result=balance_batch_impl(out,inputs,count,work,ready);
+done:
+    for(unsigned p=0;p<4;p++)free(copies[p].p);
+    return result;
 }

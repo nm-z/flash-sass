@@ -225,6 +225,14 @@ static const char *profile_op_name(unsigned op) {
 #ifdef FLASH_DFLASH_QUANT
     if(dflash_quant && op==OP_DFLASH_FEATURES)return "dflash_features";
     if(dflash_quant && op==OP_DFLASH_DN4)return "gdn_prefix4";
+    if(dflash_quant && op==OP_DFLASH_GR4)return "gr_down4";
+    if(dflash_quant && op==OP_DFLASH_Q4K4)return "q4k_matrix4";
+    if(dflash_quant && op==OP_DFLASH_Q5K4)return "q5k_matrix4";
+    if(dflash_quant && op==OP_DFLASH_Q2_4)return "q2_matrix4";
+    if(dflash_quant && op==OP_DFLASH_BF16_4)return "bf16_matrix4";
+    if(dflash_quant && op==OP_DFLASH_Q3K4)return "q3k_matrix4";
+    if(dflash_quant && op==OP_DFLASH_Q6K4)return "q6k_matrix4";
+    if(dflash_quant && op==OP_DFLASH_IQ4_4)return "iq4_matrix4";
     if(dflash_quant && op==109u)return "balanced_hcup4";
 #endif
     if(unique_rows && op==OP_UNIQUE_ROUTER)return "router_shard";
@@ -1996,7 +2004,11 @@ int engine_init(core_t *c) {
             CK(cuMemHostGetDevicePointer(&dCTL[d],fault_ctl[d],0));
             fprintf(stderr,"engine: diagnostic host-mapped control die=%d timing_valid=0\n",d);
         } else dCTL[d]=dalloc(control_bytes);
-        if(balanced_speculation && getenv("FLASH_BALANCED_HCUP5_LOCALQ") && atoi(getenv("FLASH_BALANCED_HCUP5_LOCALQ")))
+        int need_native_ready=balanced_speculation && getenv("FLASH_BALANCED_HCUP5_LOCALQ") && atoi(getenv("FLASH_BALANCED_HCUP5_LOCALQ"));
+#ifdef FLASH_DFLASH_QUANT
+        need_native_ready|=dflash_quant;
+#endif
+        if(need_native_ready)
             balanced_prequant_ready[d]=dalloc(16*sizeof(uint32_t));
 		x->xgen = dCTL[d] + 0x20;
 		for (unsigned p = 1; p < allocated_positions; p++) alloc_position(d, p);
