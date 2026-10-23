@@ -1,0 +1,2 @@
+PATH=/opt/cuda/bin:$PATH perl -I../maxas/lib ../maxas/bin/maxas.pl -e gemv_q3_k_prefetch_k2560.cubin gemv_q3_k_prefetch_k2560.dis
+PATH=/opt/cuda/bin:$PATH perl -I../maxas/lib ../maxas/bin/maxas.pl -e gemv_q3_k_prefetch_k6144.cubin gemv_q3_k_prefetch_k6144.dis

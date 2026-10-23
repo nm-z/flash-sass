@@ -1,0 +1,66 @@
+make: Entering directory '/home/nate/codex/flash-goal-140-1200/q3-nibble-cpu/source/kern'
+make: 'gemv_q3_k_k2560.cubin' is up to date.
+make: 'gemv_q3_k_k6144.cubin' is up to date.
+make: 'gemv_q3_k_nibble_k2560.cubin' is up to date.
+make: 'gemv_q3_k_nibble_k6144.cubin' is up to date.
+cp skel_q3_nibble_dot.cubin q3_nibble_dot.cubin
+PATH=/opt/cuda/bin:$PATH perl -I../maxas/lib ../maxas/bin/maxas.pl -i q3_nibble_dot.sass q3_nibble_dot.cubin
+CONFLICT at 0x0158 (R9,R69): XMAD.S16.S16 R69, R9.H0, 0xfffc, R69; (XMAD.S16.S16 bias01, act09.H0, 0xfffc, bias01;)
+CONFLICT at 0x01d0 (R4,R68): XMAD.S16.S16 R68, R4.H0, 0xfffc, R68; (XMAD.S16.S16 bias00, act04.H0, 0xfffc, bias00;)
+CONFLICT at 0x0208 (R13,R69): XMAD.S16.S16 R69, R13.H0, 0xfffc, R69; (XMAD.S16.S16 bias01, act13.H0, 0xfffc, bias01;)
+CONFLICT at 0x02e8 (R52,R20): LOP3.LUT R52, R52, R20, R63, 0xa8; (LOP3.LUT acch0, acch0, m00, dh0, 0xa8;)
+CONFLICT at 0x02f0 (R53,R21): LOP3.LUT R53, R53, R21, R63, 0xa8; (LOP3.LUT acch1, acch1, m01, dh0, 0xa8;)
+CONFLICT at 0x02f8 (R54,R22): LOP3.LUT R54, R54, R22, R63, 0xa8; (LOP3.LUT acch2, acch2, m02, dh0, 0xa8;)
+CONFLICT at 0x0308 (R55,R23): LOP3.LUT R55, R55, R23, R63, 0xa8; (LOP3.LUT acch3, acch3, m03, dh0, 0xa8;)
+CONFLICT at 0x0338 (R52,R20,R64): LOP3.LUT R52, R52, R20, R64, 0xa8; (LOP3.LUT acch0, acch0, m00, dh1, 0xa8;)
+CONFLICT at 0x0348 (R53,R21): LOP3.LUT R53, R53, R21, R64, 0xa8; (LOP3.LUT acch1, acch1, m01, dh1, 0xa8;)
+CONFLICT at 0x0350 (R54,R22): LOP3.LUT R54, R54, R22, R64, 0xa8; (LOP3.LUT acch2, acch2, m02, dh1, 0xa8;)
+CONFLICT at 0x0358 (R55,R23): LOP3.LUT R55, R55, R23, R64, 0xa8; (LOP3.LUT acch3, acch3, m03, dh1, 0xa8;)
+CONFLICT at 0x03e8 (R56,R20,R60): LOP3.LUT R56, R56, R20, R60, 0xa8; (LOP3.LUT acch4, acch4, m00, hs1, 0xa8;)
+CONFLICT at 0x03f0 (R57,R21): LOP3.LUT R57, R57, R21, R60, 0xa8; (LOP3.LUT acch5, acch5, m01, hs1, 0xa8;)
+CONFLICT at 0x03f8 (R58,R22): LOP3.LUT R58, R58, R22, R60, 0xa8; (LOP3.LUT acch6, acch6, m02, hs1, 0xa8;)
+CONFLICT at 0x0408 (R59,R23): LOP3.LUT R59, R59, R23, R60, 0xa8; (LOP3.LUT acch7, acch7, m03, hs1, 0xa8;)
+CONFLICT at 0x0438 (R56,R20): LOP3.LUT R56, R56, R20, R61, 0xa8; (LOP3.LUT acch4, acch4, m00, hs2, 0xa8;)
+CONFLICT at 0x0448 (R57,R21): LOP3.LUT R57, R57, R21, R61, 0xa8; (LOP3.LUT acch5, acch5, m01, hs2, 0xa8;)
+CONFLICT at 0x0450 (R58,R22): LOP3.LUT R58, R58, R22, R61, 0xa8; (LOP3.LUT acch6, acch6, m02, hs2, 0xa8;)
+CONFLICT at 0x0458 (R59,R23): LOP3.LUT R59, R59, R23, R61, 0xa8; (LOP3.LUT acch7, acch7, m03, hs2, 0xa8;)
+CONFLICT at 0x0490 (R52,R20): LOP3.LUT R52, R52, R20, R62, 0xf6; (LOP3.LUT acch0, acch0, m00, hs3, 0xf6;)
+CONFLICT at 0x0498 (R53,R21): LOP3.LUT R53, R53, R21, R62, 0xf6; (LOP3.LUT acch1, acch1, m01, hs3, 0xf6;)
+CONFLICT at 0x04a8 (R54,R22): LOP3.LUT R54, R54, R22, R62, 0xf6; (LOP3.LUT acch2, acch2, m02, hs3, 0xf6;)
+CONFLICT at 0x04b0 (R55,R23): LOP3.LUT R55, R55, R23, R62, 0xf6; (LOP3.LUT acch3, acch3, m03, hs3, 0xf6;)
+CONFLICT at 0x0568 (R20,R0,R68): XMAD.U16.S16 R36, R20.H0, R0.H0, R68; (XMAD.U16.S16 acc00, m00.H0, act00.H0, bias00;)
+CONFLICT at 0x05b8 (R28,R8): XMAD.U16.S16 R44, R28.H0, R8.H0, R69; (XMAD.U16.S16 acc08, m08.H0, act08.H0, bias01;)
+CONFLICT at 0x0610 (R20,R4,R36): XMAD.U16.S16 R36, R20.H1, R4.H0, R36; (XMAD.U16.S16 acc00, m00.H1, act04.H0, acc00;)
+CONFLICT at 0x0618 (R21,R37): XMAD.U16.S16 R37, R21.H1, R4.H1, R37; (XMAD.U16.S16 acc01, m01.H1, act04.H1, acc01;)
+CONFLICT at 0x0628 (R22,R38): XMAD.U16.S16 R38, R22.H1, R5.H0, R38; (XMAD.U16.S16 acc02, m02.H1, act05.H0, acc02;)
+CONFLICT at 0x0630 (R23,R39): XMAD.U16.S16 R39, R23.H1, R5.H1, R39; (XMAD.U16.S16 acc03, m03.H1, act05.H1, acc03;)
+CONFLICT at 0x0638 (R24,R40): XMAD.U16.S16 R40, R24.H1, R6.H0, R40; (XMAD.U16.S16 acc04, m04.H1, act06.H0, acc04;)
+CONFLICT at 0x0648 (R25,R41): XMAD.U16.S16 R41, R25.H1, R6.H1, R41; (XMAD.U16.S16 acc05, m05.H1, act06.H1, acc05;)
+CONFLICT at 0x0650 (R26,R42): XMAD.U16.S16 R42, R26.H1, R7.H0, R42; (XMAD.U16.S16 acc06, m06.H1, act07.H0, acc06;)
+CONFLICT at 0x0658 (R27,R43): XMAD.U16.S16 R43, R27.H1, R7.H1, R43; (XMAD.U16.S16 acc07, m07.H1, act07.H1, acc07;)
+CONFLICT at 0x0668 (R28,R12,R44): XMAD.U16.S16 R44, R28.H1, R12.H0, R44; (XMAD.U16.S16 acc08, m08.H1, act12.H0, acc08;)
+CONFLICT at 0x0670 (R29,R45): XMAD.U16.S16 R45, R29.H1, R12.H1, R45; (XMAD.U16.S16 acc09, m09.H1, act12.H1, acc09;)
+CONFLICT at 0x0678 (R30,R46): XMAD.U16.S16 R46, R30.H1, R13.H0, R46; (XMAD.U16.S16 acc10, m10.H1, act13.H0, acc10;)
+CONFLICT at 0x0688 (R31,R47): XMAD.U16.S16 R47, R31.H1, R13.H1, R47; (XMAD.U16.S16 acc11, m11.H1, act13.H1, acc11;)
+CONFLICT at 0x0690 (R32,R48): XMAD.U16.S16 R48, R32.H1, R14.H0, R48; (XMAD.U16.S16 acc12, m12.H1, act14.H0, acc12;)
+CONFLICT at 0x0698 (R33,R49): XMAD.U16.S16 R49, R33.H1, R14.H1, R49; (XMAD.U16.S16 acc13, m13.H1, act14.H1, acc13;)
+CONFLICT at 0x06a8 (R34,R50): XMAD.U16.S16 R50, R34.H1, R15.H0, R50; (XMAD.U16.S16 acc14, m14.H1, act15.H0, acc14;)
+CONFLICT at 0x06b0 (R35,R51): XMAD.U16.S16 R51, R35.H1, R15.H1, R51; (XMAD.U16.S16 acc15, m15.H1, act15.H1, acc15;)
+CONFLICT at 0x0748 (R36,R40): IADD R66, R36, R40; (IADD dot0, acc00, acc04;)
+CONFLICT at 0x07d8 (R44,R48): IADD R67, R44, R48; (IADD dot1, acc08, acc12;)
+Modified q3_nibble_dot RegCnt: 2 => 78
+Modified q3_nibble_dot EIATTR_REGCOUNT: 2 => 78
+Modified q3_nibble_dot CTAID Offsets: '' => '0010'
+Modified q3_nibble_dot Exit Offsets: '0030' => '0050,07f0'
+Modified q3_nibble_dot ParamSecSize: 92 => 104
+Modified q3_nibble_dot KernelSize: 64 => 2048
+Kernel: q3_nibble_dot, Instructions: 0, Register Count: 78, Bank Conflicts: 48, Reuse: 22.0% (67/305)
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -Wextra -o q3_nibble_test q3_nibble_test.c ../ref/quant.c ../ref/gguf.c -I../ref -I/opt/cuda/include -lcuda -lm
+q3_nibble_test.c: In function 'cpu_checks':
+q3_nibble_test.c:113:3: warning: this 'for' clause does not guard... [-Wmisleading-indentation]
+  113 |   for(unsigned e=0;e<32;e++)s.x[e]=i==1?-127:127;check_sample(&s,1);
+      |   ^~~
+q3_nibble_test.c:113:50: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the 'for'
+  113 |   for(unsigned e=0;e<32;e++)s.x[e]=i==1?-127:127;check_sample(&s,1);
+      |                                                  ^~~~~~~~~~~~
+make: Leaving directory '/home/nate/codex/flash-goal-140-1200/q3-nibble-cpu/source/kern'

@@ -1,0 +1,1918 @@
+11:51:19 AM units run: logical dies on GPUs 0,1,6,3,4,5, anchor 7
+11:51:19 AM core: stopping 1978543
+11:51:19 AM v1 holder: stopping 1977991
+11:51:19 AM v1 holder: stopping 974018
+11:51:20 AM v1 holder: stopping 974061
+11:51:20 AM v1 holder: stopping 988067
+11:51:20 AM v1 holder: stopping 988072
+11:51:20 AM v1 holder: stopping 988080
+11:51:23 AM unit holder: GPUs 0,1,6,3,4,5
+11:51:26 AM restore: v1 holders and the serving engine
+11:51:29 AM v1 holder 0: GPU 0
+11:51:29 AM v1 holder 1: GPU 1
+11:51:29 AM v1 holder 2: GPU 6
+11:51:29 AM v1 holder 3: GPU 3
+11:51:29 AM v1 holder 4: GPU 4
+11:51:29 AM v1 holder 5: GPU 5
+12:40:34 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+12:40:34 PM core: stopping 10414
+12:40:34 PM v1 holder: stopping 2199
+12:40:34 PM v1 holder: stopping 2200
+12:40:35 PM v1 holder: stopping 2430
+12:40:35 PM v1 holder: stopping 2435
+12:40:35 PM v1 holder: stopping 2440
+12:40:35 PM v1 holder: stopping 2447
+12:40:39 PM dies 0,1,2,3,4,5: memory released
+12:40:39 PM unit holder: GPUs 0,1,2,3,4,5
+12:48:09 PM unit holder: ready
+12:48:09 PM core: starting libengine_units.so die_units.cubin FLASH_CHAIN=255 FLASH_ROPE_RING=8192 FLASH_QSA_SHORT=1
+12:48:12 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+12:48:12 PM measure: decode x 8
+12:48:14 PM measure: decode FAILED
+12:48:14 PM measure: prefill x 2
+12:48:16 PM measure: prefill FAILED
+12:48:16 PM restore: v1 holders and the serving engine
+12:48:16 PM core: stopping 46840
+12:48:33 PM unit holder: stopping 15463
+12:48:37 PM dies 0,1,2,3,4,5: memory released
+12:48:37 PM v1 holder 0: GPU 0
+12:48:37 PM v1 holder 1: GPU 1
+12:48:37 PM v1 holder 2: GPU 2
+12:48:37 PM v1 holder 3: GPU 3
+12:48:37 PM v1 holder 4: GPU 4
+12:48:37 PM v1 holder 5: GPU 5
+12:48:52 PM v1 holders: ready
+12:48:52 PM core: starting libengine.so die.cubin 
+12:48:55 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+12:48:57 PM restore: serving config verified
+12:56:26 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+12:56:26 PM core: stopping 49473
+12:56:26 PM v1 holder: stopping 48089
+12:56:26 PM v1 holder: stopping 48092
+12:56:26 PM v1 holder: stopping 48093
+12:56:27 PM v1 holder: stopping 48095
+12:56:27 PM v1 holder: stopping 48096
+12:56:27 PM v1 holder: stopping 48097
+12:56:30 PM dies 0,1,2,3,4,5: memory released
+12:56:30 PM unit holder: GPUs 0,1,2,3,4,5
+12:57:03 PM unit holder: ready
+12:57:03 PM core: starting libengine_units.so die_units.cubin 
+12:57:06 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+12:57:09 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0: reload ok: engine reloaded
+12:57:16 PM config 0: decode done
+12:57:18 PM config 1: FLASH_CHAIN=0 FLASH_TWO_POSITION=1 FLASH_PREFILL_CHUNK=64 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0: reload ok: engine reloaded
+12:57:19 PM config 1: decode FAILED
+12:57:25 PM config 2: FLASH_CHAIN=255 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0: reload error Connection reset by peer @ io_fillbuf - fd:6 
+12:57:26 PM config 2: decode FAILED
+12:57:26 PM config 3: FLASH_CHAIN=255 FLASH_TWO_POSITION=1 FLASH_PREFILL_CHUNK=64 FLASH_ROPE_RING=8192 FLASH_QSA_SHORT=1: reload error Connection refused - connect(2) for /tmp/flash.sock
+12:57:26 PM config 3: decode FAILED
+12:57:26 PM restore: v1 holders and the serving engine
+12:57:26 PM unit holder: stopping 91812
+12:57:29 PM dies 0,1,2,3,4,5: memory released
+12:57:29 PM v1 holder 0: GPU 0
+12:57:29 PM v1 holder 1: GPU 1
+12:57:29 PM v1 holder 2: GPU 2
+12:57:29 PM v1 holder 3: GPU 3
+12:57:29 PM v1 holder 4: GPU 4
+12:57:29 PM v1 holder 5: GPU 5
+12:57:41 PM v1 holders: ready
+12:57:41 PM core: starting libengine.so die.cubin 
+12:57:44 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+12:57:46 PM restore: serving config verified
+1:28:37 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+1:28:37 PM core: stopping 98081
+1:28:37 PM v1 holder: stopping 96998
+1:28:37 PM v1 holder: stopping 96999
+1:28:37 PM v1 holder: stopping 97000
+1:28:38 PM v1 holder: stopping 97001
+1:28:38 PM v1 holder: stopping 97002
+1:28:38 PM v1 holder: stopping 97003
+1:28:41 PM dies 0,1,2,3,4,5: memory released
+1:28:41 PM unit holder: GPUs 0,1,2,3,4,5
+1:35:56 PM unit holder: ready
+1:35:56 PM core: starting libengine_dump.so die_units.cubin 
+1:36:00 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+1:36:02 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_S=/tmp/dump-u-L1: reload ok: engine reloaded
+1:36:04 PM config 0: decode done
+1:36:06 PM config 1: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=2 FLASH_DUMP_S=/tmp/dump-u-L2: reload ok: engine reloaded
+1:36:08 PM config 1: decode FAILED
+1:36:10 PM config 2: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=4 FLASH_DUMP_S=/tmp/dump-u-L4: reload ok: engine reloaded
+1:36:12 PM config 2: decode done
+1:36:12 PM restore: v1 holders and the serving engine
+1:36:12 PM core: stopping 295597
+1:36:12 PM unit holder: stopping 255613
+1:36:16 PM dies 0,1,2,3,4,5: memory released
+1:36:16 PM v1 holder 0: GPU 0
+1:36:16 PM v1 holder 1: GPU 1
+1:36:16 PM v1 holder 2: GPU 2
+1:36:16 PM v1 holder 3: GPU 3
+1:36:16 PM v1 holder 4: GPU 4
+1:36:16 PM v1 holder 5: GPU 5
+1:37:31 PM v1 holders: ready
+1:37:31 PM core: starting libengine.so die.cubin 
+1:37:34 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+1:37:36 PM restore: serving config verified
+1:37:47 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+1:37:48 PM core: stopping 304427
+1:37:48 PM v1 holder: stopping 297540
+1:37:48 PM v1 holder: stopping 297542
+1:37:48 PM v1 holder: stopping 297545
+1:37:48 PM v1 holder: stopping 297546
+1:37:49 PM v1 holder: stopping 297547
+1:37:49 PM v1 holder: stopping 297548
+1:37:52 PM dies 0,1,2,3,4,5: memory released
+1:37:52 PM unit holder: GPUs 0,1,2,3,4,5
+1:40:07 PM unit holder: ready
+1:40:07 PM core: starting libengine_dump2.so die_units2.cubin 
+1:40:10 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+1:40:13 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_S=/tmp/d2-u-L1a: reload ok: engine reloaded
+1:40:15 PM config 0: decode done
+1:40:17 PM config 1: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_S=/tmp/d2-u-L1b: reload ok: engine reloaded
+1:40:19 PM config 1: decode FAILED
+1:40:19 PM restore: v1 holders and the serving engine
+1:40:19 PM core: stopping 319186
+1:40:19 PM unit holder: stopping 306634
+1:40:22 PM dies 0,1,2,3,4,5: memory released
+1:40:22 PM v1 holder 0: GPU 0
+1:40:22 PM v1 holder 1: GPU 1
+1:40:22 PM v1 holder 2: GPU 2
+1:40:22 PM v1 holder 3: GPU 3
+1:40:22 PM v1 holder 4: GPU 4
+1:40:22 PM v1 holder 5: GPU 5
+1:41:07 PM v1 holders: ready
+1:41:07 PM core: starting libengine.so die.cubin 
+1:41:10 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+1:41:13 PM restore: serving config verified
+1:44:00 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+1:44:00 PM core: stopping 324845
+1:44:00 PM v1 holder: stopping 320672
+1:44:00 PM v1 holder: stopping 320673
+1:44:00 PM v1 holder: stopping 320674
+1:44:00 PM v1 holder: stopping 320675
+1:44:01 PM v1 holder: stopping 320676
+1:44:01 PM v1 holder: stopping 320677
+1:44:04 PM dies 0,1,2,3,4,5: memory released
+1:44:04 PM unit holder: GPUs 0,1,2,3,4,5
+1:46:40 PM unit holder: ready
+1:46:40 PM core: starting libengine_dump3.so die_units2.cubin 
+1:46:43 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+1:46:46 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_S=/tmp/d3-u-L1: reload ok: engine reloaded
+1:46:48 PM config 0: decode done
+1:46:48 PM restore: v1 holders and the serving engine
+1:46:48 PM core: stopping 354678
+1:46:48 PM unit holder: stopping 340717
+1:46:52 PM dies 0,1,2,3,4,5: memory released
+1:46:52 PM v1 holder 0: GPU 0
+1:46:52 PM v1 holder 1: GPU 1
+1:46:52 PM v1 holder 2: GPU 2
+1:46:52 PM v1 holder 3: GPU 3
+1:46:52 PM v1 holder 4: GPU 4
+1:46:52 PM v1 holder 5: GPU 5
+1:47:28 PM v1 holders: ready
+1:47:28 PM core: starting libengine.so die.cubin 
+1:47:31 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+1:47:33 PM restore: serving config verified
+1:51:11 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+1:51:12 PM core: stopping 359184
+1:51:12 PM v1 holder: stopping 355790
+1:51:12 PM v1 holder: stopping 355791
+1:51:12 PM v1 holder: stopping 355792
+1:51:12 PM v1 holder: stopping 355793
+1:51:12 PM v1 holder: stopping 355794
+1:51:13 PM v1 holder: stopping 355795
+1:51:16 PM dies 0,1,2,3,4,5: memory released
+1:51:16 PM unit holder: GPUs 0,1,2,3,4,5
+1:51:55 PM unit holder: ready
+1:51:55 PM core: starting libengine_dump3.so die_units2.cubin 
+1:51:58 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+1:52:00 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=2 FLASH_DUMP_S=/tmp/d4-u-L2: reload ok: engine reloaded
+1:52:01 PM config 0: decode FAILED
+1:52:01 PM restore: v1 holders and the serving engine
+1:52:01 PM core: stopping 383761
+1:52:01 PM unit holder: stopping 380052
+1:52:05 PM dies 0,1,2,3,4,5: memory released
+1:52:05 PM v1 holder 0: GPU 0
+1:52:05 PM v1 holder 1: GPU 1
+1:52:05 PM v1 holder 2: GPU 2
+1:52:05 PM v1 holder 3: GPU 3
+1:52:05 PM v1 holder 4: GPU 4
+1:52:05 PM v1 holder 5: GPU 5
+1:52:29 PM v1 holders: ready
+1:52:29 PM core: starting libengine.so die.cubin 
+1:52:32 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+1:52:34 PM restore: serving config verified
+1:55:44 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+1:55:44 PM core: stopping 386908
+1:55:44 PM v1 holder: stopping 384688
+1:55:44 PM v1 holder: stopping 384689
+1:55:44 PM v1 holder: stopping 384691
+1:55:45 PM v1 holder: stopping 384692
+1:55:45 PM v1 holder: stopping 384693
+1:55:45 PM v1 holder: stopping 384696
+1:55:48 PM dies 0,1,2,3,4,5: memory released
+1:55:48 PM unit holder: GPUs 0,1,2,3,4,5
+1:57:03 PM unit holder: ready
+1:57:03 PM core: starting libengine_dump4.so die_units2.cubin 
+1:57:06 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+1:57:09 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=2 FLASH_DUMP_HASH=1 FLASH_DUMP_S=/tmp/d5-u-L2: reload ok: engine reloaded
+1:57:12 PM config 0: decode FAILED
+1:57:12 PM restore: v1 holders and the serving engine
+1:57:12 PM core: stopping 415252
+1:57:12 PM unit holder: stopping 408097
+1:57:15 PM dies 0,1,2,3,4,5: memory released
+1:57:15 PM v1 holder 0: GPU 0
+1:57:15 PM v1 holder 1: GPU 1
+1:57:15 PM v1 holder 2: GPU 2
+1:57:15 PM v1 holder 3: GPU 3
+1:57:15 PM v1 holder 4: GPU 4
+1:57:15 PM v1 holder 5: GPU 5
+1:57:33 PM v1 holders: ready
+1:57:33 PM core: starting libengine.so die.cubin 
+1:57:36 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+1:57:38 PM restore: serving config verified
+1:59:14 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+1:59:15 PM core: stopping 418151
+1:59:15 PM v1 holder: stopping 416449
+1:59:15 PM v1 holder: stopping 416450
+1:59:15 PM v1 holder: stopping 416451
+1:59:15 PM v1 holder: stopping 416452
+1:59:16 PM v1 holder: stopping 416453
+1:59:16 PM v1 holder: stopping 416454
+1:59:19 PM dies 0,1,2,3,4,5: memory released
+1:59:19 PM unit holder: GPUs 0,1,2,3,4,5
+1:59:52 PM unit holder: ready
+1:59:52 PM core: starting libengine_dump5.so die_units2.cubin 
+1:59:55 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+1:59:57 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=2 FLASH_DUMP_S=/tmp/d6-u-L2: reload ok: engine reloaded
+1:59:59 PM config 0: decode FAILED
+1:59:59 PM restore: v1 holders and the serving engine
+1:59:59 PM core: stopping 432212
+1:59:59 PM unit holder: stopping 429070
+2:00:02 PM dies 0,1,2,3,4,5: memory released
+2:00:02 PM v1 holder 0: GPU 0
+2:00:02 PM v1 holder 1: GPU 1
+2:00:02 PM v1 holder 2: GPU 2
+2:00:02 PM v1 holder 3: GPU 3
+2:00:02 PM v1 holder 4: GPU 4
+2:00:02 PM v1 holder 5: GPU 5
+2:00:20 PM v1 holders: ready
+2:00:20 PM core: starting libengine.so die.cubin 
+2:00:23 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+2:00:25 PM restore: serving config verified
+2:03:37 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+2:03:37 PM core: stopping 434848
+2:03:37 PM v1 holder: stopping 433207
+2:03:38 PM v1 holder: stopping 433212
+2:03:38 PM v1 holder: stopping 433214
+2:03:38 PM v1 holder: stopping 433215
+2:03:38 PM v1 holder: stopping 433216
+2:03:38 PM v1 holder: stopping 433217
+2:03:42 PM dies 0,1,2,3,4,5: memory released
+2:03:42 PM unit holder: GPUs 0,1,2,3,4,5
+2:04:15 PM unit holder: ready
+2:04:15 PM core: starting libengine_dump6.so die_units2.cubin 
+2:04:18 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+2:04:20 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_S=/tmp/d7-u-L1: reload ok: engine reloaded
+2:04:21 PM config 0: decode FAILED
+2:04:21 PM restore: v1 holders and the serving engine
+2:04:21 PM core: stopping 456129
+2:04:21 PM unit holder: stopping 452974
+2:04:25 PM dies 0,1,2,3,4,5: memory released
+2:04:25 PM v1 holder 0: GPU 0
+2:04:25 PM v1 holder 1: GPU 1
+2:04:25 PM v1 holder 2: GPU 2
+2:04:25 PM v1 holder 3: GPU 3
+2:04:25 PM v1 holder 4: GPU 4
+2:04:25 PM v1 holder 5: GPU 5
+2:04:40 PM v1 holders: ready
+2:04:40 PM core: starting libengine.so die.cubin 
+2:04:43 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+2:04:45 PM restore: serving config verified
+2:06:30 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+2:06:31 PM core: stopping 458503
+2:06:31 PM v1 holder: stopping 457098
+2:06:31 PM v1 holder: stopping 457103
+2:06:31 PM v1 holder: stopping 457104
+2:06:31 PM v1 holder: stopping 457105
+2:06:32 PM v1 holder: stopping 457106
+2:06:32 PM v1 holder: stopping 457107
+2:06:35 PM dies 0,1,2,3,4,5: memory released
+2:06:35 PM unit holder: GPUs 0,1,2,3,4,5
+2:07:08 PM unit holder: ready
+2:07:08 PM core: starting libengine_dump7.so die_units2.cubin 
+2:07:11 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+2:07:13 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_FIRST=1 FLASH_DUMP_S=/tmp/d8-u-L1: reload ok: engine reloaded
+2:07:16 PM config 0: decode done
+2:07:18 PM config 1: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=2 FLASH_DUMP_FIRST=1 FLASH_DUMP_S=/tmp/d8-u-L2: reload ok: engine reloaded
+2:07:19 PM config 1: decode FAILED
+2:07:19 PM restore: v1 holders and the serving engine
+2:07:19 PM core: stopping 472068
+2:07:19 PM unit holder: stopping 469032
+2:07:23 PM dies 0,1,2,3,4,5: memory released
+2:07:23 PM v1 holder 0: GPU 0
+2:07:23 PM v1 holder 1: GPU 1
+2:07:23 PM v1 holder 2: GPU 2
+2:07:23 PM v1 holder 3: GPU 3
+2:07:23 PM v1 holder 4: GPU 4
+2:07:23 PM v1 holder 5: GPU 5
+2:07:41 PM v1 holders: ready
+2:07:41 PM core: starting libengine.so die.cubin 
+2:07:44 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+2:07:46 PM restore: serving config verified
+2:08:56 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+2:08:56 PM core: stopping 475132
+2:08:56 PM v1 holder: stopping 473466
+2:08:57 PM v1 holder: stopping 473471
+2:08:57 PM v1 holder: stopping 473473
+2:08:57 PM v1 holder: stopping 473474
+2:08:57 PM v1 holder: stopping 473475
+2:08:57 PM v1 holder: stopping 473476
+2:09:01 PM dies 0,1,2,3,4,5: memory released
+2:09:01 PM unit holder: GPUs 0,1,2,3,4,5
+2:09:37 PM unit holder: ready
+2:09:37 PM core: starting libengine_dump8.so die_units2.cubin 
+2:09:40 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+2:09:42 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_FIRST=2 FLASH_DUMP_S=/tmp/d9-u-L1: reload ok: engine reloaded
+2:09:44 PM config 0: decode done
+2:09:47 PM config 1: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=2 FLASH_DUMP_FIRST=2 FLASH_DUMP_S=/tmp/d9-u-L2: reload ok: engine reloaded
+2:09:48 PM config 1: decode FAILED
+2:09:48 PM restore: v1 holders and the serving engine
+2:09:48 PM core: stopping 485923
+2:09:48 PM unit holder: stopping 482577
+2:09:51 PM dies 0,1,2,3,4,5: memory released
+2:09:51 PM v1 holder 0: GPU 0
+2:09:51 PM v1 holder 1: GPU 1
+2:09:51 PM v1 holder 2: GPU 2
+2:09:51 PM v1 holder 3: GPU 3
+2:09:51 PM v1 holder 4: GPU 4
+2:09:51 PM v1 holder 5: GPU 5
+2:10:06 PM v1 holders: ready
+2:10:06 PM core: starting libengine.so die.cubin 
+2:10:09 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+2:10:12 PM restore: serving config verified
+2:14:57 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+2:14:57 PM core: stopping 488719
+2:14:57 PM v1 holder: stopping 487369
+2:14:57 PM v1 holder: stopping 487370
+2:14:58 PM v1 holder: stopping 487371
+2:14:58 PM v1 holder: stopping 487372
+2:14:58 PM v1 holder: stopping 487373
+2:14:58 PM v1 holder: stopping 487374
+2:15:02 PM dies 0,1,2,3,4,5: memory released
+2:15:02 PM unit holder: GPUs 0,1,2,3,4,5
+2:15:41 PM unit holder: ready
+2:15:41 PM core: starting libengine_dump9.so die_units2.cubin 
+2:15:44 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+2:15:47 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_HASH_FILE=/tmp/h-u: reload ok: engine reloaded
+2:15:50 PM config 0: decode done
+2:15:50 PM restore: v1 holders and the serving engine
+2:15:50 PM core: stopping 518665
+2:15:50 PM unit holder: stopping 514961
+2:15:53 PM dies 0,1,2,3,4,5: memory released
+2:15:53 PM v1 holder 0: GPU 0
+2:15:53 PM v1 holder 1: GPU 1
+2:15:53 PM v1 holder 2: GPU 2
+2:15:53 PM v1 holder 3: GPU 3
+2:15:53 PM v1 holder 4: GPU 4
+2:15:53 PM v1 holder 5: GPU 5
+2:16:17 PM v1 holders: ready
+2:16:17 PM core: starting libengine.so die.cubin 
+2:16:20 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+2:16:23 PM restore: serving config verified
+2:20:55 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+2:20:55 PM core: stopping 522081
+2:20:55 PM v1 holder: stopping 519931
+2:20:56 PM v1 holder: stopping 519934
+2:21:00 PM v1 holder: stopping 519936
+2:21:04 PM v1 holder: stopping 519937
+2:21:08 PM v1 holder: stopping 519938
+2:21:08 PM v1 holder: stopping 519939
+2:21:11 PM dies 0,1,2,3,4,5: memory released
+2:21:11 PM unit holder: GPUs 0,1,2,3,4,5
+2:25:20 PM unit holder: ready
+2:25:20 PM core: starting libengine_dump10.so die_units2.cubin 
+2:25:23 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+2:25:26 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=3 FLASH_DUMP_S=/tmp/e1-u: reload ok: engine reloaded
+2:25:28 PM config 0: decode done
+2:25:28 PM restore: v1 holders and the serving engine
+2:25:28 PM core: stopping 571378
+2:25:29 PM unit holder: stopping 549142
+2:25:33 PM dies 0,1,2,3,4,5: memory released
+2:25:33 PM v1 holder 0: GPU 0
+2:25:33 PM v1 holder 1: GPU 1
+2:25:33 PM v1 holder 2: GPU 2
+2:25:33 PM v1 holder 3: GPU 3
+2:25:33 PM v1 holder 4: GPU 4
+2:25:33 PM v1 holder 5: GPU 5
+2:26:36 PM v1 holders: ready
+2:26:36 PM core: starting libengine.so die.cubin 
+2:26:39 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+2:26:41 PM restore: serving config verified
+2:27:51 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+2:27:51 PM core: stopping 578455
+2:27:51 PM v1 holder: stopping 572601
+2:27:51 PM v1 holder: stopping 572604
+2:27:51 PM v1 holder: stopping 572606
+2:27:52 PM v1 holder: stopping 572608
+2:27:52 PM v1 holder: stopping 572610
+2:27:52 PM v1 holder: stopping 572611
+2:27:56 PM dies 0,1,2,3,4,5: memory released
+2:27:56 PM unit holder: GPUs 0,1,2,3,4,5
+2:31:02 PM unit holder: ready
+2:31:02 PM core: starting libengine_dump11.so die_units2.cubin 
+2:31:05 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+2:31:07 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=3 FLASH_DUMP_S=/tmp/e2-u: reload ok: engine reloaded
+2:31:09 PM config 0: decode done
+2:31:09 PM restore: v1 holders and the serving engine
+2:31:09 PM core: stopping 603195
+2:31:09 PM unit holder: stopping 586943
+2:31:13 PM dies 0,1,2,3,4,5: memory released
+2:31:13 PM v1 holder 0: GPU 0
+2:31:13 PM v1 holder 1: GPU 1
+2:31:13 PM v1 holder 2: GPU 2
+2:31:13 PM v1 holder 3: GPU 3
+2:31:13 PM v1 holder 4: GPU 4
+2:31:13 PM v1 holder 5: GPU 5
+2:31:34 PM v1 holders: ready
+2:31:34 PM core: starting libengine.so die.cubin 
+2:31:37 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+2:31:39 PM restore: serving config verified
+2:37:52 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+2:37:52 PM core: stopping 606123
+2:37:52 PM v1 holder: stopping 604237
+2:37:52 PM v1 holder: stopping 604238
+2:37:52 PM v1 holder: stopping 604240
+2:37:52 PM v1 holder: stopping 604241
+2:37:53 PM v1 holder: stopping 604242
+2:37:53 PM v1 holder: stopping 604243
+2:37:56 PM dies 0,1,2,3,4,5: memory released
+2:37:56 PM unit holder: GPUs 0,1,2,3,4,5
+2:39:35 PM unit holder: ready
+2:39:35 PM core: starting libengine_dump12.so die_units2.cubin 
+2:39:38 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+2:39:41 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_PHASE=1 FLASH_DUMP_S=/tmp/bis-u.p1: reload ok: engine reloaded
+2:39:43 PM config 0: decode done
+2:39:45 PM config 1: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_PHASE=2 FLASH_DUMP_S=/tmp/bis-u.p2: reload ok: engine reloaded
+2:39:47 PM config 1: decode done
+2:39:49 PM config 2: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_PHASE=3 FLASH_DUMP_S=/tmp/bis-u.p3: reload ok: engine reloaded
+2:39:52 PM config 2: decode done
+2:39:54 PM config 3: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_PHASE=4 FLASH_DUMP_S=/tmp/bis-u.p4: reload ok: engine reloaded
+2:39:56 PM config 3: decode done
+2:39:58 PM config 4: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_PHASE=5 FLASH_DUMP_S=/tmp/bis-u.p5: reload ok: engine reloaded
+2:40:00 PM config 4: decode done
+2:40:03 PM config 5: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_PHASE=6 FLASH_DUMP_S=/tmp/bis-u.p6: reload ok: engine reloaded
+2:40:05 PM config 5: decode done
+2:40:07 PM config 6: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_PHASE=7 FLASH_DUMP_S=/tmp/bis-u.p7: reload ok: engine reloaded
+2:40:09 PM config 6: decode done
+2:40:11 PM config 7: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_PHASE=8 FLASH_DUMP_S=/tmp/bis-u.p8: reload ok: engine reloaded
+2:40:14 PM config 7: decode done
+2:40:16 PM config 8: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_PHASE=9 FLASH_DUMP_S=/tmp/bis-u.p9: reload ok: engine reloaded
+2:40:18 PM config 8: decode done
+2:40:20 PM config 9: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_PHASE=10 FLASH_DUMP_S=/tmp/bis-u.p10: reload ok: engine reloaded
+2:40:23 PM config 9: decode done
+2:40:25 PM config 10: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_PHASE=11 FLASH_DUMP_S=/tmp/bis-u.p11: reload ok: engine reloaded
+2:40:27 PM config 10: decode done
+2:40:29 PM config 11: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_PHASE=12 FLASH_DUMP_S=/tmp/bis-u.p12: reload ok: engine reloaded
+2:40:32 PM config 11: decode done
+2:40:34 PM config 12: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_PHASE=13 FLASH_DUMP_S=/tmp/bis-u.p13: reload ok: engine reloaded
+2:40:36 PM config 12: decode done
+2:40:38 PM config 13: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_PHASE=14 FLASH_DUMP_S=/tmp/bis-u.p14: reload ok: engine reloaded
+2:40:41 PM config 13: decode done
+2:40:43 PM config 14: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_PHASE=15 FLASH_DUMP_S=/tmp/bis-u.p15: reload ok: engine reloaded
+2:40:45 PM config 14: decode done
+2:40:47 PM config 15: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_PHASE=16 FLASH_DUMP_S=/tmp/bis-u.p16: reload ok: engine reloaded
+2:40:49 PM config 15: decode done
+2:40:49 PM restore: v1 holders and the serving engine
+2:40:49 PM core: stopping 648328
+2:40:49 PM unit holder: stopping 639624
+2:40:53 PM dies 0,1,2,3,4,5: memory released
+2:40:53 PM v1 holder 0: GPU 0
+2:40:53 PM v1 holder 1: GPU 1
+2:40:53 PM v1 holder 2: GPU 2
+2:40:53 PM v1 holder 3: GPU 3
+2:40:53 PM v1 holder 4: GPU 4
+2:40:53 PM v1 holder 5: GPU 5
+2:41:11 PM v1 holders: ready
+2:41:11 PM core: starting libengine.so die.cubin 
+2:41:14 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+2:41:16 PM restore: serving config verified
+2:43:00 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+2:43:01 PM core: stopping 658032
+2:43:01 PM v1 holder: stopping 656525
+2:43:01 PM v1 holder: stopping 656528
+2:43:01 PM v1 holder: stopping 656530
+2:43:01 PM v1 holder: stopping 656531
+2:43:02 PM v1 holder: stopping 656532
+2:43:02 PM v1 holder: stopping 656533
+2:43:05 PM dies 0,1,2,3,4,5: memory released
+2:43:05 PM unit holder: GPUs 0,1,2,3,4,5
+2:44:14 PM unit holder: ready
+2:44:14 PM core: starting libengine_dump13.so die_units2.cubin 
+2:44:17 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+2:44:20 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_DUMP_S=/tmp/bis2-u.t1: reload ok: engine reloaded
+2:44:22 PM config 0: decode done
+2:44:24 PM config 1: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=2 FLASH_DUMP_S=/tmp/bis2-u.t2: reload ok: engine reloaded
+2:44:27 PM config 1: decode done
+2:44:29 PM config 2: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=3 FLASH_DUMP_S=/tmp/bis2-u.t3: reload ok: engine reloaded
+2:44:31 PM config 2: decode done
+2:44:33 PM config 3: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=4 FLASH_DUMP_S=/tmp/bis2-u.t4: reload ok: engine reloaded
+2:44:35 PM config 3: decode done
+2:44:37 PM config 4: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=6 FLASH_DUMP_S=/tmp/bis2-u.t6: reload ok: engine reloaded
+2:44:40 PM config 4: decode done
+2:44:42 PM config 5: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=10 FLASH_DUMP_S=/tmp/bis2-u.t10: reload ok: engine reloaded
+2:44:44 PM config 5: decode done
+2:44:46 PM config 6: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=20 FLASH_DUMP_S=/tmp/bis2-u.t20: reload ok: engine reloaded
+2:44:48 PM config 6: decode done
+2:44:51 PM config 7: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=40 FLASH_DUMP_S=/tmp/bis2-u.t40: reload ok: engine reloaded
+2:44:53 PM config 7: decode done
+2:44:53 PM restore: v1 holders and the serving engine
+2:44:53 PM core: stopping 674221
+2:44:53 PM unit holder: stopping 668368
+2:44:56 PM dies 0,1,2,3,4,5: memory released
+2:44:56 PM v1 holder 0: GPU 0
+2:44:56 PM v1 holder 1: GPU 1
+2:44:56 PM v1 holder 2: GPU 2
+2:44:56 PM v1 holder 3: GPU 3
+2:44:56 PM v1 holder 4: GPU 4
+2:44:56 PM v1 holder 5: GPU 5
+2:45:38 PM v1 holders: ready
+2:45:38 PM core: starting libengine.so die.cubin 
+2:45:41 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+2:45:44 PM restore: serving config verified
+3:00:01 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+3:00:01 PM core: stopping 682175
+3:00:02 PM v1 holder: stopping 678574
+3:00:02 PM v1 holder: stopping 678575
+3:00:02 PM v1 holder: stopping 678577
+3:00:03 PM v1 holder: stopping 678578
+3:00:03 PM v1 holder: stopping 678579
+3:00:03 PM v1 holder: stopping 678580
+3:00:06 PM dies 0,1,2,3,4,5: memory released
+3:00:06 PM unit holder: GPUs 0,1,2,3,4,5
+3:01:51 PM unit holder: ready
+3:01:51 PM core: starting libengine_dump14.so die_units2.cubin 
+3:01:54 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+3:01:57 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=2 FLASH_STOP_PHASE=2 FLASH_DUMP_S=/tmp/bis3-u.t2p2: reload ok: engine reloaded
+3:01:59 PM config 0: decode done
+3:02:01 PM config 1: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=2 FLASH_STOP_PHASE=4 FLASH_DUMP_S=/tmp/bis3-u.t2p4: reload ok: engine reloaded
+3:02:03 PM config 1: decode done
+3:02:05 PM config 2: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=2 FLASH_STOP_PHASE=6 FLASH_DUMP_S=/tmp/bis3-u.t2p6: reload ok: engine reloaded
+3:02:07 PM config 2: decode done
+3:02:09 PM config 3: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=2 FLASH_STOP_PHASE=8 FLASH_DUMP_S=/tmp/bis3-u.t2p8: reload ok: engine reloaded
+3:02:11 PM config 3: decode done
+3:02:13 PM config 4: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=2 FLASH_STOP_PHASE=10 FLASH_DUMP_S=/tmp/bis3-u.t2p10: reload ok: engine reloaded
+3:02:16 PM config 4: decode done
+3:02:18 PM config 5: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=2 FLASH_STOP_PHASE=12 FLASH_DUMP_S=/tmp/bis3-u.t2p12: reload ok: engine reloaded
+3:02:20 PM config 5: decode done
+3:02:22 PM config 6: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=2 FLASH_STOP_PHASE=14 FLASH_DUMP_S=/tmp/bis3-u.t2p14: reload ok: engine reloaded
+3:02:24 PM config 6: decode done
+3:02:26 PM config 7: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=2 FLASH_STOP_PHASE=16 FLASH_DUMP_S=/tmp/bis3-u.t2p16: reload ok: engine reloaded
+3:02:29 PM config 7: decode done
+3:02:30 PM config 8: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=2 FLASH_STOP_PHASE=20 FLASH_DUMP_S=/tmp/bis3-u.t2p20: reload ok: engine reloaded
+3:02:33 PM config 8: decode done
+3:02:35 PM config 9: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=2 FLASH_STOP_PHASE=26 FLASH_DUMP_S=/tmp/bis3-u.t2p26: reload ok: engine reloaded
+3:07:34 PM config 9: decode FAILED
+3:07:34 PM restore: v1 holders and the serving engine
+3:07:34 PM core: stopping 766013
+3:07:34 PM unit holder: stopping 756951
+3:07:37 PM dies 0,1,2,3,4,5: memory released
+3:07:37 PM v1 holder 0: GPU 0
+3:07:37 PM v1 holder 1: GPU 1
+3:07:37 PM v1 holder 2: GPU 2
+3:07:37 PM v1 holder 3: GPU 3
+3:07:37 PM v1 holder 4: GPU 4
+3:07:37 PM v1 holder 5: GPU 5
+3:07:46 PM v1 holders: ready
+3:07:46 PM core: starting libengine.so die.cubin 
+3:07:49 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+3:07:51 PM restore: serving config verified
+3:16:38 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+3:16:38 PM core: stopping 798003
+3:16:38 PM v1 holder: stopping 797240
+3:16:38 PM v1 holder: stopping 797241
+3:16:38 PM v1 holder: stopping 797242
+3:16:39 PM v1 holder: stopping 797243
+3:16:39 PM v1 holder: stopping 797244
+3:16:39 PM v1 holder: stopping 797245
+3:16:43 PM dies 0,1,2,3,4,5: memory released
+3:16:43 PM unit holder: GPUs 0,1,2,3,4,5
+3:17:10 PM unit holder: ready
+3:17:10 PM core: starting libengine_dump14.so die_units2.cubin 
+3:17:13 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+3:17:15 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=2 FLASH_STOP_PHASE=1000 FLASH_DUMP_S=/tmp/bis4-u.t2p1000: reload ok: engine reloaded
+3:17:17 PM config 0: decode done
+3:17:19 PM config 1: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=3 FLASH_STOP_PHASE=1000 FLASH_DUMP_S=/tmp/bis4-u.t3p1000: reload ok: engine reloaded
+3:17:21 PM config 1: decode done
+3:17:23 PM config 2: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=2 FLASH_STOP_PHASE= FLASH_DUMP_S=/tmp/bis4-u.t2: reload ok: engine reloaded
+3:17:25 PM config 2: decode done
+3:17:25 PM restore: v1 holders and the serving engine
+3:17:25 PM core: stopping 848498
+3:17:25 PM unit holder: stopping 846279
+3:17:29 PM dies 0,1,2,3,4,5: memory released
+3:17:29 PM v1 holder 0: GPU 0
+3:17:29 PM v1 holder 1: GPU 1
+3:17:29 PM v1 holder 2: GPU 2
+3:17:29 PM v1 holder 3: GPU 3
+3:17:29 PM v1 holder 4: GPU 4
+3:17:29 PM v1 holder 5: GPU 5
+3:17:38 PM v1 holders: ready
+3:17:38 PM core: starting libengine.so die.cubin 
+3:17:41 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+3:17:43 PM restore: serving config verified
+3:17:53 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+3:17:54 PM core: stopping 850987
+3:17:55 PM v1 holder: stopping 850267
+3:17:55 PM v1 holder: stopping 850270
+3:17:55 PM v1 holder: stopping 850271
+3:17:55 PM v1 holder: stopping 850273
+3:17:55 PM v1 holder: stopping 850274
+3:17:56 PM v1 holder: stopping 850275
+3:17:59 PM dies 0,1,2,3,4,5: memory released
+3:17:59 PM unit holder: GPUs 0,1,2,3,4,5
+3:18:26 PM unit holder: ready
+3:18:26 PM core: starting libengine_dump15.so die_units2.cubin 
+3:18:29 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+3:18:31 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=2 FLASH_DUMP_PROG=/tmp/prog-u FLASH_STOP_TOKEN=1 FLASH_DUMP_SEGS=1 FLASH_DUMP_S=/tmp/progu-d: reload ok: engine reloaded
+3:18:33 PM config 0: decode done
+3:18:33 PM restore: v1 holders and the serving engine
+3:18:33 PM core: stopping 855217
+3:18:33 PM unit holder: stopping 852918
+3:18:37 PM dies 0,1,2,3,4,5: memory released
+3:18:37 PM v1 holder 0: GPU 0
+3:18:37 PM v1 holder 1: GPU 1
+3:18:37 PM v1 holder 2: GPU 2
+3:18:37 PM v1 holder 3: GPU 3
+3:18:37 PM v1 holder 4: GPU 4
+3:18:37 PM v1 holder 5: GPU 5
+3:18:46 PM v1 holders: ready
+3:18:46 PM core: starting libengine.so die.cubin 
+3:18:48 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+3:18:51 PM restore: serving config verified
+3:25:18 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+3:25:19 PM core: stopping 856861
+3:25:19 PM v1 holder: stopping 856171
+3:25:19 PM v1 holder: stopping 856175
+3:25:19 PM v1 holder: stopping 856177
+3:25:19 PM v1 holder: stopping 856178
+3:25:19 PM v1 holder: stopping 856179
+3:25:20 PM v1 holder: stopping 856180
+3:25:23 PM dies 0,1,2,3,4,5: memory released
+3:25:23 PM unit holder: GPUs 0,1,2,3,4,5
+3:25:50 PM unit holder: ready
+3:25:50 PM core: starting libengine_dump14.so die_units3.cubin 
+3:25:53 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+3:25:55 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_S=/tmp/bis5-u.t1: reload ok: engine reloaded
+3:25:58 PM config 0: decode done
+3:25:58 PM restore: v1 holders and the serving engine
+3:25:58 PM core: stopping 889289
+3:25:58 PM unit holder: stopping 887046
+3:26:01 PM dies 0,1,2,3,4,5: memory released
+3:26:01 PM v1 holder 0: GPU 0
+3:26:01 PM v1 holder 1: GPU 1
+3:26:01 PM v1 holder 2: GPU 2
+3:26:01 PM v1 holder 3: GPU 3
+3:26:01 PM v1 holder 4: GPU 4
+3:26:01 PM v1 holder 5: GPU 5
+3:26:10 PM v1 holders: ready
+3:26:10 PM core: starting libengine.so die.cubin 
+3:26:13 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+3:26:15 PM restore: serving config verified
+4:11:54 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+4:11:54 PM core: stopping 890987
+4:11:54 PM v1 holder: stopping 890292
+4:11:54 PM v1 holder: stopping 890296
+4:11:54 PM v1 holder: stopping 890298
+4:11:55 PM v1 holder: stopping 890300
+4:11:55 PM v1 holder: stopping 890301
+4:11:55 PM v1 holder: stopping 890302
+4:11:59 PM dies 0,1,2,3,4,5: memory released
+4:11:59 PM unit holder: GPUs 0,1,2,3,4,5
+4:12:26 PM unit holder: ready
+4:12:26 PM core: starting libengine_dump14.so die_units3.cubin 
+4:12:29 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+4:12:31 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE=31 FLASH_DUMP_S=/tmp/bis6-u.t1p31: reload ok: engine reloaded
+4:17:30 PM config 0: decode FAILED
+4:17:30 PM restore: v1 holders and the serving engine
+4:17:30 PM core: stopping 1102622
+4:17:31 PM unit holder: stopping 1100299
+4:17:34 PM dies 0,1,2,3,4,5: memory released
+4:17:34 PM v1 holder 0: GPU 0
+4:17:34 PM v1 holder 1: GPU 1
+4:17:34 PM v1 holder 2: GPU 2
+4:17:34 PM v1 holder 3: GPU 3
+4:17:34 PM v1 holder 4: GPU 4
+4:17:34 PM v1 holder 5: GPU 5
+4:17:43 PM v1 holders: ready
+4:17:43 PM core: starting libengine.so die.cubin 
+4:17:46 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+4:17:48 PM restore: serving config verified
+4:17:50 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+4:17:50 PM core: stopping 1129067
+4:17:50 PM v1 holder: stopping 1128386
+4:17:50 PM v1 holder: stopping 1128387
+4:17:50 PM v1 holder: stopping 1128392
+4:17:51 PM v1 holder: stopping 1128394
+4:17:51 PM v1 holder: stopping 1128395
+4:17:51 PM v1 holder: stopping 1128396
+4:17:54 PM dies 0,1,2,3,4,5: memory released
+4:17:54 PM unit holder: GPUs 0,1,2,3,4,5
+4:18:21 PM unit holder: ready
+4:18:21 PM core: starting libengine_dump14.so die_units4.cubin 
+4:18:24 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+4:18:26 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_S=/tmp/bis7-u.t1: reload ok: engine reloaded
+4:18:29 PM config 0: decode done
+4:18:29 PM restore: v1 holders and the serving engine
+4:18:29 PM core: stopping 1132382
+4:18:29 PM unit holder: stopping 1130071
+4:18:32 PM dies 0,1,2,3,4,5: memory released
+4:18:32 PM v1 holder 0: GPU 0
+4:18:32 PM v1 holder 1: GPU 1
+4:18:32 PM v1 holder 2: GPU 2
+4:18:32 PM v1 holder 3: GPU 3
+4:18:32 PM v1 holder 4: GPU 4
+4:18:32 PM v1 holder 5: GPU 5
+4:18:41 PM v1 holders: ready
+4:18:41 PM core: starting libengine.so die.cubin 
+4:18:44 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+4:18:46 PM restore: serving config verified
+4:29:27 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+4:29:27 PM core: stopping 1134118
+4:29:27 PM v1 holder: stopping 1133388
+4:29:28 PM v1 holder: stopping 1133390
+4:29:28 PM v1 holder: stopping 1133392
+4:29:28 PM v1 holder: stopping 1133394
+4:29:28 PM v1 holder: stopping 1133395
+4:29:28 PM v1 holder: stopping 1133396
+4:29:32 PM dies 0,1,2,3,4,5: memory released
+4:29:32 PM unit holder: GPUs 0,1,2,3,4,5
+4:30:02 PM unit holder: ready
+4:30:02 PM core: starting libengine_dump14.so die_units5.cubin 
+4:30:05 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+4:30:07 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_S=/tmp/bis8-u.t1: reload ok: engine reloaded
+4:30:09 PM config 0: decode done
+4:30:09 PM restore: v1 holders and the serving engine
+4:30:09 PM core: stopping 1188709
+4:30:09 PM unit holder: stopping 1186235
+4:30:13 PM dies 0,1,2,3,4,5: memory released
+4:30:13 PM v1 holder 0: GPU 0
+4:30:13 PM v1 holder 1: GPU 1
+4:30:13 PM v1 holder 2: GPU 2
+4:30:13 PM v1 holder 3: GPU 3
+4:30:13 PM v1 holder 4: GPU 4
+4:30:13 PM v1 holder 5: GPU 5
+4:30:22 PM v1 holders: ready
+4:30:22 PM core: starting libengine.so die.cubin 
+4:30:24 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+4:30:26 PM restore: serving config verified
+4:47:55 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+4:47:55 PM core: stopping 1190365
+4:47:55 PM v1 holder: stopping 1189673
+4:47:55 PM v1 holder: stopping 1189674
+4:47:56 PM v1 holder: stopping 1189676
+4:47:56 PM v1 holder: stopping 1189678
+4:47:56 PM v1 holder: stopping 1189679
+4:47:56 PM v1 holder: stopping 1189680
+4:48:00 PM dies 0,1,2,3,4,5: memory released
+4:48:00 PM unit holder: GPUs 0,1,2,3,4,5
+4:48:27 PM unit holder: ready
+4:48:27 PM core: starting libengine_dump15.so die_units5.cubin 
+4:48:30 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+4:48:32 PM config 0: PROG_UNITS_XWAIT2=1 FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_S=/tmp/bis9-u.t1: reload ok: engine reloaded
+4:48:34 PM config 0: decode done
+4:48:34 PM restore: v1 holders and the serving engine
+4:48:34 PM core: stopping 1278268
+4:48:34 PM unit holder: stopping 1275904
+4:48:37 PM dies 0,1,2,3,4,5: memory released
+4:48:37 PM v1 holder 0: GPU 0
+4:48:37 PM v1 holder 1: GPU 1
+4:48:37 PM v1 holder 2: GPU 2
+4:48:37 PM v1 holder 3: GPU 3
+4:48:37 PM v1 holder 4: GPU 4
+4:48:37 PM v1 holder 5: GPU 5
+4:48:46 PM v1 holders: ready
+4:48:46 PM core: starting libengine.so die.cubin 
+4:48:49 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+4:48:52 PM restore: serving config verified
+4:51:37 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+4:51:37 PM core: stopping 1279960
+4:51:37 PM v1 holder: stopping 1279279
+4:51:38 PM v1 holder: stopping 1279280
+4:51:38 PM v1 holder: stopping 1279283
+4:51:38 PM v1 holder: stopping 1279287
+4:51:38 PM v1 holder: stopping 1279288
+4:51:38 PM v1 holder: stopping 1279289
+4:51:42 PM dies 0,1,2,3,4,5: memory released
+4:51:42 PM unit holder: GPUs 0,1,2,3,4,5
+4:52:09 PM unit holder: ready
+4:52:09 PM core: starting libengine_dump15.so die_units5.cubin 
+4:52:11 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+4:52:13 PM config 0: FLASH_XSLOTS=3 FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_S=/tmp/bis10-u.t1: reload ok: engine reloaded
+4:52:16 PM config 0: decode done
+4:52:16 PM restore: v1 holders and the serving engine
+4:52:16 PM core: stopping 1296337
+4:52:16 PM unit holder: stopping 1294050
+4:52:19 PM dies 0,1,2,3,4,5: memory released
+4:52:19 PM v1 holder 0: GPU 0
+4:52:19 PM v1 holder 1: GPU 1
+4:52:19 PM v1 holder 2: GPU 2
+4:52:19 PM v1 holder 3: GPU 3
+4:52:19 PM v1 holder 4: GPU 4
+4:52:19 PM v1 holder 5: GPU 5
+4:52:28 PM v1 holders: ready
+4:52:28 PM core: starting libengine.so die.cubin 
+4:52:31 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+4:52:33 PM restore: serving config verified
+4:57:29 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+4:57:29 PM core: stopping 1297987
+4:57:29 PM v1 holder: stopping 1297302
+4:57:29 PM v1 holder: stopping 1297304
+4:57:29 PM v1 holder: stopping 1297307
+4:57:29 PM v1 holder: stopping 1297309
+4:57:30 PM v1 holder: stopping 1297310
+4:57:30 PM v1 holder: stopping 1297311
+4:57:33 PM dies 0,1,2,3,4,5: memory released
+4:57:33 PM unit holder: GPUs 0,1,2,3,4,5
+4:58:00 PM unit holder: ready
+4:58:00 PM core: starting libengine_dump15.so die_units6.cubin 
+4:58:03 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+4:58:05 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_S=/tmp/bis11-u.t1: reload ok: engine reloaded
+4:58:08 PM config 0: decode done
+4:58:08 PM restore: v1 holders and the serving engine
+4:58:08 PM core: stopping 1324502
+4:58:08 PM unit holder: stopping 1322181
+4:58:11 PM dies 0,1,2,3,4,5: memory released
+4:58:11 PM v1 holder 0: GPU 0
+4:58:11 PM v1 holder 1: GPU 1
+4:58:11 PM v1 holder 2: GPU 2
+4:58:11 PM v1 holder 3: GPU 3
+4:58:11 PM v1 holder 4: GPU 4
+4:58:11 PM v1 holder 5: GPU 5
+4:58:20 PM v1 holders: ready
+4:58:20 PM core: starting libengine.so die.cubin 
+4:58:23 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+4:58:25 PM restore: serving config verified
+5:07:47 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+5:07:48 PM core: stopping 1326159
+5:07:48 PM v1 holder: stopping 1325475
+5:07:49 PM v1 holder: stopping 1325480
+5:07:49 PM v1 holder: stopping 1325481
+5:07:49 PM v1 holder: stopping 1325483
+5:07:49 PM v1 holder: stopping 1325484
+5:07:49 PM v1 holder: stopping 1325487
+5:07:53 PM dies 0,1,2,3,4,5: memory released
+5:07:53 PM unit holder: GPUs 0,1,2,3,4,5
+5:08:20 PM unit holder: ready
+5:08:20 PM core: starting libengine_dump16.so die_units7.cubin 
+5:08:23 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+5:08:25 PM config 0: PROG_UNITS_DBGCOPY=1 FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_S=/tmp/bis12-u.t1: reload ok: engine reloaded
+5:08:28 PM config 0: decode done
+5:08:28 PM restore: v1 holders and the serving engine
+5:08:28 PM core: stopping 1373793
+5:08:28 PM unit holder: stopping 1371635
+5:08:31 PM dies 0,1,2,3,4,5: memory released
+5:08:31 PM v1 holder 0: GPU 0
+5:08:31 PM v1 holder 1: GPU 1
+5:08:31 PM v1 holder 2: GPU 2
+5:08:31 PM v1 holder 3: GPU 3
+5:08:31 PM v1 holder 4: GPU 4
+5:08:31 PM v1 holder 5: GPU 5
+5:08:40 PM v1 holders: ready
+5:08:40 PM core: starting libengine.so die.cubin 
+5:08:43 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+5:08:45 PM restore: serving config verified
+5:12:53 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+5:12:53 PM core: stopping 1375425
+5:12:53 PM v1 holder: stopping 1374770
+5:12:54 PM v1 holder: stopping 1374772
+5:12:54 PM v1 holder: stopping 1374775
+5:12:54 PM v1 holder: stopping 1374776
+5:12:54 PM v1 holder: stopping 1374777
+5:12:54 PM v1 holder: stopping 1374778
+5:12:58 PM dies 0,1,2,3,4,5: memory released
+5:12:58 PM unit holder: GPUs 0,1,2,3,4,5
+5:13:43 PM unit holder: ready
+5:13:43 PM core: starting libengine_dump17.so die_units7.cubin 
+5:13:46 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+5:13:48 PM config 0: FLASH_UNITS_DBGCOPY=1 FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_S=/tmp/bis13-u.t1: reload ok: engine reloaded
+5:13:50 PM config 0: decode done
+5:13:50 PM restore: v1 holders and the serving engine
+5:13:50 PM core: stopping 1397499
+5:13:50 PM unit holder: stopping 1393980
+5:13:54 PM dies 0,1,2,3,4,5: memory released
+5:13:54 PM v1 holder 0: GPU 0
+5:13:54 PM v1 holder 1: GPU 1
+5:13:54 PM v1 holder 2: GPU 2
+5:13:54 PM v1 holder 3: GPU 3
+5:13:54 PM v1 holder 4: GPU 4
+5:13:54 PM v1 holder 5: GPU 5
+5:14:33 PM v1 holders: ready
+5:14:33 PM core: starting libengine.so die.cubin 
+5:14:36 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+5:14:38 PM restore: serving config verified
+5:15:31 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+5:15:32 PM core: stopping 1401575
+5:15:32 PM v1 holder: stopping 1398511
+5:15:32 PM v1 holder: stopping 1398516
+5:15:32 PM v1 holder: stopping 1398517
+5:15:32 PM v1 holder: stopping 1398518
+5:15:33 PM v1 holder: stopping 1398519
+5:15:33 PM v1 holder: stopping 1398520
+5:15:36 PM dies 0,1,2,3,4,5: memory released
+5:15:36 PM unit holder: GPUs 0,1,2,3,4,5
+5:19:18 PM unit holder: ready
+5:19:18 PM core: starting libengine_dump17.so die_units8.cubin 
+5:19:21 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+5:19:24 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=1 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_S=/tmp/bis14-u.t1: reload ok: engine reloaded
+5:19:29 PM config 0: decode done
+5:19:31 PM config 1: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS= FLASH_DUMP_SEGS= FLASH_STOP_TOKEN= FLASH_STOP_PHASE= FLASH_DUMP_S=: reload ok: engine reloaded
+5:19:32 PM config 1: decode FAILED
+5:19:32 PM restore: v1 holders and the serving engine
+5:19:32 PM core: stopping 1424498
+5:19:49 PM unit holder: stopping 1406586
+5:19:53 PM dies 0,1,2,3,4,5: memory released
+5:19:53 PM v1 holder 0: GPU 0
+5:19:53 PM v1 holder 1: GPU 1
+5:19:53 PM v1 holder 2: GPU 2
+5:19:53 PM v1 holder 3: GPU 3
+5:19:53 PM v1 holder 4: GPU 4
+5:19:53 PM v1 holder 5: GPU 5
+5:20:29 PM v1 holders: ready
+5:20:29 PM core: starting libengine.so die.cubin 
+5:20:32 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+5:20:34 PM restore: serving config verified
+5:24:59 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+5:24:59 PM core: stopping 1429238
+5:24:59 PM v1 holder: stopping 1426320
+5:24:59 PM v1 holder: stopping 1426326
+5:24:59 PM v1 holder: stopping 1426327
+5:25:00 PM v1 holder: stopping 1426328
+5:25:00 PM v1 holder: stopping 1426329
+5:25:00 PM v1 holder: stopping 1426330
+5:25:03 PM dies 0,1,2,3,4,5: memory released
+5:25:03 PM unit holder: GPUs 0,1,2,3,4,5
+5:29:36 PM unit holder: ready
+5:29:36 PM core: starting libengine_dump17.so die_units8.cubin 
+5:29:40 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+5:29:42 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=2 FLASH_DUMP_SEGS= FLASH_STOP_TOKEN= FLASH_STOP_PHASE= FLASH_DUMP_S=: reload ok: engine reloaded
+5:29:45 PM config 0: decode done
+5:29:47 PM config 1: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=4 FLASH_DUMP_SEGS= FLASH_STOP_TOKEN= FLASH_STOP_PHASE= FLASH_DUMP_S=: reload ok: engine reloaded
+5:29:50 PM config 1: decode done
+5:29:52 PM config 2: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=8 FLASH_DUMP_SEGS= FLASH_STOP_TOKEN= FLASH_STOP_PHASE= FLASH_DUMP_S=: reload ok: engine reloaded
+5:29:55 PM config 2: decode done
+5:29:57 PM config 3: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=16 FLASH_DUMP_SEGS= FLASH_STOP_TOKEN= FLASH_STOP_PHASE= FLASH_DUMP_S=: reload ok: engine reloaded
+5:30:02 PM config 3: decode done
+5:30:04 PM config 4: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=32 FLASH_DUMP_SEGS= FLASH_STOP_TOKEN= FLASH_STOP_PHASE= FLASH_DUMP_S=: reload ok: engine reloaded
+5:30:05 PM config 4: decode FAILED
+5:30:11 PM config 5: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=48 FLASH_DUMP_SEGS= FLASH_STOP_TOKEN= FLASH_STOP_PHASE= FLASH_DUMP_S=: reload error Connection reset by peer @ io_fillbuf - fd:6 
+5:30:11 PM config 5: decode FAILED
+5:30:11 PM restore: v1 holders and the serving engine
+5:30:11 PM unit holder: stopping 1449461
+5:30:15 PM dies 0,1,2,3,4,5: memory released
+5:30:15 PM v1 holder 0: GPU 0
+5:30:15 PM v1 holder 1: GPU 1
+5:30:15 PM v1 holder 2: GPU 2
+5:30:15 PM v1 holder 3: GPU 3
+5:30:15 PM v1 holder 4: GPU 4
+5:30:15 PM v1 holder 5: GPU 5
+5:30:30 PM v1 holders: ready
+5:30:30 PM core: starting libengine.so die.cubin 
+5:30:33 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+5:30:35 PM restore: serving config verified
+5:33:19 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+5:33:19 PM core: stopping 1476108
+5:33:19 PM v1 holder: stopping 1474967
+5:33:19 PM v1 holder: stopping 1474969
+5:33:19 PM v1 holder: stopping 1474970
+5:33:20 PM v1 holder: stopping 1474971
+5:33:20 PM v1 holder: stopping 1474972
+5:33:20 PM v1 holder: stopping 1474973
+5:33:23 PM dies 0,1,2,3,4,5: memory released
+5:33:23 PM unit holder: GPUs 0,1,2,3,4,5
+5:33:50 PM unit holder: ready
+5:33:50 PM core: starting libengine_dump17.so die_units8.cubin 
+5:33:53 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+5:33:56 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=20 FLASH_DUMP_SEGS= FLASH_STOP_TOKEN= FLASH_STOP_PHASE= FLASH_DUMP_S=: reload ok: engine reloaded
+5:34:00 PM config 0: decode done
+5:34:03 PM config 1: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=24 FLASH_DUMP_SEGS= FLASH_STOP_TOKEN= FLASH_STOP_PHASE= FLASH_DUMP_S=: reload ok: engine reloaded
+5:34:07 PM config 1: decode done
+5:34:09 PM config 2: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=28 FLASH_DUMP_SEGS= FLASH_STOP_TOKEN= FLASH_STOP_PHASE= FLASH_DUMP_S=: reload ok: engine reloaded
+5:34:11 PM config 2: decode FAILED
+5:34:17 PM config 3: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=30 FLASH_DUMP_SEGS= FLASH_STOP_TOKEN= FLASH_STOP_PHASE= FLASH_DUMP_S=: reload error Connection reset by peer @ io_fillbuf - fd:6 
+5:34:18 PM config 3: decode FAILED
+5:34:18 PM restore: v1 holders and the serving engine
+5:34:18 PM unit holder: stopping 1489627
+5:34:21 PM dies 0,1,2,3,4,5: memory released
+5:34:21 PM v1 holder 0: GPU 0
+5:34:21 PM v1 holder 1: GPU 1
+5:34:21 PM v1 holder 2: GPU 2
+5:34:21 PM v1 holder 3: GPU 3
+5:34:21 PM v1 holder 4: GPU 4
+5:34:21 PM v1 holder 5: GPU 5
+5:34:54 PM v1 holders: ready
+5:34:54 PM core: starting libengine.so die.cubin 
+5:34:57 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+5:34:59 PM restore: serving config verified
+5:38:18 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+5:38:18 PM core: stopping 1497060
+5:38:18 PM v1 holder: stopping 1494293
+5:38:18 PM v1 holder: stopping 1494295
+5:38:18 PM v1 holder: stopping 1494297
+5:38:19 PM v1 holder: stopping 1494298
+5:38:19 PM v1 holder: stopping 1494299
+5:38:19 PM v1 holder: stopping 1494300
+5:38:22 PM dies 0,1,2,3,4,5: memory released
+5:38:22 PM unit holder: GPUs 0,1,2,3,4,5
+5:39:25 PM unit holder: ready
+5:39:25 PM core: starting libengine_dump17.so die_units8.cubin 
+5:39:28 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+5:39:31 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=25 FLASH_DUMP_SEGS= FLASH_STOP_TOKEN= FLASH_STOP_PHASE= FLASH_DUMP_S=: reload ok: engine reloaded
+5:39:36 PM config 0: decode done
+5:39:38 PM config 1: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=26 FLASH_DUMP_SEGS= FLASH_STOP_TOKEN= FLASH_STOP_PHASE= FLASH_DUMP_S=: reload ok: engine reloaded
+5:39:40 PM config 1: decode FAILED
+5:39:46 PM config 2: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=27 FLASH_DUMP_SEGS= FLASH_STOP_TOKEN= FLASH_STOP_PHASE= FLASH_DUMP_S=: reload error Connection reset by peer @ io_fillbuf - fd:6 
+5:39:46 PM config 2: decode FAILED
+5:39:46 PM restore: v1 holders and the serving engine
+5:39:46 PM unit holder: stopping 1513202
+5:39:49 PM dies 0,1,2,3,4,5: memory released
+5:39:49 PM v1 holder 0: GPU 0
+5:39:49 PM v1 holder 1: GPU 1
+5:39:49 PM v1 holder 2: GPU 2
+5:39:49 PM v1 holder 3: GPU 3
+5:39:49 PM v1 holder 4: GPU 4
+5:39:49 PM v1 holder 5: GPU 5
+5:40:37 PM v1 holders: ready
+5:40:37 PM core: starting libengine.so die.cubin 
+5:40:40 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+5:40:43 PM restore: serving config verified
+9:10:20 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+9:10:21 PM core: stopping 2423278
+9:10:21 PM v1 holder: stopping 1520124
+9:10:21 PM v1 holder: stopping 1520125
+9:10:21 PM v1 holder: stopping 1520126
+9:10:21 PM v1 holder: stopping 1520127
+9:10:21 PM v1 holder: stopping 1520128
+9:10:22 PM v1 holder: stopping 1520129
+9:10:25 PM dies 0,1,2,3,4,5: memory released
+9:10:25 PM unit holder: GPUs 0,1,2,3,4,5
+9:19:01 PM unit holder: ready
+9:19:01 PM core: starting libengine_dump17.so die_units8.cubin 
+9:19:04 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+9:19:06 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=25 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_S=/tmp/bis18-u.t1: reload ok: engine reloaded
+9:19:09 PM config 0: decode done
+9:19:09 PM restore: v1 holders and the serving engine
+9:19:09 PM core: stopping 2529309
+9:19:09 PM unit holder: stopping 2490628
+9:19:12 PM dies 0,1,2,3,4,5: memory released
+9:19:12 PM v1 holder 0: GPU 0
+9:19:12 PM v1 holder 1: GPU 1
+9:19:12 PM v1 holder 2: GPU 2
+9:19:12 PM v1 holder 3: GPU 3
+9:19:12 PM v1 holder 4: GPU 4
+9:19:12 PM v1 holder 5: GPU 5
+9:25:30 PM v1 holders: ready
+9:25:30 PM core: starting libengine.so die.cubin 
+9:25:33 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+9:25:36 PM restore: serving config verified
+9:29:25 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+9:29:25 PM core: stopping 2561305
+9:29:25 PM v1 holder: stopping 2530262
+9:29:25 PM v1 holder: stopping 2530264
+9:29:25 PM v1 holder: stopping 2530265
+9:29:26 PM v1 holder: stopping 2530267
+9:29:26 PM v1 holder: stopping 2530268
+9:29:26 PM v1 holder: stopping 2530269
+9:29:29 PM dies 0,1,2,3,4,5: memory released
+9:29:29 PM unit holder: GPUs 0,1,2,3,4,5
+9:34:59 PM unit holder: ready
+9:34:59 PM core: starting libengine_dump18.so die_units9.cubin 
+9:35:02 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+9:35:05 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=26 FLASH_DUMP_PROG=/tmp/prog26-u FLASH_DUMP_SEGS= FLASH_STOP_TOKEN= FLASH_STOP_PHASE= FLASH_DUMP_S=: reload ok: engine reloaded
+9:35:07 PM config 0: decode FAILED
+9:35:07 PM restore: v1 holders and the serving engine
+9:35:07 PM core: stopping 2602767
+9:35:27 PM unit holder: stopping 2577201
+9:35:31 PM dies 0,1,2,3,4,5: memory released
+9:35:31 PM v1 holder 0: GPU 0
+9:35:31 PM v1 holder 1: GPU 1
+9:35:31 PM v1 holder 2: GPU 2
+9:35:31 PM v1 holder 3: GPU 3
+9:35:31 PM v1 holder 4: GPU 4
+9:35:31 PM v1 holder 5: GPU 5
+9:37:28 PM v1 holders: ready
+9:37:28 PM core: starting libengine.so die.cubin 
+9:37:31 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+9:37:33 PM restore: serving config verified
+9:37:37 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+9:37:37 PM core: stopping 2612718
+9:37:37 PM v1 holder: stopping 2603986
+9:37:38 PM v1 holder: stopping 2603987
+9:37:38 PM v1 holder: stopping 2603988
+9:37:38 PM v1 holder: stopping 2603990
+9:37:38 PM v1 holder: stopping 2603991
+9:37:38 PM v1 holder: stopping 2603992
+9:37:42 PM dies 0,1,2,3,4,5: memory released
+9:37:42 PM unit holder: GPUs 0,1,2,3,4,5
+9:46:54 PM unit holder: ready
+9:46:54 PM core: starting libengine_dump18.so die_units8.cubin 
+9:46:57 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+9:46:59 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=2 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_PROG= FLASH_DUMP_S=/tmp/bis20-u.L2: reload ok: engine reloaded
+9:47:02 PM config 0: decode done
+9:47:03 PM config 1: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=3 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_PROG= FLASH_DUMP_S=/tmp/bis20-u.L3: reload ok: engine reloaded
+9:47:06 PM config 1: decode done
+9:47:08 PM config 2: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=4 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_PROG= FLASH_DUMP_S=/tmp/bis20-u.L4: reload ok: engine reloaded
+9:47:10 PM config 2: decode done
+9:47:12 PM config 3: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=6 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_PROG= FLASH_DUMP_S=/tmp/bis20-u.L6: reload ok: engine reloaded
+9:47:14 PM config 3: decode done
+9:47:16 PM config 4: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=8 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_PROG= FLASH_DUMP_S=/tmp/bis20-u.L8: reload ok: engine reloaded
+9:47:19 PM config 4: decode done
+9:47:21 PM config 5: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=12 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_PROG= FLASH_DUMP_S=/tmp/bis20-u.L12: reload ok: engine reloaded
+9:47:23 PM config 5: decode done
+9:47:25 PM config 6: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=16 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_PROG= FLASH_DUMP_S=/tmp/bis20-u.L16: reload ok: engine reloaded
+9:47:27 PM config 6: decode done
+9:47:29 PM config 7: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=20 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_PROG= FLASH_DUMP_S=/tmp/bis20-u.L20: reload ok: engine reloaded
+9:47:31 PM config 7: decode done
+9:47:31 PM restore: v1 holders and the serving engine
+9:47:31 PM core: stopping 2654224
+9:47:31 PM unit holder: stopping 2613913
+9:47:35 PM dies 0,1,2,3,4,5: memory released
+9:47:35 PM v1 holder 0: GPU 0
+9:47:35 PM v1 holder 1: GPU 1
+9:47:35 PM v1 holder 2: GPU 2
+9:47:35 PM v1 holder 3: GPU 3
+9:47:35 PM v1 holder 4: GPU 4
+9:47:35 PM v1 holder 5: GPU 5
+9:52:17 PM v1 holders: ready
+9:52:17 PM core: starting libengine.so die.cubin 
+9:52:20 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+9:52:22 PM restore: serving config verified
+9:53:31 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+9:53:31 PM core: stopping 2680302
+9:53:31 PM v1 holder: stopping 2657997
+9:53:31 PM v1 holder: stopping 2658001
+9:53:32 PM v1 holder: stopping 2658002
+9:53:32 PM v1 holder: stopping 2658003
+9:53:32 PM v1 holder: stopping 2658004
+9:53:32 PM v1 holder: stopping 2658005
+9:53:36 PM dies 0,1,2,3,4,5: memory released
+9:53:36 PM unit holder: GPUs 0,1,2,3,4,5
+9:58:37 PM restore: v1 holders and the serving engine
+9:58:37 PM unit holder: stopping 2687681
+9:58:41 PM dies 0,1,2,3,4,5: memory released
+9:58:41 PM v1 holder 0: GPU 0
+9:58:41 PM v1 holder 1: GPU 1
+9:58:41 PM v1 holder 2: GPU 2
+9:58:41 PM v1 holder 3: GPU 3
+9:58:41 PM v1 holder 4: GPU 4
+9:58:41 PM v1 holder 5: GPU 5
+10:02:02 PM v1 holders: ready
+10:02:02 PM core: starting libengine.so die.cubin 
+10:02:05 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+10:02:07 PM restore: serving config verified
+10:02:09 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+10:02:09 PM core: stopping 2727110
+10:02:09 PM v1 holder: stopping 2711254
+10:02:09 PM v1 holder: stopping 2711258
+10:02:10 PM v1 holder: stopping 2711259
+10:02:10 PM v1 holder: stopping 2711260
+10:02:10 PM v1 holder: stopping 2711261
+10:02:10 PM v1 holder: stopping 2711262
+10:02:14 PM dies 0,1,2,3,4,5: memory released
+10:02:14 PM unit holder: GPUs 0,1,2,3,4,5
+10:04:02 PM unit holder: ready
+10:04:02 PM core: starting libengine_dump20.so die_units9.cubin 
+10:04:05 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+10:04:07 PM config 0: FLASH_BEACON_PRINT=1 FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=26 FLASH_DUMP_SEGS= FLASH_STOP_TOKEN= FLASH_STOP_PHASE= FLASH_DUMP_PROG= FLASH_DUMP_S=: reload ok: engine reloaded
+10:04:09 PM config 0: decode FAILED
+10:04:09 PM restore: v1 holders and the serving engine
+10:04:09 PM core: stopping 2736479
+10:04:26 PM unit holder: stopping 2728098
+10:04:30 PM dies 0,1,2,3,4,5: memory released
+10:04:30 PM v1 holder 0: GPU 0
+10:04:30 PM v1 holder 1: GPU 1
+10:04:30 PM v1 holder 2: GPU 2
+10:04:30 PM v1 holder 3: GPU 3
+10:04:30 PM v1 holder 4: GPU 4
+10:04:30 PM v1 holder 5: GPU 5
+10:05:36 PM v1 holders: ready
+10:05:36 PM core: starting libengine.so die.cubin 
+10:05:39 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+10:05:41 PM restore: serving config verified
+10:06:01 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+10:06:01 PM core: stopping 2742735
+10:06:01 PM v1 holder: stopping 2737629
+10:06:01 PM v1 holder: stopping 2737632
+10:06:01 PM v1 holder: stopping 2737634
+10:06:01 PM v1 holder: stopping 2737636
+10:06:02 PM v1 holder: stopping 2737637
+10:06:02 PM v1 holder: stopping 2737640
+10:06:05 PM dies 0,1,2,3,4,5: memory released
+10:06:05 PM unit holder: GPUs 0,1,2,3,4,5
+10:09:20 PM unit holder: ready
+10:09:20 PM core: starting libengine_dump20.so die_units10.cubin 
+10:09:23 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+10:09:26 PM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=6 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_PROG= FLASH_DUMP_S=/tmp/bis23-u.L6: reload ok: engine reloaded
+10:09:28 PM config 0: decode done
+10:09:30 PM config 1: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=16 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_PROG= FLASH_DUMP_S=/tmp/bis23-u.L16: reload ok: engine reloaded
+10:09:32 PM config 1: decode done
+10:09:34 PM config 2: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=20 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_PROG= FLASH_DUMP_S=/tmp/bis23-u.L20: reload ok: engine reloaded
+10:09:37 PM config 2: decode done
+10:09:39 PM config 3: FLASH_BEACON_PRINT=1 FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=26 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_PROG= FLASH_DUMP_S=/tmp/bis23-u.L26: reload ok: engine reloaded
+10:09:41 PM config 3: decode done
+10:09:41 PM restore: v1 holders and the serving engine
+10:09:41 PM core: stopping 2760195
+10:09:41 PM unit holder: stopping 2745378
+10:09:45 PM dies 0,1,2,3,4,5: memory released
+10:09:45 PM v1 holder 0: GPU 0
+10:09:45 PM v1 holder 1: GPU 1
+10:09:45 PM v1 holder 2: GPU 2
+10:09:45 PM v1 holder 3: GPU 3
+10:09:45 PM v1 holder 4: GPU 4
+10:09:45 PM v1 holder 5: GPU 5
+10:10:21 PM v1 holders: ready
+10:10:21 PM core: starting libengine.so die.cubin 
+10:10:24 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+10:10:26 PM restore: serving config verified
+12:10:52 AM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+12:10:52 AM v1 holder: stopping 2762305
+12:10:52 AM v1 holder: stopping 2762307
+12:10:52 AM v1 holder: stopping 2762310
+12:10:53 AM v1 holder: stopping 2762312
+12:10:53 AM v1 holder: stopping 2762313
+12:10:53 AM v1 holder: stopping 2762314
+12:10:57 AM dies 0,1,2,3,4,5: memory released
+12:10:57 AM unit holder: GPUs 0,1,2,3,4,5
+12:23:36 AM unit holder: ready
+12:23:36 AM core: starting libengine_dump20.so die_units11.cubin 
+12:23:39 AM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+12:23:41 AM config 0: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=12 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_PROG= FLASH_DUMP_S=/tmp/bis24-u.L12: reload ok: engine reloaded
+12:23:43 AM config 0: decode done
+12:23:45 AM config 1: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=13 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_PROG= FLASH_DUMP_S=/tmp/bis24-u.L13: reload ok: engine reloaded
+12:23:48 AM config 1: decode done
+12:23:50 AM config 2: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=14 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_PROG= FLASH_DUMP_S=/tmp/bis24-u.L14: reload ok: engine reloaded
+12:23:53 AM config 2: decode done
+12:23:55 AM config 3: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=15 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_PROG= FLASH_DUMP_S=/tmp/bis24-u.L15: reload ok: engine reloaded
+12:23:57 AM config 3: decode done
+12:23:59 AM config 4: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=16 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_PROG= FLASH_DUMP_S=/tmp/bis24-u.L16: reload ok: engine reloaded
+12:24:02 AM config 4: decode done
+12:24:04 AM config 5: FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=20 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_PROG= FLASH_DUMP_S=/tmp/bis24-u.L20: reload ok: engine reloaded
+12:24:06 AM config 5: decode done
+12:24:06 AM restore: v1 holders and the serving engine
+12:24:06 AM core: stopping 3363893
+12:24:06 AM unit holder: stopping 3301142
+12:24:09 AM dies 0,1,2,3,4,5: memory released
+12:24:09 AM v1 holder 0: GPU 0
+12:24:09 AM v1 holder 1: GPU 1
+12:24:09 AM v1 holder 2: GPU 2
+12:24:09 AM v1 holder 3: GPU 3
+12:24:09 AM v1 holder 4: GPU 4
+12:24:09 AM v1 holder 5: GPU 5
+12:34:33 AM v1 holders: ready
+12:34:33 AM core: starting libengine.so die.cubin 
+12:34:36 AM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+12:34:39 AM restore: serving config verified
+12:54:45 AM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+12:54:45 AM core: stopping 3440936
+12:54:45 AM v1 holder: stopping 3367209
+12:54:46 AM v1 holder: stopping 3367210
+12:54:46 AM v1 holder: stopping 3367211
+12:54:46 AM v1 holder: stopping 3367212
+12:54:46 AM v1 holder: stopping 3367213
+12:54:46 AM v1 holder: stopping 3367216
+12:54:50 AM dies 0,1,2,3,4,5: memory released
+12:54:50 AM unit holder: GPUs 0,1,2,3,4,5
+1:04:17 AM unit holder: ready
+1:04:17 AM core: starting libengine_dump20.so die_units11.cubin 
+1:04:22 AM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+1:04:31 AM config 0: FLASH_BEACON_PRINT=1 FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_ROPE_RING=0 FLASH_QSA_SHORT=0 FLASH_LAYERS=26 FLASH_DUMP_SEGS=1 FLASH_STOP_TOKEN=1 FLASH_STOP_PHASE= FLASH_DUMP_PROG= FLASH_DUMP_S=/tmp/bis25-u.L26: reload ok: engine reloaded
+1:04:57 AM config 0: decode done
+1:05:00 AM config 1: FLASH_BEACON_PRINT=1 FLASH_CHAIN=0 FLASH_LAYERS= FLASH_DUMP_SEGS= FLASH_STOP_TOKEN= FLASH_STOP_PHASE= FLASH_DUMP_PROG= FLASH_DUMP_S=: reload ok: engine reloaded
+1:05:07 AM config 1: decode FAILED
+1:05:07 AM restore: v1 holders and the serving engine
+1:05:07 AM core: stopping 3611496
+1:05:25 AM unit holder: stopping 3553098
+1:05:28 AM dies 0,1,2,3,4,5: memory released
+1:05:28 AM v1 holder 0: GPU 0
+1:05:28 AM v1 holder 1: GPU 1
+1:05:28 AM v1 holder 2: GPU 2
+1:05:28 AM v1 holder 3: GPU 3
+1:05:28 AM v1 holder 4: GPU 4
+1:05:28 AM v1 holder 5: GPU 5
+1:14:40 AM v1 holders: ready
+1:14:40 AM core: starting libengine.so die.cubin 
+1:14:43 AM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+1:14:45 AM restore: serving config verified
+1:20:40 AM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+1:20:41 AM core: stopping 3742351
+1:20:41 AM v1 holder: stopping 3617223
+1:20:41 AM v1 holder: stopping 3617225
+1:20:41 AM v1 holder: stopping 3617228
+1:20:41 AM v1 holder: stopping 3617229
+1:20:41 AM v1 holder: stopping 3617230
+1:20:42 AM v1 holder: stopping 3617231
+1:20:45 AM dies 0,1,2,3,4,5: memory released
+1:20:45 AM unit holder: GPUs 0,1,2,3,4,5
+1:29:39 AM unit holder: ready
+1:29:39 AM core: starting libengine_dump20.so die_units12.cubin 
+1:29:42 AM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+1:29:44 AM config 0: FLASH_BEACON_PRINT=1 FLASH_CHAIN=0 FLASH_LAYERS= FLASH_DUMP_SEGS= FLASH_STOP_TOKEN= FLASH_STOP_PHASE= FLASH_DUMP_PROG= FLASH_DUMP_S=: reload ok: engine reloaded
+1:29:46 AM config 0: decode FAILED
+1:29:52 AM config 0: prefill FAILED
+1:29:52 AM restore: v1 holders and the serving engine
+1:29:52 AM unit holder: stopping 3781920
+1:29:56 AM dies 0,1,2,3,4,5: memory released
+1:29:56 AM v1 holder 0: GPU 0
+1:29:56 AM v1 holder 1: GPU 1
+1:29:56 AM v1 holder 2: GPU 2
+1:29:56 AM v1 holder 3: GPU 3
+1:29:56 AM v1 holder 4: GPU 4
+1:29:56 AM v1 holder 5: GPU 5
+1:36:41 AM v1 holders: ready
+1:36:41 AM core: starting libengine.so die.cubin 
+1:36:44 AM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+1:36:46 AM restore: serving config verified
+1:38:28 AM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+1:38:28 AM core: stopping 3863195
+1:38:28 AM v1 holder: stopping 3824216
+1:38:29 AM v1 holder: stopping 3824217
+1:38:29 AM v1 holder: stopping 3824218
+1:38:29 AM v1 holder: stopping 3824219
+1:38:29 AM v1 holder: stopping 3824220
+1:38:29 AM v1 holder: stopping 3824221
+1:38:33 AM dies 0,1,2,3,4,5: memory released
+1:38:33 AM unit holder: GPUs 0,1,2,3,4,5
+1:49:00 AM unit holder: ready
+1:49:00 AM core: starting libengine_dump20.so die_units12.cubin 
+1:49:03 AM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+1:49:05 AM config 0: FLASH_BEACON_PRINT=1 FLASH_CHAIN=0 FLASH_LAYERS= FLASH_DUMP_SEGS= FLASH_STOP_TOKEN= FLASH_STOP_PHASE= FLASH_DUMP_PROG=/tmp/prog48-u FLASH_DUMP_S=: reload ok: engine reloaded
+1:49:09 AM config 0: decode FAILED
+1:49:15 AM config 1: FLASH_BEACON_PRINT=1 FLASH_CHAIN=0 FLASH_TWO_POSITION=0 FLASH_PREFILL_CHUNK=0 FLASH_LAYERS= FLASH_DUMP_SEGS= FLASH_STOP_TOKEN= FLASH_STOP_PHASE= FLASH_DUMP_PROG=/tmp/prog48s-u FLASH_DUMP_S=: reload error Connection reset by peer @ io_fillbuf - fd:6 
+1:49:15 AM config 1: decode FAILED
+1:49:15 AM restore: v1 holders and the serving engine
+1:49:15 AM unit holder: stopping 3876398
+1:49:19 AM dies 0,1,2,3,4,5: memory released
+1:49:19 AM v1 holder 0: GPU 0
+1:49:19 AM v1 holder 1: GPU 1
+1:49:19 AM v1 holder 2: GPU 2
+1:49:19 AM v1 holder 3: GPU 3
+1:49:19 AM v1 holder 4: GPU 4
+1:49:19 AM v1 holder 5: GPU 5
+1:58:22 AM v1 holders: ready
+1:58:22 AM core: starting libengine.so die.cubin 
+1:58:26 AM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+1:58:28 AM restore: serving config verified
+2:05:41 AM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+2:05:45 AM core: stopping 3998434
+2:05:45 AM v1 holder: stopping 3945009
+2:05:46 AM v1 holder: stopping 3945010
+2:05:46 AM v1 holder: stopping 3945012
+2:05:46 AM v1 holder: stopping 3945013
+2:05:47 AM v1 holder: stopping 3945014
+2:05:47 AM v1 holder: stopping 3945015
+2:05:50 AM dies 0,1,2,3,4,5: memory released
+2:05:50 AM unit holder: GPUs 0,1,2,3,4,5
+2:11:48 AM restore: v1 holders and the serving engine
+2:11:49 AM unit holder: stopping 4047985
+2:11:53 AM dies 0,1,2,3,4,5: memory released
+2:11:53 AM v1 holder 0: GPU 0
+2:11:55 AM v1 holder 1: GPU 1
+2:11:55 AM v1 holder 2: GPU 2
+2:11:55 AM v1 holder 3: GPU 3
+2:11:55 AM v1 holder 4: GPU 4
+2:11:55 AM v1 holder 5: GPU 5
+2:30:40 AM restore: v1 holders and the serving engine
+2:30:43 AM dies : memory released
+2:30:43 AM v1 holder 0: already running and ready
+2:30:43 AM v1 holder 1: already running and ready
+2:30:43 AM v1 holder 2: already running and ready
+2:30:43 AM v1 holder 3: already running and ready
+2:30:43 AM v1 holder 4: already running and ready
+2:30:43 AM v1 holder 5: already running and ready
+2:30:43 AM v1 holders: ready
+2:30:43 AM core: starting libengine.so die.cubin 
+2:30:49 AM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+2:31:01 AM restore: serving config verified
+2:44:20 AM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+7:02:09 AM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+7:02:09 AM core: stopping 61212
+7:02:09 AM v1 holder: stopping 4106559
+7:02:10 AM v1 holder: stopping 4106564
+7:02:10 AM v1 holder: stopping 4106569
+7:02:10 AM v1 holder: stopping 4106570
+7:02:10 AM v1 holder: stopping 4106571
+7:02:10 AM v1 holder: stopping 4106572
+7:02:14 AM dies 0,1,2,3,4,5: memory released
+7:02:14 AM unit holder: GPUs 0,1,2,3,4,5
+7:14:29 AM unit holder: ready
+7:14:29 AM core: starting libengine_chunk1.so die_units13.cubin 
+7:14:32 AM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+7:14:34 AM config 0: FLASH_CHUNK_PREFILL=0 FLASH_LAYERS=48: reload ok: engine reloaded
+7:14:36 AM config 0: decode FAILED
+7:14:42 AM config 0: prefill FAILED
+7:14:42 AM config 1: FLASH_CHUNK_PREFILL=256: reload error Connection refused - connect(2) for /tmp/flash.sock
+7:14:43 AM config 1: decode FAILED
+7:14:43 AM config 1: prefill FAILED
+7:14:43 AM restore: v1 holders and the serving engine
+7:14:43 AM unit holder: stopping 1497543
+7:14:46 AM dies 0,1,2,3,4,5: memory released
+7:14:46 AM v1 holder 0: GPU 0
+7:14:46 AM v1 holder 1: GPU 1
+7:14:46 AM v1 holder 2: GPU 2
+7:14:46 AM v1 holder 3: GPU 3
+7:14:46 AM v1 holder 4: GPU 4
+7:14:46 AM v1 holder 5: GPU 5
+7:26:58 AM v1 holders: ready
+7:26:58 AM core: starting libengine.so die.cubin 
+7:27:01 AM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+7:27:04 AM restore: serving config verified
+7:27:45 AM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+7:27:46 AM core: stopping 1620565
+7:27:46 AM v1 holder: stopping 1558834
+7:27:46 AM v1 holder: stopping 1558835
+7:27:46 AM v1 holder: stopping 1558836
+7:27:46 AM v1 holder: stopping 1558837
+7:27:46 AM v1 holder: stopping 1558838
+7:27:47 AM v1 holder: stopping 1558839
+7:27:50 AM dies 0,1,2,3,4,5: memory released
+7:27:50 AM unit holder: GPUs 0,1,2,3,4,5
+7:38:14 AM unit holder: ready
+7:38:14 AM core: starting libengine_chunk3.so die_units15.cubin 
+7:38:17 AM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+7:38:20 AM config 0: FLASH_CHUNK_PREFILL=0: reload ok: engine reloaded
+7:38:28 AM config 0: decode done
+7:41:58 AM config 0: prefill done
+7:42:01 AM config 1: FLASH_CHUNK_PREFILL=256: reload ok: engine reloaded
+7:42:09 AM config 1: decode done
+7:45:39 AM config 1: prefill done
+7:45:39 AM restore: v1 holders and the serving engine
+7:45:39 AM core: stopping 1677467
+7:45:39 AM unit holder: stopping 1624885
+7:45:42 AM dies 0,1,2,3,4,5: memory released
+7:45:42 AM v1 holder 0: GPU 0
+7:45:42 AM v1 holder 1: GPU 1
+7:45:42 AM v1 holder 2: GPU 2
+7:45:42 AM v1 holder 3: GPU 3
+7:45:42 AM v1 holder 4: GPU 4
+7:45:42 AM v1 holder 5: GPU 5
+7:53:48 AM v1 holders: ready
+7:53:48 AM core: starting libengine.so die.cubin 
+7:53:51 AM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+7:53:54 AM restore: serving config verified
+7:56:00 AM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+7:56:00 AM core: stopping 1754306
+7:56:00 AM v1 holder: stopping 1717342
+7:56:01 AM v1 holder: stopping 1717343
+7:56:01 AM v1 holder: stopping 1717344
+7:56:01 AM v1 holder: stopping 1717345
+7:56:01 AM v1 holder: stopping 1717346
+7:56:01 AM v1 holder: stopping 1717347
+7:56:05 AM dies 0,1,2,3,4,5: memory released
+7:56:05 AM unit holder: GPUs 0,1,2,3,4,5
+8:04:53 AM unit holder: ready
+8:04:53 AM core: starting libengine_chunk4.so die_units15.cubin 
+8:04:55 AM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+8:04:58 AM config 0: FLASH_CHUNK_PREFILL=256 FLASH_CHUNK_PROF=1: reload ok: engine reloaded
+8:05:00 AM config 0: decode FAILED
+8:05:07 AM config 0: prefill FAILED
+8:05:07 AM restore: v1 holders and the serving engine
+8:05:07 AM unit holder: stopping 1764702
+8:05:10 AM dies 0,1,2,3,4,5: memory released
+8:05:10 AM v1 holder 0: GPU 0
+8:05:10 AM v1 holder 1: GPU 1
+8:05:10 AM v1 holder 2: GPU 2
+8:05:10 AM v1 holder 3: GPU 3
+8:05:10 AM v1 holder 4: GPU 4
+8:05:10 AM v1 holder 5: GPU 5
+8:14:34 AM v1 holders: ready
+8:14:34 AM core: starting libengine.so die.cubin 
+8:14:37 AM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+8:14:39 AM restore: serving config verified
+8:19:25 AM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+8:19:26 AM core: stopping 1851673
+8:19:26 AM v1 holder: stopping 1806064
+8:19:26 AM v1 holder: stopping 1806065
+8:19:26 AM v1 holder: stopping 1806067
+8:19:26 AM v1 holder: stopping 1806070
+8:19:26 AM v1 holder: stopping 1806071
+8:19:27 AM v1 holder: stopping 1806072
+8:19:30 AM dies 0,1,2,3,4,5: memory released
+8:19:30 AM unit holder: GPUs 0,1,2,3,4,5
+8:27:48 AM unit holder: ready
+8:27:48 AM core: starting libengine_chunk5.so die_units15.cubin 
+8:27:51 AM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+8:27:54 AM config 0: FLASH_CHUNK_PREFILL=256 FLASH_CHUNK_PROF=1: reload ok: engine reloaded
+8:27:56 AM config 0: decode FAILED
+8:27:56 AM restore: v1 holders and the serving engine
+8:27:56 AM core: stopping 1915485
+8:28:17 AM unit holder: stopping 1875894
+8:28:20 AM dies 0,1,2,3,4,5: memory released
+8:28:20 AM v1 holder 0: GPU 0
+8:28:20 AM v1 holder 1: GPU 1
+8:28:20 AM v1 holder 2: GPU 2
+8:28:20 AM v1 holder 3: GPU 3
+8:28:20 AM v1 holder 4: GPU 4
+8:28:20 AM v1 holder 5: GPU 5
+8:36:35 AM v1 holders: ready
+8:36:35 AM core: starting libengine.so die.cubin 
+8:36:38 AM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+8:36:40 AM restore: serving config verified
+8:39:05 AM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+8:39:05 AM core: stopping 1954283
+8:39:06 AM v1 holder: stopping 1916802
+8:39:06 AM v1 holder: stopping 1916803
+8:39:06 AM v1 holder: stopping 1916804
+8:39:07 AM v1 holder: stopping 1916809
+8:39:07 AM v1 holder: stopping 1916812
+8:39:07 AM v1 holder: stopping 1916813
+8:39:10 AM dies 0,1,2,3,4,5: memory released
+8:39:10 AM unit holder: GPUs 0,1,2,3,4,5
+8:47:31 AM unit holder: ready
+8:47:31 AM core: starting libengine_chunk6.so die_units15.cubin 
+8:47:34 AM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+8:47:37 AM config 0: FLASH_CHUNK_PREFILL=256 FLASH_CHUNK_PROF=1: reload ok: engine reloaded
+8:47:39 AM config 0: decode FAILED
+8:47:39 AM restore: v1 holders and the serving engine
+8:47:39 AM core: stopping 2003756
+8:48:00 AM unit holder: stopping 1966194
+8:48:03 AM dies 0,1,2,3,4,5: memory released
+8:48:03 AM v1 holder 0: GPU 0
+8:48:03 AM v1 holder 1: GPU 1
+8:48:03 AM v1 holder 2: GPU 2
+8:48:03 AM v1 holder 3: GPU 3
+8:48:03 AM v1 holder 4: GPU 4
+8:48:03 AM v1 holder 5: GPU 5
+8:57:48 AM v1 holders: ready
+8:57:48 AM core: starting libengine.so die.cubin 
+8:57:51 AM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+8:57:54 AM restore: serving config verified
+8:59:49 AM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+8:59:50 AM core: stopping 2050654
+8:59:50 AM v1 holder: stopping 2005050
+8:59:50 AM v1 holder: stopping 2005051
+8:59:50 AM v1 holder: stopping 2005054
+8:59:50 AM v1 holder: stopping 2005055
+8:59:50 AM v1 holder: stopping 2005056
+8:59:51 AM v1 holder: stopping 2005057
+8:59:54 AM dies 0,1,2,3,4,5: memory released
+8:59:54 AM unit holder: GPUs 0,1,2,3,4,5
+9:09:03 AM unit holder: ready
+9:09:03 AM core: starting libengine_chunk8.so die_units16.cubin 
+9:09:06 AM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+9:09:09 AM config 0: FLASH_CHUNK_PREFILL=256 FLASH_CHUNK_TRACE=1 FLASH_LAYERS=7: reload ok: engine reloaded
+9:09:11 AM config 0: decode FAILED
+9:09:13 AM config 1: FLASH_CHUNK_PREFILL=256 FLASH_CHUNK_PROF=1 FLASH_CHUNK_PROF_ORDER=7:1,3:1: reload error Connection reset by peer @ io_fillbuf - fd:6 
+9:09:13 AM config 1: decode FAILED
+9:09:13 AM config 2: FLASH_CHUNK_PREFILL=256 FLASH_CHUNK_PROF=1 FLASH_CHUNK_PROF_ORDER=3:1,7:1: reload error Connection refused - connect(2) for /tmp/flash.sock
+9:09:13 AM config 2: decode FAILED
+9:09:13 AM config 3: FLASH_CHUNK_PREFILL=128 FLASH_CHUNK_PROF=1: reload error Connection refused - connect(2) for /tmp/flash.sock
+9:09:13 AM config 3: decode FAILED
+9:09:13 AM restore: v1 holders and the serving engine
+9:09:13 AM unit holder: stopping 2060315
+9:09:17 AM dies 0,1,2,3,4,5: memory released
+9:09:17 AM v1 holder 0: GPU 0
+9:09:17 AM v1 holder 1: GPU 1
+9:09:17 AM v1 holder 2: GPU 2
+9:09:17 AM v1 holder 3: GPU 3
+9:09:17 AM v1 holder 4: GPU 4
+9:09:17 AM v1 holder 5: GPU 5
+9:18:14 AM v1 holders: ready
+9:18:14 AM core: starting libengine.so die.cubin 
+9:18:17 AM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+9:18:19 AM restore: serving config verified
+9:19:13 AM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+9:19:13 AM core: stopping 2146099
+9:19:13 AM v1 holder: stopping 2103827
+9:19:13 AM v1 holder: stopping 2103828
+9:19:13 AM v1 holder: stopping 2103831
+9:19:14 AM v1 holder: stopping 2103833
+9:19:14 AM v1 holder: stopping 2103834
+9:19:14 AM v1 holder: stopping 2103835
+9:19:17 AM dies 0,1,2,3,4,5: memory released
+9:19:17 AM unit holder: GPUs 0,1,2,3,4,5
+9:28:20 AM unit holder: ready
+9:28:20 AM core: starting libengine_chunk9.so die_units17.cubin 
+9:28:23 AM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+9:28:26 AM config 0: FLASH_CHUNK_PREFILL=256 FLASH_CHUNK_PROF=1 FLASH_CHUNK_CHECK=1: reload ok: engine reloaded
+9:28:28 AM config 0: decode FAILED
+9:28:35 AM config 1: FLASH_CHUNK_PREFILL=128 FLASH_CHUNK_PROF=1 FLASH_CHUNK_CHECK=1: reload ok: engine reloaded
+9:28:36 AM config 1: decode FAILED
+9:28:43 AM config 2: FLASH_CHUNK_PREFILL=256 FLASH_CHUNK_TRACE=1 FLASH_LAYERS=6: reload ok: engine reloaded
+9:28:44 AM config 2: decode FAILED
+9:28:44 AM restore: v1 holders and the serving engine
+9:28:44 AM core: stopping 2195389
+9:28:45 AM unit holder: stopping 2151720
+9:28:48 AM dies 0,1,2,3,4,5: memory released
+9:28:48 AM v1 holder 0: GPU 0
+9:28:48 AM v1 holder 1: GPU 1
+9:28:48 AM v1 holder 2: GPU 2
+9:28:48 AM v1 holder 3: GPU 3
+9:28:48 AM v1 holder 4: GPU 4
+9:28:48 AM v1 holder 5: GPU 5
+9:39:30 AM v1 holders: ready
+9:39:30 AM core: starting libengine.so die.cubin 
+9:39:33 AM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+9:39:36 AM restore: serving config verified
+10:02:59 AM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+10:02:59 AM core: stopping 2246632
+10:02:59 AM v1 holder: stopping 2197781
+10:03:00 AM v1 holder: stopping 2197782
+10:03:00 AM v1 holder: stopping 2197783
+10:03:00 AM v1 holder: stopping 2197785
+10:03:00 AM v1 holder: stopping 2197786
+10:03:00 AM v1 holder: stopping 2197787
+10:03:04 AM dies 0,1,2,3,4,5: memory released
+10:03:04 AM unit holder: GPUs 0,1,2,3,4,5
+10:12:43 AM unit holder: ready
+10:12:43 AM core: starting libengine_chunk10.so dief_u19.cubin 
+10:12:46 AM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+10:12:49 AM config 0: FLASH_CHUNK_PREFILL=256 FLASH_CHUNK_PROF=1 FLASH_CHUNK_CHECK=1: reload ok: engine reloaded
+10:12:58 AM config 0: decode done
+10:13:50 AM config 0: prefill done
+10:13:53 AM config 1: FLASH_CHUNK_PREFILL=256 FLASH_CHUNK_TRACE=1: reload ok: engine reloaded
+10:14:02 AM config 1: decode done
+10:14:55 AM config 1: prefill done
+10:14:55 AM restore: v1 holders and the serving engine
+10:14:55 AM core: stopping 2569582
+10:14:55 AM unit holder: stopping 2527212
+10:14:58 AM dies 0,1,2,3,4,5: memory released
+10:14:58 AM v1 holder 0: GPU 0
+10:14:58 AM v1 holder 1: GPU 1
+10:14:58 AM v1 holder 2: GPU 2
+10:14:58 AM v1 holder 3: GPU 3
+10:14:58 AM v1 holder 4: GPU 4
+10:14:58 AM v1 holder 5: GPU 5
+10:23:28 AM v1 holders: ready
+10:23:28 AM core: starting libengine.so die.cubin 
+10:23:31 AM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+10:23:33 AM restore: serving config verified
+10:25:10 AM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+10:25:10 AM core: stopping 2619526
+10:25:10 AM v1 holder: stopping 2581230
+10:25:10 AM v1 holder: stopping 2581232
+10:25:11 AM v1 holder: stopping 2581233
+10:25:11 AM v1 holder: stopping 2581234
+10:25:11 AM v1 holder: stopping 2581235
+10:25:11 AM v1 holder: stopping 2581236
+10:25:15 AM dies 0,1,2,3,4,5: memory released
+10:25:15 AM unit holder: GPUs 0,1,2,3,4,5
+10:34:12 AM unit holder: ready
+10:34:12 AM core: starting libengine_chunk10.so dief_u19.cubin 
+10:34:15 AM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+10:34:18 AM config 0: FLASH_CHUNK_PREFILL=256 FLASH_CHUNK_TRACE=1: reload ok: engine reloaded
+10:34:25 AM config 0: decode done
+10:35:15 AM config 0: prefill done
+10:35:18 AM config 1: FLASH_CHUNK_PREFILL=512 FLASH_CHUNK_TRACE=1: reload ok: engine reloaded
+10:35:26 AM config 1: decode done
+10:36:16 AM config 1: prefill done
+10:36:16 AM restore: v1 holders and the serving engine
+10:36:16 AM core: stopping 2669038
+10:36:16 AM unit holder: stopping 2627865
+10:36:19 AM dies 0,1,2,3,4,5: memory released
+10:36:19 AM v1 holder 0: GPU 0
+10:36:19 AM v1 holder 1: GPU 1
+10:36:19 AM v1 holder 2: GPU 2
+10:36:19 AM v1 holder 3: GPU 3
+10:36:19 AM v1 holder 4: GPU 4
+10:36:19 AM v1 holder 5: GPU 5
+10:44:43 AM v1 holders: ready
+10:44:43 AM core: starting libengine.so die.cubin 
+10:44:46 AM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+10:44:49 AM restore: serving config verified
+10:44:51 AM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+10:44:51 AM core: stopping 2718438
+10:44:51 AM v1 holder: stopping 2679770
+10:44:51 AM v1 holder: stopping 2679771
+10:44:51 AM v1 holder: stopping 2679772
+10:44:51 AM v1 holder: stopping 2679773
+10:44:52 AM v1 holder: stopping 2679774
+10:44:52 AM v1 holder: stopping 2679775
+10:44:55 AM dies 0,1,2,3,4,5: memory released
+10:44:55 AM unit holder: GPUs 0,1,2,3,4,5
+10:53:52 AM unit holder: ready
+10:53:52 AM core: starting libengine_chunk10.so dief_u19.cubin 
+10:53:55 AM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+10:53:58 AM config 0: FLASH_CHUNK_PREFILL=0: reload ok: engine reloaded
+10:54:23 AM config 0: decode done
+11:01:33 AM config 0: prefill done
+11:01:36 AM config 1: FLASH_CHUNK_PREFILL=256: reload ok: engine reloaded
+11:01:58 AM config 1: decode done
+11:03:37 AM config 1: prefill done
+11:03:37 AM restore: v1 holders and the serving engine
+11:03:37 AM core: stopping 2760136
+11:03:37 AM unit holder: stopping 2719424
+11:03:40 AM dies 0,1,2,3,4,5: memory released
+11:03:40 AM v1 holder 0: GPU 0
+11:03:40 AM v1 holder 1: GPU 1
+11:03:40 AM v1 holder 2: GPU 2
+11:03:40 AM v1 holder 3: GPU 3
+11:03:40 AM v1 holder 4: GPU 4
+11:03:40 AM v1 holder 5: GPU 5
+11:12:19 AM v1 holders: ready
+11:12:19 AM core: starting libengine.so die.cubin 
+11:12:22 AM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+11:12:24 AM restore: serving config verified
+11:23:42 AM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+11:23:42 AM core: stopping 2846085
+11:23:42 AM v1 holder: stopping 2808324
+11:23:42 AM v1 holder: stopping 2808327
+11:23:42 AM v1 holder: stopping 2808330
+11:23:43 AM v1 holder: stopping 2808332
+11:23:43 AM v1 holder: stopping 2808333
+11:23:43 AM v1 holder: stopping 2808334
+11:23:46 AM dies 0,1,2,3,4,5: memory released
+11:23:46 AM unit holder: GPUs 0,1,2,3,4,5
+11:31:53 AM unit holder: ready
+11:31:53 AM core: starting libengine_chunk13.so dief_u22.cubin 
+11:31:56 AM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+11:31:58 AM config 0: FLASH_CHUNK_PREFILL=256 FLASH_CHUNK_TRACE=1: reload ok: engine reloaded
+11:32:20 AM config 0: decode done
+11:34:02 AM config 0: prefill done
+11:34:02 AM restore: v1 holders and the serving engine
+11:34:02 AM core: stopping 2936474
+11:34:02 AM unit holder: stopping 2900387
+11:34:06 AM dies 0,1,2,3,4,5: memory released
+11:34:06 AM v1 holder 0: GPU 0
+11:34:06 AM v1 holder 1: GPU 1
+11:34:06 AM v1 holder 2: GPU 2
+11:34:06 AM v1 holder 3: GPU 3
+11:34:06 AM v1 holder 4: GPU 4
+11:34:06 AM v1 holder 5: GPU 5
+11:42:51 AM v1 holders: ready
+11:42:51 AM core: starting libengine.so die.cubin 
+11:42:54 AM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+11:42:56 AM restore: serving config verified
+2:03:08 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+2:03:08 PM core: stopping 2985925
+2:03:08 PM v1 holder: stopping 2946899
+2:03:08 PM v1 holder: stopping 2946901
+2:03:09 PM v1 holder: stopping 2946902
+2:03:09 PM v1 holder: stopping 2946905
+2:03:09 PM v1 holder: stopping 2946906
+2:03:09 PM v1 holder: stopping 2946907
+2:03:13 PM dies 0,1,2,3,4,5: memory released
+2:03:13 PM unit holder: GPUs 0,1,2,3,4,5
+2:12:13 PM unit holder: ready
+2:12:13 PM core: starting libengine_chunk15.so dief_u24.cubin 
+2:12:16 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+2:12:19 PM config 0: FLASH_CHUNK_PREFILL=256 FLASH_CHUNK_XH=0: reload ok: engine reloaded
+2:12:48 PM config 0: decode done
+2:14:31 PM config 0: prefill done
+2:14:37 PM config 1: FLASH_CHUNK_PREFILL=1024 FLASH_CHUNK_XH=0: reload error core EOF
+2:14:37 PM config 1: decode FAILED
+2:14:38 PM config 1: prefill FAILED
+2:14:38 PM restore: v1 holders and the serving engine
+2:14:38 PM unit holder: stopping 3728405
+2:14:41 PM dies 0,1,2,3,4,5: memory released
+2:14:41 PM v1 holder 0: GPU 0
+2:14:41 PM v1 holder 1: GPU 1
+2:14:41 PM v1 holder 2: GPU 2
+2:14:41 PM v1 holder 3: GPU 3
+2:14:41 PM v1 holder 4: GPU 4
+2:14:41 PM v1 holder 5: GPU 5
+2:24:29 PM v1 holders: ready
+2:24:29 PM core: starting libengine.so die.cubin 
+2:24:32 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+2:24:34 PM restore: serving config verified
+2:51:00 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+2:51:00 PM core: stopping 3852999
+2:51:00 PM v1 holder: stopping 3799949
+2:51:00 PM v1 holder: stopping 3799950
+2:51:01 PM v1 holder: stopping 3799951
+2:51:01 PM v1 holder: stopping 3799952
+2:51:01 PM v1 holder: stopping 3799953
+2:51:01 PM v1 holder: stopping 3799954
+2:51:05 PM dies 0,1,2,3,4,5: memory released
+2:51:05 PM unit holder: GPUs 0,1,2,3,4,5
+3:01:26 PM unit holder: ready
+3:01:26 PM core: starting libengine_chunk16.so dief_u25.cubin 
+3:01:29 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+3:01:32 PM config 0: FLASH_CHUNK_PREFILL=256 FLASH_CHUNK_XH=0 FLASH_CHUNK_TRACE=1: reload ok: engine reloaded
+3:01:54 PM config 0: decode done
+3:01:56 PM config 0: prefill FAILED
+3:02:03 PM config 1: FLASH_CHUNK_PREFILL=512 FLASH_CHUNK_XH=0 FLASH_CHUNK_TRACE=0: reload error Connection reset by peer @ io_fillbuf - fd:6 
+3:02:03 PM config 1: decode FAILED
+3:02:03 PM config 1: prefill FAILED
+3:02:03 PM restore: v1 holders and the serving engine
+3:02:03 PM unit holder: stopping 3980345
+3:02:07 PM dies 0,1,2,3,4,5: memory released
+3:02:07 PM v1 holder 0: GPU 0
+3:02:07 PM v1 holder 1: GPU 1
+3:02:07 PM v1 holder 2: GPU 2
+3:02:07 PM v1 holder 3: GPU 3
+3:02:07 PM v1 holder 4: GPU 4
+3:02:07 PM v1 holder 5: GPU 5
+3:11:28 PM v1 holders: ready
+3:11:28 PM core: starting libengine.so die.cubin 
+3:11:31 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+3:11:33 PM restore: serving config verified
+3:28:02 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+3:28:03 PM core: stopping 4068521
+3:28:03 PM v1 holder: stopping 4028259
+3:28:03 PM v1 holder: stopping 4028260
+3:28:03 PM v1 holder: stopping 4028261
+3:28:03 PM v1 holder: stopping 4028262
+3:28:03 PM v1 holder: stopping 4028263
+3:28:04 PM v1 holder: stopping 4028264
+3:28:07 PM dies 0,1,2,3,4,5: memory released
+3:28:07 PM unit holder: GPUs 0,1,2,3,4,5
+3:37:07 PM unit holder: ready
+3:37:07 PM core: starting libengine_chunk18.so dief_u26.cubin 
+3:37:10 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+3:37:11 PM measure: decode x 3
+3:37:12 PM measure: decode FAILED
+3:37:12 PM measure: prefill x 2
+3:44:30 PM measure: prefill FAILED
+3:44:30 PM restore: v1 holders and the serving engine
+3:44:30 PM core: stopping 6169
+3:44:30 PM unit holder: stopping 4152072
+3:44:34 PM dies 0,1,2,3,4,5: memory released
+3:44:34 PM v1 holder 0: GPU 0
+3:44:34 PM v1 holder 1: GPU 1
+3:44:34 PM v1 holder 2: GPU 2
+3:44:34 PM v1 holder 3: GPU 3
+3:44:34 PM v1 holder 4: GPU 4
+3:44:34 PM v1 holder 5: GPU 5
+3:50:19 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+3:50:20 PM v1 holder: stopping 48984
+3:50:20 PM v1 holder: stopping 48987
+3:50:20 PM v1 holder: stopping 48991
+3:50:20 PM v1 holder: stopping 48995
+3:50:20 PM v1 holder: stopping 48998
+3:50:20 PM v1 holder: stopping 49000
+3:50:23 PM dies 0,1,2,3,4,5: memory released
+3:50:23 PM unit holder: GPUs 0,1,2,3,4,5
+3:59:08 PM unit holder: ready
+3:59:08 PM core: starting libengine_chunk18.so dief_u26.cubin 
+3:59:12 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+3:59:17 PM config 0: FLASH_CHUNK_PREFILL=256 FLASH_CHUNK_TRACE=1: reload ok: engine reloaded
+3:59:21 PM config 0: decode FAILED
+3:59:28 PM config 0: prefill FAILED
+3:59:28 PM config 1: FLASH_CHUNK_PREFILL=256 FLASH_CHUNK_XH=0: reload error Connection refused - connect(2) for /tmp/flash.sock
+3:59:28 PM config 1: decode FAILED
+3:59:28 PM config 1: prefill FAILED
+3:59:28 PM restore: v1 holders and the serving engine
+3:59:28 PM unit holder: stopping 77029
+3:59:32 PM dies 0,1,2,3,4,5: memory released
+3:59:32 PM v1 holder 0: GPU 0
+3:59:32 PM v1 holder 1: GPU 1
+3:59:32 PM v1 holder 2: GPU 2
+3:59:32 PM v1 holder 3: GPU 3
+3:59:32 PM v1 holder 4: GPU 4
+3:59:32 PM v1 holder 5: GPU 5
+4:06:28 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+4:06:28 PM v1 holder: stopping 128108
+4:06:28 PM v1 holder: stopping 128109
+4:06:28 PM v1 holder: stopping 128112
+4:06:28 PM v1 holder: stopping 128115
+4:06:28 PM v1 holder: stopping 128118
+4:06:28 PM v1 holder: stopping 128121
+4:06:31 PM dies 0,1,2,3,4,5: memory released
+4:06:31 PM unit holder: GPUs 0,1,2,3,4,5
+4:16:50 PM unit holder: ready
+4:16:50 PM core: starting libengine_chunk18.so dief_u26.cubin 
+4:16:54 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+4:16:58 PM config 0: FLASH_CHUNK_PREFILL=256 FLASH_CHUNK_XH=0: reload ok: engine reloaded
+4:17:01 PM config 0: decode FAILED
+4:17:07 PM config 0: prefill FAILED
+4:17:07 PM restore: v1 holders and the serving engine
+4:17:07 PM unit holder: stopping 163607
+4:17:11 PM dies 0,1,2,3,4,5: memory released
+4:17:11 PM v1 holder 0: GPU 0
+4:17:11 PM v1 holder 1: GPU 1
+4:17:11 PM v1 holder 2: GPU 2
+4:17:11 PM v1 holder 3: GPU 3
+4:17:11 PM v1 holder 4: GPU 4
+4:17:11 PM v1 holder 5: GPU 5
+4:27:53 PM v1 holders: ready
+4:27:53 PM core: starting libengine.so die.cubin 
+4:27:56 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+4:27:58 PM restore: serving config verified
+4:28:00 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6
+4:28:01 PM core: stopping 272726
+4:28:01 PM v1 holder: stopping 220432
+4:28:02 PM v1 holder: stopping 220437
+4:28:02 PM v1 holder: stopping 220442
+4:28:02 PM v1 holder: stopping 220443
+4:28:02 PM v1 holder: stopping 220444
+4:28:02 PM v1 holder: stopping 220445
+4:28:06 PM dies 0,1,2,3,4,5: memory released
+4:28:06 PM unit holder: GPUs 0,1,2,3,4,5
+4:39:39 PM unit holder: ready
+4:39:39 PM core: starting libengine_chunk18.so dief_u26.cubin 
+4:39:42 PM core: config rev=unknown-dirty kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/
+4:39:45 PM config 0: FLASH_CHUNK_PREFILL=256 FLASH_CHUNK_RELAY=0: reload ok: engine reloaded
+4:39:46 PM config 0: decode FAILED
+4:39:52 PM config 0: prefill FAILED
+4:39:52 PM restore: v1 holders and the serving engine
+4:39:52 PM unit holder: stopping 273738
+4:39:55 PM dies 0,1,2,3,4,5: memory released
+4:39:55 PM v1 holder 0: GPU 0
+4:39:55 PM v1 holder 1: GPU 1
+4:39:55 PM v1 holder 2: GPU 2
+4:39:55 PM v1 holder 3: GPU 3
+4:39:55 PM v1 holder 4: GPU 4
+4:39:55 PM v1 holder 5: GPU 5
+4:49:49 PM v1 holders: ready
+4:49:49 PM core: starting libengine.so die.cubin 
+4:49:52 PM core: config rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home
+4:49:54 PM restore: serving config verified
+6:31:29 PM units run: logical dies on GPUs 0,1,2,3,4,5, anchor 6

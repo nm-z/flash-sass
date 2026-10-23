@@ -1,0 +1,3 @@
+make: Entering directory '/home/nate/codex/flash-goal-140-1200/q3-nibble-cpu/source/kern'
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -Wextra -o q3_nibble_test q3_nibble_test.c ../ref/quant.c ../ref/gguf.c -I../ref -I/opt/cuda/include -lcuda -lm
+make: Leaving directory '/home/nate/codex/flash-goal-140-1200/q3-nibble-cpu/source/kern'

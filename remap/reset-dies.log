@@ -1,0 +1,24 @@
+12:14:28 PM stopping the die-2 holder
+12:14:28 PM stopping stop-hook-lfm
+12:14:30 PM reset 0: 1 device is currently being used by one or more other processes (e.g., Fabric Manager, CUDA application, graphics application such as an X server, or a monitoring application such as another instance of nvidia-smi). Please first kill all processes using this device and all compute applications running in the system.
+12:14:30 PM reset 1: 1 device is currently being used by one or more other processes (e.g., Fabric Manager, CUDA application, graphics application such as an X server, or a monitoring application such as another instance of nvidia-smi). Please first kill all processes using this device and all compute applications running in the system.
+12:14:30 PM reset 2: 1 device is currently being used by one or more other processes (e.g., Fabric Manager, CUDA application, graphics application such as an X server, or a monitoring application such as another instance of nvidia-smi). Please first kill all processes using this device and all compute applications running in the system.
+12:14:30 PM reset 3: 1 device is currently being used by one or more other processes (e.g., Fabric Manager, CUDA application, graphics application such as an X server, or a monitoring application such as another instance of nvidia-smi). Please first kill all processes using this device and all compute applications running in the system.
+12:14:30 PM reset 4: 1 device is currently being used by one or more other processes (e.g., Fabric Manager, CUDA application, graphics application such as an X server, or a monitoring application such as another instance of nvidia-smi). Please first kill all processes using this device and all compute applications running in the system.
+12:14:30 PM reset 5: 1 device is currently being used by one or more other processes (e.g., Fabric Manager, CUDA application, graphics application such as an X server, or a monitoring application such as another instance of nvidia-smi). Please first kill all processes using this device and all compute applications running in the system.
+12:14:30 PM recreating stop-hook-lfm
+Running as unit: stop-hook-lfm.service; invocation ID: 837250729e7a44398cd533465446ed9a
+12:14:31 PM clock service applied
+12:14:31 PM fence on die 2
+12:15:31 PM fence NOT ready (see remap/fence.log)
+12:15:31 PM power logger (appending)
+0, 7297 MiB, 1177 MHz
+1, 6315 MiB, 1177 MHz
+2, 5231 MiB, 1177 MHz
+3, 7376 MiB, 1177 MHz
+4, 6327 MiB, 1177 MHz
+5, 6265 MiB, 1177 MHz
+6, 0 MiB, 873 MHz
+7, 3130 MiB, 873 MHz
+active
+12:15:33 PM a reset did not report success

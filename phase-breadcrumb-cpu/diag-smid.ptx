@@ -1,0 +1,11 @@
+.version 7.4
+.target sm_52
+.address_size 64
+.visible .entry diag_smid(.param .u64 output) {
+.reg .u64 %p;
+.reg .u32 %s;
+ld.param.u64 %p, [output];
+mov.u32 %s, %smid;
+st.global.u32 [%p], %s;
+ret;
+}

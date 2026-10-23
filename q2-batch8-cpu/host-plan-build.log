@@ -1,0 +1,3 @@
+make: Entering directory '/home/nate/codex/flash-goal-140-1200/q2-batch8-cpu/source/kern'
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -o batch_q2_test batch_q2_test.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm
+make: Leaving directory '/home/nate/codex/flash-goal-140-1200/q2-batch8-cpu/source/kern'

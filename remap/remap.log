@@ -1,0 +1,16 @@
+11:29:14 AM remap: logical die 2 -> GPU 6
+11:29:15 AM core: stopping 1908349
+11:29:15 AM holder 2: stopping 988060
+11:29:17 AM holder 2: starting on GPU 6: flock -s -n /home/nate/codex/asm-port/GPU-431371bd-b482-96b2-4b70-04f83c6d075b.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 6 0 48 /tmp/hold-h2.manifest output split=2/6
+11:31:55 AM holder 2: ready on GPU 6
+11:31:55 AM core: starting (anchor GPU 7)
+11:31:59 AM core: serving config verified
+11:32:00 AM remap: done, logical die 2 on GPU 6
+11:43:28 AM remap: logical die 2 -> GPU 6
+11:43:28 AM core: stopping 1934396
+11:43:29 AM holder 2: stopping 1924275
+11:43:31 AM holder 2: starting on GPU 6: flock -s -n /home/nate/codex/asm-port/GPU-431371bd-b482-96b2-4b70-04f83c6d075b.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 6 0 48 /tmp/hold-h2.manifest output split=2/6
+11:43:41 AM holder 2: ready on GPU 6
+11:43:41 AM core: starting (anchor GPU 7)
+11:43:45 AM core: serving config verified
+11:43:45 AM remap: done, logical die 2 on GPU 6
