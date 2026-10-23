@@ -62,24 +62,42 @@ static uint32_t ttype(int blk, const char *suffix) { const hold_tensor *t = hold
 /* every device allocation is recorded so engine_fini can free it */
 typedef struct { CUdeviceptr p; CUcontext c; size_t bytes; } allocrec;
 static allocrec *allocs; static int nallocs, capallocs; static size_t alloc_bytes;
+static void allocation_report(CUcontext current,size_t bytes,CUresult result) {
+    CUdevice device=-1;size_t available=0,total=0,live=0;int die=-1;
+    CUresult device_status=cuCtxGetDevice(&device);
+    CUresult memory_status=cuMemGetInfo(&available,&total);
+    if(core)for(int d=0;d<nd;d++)if(ctx[d]==current){die=d;break;}
+    for(int i=0;i<nallocs;i++)if(allocs[i].c==current)live+=allocs[i].bytes;
+    fprintf(stderr,"engine: allocation status=%s requested_bytes=%zu die=%d device=%d free_bytes=%zu total_bytes=%zu tracked_die_bytes=%zu result=%d memory_status=%d device_status=%d\n",
+            result==CUDA_SUCCESS?"ok":"failed",bytes,die,device,available,total,live,(int)result,(int)memory_status,(int)device_status);
+}
 static CUdeviceptr dalloc(size_t bytes) {
 	CUdeviceptr p; CUcontext c;
-	CK(cuMemAlloc(&p, bytes)); CK(cuCtxGetCurrent(&c));
+	CK(cuCtxGetCurrent(&c));
+    CUresult result=cuMemAlloc(&p,bytes);
+    if(result!=CUDA_SUCCESS){allocation_report(c,bytes,result);CK(result);}
 	if (nallocs == capallocs) { capallocs = capallocs ? 2 * capallocs : 1024; allocs = realloc(allocs, sizeof *allocs * (size_t)capallocs); }
 	allocs[nallocs++] = (allocrec){ p, c, bytes }; alloc_bytes += bytes;
 	CK(cuMemsetD8(p, 0, bytes));
+    const char *trace=getenv("FLASH_ALLOC_TRACE");
+    if(trace && !strcmp(trace,"1"))allocation_report(c,bytes,CUDA_SUCCESS);
 	return p;
 }
 /* Clone an activation allocation's shape, leaving the new position zero-filled.
  * Cached weights, positional KV, recurrent state and token arrays are shared. */
-static CUdeviceptr scratch_like(CUdeviceptr p) {
+static size_t scratch_bytes(CUdeviceptr p) {
 	if (!p) return 0;
-	for (int i = 0; i < nallocs; i++) if (allocs[i].p == p) {
-		size_t bytes = allocs[i].bytes;
-		return dalloc(bytes);
-	}
-	fprintf(stderr, "engine: unregistered paired activation allocation\n");
+	for (int i = 0; i < nallocs; i++) if (allocs[i].p == p) return allocs[i].bytes;
+	fprintf(stderr, "engine: unregistered position activation allocation\n");
 	longjmp(init_jb, 1);
+}
+static CUdeviceptr position_scratch(CUdeviceptr p, CUdeviceptr arena, size_t *offset) {
+	if (!p) return 0;
+	size_t bytes = scratch_bytes(p);
+	if (!offset) return dalloc(bytes); /* retain legacy B2 allocation layout */
+	CUdeviceptr out = arena + *offset;
+	*offset += (bytes + 255u) & ~(size_t)255u;
+	return out;
 }
 
 /* ---- the engine: everything main() loads once, used by every response ---- */
@@ -87,9 +105,19 @@ static int MAXT; static float eps = 1e-6f;
 static CUmodule mod[MAXD]; static CUfunction fn[MAXD];
 static uint32_t *s_ids, *s_toks;   /* engine_session scratch (positions each) */
 static dn_weights_t (*dw)[NB]; static dn_bufs_t db[MAXD]; static xchg_t xc[MAXD]; static split_t (*sp)[NB];
-static dn_bufs_t db_pair[MAXD]; static xchg_t xc_pair[MAXD];
-static int two_position, prefill_chunk;       /* opt-in causal forward over two known prompt ids */
-static int last_positions, last_paired_positions, last_prefill_chunks;
+static dn_bufs_t db_extra[PROG_MAX_POSITIONS - 1][MAXD];
+static xchg_t xc_extra[PROG_MAX_POSITIONS - 1][MAXD];
+static dn_bufs_t db_prefix[PROG_MAX_POSITIONS][MAXD];
+static xchg_t xc_prefix[PROG_MAX_POSITIONS][MAXD];
+static int two_position, prefill_chunk, prefill_batch, q2_batch, hcup_batch, hcr_batch;
+static unsigned position_capacity = 1, program_capacity = PROG_MAX_PHASES;
+static unsigned allocated_program[MAXD];
+static int last_positions, last_paired_positions, last_prefill_chunks, last_batched_positions;
+static unsigned last_hcr_groups[MAXD]; /* transformed groups in last constructed batch program */
+static dn_bufs_t *position_buf(unsigned position, int d) { return position ? &db_extra[position - 1][d] : &db[d]; }
+static xchg_t *position_xchg(unsigned position, int d) { return position ? &xc_extra[position - 1][d] : &xc[d]; }
+static dn_bufs_t *prefix_buf(unsigned position, int d) { return prefill_batch>=16 ? &db_prefix[position][d] : position_buf(position,d); }
+static xchg_t *prefix_xchg(unsigned position, int d) { return prefill_batch>=16 ? &xc_prefix[position][d] : position_xchg(position,d); }
 static CUdeviceptr dPROG[MAXD], dCTL[MAXD], (*dst_dn)[NB], (*dst_conv)[NB], (*dst_kq)[NB], (*dst_ks)[NB], (*dst_vq)[NB], (*dst_vs)[NB], (*dst_pkt)[NB], (*dst_ring)[NB], (*snap_ring)[NB], dst_ple[MAXD];
 static size_t dn_bytes[MAXD][NB], conv_bytes[MAXD][NB], kcf, vcf;
 static int kv_host = 1;                  /* FLASH_KV_HOST=0: the int8 KV caches in VRAM (small contexts) instead of pinned host memory */
@@ -174,7 +202,7 @@ static void trace_reject_arguments(void) {
     trace_requested = 0;
     trace_status = "argument_error";
 }
-static int prof_layer[MAXD][4096];
+static int prof_layer[MAXD][PROG_MAX_PROFILE_PHASES];
 typedef struct {
     uint64_t observed, callback_start, callback_end, staging_start, staging_end, ready;
     unsigned bytes, short_reads;
@@ -182,8 +210,8 @@ typedef struct {
 static host_trace trace_host[256];
 static int trace_slot(int p) { return p >= 0 && (unsigned)p >= trace_first && (unsigned)p - trace_first < trace_n ? (int)((unsigned)p - trace_first) : -1; }
 static uint64_t host_ns(void) { struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts); return (uint64_t)ts.tv_sec * 1000000000ull + (uint64_t)ts.tv_nsec; }
-static uint32_t prof_units[MAXD][4096], prof_flags[MAXD][4096];
-static uint32_t prof_op[MAXD][4096], prof_index[MAXD][4096];
+static uint32_t prof_units[MAXD][PROG_MAX_PROFILE_PHASES], prof_flags[MAXD][PROG_MAX_PROFILE_PHASES];
+static uint32_t prof_op[MAXD][PROG_MAX_PROFILE_PHASES], prof_index[MAXD][PROG_MAX_PROFILE_PHASES];
 static int prof_nph[MAXD]; static unsigned prof_desc[MAXD];   /* every die's program of the last response, for the "prof" command */
 
 /* A validation-only readback, requested explicitly with `statehash`. Hash each
@@ -200,7 +228,7 @@ static uint64_t device_fnv(CUdeviceptr p, size_t bytes, uint64_t h) {
 }
 static void state_hashes(FILE *out) {
 	const uint64_t seed = 0xcbf29ce484222325ull;
-	fprintf(out, "statehash positions=%d paired_positions=%d prefill_chunks=%d\n", last_positions, last_paired_positions, last_prefill_chunks);
+	fprintf(out, "statehash positions=%d paired_positions=%d prefill_chunks=%d batched_positions=%d\n", last_positions, last_paired_positions, last_prefill_chunks, last_batched_positions);
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
 		for (int bb = 0; bb < nlayers_run; bb++) {
@@ -293,10 +321,9 @@ static void kv_stats(FILE *out) {
 	fflush(out);
 }
 
-static void alloc_second_position(int d) {
-	dn_bufs_t *b = &db_pair[d];
-	*b = db[d];
-#define SECOND(field) b->field = scratch_like(b->field)
+static void clone_position_fields(dn_bufs_t *b, unsigned position,
+                                  CUdeviceptr arena, size_t *offset) {
+#define SECOND(field) b->field = position_scratch(b->field, arena, offset)
 	SECOND(S); SECOND(S2); SECOND(xh); SECOND(t);
 	SECOND(ldown); SECOND(lup); SECOND(lz);
 	SECOND(zq); SECOND(zs32); SECOND(zs16); SECOND(zas);
@@ -305,19 +332,120 @@ static void alloc_second_position(int d) {
 	SECOND(r); SECOND(idx); SECOND(w); SECOND(s);
 	SECOND(lidx); SECOND(lw); SECOND(ne); SECOND(part);
 	SECOND(g); SECOND(gu); SECOND(hq); SECOND(hs32); SECOND(hs16); SECOND(has); SECOND(out);
-	SECOND(qg); SECOND(k); SECOND(v); SECOND(qo); SECOND(kc); SECOND(vc);
-	SECOND(pm); SECOND(pd); SECOND(po); SECOND(aout);
+	SECOND(qg); SECOND(k); SECOND(v); SECOND(qo); SECOND(aout);
+	/* B2 keeps independent gathers. Wider headless programs serialize the
+	 * validated gather/partial/merge span per position, so positions 2..7 may
+	 * reuse position 0's compact caches and partial reductions. */
+	if (position < 2) { SECOND(kc); SECOND(vc); SECOND(pm); SECOND(pd); SECOND(po); }
 	SECOND(iqk); SECOND(iq); SECOND(sc); SECOND(hst); SECOND(sel);
 	SECOND(pg); SECOND(pgq); SECOND(pgs32); SECOND(pgs16); SECOND(pgas);
 	SECOND(lk); SECOND(kn); SECOND(qn); SECOND(lv); SECOND(pG); SECOND(pgates); SECOND(px); SECOND(prows);
-	SECOND(hlo); SECOND(amo); SECOND(apart); SECOND(acnt); SECOND(tokout);
-	SECOND(tkout); SECOND(tkpart); SECOND(tkcnt);
+	/* Only B1/B2 diagnostic programs can include a head; B8 is headless. */
+	if (position < 2) {
+		SECOND(hlo); SECOND(amo); SECOND(apart); SECOND(acnt); SECOND(tokout);
+		SECOND(tkout); SECOND(tkpart); SECOND(tkcnt);
+	}
 #undef SECOND
-	/* Each position has both exchange slots, while a logical paired exchange has
+}
+
+static void alloc_position(int d, unsigned position) {
+	dn_bufs_t *b = position_buf(position, d);
+	xchg_t *x = position_xchg(position, d);
+	*b = db[d]; *x = xc[d];
+	if (position < 2) {
+		clone_position_fields(b, position, 0, NULL);
+		x->inbox = dalloc(2 * XSLOT); x->xtab = dalloc(128);
+	} else {
+		/* Six compact headless arenas avoid hundreds of small allocations near
+		 * the serving memory limit. Each activation retains 256-byte alignment. */
+		size_t bytes = 0;
+		clone_position_fields(b, position, 0, &bytes);
+		CUdeviceptr arena = dalloc(bytes + 2 * XSLOT + 256);
+		*b = db[d]; size_t offset = 0;
+		clone_position_fields(b, position, arena, &offset);
+		x->inbox = arena + bytes; x->xtab = x->inbox + 2 * XSLOT;
+	}
+	/* Each position has both exchange slots, while a logical grouped exchange has
 	 * one generation and one publication to the common peer flags. */
-	xc_pair[d] = xc[d];
-	xc_pair[d].inbox = dalloc(2 * XSLOT);
-	xc_pair[d].xtab = dalloc(128);
+}
+
+/* Six-die headless lifetimes. Shared indexer, compact attention and PLE fields
+ * remain inherited from db[0]; prog_group_aliased serializes their consumers. */
+enum {
+    WIDE_A=0, WIDE_B=56320, WIDE_C=97280, WIDE_D=115200,
+    WIDE_S=125440, WIDE_T=166400, WIDE_IDX=167936, WIDE_W=168192,
+    WIDE_SHARED_GATE=168448, WIDE_LIDX=168704, WIDE_LW=168960,
+    WIDE_NE=169216, WIDE_PROWS=169472, WIDE_XTAB=169728,
+    WIDE_INBOX=169984, WIDE_ARENA_BYTES=301056
+};
+static size_t wide_align(size_t bytes) { return (bytes+255u)&~(size_t)255u; }
+static int wide_position_fields(dn_bufs_t *b, xchg_t *x, CUdeviceptr arena, const split_t *shape) {
+    if(!shape || shape->hn<0 || shape->hn>48 || shape->nk<0 || shape->nk>16 ||
+       shape->cbn<0 || shape->cbn>80 || shape->pkn<0 || shape->pkn>10240 ||
+       shape->yn<0 || shape->yn>2560)return -1;
+    size_t qkv=4u*(size_t)SPLIT_NLOC(shape),gate=4u*128u*(unsigned)shape->hn;
+    size_t lu_off=wide_align(qkv),gate_off=lu_off+wide_align(qkv),ab_off=gate_off+wide_align(gate);
+    /* SPLIT_SHARES changes every local extent even with six dies. Refuse a
+     * geometry that cannot fit these workspaces before assigning any views. */
+    if(ab_off+wide_align(8u*(unsigned)shape->hn)>WIDE_B-WIDE_A ||
+       16u*32u*(size_t)shape->cbn>WIDE_S-WIDE_D ||
+       4u*(size_t)shape->pkn>WIDE_S-WIDE_D ||
+       4u*(size_t)shape->yn>WIDE_S-WIDE_D)return -1;
+    CUdeviceptr A=arena+WIDE_A,B=arena+WIDE_B,C=arena+WIDE_C,D=arena+WIDE_D;
+    b->S=arena+WIDE_S;b->t=arena+WIDE_T;
+    b->xh=b->qg=b->kn=b->g=A;b->gu=A+28160;
+    b->lqkv=A;b->lu=A+lu_off;b->lgate=A+gate_off;b->la=A+ab_off;b->lo=A;
+    b->S2=b->qn=b->qo=b->aout=b->oq=B;
+    b->os32=B+12288;b->os16=B+13056;b->oas=B+14592;
+    b->hq=b->zq=b->pg=C;
+    b->hs32=C+14080;b->hs16=C+15104;b->has=C+16896;
+    b->zs32=C+5120;b->zs16=C+5632;b->zas=C+6400;
+    b->pgq=C+10240;b->pgs32=C+15360;b->pgs16=C+15872;b->pgas=C+16640;
+    /* r dies before MOESEL zeroes part; part stays separate from G/GU for
+     * zero-local-expert correctness. OUT is written only after part is sent. */
+    b->part=b->out=b->r=b->lup=b->ly=b->lk=b->lv=D;
+    b->k=D;b->v=D+2048;b->iqk=D+4096;
+    b->ldown=b->lz=b->lon=D; /* no model-program consumers */
+    b->idx=arena+WIDE_IDX;b->w=arena+WIDE_W;b->s=arena+WIDE_SHARED_GATE;
+    b->lidx=arena+WIDE_LIDX;b->lw=arena+WIDE_LW;b->ne=arena+WIDE_NE;
+    b->prows=arena+WIDE_PROWS;x->xtab=arena+WIDE_XTAB;x->inbox=arena+WIDE_INBOX;
+    return 0;
+}
+static void clone_head_fields(dn_bufs_t *b, CUdeviceptr arena, size_t *offset) {
+#define HEAD(field) b->field=position_scratch(b->field,arena,offset)
+    HEAD(hlo);HEAD(amo);HEAD(apart);HEAD(acnt);HEAD(tokout);
+    HEAD(tkout);HEAD(tkpart);HEAD(tkcnt);
+#undef HEAD
+}
+static void alloc_wide_prefix(int d) {
+    split_t shape=sp[d][0];
+    /* Use maxima from the actual program split, rather than assuming equal
+     * shares or that later blocks retain the first block's geometry. */
+    for(int bb=1;bb<NB;bb++) {
+        const split_t *s=&sp[d][bb];
+        if(s->hn>shape.hn)shape.hn=s->hn;
+        if(s->nk>shape.nk)shape.nk=s->nk;
+        if(s->cbn>shape.cbn)shape.cbn=s->cbn;
+        if(s->pkn>shape.pkn)shape.pkn=s->pkn;
+        if(s->yn>shape.yn)shape.yn=s->yn;
+    }
+    dn_bufs_t probe=db[d];xchg_t probe_x=xc[d];
+    if(wide_position_fields(&probe,&probe_x,0,&shape)) {
+        fprintf(stderr,"engine: wide arena cannot fit die %d split hn=%d nk=%d cbn=%d pkn=%d yn=%d\n",d,shape.hn,shape.nk,shape.cbn,shape.pkn,shape.yn);
+        longjmp(init_jb,1);
+    }
+    CUdeviceptr arena=dalloc((size_t)prefill_batch*WIDE_ARENA_BYTES);
+    for(unsigned k=0;k<(unsigned)prefill_batch;k++) {
+        dn_bufs_t *b=&db_prefix[k][d];xchg_t *x=&xc_prefix[k][d];
+        *b=db[d];*x=xc[d];
+        if(wide_position_fields(b,x,arena+(size_t)k*WIDE_ARENA_BYTES,&shape))longjmp(init_jb,1);
+        if(k==1) {
+            /* Preserve independent head/sampler results for the gen-0 B2
+             * diagnostic without retaining its old compact-cache clone. */
+            dn_bufs_t saved=*b;size_t bytes=0;clone_head_fields(b,0,&bytes);
+            CUdeviceptr head=dalloc(bytes);*b=saved;size_t used=0;clone_head_fields(b,head,&used);
+        }
+    }
 }
 
 static void state_copy(int to_snapshot) {
@@ -335,14 +463,17 @@ static void state_copy(int to_snapshot) {
 	}
 }
 
-/* Both positions use the same layer state and positional caches, with separate
+/* All known positions use the same layer state and positional caches, with separate
  * activations, router selections, compact gathers and exchange inboxes. */
 static void model_program(prog_t *P, int d, unsigned position, unsigned nprompt,
                           const uint32_t stop[2], int samp_k, float topp, float invT,
-                          int include_head) {
-	const dn_bufs_t *b = position ? &db_pair[d] : &db[d];
-	const xchg_t *x = position ? &xc_pair[d] : &xc[d];
-	if (!position) for (int p = 0; p < 4096; p++) prof_layer[d][p] = -1;
+                          int include_head, int prefix_layout) {
+	if (position >= position_capacity || (position > 1 && include_head)) {
+		fprintf(stderr, "engine: invalid position %u head=%d\n", position, include_head); longjmp(run_jb, 1);
+	}
+	const dn_bufs_t *b = prefix_layout ? prefix_buf(position,d) : position_buf(position,d);
+	const xchg_t *x = prefix_layout ? prefix_xchg(position,d) : position_xchg(position,d);
+	if (!position) for (unsigned p = 0; p < PROG_MAX_PHASES; p++) prof_layer[d][p] = -1;
 	prog_init(P); P->loop = 1; P->token_offset = position;
 	P->stop[0] = stop[0]; P->stop[1] = stop[1]; P->end = dCTL[d] + 0x14;
 	P->samp_k = samp_k; P->samp_topp = topp; P->samp_invT = invT;
@@ -359,23 +490,47 @@ static void model_program(prog_t *P, int d, unsigned position, unsigned nprompt,
 		if (bb == 1) prog_ple_prefix(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
 		if (BLK_IS_ATTN(bb)) prog_attn_block(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
 		else prog_deltanet_block(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
-		if (!position) for (int p = phase_first; p < P->n && p < 4096; p++) prof_layer[d][p] = bb;
+		if (!position) for (int p = phase_first; p < P->n && p < (int)PROG_MAX_PHASES; p++) prof_layer[d][p] = bb;
 	}
 	if (include_head) prog_head(P, &sp[d][0], x, &dw[d][0], b, eps, 0, nprompt);
 	prog_token_end(P, x, d, nd, b->S);
+}
+
+/* Opt-in batched programs grow descriptor storage to the actual program size.
+ * Keep CTL fixed: descriptors and exchange tables contain addresses within it. */
+static void ensure_program_capacity(int d, unsigned descriptors) {
+	if (allocated_program[d] >= descriptors) return;
+	CUdeviceptr old = dPROG[d]; int old_index = -1;
+	if (old) {
+		for (int i = 0; i < nallocs; i++) if (allocs[i].p == old && allocs[i].c == ctx[d]) { old_index = i; break; }
+		if (old_index < 0) { fprintf(stderr, "engine: unregistered program allocation\n"); longjmp(run_jb, 1); }
+	}
+	CUdeviceptr fresh = dalloc(sizeof(phase_t) * descriptors);
+	if (old) {
+		CK(cuMemFree(old)); alloc_bytes -= allocs[old_index].bytes;
+		allocs[old_index] = allocs[--nallocs];
+	}
+	dPROG[d] = fresh; allocated_program[d] = descriptors;
 }
 
 static void upload_programs(const prog_t *P, unsigned *nph, unsigned positions) {
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
 		nph[d] = (unsigned)P[d].n;
-		if (nph[d] > 4096) { fprintf(stderr, "program too long (%u descriptors)\n", nph[d]); longjmp(run_jb, 1); }
+		if (nph[d] > program_capacity) { fprintf(stderr, "program too long (%u descriptors; capacity %u)\n", nph[d], program_capacity); longjmp(run_jb, 1); }
         prof_desc[d] = nph[d]; prof_nph[d] = 0;
-        for (int i = 0; i < P[d].n; i += (P[d].p[i].w[30] & 8u) ? 2 : 1) {
+        for (int i = 0; i < P[d].n; ) {
+            unsigned width = phase_positions(&P[d].p[i]);
+            if (!width || positions%width || width > (unsigned)(P[d].n - i) ||
+                prof_nph[d] >= (int)PROG_MAX_PROFILE_PHASES) {
+                fprintf(stderr, "engine: invalid grouped program on die %d\n", d); longjmp(run_jb, 1);
+            }
             int j = prof_nph[d]++;
             prof_index[d][j] = (uint32_t)i; prof_op[d][j] = P[d].p[i].w[0];
             prof_units[d][j] = P[d].p[i].w[1]; prof_flags[d][j] = P[d].p[i].w[30];
+            i += (int)width;
         }
+		ensure_program_capacity(d, nph[d]);
 		CK(cuMemcpyHtoD(dPROG[d], P[d].p, sizeof(phase_t) * (size_t)P[d].n));
 		CK(cuMemsetD32(dCTL[d] + 0x24, positions, 1));
 	}
@@ -384,7 +539,7 @@ static void upload_programs(const prog_t *P, unsigned *nph, unsigned positions) 
 /* ---- persistent launches bounded by snapshots and known-prefix tails ---- */
 typedef struct {
 	int T, nprompt, ntok, sent, count, ended, aborted;
-	int paired_positions, prefill_chunks;
+	int paired_positions, prefill_chunks, batched_positions;
 	double tfirst;
 	const engine_cb *cb;
 } runctx;
@@ -508,14 +663,22 @@ static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 	}
 }
 
-/* The paired program may only consume known ids. Stop before the last prompt
+/* Grouped programs may only consume known ids. Stop before the last prompt
  * position, whose head produces the first generated token. */
-static void run_known_prefix(runctx *r, const prog_t *single, const prog_t *pair, int end) {
+static void run_known_prefix(runctx *r, const prog_t *single, const prog_t *pair,
+                             const prog_t *batch, int end) {
 	unsigned nph[MAXD];
 	if (r->aborted || r->count >= end) return;
-	if (pair && end - r->count >= 2) {
+	if (batch && end - r->count >= prefill_batch) {
 		int start = r->count;
-		int paired_end = end - ((end - r->count) & 1);
+		int batch_end = prefill_batch_end(start, end, prefill_batch);
+		upload_programs(batch, nph, (unsigned)prefill_batch);
+		run_segment(r, nph, batch_end);
+		r->batched_positions += r->count - start;
+	}
+	if (!r->aborted && pair && end - r->count >= 2) {
+		int start = r->count;
+		int paired_end = prefill_batch_end(start, end, 2);
 		upload_programs(pair, nph, 2);
 		run_segment(r, nph, paired_end);
 		r->paired_positions += r->count - start;
@@ -530,8 +693,9 @@ static void run_known_prefix(runctx *r, const prog_t *single, const prog_t *pair
  * Poll at every host boundary, even if a fast GPU launch finished before its
  * in-flight poll ran. No generated ID is admitted to this program. */
 static void run_prefill_prefix(runctx *r, const prog_t *full,
-                               const prog_t *prefix, const prog_t *pair, int end) {
-    if (!prefix) { run_known_prefix(r, full, pair, end); return; }
+                               const prog_t *prefix, const prog_t *pair,
+                               const prog_t *batch, int end) {
+    if (!prefix) { run_known_prefix(r, full, pair, NULL, end); return; }
     while (!r->aborted && r->count < end) {
         if (r->cb && r->cb->alive && r->cb->alive(r->cb->arg)) {
             r->aborted = 1;
@@ -543,7 +707,7 @@ static void run_prefill_prefix(runctx *r, const prog_t *full,
             fprintf(stderr, "engine: invalid prefill boundary at %d of %d\n", r->count, end);
             longjmp(run_jb, 1);
         }
-        run_known_prefix(r, prefix, pair, chunk.end);
+        run_known_prefix(r, prefix, pair, batch, chunk.end);
         if (r->count == chunk.end) r->prefill_chunks++;
         else if (!r->aborted) {
             fprintf(stderr, "engine: prefill stopped at %d before %d\n", r->count, chunk.end);
@@ -575,7 +739,7 @@ static void rope_plain(int T) {
 /* 0, or -3: a bad file, a segment outside the prompt or out of order, too many rows */
 static int prepare_images(const engine_img *imgs, int nimg, int nprompt, int T) {
 	if (!nimg) {   /* a response without images: undo what the last one left on the dies */
-		if (imap_dirty) { for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemsetD32(db[d].imap, 0xffffffffu, (size_t)MAXT + 2)); } imap_dirty = 0; }
+		if (imap_dirty) { for (int d = 0; d < nd; d++) if(db[d].imap) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemsetD32(db[d].imap, 0xffffffffu, (size_t)MAXT + 2)); } imap_dirty = 0; }
 		if (rope_dirty_T) { rope_plain(rope_dirty_T); rope_dirty_T = 0; }
 		return 0;
 	}
@@ -605,7 +769,7 @@ static int prepare_images(const engine_img *imgs, int nimg, int nprompt, int T) 
 	}
 	if (!bad) {
 		for (; t < T; t++, L++) pos3[t][0] = pos3[t][1] = pos3[t][2] = (uint32_t)L;
-		for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(db[d].img, h16, 2 * 2560 * (size_t)rows)); CK(cuMemcpyHtoD(db[d].imap, h_imap, 4 * ((size_t)T + 2))); }
+		for (int d = 0; d < nd; d++) if(db[d].img && db[d].imap) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(db[d].img, h16, 2 * 2560 * (size_t)rows)); CK(cuMemcpyHtoD(db[d].imap, h_imap, 4 * ((size_t)T + 2))); }
 		rope_upload(pos3, T); imap_dirty = 1; if (T > rope_dirty_T) rope_dirty_T = T;
 	}
 	free(pos3); free(h16);
@@ -613,6 +777,7 @@ static int prepare_images(const engine_img *imgs, int nimg, int nprompt, int T) 
 }
 
 int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], const sampling *sm, int snap_at, const engine_img *imgs, int nimg, const engine_cb *cb, run_stats *st) {
+    memset(last_hcr_groups,0,sizeof last_hcr_groups);
     kv_trace_complete = 0;
     timing_request_start=now();timing_run_start=0;
     trace_request++;
@@ -660,14 +825,19 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	if (ple_disk) {   /* a new id for this response (never 0); the rows of the positions it runs are staged from `resume` on */
 		ple_rid = ple_rid + 1 ? ple_rid + 1 : 1; ple_start = ple_next = resume; ple_short_reads = 0;
 		memcpy(ple_seq, ids, 4 * (size_t)nprompt);
-		for (int d = 0; d < nd; d++) { db[d].ple_rid = ple_rid; db_pair[d].ple_rid = ple_rid; }
+		for (int d = 0; d < nd; d++) {
+            db[d].ple_rid=ple_rid;
+            for (unsigned k = 0; k < position_capacity; k++) prefix_buf(k, d)->ple_rid = ple_rid;
+        }
 	}
 	prog_t *P = calloc(MAXD, sizeof *P); unsigned nph[MAXD];
 	prog_t *pair = two_position ? calloc(MAXD, sizeof *pair) : NULL;
     /* gen 0 is the existing teacher-forced, full-head diagnostic interface. */
     prog_t *prefix = prefill_chunk && n_new > 0 ? calloc(MAXD, sizeof *prefix) : NULL;
-    if (!P || (two_position && !pair) || (prefill_chunk && n_new > 0 && !prefix)) {
-        free(P); free(pair); free(prefix);
+    prog_t *batch = prefill_batch && prefix ? calloc(MAXD, sizeof *batch) : NULL;
+    if (!P || (two_position && !pair) || (prefill_chunk && n_new > 0 && !prefix) ||
+        (prefill_batch && prefix && !batch)) {
+        free(P); free(pair); free(prefix); free(batch);
         /* No snapshot has been restored or current-request counter observed.
            Allocation failure must not retain the provisional success record. */
         last_timing.error_code = -4;
@@ -695,16 +865,47 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 		CK(cuMemcpyHtoD(db[d].ids, h_ids, 4 * ((size_t)T + 2)));
 		CK(cuMemsetD8(db[d].toks, 0, 4 * ((size_t)T + 2)));
 		if (samp_k) CK(cuMemcpyHtoD(db[d].rnd, h_rnd, 4 * ((size_t)T + 2)));
-		model_program(&P[d], d, 0, (unsigned)nprompt, stop, samp_k, samp_topp, samp_invT, 1);
-		if (prefix) model_program(&prefix[d], d, 0, (unsigned)nprompt, stop, samp_k, samp_topp, samp_invT, 0);
+		model_program(&P[d], d, 0, (unsigned)nprompt, stop, samp_k, samp_topp, samp_invT, 1, 0);
+		if (prefix) model_program(&prefix[d], d, 0, (unsigned)nprompt, stop, samp_k, samp_topp, samp_invT, 0, 1);
 		if (pair) {
 			prog_t second;
-			model_program(&second, d, 1, (unsigned)nprompt, stop, samp_k, samp_topp, samp_invT, prefix == NULL);
+			model_program(&second, d, 1, (unsigned)nprompt, stop, samp_k, samp_topp, samp_invT, prefix == NULL, 1);
 			prog_init(&pair[d]);
-			if (prog_pair(&pair[d], prefix ? &prefix[d] : &P[d], &second)) { fprintf(stderr, "engine: incompatible position programs on die %d\n", d); prog_free(&second); longjmp(run_jb, 1); }
-			/* alloc_second_position gives every position disjoint scratch/inboxes. */
+			const prog_t *pair_positions[]={prefix ? &prefix[d] : &P[d],&second};
+            int pair_rc=prefill_batch>=16 ? prog_group_aliased(&pair[d],pair_positions,2) : prog_pair(&pair[d],pair_positions[0],pair_positions[1]);
+			if (pair_rc) { fprintf(stderr, "engine: incompatible position programs on die %d\n", d); prog_free(&second); longjmp(run_jb, 1); }
+			/* Every position has disjoint scratch and peer inboxes. */
 			prog_pair_fuse_bf16(&pair[d], 1);
 			prog_free(&second);
+		}
+		if (batch) {
+			prog_t extra[PROG_MAX_POSITIONS - 1] = {{0}};
+			const prog_t *positions[PROG_MAX_POSITIONS]; positions[0] = &prefix[d];
+			for (unsigned k = 1; k < (unsigned)prefill_batch; k++) {
+				model_program(&extra[k - 1], d, k, (unsigned)nprompt, stop, samp_k, samp_topp, samp_invT, 0, 1);
+				positions[k] = &extra[k - 1];
+			}
+			prog_init(&batch[d]);
+			int rc = prefill_batch>=16 ? prog_group_aliased(&batch[d],positions,(unsigned)prefill_batch) : prog_group(&batch[d], positions, (unsigned)prefill_batch);
+			for (unsigned k = 1; k < (unsigned)prefill_batch; k++) prog_free(&extra[k - 1]);
+			if (rc) { fprintf(stderr, "engine: incompatible B%d position programs on die %d\n", prefill_batch, d); longjmp(run_jb, 1); }
+			/* At HCRWX, prior attention intermediates in out/D are dead. HCWSUM
+             * nd=1 writes its Y copy here; the next HCUP/router/MOESEL may
+             * reuse D only after this write and its RMS/HCX consumers finish. */
+            if(hcr_batch) {
+                CUdeviceptr scratch[PROG_MAX_POSITIONS];
+                for(unsigned k=0;k<(unsigned)prefill_batch;k++)scratch[k]=prefix_buf(k,d)->out;
+                int changed=prog_batch_decompose_hcr(&batch[d],scratch,(unsigned)prefill_batch,1);
+                if(changed<0) {
+                    fprintf(stderr,"engine: HCR batch decomposition allocation/capacity failure on die %d\n",d);
+                    longjmp(run_jb,1);
+                }
+                last_hcr_groups[d]=(unsigned)changed;
+            }
+			/* Position arenas provide disjoint activation and peer inbox storage. */
+			prog_batch_fuse_bf16(&batch[d], 1);
+			if (q2_batch) prog_batch_fuse_q2(&batch[d], 1);
+			if (hcup_batch) prog_batch_fuse_hcup(&batch[d], 1);
 		}
 	}
 	upload_programs(P, nph, 1);
@@ -730,18 +931,19 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	 * serialized cold prompt I/O with all of the prompt's compute. */
 	ple_pump(&r, 1);
 	if (snap_at) {   /* run the prompt up to the snapshot position, copy the states, go on */
-		run_prefill_prefix(&r, P, prefix, pair, snap_at);
+		run_prefill_prefix(&r, P, prefix, pair, batch, snap_at);
 		if (!r.aborted && r.count == snap_at) {
 			state_copy(1);
 			memcpy(snap_ids, ids, 4 * (size_t)snap_at); snap_s = snap_at;
 		}
 	}
-	if ((pair || prefix) && !r.aborted) run_prefill_prefix(&r, P, prefix, pair, nprompt - 1);
+	if ((pair || prefix) && !r.aborted) run_prefill_prefix(&r, P, prefix, pair, batch, nprompt - 1);
 	if (!r.aborted) { upload_programs(P, nph, 1); run_segment(&r, nph, T); }
 	double t2 = now();
 	trace_completed = (unsigned)r.count; trace_aborted = r.aborted != 0; trace_ended = r.ended != 0;
 	trace_status = r.aborted ? "aborted" : "completed";
 	last_positions = r.count; last_paired_positions = r.paired_positions; last_prefill_chunks = r.prefill_chunks;
+	last_batched_positions = r.batched_positions;
 	kv_trace_complete = !r.aborted && r.count == T && resume == 0;
 	if (trace_n && r.count > (int)trace_first) { trace_valid = (unsigned)r.count - trace_first; if (trace_valid > trace_n) trace_valid = trace_n; }
 	if (st) { st->ntok = r.count; st->ended = r.ended; st->nph = nph[0]; st->resumed = resume; st->snapshot = snap_at; st->build_ms = (t1 - timing_request_start) * 1e3; st->run_ms = (t2 - t1) * 1e3; st->first_ms = r.tfirst ? (r.tfirst - t1) * 1e3 : 0; st->paired_positions = r.paired_positions; st->prefill_chunks = r.prefill_chunks; }
@@ -767,6 +969,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 
 	for (int d = 0; d < nd; d++) prog_free(&P[d]);
 	if (pair) { for (int d = 0; d < nd; d++) prog_free(&pair[d]); free(pair); }
+	if (batch) { for (int d = 0; d < nd; d++) prog_free(&batch[d]); free(batch); }
 	if (prefix) { for (int d = 0; d < nd; d++) prog_free(&prefix[d]); free(prefix); }
 	free(P);
 	in_run = 0;
@@ -850,7 +1053,7 @@ int engine_init(core_t *c) {
 	core = c; in_init = 1;
 	if (setjmp(init_jb)) { in_init = 0; engine_fini(); return -1; }
 	MAXT = c->maxt;
-	last_positions = last_paired_positions = last_prefill_chunks = 0;
+	last_positions = last_paired_positions = last_prefill_chunks = last_batched_positions = 0;
 	const char *trace_env = getenv("FLASH_KV_TRACE");
 	if (trace_env && strcmp(trace_env, "0") && strcmp(trace_env, "1")) {
 		fprintf(stderr, "engine: FLASH_KV_TRACE must be 0 or 1\n");
@@ -862,12 +1065,44 @@ int engine_init(core_t *c) {
 		fprintf(stderr, "engine: FLASH_PREFILL_CHUNK must be 0..%d\n", FLASH_PREFILL_CHUNK_MAX);
 		in_init = 0; return -1;
 	}
+	if (prefill_parse_batch(getenv("FLASH_PREFILL_BATCH"), &prefill_batch)) {
+		fprintf(stderr, "engine: FLASH_PREFILL_BATCH must be 0, 8, 16 or 32\n");
+		in_init = 0; return -1;
+	}
+    const char *q2_option=getenv("FLASH_Q2_BATCH");
+    if(q2_option && strcmp(q2_option,"0") && strcmp(q2_option,"1")) {
+        fprintf(stderr,"engine: FLASH_Q2_BATCH must be 0 or 1\n");
+        in_init=0;return -1;
+    }
+    q2_batch=q2_option && !strcmp(q2_option,"1");
+    const char *hcup_option=getenv("FLASH_HCUP_BATCH");
+    if(hcup_option && strcmp(hcup_option,"0") && strcmp(hcup_option,"1")) {
+        fprintf(stderr,"engine: FLASH_HCUP_BATCH must be 0 or 1\n");
+        in_init=0;return -1;
+    }
+    hcup_batch=hcup_option && !strcmp(hcup_option,"1");
+    const char *hcr_option=getenv("FLASH_HCR_BATCH");
+    if(hcr_option && strcmp(hcr_option,"0") && strcmp(hcr_option,"1")) {
+        fprintf(stderr,"engine: FLASH_HCR_BATCH must be 0 or 1\n");
+        in_init=0;return -1;
+    }
+    hcr_batch=hcr_option && !strcmp(hcr_option,"1");
+	/* Explicit batching selects a headless chunk even without a separate host setting.
+	 * Its remainder is B2/B1; the legacy override applies when B8 is disabled. */
+	if (prefill_batch && !prefill_chunk) prefill_chunk = prefill_batch;
 	const char *pair_env = getenv("FLASH_TWO_POSITION");
 	if (pair_env && strcmp(pair_env, "0") && strcmp(pair_env, "1")) {
 		fprintf(stderr, "engine: FLASH_TWO_POSITION must be 0 or 1\n");
 		in_init = 0; return -1;
 	}
 	two_position = pair_env ? !strcmp(pair_env, "1") : prefill_chunk > 1;
+	if (prefill_batch) two_position = 1;
+	position_capacity = prefill_batch ? (unsigned)prefill_batch : two_position ? 2u : 1u;
+	program_capacity = prefill_batch ? PROG_MAX_PHASES*(unsigned)prefill_batch : PROG_MAX_PHASES;
+    if(prefill_batch>=16 && nd!=6) {
+        fprintf(stderr,"engine: B16/B32 arena geometry requires six dies\n");
+        in_init=0;return -1;
+    }
 	if (ple_read_parse_readers(getenv("FLASH_PLE_READERS"), &ple_readers)) {
 		fprintf(stderr, "engine: FLASH_PLE_READERS must be a decimal integer from 1 to 16\n");
 		longjmp(init_jb, 1);
@@ -905,6 +1140,14 @@ int engine_init(core_t *c) {
 	for (int h = 0; h < 16; h++) { uint32_t o32 = (uint32_t)ple_head_offsets[h], v32 = (uint32_t)ple_head_vocab[h]; memcpy(ppc + 24 + 4 * h, &o32, 4); memcpy(ppc + 88 + 4 * h, &v32, 4); }
 	memcpy(ppc + 152, &pabsent, 4); memcpy(ppc + 156, &pend, 4);
 	ple_disk = c->ple_disk; ple_fd = c->ple_fd; ple_off = c->ple_off; ple_host = c->ple_host; ple_rdy_off = c->ple_rdy_off;
+	h_rdy = NULL; ple_rid = 0;
+	if (ple_disk) {
+		/* Reload preserves the core's rows/flags while dlopen restarts ple_rid.
+		 * No previous kernel may consume rows while readiness is invalidated.
+		 * flashcore has already stopped the old engine's synchronous readers. */
+		for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuCtxSynchronize()); }
+		h_rdy = ple_read_reset_ready(c->ple_host, c->ple_rdy_off, (size_t)c->maxt);
+	}
 	ple_cache_path[0]=0;ple_cache_active=0;ple_source_bytes=0;
 	const char *ple_file=getenv("FLASH_PLE_FILE");
 	if (ple_disk && ple_file && *ple_file) {
@@ -921,7 +1164,6 @@ int engine_init(core_t *c) {
 		int err = ple_read_pool_init(&ple_reads, ple_readers);
 		if (err) { fprintf(stderr, "engine: starting PLE readers failed: %s\n", strerror(err)); longjmp(init_jb, 1); }
 	}
-	h_rdy = ple_disk ? (uint32_t *)(c->ple_host + c->ple_rdy_off) : NULL;
 	ple_absent_id = pabsent; ple_end_id = pend;
 	free(ple_seq); ple_seq = ple_disk ? calloc((size_t)MAXT + 2, 4) : NULL; ple_next = ple_start = 0;
 	float *rcs = malloc(4 * 32 * (size_t)MAXT), *rsn = malloc(4 * 32 * (size_t)MAXT);
@@ -949,6 +1191,9 @@ int engine_init(core_t *c) {
 		CK(cuMemcpyHtoD(shared_sn, rsn, 4 * 32 * (size_t)MAXT));
 	}
 	/* ---- the dies: weights, buffers, exchange, control ---- */
+	embed_die=-1;
+    for(int d=0;d<nd;d++)if(hold_ptr(&ar[d],"token_embd.weight")){embed_die=d;break;}
+    if(embed_die<0){fprintf(stderr,"engine: no die holds token_embd\n");longjmp(init_jb,1);}
 	dw = calloc(MAXD, sizeof *dw); sp = calloc(MAXD, sizeof *sp);
 	dst_dn = calloc(MAXD, sizeof *dst_dn); dst_conv = calloc(MAXD, sizeof *dst_conv); dst_kq = calloc(MAXD, sizeof *dst_kq); dst_ks = calloc(MAXD, sizeof *dst_ks); dst_vq = calloc(MAXD, sizeof *dst_vq); dst_vs = calloc(MAXD, sizeof *dst_vs); dst_pkt = calloc(MAXD, sizeof *dst_pkt); dst_ring = calloc(MAXD, sizeof *dst_ring); snap_ring = calloc(MAXD, sizeof *snap_ring);
 	snap_dn = calloc(MAXD, sizeof *snap_dn); snap_conv = calloc(MAXD, sizeof *snap_conv); snap_ids = malloc(4 * ((size_t)MAXT + 2)); snap_s = 0;
@@ -979,8 +1224,13 @@ int engine_init(core_t *c) {
 			b->kc = dalloc(kcf * 4); b->vc = dalloc(vcf * 4);
 		}
 		b->ids = dalloc(4 * ((size_t)MAXT + 2));
-		b->imap = dalloc(4 * ((size_t)MAXT + 2)); CK(cuMemsetD32(b->imap, 0xffffffffu, (size_t)MAXT + 2));
-		if (img_rows_max) b->img = dalloc(2 * 2560 * (size_t)img_rows_max);
+        /* Only embed_die executes EMBROW; the other dies receive its S through
+         * the normal broadcast. Wide mode keeps the full image capacity once,
+         * avoiding otherwise-unused image tables/maps on five dies. */
+        if(prefill_batch<16 || d==embed_die) {
+		    b->imap = dalloc(4 * ((size_t)MAXT + 2)); CK(cuMemsetD32(b->imap, 0xffffffffu, (size_t)MAXT + 2));
+		    if (img_rows_max) b->img = dalloc(2 * 2560 * (size_t)img_rows_max);
+        }
 		b->ple_pc = dalloc(160); CK(cuMemcpyHtoD(b->ple_pc, ppc, 160)); CK(cuMemHostGetDevicePointer(&b->ple_tab, c->ple_host, 0)); b->ple_compact = (unsigned)c->ple_compact;
 		b->ple_rdy = c->ple_disk ? b->ple_tab + c->ple_rdy_off : 0; b->ple_rid = 0;   /* ple_rid is set per response (engine_run) */
 		b->pg = dalloc(4 * 2560); b->pgq = dalloc(2 * 2560); b->pgs32 = dalloc(4 * 80); b->pgs16 = dalloc(4 * 160); b->pgas = dalloc(4 * 80);
@@ -1042,10 +1292,14 @@ int engine_init(core_t *c) {
 		x->inbox = dalloc(2 * XSLOT); x->flags = dalloc(512); x->xtab = dalloc(128);
 		uint32_t fl[96]; for (int e = 0; e < 96; e++) fl[e] = e / 16 < nd ? 0u : 0xffffffffu;
 		CK(cuMemcpyHtoD(x->flags, fl, sizeof fl));
-		if (trace_n) dTRACE[d] = dalloc((size_t)trace_n * 4096 * 64);
-		dPROG[d] = dalloc(128 * 4096); dCTL[d] = dalloc(0x100 + 4 * 4096);
+		/* Token traces cover only scalar generated positions, never the batched prefix. */
+		if (trace_n) dTRACE[d] = dalloc((size_t)trace_n * PROG_MAX_PHASES * 64);
+		allocated_program[d] = prefill_batch ? 0 : PROG_MAX_PHASES;
+		dPROG[d] = allocated_program[d] ? dalloc(sizeof(phase_t) * allocated_program[d]) : 0;
+		dCTL[d] = dalloc(0x100 + sizeof(uint32_t) * program_capacity);
 		x->xgen = dCTL[d] + 0x20;
-		if (two_position) alloc_second_position(d);
+		if(prefill_batch>=16)alloc_wide_prefix(d);
+        else for (unsigned k = 1; k < position_capacity; k++) alloc_position(d, k);
 	}
 	embed_die = -1; for (int d = 0; d < nd; d++) if (dw[d][0].token_embd) { embed_die = d; break; }
 	if (embed_die < 0) { fprintf(stderr, "engine: no die holds token_embd\n"); if (in_init) longjmp(init_jb, 1); exit(1); }
@@ -1060,9 +1314,9 @@ int engine_init(core_t *c) {
 		uint64_t mf = (uint64_t)xc[d].flags; memcpy(&hdr[28], &mf, 8);
 		CK(cuMemsetD8(dCTL[d], 0, 0x100)); CK(cuMemcpyHtoD(dCTL[d], hdr, sizeof hdr));
 	}
-	if (two_position) {
-		for (int d = 0; d < 6; d++) tab[d] = (uint64_t)xc_pair[d < nd ? d : 0].inbox;
-		for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(xc_pair[d].xtab, tab, sizeof tab)); }
+	for (unsigned k = prefill_batch>=16 ? 0u : 1u; k < position_capacity; k++) {
+		for (int d = 0; d < 6; d++) tab[d] = (uint64_t)prefix_xchg(k, d < nd ? d : 0)->inbox;
+		for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(prefix_xchg(k, d)->xtab, tab, sizeof tab)); }
 	}
 	for (int d = 0; d < nd; d++) { CK(cuCtxSetCurrent(ctx[d])); CK(cuStreamCreate(&pollst[d], CU_STREAM_NON_BLOCKING)); }
 	CK(cuCtxSetCurrent(ctx[0]));
@@ -1099,8 +1353,13 @@ void engine_fini(void) {
 	free(s_ids); free(s_toks); s_ids = s_toks = NULL;
 	free(h_imap); h_imap = NULL; imap_dirty = rope_dirty_T = 0;
 	memset(db, 0, sizeof db); memset(xc, 0, sizeof xc); memset(dPROG, 0, sizeof dPROG); memset(dCTL, 0, sizeof dCTL); memset(dst_ple, 0, sizeof dst_ple);
+	memset(allocated_program, 0, sizeof allocated_program);
 	memset(dTRACE, 0, sizeof dTRACE); trace_n = trace_valid = 0;
-	memset(db_pair, 0, sizeof db_pair); memset(xc_pair, 0, sizeof xc_pair); two_position = prefill_chunk = 0;
+	memset(db_extra, 0, sizeof db_extra); memset(xc_extra, 0, sizeof xc_extra);
+	memset(db_prefix,0,sizeof db_prefix);memset(xc_prefix,0,sizeof xc_prefix);
+	two_position = prefill_chunk = prefill_batch = q2_batch = hcup_batch = hcr_batch = 0;
+    memset(last_hcr_groups,0,sizeof last_hcr_groups);
+	position_capacity = 1; program_capacity = PROG_MAX_PHASES;
 	core = NULL;
 }
 
@@ -1193,7 +1452,7 @@ int engine_session(FILE *in, FILE *out) {
 		if (!strncmp(p, "hosttrace", 9)) { host_trace_dump(out); fflush(out); continue; }
 		if (!strncmp(p, "prof", 4)) {   /* where the last token of the last response spent its time, from the phase timestamps CTA 0 writes at each phase end */
 			int pd = atoi(p + 4); if (pd < 0 || pd >= nd) pd = 0; const int nph_ = prof_nph[pd]; const uint32_t *pop = prof_op[pd];   /* prof [die] */
-			uint32_t *ts = malloc(4 * 4096); CK(cuCtxSetCurrent(ctx[pd])); CK(cuMemcpyDtoH(ts, dCTL[pd] + 0x100, 4 * (size_t)prof_desc[pd]));
+			uint32_t *ts = malloc(sizeof *ts * prof_desc[pd]); CK(cuCtxSetCurrent(ctx[pd])); CK(cuMemcpyDtoH(ts, dCTL[pd] + 0x100, sizeof *ts * prof_desc[pd]));
 			/* Secondary descriptors have no timestamp; compact logical phase ends. */
 			for (int i = 0; i < nph_; i++) ts[i] = ts[prof_index[pd][i]];
 			static double tot[OP_COUNT]; static int cnt[OP_COUNT]; memset(tot, 0, sizeof tot); memset(cnt, 0, sizeof cnt);
@@ -1203,7 +1462,7 @@ int engine_session(FILE *in, FILE *out) {
 				tot[pop[i]] += us; cnt[pop[i]]++; all += us;
 				for (int k = 0; k < 8; k++) if (big[k] < 0 || us > (uint32_t)(ts[big[k]] - ts[big[k] - 1]) / 1e3) { for (int j = 7; j > k; j--) big[j] = big[j - 1]; big[k] = i; break; }
 			}
-			fprintf(out, "prof: %d phases, %.2f ms between the first and last timestamp\n", nph_, all / 1e3);
+			fprintf(out, "prof: %d phases, %.2f ms between the first and last timestamp; hcr_batch=%d hcr_groups=%u\n", nph_, all / 1e3,hcr_batch,last_hcr_groups[pd]);
 			const int all_kinds = strstr(p, "all") != NULL;
 			for (int rep = 0; rep < (all_kinds ? OP_COUNT : 12); rep++) { int bi = -1; for (int o = 0; o < OP_COUNT; o++) if (cnt[o] && (bi < 0 || tot[o] > tot[bi])) bi = o; if (bi < 0 || tot[bi] <= 0) break; fprintf(out, "  %-10s %4d phases %9.1f us (%6.1f us each)\n", die_opname[bi], cnt[bi], tot[bi], tot[bi] / cnt[bi]); tot[bi] = 0; }
 			fprintf(out, "  longest:"); for (int k = 0; k < 8 && big[k] > 0; k++) fprintf(out, " #%d %s %.0f us;", big[k], die_opname[pop[big[k]]], (uint32_t)(ts[big[k]] - ts[big[k] - 1]) / 1e3);
@@ -1215,8 +1474,8 @@ int engine_session(FILE *in, FILE *out) {
 		if (!strncmp(p, "config", 6)) {   /* what this engine is: the identity to attach to a measurement (the commit it was built from, where the KV lives, the layers it runs, the kernel image) */
 			char ad[64] = ""; for (int d = 0; d < nd; d++) if (has_attn[d]) { char one[8]; snprintf(one, sizeof one, "%s%d", ad[0] ? "," : "", d); strncat(ad, one, sizeof ad - strlen(ad) - 1); }
 			const char *sh = getenv("SPLIT_SHARES"), *am = getenv("ATTN_MAP");
-			fprintf(out, "config rev=%s kv_host=%d kv_trace=%d ple_disk=%d ple_readers=%u ple_file=%s ple_cache=%s maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u rope_owner=%d trace_tokens=%u two_position=%d prefill_chunk=%d attn_q_split=%u attn_q_mask=%x cubin=%s cubin_fnv=%016llx\n",
-			        FLASH_REV, kv_host, kv_trace, ple_disk, ple_disk ? ple_readers : 0, ple_cache_active ? ple_cache_path : "core", ple_cache_path[0] ? ple_cache_path : "core", MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, rope_owner, trace_n, two_position, prefill_chunk, attn_q_split_mode, attn_q_split_mask, cubin_path, (unsigned long long)cubin_fnv);
+			fprintf(out, "config rev=%s kv_host=%d kv_trace=%d ple_disk=%d ple_readers=%u ple_file=%s ple_cache=%s maxt=%d layers=%d/%d nblk=%u dies=%d attn_dies=%s split=%s attn_map=%s img_rows=%u rope_owner=%d trace_tokens=%u two_position=%d prefill_chunk=%d prefill_batch=%d q2_batch=%d hcup_batch=%d hcr_batch=%d hcr_groups=%u,%u,%u,%u,%u,%u attn_q_split=%u attn_q_mask=%x cubin=%s cubin_fnv=%016llx\n",
+			        FLASH_REV, kv_host, kv_trace, ple_disk, ple_disk ? ple_readers : 0, ple_cache_active ? ple_cache_path : "core", ple_cache_path[0] ? ple_cache_path : "core", MAXT, nlayers_run, NB, nblk_qsa, nd, ad, sh ? sh : "default", am ? am : "default", img_rows_max, rope_owner, trace_n, two_position, prefill_chunk, prefill_batch, q2_batch, hcup_batch, hcr_batch,last_hcr_groups[0],last_hcr_groups[1],last_hcr_groups[2],last_hcr_groups[3],last_hcr_groups[4],last_hcr_groups[5], attn_q_split_mode, attn_q_split_mask, cubin_path, (unsigned long long)cubin_fnv);
 			fflush(out); continue;
 		}
 		if (!strncmp(p, "cubin", 5)) {

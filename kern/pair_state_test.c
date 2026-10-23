@@ -11,6 +11,7 @@ CUresult cuCtxCreate_v2(CUcontext *,unsigned,CUdevice);
 #define O (H*128u)
 static unsigned seed=173;
 static int mixed_warp;
+static unsigned positions=2;
 static float rnd(void){seed=seed*1664525u+1013904223u;return (float)((int)(seed>>8)-8388608)/8388608.f;}
 static CUdeviceptr alloc(size_t n){CUdeviceptr p;CK(cuMemAlloc(&p,n));CK(cuMemsetD8(p,0,n));return p;}
 static CUdeviceptr upload(const void*x,size_t n){CUdeviceptr p=alloc(n);CK(cuMemcpyHtoD(p,x,n));return p;}
@@ -26,14 +27,19 @@ static void program(prog_t*p,const buffers*b,unsigned off,CUdeviceptr cs,CUdevic
     ph_u32(d,0x160,O);ph_u32(d,0x164,16);
 }
 static int launch(CUfunction fn,CUdeviceptr ctl,const prog_t*p,unsigned start,unsigned expect_gen){
-    unsigned hc[2048]={0};hc[2]=start;hc[9]=2;CK(cuMemcpyHtoD(ctl,hc,sizeof hc));
-    CUdeviceptr dp=upload(p->p,(size_t)p->n*sizeof(phase_t));unsigned nph=(unsigned)p->n,ntok=start+2;
+    unsigned hc[2048]={0};hc[2]=start;hc[9]=positions;CK(cuMemcpyHtoD(ctl,hc,sizeof hc));
+    CUdeviceptr dp=upload(p->p,(size_t)p->n*sizeof(phase_t));unsigned nph=(unsigned)p->n,ntok=start+positions;
     void*args[]={&dp,&nph,&ctl,&ntok};CK(cuLaunchKernel(fn,16,1,1,256,1,1,0,0,args,NULL));CK(cuCtxSynchronize());
     CK(cuMemcpyDtoH(hc,ctl,sizeof hc));CK(cuMemFree(dp));
     if(hc[2]!=ntok||hc[1]!=expect_gen){fprintf(stderr,"control at %u: TOK=%u expected%u GEN=%u expected%u\n",start,hc[2],ntok,hc[1],expect_gen);return 1;}return 0;
 }
 int main(void){
     mixed_warp=getenv("PAIR_MIXED_WARP")!=NULL;
+    const char *width=getenv("PAIR_POSITIONS");
+    if(width && !strcmp(width,"8"))positions=8;
+    else if(width && !strcmp(width,"16"))positions=16;
+    else if(width && !strcmp(width,"32"))positions=32;
+    else if(width && strcmp(width,"2")){fputs("PAIR_POSITIONS must be 2, 8, 16 or 32\n",stderr);return 2;}
     CK(cuInit(0));CUdevice dev;CUcontext ctx;CUmodule mod;CUfunction fn;
     CK(cuDeviceGet(&dev,0));CK(cuCtxCreate_v2(&ctx,CU_CTX_SCHED_SPIN,dev));
     const char*cubin=getenv("FLASH_CUBIN");CK(cuModuleLoad(&mod,cubin?cubin:"die.cubin"));CK(cuModuleGetFunction(&fn,mod,"die"));
@@ -44,10 +50,10 @@ int main(void){
     for(unsigned i=0;i<H*128u*128u;i++)dinit[i]=0.01f*rnd();
     for(unsigned i=0;i<H;i++)sa[i]=-0.5f-0.1f*(float)i/H;
     CUdeviceptr cs=upload(cinit,cn),ds=upload(dinit,dn),dCW=upload(cw,4u*4u*N),dSA=upload(sa,sizeof sa),ctl=alloc(8192);
-    buffers b[2];region r[24];int nr=0;
+    buffers b[PROG_MAX_POSITIONS];region r[2+8*PROG_MAX_POSITIONS];int nr=0;
 #define REGION(nm,ptr,len) do{r[nr++]=(region){nm,ptr,len,malloc(len)};}while(0)
     REGION("conv state",cs,cn);REGION("DeltaNet state",ds,dn);
-    for(unsigned k=0;k<2;k++){
+    for(unsigned k=0;k<positions;k++){
         float x[N],a[H],bb[H];for(unsigned i=0;i<N;i++)x[i]=rnd()*(float)(k+1);
         for(unsigned i=0;i<H;i++){a[i]=rnd();bb[i]=rnd();}
         b[k]=(buffers){.x=upload(x,sizeof x),.u=alloc(4*N),.a=upload(a,sizeof a),.b=upload(bb,sizeof bb),
@@ -57,10 +63,13 @@ int main(void){
         REGION("sum32",b[k].s32,4*O/32);REGION("sum16",b[k].s16,4*O/16);REGION("quant scales",b[k].as,4*O/32);
         REGION("argmax",b[k].am,8);REGION("argmax counter",b[k].cnt,4);
     }
-    prog_t p0,p1,pair,serial;prog_init(&p0);prog_init(&p1);prog_init(&pair);prog_init(&serial);
-    program(&p0,&b[0],0,cs,ds,dCW,dSA);program(&p1,&b[1],1,cs,ds,dCW,dSA);
-    if(prog_pair(&pair,&p0,&p1)){fputs("prog_pair rejected valid programs\n",stderr);return 2;}
-    for(int k=0;k<2;k++){const prog_t*p=k?&p1:&p0;for(int i=0;i<p->n;i++)*prog_add(&serial,p->p[i].w[0],p->p[i].w[1])=p->p[i];}
+    prog_t programs[PROG_MAX_POSITIONS],pair,serial;const prog_t *group[PROG_MAX_POSITIONS];
+    prog_init(&pair);prog_init(&serial);
+    for(unsigned k=0;k<positions;k++) {
+        prog_init(&programs[k]);program(&programs[k],&b[k],k,cs,ds,dCW,dSA);group[k]=&programs[k];
+        for(int i=0;i<programs[k].n;i++)*prog_add(&serial,programs[k].p[i].w[0],programs[k].p[i].w[1])=programs[k].p[i];
+    }
+    if(prog_group(&pair,group,positions)){fputs("prog_group rejected valid programs\n",stderr);return 2;}
     const unsigned starts[]={0,1,2,3,4,7,8,9,127,128,2047,2048};int fails=0;unsigned cases=sizeof starts/sizeof starts[0];
     void*got=malloc(dn>cn?dn:cn);
     for(unsigned c=0;c<cases;c++){
@@ -68,22 +77,23 @@ int main(void){
         for(int paired=0;paired<2;paired++){
             CK(cuMemcpyHtoD(cs,cinit,cn));CK(cuMemcpyHtoD(ds,dinit,dn));
             for(int i=2;i<nr;i++)CK(cuMemsetD8(r[i].p,0xa5,r[i].n));
-            for(int k=0;k<2;k++){CK(cuMemsetD8(b[k].part,0,16*8));CK(cuMemsetD32(b[k].cnt,0,1));}
-            bad+=launch(fn,ctl,paired?&pair:&serial,start,paired?4u:8u);
+            for(unsigned k=0;k<positions;k++){CK(cuMemsetD8(b[k].part,0,16*8));CK(cuMemsetD32(b[k].cnt,0,1));}
+            bad+=launch(fn,ctl,paired?&pair:&serial,start,paired?4u:4u*positions);
             for(int i=0;i<nr;i++){
                 if(!paired)CK(cuMemcpyDtoH(r[i].ref,r[i].p,r[i].n));
                 else{CK(cuMemcpyDtoH(got,r[i].p,r[i].n));if(memcmp(got,r[i].ref,r[i].n)){fprintf(stderr,"start%u region%d %s mismatch\n",start,i,r[i].name);bad++;}}
             }
-            for(int k=0;k<2;k++){
+            for(unsigned k=0;k<positions;k++){
                 float oo[O];unsigned am[2],cnt;CK(cuMemcpyDtoH(oo,b[k].o,sizeof oo));CK(cuMemcpyDtoH(am,b[k].am,8));CK(cuMemcpyDtoH(&cnt,b[k].cnt,4));
                 unsigned best=0;for(unsigned i=1;i<O;i++)if(oo[i]>oo[best])best=i;
-                if(cnt||am[0]!=best||memcmp(&am[1],&oo[best],4)){fprintf(stderr,"argmax start%u pos%d invalid\n",start,k);bad++;}
+                if(cnt||am[0]!=best||memcmp(&am[1],&oo[best],4)){fprintf(stderr,"argmax start%u pos%u invalid\n",start,k);bad++;}
             }
         }
-        printf("start=%u positions=%u,%u state/outputs=%s scalar_barriers=8 pair_barriers=4\n",start,start,start+1,bad?"FAIL":"BIT-EXACT");fails+=bad;
+        printf("start=%u positions=%u width=%u state/outputs=%s scalar_barriers=%u group_barriers=4\n",start,start+positions-1,positions,bad?"FAIL":"BIT-EXACT",4u*positions);fails+=bad;
     }
     printf("pair_state_test: %u cases, %d failures\n",cases,fails);
-    prog_free(&p0);prog_free(&p1);prog_free(&pair);prog_free(&serial);
+    for(unsigned k=0;k<positions;k++)prog_free(&programs[k]);
+    prog_free(&pair);prog_free(&serial);
     for(int i=0;i<nr;i++)free(r[i].ref);
     free(cinit);free(dinit);free(cw);free(got);
     CK(cuCtxDestroy(ctx));return fails?1:0;

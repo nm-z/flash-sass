@@ -16,7 +16,9 @@
 # Descriptor words: [0] op, [1] units, [2 + (addr - 0x140) / 4] = the op's
 # parameter words (its CONSTANT_MAPPING layout). Unit kinds: cta (256 threads,
 # vid = cta, cta + 16, ...) and warp (32 threads, vid = 8 cta + warp, + 128, ...,
-# vtid = lane). Ctl: u32 ctr @0, u32 gen @4 (grid barrier state).
+# vtid = lane). DIE_WARP_SPREAD=1 instead maps warp units to 16 warp + cta,
+# still advancing by 128: small head/expert sets use separate resident CTAs.
+# Ctl: u32 ctr @0, u32 gen @4 (grid barrier state).
 
 use strict;
 use warnings;
@@ -28,9 +30,11 @@ my $TOK_OFF = 0xbf70;      # the token counter (u32), kept per CTA in shared mem
 my $XG_OFF = 0xbf74;       # the exchange count (u32), per CTA in shared memory (xsend bumps it)
 my $GEN_OFF = 0xbf78;      # the grid barrier generation (u32), per CTA in shared memory
 my $PAIR_DESC_OFF = 0xbe80; # second position's unchanged 128-byte descriptor
-my $STEP_OFF = 0xbf50;     # physical descriptors consumed by this phase (1 or 2)
+my $POSITION_OFF = 0xbf4c; # current position inside a causal descriptor group
+my $STEP_OFF = 0xbf50;     # physical descriptors consumed by this phase (1, 2 or B)
 my $PAIR_MODE_OFF = 0xbf54; # word 30 bits 3/4: generic paired / fused paired body
 my $FLAGS_OFF = 0xbf58;    # primary descriptor's exchange / barrier flags
+my $SCALAR_OFF = 0xbf48;   # immutable launch-width==1 flag (DIE_SCALAR_FAST)
 my $T0_OFF = 0xbf5c;      # %globaltimer.hi at launch (u32), per CTA; a phase that starts 70 units (4.29 s each, 300 s) later ends the kernel
 my $EXP_OFF = 0xbf60;     # set by thread 0 when the 300 s are up
 $ENV{DIE_T0_OFF} = $T0_OFF; $ENV{DIE_EXP_OFF} = $EXP_OFF;   # the op bodies' waits (xchg.sass) check the same limit
@@ -122,6 +126,19 @@ my @OPS = (
     [ 'bf16k320p',  'gemv_bf16_pair.sass', 'cta', { GEMV_K => 320 } ],
     [ 'bf16hcp',    'gemv_bf16_pair.sass', 'cta', { GEMV_K => 2560, GEMV_SLICES => 4 } ],
     [ 'bf16hcxp',   'gemv_bf16_pair.sass', 'cta', { GEMV_K => 2560, GEMV_SLICES => 4, GEMV_XOUT => 1 } ],
+    # Shared-weight B8 BF16 opcodes; all earlier scalar/pair values stay stable.
+    [ 'bf16bias8',  'gemv_bf16_batch.sass', 'cta', { GEMV_K => 2560, GEMV_BIAS => 1 } ],
+    [ 'bf16k25608', 'gemv_bf16_batch.sass', 'cta', { GEMV_K => 2560 } ],
+    [ 'bf16k3208',  'gemv_bf16_batch.sass', 'cta', { GEMV_K => 320 } ],
+    [ 'bf16hc8',    'gemv_bf16_batch.sass', 'cta', { GEMV_K => 2560, GEMV_SLICES => 4 } ],
+    [ 'bf16hcx8',   'gemv_bf16_batch.sass', 'cta', { GEMV_K => 2560, GEMV_SLICES => 4, GEMV_XOUT => 1 } ],
+    # Shared-weight Q2 B8 bodies retain all earlier opcode numbers.
+    [ 'q2k25608',   'gemv_q2_batch.sass', 'cta', { GEMV_K => 2560 } ],
+    [ 'q2k6408',    'gemv_q2_batch.sass', 'cta', { GEMV_K => 640 } ],
+    [ 'q2acc6408',  'gemv_q2_batch.sass', 'cta', { GEMV_K => 640, GEMV_ACC => 1 } ],
+    [ 'q2moegn8',   'gemv_q2_batch.sass', 'cta', { GEMV_K => 2560, GEMV_MOE => 'gather' } ],
+    [ 'q2moedn8',   'gemv_q2_batch.sass', 'cta', { GEMV_K => 640, GEMV_MOE => 'down' } ],
+    [ 'bf16hcup8',  'gemv_hcup_batch.sass', 'cta', {} ],
 );
 
 sub expand_names {                       # x<00-15> -> x00 .. x15
@@ -152,11 +169,15 @@ sub load_op {
     my $has_grid = 0;
     if ($text =~ s|<CONSTANT_MAPPING>(.*?)</CONSTANT_MAPPING>||s) {
         for my $l (split /\n/, $1) {
-            next unless $l =~ /^\s*(\w+)\s*:\s*c\[0x([02])\]\[0x([0-9a-f]+)\]/;
-            my ($name, $bank, $addr) = ($1, $2, hex $3);
-            if ($addr == 0x14) { $has_grid = 1; next; }
+            next unless $l =~ /^\s*(\w+)\s*:\s*c\[0x([0-9a-f]+)\]\[0x([0-9a-f]+)\]/;
+            my ($name, $bank, $addr) = ($1, hex $2, hex $3);
+            die "$file: unsupported parameter bank $bank" unless $bank == 0 || ($bank >= 2 && $bank <= 8);
+            if ($addr == 0x14 && !$bank) { $has_grid = 1; next; }
             die "$file: parameter $name at 0x$3 outside the descriptor" if $addr < 0x140 || $addr >= 0x140 + 4 * 30;
-            push @params, [ $name, 2 + ($addr - 0x140) / 4, $bank eq '2' ? $PAIR_DESC_OFF : $DESC_OFF ];
+            # Virtual bank 2 retains position 1's existing pair ABI; banks
+            # 3..8 address positions 2..7 in descending 128-byte shared banks.
+            my $desc = $bank ? $PAIR_DESC_OFF - 128 * ($bank - 2) : $DESC_OFF;
+            push @params, [ $name, 2 + ($addr - 0x140) / 4, $desc ];
         }
     }
     # registers: keep each mapping line (templates included, so MaxAs still knows the
@@ -221,6 +242,10 @@ my $body = '';
 my $dispatch = '';
 my $dispatch_mode = $ENV{DIE_DISPATCH} // 'jump';
 die "DIE_DISPATCH must be linear, tree, or jump\n" unless $dispatch_mode =~ /\A(?:linear|tree|jump)\z/;
+my $scalar_fast = $ENV{DIE_SCALAR_FAST} // 0;
+die "DIE_SCALAR_FAST must be 0 or 1\n" unless $scalar_fast =~ /\A[01]\z/;
+my $warp_spread = $ENV{DIE_WARP_SPREAD} // 0;
+die "DIE_WARP_SPREAD must be 0 or 1\n" unless $warp_spread =~ /\A[01]\z/;
 for my $k (0 .. $#OPS) {
     my ($tag, $file, $kind, $env) = @{$OPS[$k]};
     my $op = load_op($tag, $file, $env);
@@ -242,8 +267,16 @@ for my $k (0 .. $#OPS) {
         $body .= "--:-:-:-:6      MOV vid, cta;\n";
         $body .= "--:-:-:-:6      MOV vtid, tid;\n";
     } else {
-        $body .= "--:-:-:-:6      SHL vid, cta, 0x3;\n";
-        $body .= "--:-:-:-:6      IADD vid, vid, warp;\n";
+        if ($warp_spread) {
+            # This permutation retains each logical unit's warp owner across
+            # causal replays. Op bodies see logical vid/lane, not physical CTA
+            # ids; cross-unit consumers still follow the existing grid barrier.
+            $body .= "--:-:-:-:6      SHL vid, warp, 0x4;\n";
+            $body .= "--:-:-:-:6      IADD vid, vid, cta;\n";
+        } else {
+            $body .= "--:-:-:-:6      SHL vid, cta, 0x3;\n";
+            $body .= "--:-:-:-:6      IADD vid, vid, warp;\n";
+        }
         $body .= "--:-:-:-:6      MOV vtid, lane;\n";
     }
     $body .= "--:-:-:-:6      ISETP.GE.U32.AND P6, PT, vid, units, PT;\n";
@@ -264,6 +297,60 @@ for my $k (0 .. $#OPS) {
 }
 
 my @trace = map { trace_code($_, $TOK_OFF, $STEP_OFF) } 0..7;
+my ($scalar_init, $scalar_phase, $scalar_end, $phase_sync) = ('') x 4;
+if ($scalar_fast) {
+    # The host validates that a width-one launch contains scalar descriptors.
+    # ctl[9]==0 is the legacy scalar ABI and deliberately keeps the old path.
+    # STEP/MODE/POSITION remain constant for the whole explicit B1 launch.
+    $scalar_init = sprintf <<'SASS', $SCALAR_OFF, $STEP_OFF, $PAIR_MODE_OFF, $POSITION_OFF;
+02:-:1:-:2      LDG.E op, [fw+0x24];
+01:-:-:-:6      ISETP.EQ.U32.AND P5, PT, op, 0x1, PT;
+--:-:-:-:6      MOV bar_g, RZ;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P5 MOV bar_g, 0x1;
+--:2:-:-:6      STS [RZ+0x%x], bar_g;
+--:-:-:-:6      MOV op, 0x1;
+--:2:-:-:6      STS [RZ+0x%x], op;
+--:2:-:-:6      STS [RZ+0x%x], RZ;
+--:2:-:-:6      STS [RZ+0x%x], RZ;
+02:-:-:-:6      NOP;
+SASS
+    $scalar_phase = sprintf <<'SASS', $SCALAR_OFF;
+--:-:1:-:2      LDS bar_old, [RZ+0x%x];
+01:-:-:-:6      ISETP.NE.U32.AND P5, PT, bar_old, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+02:-:-:-:6  @P5 BRA PAIR_LOADED;
+SASS
+    # The preceding 3f BAR.SYNC drains every op load/store and ends its shared
+    # memory lifetime. Read the immutable flag here rather than retaining it
+    # through the op: the optional PLE wait trace uses framework scratch too.
+    # B1 has no replay. op/R13 carries the flag across trace[3], whose
+    # instrumentation explicitly preserves op/units.
+    $scalar_end = sprintf <<'SASS', $SCALAR_OFF;
+--:-:1:-:2      LDS op, [RZ+0x%x];
+01:-:-:-:6      ISETP.NE.U32.AND P5, PT, op, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P5 BRA PHASE_END;
+SASS
+    # B1 already rendezvoused in POSITION_END; shared group metadata was not
+    # changed. Keep the legacy rendezvous for every generic/grouped path.
+    $phase_sync = <<'SASS';
+--:-:-:-:6      ISETP.NE.U32.AND P5, PT, op, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P5 BRA PHASE_SYNCED;
+--:-:-:-:6      BAR.SYNC 0x1;
+PHASE_SYNCED:
+SASS
+} else {
+    $phase_sync = "--:-:-:-:6      BAR.SYNC 0x1;\n";
+}
 # All lanes see the same descriptor opcode. A range tree bounds dispatch by
 # ceil(log2(OP_COUNT)) comparisons instead of scanning every preceding opcode.
 # Keep the linear emitter available for matched measurements. Invalid opcodes
@@ -371,6 +458,7 @@ $maps</REGISTER_MAPPING>
 # and the grid barrier generation (GEN), seeded from ctl[1]
 02:-:1:-:2      LDG.E op, [fw+0x4];
 01:2:-:-:6      STS [RZ+0x@{[sprintf '%x', $GEN_OFF]}], op;
+$scalar_init# Explicit scalar launch bookkeeping is initialized once above.
 # the 300 s limit: thread 0 of every CTA keeps the launch %globaltimer.hi
 --:-:-:-:6      ISETP.EQ.U32.AND P5, PT, tid, RZ, PT;
 --:-:-:-:6      NOP;
@@ -438,18 +526,36 @@ $trace[0]# descriptor -> smem (warp 0, lane = word; the words were prefetched); 
 --:-:1:-:1      LDS op, [RZ+0x@{[sprintf '%x', $DESC_OFF]}];
 --:-:1:-:2      LDS units, [RZ+0x@{[sprintf '%x', $DESC_OFF + 4]}];
 01:-:-:-:6      NOP;
-# A paired phase is two adjacent scalar descriptors. Save the primary flags, and
-# load the second descriptor (with its own token mask) before running either body.
-# Bit 3 marks a pair, bit 4 a fused body that consumes both descriptor banks.
+# A grouped phase contains adjacent scalar descriptors. Bit 3 marks the group;
+# bits 8..15 encode its width (zero retains the legacy pair width). Bit 4 marks a
+# fused B2 body that consumes both descriptor banks. Save the primary flags and
+# only preload the secondary bank for B2; wider groups fetch each replay in turn.
 --:-:1:-:2      LDS bar_g, [RZ+0x@{[sprintf '%x', $DESC_OFF + 0x78]}];
 01:2:-:-:6      STS [RZ+0x@{[sprintf '%x', $FLAGS_OFF]}], bar_g;
+$scalar_phase# A width-one launch reuses its constant STEP/MODE/POSITION.
 --:-:-:-:6      LOP32I.AND bar_old, bar_g, 0x18;
 --:2:-:-:6      STS [RZ+0x@{[sprintf '%x', $PAIR_MODE_OFF]}], bar_old;
 --:-:-:-:6      SHR.U32 bar_old, bar_old, 0x3;
 --:-:-:-:6      LOP32I.AND bar_old, bar_old, 0x1;
 --:-:-:-:6      IADD bar_g2, bar_old, 0x1;
+--:-:-:-:6      SHR.U32 bar_t, bar_g, 0x8;
+--:-:-:-:6      LOP32I.AND bar_t, bar_t, 0xff;
+--:-:-:-:6      ISETP.NE.U32.AND P5, PT, bar_t, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P5 MOV bar_g2, bar_t;
 --:2:-:-:6      STS [RZ+0x@{[sprintf '%x', $STEP_OFF]}], bar_g2;
---:-:-:-:6      ISETP.EQ.U32.AND P5, PT, bar_old, RZ, PT;
+--:2:-:-:6      STS [RZ+0x@{[sprintf '%x', $POSITION_OFF]}], RZ;
+# Only fused B8 needs every secondary parameter bank. Generic B8 streams its
+# descriptors during causal replay and keeps this preload cost absent.
+--:-:-:-:6      LOP32I.AND bar_t, bar_g, 0xff18;
+--:-:-:-:6      ISETP.EQ.U32.AND P5, PT, bar_t, 0x818, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+02:-:-:-:6  \@P5 BRA FUSED8_INIT;
+--:-:-:-:6      ISETP.NE.U32.AND P5, PT, bar_g2, 0x2, PT;
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
@@ -476,6 +582,41 @@ $trace[0]# descriptor -> smem (warp 0, lane = word; the words were prefetched); 
 --:-:-:-:6  \@P5 IADD vtid, vtid, bar_t;
 --:2:-:-:6  \@P6 STS [units], vtid;
 02:-:-:-:6      BAR.SYNC 0x1;
+--:-:-:-:6      BRA PAIR_LOADED;
+
+FUSED8_INIT:
+--:-:-:-:6      MOV bar_one, 0x1;
+FUSED8_NEXT:
+--:-:-:-:6      IADD bar_t, pidx, bar_one;
+--:-:-:-:6      SHL bar_t, bar_t, 0x7;
+--:-:-:-:6      IADD dsp0.CC, prog0, bar_t;
+--:-:-:-:6      IADD.X dsp1, prog1, RZ;
+--:-:-:-:6      SHL op, lane, 0x2;
+--:-:-:-:6      IADD fw0.CC, dsp0, op;
+--:-:-:-:6      IADD.X fw1, dsp1, RZ;
+--:-:-:-:6      ISETP.LT.U32.AND P6, PT, tid, 0x20, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:4:-:1  \@P6 LDG.E vtid, [fw];
+--:-:4:-:2  \@P6 LDG.E vid, [dsp+0x7c];
+--:-:1:-:2      LDS bar_t, [RZ+0x@{[sprintf '%x', $TOK_OFF]}];
+09:-:-:-:6      SHR.U32 vid, vid, lane;
+--:-:-:-:6      LOP32I.AND vid, vid, 0x1;
+--:-:-:-:6      ISETP.NE.U32.AND P5, PT, vid, RZ, P6;
+--:-:-:-:6      IADD bar_old, bar_one, -0x1;
+--:-:-:-:6      SHL bar_old, bar_old, 0x7;
+--:-:-:-:6      MOV32I units, 0x@{[sprintf '%x', $PAIR_DESC_OFF]};
+--:-:-:-:6      IADD units, units, -bar_old;
+--:-:-:-:6      IADD units, units, op;
+--:-:-:-:6  \@P5 IADD vtid, vtid, bar_t;
+--:2:-:-:6  \@P6 STS [units], vtid;
+02:-:-:-:6      BAR.SYNC 0x1;
+--:-:-:-:6      IADD bar_one, bar_one, 0x1;
+--:-:-:-:6      ISETP.LT.U32.AND P5, PT, bar_one, 0x8, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P5 BRA FUSED8_NEXT;
 PAIR_LOADED:
 --:-:1:-:1      LDS op, [RZ+0x@{[sprintf '%x', $DESC_OFF]}];
 --:-:1:-:2      LDS units, [RZ+0x@{[sprintf '%x', $DESC_OFF + 4]}];
@@ -544,20 +685,28 @@ $trace[2]OP_DISPATCH:
 $dispatch--:-:-:-:6      BRA POSITION_END;
 $body
 POSITION_END:
-# Units of a stateful op belong to the same CTA for both positions. Finish every
-# unit and make its writes visible before replaying this op with position 1.
-# Independent ops also take this path; the grid barrier and peer flags happen
-# once, after both positions. A fused pair has already produced both outputs.
+# Units of a stateful op retain the same CTA/warp owner for every position.
+# Finish all its units and make writes visible before the next causal replay.
+# The grid barrier and peer flags happen once after the complete group; a fused
+# B2 body has already produced both outputs.
 3f:-:-:-:6      BAR.SYNC 0x1;
+$scalar_end# Scalar passes need no grouped replay or MODE handoff.
 --:-:1:-:2      LDS bar_g, [RZ+0x@{[sprintf '%x', $PAIR_MODE_OFF]}];
 01:-:-:-:6      ISETP.EQ.U32.AND P5, PT, bar_g, 0x8, PT;
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;
-# Every warp must sample MODE before any warp resets it for the second body.
+# Every warp must sample MODE before framework scratch is reused.
 --:-:-:-:6      BAR.SYNC 0x1;
 --:-:-:-:6 \@!P5 BRA PHASE_END;
 --:-:-:-:6      MEMBAR.GL.IVALLD;
+--:-:1:-:2      LDS bar_old, [RZ+0x@{[sprintf '%x', $STEP_OFF]}];
+01:-:-:-:6      ISETP.GT.U32.AND P5, PT, bar_old, 0x2, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P5 BRA GROUP_NEXT;
+# Preserve the legacy pair's prefetched bank and the fused pair parameter ABI.
 --:-:-:-:6      MOV bar_g, RZ;
 --:2:-:-:6      STS [RZ+0x@{[sprintf '%x', $PAIR_MODE_OFF]}], bar_g;
 --:-:-:-:6      SHL bar_t, lane, 0x2;
@@ -573,12 +722,52 @@ POSITION_END:
 --:-:1:-:2      LDS units, [RZ+0x@{[sprintf '%x', $DESC_OFF + 4]}];
 01:-:-:-:6      BRA OP_DISPATCH;
 
+GROUP_NEXT:
+--:-:1:-:2      LDS bar_t, [RZ+0x@{[sprintf '%x', $POSITION_OFF]}];
+01:-:-:-:6      IADD bar_t, bar_t, 0x1;
+--:-:-:-:6      ISETP.LT.U32.AND P5, PT, bar_t, bar_old, PT;
+# Predicate latency must be satisfied even when the CTA rendezvous does not
+# stall. Keep explicit slots before BAR and the predicated branch below it.
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+# All warps read the old cursor before any warp publishes the new cursor.
+--:-:-:-:6      BAR.SYNC 0x1;
+--:-:-:-:6 \@!P5 BRA PHASE_END;
+--:2:-:-:6      STS [RZ+0x@{[sprintf '%x', $POSITION_OFF]}], bar_t;
+# Warp 0 loads descriptor pidx+position. Its +TOK mask is independent of every
+# other position's mask; host parameters already contain the position offset.
+02:-:-:-:6      IADD bar_t, pidx, bar_t;
+--:-:-:-:6      SHL bar_t, bar_t, 0x7;
+--:-:-:-:6      IADD dsp0.CC, prog0, bar_t;
+--:-:-:-:6      IADD.X dsp1, prog1, RZ;
+--:-:-:-:6      SHL op, lane, 0x2;
+--:-:-:-:6      IADD fw0.CC, dsp0, op;
+--:-:-:-:6      IADD.X fw1, dsp1, RZ;
+--:-:-:-:6      ISETP.LT.U32.AND P6, PT, tid, 0x20, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:4:-:1  \@P6 LDG.E vtid, [fw];
+--:-:4:-:2  \@P6 LDG.E vid, [dsp+0x7c];
+--:-:1:-:2      LDS bar_t, [RZ+0x@{[sprintf '%x', $TOK_OFF]}];
+09:-:-:-:6      SHR.U32 vid, vid, lane;
+--:-:-:-:6      LOP32I.AND vid, vid, 0x1;
+--:-:-:-:6      ISETP.NE.U32.AND P5, PT, vid, RZ, P6;
+--:-:-:-:6      IADD units, op, 0x@{[sprintf '%x', $DESC_OFF]};
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  \@P5 IADD vtid, vtid, bar_t;
+--:2:-:-:6  \@P6 STS [units], vtid;
+02:-:-:-:6      BAR.SYNC 0x1;
+--:-:1:-:1      LDS op, [RZ+0x@{[sprintf '%x', $DESC_OFF]}];
+--:-:1:-:2      LDS units, [RZ+0x@{[sprintf '%x', $DESC_OFF + 4]}];
+01:-:-:-:6      BRA OP_DISPATCH;
+
 PHASE_END:
 $trace[3]# ---- grid barrier (warp 0 counts in; everyone waits at BAR 1) ----
---:-:-:-:6      BAR.SYNC 0x1;
+$phase_sync# The scalar footer already drained the whole CTA before trace[3].
 --:-:-:-:6      ISETP.GE.U32.AND P6, PT, tid, 0x20, PT;
 --:-:-:-:6      ISETP.NE.U32.AND P5, PT, tid, RZ, PT;
-# prefetch the next logical phase (skip a pair's second descriptor)
+# prefetch the next logical phase (skip all secondary group descriptors)
 --:-:1:-:2      LDS bar_t, [RZ+0x@{[sprintf '%x', $STEP_OFF]}];
 01:-:-:-:6      IADD bar_t, pidx, bar_t;
 --:-:-:-:6      ISETP.LT.U32.AND P3, PT, bar_t, nph, PT;
@@ -644,6 +833,9 @@ $trace[3]# ---- grid barrier (warp 0 counts in; everyone waits at BAR 1) ----
 --:-:1:-:2  \@P4 LDS op, [RZ+0x@{[sprintf '%x', $XG_OFF]}];
 --:-:-:-:6  \@P4 MEMBAR.SYS;
 01:-:-:-:6      IADD op, op, 0x1;
+# Compute the mirror predicate before pointer arithmetic. The seven following
+# stores alone provide fewer than 18 scheduled cycles for a newly written P2.
+--:-:-:-:6      ISETP.EQ.U32.AND P2, PT, cta, RZ, P4;
 --:-:-:-:6      IADD xc0.CC, xc0, units;
 --:-:-:-:6      IADD.X xc1, xc1, RZ;
 --:-:-:-:6      IADD xd0.CC, xd0, units;
@@ -656,7 +848,6 @@ $trace[3]# ---- grid barrier (warp 0 counts in; everyone waits at BAR 1) ----
 --:-:-:-:6      IADD.X xh1, xh1, RZ;
 --:-:-:-:6      IADD xi0.CC, xi0, units;
 --:-:-:-:6      IADD.X xi1, xi1, RZ;
---:-:-:-:6      ISETP.EQ.U32.AND P2, PT, cta, RZ, P4;
 --:2:-:-:1  \@P4 STG.E.WT [xc], op;
 --:2:-:-:1  \@P4 STG.E.WT [xd], op;
 --:2:-:-:1  \@P4 STG.E.WT [xf], op;
@@ -709,10 +900,10 @@ BDONE:
 --:-:-:-:6      IADD bar_cp0.CC, bar_cp0, bar_g;
 --:-:-:-:6      IADD.X bar_cp1, bar_cp1, RZ;
 --:-:6:-:2  \@P4 S2R bar_g2, SR_GLOBALTIMERLO;
-20:-:-:-:6  \@P4 STG.E [bar_cp+0x100], bar_g2;
+20:3:-:-:6  \@P4 STG.E [bar_cp+0x100], bar_g2;
 $trace[4]# ---- next phase ----
 --:-:1:-:2      LDS bar_t, [RZ+0x@{[sprintf '%x', $STEP_OFF]}];
-01:-:-:-:6      IADD pidx, pidx, bar_t;
+05:-:-:-:6      IADD pidx, pidx, bar_t;
 --:-:-:-:6      ISETP.LT.U32.AND P6, PT, pidx, nph, PT;
 --:-:-:-:6      NOP;
 --:-:-:-:6      NOP;

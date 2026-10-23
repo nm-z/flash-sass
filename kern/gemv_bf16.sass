@@ -102,6 +102,9 @@
         $o .= sprintf "    %d : %s\n", $h + $_, $n[$_] for 0 .. @n - 1;
         my $q = $h + @n; $q += $q & 1;
         $o .= sprintf "    %d,%d : xa<0-1>\n    %d,%d : tp<0-1>\n    %d,%d : dp<0-1>\n", $q, $q + 1, $q + 2, $q + 3, $q + 4, $q + 5;
+        if ($ENV{HCUP_SIGMOID_ZIP}) {
+            $o .= sprintf "    %d-%d : ft<6-10>\n    %d : gg1\n", $q+6, $q+10, $q+11;
+        }
     }
     # prologue temporaries alias the weight registers
     $o .= sprintf "    %d : lane\n    %d : grp\n    %d : tid\n    %d : bid\n    %d : off\n    %d : t0\n    %d : t1\n",
@@ -294,9 +297,18 @@
         $o .= "--:-:1:-:1      LDG.E su0, [dp];\n";
         $o .= "--:-:1:-:2  \@P4 LDG.E su1, [dp+0x400];\n";
         $o .= "01:-:-:-:6      FMUL gg, su0, 0.25;\n";
-        $o .= fm_silu('sy0', 'gg', 'ft1', 'ft2', 'ft3', 'ft4', 'ft5', \%FC);
-        $o .= "--:-:-:-:6      FMUL gg, su1, 0.25;\n";
-        $o .= fm_silu('sy1', 'gg', 'ft1', 'ft2', 'ft3', 'ft4', 'ft5', \%FC);
+        if ($ENV{HCUP_SIGMOID_ZIP}) {
+            # Two independent elements retain their original operations and
+            # inputs while alternating issue slots between disjoint chains.
+            $o .= "--:-:-:-:6      FMUL gg1, su1, 0.25;\n";
+            $o .= fm_zip(
+                fm_silu('sy0', 'gg', 'ft1', 'ft2', 'ft3', 'ft4', 'ft5', \%FC),
+                fm_silu('sy1', 'gg1', 'ft6', 'ft7', 'ft8', 'ft9', 'ft10', \%FC));
+        } else {
+            $o .= fm_silu('sy0', 'gg', 'ft1', 'ft2', 'ft3', 'ft4', 'ft5', \%FC);
+            $o .= "--:-:-:-:6      FMUL gg, su1, 0.25;\n";
+            $o .= fm_silu('sy1', 'gg', 'ft1', 'ft2', 'ft3', 'ft4', 'ft5', \%FC);
+        }
         $o .= "--:-:-:-:6 \@!P5 MOV sy1, su1;\n";
         $o .= "--:1:-:-:1      STS [sa], sy0;\n";
         $o .= "--:1:-:-:1  \@P4 STS [sa+0x400], sy1;\n";
@@ -419,6 +431,9 @@
     if ($xout || $hcup) {
         $o .= sprintf "%s:-:-:-:6      IADD dq%02d.CC, dq%02d, xo;\n--:-:-:-:6      IADD.X dq%02d, dq%02d, RZ;\n", $_ ? "--" : "02", 2 * $_, 2 * $_, 2 * $_ + 1, 2 * $_ + 1 for 0..5;
     }
+    # The single-slice activation address aliases the first weight registers.
+    # XOUT/HCUP already retire these loads while adjusting their destinations.
+    $o .= "02:-:-:-:6      NOP;\n" if $NS == 1 && !$xout && !$hcup;
     $o .= "\nLOOP:\n";
     $o .= $xload->(0, 0) if $NS > 1;      # slice 0 of this row
     $o .= "--:2:1:-:1  \@P3 LDG.E xl, [xa];\n" if $hcup;            # xh[l][c] for the lane mix

@@ -185,6 +185,9 @@
         }
     }
 
+    # xp aliases nb00/nb01. Retire activation loads before weight loads
+    # overwrite those address registers; LDG may consume its address late.
+    $o .= "02:-:-:-:6      NOP;\n";
     $o .= "\nLOOP:\n";
     $o .= "--:2:1:-:1      LDG.E.CI.128 dp0, [pp];\n";
     for my $i (0..$n-1) { $o .= sprintf "--:2:1:-:1      LDG.E.CI.128 nb%02d, [np+0x%x];\n", 4*$i, 128*$Q*$i; }
