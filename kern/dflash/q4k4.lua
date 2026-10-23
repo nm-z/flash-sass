@@ -105,4 +105,92 @@ end
 e('DONE:')
 e('  ret;')
 e('}')
+
+-- Three-position matrix over the target head's tiled Q5_K rows (stride 1760
+-- for K=2560): 16-byte block headers, then 128 code bytes per block with
+-- sequential nibbles, then a 32-byte high-bit plane per block. Lane l owns
+-- elements 8l..8l+7 of each block, all inside sub-block l/4.
+local P=3
+e('')
+e('.visible .entry df3_q5t_matrix(.param .u64 pw,.param .u64 px,.param .u64 py,')
+e('    .param .u32 prows,.param .u32 pk,.param .u32 pstride)')
+e('{')
+e('  .reg .pred %valid<4>,%more,%lead,%direct;')
+e('  .reg .b16 %hh<2>;')
+e('  .reg .b32 %rtid,%lane,%rwarp,%rcta,%rows,%k,%stride,%r0,%blocks,%b,%g,%sh;')
+e('  .reg .b32 %t<8>,%q,%hb,%sc,%mn,%s0,%s1,%s2,%dm;')
+e('  .reg .b64 %w,%x,%y,%rowp<4>,%xa,%addr,%off,%hdr;')
+e('  .reg .f32 %d,%dmin,%fsc,%fmn,%c<8>,%dd;')
+for p=0,P-1 do e(string.format('  .reg .f32 %%xa%d_<4>,%%xb%d_<4>,%%sum%d,%%dot%d;',p,p,p,p))end
+for r=0,3 do e(string.format('  .reg .f32 %%acc%d_<%d>;',r,P))end
+e('  ld.param.u64 %w,[pw];ld.param.u64 %x,[px];ld.param.u64 %y,[py];')
+e('  ld.param.u32 %rows,[prows];ld.param.u32 %k,[pk];ld.param.u32 %stride,[pstride];')
+e('  cvta.to.global.u64 %w,%w;cvta.to.global.u64 %x,%x;cvta.to.global.u64 %y,%y;')
+e('  mov.u32 %rtid,%tid.x;and.b32 %lane,%rtid,31;shr.u32 %rwarp,%rtid,5;mov.u32 %rcta,%ctaid.x;')
+e('  shl.b32 %r0,%rcta,3;add.u32 %r0,%r0,%rwarp;shl.b32 %r0,%r0,2;')
+e('  setp.ge.u32 %more,%r0,%rows;@%more bra QDONE;')
+for r=0,3 do
+ e(string.format('  add.u32 %%t0,%%r0,%d;setp.lt.u32 %%valid%d,%%t0,%%rows;',r,r))
+ e(string.format('  @%%valid%d mul.wide.u32 %%off,%%t0,%%stride;@!%%valid%d mul.wide.u32 %%off,%%r0,%%stride;',r,r))
+ e(string.format('  add.u64 %%rowp%d,%%w,%%off;',r))
+ for p=0,P-1 do e(string.format('  mov.f32 %%acc%d_%d,0f00000000;',r,p))end
+end
+e('  shr.u32 %g,%lane,2;and.b32 %sh,%lane,3;shl.b32 %sh,%sh,3;')   -- sub-block, bit offset in high word
+e('  setp.lt.u32 %direct,%g,4;')
+e('  shr.u32 %blocks,%k,8;mov.u32 %b,0;')
+e('QLOOP:')
+e('  shl.b32 %t0,%b,8;shl.b32 %t1,%lane,3;add.u32 %t0,%t0,%t1;')
+for p=0,P-1 do
+ e(string.format('  mad.lo.u32 %%t1,%%k,%d,%%t0;mul.wide.u32 %%off,%%t1,4;add.u64 %%xa,%%x,%%off;',p))
+ e(string.format('  ld.global.nc.v4.f32 {%%xa%d_0,%%xa%d_1,%%xa%d_2,%%xa%d_3},[%%xa];',p,p,p,p))
+ e(string.format('  ld.global.nc.v4.f32 {%%xb%d_0,%%xb%d_1,%%xb%d_2,%%xb%d_3},[%%xa+16];',p,p,p,p))
+ e(string.format('  add.f32 %%sum%d,%%xa%d_0,%%xa%d_1;add.f32 %%sum%d,%%sum%d,%%xa%d_2;add.f32 %%sum%d,%%sum%d,%%xa%d_3;',p,p,p,p,p,p,p,p,p))
+ e(string.format('  add.f32 %%sum%d,%%sum%d,%%xb%d_0;add.f32 %%sum%d,%%sum%d,%%xb%d_1;add.f32 %%sum%d,%%sum%d,%%xb%d_2;add.f32 %%sum%d,%%sum%d,%%xb%d_3;',p,p,p,p,p,p,p,p,p,p,p,p))
+end
+-- byte offsets within the row: header 16b, codes 16*blocks+128b+4l, high 144*blocks+32b+4g
+e('  shl.b32 %t2,%b,4;cvt.u64.u32 %hdr,%t2;')
+e('  shl.b32 %t3,%blocks,4;shl.b32 %t4,%b,7;add.u32 %t3,%t3,%t4;shl.b32 %t4,%lane,2;add.u32 %t3,%t3,%t4;')
+e('  mul.lo.u32 %t5,%blocks,144;shl.b32 %t4,%b,5;add.u32 %t5,%t5,%t4;shl.b32 %t4,%g,2;add.u32 %t5,%t5,%t4;')
+for r=0,3 do
+ e(string.format('  @!%%valid%d bra QSKIP%d;',r,r))
+ e(string.format('  add.u64 %%addr,%%rowp%d,%%hdr;ld.global.nc.v4.u32 {%%dm,%%s0,%%s1,%%s2},[%%addr];',r))
+ e(string.format('  cvt.u64.u32 %%off,%%t3;add.u64 %%addr,%%rowp%d,%%off;ld.global.nc.u32 %%q,[%%addr];',r))
+ e(string.format('  cvt.u64.u32 %%off,%%t5;add.u64 %%addr,%%rowp%d,%%off;ld.global.nc.u32 %%hb,[%%addr];',r))
+ e('  mov.b32 {%hh0,%hh1},%dm;cvt.f32.f16 %d,%hh0;cvt.f32.f16 %dmin,%hh1;')
+ e('  @%direct shl.b32 %t6,%g,3;@%direct bfe.u32 %sc,%s0,%t6,6;@%direct bfe.u32 %mn,%s1,%t6,6;')
+ e('  @!%direct add.u32 %t6,%g,-4;@!%direct shl.b32 %t6,%t6,3;')
+ e('  @!%direct bfe.u32 %t7,%s2,%t6,4;@!%direct add.u32 %t4,%t6,6;@!%direct bfe.u32 %t1,%s0,%t4,2;@!%direct shl.b32 %t1,%t1,4;@!%direct or.b32 %sc,%t7,%t1;')
+ e('  @!%direct add.u32 %t7,%t6,4;@!%direct bfe.u32 %t7,%s2,%t7,4;@!%direct bfe.u32 %t1,%s1,%t4,2;@!%direct shl.b32 %t1,%t1,4;@!%direct or.b32 %mn,%t7,%t1;')
+ e('  cvt.rn.f32.u32 %fsc,%sc;cvt.rn.f32.u32 %fmn,%mn;mul.f32 %fsc,%d,%fsc;mul.f32 %fmn,%dmin,%fmn;neg.f32 %fmn,%fmn;')
+ e('  shr.u32 %hb,%hb,%sh;')
+ for i=0,7 do
+  e(string.format('  bfe.u32 %%t6,%%q,%d,4;bfe.u32 %%t7,%%hb,%d,1;shl.b32 %%t7,%%t7,4;or.b32 %%t6,%%t6,%%t7;cvt.rn.f32.u32 %%c%d,%%t6;',4*i,i,i))
+ end
+ for p=0,P-1 do
+  local xs={}
+  for i=0,3 do xs[i]=string.format('%%xa%d_%d',p,i)end
+  for i=4,7 do xs[i]=string.format('%%xb%d_%d',p,i-4)end
+  e(string.format('  mul.f32 %%dot%d,%%c0,%s;',p,xs[0]))
+  for i=1,7 do e(string.format('  fma.rn.f32 %%dot%d,%%c%d,%s,%%dot%d;',p,i,xs[i],p))end
+  e(string.format('  fma.rn.f32 %%acc%d_%d,%%fsc,%%dot%d,%%acc%d_%d;fma.rn.f32 %%acc%d_%d,%%fmn,%%sum%d,%%acc%d_%d;',r,p,p,r,p,r,p,p,r,p))
+ end
+ e(string.format('QSKIP%d:',r))
+end
+e('  add.u32 %b,%b,1;setp.lt.u32 %more,%b,%blocks;@%more bra QLOOP;')
+for r=0,3 do for p=0,P-1 do
+ for _,delta in ipairs({16,8,4,2,1})do
+  e(string.format('  shfl.sync.down.b32 %%dd,%%acc%d_%d,%d,31,0xffffffff;add.f32 %%acc%d_%d,%%acc%d_%d,%%dd;',r,p,delta,r,p,r,p))
+ end
+end end
+e('  setp.eq.u32 %lead,%lane,0;@!%lead bra QDONE;')
+for r=0,3 do
+ e(string.format('  @!%%valid%d bra QSTORED%d;',r,r))
+ for p=0,P-1 do
+  e(string.format('  add.u32 %%t0,%%r0,%d;mad.lo.u32 %%t0,%%rows,%d,%%t0;mul.wide.u32 %%off,%%t0,4;add.u64 %%addr,%%y,%%off;st.global.f32 [%%addr],%%acc%d_%d;',r,p,r,p))
+ end
+ e(string.format('QSTORED%d:',r))
+end
+e('QDONE:')
+e('  ret;')
+e('}')
 local f=assert(io.open(out,'w'));f:write(table.concat(o,'\n')..'\n');f:close()

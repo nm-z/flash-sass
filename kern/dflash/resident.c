@@ -17,6 +17,7 @@ struct dflash_resident {
     unsigned rank,context;
     CUmodule module[6];CUfunction fn[6][NFUNCTIONS];CUstream stream[6];
     CUmodule q4k_module;CUfunction q4k;   /* optional PTX four-row Q4_K matrix */
+    CUmodule head_module[6];CUfunction q5t[6];   /* same PTX module: three-position head */
     CUevent hidden_ready,head_ready[6];
     CUgraph backbone_graph,append_graph,head_graph[6],select_graph;
     CUgraphExec backbone,append,head[6],select;
@@ -78,6 +79,28 @@ static int matrix_check(dflash_resident *r,char *err,size_t nerr) {
         fprintf(stderr,"dflash_matrix_check tensor=%u rows=%u k=%u max_abs=%.6g scale=%.6g\n",i,rows,k,worst,scale);
         cuMemFree(dx);cuMemFree(da);cuMemFree(db);free(x);free(a);free(b);
     }
+    return 0;
+}
+/* Same comparison for the three-position target-head shard on the draft die. */
+static int head_check(dflash_resident *r,char *err,size_t nerr) {
+    unsigned d=r->rank;
+    if(!r->q5t[d] || !getenv("FLASH_DFLASH_MATRIX_CHECK") || !atoi(getenv("FLASH_DFLASH_MATRIX_CHECK")))return 0;
+    TRY(cuCtxSetCurrent(r->target[d].context));
+    unsigned rows=r->target[d].output_rows,k=2560,count=3,type=DFLASH_TARGET_Q5_TILE,stride=r->target[d].output_stride;
+    float *x=malloc((size_t)3*k*4),*a=malloc((size_t)3*rows*4),*b=malloc((size_t)3*rows*4);
+    if(!x||!a||!b){free(x);free(a);free(b);snprintf(err,nerr,"DFlash2 head check allocation");return -1;}
+    uint32_t s=777u;for(size_t j=0;j<(size_t)3*k;j++){s=s*1664525u+1013904223u;x[j]=((float)(s>>8)/16777216.f-.5f);}
+    CUdeviceptr dx,da,db;TRY(cuMemAlloc(&dx,(size_t)3*k*4));TRY(cuMemAlloc(&da,(size_t)3*rows*4));TRY(cuMemAlloc(&db,(size_t)3*rows*4));
+    TRY(cuMemcpyHtoD(dx,x,(size_t)3*k*4));
+    void *old[]={&r->target[d].output_weights,&dx,&da,&rows,&k,&count,&type,&stride};
+    if(launch(r,d,MATRIX,(rows+3)/4,1,128,old,err,nerr))return -1;
+    void *now[]={&r->target[d].output_weights,&dx,&db,&rows,&k,&stride};
+    TRY(cuLaunchKernel(r->q5t[d],(rows+31)/32,1,1,256,1,1,0,r->stream[d],now,NULL));
+    TRY(cuStreamSynchronize(r->stream[d]));
+    TRY(cuMemcpyDtoH(a,da,(size_t)3*rows*4));TRY(cuMemcpyDtoH(b,db,(size_t)3*rows*4));
+    double worst=0,scale=0;for(size_t j=0;j<(size_t)3*rows;j++){double e=fabs((double)a[j]-b[j]);if(e>worst)worst=e;if(fabs(a[j])>scale)scale=fabs(a[j]);}
+    fprintf(stderr,"dflash_head_check die=%u rows=%u max_abs=%.6g scale=%.6g\n",d,rows,worst,scale);
+    cuMemFree(dx);cuMemFree(da);cuMemFree(db);free(x);free(a);free(b);
     return 0;
 }
 static int norm(dflash_resident *r,CUdeviceptr input,CUdeviceptr output,const gguf_tensor *t,unsigned width,unsigned vectors,char *err,size_t nerr) {
@@ -156,7 +179,10 @@ static int head_graph(dflash_resident *r,unsigned d,char *err,size_t nerr) {
     TRY(cuStreamBeginCapture(r->stream[d],CU_STREAM_CAPTURE_MODE_THREAD_LOCAL));
     unsigned rows=r->target[d].output_rows,k=2560,count=3,type=DFLASH_TARGET_Q5_TILE,stride=r->target[d].output_stride;
     void *matrix_args[]={&r->target[d].output_weights,&r->head_input[d],&r->logits[d],&rows,&k,&count,&type,&stride};
-    DO(launch(r,d,MATRIX,(rows+3)/4,1,128,matrix_args,err,nerr));
+    if(r->q5t[d]) {
+        void *args[]={&r->target[d].output_weights,&r->head_input[d],&r->logits[d],&rows,&k,&stride};
+        TRY(cuLaunchKernel(r->q5t[d],(rows+31)/32,1,1,256,1,1,0,r->stream[d],args,NULL));
+    } else DO(launch(r,d,MATRIX,(rows+3)/4,1,128,matrix_args,err,nerr));
     unsigned first=r->target[d].output_first,blocks=(rows+255)/256;
     void *top[]={&r->logits[d],&r->top_a[d],&rows,&first};
     DO(launch(r,d,TOPK_LOGITS,blocks,3,256,top,err,nerr));
@@ -228,7 +254,12 @@ static int initialize(dflash_resident *r,const char *model,const char *module,ch
     if(q4k && *q4k) {
         TRY(cuCtxSetCurrent(r->target[rank].context));
         TRY(cuModuleLoad(&r->q4k_module,q4k));TRY(cuModuleGetFunction(&r->q4k,r->q4k_module,"df4_q4k_matrix"));
+        for(unsigned d=0;d<6;d++) {
+            TRY(cuCtxSetCurrent(r->target[d].context));
+            TRY(cuModuleLoad(&r->head_module[d],q4k));TRY(cuModuleGetFunction(&r->q5t[d],r->head_module[d],"df3_q5t_matrix"));
+        }
     }
+    DO(head_check(r,err,nerr));
     DO(matrix_check(r,err,nerr));
     DO(backbone(r,err,nerr));DO(append_graph(r,err,nerr));
     for(unsigned d=0;d<6;d++)DO(head_graph(r,d,err,nerr));
@@ -310,6 +341,7 @@ void dflash_resident_close(dflash_resident *r) {
     if(r->append)cuGraphExecDestroy(r->append);if(r->append_graph)cuGraphDestroy(r->append_graph);
     if(r->select)cuGraphExecDestroy(r->select);if(r->select_graph)cuGraphDestroy(r->select_graph);
     if(r->q4k_module)cuModuleUnload(r->q4k_module);
+    for(unsigned d=0;d<6;d++)if(r->head_module[d]){cuCtxSetCurrent(r->target[d].context);cuModuleUnload(r->head_module[d]);}
     if(r->hidden_ready)cuEventDestroy(r->hidden_ready);
     if(r->host_control)cuMemFreeHost(r->host_control);if(r->host_tokens)cuMemFreeHost(r->host_tokens);
     for(unsigned i=r->allocations;i;i--) {unsigned d=r->allocation[i-1].rank;cuCtxSetCurrent(r->target[d].context);cuMemFree(r->allocation[i-1].pointer);}
