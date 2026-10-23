@@ -1,0 +1,681 @@
+< connecting /tmp/flash-owned-lifecycle-paired-pair1.sock >
+> config
+config rev=72620653d4bb3dc10e3cb405695550db7152bae7 kv_host=0 ple_disk=1 maxt=512 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=1 trace_tokens=4 two_position=1 cubin=/home/nate/claude/flash-sass-prs/trace-build-7262065/kern/die_trace.cubin cubin_fnv=3c940dc11e292f13
+> stop
+ok: stop -1 -1
+> snap 1
+ok: snap 1
+> chat 3 10 11
+tok 220
+tok 15
+tok 13
+tok 15
+done 4 0 2 440.6 60.5 0 1
+> trace 0
+trace_begin request=1 die=0 first=1 count=4 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=5 requested=5
+trace_end
+> trace 1
+trace_begin request=1 die=1 first=1 count=4 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=5 requested=5
+trace_end
+> trace 2
+trace_begin request=1 die=2 first=1 count=4 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=5 requested=5
+trace_end
+> trace 3
+trace_begin request=1 die=3 first=1 count=4 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=5 requested=5
+trace_end
+> trace 4
+trace_begin request=1 die=4 first=1 count=4 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=5 requested=5
+trace_end
+> trace 5
+trace_begin request=1 die=5 first=1 count=4 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=5 requested=5
+trace_end
+> hosttrace
+hosttrace_begin request=1 first=1 count=4 clock=CLOCK_MONOTONIC status=completed aborted=0 ended=0 completed=5 requested=5
+hosttrace_end
+> stop 220
+ok: stop 220 -1
+> chat 3 10 11
+tok 220
+done 1 1 2 29.6 29.5 1 0
+> trace 0
+trace_begin request=2 die=0 first=1 count=1 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=1 completed=2 requested=5
+trace_end
+> trace 1
+trace_begin request=2 die=1 first=1 count=1 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=1 completed=2 requested=5
+trace_end
+> trace 2
+trace_begin request=2 die=2 first=1 count=1 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=1 completed=2 requested=5
+trace_end
+> trace 3
+trace_begin request=2 die=3 first=1 count=1 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=1 completed=2 requested=5
+trace_end
+> trace 4
+trace_begin request=2 die=4 first=1 count=1 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=1 completed=2 requested=5
+trace_end
+> trace 5
+trace_begin request=2 die=5 first=1 count=1 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=1 completed=2 requested=5
+trace_end
+> hosttrace
+hosttrace_begin request=2 first=1 count=1 clock=CLOCK_MONOTONIC status=completed aborted=0 ended=1 completed=2 requested=5
+hosttrace_end
+< connecting /tmp/flash-owned-lifecycle-paired-pair1.sock >
+> stop
+ok: stop -1 -1
+> chat 40 10 11
+tok 220
+< client disconnected after first token >
+< connecting /tmp/flash-owned-lifecycle-paired-pair1.sock >
+> trace 0
+trace_begin request=3 die=0 first=1 count=4 nph=1154 ctas=1 nblk=512 status=aborted aborted=1 ended=1 completed=10 requested=42
+trace_end
+> trace 1
+trace_begin request=3 die=1 first=1 count=4 nph=1214 ctas=1 nblk=512 status=aborted aborted=1 ended=1 completed=10 requested=42
+trace_end
+> trace 2
+trace_begin request=3 die=2 first=1 count=4 nph=1154 ctas=1 nblk=512 status=aborted aborted=1 ended=1 completed=10 requested=42
+trace_end
+> trace 3
+trace_begin request=3 die=3 first=1 count=4 nph=1154 ctas=1 nblk=512 status=aborted aborted=1 ended=1 completed=10 requested=42
+trace_end
+> trace 4
+trace_begin request=3 die=4 first=1 count=4 nph=1214 ctas=1 nblk=512 status=aborted aborted=1 ended=1 completed=10 requested=42
+trace_end
+> trace 5
+trace_begin request=3 die=5 first=1 count=4 nph=1214 ctas=1 nblk=512 status=aborted aborted=1 ended=1 completed=10 requested=42
+trace_end
+> hosttrace
+hosttrace_begin request=3 first=1 count=4 clock=CLOCK_MONOTONIC status=aborted aborted=1 ended=1 completed=10 requested=42
+hosttrace_end
+> chat 512 10 11
+error: 2 prompt ids + 512 new > 512 positions
+> trace 0
+error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=4 status=argument_error aborted=0 ended=0 completed=0 requested=514
+> trace 1
+error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=4 status=argument_error aborted=0 ended=0 completed=0 requested=514
+> trace 2
+error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=4 status=argument_error aborted=0 ended=0 completed=0 requested=514
+> trace 3
+error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=4 status=argument_error aborted=0 ended=0 completed=0 requested=514
+> trace 4
+error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=4 status=argument_error aborted=0 ended=0 completed=0 requested=514
+> trace 5
+error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=4 status=argument_error aborted=0 ended=0 completed=0 requested=514
+> hosttrace
+error: no completed host trace; request=4 status=argument_error aborted=0 ended=0 completed=0 requested=514
+> img /tmp/flash-trace-missing-f3c7323a7ba24984bb2b706d88b36bfa.bin 0
+ok: img 1
+> chat 3 10 11
+error: bad image data (a file, a position or too many image tokens)
+> trace 0
+error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=5 status=image_error aborted=0 ended=0 completed=0 requested=5
+> trace 1
+error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=5 status=image_error aborted=0 ended=0 completed=0 requested=5
+> trace 2
+error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=5 status=image_error aborted=0 ended=0 completed=0 requested=5
+> trace 3
+error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=5 status=image_error aborted=0 ended=0 completed=0 requested=5
+> trace 4
+error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=5 status=image_error aborted=0 ended=0 completed=0 requested=5
+> trace 5
+error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=5 status=image_error aborted=0 ended=0 completed=0 requested=5
+> hosttrace
+error: no completed host trace; request=5 status=image_error aborted=0 ended=0 completed=0 requested=5
+> stop
+ok: stop -1 -1
+> chat 3 10 11
+tok 220
+tok 15
+tok 13
+tok 15
+done 4 0 2 116.1 29.4 1 0
+> trace 0
+trace_begin request=6 die=0 first=1 count=4 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=5 requested=5
+trace_end
+> trace 1
+trace_begin request=6 die=1 first=1 count=4 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=5 requested=5
+trace_end
+> trace 2
+trace_begin request=6 die=2 first=1 count=4 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=5 requested=5
+trace_end
+> trace 3
+trace_begin request=6 die=3 first=1 count=4 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=5 requested=5
+trace_end
+> trace 4
+trace_begin request=6 die=4 first=1 count=4 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=5 requested=5
+trace_end
+> trace 5
+trace_begin request=6 die=5 first=1 count=4 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=5 requested=5
+trace_end
+> hosttrace
+hosttrace_begin request=6 first=1 count=4 clock=CLOCK_MONOTONIC status=completed aborted=0 ended=0 completed=5 requested=5
+hosttrace_end
+> snap 1
+ok: snap 1
+> chat 3 20 21 22 23
+tok 12
+tok 24
+tok 19
+tok 16
+done 4 0 4 862.0 494.8 0 1
+> statehash
+statehash positions=7 paired_positions=2
+statehash die=0 layer=0 state=f2458f6ec0e9fe53
+statehash die=0 layer=1 state=4c7a92e9b786d84a
+statehash die=0 layer=2 state=38a4acc69d85c86d
+statehash die=0 layer=4 state=a836466a07d80b14
+statehash die=0 layer=5 state=7077b96b2abca678
+statehash die=0 layer=6 state=d9aee25c920fa306
+statehash die=0 layer=8 state=05e333d16c5f6499
+statehash die=0 layer=9 state=18d042825c24580d
+statehash die=0 layer=10 state=565d649f38c172fa
+statehash die=0 layer=12 state=0d0c3cdb75cd90da
+statehash die=0 layer=13 state=ca0f488b151ade4d
+statehash die=0 layer=14 state=1edb3c8ce7617d9e
+statehash die=0 layer=16 state=28a347c1de7da4a0
+statehash die=0 layer=17 state=6d6bc264900c7cd9
+statehash die=0 layer=18 state=c99863073dd82b58
+statehash die=0 layer=20 state=905d536d3e8b1bef
+statehash die=0 layer=21 state=f36e5112e279a75f
+statehash die=0 layer=22 state=d139efc49ba0478d
+statehash die=0 layer=24 state=72d0481943c45ca4
+statehash die=0 layer=25 state=de053e5da514161d
+statehash die=0 layer=26 state=b2626c4472109105
+statehash die=0 layer=28 state=0bc58d57e62486ba
+statehash die=0 layer=29 state=73b56215fff36ce3
+statehash die=0 layer=30 state=848a596ba7c248e4
+statehash die=0 layer=32 state=a357383aea851834
+statehash die=0 layer=33 state=3b62f5a558725584
+statehash die=0 layer=34 state=c29374d4f5c47f58
+statehash die=0 layer=36 state=2b6245ee26b2a653
+statehash die=0 layer=37 state=c1efe878a95ac760
+statehash die=0 layer=38 state=5c161fd8f71baba6
+statehash die=0 layer=40 state=159f5cff05f42e34
+statehash die=0 layer=41 state=64b90d9e50d07118
+statehash die=0 layer=42 state=bbc01efaa05e5675
+statehash die=0 layer=44 state=dd53b7fa8cc601d5
+statehash die=0 layer=45 state=4fd2be7d7d141405
+statehash die=0 layer=46 state=0108423011ca4b48
+statehash die=0 ple=73496f901630a80d logits=ea3a7439c1da5068
+statehash die=1 layer=0 state=9f749905a79c8d62
+statehash die=1 layer=1 state=80c8cdbae05af952
+statehash die=1 layer=2 state=cfd51e30c84e358f
+statehash die=1 layer=3 state=1b71677d3f27a0dc
+statehash die=1 layer=4 state=81707cc93c37a077
+statehash die=1 layer=5 state=35aa116ab3f8cd71
+statehash die=1 layer=6 state=9a18c0c0b0f5a3bb
+statehash die=1 layer=7 state=17a5859fb6f4396f
+statehash die=1 layer=8 state=5629be03530526c9
+statehash die=1 layer=9 state=d56d3d682e347564
+statehash die=1 layer=10 state=09bfebc7e17e1534
+statehash die=1 layer=11 state=9b671ac3c42803e6
+statehash die=1 layer=12 state=85eaf16e65929b0e
+statehash die=1 layer=13 state=036577c86312fa09
+statehash die=1 layer=14 state=3c6ba8bd082752a6
+statehash die=1 layer=15 state=8384379a2f3d3337
+statehash die=1 layer=16 state=48bbc78912f307a6
+statehash die=1 layer=17 state=caa87826674f616f
+statehash die=1 layer=18 state=977212552596520a
+statehash die=1 layer=20 state=8def83656653ed56
+statehash die=1 layer=21 state=27ea0c271a3b54de
+statehash die=1 layer=22 state=eecabe4ec1b95e5a
+statehash die=1 layer=24 state=502fe2763f669709
+statehash die=1 layer=25 state=8999cea685ac56ab
+statehash die=1 layer=26 state=293ca49e2da7dfd3
+statehash die=1 layer=28 state=416a701deb773edb
+statehash die=1 layer=29 state=72f230e1ce825cd9
+statehash die=1 layer=30 state=4b205f445961bd80
+statehash die=1 layer=32 state=ef5bba86be1249ba
+statehash die=1 layer=33 state=6a9e71b75a903341
+statehash die=1 layer=34 state=09e9af09e25bbcbd
+statehash die=1 layer=36 state=eb03054c04842c82
+statehash die=1 layer=37 state=c656bd4cb549d5d4
+statehash die=1 layer=38 state=a451666f5245ed7a
+statehash die=1 layer=40 state=d3bda7b3e607988a
+statehash die=1 layer=41 state=f587663c3700c76b
+statehash die=1 layer=42 state=c8c738eb63d37447
+statehash die=1 layer=44 state=f486e9bbb0a7656f
+statehash die=1 layer=45 state=1dd1e7cb6dfb6b8d
+statehash die=1 layer=46 state=1fd5721b6fa2e164
+statehash die=1 ple=73496f901630a80d logits=8b1528ea5becad2f
+statehash die=2 layer=0 state=c30d7d54382dcd6c
+statehash die=2 layer=1 state=55bb1cb520685f47
+statehash die=2 layer=2 state=8090716480a0a298
+statehash die=2 layer=4 state=b307d825db0930cd
+statehash die=2 layer=5 state=ebeb4a42ee1daccc
+statehash die=2 layer=6 state=c9d6babdd03dd7ae
+statehash die=2 layer=8 state=8ae6977fcecb8d7d
+statehash die=2 layer=9 state=f7ed3d05a0e86858
+statehash die=2 layer=10 state=b538dc5f09d31a81
+statehash die=2 layer=12 state=e44e4f1720c5cd4f
+statehash die=2 layer=13 state=5cca8b5c4e765b26
+statehash die=2 layer=14 state=909ab6ae50b19070
+statehash die=2 layer=16 state=03d15fbd5d275e82
+statehash die=2 layer=17 state=6dbb6e1b5f2d5701
+statehash die=2 layer=18 state=9aebfcda4a8d0ac0
+statehash die=2 layer=20 state=dbd4f76d02e65aaf
+statehash die=2 layer=21 state=9e2e2b2babac83b5
+statehash die=2 layer=22 state=d5d2e8e43f19350a
+statehash die=2 layer=24 state=9c56d9f729827500
+statehash die=2 layer=25 state=a5d6165e98aa3a43
+statehash die=2 layer=26 state=c2b1036ad9c4b4b7
+statehash die=2 layer=28 state=1258e5834391ed47
+statehash die=2 layer=29 state=598457e0b1334672
+statehash die=2 layer=30 state=86745f976c67227c
+statehash die=2 layer=32 state=677199f1a77c2542
+statehash die=2 layer=33 state=c3cda01b2e6741fc
+statehash die=2 layer=34 state=9c0124a61768d499
+statehash die=2 layer=36 state=1b90334e12de20f7
+statehash die=2 layer=37 state=d98bcffab7ffefbe
+statehash die=2 layer=38 state=934e0cd8df1bd3b6
+statehash die=2 layer=40 state=13268cfb2c310d53
+statehash die=2 layer=41 state=fd43f35741116a66
+statehash die=2 layer=42 state=4d6a6787bd8d59a7
+statehash die=2 layer=44 state=e9f5c618623273e9
+statehash die=2 layer=45 state=6977ff1e1b8ebb33
+statehash die=2 layer=46 state=025923214d5ec3c0
+statehash die=2 ple=73496f901630a80d logits=ed1abba33b95379e
+statehash die=3 layer=0 state=b815b4895671127e
+statehash die=3 layer=1 state=5f3f6253a46e226a
+statehash die=3 layer=2 state=e1dc476a69965643
+statehash die=3 layer=4 state=469ee0f0229e473d
+statehash die=3 layer=5 state=e7aa01178057639c
+statehash die=3 layer=6 state=e7adcd7f3126adc4
+statehash die=3 layer=8 state=a292082be6914176
+statehash die=3 layer=9 state=ab460b25aee76dbc
+statehash die=3 layer=10 state=b52f08756dc46984
+statehash die=3 layer=12 state=5d61b978fa5fe3b4
+statehash die=3 layer=13 state=9604ef5177dd236f
+statehash die=3 layer=14 state=fc046cfd00b39c1a
+statehash die=3 layer=16 state=f16bf062397adbbc
+statehash die=3 layer=17 state=07789acede94d4b2
+statehash die=3 layer=18 state=0fe9e661329e0b15
+statehash die=3 layer=20 state=da7d890c13dab8d8
+statehash die=3 layer=21 state=0d35cf2254af223f
+statehash die=3 layer=22 state=fb7cf3160088b84d
+statehash die=3 layer=24 state=f52b64ab78b3d4c0
+statehash die=3 layer=25 state=f0c0d492b7302390
+statehash die=3 layer=26 state=554433fea7794e90
+statehash die=3 layer=28 state=e4c8e393f0e4a0c5
+statehash die=3 layer=29 state=c4319cc98f33f28f
+statehash die=3 layer=30 state=693b370d6f096430
+statehash die=3 layer=32 state=b0b6f2ceb6d70fa2
+statehash die=3 layer=33 state=8dc2302b69399e1c
+statehash die=3 layer=34 state=c8886dcdf806a7eb
+statehash die=3 layer=36 state=bb8dde7a4f1dac20
+statehash die=3 layer=37 state=bd291b12ca6127ab
+statehash die=3 layer=38 state=f13a8519f238706b
+statehash die=3 layer=40 state=ef965b5a86c079f4
+statehash die=3 layer=41 state=87109a2c5000dad5
+statehash die=3 layer=42 state=0ed51f0d85278f57
+statehash die=3 layer=44 state=11f4f4474a1691ca
+statehash die=3 layer=45 state=37996cd9f0ca16a8
+statehash die=3 layer=46 state=bf689543fcae3d10
+statehash die=3 ple=73496f901630a80d logits=6d3404c018ad126c
+statehash die=4 layer=0 state=16d8cb31aa288b28
+statehash die=4 layer=1 state=3eaf78d121f0d615
+statehash die=4 layer=2 state=13e4363ce93bb56d
+statehash die=4 layer=4 state=000a9c9146a8aa14
+statehash die=4 layer=5 state=7d59d76500ec833c
+statehash die=4 layer=6 state=27a5746fbf611b9f
+statehash die=4 layer=8 state=0bdb925ff47777a2
+statehash die=4 layer=9 state=96e0b16db6fb52a1
+statehash die=4 layer=10 state=642839445469e580
+statehash die=4 layer=12 state=f986be565c6a50ea
+statehash die=4 layer=13 state=b18ec718ce01ec17
+statehash die=4 layer=14 state=b2963d33c4aba514
+statehash die=4 layer=16 state=1656d6f3d471a456
+statehash die=4 layer=17 state=7fd09073a4105bc1
+statehash die=4 layer=18 state=97cd54f81abbf835
+statehash die=4 layer=19 state=f65b08f07018680f
+statehash die=4 layer=20 state=5e78ef04e8a4f1a1
+statehash die=4 layer=21 state=b12ccd041301827f
+statehash die=4 layer=22 state=606c4be3015e055e
+statehash die=4 layer=23 state=a4f6d038876b4254
+statehash die=4 layer=24 state=74aabba7da4278ec
+statehash die=4 layer=25 state=480ec623d27a32b4
+statehash die=4 layer=26 state=ca91389474ebba83
+statehash die=4 layer=27 state=8e453738af292c51
+statehash die=4 layer=28 state=ac89d4b01f4687ea
+statehash die=4 layer=29 state=7abcc46114473bed
+statehash die=4 layer=30 state=69671c2961986190
+statehash die=4 layer=31 state=93c98fe44f9946c6
+statehash die=4 layer=32 state=585e654bace90c0f
+statehash die=4 layer=33 state=bb1d718b567d8dc8
+statehash die=4 layer=34 state=91358e2f9bba19e9
+statehash die=4 layer=36 state=d2c4627984cac8f1
+statehash die=4 layer=37 state=cf751b6ef28dd9e0
+statehash die=4 layer=38 state=6502df86d0021c4f
+statehash die=4 layer=40 state=da42920b7bf803b8
+statehash die=4 layer=41 state=ec78b987066b54fc
+statehash die=4 layer=42 state=f06d3b9dd677ecd9
+statehash die=4 layer=44 state=90f073ad2447a2f4
+statehash die=4 layer=45 state=154ff89a92c329ac
+statehash die=4 layer=46 state=93b510e1d30981e4
+statehash die=4 ple=73496f901630a80d logits=45306a2f4c6749bd
+statehash die=5 layer=0 state=ff86ff92d42e3491
+statehash die=5 layer=1 state=607f604f853f565d
+statehash die=5 layer=2 state=87dd672922ac5f22
+statehash die=5 layer=4 state=d706033bdaf7988a
+statehash die=5 layer=5 state=97e9ce817805ff69
+statehash die=5 layer=6 state=0c3eff381fe167d4
+statehash die=5 layer=8 state=209a7170d4fdc654
+statehash die=5 layer=9 state=935b0b98794b1f6f
+statehash die=5 layer=10 state=c79a25e88a6579cd
+statehash die=5 layer=12 state=099a9abc602b564f
+statehash die=5 layer=13 state=0b93c5023f0deb43
+statehash die=5 layer=14 state=c0542fb098d651af
+statehash die=5 layer=16 state=d33ae84f1df40877
+statehash die=5 layer=17 state=9014211d62a0220d
+statehash die=5 layer=18 state=c83e3a8fac34fd29
+statehash die=5 layer=20 state=a156af371f652bf0
+statehash die=5 layer=21 state=8ca6243ff8022ea3
+statehash die=5 layer=22 state=c07ba1d82291f684
+statehash die=5 layer=24 state=1e9cea8457365edc
+statehash die=5 layer=25 state=44cbefeb407344f6
+statehash die=5 layer=26 state=9f23f68c2a35056f
+statehash die=5 layer=28 state=b600ae4fadc355c7
+statehash die=5 layer=29 state=d8d405a5601a3b39
+statehash die=5 layer=30 state=16d3ebab17267c44
+statehash die=5 layer=32 state=3ab240a6ec2c0ef7
+statehash die=5 layer=33 state=1660fcc275a7e676
+statehash die=5 layer=34 state=132426c9f01b10c3
+statehash die=5 layer=35 state=de5ded686a7cd729
+statehash die=5 layer=36 state=de87142e1f536177
+statehash die=5 layer=37 state=9098f4a8c1daefcd
+statehash die=5 layer=38 state=8c1564f13c352314
+statehash die=5 layer=39 state=02bcc86882bb1692
+statehash die=5 layer=40 state=1ee858bdc4b51a79
+statehash die=5 layer=41 state=75055e8a49e5dd94
+statehash die=5 layer=42 state=256faffc8af97184
+statehash die=5 layer=43 state=c7b5967346441b8d
+statehash die=5 layer=44 state=63ab5f2fcc345867
+statehash die=5 layer=45 state=9ce6edfe7bf6d235
+statehash die=5 layer=46 state=c50c6acd19edfa52
+statehash die=5 layer=47 state=866dfec40a7f35c5
+statehash die=5 ple=73496f901630a80d logits=0bb4694622867374
+statehash done
+> trace 0
+trace_begin request=7 die=0 first=3 count=4 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=7 requested=7
+trace_end
+> trace 1
+trace_begin request=7 die=1 first=3 count=4 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=7 requested=7
+trace_end
+> trace 2
+trace_begin request=7 die=2 first=3 count=4 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=7 requested=7
+trace_end
+> trace 3
+trace_begin request=7 die=3 first=3 count=4 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=7 requested=7
+trace_end
+> trace 4
+trace_begin request=7 die=4 first=3 count=4 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=7 requested=7
+trace_end
+> trace 5
+trace_begin request=7 die=5 first=3 count=4 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=7 requested=7
+trace_end
+> hosttrace
+hosttrace_begin request=7 first=3 count=4 clock=CLOCK_MONOTONIC status=completed aborted=0 ended=0 completed=7 requested=7
+hosttrace_end
+> chat 3 20 21 22 23
+tok 12
+tok 24
+tok 19
+tok 16
+done 4 0 4 161.1 74.1 1 0
+> statehash
+statehash positions=7 paired_positions=2
+statehash die=0 layer=0 state=f2458f6ec0e9fe53
+statehash die=0 layer=1 state=4c7a92e9b786d84a
+statehash die=0 layer=2 state=38a4acc69d85c86d
+statehash die=0 layer=4 state=a836466a07d80b14
+statehash die=0 layer=5 state=7077b96b2abca678
+statehash die=0 layer=6 state=d9aee25c920fa306
+statehash die=0 layer=8 state=05e333d16c5f6499
+statehash die=0 layer=9 state=18d042825c24580d
+statehash die=0 layer=10 state=565d649f38c172fa
+statehash die=0 layer=12 state=0d0c3cdb75cd90da
+statehash die=0 layer=13 state=ca0f488b151ade4d
+statehash die=0 layer=14 state=1edb3c8ce7617d9e
+statehash die=0 layer=16 state=28a347c1de7da4a0
+statehash die=0 layer=17 state=6d6bc264900c7cd9
+statehash die=0 layer=18 state=c99863073dd82b58
+statehash die=0 layer=20 state=905d536d3e8b1bef
+statehash die=0 layer=21 state=f36e5112e279a75f
+statehash die=0 layer=22 state=d139efc49ba0478d
+statehash die=0 layer=24 state=72d0481943c45ca4
+statehash die=0 layer=25 state=de053e5da514161d
+statehash die=0 layer=26 state=b2626c4472109105
+statehash die=0 layer=28 state=0bc58d57e62486ba
+statehash die=0 layer=29 state=73b56215fff36ce3
+statehash die=0 layer=30 state=848a596ba7c248e4
+statehash die=0 layer=32 state=a357383aea851834
+statehash die=0 layer=33 state=3b62f5a558725584
+statehash die=0 layer=34 state=c29374d4f5c47f58
+statehash die=0 layer=36 state=2b6245ee26b2a653
+statehash die=0 layer=37 state=c1efe878a95ac760
+statehash die=0 layer=38 state=5c161fd8f71baba6
+statehash die=0 layer=40 state=159f5cff05f42e34
+statehash die=0 layer=41 state=64b90d9e50d07118
+statehash die=0 layer=42 state=bbc01efaa05e5675
+statehash die=0 layer=44 state=dd53b7fa8cc601d5
+statehash die=0 layer=45 state=4fd2be7d7d141405
+statehash die=0 layer=46 state=0108423011ca4b48
+statehash die=0 ple=73496f901630a80d logits=ea3a7439c1da5068
+statehash die=1 layer=0 state=9f749905a79c8d62
+statehash die=1 layer=1 state=80c8cdbae05af952
+statehash die=1 layer=2 state=cfd51e30c84e358f
+statehash die=1 layer=3 state=1b71677d3f27a0dc
+statehash die=1 layer=4 state=81707cc93c37a077
+statehash die=1 layer=5 state=35aa116ab3f8cd71
+statehash die=1 layer=6 state=9a18c0c0b0f5a3bb
+statehash die=1 layer=7 state=17a5859fb6f4396f
+statehash die=1 layer=8 state=5629be03530526c9
+statehash die=1 layer=9 state=d56d3d682e347564
+statehash die=1 layer=10 state=09bfebc7e17e1534
+statehash die=1 layer=11 state=9b671ac3c42803e6
+statehash die=1 layer=12 state=85eaf16e65929b0e
+statehash die=1 layer=13 state=036577c86312fa09
+statehash die=1 layer=14 state=3c6ba8bd082752a6
+statehash die=1 layer=15 state=8384379a2f3d3337
+statehash die=1 layer=16 state=48bbc78912f307a6
+statehash die=1 layer=17 state=caa87826674f616f
+statehash die=1 layer=18 state=977212552596520a
+statehash die=1 layer=20 state=8def83656653ed56
+statehash die=1 layer=21 state=27ea0c271a3b54de
+statehash die=1 layer=22 state=eecabe4ec1b95e5a
+statehash die=1 layer=24 state=502fe2763f669709
+statehash die=1 layer=25 state=8999cea685ac56ab
+statehash die=1 layer=26 state=293ca49e2da7dfd3
+statehash die=1 layer=28 state=416a701deb773edb
+statehash die=1 layer=29 state=72f230e1ce825cd9
+statehash die=1 layer=30 state=4b205f445961bd80
+statehash die=1 layer=32 state=ef5bba86be1249ba
+statehash die=1 layer=33 state=6a9e71b75a903341
+statehash die=1 layer=34 state=09e9af09e25bbcbd
+statehash die=1 layer=36 state=eb03054c04842c82
+statehash die=1 layer=37 state=c656bd4cb549d5d4
+statehash die=1 layer=38 state=a451666f5245ed7a
+statehash die=1 layer=40 state=d3bda7b3e607988a
+statehash die=1 layer=41 state=f587663c3700c76b
+statehash die=1 layer=42 state=c8c738eb63d37447
+statehash die=1 layer=44 state=f486e9bbb0a7656f
+statehash die=1 layer=45 state=1dd1e7cb6dfb6b8d
+statehash die=1 layer=46 state=1fd5721b6fa2e164
+statehash die=1 ple=73496f901630a80d logits=8b1528ea5becad2f
+statehash die=2 layer=0 state=c30d7d54382dcd6c
+statehash die=2 layer=1 state=55bb1cb520685f47
+statehash die=2 layer=2 state=8090716480a0a298
+statehash die=2 layer=4 state=b307d825db0930cd
+statehash die=2 layer=5 state=ebeb4a42ee1daccc
+statehash die=2 layer=6 state=c9d6babdd03dd7ae
+statehash die=2 layer=8 state=8ae6977fcecb8d7d
+statehash die=2 layer=9 state=f7ed3d05a0e86858
+statehash die=2 layer=10 state=b538dc5f09d31a81
+statehash die=2 layer=12 state=e44e4f1720c5cd4f
+statehash die=2 layer=13 state=5cca8b5c4e765b26
+statehash die=2 layer=14 state=909ab6ae50b19070
+statehash die=2 layer=16 state=03d15fbd5d275e82
+statehash die=2 layer=17 state=6dbb6e1b5f2d5701
+statehash die=2 layer=18 state=9aebfcda4a8d0ac0
+statehash die=2 layer=20 state=dbd4f76d02e65aaf
+statehash die=2 layer=21 state=9e2e2b2babac83b5
+statehash die=2 layer=22 state=d5d2e8e43f19350a
+statehash die=2 layer=24 state=9c56d9f729827500
+statehash die=2 layer=25 state=a5d6165e98aa3a43
+statehash die=2 layer=26 state=c2b1036ad9c4b4b7
+statehash die=2 layer=28 state=1258e5834391ed47
+statehash die=2 layer=29 state=598457e0b1334672
+statehash die=2 layer=30 state=86745f976c67227c
+statehash die=2 layer=32 state=677199f1a77c2542
+statehash die=2 layer=33 state=c3cda01b2e6741fc
+statehash die=2 layer=34 state=9c0124a61768d499
+statehash die=2 layer=36 state=1b90334e12de20f7
+statehash die=2 layer=37 state=d98bcffab7ffefbe
+statehash die=2 layer=38 state=934e0cd8df1bd3b6
+statehash die=2 layer=40 state=13268cfb2c310d53
+statehash die=2 layer=41 state=fd43f35741116a66
+statehash die=2 layer=42 state=4d6a6787bd8d59a7
+statehash die=2 layer=44 state=e9f5c618623273e9
+statehash die=2 layer=45 state=6977ff1e1b8ebb33
+statehash die=2 layer=46 state=025923214d5ec3c0
+statehash die=2 ple=73496f901630a80d logits=ed1abba33b95379e
+statehash die=3 layer=0 state=b815b4895671127e
+statehash die=3 layer=1 state=5f3f6253a46e226a
+statehash die=3 layer=2 state=e1dc476a69965643
+statehash die=3 layer=4 state=469ee0f0229e473d
+statehash die=3 layer=5 state=e7aa01178057639c
+statehash die=3 layer=6 state=e7adcd7f3126adc4
+statehash die=3 layer=8 state=a292082be6914176
+statehash die=3 layer=9 state=ab460b25aee76dbc
+statehash die=3 layer=10 state=b52f08756dc46984
+statehash die=3 layer=12 state=5d61b978fa5fe3b4
+statehash die=3 layer=13 state=9604ef5177dd236f
+statehash die=3 layer=14 state=fc046cfd00b39c1a
+statehash die=3 layer=16 state=f16bf062397adbbc
+statehash die=3 layer=17 state=07789acede94d4b2
+statehash die=3 layer=18 state=0fe9e661329e0b15
+statehash die=3 layer=20 state=da7d890c13dab8d8
+statehash die=3 layer=21 state=0d35cf2254af223f
+statehash die=3 layer=22 state=fb7cf3160088b84d
+statehash die=3 layer=24 state=f52b64ab78b3d4c0
+statehash die=3 layer=25 state=f0c0d492b7302390
+statehash die=3 layer=26 state=554433fea7794e90
+statehash die=3 layer=28 state=e4c8e393f0e4a0c5
+statehash die=3 layer=29 state=c4319cc98f33f28f
+statehash die=3 layer=30 state=693b370d6f096430
+statehash die=3 layer=32 state=b0b6f2ceb6d70fa2
+statehash die=3 layer=33 state=8dc2302b69399e1c
+statehash die=3 layer=34 state=c8886dcdf806a7eb
+statehash die=3 layer=36 state=bb8dde7a4f1dac20
+statehash die=3 layer=37 state=bd291b12ca6127ab
+statehash die=3 layer=38 state=f13a8519f238706b
+statehash die=3 layer=40 state=ef965b5a86c079f4
+statehash die=3 layer=41 state=87109a2c5000dad5
+statehash die=3 layer=42 state=0ed51f0d85278f57
+statehash die=3 layer=44 state=11f4f4474a1691ca
+statehash die=3 layer=45 state=37996cd9f0ca16a8
+statehash die=3 layer=46 state=bf689543fcae3d10
+statehash die=3 ple=73496f901630a80d logits=6d3404c018ad126c
+statehash die=4 layer=0 state=16d8cb31aa288b28
+statehash die=4 layer=1 state=3eaf78d121f0d615
+statehash die=4 layer=2 state=13e4363ce93bb56d
+statehash die=4 layer=4 state=000a9c9146a8aa14
+statehash die=4 layer=5 state=7d59d76500ec833c
+statehash die=4 layer=6 state=27a5746fbf611b9f
+statehash die=4 layer=8 state=0bdb925ff47777a2
+statehash die=4 layer=9 state=96e0b16db6fb52a1
+statehash die=4 layer=10 state=642839445469e580
+statehash die=4 layer=12 state=f986be565c6a50ea
+statehash die=4 layer=13 state=b18ec718ce01ec17
+statehash die=4 layer=14 state=b2963d33c4aba514
+statehash die=4 layer=16 state=1656d6f3d471a456
+statehash die=4 layer=17 state=7fd09073a4105bc1
+statehash die=4 layer=18 state=97cd54f81abbf835
+statehash die=4 layer=19 state=f65b08f07018680f
+statehash die=4 layer=20 state=5e78ef04e8a4f1a1
+statehash die=4 layer=21 state=b12ccd041301827f
+statehash die=4 layer=22 state=606c4be3015e055e
+statehash die=4 layer=23 state=a4f6d038876b4254
+statehash die=4 layer=24 state=74aabba7da4278ec
+statehash die=4 layer=25 state=480ec623d27a32b4
+statehash die=4 layer=26 state=ca91389474ebba83
+statehash die=4 layer=27 state=8e453738af292c51
+statehash die=4 layer=28 state=ac89d4b01f4687ea
+statehash die=4 layer=29 state=7abcc46114473bed
+statehash die=4 layer=30 state=69671c2961986190
+statehash die=4 layer=31 state=93c98fe44f9946c6
+statehash die=4 layer=32 state=585e654bace90c0f
+statehash die=4 layer=33 state=bb1d718b567d8dc8
+statehash die=4 layer=34 state=91358e2f9bba19e9
+statehash die=4 layer=36 state=d2c4627984cac8f1
+statehash die=4 layer=37 state=cf751b6ef28dd9e0
+statehash die=4 layer=38 state=6502df86d0021c4f
+statehash die=4 layer=40 state=da42920b7bf803b8
+statehash die=4 layer=41 state=ec78b987066b54fc
+statehash die=4 layer=42 state=f06d3b9dd677ecd9
+statehash die=4 layer=44 state=90f073ad2447a2f4
+statehash die=4 layer=45 state=154ff89a92c329ac
+statehash die=4 layer=46 state=93b510e1d30981e4
+statehash die=4 ple=73496f901630a80d logits=45306a2f4c6749bd
+statehash die=5 layer=0 state=ff86ff92d42e3491
+statehash die=5 layer=1 state=607f604f853f565d
+statehash die=5 layer=2 state=87dd672922ac5f22
+statehash die=5 layer=4 state=d706033bdaf7988a
+statehash die=5 layer=5 state=97e9ce817805ff69
+statehash die=5 layer=6 state=0c3eff381fe167d4
+statehash die=5 layer=8 state=209a7170d4fdc654
+statehash die=5 layer=9 state=935b0b98794b1f6f
+statehash die=5 layer=10 state=c79a25e88a6579cd
+statehash die=5 layer=12 state=099a9abc602b564f
+statehash die=5 layer=13 state=0b93c5023f0deb43
+statehash die=5 layer=14 state=c0542fb098d651af
+statehash die=5 layer=16 state=d33ae84f1df40877
+statehash die=5 layer=17 state=9014211d62a0220d
+statehash die=5 layer=18 state=c83e3a8fac34fd29
+statehash die=5 layer=20 state=a156af371f652bf0
+statehash die=5 layer=21 state=8ca6243ff8022ea3
+statehash die=5 layer=22 state=c07ba1d82291f684
+statehash die=5 layer=24 state=1e9cea8457365edc
+statehash die=5 layer=25 state=44cbefeb407344f6
+statehash die=5 layer=26 state=9f23f68c2a35056f
+statehash die=5 layer=28 state=b600ae4fadc355c7
+statehash die=5 layer=29 state=d8d405a5601a3b39
+statehash die=5 layer=30 state=16d3ebab17267c44
+statehash die=5 layer=32 state=3ab240a6ec2c0ef7
+statehash die=5 layer=33 state=1660fcc275a7e676
+statehash die=5 layer=34 state=132426c9f01b10c3
+statehash die=5 layer=35 state=de5ded686a7cd729
+statehash die=5 layer=36 state=de87142e1f536177
+statehash die=5 layer=37 state=9098f4a8c1daefcd
+statehash die=5 layer=38 state=8c1564f13c352314
+statehash die=5 layer=39 state=02bcc86882bb1692
+statehash die=5 layer=40 state=1ee858bdc4b51a79
+statehash die=5 layer=41 state=75055e8a49e5dd94
+statehash die=5 layer=42 state=256faffc8af97184
+statehash die=5 layer=43 state=c7b5967346441b8d
+statehash die=5 layer=44 state=63ab5f2fcc345867
+statehash die=5 layer=45 state=9ce6edfe7bf6d235
+statehash die=5 layer=46 state=c50c6acd19edfa52
+statehash die=5 layer=47 state=866dfec40a7f35c5
+statehash die=5 ple=73496f901630a80d logits=0bb4694622867374
+statehash done
+> trace 0
+trace_begin request=8 die=0 first=3 count=4 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=7 requested=7
+trace_end
+> trace 1
+trace_begin request=8 die=1 first=3 count=4 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=7 requested=7
+trace_end
+> trace 2
+trace_begin request=8 die=2 first=3 count=4 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=7 requested=7
+trace_end
+> trace 3
+trace_begin request=8 die=3 first=3 count=4 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=7 requested=7
+trace_end
+> trace 4
+trace_begin request=8 die=4 first=3 count=4 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=7 requested=7
+trace_end
+> trace 5
+trace_begin request=8 die=5 first=3 count=4 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=7 requested=7
+trace_end
+> hosttrace
+hosttrace_begin request=8 first=3 count=4 clock=CLOCK_MONOTONIC status=completed aborted=0 ended=0 completed=7 requested=7
+hosttrace_end

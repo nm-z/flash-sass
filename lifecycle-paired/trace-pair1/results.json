@@ -1,0 +1,249 @@
+{
+  "status": "PASS",
+  "cases": [
+    {
+      "case": "normal",
+      "headers": [
+        "trace_begin request=1 die=0 first=1 count=4 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=5 requested=5",
+        "trace_begin request=1 die=1 first=1 count=4 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=5 requested=5",
+        "trace_begin request=1 die=2 first=1 count=4 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=5 requested=5",
+        "trace_begin request=1 die=3 first=1 count=4 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=5 requested=5",
+        "trace_begin request=1 die=4 first=1 count=4 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=5 requested=5",
+        "trace_begin request=1 die=5 first=1 count=4 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=5 requested=5",
+        "hosttrace_begin request=1 first=1 count=4 clock=CLOCK_MONOTONIC status=completed aborted=0 ended=0 completed=5 requested=5"
+      ],
+      "files": [
+        "normal-trace-0.txt.gz",
+        "normal-trace-1.txt.gz",
+        "normal-trace-2.txt.gz",
+        "normal-trace-3.txt.gz",
+        "normal-trace-4.txt.gz",
+        "normal-trace-5.txt.gz",
+        "normal-hosttrace.txt.gz"
+      ],
+      "lifecycle": {
+        "request": "1",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "5",
+        "requested": "5"
+      }
+    },
+    {
+      "case": "stop",
+      "headers": [
+        "trace_begin request=2 die=0 first=1 count=1 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=1 completed=2 requested=5",
+        "trace_begin request=2 die=1 first=1 count=1 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=1 completed=2 requested=5",
+        "trace_begin request=2 die=2 first=1 count=1 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=1 completed=2 requested=5",
+        "trace_begin request=2 die=3 first=1 count=1 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=1 completed=2 requested=5",
+        "trace_begin request=2 die=4 first=1 count=1 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=1 completed=2 requested=5",
+        "trace_begin request=2 die=5 first=1 count=1 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=1 completed=2 requested=5",
+        "hosttrace_begin request=2 first=1 count=1 clock=CLOCK_MONOTONIC status=completed aborted=0 ended=1 completed=2 requested=5"
+      ],
+      "files": [
+        "stop-trace-0.txt.gz",
+        "stop-trace-1.txt.gz",
+        "stop-trace-2.txt.gz",
+        "stop-trace-3.txt.gz",
+        "stop-trace-4.txt.gz",
+        "stop-trace-5.txt.gz",
+        "stop-hosttrace.txt.gz"
+      ],
+      "lifecycle": {
+        "request": "2",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "1",
+        "completed": "2",
+        "requested": "5"
+      }
+    },
+    {
+      "case": "disconnect",
+      "headers": [
+        "trace_begin request=3 die=0 first=1 count=4 nph=1154 ctas=1 nblk=512 status=aborted aborted=1 ended=1 completed=10 requested=42",
+        "trace_begin request=3 die=1 first=1 count=4 nph=1214 ctas=1 nblk=512 status=aborted aborted=1 ended=1 completed=10 requested=42",
+        "trace_begin request=3 die=2 first=1 count=4 nph=1154 ctas=1 nblk=512 status=aborted aborted=1 ended=1 completed=10 requested=42",
+        "trace_begin request=3 die=3 first=1 count=4 nph=1154 ctas=1 nblk=512 status=aborted aborted=1 ended=1 completed=10 requested=42",
+        "trace_begin request=3 die=4 first=1 count=4 nph=1214 ctas=1 nblk=512 status=aborted aborted=1 ended=1 completed=10 requested=42",
+        "trace_begin request=3 die=5 first=1 count=4 nph=1214 ctas=1 nblk=512 status=aborted aborted=1 ended=1 completed=10 requested=42",
+        "hosttrace_begin request=3 first=1 count=4 clock=CLOCK_MONOTONIC status=aborted aborted=1 ended=1 completed=10 requested=42"
+      ],
+      "files": [
+        "disconnect-trace-0.txt.gz",
+        "disconnect-trace-1.txt.gz",
+        "disconnect-trace-2.txt.gz",
+        "disconnect-trace-3.txt.gz",
+        "disconnect-trace-4.txt.gz",
+        "disconnect-trace-5.txt.gz",
+        "disconnect-hosttrace.txt.gz"
+      ],
+      "lifecycle": {
+        "request": "3",
+        "status": "aborted",
+        "aborted": "1",
+        "ended": "1",
+        "completed": "10",
+        "requested": "42"
+      }
+    },
+    {
+      "case": "argument-error",
+      "headers": [
+        "error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=4 status=argument_error aborted=0 ended=0 completed=0 requested=514",
+        "error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=4 status=argument_error aborted=0 ended=0 completed=0 requested=514",
+        "error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=4 status=argument_error aborted=0 ended=0 completed=0 requested=514",
+        "error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=4 status=argument_error aborted=0 ended=0 completed=0 requested=514",
+        "error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=4 status=argument_error aborted=0 ended=0 completed=0 requested=514",
+        "error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=4 status=argument_error aborted=0 ended=0 completed=0 requested=514",
+        "error: no completed host trace; request=4 status=argument_error aborted=0 ended=0 completed=0 requested=514"
+      ],
+      "files": [
+        "argument-error-trace-0.txt.gz",
+        "argument-error-trace-1.txt.gz",
+        "argument-error-trace-2.txt.gz",
+        "argument-error-trace-3.txt.gz",
+        "argument-error-trace-4.txt.gz",
+        "argument-error-trace-5.txt.gz",
+        "argument-error-hosttrace.txt.gz"
+      ],
+      "lifecycle": {
+        "request": "4",
+        "status": "argument_error",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "0",
+        "requested": "514"
+      }
+    },
+    {
+      "case": "image-error",
+      "headers": [
+        "error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=5 status=image_error aborted=0 ended=0 completed=0 requested=5",
+        "error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=5 status=image_error aborted=0 ended=0 completed=0 requested=5",
+        "error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=5 status=image_error aborted=0 ended=0 completed=0 requested=5",
+        "error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=5 status=image_error aborted=0 ended=0 completed=0 requested=5",
+        "error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=5 status=image_error aborted=0 ended=0 completed=0 requested=5",
+        "error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=5 status=image_error aborted=0 ended=0 completed=0 requested=5",
+        "error: no completed host trace; request=5 status=image_error aborted=0 ended=0 completed=0 requested=5"
+      ],
+      "files": [
+        "image-error-trace-0.txt.gz",
+        "image-error-trace-1.txt.gz",
+        "image-error-trace-2.txt.gz",
+        "image-error-trace-3.txt.gz",
+        "image-error-trace-4.txt.gz",
+        "image-error-trace-5.txt.gz",
+        "image-error-hosttrace.txt.gz"
+      ],
+      "lifecycle": {
+        "request": "5",
+        "status": "image_error",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "0",
+        "requested": "5"
+      }
+    },
+    {
+      "case": "recovery",
+      "headers": [
+        "trace_begin request=6 die=0 first=1 count=4 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=5 requested=5",
+        "trace_begin request=6 die=1 first=1 count=4 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=5 requested=5",
+        "trace_begin request=6 die=2 first=1 count=4 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=5 requested=5",
+        "trace_begin request=6 die=3 first=1 count=4 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=5 requested=5",
+        "trace_begin request=6 die=4 first=1 count=4 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=5 requested=5",
+        "trace_begin request=6 die=5 first=1 count=4 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=5 requested=5",
+        "hosttrace_begin request=6 first=1 count=4 clock=CLOCK_MONOTONIC status=completed aborted=0 ended=0 completed=5 requested=5"
+      ],
+      "files": [
+        "recovery-trace-0.txt.gz",
+        "recovery-trace-1.txt.gz",
+        "recovery-trace-2.txt.gz",
+        "recovery-trace-3.txt.gz",
+        "recovery-trace-4.txt.gz",
+        "recovery-trace-5.txt.gz",
+        "recovery-hosttrace.txt.gz"
+      ],
+      "lifecycle": {
+        "request": "6",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "5",
+        "requested": "5"
+      }
+    },
+    {
+      "case": "pair-first",
+      "headers": [
+        "trace_begin request=7 die=0 first=3 count=4 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=7 requested=7",
+        "trace_begin request=7 die=1 first=3 count=4 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=7 requested=7",
+        "trace_begin request=7 die=2 first=3 count=4 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=7 requested=7",
+        "trace_begin request=7 die=3 first=3 count=4 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=7 requested=7",
+        "trace_begin request=7 die=4 first=3 count=4 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=7 requested=7",
+        "trace_begin request=7 die=5 first=3 count=4 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=7 requested=7",
+        "hosttrace_begin request=7 first=3 count=4 clock=CLOCK_MONOTONIC status=completed aborted=0 ended=0 completed=7 requested=7"
+      ],
+      "files": [
+        "pair-first-trace-0.txt.gz",
+        "pair-first-trace-1.txt.gz",
+        "pair-first-trace-2.txt.gz",
+        "pair-first-trace-3.txt.gz",
+        "pair-first-trace-4.txt.gz",
+        "pair-first-trace-5.txt.gz",
+        "pair-first-hosttrace.txt.gz"
+      ],
+      "lifecycle": {
+        "request": "7",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "7",
+        "requested": "7"
+      },
+      "statehash": {
+        "header": "statehash positions=7 paired_positions=2",
+        "raw_file": "pair-first-statehash.txt",
+        "positions": 7,
+        "paired_positions": 2
+      }
+    },
+    {
+      "case": "pair-resume",
+      "headers": [
+        "trace_begin request=8 die=0 first=3 count=4 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=7 requested=7",
+        "trace_begin request=8 die=1 first=3 count=4 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=7 requested=7",
+        "trace_begin request=8 die=2 first=3 count=4 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=7 requested=7",
+        "trace_begin request=8 die=3 first=3 count=4 nph=1154 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=7 requested=7",
+        "trace_begin request=8 die=4 first=3 count=4 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=7 requested=7",
+        "trace_begin request=8 die=5 first=3 count=4 nph=1214 ctas=1 nblk=512 status=completed aborted=0 ended=0 completed=7 requested=7",
+        "hosttrace_begin request=8 first=3 count=4 clock=CLOCK_MONOTONIC status=completed aborted=0 ended=0 completed=7 requested=7"
+      ],
+      "files": [
+        "pair-resume-trace-0.txt.gz",
+        "pair-resume-trace-1.txt.gz",
+        "pair-resume-trace-2.txt.gz",
+        "pair-resume-trace-3.txt.gz",
+        "pair-resume-trace-4.txt.gz",
+        "pair-resume-trace-5.txt.gz",
+        "pair-resume-hosttrace.txt.gz"
+      ],
+      "lifecycle": {
+        "request": "8",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "7",
+        "requested": "7"
+      },
+      "statehash": {
+        "header": "statehash positions=7 paired_positions=2",
+        "raw_file": "pair-resume-statehash.txt",
+        "positions": 7,
+        "paired_positions": 2
+      }
+    }
+  ]
+}
