@@ -1,0 +1,451 @@
+# Kernel: gemv_q2_0
+#
+# y[r] = xs * sum_k W[r][k] * x[k] for a Q2_0 row tile. Built for one K at a time:
+# GEMV_K=2560 (default) or GEMV_K=640 in the environment when assembling.
+#
+# Tile layout per row: B = K/64 fp16 scales padded to 16 B, then B x 16 B of
+# 2-bit codes. Activations: int16 (sign-extended int8) x[K]; sums: int32 per
+# half-block (K/32 of them). L = (K/32)/5 lanes per row (16 or 4), so every lane
+# owns 5 half-blocks h = lane + L i and keeps their 160 activations in registers
+# act00..act79 for the whole kernel. CTA = 256 threads = 256/L rows per iteration.
+#
+# Per half-block, per word (16 weights): 8 LOP32I isolate weight pairs at bit shift
+# 2s in both halves, then 16 XMAD.U16.S16 accumulate (q << 2s) * a into acc_s.
+# dot = sum_s acc_s >> 2s, with the half-block activation sum (the q-1 offset)
+# folded into acc_0's first XMAD, then accf = fma(fp32(d_b), float(dot), accf).
+# Reduce the L lanes with a SHFL butterfly, scale by xs, lane 0 stores.
+#
+# Register banks (reg % 4): m_s sits in bank (2+s)%4 and acc_s in bank (3+s)%4
+# (acc_s = R98 + (s+1)%8), so the mask and accumulator operands of an XMAD never
+# share a bank; the activation operand of odd s is a reuse of the even s register.
+#
+# Scheduling rules used (measured on the M60, see semtest2):
+#   fixed-latency ALU -> dependent ALU: 6 cycles; the 8 independent acc chains and
+#   the 8 masks keep dependent XMADs >= 8 issues apart at stall 1.
+#   variable-latency ops (LDG, I2F, F2F, SHFL, S2R) set a write barrier and need
+#   stall >= 2 before a dependent wait is honoured.
+# Barriers: 1 = row loads, 2 = address/store reads and prologue loads, 3 = I2F,
+# 4 = F2F, 5 = SHFL, 6 = S2R.
+#
+# Build switches (environment at assembly time): GEMV_K; GEMV_TRACE=1 (per-lane
+# debug trace through the 7th parameter); timing-decomposition switches whose
+# results are wrong: GEMV_NOLOAD=1, GEMV_NOCOMPUTE=1, GEMV_NOSCALE=1 (skip the
+# scale loads), GEMV_NOCI=1 (plain LDG.E instead of the read-only LDG.E.CI path).
+#
+# Params:
+#   0:0x140:8 W   1:0x148:8 X16   2:0x150:8 S32   3:0x158:8 Y   4:0x160:4 rows   5:0x164:4 xs   6:0x168:8 trace
+
+<CONSTANT_MAPPING>
+    gridDimX   : c[0x0][0x14]
+    param_W0   : c[0x0][0x140]
+    param_W1   : c[0x0][0x144]
+    param_X0   : c[0x0][0x148]
+    param_X1   : c[0x0][0x14c]
+    param_S0   : c[0x0][0x150]
+    param_S1   : c[0x0][0x154]
+    param_Y0   : c[0x0][0x158]
+    param_Y1   : c[0x0][0x15c]
+    param_rows : c[0x0][0x160]
+    param_xs   : c[0x0][0x164]
+    param_D0   : c[0x0][0x168]
+    param_D1   : c[0x0][0x16c]
+    param_AS0  : c[0x0][0x170]
+    param_AS1  : c[0x0][0x174]
+    param_WE0  : c[0x0][0x178]
+    param_WE1  : c[0x0][0x17c]
+    param_NE0  : c[0x0][0x180]
+    param_NE1  : c[0x0][0x184]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0-79    : act<00-79>
+    80-89   : q<0-9>
+    90-97   : m<0-7>
+    98      : acc7
+    99-105  : acc<0-6>
+    106-110 : d<0-4>
+    111-115 : nsum<0-4>
+    116,117 : wq<0-1>
+    118,119 : ws<0-1>
+    120,121 : yp<0-1>
+    122     : accf
+    123     : t
+    124     : row
+    125     : smaddr
+    126     : rowstep
+    127     : stepw
+    128,129 : dp<0-1>
+    130     : e
+    131     : eoff
+    132     : we
+    133     : yold
+    134,135 : ixp<0-1>
+    136,137 : wep<0-1>
+    138     : tidk
+    139     : bidk
+    140     : ne
+    142,143 : nep<0-1>
+
+    // prologue temporaries, dead before the loop body uses these registers
+    90,91   : xp<0-1>
+    92,93   : sp<0-1>
+    88,89   : ap<0-1>
+    80-84   : as<0-4>
+    94      : lane
+    95      : grp
+    96      : half
+    97      : blk0
+    98-102  : s<0-4>
+    103     : tid
+    104     : bid
+    106     : off
+    107     : t0
+    108     : t1
+
+    // loop temporaries living in the mask registers between the last XMAD and the next LOP32I
+    91      : dot
+    92      : dotf
+    93      : u
+</REGISTER_MAPPING>
+
+<CODE>
+    # geometry shared by every block below (each block is evaluated on its own)
+    my $K = $ENV{GEMV_K} || 2560;
+    my $B = $K / 64;
+    my $L = ($K / 32) / 5;                       # lanes per row: 16 or 4
+    my $R = 256 / $L;                            # rows per CTA iteration
+    my $pad = int((2*$B + 15) / 16) * 16;        # scale area, 16 B aligned
+    my $S = $pad + 16*$B;                        # row stride in bytes
+    my $lgL = int(log($L)/log(2) + 0.5);
+    my $lgR = int(log($R)/log(2) + 0.5);
+    my $wrows = 32 / $L;                         # rows per warp
+    my $ci = $ENV{GEMV_NOCI} ? '' : '.CI';
+
+    # d = r * c as shifts and adds (c > 0), into register $d using $r
+    my $mulc = sub {
+        my ($d, $r, $c) = @_;
+        my @bits = grep { $c & (1 << $_) } 0..31;
+        my $first = shift @bits;
+        my $s = sprintf "--:-:-:-:6      SHL %s, %s, 0x%x;\n", $d, $r, $first;
+        $s .= sprintf "--:-:-:-:6      ISCADD %s, %s, %s, 0x%x;\n", $d, $r, $d, $_ for @bits;
+        return $s;
+    };
+
+    # MoE modes (expert-outer loop, GEMV_EXPERTS experts whose indices are in *D):
+    #   gather: rows = e erows + r, weights W + idx[e] estride + r S, y + 4 (e erows + r),
+    #           activations shared (gate/up of the routed experts)
+    #   down:   rows r of every expert, activations/sums/scales per expert (X, S, AS +
+    #           e strides), y[r] = fma(we[e], dot_e, y[r]) in expert order (e = 0: we dot)
+    # GEMV_ACC (no MoE): y[r] = fma(*WE, dot, y[r]) (the shared expert's down projection)
+    my $moe = $ENV{GEMV_MOE} || '';
+    my $acc = $ENV{GEMV_ACC} ? 1 : 0;
+    my $NE = $ENV{GEMV_EXPERTS} || 10;
+    my $erows = $ENV{GEMV_EROWS} || ($K == 640 ? 2560 : 640);
+    my $estride = $erows * $S;
+    my $astride = 2 * $K;                        # per-expert activation codes (down)
+    my $sstride = 4 * ($K / 32);                 # per-expert sums / scales (down)
+
+    # lane geometry from tid, bid (re-derived per expert: the loop body clobbers these aliases)
+    my $geom = sub {
+        my $s = '';
+        $s .= sprintf "--:-:-:-:6      LOP32I.AND lane, tid, 0x%x;\n", $L - 1;
+        $s .= sprintf "--:-:-:-:1      SHR.U32 grp, tid, 0x%x;\n", $lgL;
+        $s .= "--:-:-:-:6      LOP32I.AND half, lane, 0x1;\n";
+        $s .= "--:-:-:-:1      SHR.U32 blk0, lane, 0x1;\n";
+        $s .= "--:-:-:-:6      ISETP.EQ.U32.AND P0, PT, lane, RZ, PT;\n";
+        return $s;
+    };
+    # row, tile pointers and y pointer; $eo: add eoff (expert tile offset); $ye: y offset by expert
+    my $rowsetup = sub {
+        my ($eo, $ye) = @_;
+        my $s = sprintf "--:-:-:-:6      ISCADD row, bid, grp, 0x%x;\n", $lgR;
+        $s .= $mulc->('off', 'row', $S);
+        $s .= "--:-:-:-:6      IADD off, off, eoff;\n" if $eo;
+        # ws = W + off + 2 blk0
+        $s .= "--:-:-:-:6      ISCADD t1, blk0, off, 0x1;\n";
+        $s .= "--:-:-:-:6      IADD ws0.CC, t1, param_W0;\n";
+        $s .= "--:-:-:-:6      IADD.X ws1, RZ, param_W1;\n";
+        # wq = W + off + pad + 16 blk0 + 8 half
+        $s .= "--:-:-:-:6      ISCADD t1, blk0, off, 0x4;\n";
+        $s .= "--:-:-:-:6      ISCADD t1, half, t1, 0x3;\n";
+        $s .= sprintf "--:-:-:-:6      IADD t1, t1, 0x%x;\n", $pad;
+        $s .= "--:-:-:-:6      IADD wq0.CC, t1, param_W0;\n";
+        $s .= "--:-:-:-:6      IADD.X wq1, RZ, param_W1;\n";
+        # yp = Y + 4 row (+ 4 erows e)
+        $s .= "--:-:-:-:6      SHL t1, row, 0x2;\n";
+        if ($ye) {
+            $s .= sprintf "--:-:-:-:6      XMAD t0, e, 0x%x, RZ;\n", 4 * $erows;
+            $s .= "--:-:-:-:6      IADD t1, t1, t0;\n";
+        }
+        $s .= "--:-:-:-:6      IADD yp0.CC, t1, param_Y0;\n";
+        $s .= "--:-:-:-:6      IADD.X yp1, RZ, param_Y1;\n";
+        return $s;
+    };
+    # activations, sums and scales for this lane (+ per-expert strides when $pe)
+    my $actload = sub {
+        my ($pe) = @_;
+        my $s = '';
+        # activations: xp = X + 64 lane; half-block i at +64 L i
+        $s .= "--:-:-:-:6      SHL t1, lane, 0x6;\n";
+        if ($pe) { $s .= sprintf "--:-:-:-:6      XMAD t0, e, 0x%x, RZ;\n", $astride; $s .= "--:-:-:-:6      IADD t1, t1, t0;\n"; }
+        $s .= "--:-:-:-:6      IADD xp0.CC, t1, param_X0;\n";
+        $s .= "--:-:-:-:6      IADD.X xp1, RZ, param_X1;\n";
+        for my $i (0..4) {
+            for my $j (0..3) {
+                $s .= sprintf "--:-:2:-:1      LDG.E%s.128 act%02d, [xp+0x%x];\n", $ci, 16*$i + 4*$j, 64*$L*$i + 16*$j;
+            }
+        }
+        # sums: sp = S + 4 lane; half-block i at +4 L i
+        $s .= "--:-:-:-:6      SHL t1, lane, 0x2;\n";
+        if ($pe) { $s .= sprintf "--:-:-:-:6      XMAD t0, e, 0x%x, RZ;\n", $sstride; $s .= "--:-:-:-:6      IADD t1, t1, t0;\n"; }
+        $s .= "--:-:-:-:6      IADD sp0.CC, t1, param_S0;\n";
+        $s .= "--:-:-:-:6      IADD.X sp1, RZ, param_S1;\n";
+        for my $i (0..4) {
+            $s .= sprintf "--:-:2:-:%s      LDG.E%s s%d, [sp+0x%x];\n", $i == 4 ? '6' : '1', $ci, $i, 4*$L*$i;
+        }
+        # activation scales: half-block i at AS + 4 (lane + L i)
+        $s .= "--:-:-:-:6      IADD ap0.CC, t1, param_AS0;\n";
+        $s .= "--:-:-:-:6      IADD.X ap1, RZ, param_AS1;\n";
+        for my $i (0..4) {
+            $s .= sprintf "--:-:2:-:%s      LDG.E%s as%d, [ap+0x%x];\n", $i == 4 ? '6' : '1', $ci, $i, 4*$L*$i;
+        }
+        # park them in shared memory (registers are full); the loop reloads one per half-block
+        for my $i (0..4) {
+            $s .= sprintf "%s:4:-:-:%s      STS [smaddr+0x%x], as%d;\n", $i == 0 ? '02' : '--', $i == 4 ? '6' : '1', 4*$i, $i;
+        }
+        for my $i (0..4) {
+            $s .= sprintf "%s:-:-:-:%s      IADD3 nsum%d, RZ, -s%d, RZ;\n", $i == 0 ? '0a' : '--', $i == 4 ? '6' : '1', $i, $i;
+        }
+        return $s;
+    };
+
+    my $o = '';
+    $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
+    $o .= "--:-:6:-:1      S2R bid, SR_CTAID.X;\n";
+    $o .= "--:-:-:-:6      MOV rowstep, gridDimX;\n";
+    $o .= "20:-:-:-:1      MOV tidk, tid;\n";
+    $o .= "--:-:-:-:6      MOV bidk, bid;\n";
+    $o .= $geom->();
+    $o .= sprintf "--:-:-:-:6      SHL rowstep, rowstep, 0x%x;\n", $lgR;
+    $o .= $mulc->('stepw', 'rowstep', $S);
+    $o .= $mulc->('smaddr', 'tid', 20);              # shared slot: 5 activation scales per thread
+    if ($ENV{GEMV_TRACE} || $ENV{GEMV_TIMING} || $ENV{GEMV_DPONLY}) {
+        # dp = D + 48 L row + 48 lane (12 words per lane per row)
+        $o .= sprintf "--:-:-:-:6      ISCADD row, bid, grp, 0x%x;\n", $lgR;
+        $o .= $mulc->('t0', 'row', 48 * $L);
+        $o .= $mulc->('t1', 'lane', 48);
+        $o .= "--:-:-:-:6      IADD t1, t1, t0;\n";
+        $o .= "--:-:-:-:6      IADD dp0.CC, t1, param_D0;\n";
+        $o .= "--:-:-:-:6      IADD.X dp1, RZ, param_D1;\n";
+    }
+    if ($acc && !$moe) {
+        $o .= "--:-:-:-:6      MOV wep0, param_WE0;\n";
+        $o .= "--:-:-:-:6      MOV wep1, param_WE1;\n";
+        $o .= "--:-:2:-:2      LDG.E we, [wep];\n";
+    }
+    if (!$moe) {
+        $o .= $rowsetup->(0, 0);
+        $o .= $actload->(0);
+        return $o;
+    }
+    # ---- expert-outer loop ----
+    if ($ENV{GEMV_NEPTR}) {              # expert count from memory (*NE, written by moesel); none: nothing to do
+        $o .= "--:-:-:-:6      MOV nep0, param_NE0;\n";
+        $o .= "--:-:-:-:6      MOV nep1, param_NE1;\n";
+        $o .= "--:-:2:-:2      LDG.E ne, [nep];\n";
+        $o .= "02:-:-:-:6      ISETP.NE.U32.AND P4, PT, ne, RZ, PT;\n";
+        $o .= "--:-:-:-:6      NOP;\n" x 3;
+        $o .= "--:-:-:-:6 \@!P4 EXIT;\n";
+    }
+    # ---- expert-outer loop ----
+    $o .= $actload->(0) if $moe eq 'gather';
+    $o .= "--:-:-:-:6      MOV e, RZ;\n";
+    $o .= "\nEXPERT:\n";
+    $o .= "--:-:-:-:1      MOV tid, tidk;\n";
+    $o .= "--:-:-:-:6      MOV bid, bidk;\n";
+    $o .= $geom->();
+    $o .= "--:-:-:-:6      SHL t1, e, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD ixp0.CC, t1, param_D0;\n";
+    $o .= "--:-:-:-:6      IADD.X ixp1, RZ, param_D1;\n";
+    $o .= "--:-:2:-:1      LDG.E eoff, [ixp];\n";
+    if ($moe eq 'down') {
+        $o .= "--:-:-:-:6      IADD wep0.CC, t1, param_WE0;\n";
+        $o .= "--:-:-:-:6      IADD.X wep1, RZ, param_WE1;\n";
+        $o .= "--:-:2:-:2      LDG.E we, [wep];\n";
+    }
+    $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P3, PT, e, RZ, PT;\n";          # first expert: y = we dot
+    # eoff = idx * estride (idx < 2^16)
+    $o .= sprintf "02:-:-:-:6      XMAD t0, eoff, 0x%x, RZ;\n", $estride & 0xffff;
+    if ($estride >> 16) { $o .= sprintf "--:-:-:-:6      XMAD.PSL eoff, eoff, 0x%x, t0;\n", $estride >> 16; }
+    else { $o .= "--:-:-:-:6      MOV eoff, t0;\n"; }
+    $o .= $rowsetup->(1, $moe eq 'gather');
+    $o .= $actload->(1) if $moe eq 'down';
+    return $o;
+</CODE>
+
+LOOP:
+<CODE>
+    my $o = $ENV{GEMV_TIMING} ? "--:-:-:-:6      CS2R acc0, SR_CLOCKLO;\n" : "";
+    $o .= "--:-:-:-:6      MOV dp0, param_D0;\n--:-:-:-:6      MOV dp1, param_D1;\n--:-:-:-:6      MOV m0, 0x1;\n--:-:-:-:6      RED.E.ADD [dp], m0;\n" if $ENV{GEMV_COUNT};
+    return $o;
+</CODE>
+<CODE>
+    my $K = $ENV{GEMV_K} || 2560;
+    my $L = ($K / 32) / 5;
+    my $ci = $ENV{GEMV_NOCI} ? '' : '.CI';
+    return '' if $ENV{GEMV_NOLOAD};
+    my $o = '';
+    # accumulating modes read the row's previous value first
+    $o .= "--:2:1:-:1      LDG.E yold, [yp];\n" if ($ENV{GEMV_MOE} || '') eq 'down' || $ENV{GEMV_ACC};
+    unless ($ENV{GEMV_NOSCALE}) {
+        for my $i (0..4) {
+            $o .= sprintf "--:2:%s:-:1      LDG.E%s.U16 d%d, [ws+0x%x];\n", $ENV{GEMV_SCALEBAR} || 1, $ci, $i, $L*$i;
+        }
+    }
+    for my $i (0..4) {
+        $o .= sprintf "--:2:1:-:%s      LDG.E%s.64 q%d, [wq+0x%x];\n", $i == 4 ? ($ENV{GEMV_LASTSTALL} || 2) : 1, $ci, 2*$i, 8*$L*$i;
+    }
+    return $o;
+</CODE>
+// Predicates for this row, computed here because their consumers are hundreds of
+// cycles away: a predicate written by ISETP is not safe to read until ~18 cycles
+// later (measured on the M60; 6-13 cycle gaps read the previous value).
+// P2: store this row; P1: run another iteration after this one.
+--:-:-:-:1      ISETP.LT.U32.AND P2, PT, row, param_rows, P0;
+<CODE>
+    # P1 from the warp's first row: (row & ~(wrows-1)) + rowstep < rows
+    my $K = $ENV{GEMV_K} || 2560;
+    my $L = ($K / 32) / 5;
+    my $wrows = 32 / $L;
+    my $o = sprintf "--:-:-:-:6      LOP32I.AND t, row, 0x%08x;\n", (~($wrows - 1)) & 0xffffffff;
+    $o .= "--:-:-:-:1      MOV accf, RZ;\n";
+    $o .= "--:-:-:-:6      IADD t, t, rowstep;\n";
+    $o .= "--:-:-:-:2      ISETP.LT.U32.AND P1, PT, t, param_rows, PT;\n";
+    return $o;
+</CODE>
+<CODE>
+    my $trace = $ENV{GEMV_TRACE} ? 1 : 0;
+    my @out;
+    if ($ENV{GEMV_NOCOMPUTE}) {
+        my $o = "03:-:-:-:6      MOV accf, RZ;\n";
+        $o .= "--:-:-:-:6      CS2R acc1, SR_CLOCKLO;\n" if $ENV{GEMV_TIMING};
+        return $o;
+    }
+    for my $i (0..4) {
+        # scale to fp32 first; its consumer is the FFMA at the end of this half-block
+        my $wait = $i == 0 ? ($ENV{GEMV_SCALEBAR} ? sprintf("%02x", 3 | (1 << ($ENV{GEMV_SCALEBAR} - 1))) : '03') : '--';
+        push @out, sprintf "%s:-:4:-:2      F2F.F32.F16 t, d%d;\n", $wait, $i;
+        push @out, sprintf "--:-:4:-:1      LDS d%d, [smaddr+0x%x];\n", $i, 4*$i;    # this half-block's activation scale
+        push @out, "--:-:-:-:6      DEPBAR.LE SB0, 0x0;\n" if $i == 0 && $ENV{GEMV_DEPBAR};
+        for my $w (0..1) {
+            my $q = 'q' . (2*$i + $w);
+            for my $s (0..7) {
+                my $mask = sprintf '0x%08x', (0x00030003 << (2*$s)) & 0xffffffff;
+                my $wt = (($trace || $ENV{GEMV_TRACEWAIT}) && $i == 1 && $w == 0 && $s == 0) ? '02' : '--';
+                push @out, sprintf "%s:-:-:-:1      LOP32I.AND m%d, %s, %s;\n", $wt, $s, $q, $mask;
+            }
+            for my $hsel (0, 1) {
+                for my $s (0..7) {
+                    my $elem = 16*$w + 8*$hsel + $s;
+                    my $reg  = 16*$i + int($elem / 2);
+                    my $part = ($elem & 1) ? 'H1' : 'H0';
+                    my $add  = ($w == 0 && $hsel == 0) ? ($s == 0 ? "nsum$i" : 'RZ') : "acc$s";
+                    push @out, sprintf "--:-:-:-:1      XMAD.U16.S16 acc%d, m%d.%s, act%02d.%s, %s;\n",
+                        $s, $s, ($hsel ? 'H1' : 'H0'), $reg, $part, $add;
+                }
+            }
+        }
+        # combine: acc_s >> 2s, summed as a tree; stalls follow the 6-cycle ALU latency
+        for my $s (1..7) {
+            push @out, sprintf "--:-:-:-:1      SHR acc%d, acc%d, 0x%x;\n", $s, $s, 2*$s;
+        }
+        push @out, "--:-:-:-:1      IADD acc0, acc0, acc1;\n";
+        push @out, "--:-:-:-:2      IADD acc2, acc2, acc3;\n";
+        push @out, "--:-:-:-:2      IADD acc4, acc4, acc5;\n";
+        push @out, "--:-:-:-:2      IADD acc6, acc6, acc7;\n";
+        push @out, "--:-:-:-:4      IADD acc0, acc0, acc2;\n";
+        push @out, "--:-:-:-:6      IADD acc4, acc4, acc6;\n";
+        push @out, "--:-:-:-:6      IADD dot, acc0, acc4;\n";
+        push @out, "--:-:3:-:6      I2F.F32.S32 dotf, dot;\n";
+        push @out, "0c:-:-:-:6      FMUL u, t, dotf;\n";
+        push @out, sprintf "--:-:-:-:6      FFMA accf, d%d, u, accf;\n", $i;
+        if ($trace && $i == 0) {
+            push @out, "--:2:-:-:1      STG.E [dp], q0;\n";
+            push @out, "--:2:-:-:1      STG.E [dp+0x4], q1;\n";
+            push @out, "--:2:-:-:1      STG.E [dp+0x8], act00;\n";
+            push @out, "--:2:-:-:1      STG.E [dp+0xc], act01;\n";
+            push @out, "--:2:-:-:1      STG.E [dp+0x10], nsum0;\n";
+            push @out, "--:2:-:-:1      STG.E [dp+0x14], d0;\n";
+            push @out, "--:2:-:-:1      STG.E [dp+0x18], dot;\n";
+            push @out, "--:2:-:-:6      STG.E [dp+0x1c], accf;\n";
+        }
+    }
+    push @out, "--:2:-:-:6      STG.E [dp+0x20], accf;\n" if $trace;
+    return join '', @out;
+</CODE>
+<CODE>
+    my $K = $ENV{GEMV_K} || 2560;
+    my $L = ($K / 32) / 5;
+    my $o = '';
+    for (my $x = $L / 2; $x >= 1; $x >>= 1) {
+        $o .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x%x, 0x1f;\n", $x;
+        $o .= "10:-:-:-:6      FADD accf, accf, t;\n";
+    }
+    $o .= "--:2:-:-:1      STG.E [dp+0x24], accf;\n--:2:-:-:6      STG.E [dp+0x28], row;\n" if $ENV{GEMV_TRACE};
+    $o .= "--:-:-:-:6      CS2R acc2, SR_CLOCKLO;\n" if $ENV{GEMV_TIMING};
+    return $o;
+</CODE>
+<CODE>
+    my $moe = $ENV{GEMV_MOE} || '';
+    my $o = '';
+    if ($moe eq 'down') {
+        $o .= "--:-:-:-:6  \@P3 FMUL accf, accf, we;\n";
+        $o .= "--:-:-:-:6 \@!P3 FFMA accf, we, accf, yold;\n";
+    } elsif ($ENV{GEMV_ACC}) {
+        $o .= "--:-:-:-:6      FFMA accf, we, accf, yold;\n";
+    }
+    $o .= "--:2:-:-:1  \@P2 STG.E [yp], accf;\n";
+    return $o;
+</CODE>
+<CODE>
+    # the trace build stored `row` just above; wait for that read before changing it
+    return $ENV{GEMV_TRACE} ? "02:-:-:-:6      IADD row, row, rowstep;\n" : "--:-:-:-:1      IADD row, row, rowstep;\n";
+</CODE>
+02:-:-:-:6      IADD wq0.CC, wq0, stepw;
+--:-:-:-:6      IADD.X wq1, wq1, RZ;
+--:-:-:-:6      IADD ws0.CC, ws0, stepw;
+--:-:-:-:6      IADD.X ws1, ws1, RZ;
+--:-:-:-:6      SHL t, rowstep, 0x2;
+--:-:-:-:6      IADD yp0.CC, yp0, t;
+--:-:-:-:6      IADD.X yp1, yp1, RZ;
+<CODE>
+    return '' unless $ENV{GEMV_TRACE} || $ENV{GEMV_TIMING};
+    my $K = $ENV{GEMV_K} || 2560;
+    my $L = ($K / 32) / 5;
+    my $c = 48 * $L;
+    my @bits = grep { $c & (1 << $_) } 0..31;
+    my $first = shift @bits;
+    # the trace/timing stores read dp: wait on their read barrier (2) before advancing it
+    my $o = sprintf "02:-:-:-:6      SHL t, rowstep, 0x%x;\n", $first;
+    $o .= sprintf "--:-:-:-:6      ISCADD t, rowstep, t, 0x%x;\n", $_ for @bits;
+    if ($ENV{GEMV_TIMING}) {
+        $o = "--:-:-:-:6      CS2R acc3, SR_CLOCKLO;\n--:2:-:-:1      STG.E [dp], acc0;\n--:2:-:-:1      STG.E [dp+0x4], acc1;\n--:2:-:-:1      STG.E [dp+0x8], acc2;\n--:2:-:-:6      STG.E [dp+0xc], acc3;\n" . $o;
+    }
+    $o .= "--:-:-:-:6      IADD dp0.CC, dp0, t;\n--:-:-:-:6      IADD.X dp1, dp1, RZ;\n";
+    return $o;
+</CODE>
+<CODE>
+    return $ENV{GEMV_COUNT} ? "--:-:-:-:6      MOV m0, 0x1;\n--:-:-:-:6      RED.E.ADD [dp+0x40], m0;\n--:-:-:-:6      MOV m1, 0x1;\n--:-:-:-:6  \@P1 RED.E.ADD [dp+0x80], m1;\n" : '';
+</CODE>
+<CODE>
+    my $o = "--:-:-:-:6  \@P1 BRA LOOP;\n";
+    if ($ENV{GEMV_MOE}) {
+        my $NE = $ENV{GEMV_EXPERTS} || 10;
+        $o .= "--:-:-:-:6      IADD e, e, 0x1;\n";
+        $o .= $ENV{GEMV_NEPTR} ? "--:-:-:-:6      ISETP.LT.U32.AND P4, PT, e, ne, PT;\n" : sprintf "--:-:-:-:6      ISETP.LT.U32.AND P4, PT, e, 0x%x, PT;\n", $NE;
+        $o .= "--:-:-:-:6      NOP;\n" x 3;
+        $o .= "--:-:-:-:6  \@P4 BRA EXPERT;\n";
+    }
+    $o .= "--:-:-:-:f      EXIT;\n";
+    return $o;
+</CODE>
