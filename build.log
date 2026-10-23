@@ -1,0 +1,108 @@
+/opt/cuda-11.4/bin/ptxas -arch=sm_52 -o skel_dnnorm.cubin dnnorm.ptx
+cp skel_dnnorm.cubin dnnorm.cubin
+perl -I/home/nate/codex/flash-astra-build-20261018/maxas-brx/lib /home/nate/codex/flash-astra-build-20261018/maxas-brx/bin/maxas.pl -i dnnorm.sass dnnorm.cubin
+CONFLICT at 0x0290 (R27,R39): FFMA R38, R37, -R27, R39; (FFMA ft3, ft2, -ln2hi, ft4;)
+CONFLICT at 0x02a8 (R38,R30): FFMA R36, R29, R38, R30; (FFMA ft1, c720, ft3, c120;)
+CONFLICT at 0x02b8 (R36,R32): FFMA R36, R36, R38, R32; (FFMA ft1, ft1, ft3, c6;)
+CONFLICT at 0x0328 (R39,R35): FFMA R36, R39, R12, R35; (FFMA ft1, ft4, sg0, mneg1;)
+CONFLICT at 0x0338 (R12,R36,R12): FFMA R12, R12, R36, R12; (FFMA sg0, sg0, ft1, sg0;)
+CONFLICT at 0x0388 (R27,R39): FFMA R38, R37, -R27, R39; (FFMA ft3, ft2, -ln2hi, ft4;)
+CONFLICT at 0x0398 (R38,R30): FFMA R36, R29, R38, R30; (FFMA ft1, c720, ft3, c120;)
+CONFLICT at 0x03b0 (R36,R32): FFMA R36, R36, R38, R32; (FFMA ft1, ft1, ft3, c6;)
+CONFLICT at 0x0418 (R39,R35): FFMA R36, R39, R13, R35; (FFMA ft1, ft4, sg1, mneg1;)
+CONFLICT at 0x0478 (R27,R39): FFMA R38, R37, -R27, R39; (FFMA ft3, ft2, -ln2hi, ft4;)
+CONFLICT at 0x0490 (R38,R30): FFMA R36, R29, R38, R30; (FFMA ft1, c720, ft3, c120;)
+CONFLICT at 0x04a8 (R36,R32): FFMA R36, R36, R38, R32; (FFMA ft1, ft1, ft3, c6;)
+CONFLICT at 0x0510 (R39,R35): FFMA R36, R39, R14, R35; (FFMA ft1, ft4, sg2, mneg1;)
+CONFLICT at 0x0570 (R27,R39): FFMA R38, R37, -R27, R39; (FFMA ft3, ft2, -ln2hi, ft4;)
+CONFLICT at 0x0588 (R38,R30): FFMA R36, R29, R38, R30; (FFMA ft1, c720, ft3, c120;)
+CONFLICT at 0x0598 (R36,R32): FFMA R36, R36, R38, R32; (FFMA ft1, ft1, ft3, c6;)
+CONFLICT at 0x0608 (R39,R15,R35): FFMA R36, R39, R15, R35; (FFMA ft1, ft4, sg3, mneg1;)
+CONFLICT at 0x0650 (R0,R4): FMUL R0, R0, R4; (FMUL x0, x0, w0;)
+CONFLICT at 0x0658 (R1,R5): FMUL R1, R1, R5; (FMUL x1, x1, w1;)
+CONFLICT at 0x0668 (R2,R6): FMUL R2, R2, R6; (FMUL x2, x2, w2;)
+CONFLICT at 0x0670 (R3,R7): FMUL R3, R3, R7; (FMUL x3, x3, w3;)
+CONFLICT at 0x0678 (R0,R12): FMUL R0, R0, R12; (FMUL x0, x0, sg0;)
+CONFLICT at 0x0688 (R1,R13): FMUL R1, R1, R13; (FMUL x1, x1, sg1;)
+CONFLICT at 0x0690 (R2,R14): FMUL R2, R2, R14; (FMUL x2, x2, sg2;)
+CONFLICT at 0x0698 (R3,R15): FMUL R3, R3, R15; (FMUL x3, x3, sg3;)
+Modified dnnorm RegCnt: 2 => 48
+Modified dnnorm EIATTR_REGCOUNT: 2 => 48
+Modified dnnorm CTAID Offsets: '' => '0010'
+Modified dnnorm Exit Offsets: '0030' => '00c8,06b0'
+Modified dnnorm ParamSecSize: 124 => 136
+Modified dnnorm KernelSize: 64 => 1728
+Kernel: dnnorm, Instructions: 0, Register Count: 48, Bank Conflicts: 27, Reuse: 14.2% (35/246)
+/opt/cuda-11.4/bin/ptxas -arch=sm_52 -o skel_dnnorm_xout.cubin dnnorm_xout.ptx
+cp skel_dnnorm_xout.cubin dnnorm_xout.cubin
+DN_XOUT=1 perl -I/home/nate/codex/flash-astra-build-20261018/maxas-brx/lib /home/nate/codex/flash-astra-build-20261018/maxas-brx/bin/maxas.pl -i dnnorm.sass dnnorm_xout.cubin
+CONFLICT at 0x02d8 (R27,R39): FFMA R38, R37, -R27, R39; (FFMA ft3, ft2, -ln2hi, ft4;)
+CONFLICT at 0x02f0 (R38,R30): FFMA R36, R29, R38, R30; (FFMA ft1, c720, ft3, c120;)
+CONFLICT at 0x0308 (R36,R32): FFMA R36, R36, R38, R32; (FFMA ft1, ft1, ft3, c6;)
+CONFLICT at 0x0370 (R39,R35): FFMA R36, R39, R12, R35; (FFMA ft1, ft4, sg0, mneg1;)
+CONFLICT at 0x0388 (R12,R36,R12): FFMA R12, R12, R36, R12; (FFMA sg0, sg0, ft1, sg0;)
+CONFLICT at 0x03d0 (R27,R39): FFMA R38, R37, -R27, R39; (FFMA ft3, ft2, -ln2hi, ft4;)
+CONFLICT at 0x03e8 (R38,R30): FFMA R36, R29, R38, R30; (FFMA ft1, c720, ft3, c120;)
+CONFLICT at 0x03f8 (R36,R32): FFMA R36, R36, R38, R32; (FFMA ft1, ft1, ft3, c6;)
+CONFLICT at 0x0468 (R39,R35): FFMA R36, R39, R13, R35; (FFMA ft1, ft4, sg1, mneg1;)
+CONFLICT at 0x04c8 (R27,R39): FFMA R38, R37, -R27, R39; (FFMA ft3, ft2, -ln2hi, ft4;)
+CONFLICT at 0x04d8 (R38,R30): FFMA R36, R29, R38, R30; (FFMA ft1, c720, ft3, c120;)
+CONFLICT at 0x04f0 (R36,R32): FFMA R36, R36, R38, R32; (FFMA ft1, ft1, ft3, c6;)
+CONFLICT at 0x0558 (R39,R35): FFMA R36, R39, R14, R35; (FFMA ft1, ft4, sg2, mneg1;)
+CONFLICT at 0x05b8 (R27,R39): FFMA R38, R37, -R27, R39; (FFMA ft3, ft2, -ln2hi, ft4;)
+CONFLICT at 0x05d0 (R38,R30): FFMA R36, R29, R38, R30; (FFMA ft1, c720, ft3, c120;)
+CONFLICT at 0x05e8 (R36,R32): FFMA R36, R36, R38, R32; (FFMA ft1, ft1, ft3, c6;)
+CONFLICT at 0x0650 (R39,R15,R35): FFMA R36, R39, R15, R35; (FFMA ft1, ft4, sg3, mneg1;)
+CONFLICT at 0x0698 (R0,R4): FMUL R0, R0, R4; (FMUL x0, x0, w0;)
+CONFLICT at 0x06a8 (R1,R5): FMUL R1, R1, R5; (FMUL x1, x1, w1;)
+CONFLICT at 0x06b0 (R2,R6): FMUL R2, R2, R6; (FMUL x2, x2, w2;)
+CONFLICT at 0x06b8 (R3,R7): FMUL R3, R3, R7; (FMUL x3, x3, w3;)
+CONFLICT at 0x06c8 (R0,R12): FMUL R0, R0, R12; (FMUL x0, x0, sg0;)
+CONFLICT at 0x06d0 (R1,R13): FMUL R1, R1, R13; (FMUL x1, x1, sg1;)
+CONFLICT at 0x06d8 (R2,R14): FMUL R2, R2, R14; (FMUL x2, x2, sg2;)
+CONFLICT at 0x06e8 (R3,R15): FMUL R3, R3, R15; (FMUL x3, x3, sg3;)
+CONFLICT at 0x06f0 (R48,R60): IADD R48.CC, R48, R60; (IADD dq00.CC, dq00, xo;)
+Modified dnnorm RegCnt: 2 => 61
+Modified dnnorm EIATTR_REGCOUNT: 2 => 61
+Modified dnnorm CTAID Offsets: '' => '0010'
+Modified dnnorm Exit Offsets: '0030' => '0128,07b0'
+Modified dnnorm ParamSecSize: 156 => 168
+Modified dnnorm KernelSize: 64 => 1984
+Kernel: dnnorm, Instructions: 0, Register Count: 61, Bank Conflicts: 28, Reuse: 15.2% (40/264)
+/opt/cuda-11.4/bin/ptxas -arch=sm_52 -o skel_hcops_xout.cubin hcops_xout.ptx
+cp skel_hcops_xout.cubin hc_mix_xout.cubin
+HC_OP=mix HC_XOUT=1 perl -I/home/nate/codex/flash-astra-build-20261018/maxas-brx/lib /home/nate/codex/flash-astra-build-20261018/maxas-brx/bin/maxas.pl -i hcops.sass hc_mix_xout.cubin
+CONFLICT at 0x0250 (R15,R19): FMUL R12, R15, R19; (FMUL ft1, ft4, log2e;)
+CONFLICT at 0x0288 (R22,R14): FFMA R12, R22, R14, R23; (FFMA ft1, c720, ft3, c120;)
+CONFLICT at 0x0290 (R12,R24): FFMA R12, R12, R14, R24; (FFMA ft1, ft1, ft3, c24;)
+CONFLICT at 0x02a8 (R12,R32): FFMA R12, R12, R14, R32; (FFMA ft1, ft1, ft3, chalf;)
+CONFLICT at 0x0308 (R15,R31): FFMA R12, R15, R8, R31; (FFMA ft1, ft4, g0, mneg1;)
+CONFLICT at 0x0318 (R8,R12,R8): FFMA R8, R8, R12, R8; (FFMA g0, g0, ft1, g0;)
+CONFLICT at 0x0348 (R15,R19): FMUL R12, R15, R19; (FMUL ft1, ft4, log2e;)
+CONFLICT at 0x0378 (R22,R14): FFMA R12, R22, R14, R23; (FFMA ft1, c720, ft3, c120;)
+CONFLICT at 0x0388 (R12,R24): FFMA R12, R12, R14, R24; (FFMA ft1, ft1, ft3, c24;)
+CONFLICT at 0x0398 (R12,R32): FFMA R12, R12, R14, R32; (FFMA ft1, ft1, ft3, chalf;)
+CONFLICT at 0x03f8 (R15,R31): FFMA R12, R15, R9, R31; (FFMA ft1, ft4, g1, mneg1;)
+CONFLICT at 0x0438 (R15,R19): FMUL R12, R15, R19; (FMUL ft1, ft4, log2e;)
+CONFLICT at 0x0470 (R22,R14): FFMA R12, R22, R14, R23; (FFMA ft1, c720, ft3, c120;)
+CONFLICT at 0x0478 (R12,R24): FFMA R12, R12, R14, R24; (FFMA ft1, ft1, ft3, c24;)
+CONFLICT at 0x0490 (R12,R32): FFMA R12, R12, R14, R32; (FFMA ft1, ft1, ft3, chalf;)
+CONFLICT at 0x04f0 (R15,R31): FFMA R12, R15, R10, R31; (FFMA ft1, ft4, g2, mneg1;)
+CONFLICT at 0x0530 (R15,R19): FMUL R12, R15, R19; (FMUL ft1, ft4, log2e;)
+CONFLICT at 0x0568 (R22,R14): FFMA R12, R22, R14, R23; (FFMA ft1, c720, ft3, c120;)
+CONFLICT at 0x0570 (R12,R24): FFMA R12, R12, R14, R24; (FFMA ft1, ft1, ft3, c24;)
+CONFLICT at 0x0588 (R12,R32): FFMA R12, R12, R14, R32; (FFMA ft1, ft1, ft3, chalf;)
+CONFLICT at 0x05e8 (R15,R11,R31): FFMA R12, R15, R11, R31; (FFMA ft1, ft4, g3, mneg1;)
+CONFLICT at 0x0608 (R8,R4): FMUL R17, R8, R4; (FMUL acc, g0, x0;)
+CONFLICT at 0x0610 (R9,R5,R17): FFMA R17, R9, R5, R17; (FFMA acc, g1, x1, acc;)
+CONFLICT at 0x0618 (R10,R6): FFMA R17, R10, R6, R17; (FFMA acc, g2, x2, acc;)
+CONFLICT at 0x0628 (R11,R7): FFMA R17, R11, R7, R17; (FFMA acc, g3, x3, acc;)
+CONFLICT at 0x0638 (R50,R62): IADD R50.CC, R50, R62; (IADD dq00.CC, dq00, xo;)
+Modified hcops RegCnt: 2 => 63
+Modified hcops EIATTR_REGCOUNT: 2 => 63
+Modified hcops CTAID Offsets: '' => '0010'
+Modified hcops Exit Offsets: '0030' => '0178,06f8'
+Modified hcops ParamSecSize: 140 => 152
+Modified hcops KernelSize: 64 => 1856
+Kernel: hcops, Instructions: 0, Register Count: 63, Bank Conflicts: 29, Reuse: 17.7% (39/220)
+cc -std=gnu99 -O2 -ffp-contract=off -Wall -o dnnorm_test dnnorm_test.c ../ref/deltanet.c ../ref/hc.c ../ref/fmath.c -I../ref -I/opt/cuda/include -lcuda -lm
