@@ -1,0 +1,11 @@
+// HCMIX_XOUT keeps the P2 table at 0x150 and xoff at 0x160.
+.version 7.4
+.target sm_52
+.address_size 64
+
+.visible .entry hcops(.param .u64 p0, .param .u64 p1, .param .u64 p2, .param .u32 n, .param .u32 us, .param .u32 xoff)
+{
+	.reg .u32 %r;
+	ld.param.u32 %r, [n];
+	ret;
+}

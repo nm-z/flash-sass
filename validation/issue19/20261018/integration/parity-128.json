@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "long_context_revision": "6da421bccb68e613ecbdc8142104935deecccb29",
+  "integration_revision": "d46d188a435c5d959993f16dc1f78c837cc9f70d",
+  "positions_actually_compared": 128,
+  "capacity": 65552,
+  "layers_compared": 24,
+  "checkpoint_and_holder_hashes_equal": true,
+  "output_tokens_equal": true,
+  "state_payload_lines_compared": 234,
+  "tokens_sha256": "db62eb7e55106127f12b403de5901fe074d5b2c052205b6e8b9749a46d368c77",
+  "corpus_sha256": "b6fde5d541106553ed422b1b40c422eb93b8550ac8a9f8a44148ef7035c901ea",
+  "cubin_sha256": {
+    "bounded": "6d5bbe4c5eedf0d47cf31804e1e0befe2a953db0d5acd0e2ab9d585c067f1367",
+    "unbounded": "116d828f20139d144d46d7d8115a28e35313dac1f6c24ba81c1b5c0984f50e14",
+    "trace": "a2b5b013f3e99fed1e29f415c4805a68c49ac02cd5e658a09020303c7c5b62b8"
+  },
+  "limitation": "Long contexts were measured only at the long-context revision; this comparison measures 128 positions at the merged revision."
+}
