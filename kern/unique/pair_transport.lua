@@ -25,6 +25,11 @@ return function(maps)
     48,49 : pt_lookup<0-1>
     50 : pt_flag_offset
     51 : pt_data_offset
+    52 : pt_job
+    53 : pt_pos
+    54 : pt_slot
+    55 : pt_row0
+    56 : pt_jobs
 ]=]
  local o={};local function e(x,c)o[#o+1]=(c or '--:-:-:-:6')..' '..x..';'end
  local function l(x)o[#o+1]=x..':'end
@@ -55,12 +60,21 @@ return function(maps)
   pred('VOTE.ANY P5, P5');e('@P5 BRA BEXP');e('BRA '..tag)
   l(tag..'_DONE');e('MEMBAR.GL.IVALLD')
  end
- pred('ISETP.GE.U32.AND P6, PT, warp, pc_count, PT');e('@P6 BRA PCOL_PUBLISH_JOIN')
- e('SHL pt_descriptor, warp, 0x7');e('IADD pt_descriptor, pt_descriptor, 0x8000')
+ -- Jobs are (tile iteration, position): CTAs below 8 own three tiles, the rest two.
+ e('MOV pt_job, warp')
+ pred('ISETP.LT.U32.AND P6, PT, cta, 0x8, PT');e('MOV pt_jobs, 0x2');e('@P6 MOV pt_jobs, 0x3')
+ e('XMAD pt_jobs, pt_jobs, pc_count, RZ')
+ l('PT_JOB')
+ pred('ISETP.GE.U32.AND P6, PT, pt_job, pt_jobs, PT');e('@P6 BRA PT_JOBS_DONE')
+ pred('ISETP.EQ.U32.AND P6, PT, pc_count, 0x1, PT')
+ e('@P6 MOV pt_pos, RZ');e('@P6 MOV pt_slot, pt_job')
+ e('@!P6 LOP32I.AND pt_pos, pt_job, 0x3');e('@!P6 SHR.U32 pt_slot, pt_job, 0x2')
+ e('SHL pt_slot, pt_slot, 0xa');e('SHL pt_row0, cta, 0x6');e('IADD pt_row0, pt_row0, pt_slot')
+ e('SHL pt_descriptor, pt_pos, 0x7');e('IADD pt_descriptor, pt_descriptor, 0x8000')
  e('LDS.64 pt_table0, [pt_descriptor+0x30]','--:-:1:-:2');e('LDS pt_die, [pt_descriptor+0x2c]','--:-:1:-:2')
- e('MOV pt_epoch, pc_epoch');e('SHR.U32 pt_tile, pc_rowbase, 0x6');e('SHL pt_flag_offset, pt_tile, 0x2')
- e('IADD pt_data_offset, pc_rowbase, lane');e('SHL pt_data_offset, pt_data_offset, 0x2')
- e('SHL pt_offset, lane, 0x2');e('ISCADD pt_offset, warp, pt_offset, 0x8')
+ e('MOV pt_epoch, pc_epoch');e('SHR.U32 pt_tile, pt_row0, 0x6');e('SHL pt_flag_offset, pt_tile, 0x2')
+ e('IADD pt_data_offset, pt_row0, lane');e('SHL pt_data_offset, pt_data_offset, 0x2')
+ e('SHL pt_offset, lane, 0x2');e('ISCADD pt_offset, pt_pos, pt_offset, 0x8');e('IADD pt_offset, pt_offset, pt_slot')
  e('LDS pt_v0, [pt_offset+0x3000]','--:-:1:-:2');e('LDS pt_v1, [pt_offset+0x3080]','--:-:1:-:2');wait('01')
  e('SHR.U32 pt_board, pt_die, 0x1');e('LOP32I.AND pt_parity, pt_die, 0x1')
  e('MOV32I pt_tmp, 0xaaab');e('XMAD pt_owner, pt_tile, pt_tmp, RZ');e('SHR.U32 pt_owner, pt_owner, 0x11')
@@ -70,7 +84,7 @@ return function(maps)
  -- Odd dies send only within the physical board, then await the final tile.
  pointer('pt_dst',0);addr('pt_dst','pt_dst','pt_data_offset');payload('pt_dst');e('MEMBAR.SYS');signal(1)
  pointer('pt_flag',7);addr('pt_flag','pt_flag','pt_flag_offset');poll('PT_ODD_FINAL')
- e('BRA PCOL_PUBLISH_JOIN')
+ e('BRA PT_NEXT_JOB')
  l('PT_LEADER')
  pointer('pt_flag',3);addr('pt_flag','pt_flag','pt_flag_offset');poll('PT_PAIR_READY')
  pointer('pt_src',2);addr('pt_src','pt_src','pt_data_offset')
@@ -94,6 +108,8 @@ return function(maps)
  pointer('pt_src',6);addr('pt_src','pt_src','pt_data_offset')
  e('LDG.E.CG pt_v0, [pt_src]','--:-:1:-:2');e('LDG.E.CG pt_v1, [pt_src+0x80]','--:-:1:-:2');wait('01')
  pointer('pt_dst',8);addr('pt_dst','pt_dst','pt_data_offset');payload('pt_dst');e('MEMBAR.SYS');signal(9)
- e('BRA PCOL_PUBLISH_JOIN')
+ e('BRA PT_NEXT_JOB')
+ l('PT_NEXT_JOB');e('IADD pt_job, pt_job, 0x8');e('BRA PT_JOB')
+ l('PT_JOBS_DONE')
  return table.concat(o,'\n')..'\n'
 end

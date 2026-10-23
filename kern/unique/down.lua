@@ -202,7 +202,7 @@ wait('01')
 for j,v in ipairs({'0xbfad9881','0xf6eaddcf','0x26190d01','0x71594535'})do e('MOV32I pc_lut'..(j-1)..', '..v)end
 e('SHL pc_rowbase, cta, 0x6');e('SHR.U32 pc_rowlocal, tid, 0x2');e('LOP32I.AND pc_lane, tid, 0x3')
 e('SHR.U32 pc_block, pc_lane, 0x1');e('LOP32I.AND pc_half, pc_lane, 0x1')
-l('PCOL_TILE');pred('ISETP.GE.U32.AND P6, PT, pc_rowbase, 0xa00, PT');e('@P6 BRA POSITION_END')
+l('PCOL_TILE');pred('ISETP.GE.U32.AND P6, PT, pc_rowbase, 0xa00, PT');e('@P6 BRA PCOL_TRANSPORT')
 e('IADD pc_row, pc_rowbase, pc_rowlocal');e('MOV pc_record, RZ')
 l('PCOL_RECORD');e('SHL pc_scratch, pc_record, 0x6');e('LDS pc_id, [pc_scratch+0x9000]','--:-:1:-:2')
 for p=0,3 do
@@ -301,15 +301,22 @@ for rank=0,10 do
  for p=0,3 do e(string.format('LDS pc_value%d, [pc_scratch+0x%x]',p,(p*11+rank)*256),'--:-:1:-:2')end
  wait('01');for p=0,3 do e(string.format('FADD pc_sum%d, pc_sum%d, pc_value%d',p,p,p))end
 end
+-- Each of a CTA's (at most three) tiles keeps its own staging slot,
+-- 0x3000 + 0x400*iteration, so all tile transports can run after compute.
+e('SHL pc_tmp, cta, 0x6');e('IADD pc_tmp, pc_rowbase, -pc_tmp');e('IADD pc_scratch, pc_scratch, pc_tmp')
 for p=0,3 do
  pred(string.format('ISETP.GT.U32.AND P5, PT, pc_count, 0x%x, PT',p));pred('ISETP.EQ.U32.AND P5, PT, pc_lane, RZ, P5')
  e(string.format('@P5 STS [pc_scratch+0x%x], pc_sum%d',0x3000+p*256,p),'--:2:-:-:2')
  e(string.format('LDS.64 pc_ptr0, [RZ+0x%x]',0x8038+p*128),'--:-:1:-:2');e('SHL pc_offset, pc_row, 0x2');wait('01');addr('pc_ptr','pc_ptr','pc_offset')
  e(string.format('@P5 STG.E [pc_ptr], pc_sum%d',p),'--:2:-:-:2');wait('02')
 end
-e('BAR.SYNC 0x0','3f:-:-:Y:d')
+e('BAR.SYNC 0x0','3f:-:-:Y:d');e('IADD pc_rowbase, pc_rowbase, 0x400');e('BRA PCOL_TILE')
+-- Transport every (tile, position) job after all tiles are computed: warp w
+-- takes jobs w, w+8, ... so independent board hop chains overlap instead of
+-- each tile's chain finishing before the next tile's compute starts.
+l('PCOL_TRANSPORT')
 o[#o+1]=dofile('unique/pair_transport.lua')(maps)
-l('PCOL_PUBLISH_JOIN');e('BAR.SYNC 0x0','3f:-:-:Y:d');e('IADD pc_rowbase, pc_rowbase, 0x400');e('BRA PCOL_TILE')
+e('BAR.SYNC 0x0','3f:-:-:Y:d');e('BRA POSITION_END')
 replace('</REGISTER_MAPPING>',table.concat(maps,'\n')..'\n</REGISTER_MAPPING>')
 replace('ISETP.GE.U32.AND P6, PT, op, 0x70, PT;','ISETP.GE.U32.AND P6, PT, op, 0x71, PT;')
 replace('--:-:-:-:6      BRA POSITION_END;\n\nembrow_SETUP:',
