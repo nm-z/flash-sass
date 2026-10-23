@@ -1,0 +1,1522 @@
+{
+  "mode": "gpu",
+  "source_revision": "6da421bccb68e613ecbdc8142104935deecccb29",
+  "hostname": "archy",
+  "started_utc": "2026-10-18T02:31:00Z",
+  "runner_sha256": "a64b8c204cd2592e317afe2f9e97474b82e3ae4e13aa88956feb2b69cd0aefe1",
+  "options": {
+    "mode": "gpu",
+    "cuda": "/opt/cuda",
+    "ptxas": "/opt/cuda-11.4/bin/ptxas",
+    "maxas": "/home/nate/codex/flash-pr44-acceptance-20261018/maxas",
+    "lock_dir": "/home/nate/codex/asm-port",
+    "engine_lock": "/tmp/flash-sass-engine-validation.lock",
+    "positions": [
+      32768,
+      65536
+    ],
+    "iterations": 10000,
+    "samples": 12,
+    "out": "/home/nate/codex/flash-pr44-evidence-20261018",
+    "gpu": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b",
+    "core_pid": 3575268,
+    "socket": "/tmp/flash.sock"
+  },
+  "results": [
+    {
+      "name": "cpu-boundaries",
+      "command": [
+        "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern/quant_range_test"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "cpu-boundaries.stdout",
+      "stderr": "cpu-boundaries.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 1.0860233190032886,
+      "passes": true,
+      "stdout_sha256": "70ccd4d0a06f1774521d02da789ad6d8bcb3d5c5b4117f5ef5d12d42f3602a8b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-1-unbounded-normal-vram-nvidia-processes",
+      "command": [
+        "nvidia-smi",
+        "--query-compute-apps=gpu_uuid,pid,process_name",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-1-unbounded-normal-vram-nvidia-processes.stdout",
+      "stderr": "idle-1-unbounded-normal-vram-nvidia-processes.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.0852476660074899,
+      "passes": true,
+      "stdout_sha256": "a9018010b4d04c152359b04a7eca4eac082f864ecbc86bca94a459d60255865f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-1-unbounded-normal-vram-nvidia-gpus",
+      "command": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,name,driver_version,memory.used,utilization.gpu,clocks.sm",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-1-unbounded-normal-vram-nvidia-gpus.stdout",
+      "stderr": "idle-1-unbounded-normal-vram-nvidia-gpus.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.09071312000742182,
+      "passes": true,
+      "stdout_sha256": "68462751f1d01fb159693d22af42722d00b702b04647f1848b787ac7b12f432b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-1-unbounded-normal-vram-ps",
+      "command": [
+        "ps",
+        "-eo",
+        "pid,ppid,stat,wchan:25,etimes,time,comm"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-1-unbounded-normal-vram-ps.stdout",
+      "stderr": "idle-1-unbounded-normal-vram-ps.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.01981769000121858,
+      "passes": true,
+      "stdout_sha256": "e3902257b46cdb2dba8b5de353ca593843c92b28fa25728750d3d34dbc1fd48b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-1-unbounded-normal-vram-sockets",
+      "command": [
+        "ss",
+        "-xnp"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-1-unbounded-normal-vram-sockets.stdout",
+      "stderr": "idle-1-unbounded-normal-vram-sockets.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.010000663009122945,
+      "passes": true,
+      "stdout_sha256": "317d0bbb5abc52a0de0205e757255694abfd199e741d3b1c599e8850595d991a",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "unbounded-normal-vram",
+      "command": [
+        "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern/qsa_test",
+        "kv",
+        "16",
+        "2"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b",
+        "DIE_CUBIN": "/home/nate/codex/flash-pr44-evidence-20261018/build/unbounded/kern/die.cubin"
+      },
+      "stdout": "unbounded-normal-vram.stdout",
+      "stderr": "unbounded-normal-vram.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 2.4546995749988127,
+      "passes": true,
+      "stdout_sha256": "6d75e2955b0c91f52967d432965ffb1fcd1fbe5ad050ef5f286af74661f1b5da",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-2-unbounded-boundaries-vram-nvidia-processes",
+      "command": [
+        "nvidia-smi",
+        "--query-compute-apps=gpu_uuid,pid,process_name",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-2-unbounded-boundaries-vram-nvidia-processes.stdout",
+      "stderr": "idle-2-unbounded-boundaries-vram-nvidia-processes.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.08316366899816785,
+      "passes": true,
+      "stdout_sha256": "a9018010b4d04c152359b04a7eca4eac082f864ecbc86bca94a459d60255865f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-2-unbounded-boundaries-vram-nvidia-gpus",
+      "command": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,name,driver_version,memory.used,utilization.gpu,clocks.sm",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-2-unbounded-boundaries-vram-nvidia-gpus.stdout",
+      "stderr": "idle-2-unbounded-boundaries-vram-nvidia-gpus.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.07485566200921312,
+      "passes": true,
+      "stdout_sha256": "f3ff19d6cfac32b8b516c2b586e93bfb0590feb5738c4225727157d012a81327",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-2-unbounded-boundaries-vram-ps",
+      "command": [
+        "ps",
+        "-eo",
+        "pid,ppid,stat,wchan:25,etimes,time,comm"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-2-unbounded-boundaries-vram-ps.stdout",
+      "stderr": "idle-2-unbounded-boundaries-vram-ps.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.019438364994130097,
+      "passes": true,
+      "stdout_sha256": "6fbdfab5c1f80ca55aebd6813bd35c52a3e5905a8fde54c72a27aa5b933f9084",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-2-unbounded-boundaries-vram-sockets",
+      "command": [
+        "ss",
+        "-xnp"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-2-unbounded-boundaries-vram-sockets.stdout",
+      "stderr": "idle-2-unbounded-boundaries-vram-sockets.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.009187574993120506,
+      "passes": true,
+      "stdout_sha256": "317d0bbb5abc52a0de0205e757255694abfd199e741d3b1c599e8850595d991a",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "unbounded-boundaries-vram",
+      "command": [
+        "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern/qsa_test",
+        "kv",
+        "16",
+        "2"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b",
+        "DIE_CUBIN": "/home/nate/codex/flash-pr44-evidence-20261018/build/unbounded/kern/die.cubin",
+        "QSA_KV_EXTREMES": "1"
+      },
+      "stdout": "unbounded-boundaries-vram.stdout",
+      "stderr": "unbounded-boundaries-vram.stderr",
+      "expected_exit": 1,
+      "exit_code": 1,
+      "seconds": 0.9797300820064265,
+      "passes": true,
+      "stdout_sha256": "e690a6853bdd6ad5df2626102af3b9f8b9a665a588ad2ff25d35c0efd5784c4f",
+      "stderr_sha256": "6d7cc283459c34e3a9dc8a7eeb09b4a2ea46ac65f523d2edc3d4bfa33163108a"
+    },
+    {
+      "name": "idle-3-bounded-normal-vram-nvidia-processes",
+      "command": [
+        "nvidia-smi",
+        "--query-compute-apps=gpu_uuid,pid,process_name",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-3-bounded-normal-vram-nvidia-processes.stdout",
+      "stderr": "idle-3-bounded-normal-vram-nvidia-processes.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.07818686100654304,
+      "passes": true,
+      "stdout_sha256": "a9018010b4d04c152359b04a7eca4eac082f864ecbc86bca94a459d60255865f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-3-bounded-normal-vram-nvidia-gpus",
+      "command": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,name,driver_version,memory.used,utilization.gpu,clocks.sm",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-3-bounded-normal-vram-nvidia-gpus.stdout",
+      "stderr": "idle-3-bounded-normal-vram-nvidia-gpus.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.0710875950026093,
+      "passes": true,
+      "stdout_sha256": "2bd0a055c8bbbc2374b4e8a6b2921d6247e1ca7e6483f44156a354921f2d2f72",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-3-bounded-normal-vram-ps",
+      "command": [
+        "ps",
+        "-eo",
+        "pid,ppid,stat,wchan:25,etimes,time,comm"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-3-bounded-normal-vram-ps.stdout",
+      "stderr": "idle-3-bounded-normal-vram-ps.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.018467761008650996,
+      "passes": true,
+      "stdout_sha256": "842fe3cbdb19a2c865ca512fc8c12b2151ee764734946a9d473da65e392f5c8f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-3-bounded-normal-vram-sockets",
+      "command": [
+        "ss",
+        "-xnp"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-3-bounded-normal-vram-sockets.stdout",
+      "stderr": "idle-3-bounded-normal-vram-sockets.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.009596564006642438,
+      "passes": true,
+      "stdout_sha256": "317d0bbb5abc52a0de0205e757255694abfd199e741d3b1c599e8850595d991a",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "bounded-normal-vram",
+      "command": [
+        "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern/qsa_test",
+        "kv",
+        "16",
+        "2"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b",
+        "DIE_CUBIN": "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern/die.cubin"
+      },
+      "stdout": "bounded-normal-vram.stdout",
+      "stderr": "bounded-normal-vram.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.9918480299966177,
+      "passes": true,
+      "stdout_sha256": "6d75e2955b0c91f52967d432965ffb1fcd1fbe5ad050ef5f286af74661f1b5da",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-4-bounded-boundaries-vram-nvidia-processes",
+      "command": [
+        "nvidia-smi",
+        "--query-compute-apps=gpu_uuid,pid,process_name",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-4-bounded-boundaries-vram-nvidia-processes.stdout",
+      "stderr": "idle-4-bounded-boundaries-vram-nvidia-processes.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.09076587700110395,
+      "passes": true,
+      "stdout_sha256": "a9018010b4d04c152359b04a7eca4eac082f864ecbc86bca94a459d60255865f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-4-bounded-boundaries-vram-nvidia-gpus",
+      "command": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,name,driver_version,memory.used,utilization.gpu,clocks.sm",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-4-bounded-boundaries-vram-nvidia-gpus.stdout",
+      "stderr": "idle-4-bounded-boundaries-vram-nvidia-gpus.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.08429317499394529,
+      "passes": true,
+      "stdout_sha256": "f3ff19d6cfac32b8b516c2b586e93bfb0590feb5738c4225727157d012a81327",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-4-bounded-boundaries-vram-ps",
+      "command": [
+        "ps",
+        "-eo",
+        "pid,ppid,stat,wchan:25,etimes,time,comm"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-4-bounded-boundaries-vram-ps.stdout",
+      "stderr": "idle-4-bounded-boundaries-vram-ps.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.020475667988648638,
+      "passes": true,
+      "stdout_sha256": "ca1b95e7230f012a4ebe9c51584ead26af3365daabcfed88ce2228b0045c530d",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-4-bounded-boundaries-vram-sockets",
+      "command": [
+        "ss",
+        "-xnp"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-4-bounded-boundaries-vram-sockets.stdout",
+      "stderr": "idle-4-bounded-boundaries-vram-sockets.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.010639092986821197,
+      "passes": true,
+      "stdout_sha256": "317d0bbb5abc52a0de0205e757255694abfd199e741d3b1c599e8850595d991a",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "bounded-boundaries-vram",
+      "command": [
+        "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern/qsa_test",
+        "kv",
+        "16",
+        "2"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b",
+        "DIE_CUBIN": "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern/die.cubin",
+        "QSA_KV_EXTREMES": "1"
+      },
+      "stdout": "bounded-boundaries-vram.stdout",
+      "stderr": "bounded-boundaries-vram.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 1.064608839005814,
+      "passes": true,
+      "stdout_sha256": "10dda60d25523800eba30d0ae55f635fe05219b7f3c39a8c891250c80ff0de1b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-5-trace-normal-vram-nvidia-processes",
+      "command": [
+        "nvidia-smi",
+        "--query-compute-apps=gpu_uuid,pid,process_name",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-5-trace-normal-vram-nvidia-processes.stdout",
+      "stderr": "idle-5-trace-normal-vram-nvidia-processes.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.10291161701024976,
+      "passes": true,
+      "stdout_sha256": "a9018010b4d04c152359b04a7eca4eac082f864ecbc86bca94a459d60255865f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-5-trace-normal-vram-nvidia-gpus",
+      "command": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,name,driver_version,memory.used,utilization.gpu,clocks.sm",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-5-trace-normal-vram-nvidia-gpus.stdout",
+      "stderr": "idle-5-trace-normal-vram-nvidia-gpus.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.08701207999547478,
+      "passes": true,
+      "stdout_sha256": "2bd0a055c8bbbc2374b4e8a6b2921d6247e1ca7e6483f44156a354921f2d2f72",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-5-trace-normal-vram-ps",
+      "command": [
+        "ps",
+        "-eo",
+        "pid,ppid,stat,wchan:25,etimes,time,comm"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-5-trace-normal-vram-ps.stdout",
+      "stderr": "idle-5-trace-normal-vram-ps.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.3304581589909503,
+      "passes": true,
+      "stdout_sha256": "c9b374c41bc2b9892b14a68142d7f148ec2ae56db8ad9216c9904c4f6857bd81",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-5-trace-normal-vram-sockets",
+      "command": [
+        "ss",
+        "-xnp"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-5-trace-normal-vram-sockets.stdout",
+      "stderr": "idle-5-trace-normal-vram-sockets.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.009688238002127036,
+      "passes": true,
+      "stdout_sha256": "091dab838612fc41eaeee7621527027fe36d6f09234266135f3f93d611bc783f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "trace-normal-vram",
+      "command": [
+        "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern/qsa_test",
+        "kv",
+        "16",
+        "2"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b",
+        "DIE_CUBIN": "/home/nate/codex/flash-pr44-evidence-20261018/build/trace/kern/die.cubin",
+        "QSA_KV_TRACE_CHECK": "1"
+      },
+      "stdout": "trace-normal-vram.stdout",
+      "stderr": "trace-normal-vram.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 1.061297840991756,
+      "passes": true,
+      "stdout_sha256": "fe400ce7b3279ad7f1d2b9909736c2d6611a5ee3e10cfcd359390dc5dfb531b1",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-6-trace-boundaries-vram-nvidia-processes",
+      "command": [
+        "nvidia-smi",
+        "--query-compute-apps=gpu_uuid,pid,process_name",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-6-trace-boundaries-vram-nvidia-processes.stdout",
+      "stderr": "idle-6-trace-boundaries-vram-nvidia-processes.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.07902009200188331,
+      "passes": true,
+      "stdout_sha256": "a9018010b4d04c152359b04a7eca4eac082f864ecbc86bca94a459d60255865f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-6-trace-boundaries-vram-nvidia-gpus",
+      "command": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,name,driver_version,memory.used,utilization.gpu,clocks.sm",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-6-trace-boundaries-vram-nvidia-gpus.stdout",
+      "stderr": "idle-6-trace-boundaries-vram-nvidia-gpus.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.19552185900101904,
+      "passes": true,
+      "stdout_sha256": "f3ff19d6cfac32b8b516c2b586e93bfb0590feb5738c4225727157d012a81327",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-6-trace-boundaries-vram-ps",
+      "command": [
+        "ps",
+        "-eo",
+        "pid,ppid,stat,wchan:25,etimes,time,comm"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-6-trace-boundaries-vram-ps.stdout",
+      "stderr": "idle-6-trace-boundaries-vram-ps.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.018599061004351825,
+      "passes": true,
+      "stdout_sha256": "dd1ec8d74b86f605e4b30d9951894563d97e475a752abb7db248539e23657a1a",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-6-trace-boundaries-vram-sockets",
+      "command": [
+        "ss",
+        "-xnp"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-6-trace-boundaries-vram-sockets.stdout",
+      "stderr": "idle-6-trace-boundaries-vram-sockets.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.009546799992676824,
+      "passes": true,
+      "stdout_sha256": "780eba58d56854bb2b0ba4d981cce6d54360ca2d6624bcd81e5b77e646d0acbe",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "trace-boundaries-vram",
+      "command": [
+        "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern/qsa_test",
+        "kv",
+        "16",
+        "2"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b",
+        "DIE_CUBIN": "/home/nate/codex/flash-pr44-evidence-20261018/build/trace/kern/die.cubin",
+        "QSA_KV_EXTREMES": "1",
+        "QSA_KV_TRACE_CHECK": "1"
+      },
+      "stdout": "trace-boundaries-vram.stdout",
+      "stderr": "trace-boundaries-vram.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 1.0418425029929494,
+      "passes": true,
+      "stdout_sha256": "ddb80d7f74413cd3e721e995cf7117c8cb4cb1fdce75d65286521d6f3f545644",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-7-quant-benchmark-vram-nvidia-processes",
+      "command": [
+        "nvidia-smi",
+        "--query-compute-apps=gpu_uuid,pid,process_name",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-7-quant-benchmark-vram-nvidia-processes.stdout",
+      "stderr": "idle-7-quant-benchmark-vram-nvidia-processes.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.07961023000825662,
+      "passes": true,
+      "stdout_sha256": "a9018010b4d04c152359b04a7eca4eac082f864ecbc86bca94a459d60255865f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-7-quant-benchmark-vram-nvidia-gpus",
+      "command": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,name,driver_version,memory.used,utilization.gpu,clocks.sm",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-7-quant-benchmark-vram-nvidia-gpus.stdout",
+      "stderr": "idle-7-quant-benchmark-vram-nvidia-gpus.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.12052501300058793,
+      "passes": true,
+      "stdout_sha256": "c5e04b926fe8dafeead0172a27661fad1512868cc48d8b55afc5b3cba03d406a",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-7-quant-benchmark-vram-ps",
+      "command": [
+        "ps",
+        "-eo",
+        "pid,ppid,stat,wchan:25,etimes,time,comm"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-7-quant-benchmark-vram-ps.stdout",
+      "stderr": "idle-7-quant-benchmark-vram-ps.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.017870846000732854,
+      "passes": true,
+      "stdout_sha256": "48daa7ab7ee86f7b2506452b6979731bcc9265f8464744d73c6c4518110f3804",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-7-quant-benchmark-vram-sockets",
+      "command": [
+        "ss",
+        "-xnp"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-7-quant-benchmark-vram-sockets.stdout",
+      "stderr": "idle-7-quant-benchmark-vram-sockets.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.009986178993131034,
+      "passes": true,
+      "stdout_sha256": "317d0bbb5abc52a0de0205e757255694abfd199e741d3b1c599e8850595d991a",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "quant-benchmark-vram",
+      "command": [
+        "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern/quant_bench",
+        "--bounded",
+        "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern/die.cubin",
+        "--unbounded",
+        "/home/nate/codex/flash-pr44-evidence-20261018/build/unbounded/kern/die.cubin",
+        "--trace",
+        "/home/nate/codex/flash-pr44-evidence-20261018/build/trace/kern/die.cubin",
+        "--iterations",
+        "10000",
+        "--samples",
+        "12",
+        "--host",
+        "0"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b"
+      },
+      "stdout": "quant-benchmark-vram.stdout",
+      "stderr": "quant-benchmark-vram.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 3.9945091400004458,
+      "passes": true,
+      "stdout_sha256": "1e1e7bd8dbb73525a9b53538094d9ef2a466b86a492560ec3c62e68d444c229a",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-8-unbounded-normal-host-nvidia-processes",
+      "command": [
+        "nvidia-smi",
+        "--query-compute-apps=gpu_uuid,pid,process_name",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-8-unbounded-normal-host-nvidia-processes.stdout",
+      "stderr": "idle-8-unbounded-normal-host-nvidia-processes.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.61269854499551,
+      "passes": true,
+      "stdout_sha256": "a9018010b4d04c152359b04a7eca4eac082f864ecbc86bca94a459d60255865f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-8-unbounded-normal-host-nvidia-gpus",
+      "command": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,name,driver_version,memory.used,utilization.gpu,clocks.sm",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-8-unbounded-normal-host-nvidia-gpus.stdout",
+      "stderr": "idle-8-unbounded-normal-host-nvidia-gpus.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 1.4719261349964654,
+      "passes": true,
+      "stdout_sha256": "68462751f1d01fb159693d22af42722d00b702b04647f1848b787ac7b12f432b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-8-unbounded-normal-host-ps",
+      "command": [
+        "ps",
+        "-eo",
+        "pid,ppid,stat,wchan:25,etimes,time,comm"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-8-unbounded-normal-host-ps.stdout",
+      "stderr": "idle-8-unbounded-normal-host-ps.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.019155304005835205,
+      "passes": true,
+      "stdout_sha256": "3f29f4aaa57ddd9e65c9d9a509c43509a5186bd7f8d943dc7fe7399f2c3a7b28",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-8-unbounded-normal-host-sockets",
+      "command": [
+        "ss",
+        "-xnp"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-8-unbounded-normal-host-sockets.stdout",
+      "stderr": "idle-8-unbounded-normal-host-sockets.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.009455216000787914,
+      "passes": true,
+      "stdout_sha256": "a3fda528102c79872084cbc3c3a330e0f6fe68a07e99b2c6106ec9a5153e0f1f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "unbounded-normal-host",
+      "command": [
+        "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern/qsa_test",
+        "kv",
+        "16",
+        "2"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b",
+        "QSA_HOSTKV": "1",
+        "DIE_CUBIN": "/home/nate/codex/flash-pr44-evidence-20261018/build/unbounded/kern/die.cubin"
+      },
+      "stdout": "unbounded-normal-host.stdout",
+      "stderr": "unbounded-normal-host.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.990277953009354,
+      "passes": true,
+      "stdout_sha256": "6d75e2955b0c91f52967d432965ffb1fcd1fbe5ad050ef5f286af74661f1b5da",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-9-unbounded-boundaries-host-nvidia-processes",
+      "command": [
+        "nvidia-smi",
+        "--query-compute-apps=gpu_uuid,pid,process_name",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-9-unbounded-boundaries-host-nvidia-processes.stdout",
+      "stderr": "idle-9-unbounded-boundaries-host-nvidia-processes.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.1106442199961748,
+      "passes": true,
+      "stdout_sha256": "a9018010b4d04c152359b04a7eca4eac082f864ecbc86bca94a459d60255865f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-9-unbounded-boundaries-host-nvidia-gpus",
+      "command": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,name,driver_version,memory.used,utilization.gpu,clocks.sm",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-9-unbounded-boundaries-host-nvidia-gpus.stdout",
+      "stderr": "idle-9-unbounded-boundaries-host-nvidia-gpus.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.09262335101084318,
+      "passes": true,
+      "stdout_sha256": "2bd0a055c8bbbc2374b4e8a6b2921d6247e1ca7e6483f44156a354921f2d2f72",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-9-unbounded-boundaries-host-ps",
+      "command": [
+        "ps",
+        "-eo",
+        "pid,ppid,stat,wchan:25,etimes,time,comm"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-9-unbounded-boundaries-host-ps.stdout",
+      "stderr": "idle-9-unbounded-boundaries-host-ps.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.018494422009098344,
+      "passes": true,
+      "stdout_sha256": "5e6f07c600241c30004ee2697f7adcff16dd580cfd2c8871f201d56787339744",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-9-unbounded-boundaries-host-sockets",
+      "command": [
+        "ss",
+        "-xnp"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-9-unbounded-boundaries-host-sockets.stdout",
+      "stderr": "idle-9-unbounded-boundaries-host-sockets.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.009307181011536159,
+      "passes": true,
+      "stdout_sha256": "317d0bbb5abc52a0de0205e757255694abfd199e741d3b1c599e8850595d991a",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "unbounded-boundaries-host",
+      "command": [
+        "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern/qsa_test",
+        "kv",
+        "16",
+        "2"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b",
+        "QSA_HOSTKV": "1",
+        "DIE_CUBIN": "/home/nate/codex/flash-pr44-evidence-20261018/build/unbounded/kern/die.cubin",
+        "QSA_KV_EXTREMES": "1"
+      },
+      "stdout": "unbounded-boundaries-host.stdout",
+      "stderr": "unbounded-boundaries-host.stderr",
+      "expected_exit": 1,
+      "exit_code": 1,
+      "seconds": 1.0064440590067534,
+      "passes": true,
+      "stdout_sha256": "e690a6853bdd6ad5df2626102af3b9f8b9a665a588ad2ff25d35c0efd5784c4f",
+      "stderr_sha256": "6d7cc283459c34e3a9dc8a7eeb09b4a2ea46ac65f523d2edc3d4bfa33163108a"
+    },
+    {
+      "name": "idle-10-bounded-normal-host-nvidia-processes",
+      "command": [
+        "nvidia-smi",
+        "--query-compute-apps=gpu_uuid,pid,process_name",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-10-bounded-normal-host-nvidia-processes.stdout",
+      "stderr": "idle-10-bounded-normal-host-nvidia-processes.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.11160484301217366,
+      "passes": true,
+      "stdout_sha256": "a9018010b4d04c152359b04a7eca4eac082f864ecbc86bca94a459d60255865f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-10-bounded-normal-host-nvidia-gpus",
+      "command": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,name,driver_version,memory.used,utilization.gpu,clocks.sm",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-10-bounded-normal-host-nvidia-gpus.stdout",
+      "stderr": "idle-10-bounded-normal-host-nvidia-gpus.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.07967775700672064,
+      "passes": true,
+      "stdout_sha256": "2bd0a055c8bbbc2374b4e8a6b2921d6247e1ca7e6483f44156a354921f2d2f72",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-10-bounded-normal-host-ps",
+      "command": [
+        "ps",
+        "-eo",
+        "pid,ppid,stat,wchan:25,etimes,time,comm"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-10-bounded-normal-host-ps.stdout",
+      "stderr": "idle-10-bounded-normal-host-ps.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.015849575007450767,
+      "passes": true,
+      "stdout_sha256": "0834e55db1e29048f1e556b099a3d60527197fbc0500bd08f808ca07c9121a86",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-10-bounded-normal-host-sockets",
+      "command": [
+        "ss",
+        "-xnp"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-10-bounded-normal-host-sockets.stdout",
+      "stderr": "idle-10-bounded-normal-host-sockets.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.35829318000469357,
+      "passes": true,
+      "stdout_sha256": "1260a7452ab947e00e9c4bad55425cfcd1e3a1ed9cd649b49b2a8c52f9ed4249",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "bounded-normal-host",
+      "command": [
+        "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern/qsa_test",
+        "kv",
+        "16",
+        "2"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b",
+        "QSA_HOSTKV": "1",
+        "DIE_CUBIN": "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern/die.cubin"
+      },
+      "stdout": "bounded-normal-host.stdout",
+      "stderr": "bounded-normal-host.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 1.0050181630067527,
+      "passes": true,
+      "stdout_sha256": "6d75e2955b0c91f52967d432965ffb1fcd1fbe5ad050ef5f286af74661f1b5da",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-11-bounded-boundaries-host-nvidia-processes",
+      "command": [
+        "nvidia-smi",
+        "--query-compute-apps=gpu_uuid,pid,process_name",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-11-bounded-boundaries-host-nvidia-processes.stdout",
+      "stderr": "idle-11-bounded-boundaries-host-nvidia-processes.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.07286354900861625,
+      "passes": true,
+      "stdout_sha256": "a9018010b4d04c152359b04a7eca4eac082f864ecbc86bca94a459d60255865f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-11-bounded-boundaries-host-nvidia-gpus",
+      "command": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,name,driver_version,memory.used,utilization.gpu,clocks.sm",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-11-bounded-boundaries-host-nvidia-gpus.stdout",
+      "stderr": "idle-11-bounded-boundaries-host-nvidia-gpus.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.09491713800525758,
+      "passes": true,
+      "stdout_sha256": "2bd0a055c8bbbc2374b4e8a6b2921d6247e1ca7e6483f44156a354921f2d2f72",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-11-bounded-boundaries-host-ps",
+      "command": [
+        "ps",
+        "-eo",
+        "pid,ppid,stat,wchan:25,etimes,time,comm"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-11-bounded-boundaries-host-ps.stdout",
+      "stderr": "idle-11-bounded-boundaries-host-ps.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.5411896150035318,
+      "passes": true,
+      "stdout_sha256": "f929ff5d874e558def8dabb5f555d935229ed2ba2660bdc573ef8d121e38dbd5",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-11-bounded-boundaries-host-sockets",
+      "command": [
+        "ss",
+        "-xnp"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-11-bounded-boundaries-host-sockets.stdout",
+      "stderr": "idle-11-bounded-boundaries-host-sockets.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.008907915005693212,
+      "passes": true,
+      "stdout_sha256": "9f50010aa141ef18d8c43af1e34cce7542abf7a6d48ab9ef3318efb22421857b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "bounded-boundaries-host",
+      "command": [
+        "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern/qsa_test",
+        "kv",
+        "16",
+        "2"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b",
+        "QSA_HOSTKV": "1",
+        "DIE_CUBIN": "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern/die.cubin",
+        "QSA_KV_EXTREMES": "1"
+      },
+      "stdout": "bounded-boundaries-host.stdout",
+      "stderr": "bounded-boundaries-host.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 1.0203277629916556,
+      "passes": true,
+      "stdout_sha256": "10dda60d25523800eba30d0ae55f635fe05219b7f3c39a8c891250c80ff0de1b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-12-trace-normal-host-nvidia-processes",
+      "command": [
+        "nvidia-smi",
+        "--query-compute-apps=gpu_uuid,pid,process_name",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-12-trace-normal-host-nvidia-processes.stdout",
+      "stderr": "idle-12-trace-normal-host-nvidia-processes.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.07640960199933033,
+      "passes": true,
+      "stdout_sha256": "a9018010b4d04c152359b04a7eca4eac082f864ecbc86bca94a459d60255865f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-12-trace-normal-host-nvidia-gpus",
+      "command": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,name,driver_version,memory.used,utilization.gpu,clocks.sm",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-12-trace-normal-host-nvidia-gpus.stdout",
+      "stderr": "idle-12-trace-normal-host-nvidia-gpus.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.09219652699539438,
+      "passes": true,
+      "stdout_sha256": "68462751f1d01fb159693d22af42722d00b702b04647f1848b787ac7b12f432b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-12-trace-normal-host-ps",
+      "command": [
+        "ps",
+        "-eo",
+        "pid,ppid,stat,wchan:25,etimes,time,comm"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-12-trace-normal-host-ps.stdout",
+      "stderr": "idle-12-trace-normal-host-ps.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.018365231007919647,
+      "passes": true,
+      "stdout_sha256": "562fce60bcb931fadae2718baa509ce48782ea516a92f8fed17679d8b75e250b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-12-trace-normal-host-sockets",
+      "command": [
+        "ss",
+        "-xnp"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-12-trace-normal-host-sockets.stdout",
+      "stderr": "idle-12-trace-normal-host-sockets.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.010567837001872249,
+      "passes": true,
+      "stdout_sha256": "10c8c03859bb3a9566207dbce82c67e76c3469ac570dfe0352f0f19c5ab5a694",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "trace-normal-host",
+      "command": [
+        "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern/qsa_test",
+        "kv",
+        "16",
+        "2"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b",
+        "QSA_HOSTKV": "1",
+        "DIE_CUBIN": "/home/nate/codex/flash-pr44-evidence-20261018/build/trace/kern/die.cubin",
+        "QSA_KV_TRACE_CHECK": "1"
+      },
+      "stdout": "trace-normal-host.stdout",
+      "stderr": "trace-normal-host.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 1.0972778549912618,
+      "passes": true,
+      "stdout_sha256": "fe400ce7b3279ad7f1d2b9909736c2d6611a5ee3e10cfcd359390dc5dfb531b1",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-13-trace-boundaries-host-nvidia-processes",
+      "command": [
+        "nvidia-smi",
+        "--query-compute-apps=gpu_uuid,pid,process_name",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-13-trace-boundaries-host-nvidia-processes.stdout",
+      "stderr": "idle-13-trace-boundaries-host-nvidia-processes.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.0837962170044193,
+      "passes": true,
+      "stdout_sha256": "a9018010b4d04c152359b04a7eca4eac082f864ecbc86bca94a459d60255865f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-13-trace-boundaries-host-nvidia-gpus",
+      "command": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,name,driver_version,memory.used,utilization.gpu,clocks.sm",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-13-trace-boundaries-host-nvidia-gpus.stdout",
+      "stderr": "idle-13-trace-boundaries-host-nvidia-gpus.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.08882730000186712,
+      "passes": true,
+      "stdout_sha256": "569fb50737603e8ff8981353ad0cfb6ec9a554f5b74e676adaba9e9b45272002",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-13-trace-boundaries-host-ps",
+      "command": [
+        "ps",
+        "-eo",
+        "pid,ppid,stat,wchan:25,etimes,time,comm"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-13-trace-boundaries-host-ps.stdout",
+      "stderr": "idle-13-trace-boundaries-host-ps.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.018158574996050447,
+      "passes": true,
+      "stdout_sha256": "1f3f89339bfb743e21aeefc7e511c2632b8aed9bfa67b16b96a89aaa5d621dcd",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-13-trace-boundaries-host-sockets",
+      "command": [
+        "ss",
+        "-xnp"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-13-trace-boundaries-host-sockets.stdout",
+      "stderr": "idle-13-trace-boundaries-host-sockets.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.008643048000521958,
+      "passes": true,
+      "stdout_sha256": "95dbc988d47af771230fe7f6892e3880f473bd77753148739a483d53f381280d",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-14-trace-boundaries-host-nvidia-processes",
+      "command": [
+        "nvidia-smi",
+        "--query-compute-apps=gpu_uuid,pid,process_name",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-14-trace-boundaries-host-nvidia-processes.stdout",
+      "stderr": "idle-14-trace-boundaries-host-nvidia-processes.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.0842032889922848,
+      "passes": true,
+      "stdout_sha256": "a9018010b4d04c152359b04a7eca4eac082f864ecbc86bca94a459d60255865f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-14-trace-boundaries-host-nvidia-gpus",
+      "command": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,name,driver_version,memory.used,utilization.gpu,clocks.sm",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-14-trace-boundaries-host-nvidia-gpus.stdout",
+      "stderr": "idle-14-trace-boundaries-host-nvidia-gpus.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.10103321900533047,
+      "passes": true,
+      "stdout_sha256": "68462751f1d01fb159693d22af42722d00b702b04647f1848b787ac7b12f432b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-14-trace-boundaries-host-ps",
+      "command": [
+        "ps",
+        "-eo",
+        "pid,ppid,stat,wchan:25,etimes,time,comm"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-14-trace-boundaries-host-ps.stdout",
+      "stderr": "idle-14-trace-boundaries-host-ps.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.017433173998142593,
+      "passes": true,
+      "stdout_sha256": "622571b811a0694367146f17b2db4408d013b630622a02eb61c5e80ad7856081",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-14-trace-boundaries-host-sockets",
+      "command": [
+        "ss",
+        "-xnp"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-14-trace-boundaries-host-sockets.stdout",
+      "stderr": "idle-14-trace-boundaries-host-sockets.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.00865887499821838,
+      "passes": true,
+      "stdout_sha256": "95dbc988d47af771230fe7f6892e3880f473bd77753148739a483d53f381280d",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "trace-boundaries-host",
+      "command": [
+        "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern/qsa_test",
+        "kv",
+        "16",
+        "2"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b",
+        "QSA_HOSTKV": "1",
+        "DIE_CUBIN": "/home/nate/codex/flash-pr44-evidence-20261018/build/trace/kern/die.cubin",
+        "QSA_KV_EXTREMES": "1",
+        "QSA_KV_TRACE_CHECK": "1"
+      },
+      "stdout": "trace-boundaries-host.stdout",
+      "stderr": "trace-boundaries-host.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 1.0140275620069588,
+      "passes": true,
+      "stdout_sha256": "ddb80d7f74413cd3e721e995cf7117c8cb4cb1fdce75d65286521d6f3f545644",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-15-quant-benchmark-host-nvidia-processes",
+      "command": [
+        "nvidia-smi",
+        "--query-compute-apps=gpu_uuid,pid,process_name",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-15-quant-benchmark-host-nvidia-processes.stdout",
+      "stderr": "idle-15-quant-benchmark-host-nvidia-processes.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.07595480799500365,
+      "passes": true,
+      "stdout_sha256": "a9018010b4d04c152359b04a7eca4eac082f864ecbc86bca94a459d60255865f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-15-quant-benchmark-host-nvidia-gpus",
+      "command": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,name,driver_version,memory.used,utilization.gpu,clocks.sm",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-15-quant-benchmark-host-nvidia-gpus.stdout",
+      "stderr": "idle-15-quant-benchmark-host-nvidia-gpus.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.08331320999423042,
+      "passes": true,
+      "stdout_sha256": "2e8b96ffa94813f3c653c98986745d09385bc860934aa2fdab933fb948d49811",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-15-quant-benchmark-host-ps",
+      "command": [
+        "ps",
+        "-eo",
+        "pid,ppid,stat,wchan:25,etimes,time,comm"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-15-quant-benchmark-host-ps.stdout",
+      "stderr": "idle-15-quant-benchmark-host-ps.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.013456425003823824,
+      "passes": true,
+      "stdout_sha256": "d978155b66c30a2f6c0241784b5d54cef15b6e186edcaae1de794891fb3eaf7f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-15-quant-benchmark-host-sockets",
+      "command": [
+        "ss",
+        "-xnp"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-15-quant-benchmark-host-sockets.stdout",
+      "stderr": "idle-15-quant-benchmark-host-sockets.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.007763639005133882,
+      "passes": true,
+      "stdout_sha256": "95dbc988d47af771230fe7f6892e3880f473bd77753148739a483d53f381280d",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-16-quant-benchmark-host-nvidia-processes",
+      "command": [
+        "nvidia-smi",
+        "--query-compute-apps=gpu_uuid,pid,process_name",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-16-quant-benchmark-host-nvidia-processes.stdout",
+      "stderr": "idle-16-quant-benchmark-host-nvidia-processes.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.08696854001027532,
+      "passes": true,
+      "stdout_sha256": "a9018010b4d04c152359b04a7eca4eac082f864ecbc86bca94a459d60255865f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-16-quant-benchmark-host-nvidia-gpus",
+      "command": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,name,driver_version,memory.used,utilization.gpu,clocks.sm",
+        "--format=csv,noheader,nounits"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-16-quant-benchmark-host-nvidia-gpus.stdout",
+      "stderr": "idle-16-quant-benchmark-host-nvidia-gpus.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.08755125998868607,
+      "passes": true,
+      "stdout_sha256": "68462751f1d01fb159693d22af42722d00b702b04647f1848b787ac7b12f432b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-16-quant-benchmark-host-ps",
+      "command": [
+        "ps",
+        "-eo",
+        "pid,ppid,stat,wchan:25,etimes,time,comm"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-16-quant-benchmark-host-ps.stdout",
+      "stderr": "idle-16-quant-benchmark-host-ps.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.019741260999580845,
+      "passes": true,
+      "stdout_sha256": "4ce2caa753c9c1954ebca79376d7518cbeecf8175d375cf3ca15a7191946a283",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-16-quant-benchmark-host-sockets",
+      "command": [
+        "ss",
+        "-xnp"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-acceptance-20261018",
+      "env": {},
+      "stdout": "idle-16-quant-benchmark-host-sockets.stdout",
+      "stderr": "idle-16-quant-benchmark-host-sockets.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 0.008638533996418118,
+      "passes": true,
+      "stdout_sha256": "95dbc988d47af771230fe7f6892e3880f473bd77753148739a483d53f381280d",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "quant-benchmark-host",
+      "command": [
+        "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern/quant_bench",
+        "--bounded",
+        "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern/die.cubin",
+        "--unbounded",
+        "/home/nate/codex/flash-pr44-evidence-20261018/build/unbounded/kern/die.cubin",
+        "--trace",
+        "/home/nate/codex/flash-pr44-evidence-20261018/build/trace/kern/die.cubin",
+        "--iterations",
+        "10000",
+        "--samples",
+        "12",
+        "--host",
+        "1"
+      ],
+      "cwd": "/home/nate/codex/flash-pr44-evidence-20261018/build/bounded/kern",
+      "env": {
+        "CUDA_VISIBLE_DEVICES": "GPU-431371bd-b482-96b2-4b70-04f83c6d075b"
+      },
+      "stdout": "quant-benchmark-host.stdout",
+      "stderr": "quant-benchmark-host.stderr",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "seconds": 3.3612991650006734,
+      "passes": true,
+      "stdout_sha256": "d19ab122678eff5df0f7acf5008030d00a3e144cce928b10fbe417d7dc3fab6a",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "build_manifest_sha256": "7b93e092dd9e6bcb260be18a421e4f31add2bf8c6397a8da636d840cd44dd672",
+  "status": "PASS",
+  "finished_utc": "2026-10-18T02:32:52Z"
+}
