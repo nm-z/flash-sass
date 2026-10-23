@@ -1,0 +1,16 @@
+// Skeleton for MaxAs: same entry name and parameter layout as argmax.sass.
+.version 7.4
+.target sm_52
+.address_size 64
+
+.visible .entry argmax(.param .u64 px, .param .u64 pout, .param .u64 ppart, .param .u64 pcnt, .param .u32 n, .param .u32 g)
+{
+	.shared .align 16 .b8 smem[64];
+	.reg .u32 %r<2>;
+	.reg .pred %p;
+	ld.param.u32 %r0, [n];
+	mov.u32 %r1, %tid.x;
+	setp.lt.u32 %p, %r1, %r0;
+	@%p ret;
+	ret;
+}
