@@ -1,0 +1,35 @@
+{
+  "source_revision": "807e91c33318f2967c06617a2340cae64abfda17",
+  "command": [
+    "make",
+    "-C",
+    "/tmp/flash-resolve-issue19-20261017/kern",
+    "CUDA=/opt/cuda",
+    "FLASH_REV=807e91c33318f2967c06617a2340cae64abfda17",
+    "quant_range_test",
+    "qsa_test",
+    "die.cubin"
+  ],
+  "exit_code": 0,
+  "seconds": 28.799814224243164,
+  "hostname": "archy",
+  "targets": {
+    "quant_range_test": {
+      "sha256": "79b60f4a5cd0a6ca32411cb3596646d829d3e0ac2b95f1d4341ebfee34e3d7e4",
+      "bytes": 21832
+    },
+    "qsa_test": {
+      "sha256": "d3763d6c184c4695b78a547140b345ba20e6d9d66458201e066b266ad019f571",
+      "bytes": 91816
+    },
+    "die.cubin": {
+      "sha256": "4bf7a1970a6c112b294ec7b8923663a59ec88cb434ed9decd7c63a931a59d59b",
+      "bytes": 445352
+    }
+  },
+  "maxas_sources_sha256": {
+    "/tmp/flash-resolve-issue19-20261017/maxas/lib/MaxAs/Cubin.pm": "0fa8cb6989248b38ee44b27f0ef6a14809b06c1f7f332df12a587412998fe3ad",
+    "/tmp/flash-resolve-issue19-20261017/maxas/lib/MaxAs/MaxAs.pm": "853d3151595462bb1a46ecd879bcb0a1a3fe3ae1dbcb772ef8d07ee8bf8cd34b",
+    "/tmp/flash-resolve-issue19-20261017/maxas/lib/MaxAs/MaxAsGrammar.pm": "b63669d7e128651c68e106976c4d9e23457156ee8338cd1b8776683bbaad1f01"
+  }
+}

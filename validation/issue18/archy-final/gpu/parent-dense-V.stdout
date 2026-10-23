@@ -1,0 +1,14 @@
+n=1: reference 0.04 s
+attnpart: 125 regs, 2 CTAs/SM; attnmerge: 78 regs
+pm: BIT-EXACT (0 of 192 differ)
+pd: BIT-EXACT (0 of 192 differ)
+  po[0]: gpu nan (7fffffff) ref -0.528808594 (bf076000)
+  po[1]: gpu nan (7fffffff) ref -0.160125732 (be23f800)
+  po[2]: gpu nan (7fffffff) ref 0.312255859 (3e9fe000)
+  po[3]: gpu nan (7fffffff) ref 0.581573486 (3f14e200)
+po: MISMATCH (6144 of 49152 differ)
+  out[0]: gpu nan (7fffffff) ref -0.0273212884 (bcdfd0e5)
+  out[1]: gpu nan (7fffffff) ref -0.0482928641 (bd45cebd)
+  out[2]: gpu nan (7fffffff) ref 0.103208438 (3dd35ef2)
+  out[3]: gpu nan (7fffffff) ref 0.261249453 (3e85c27d)
+out: MISMATCH (6144 of 6144 differ)

@@ -1,0 +1,164 @@
+# Kernel: argmax
+#
+# argmax over n fp32 logits, ties -> lowest index. Grid = G CTAs (G <= 32) x 256
+# threads: thread (c, t) scans i = 256 c + t, + 256 G, ... keeping the first
+# maximum; warp butterflies (xor 16..1) and an 8-entry smem round reduce the CTA;
+# CTA c writes (max, idx) to PART[c]; the last CTA to bump CNT (ATOM.ADD) reduces
+# the G partials with warp 0, writes OUT[0] = idx, OUT[1] = max bits and resets
+# CNT. Combine rule everywhere: take the other side iff its max is greater, or
+# equal with a lower index. Bit-exact twin: argmax_gpu (any order gives the same
+# answer; the twin is the plain first-max scan).
+#
+# Params: 0:0x140 X  1:0x148 OUT  2:0x150 PART  3:0x158 CNT  4:0x160 n (u32)  5:0x164 g = grid size (u32)
+
+<CONSTANT_MAPPING>
+    param_X0    : c[0x0][0x140]
+    param_X1    : c[0x0][0x144]
+    param_OUT0  : c[0x0][0x148]
+    param_OUT1  : c[0x0][0x14c]
+    param_PART0 : c[0x0][0x150]
+    param_PART1 : c[0x0][0x154]
+    param_CNT0  : c[0x0][0x158]
+    param_CNT1  : c[0x0][0x15c]
+    param_n     : c[0x0][0x160]
+    param_g     : c[0x0][0x164]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0     : tid
+    1     : cta
+    2     : ncta
+    3     : stride
+    4     : i
+    5     : m
+    6     : im
+    7     : v
+    8     : mo
+    9     : io
+    10    : t
+    11    : k
+    12    : nk
+    13    : lane
+    14    : warp
+    15    : t2
+    16,17 : xp<0-1>
+    18,19 : pp<0-1>
+    20,21 : op<0-1>
+    22,23 : cp<0-1>
+    24,25 : qp<0-1>
+</REGISTER_MAPPING>
+
+<CODE>
+    my $o = '';
+    # butterfly combine of (m, im) across the warp
+    my $bfly = sub {
+        my $x = '';
+        for my $s (16, 8, 4, 2, 1) {
+            $x .= sprintf "--:-:5:-:1      SHFL.BFLY PT, mo, m, 0x%x, 0x1f;\n", $s;
+            $x .= sprintf "--:-:5:-:2      SHFL.BFLY PT, io, im, 0x%x, 0x1f;\n", $s;
+            $x .= "10:-:-:-:6      FSETP.EQ.AND P1, PT, mo, m, PT;\n";
+            $x .= "--:-:-:-:6      FSETP.GT.AND P0, PT, mo, m, PT;\n";
+            $x .= "--:-:-:-:6      NOP;\n" x 2;
+            $x .= "--:-:-:-:6      ISETP.LT.U32.AND P1, PT, io, im, P1;\n";        # P1 is 18 cycles old here
+            $x .= "--:-:-:-:6      NOP;\n" x 3;
+            $x .= "--:-:-:-:6  \@P0 MOV m, mo;\n";
+            $x .= "--:-:-:-:6  \@P0 MOV im, io;\n";
+            $x .= "--:-:-:-:6  \@P1 MOV m, mo;\n";
+            $x .= "--:-:-:-:6  \@P1 MOV im, io;\n";
+        }
+        return $x;
+    };
+    $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
+    $o .= "--:-:6:-:1      S2R cta, SR_CTAID.X;\n";
+    $o .= "--:-:-:-:6      MOV ncta, param_g;\n";
+    $o .= "--:-:-:-:1      MOV32I m, 0xff800000;\n";
+    $o .= "--:-:-:-:6      MOV32I im, 0xffffffff;\n";
+    $o .= "20:-:-:-:6      SHL stride, ncta, 0x8;\n";
+    $o .= "--:-:-:-:6      SHL i, cta, 0x8;\n";
+    $o .= "--:-:-:-:6      IADD i, i, tid;\n";
+    $o .= "--:-:-:-:6      LOP32I.AND lane, tid, 0x1f;\n";
+    $o .= "--:-:-:-:6      SHR.U32 warp, tid, 0x5;\n";
+    # nk = ceil(n / stride) iterations for everyone (loads predicated), so the BAR.SYNC below is uniform
+    $o .= "--:-:-:-:6      MOV nk, param_n;\n";
+    $o .= "--:-:-:-:6      IADD nk, nk, stride;\n";
+    $o .= "--:-:-:-:6      IADD nk, nk, -0x1;\n";
+    $o .= "--:-:-:-:6      SHR.U32 t, ncta, 0x1;\n";          # stride = ncta << 8 is not a power of two in general: divide by it in the loop instead
+    $o .= "--:-:-:-:6      MOV k, RZ;\n";
+    $o .= "--:-:-:-:6      SHL t, i, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD xp0.CC, t, param_X0;\n";
+    $o .= "--:-:-:-:6      IADD.X xp1, RZ, param_X1;\n";
+    $o .= "--:-:-:-:6      SHL t2, stride, 0x2;\n";          # byte stride
+    $o .= "\nLOOP:\n";
+    $o .= "--:-:-:-:6      ISETP.LT.U32.AND P2, PT, i, param_n, PT;\n";
+    $o .= "--:-:-:-:6      IADD k, k, stride;\n";
+    $o .= "--:-:-:-:6      ISETP.LT.U32.AND P3, PT, k, param_n, PT;\n";     # another round after this one
+    $o .= "--:-:-:-:6      NOP;\n";
+    $o .= "--:-:1:-:2  \@P2 LDG.E v, [xp];\n";
+    $o .= "01:-:-:-:6      FSETP.GT.AND P0, PT, v, m, P2;\n";
+    $o .= "--:-:-:-:6      IADD xp0.CC, xp0, t2;\n";
+    $o .= "--:-:-:-:6      IADD.X xp1, xp1, RZ;\n";
+    $o .= "--:-:-:-:6      NOP;\n" x 2;
+    $o .= "--:-:-:-:6  \@P0 MOV m, v;\n";
+    $o .= "--:-:-:-:6  \@P0 MOV im, i;\n";
+    $o .= "--:-:-:-:6      IADD i, i, stride;\n";
+    $o .= "--:-:-:-:6  \@P3 BRA LOOP;\n";
+    # warp reduce, then the 8 warps through smem
+    $o .= $bfly->();
+    $o .= "--:-:-:-:6      ISETP.EQ.AND P4, PT, lane, RZ, PT;\n";
+    $o .= "--:-:-:-:6      ISETP.EQ.AND P5, PT, warp, RZ, PT;\n";
+    $o .= "--:-:-:-:6      SHL t, warp, 0x3;\n";
+    $o .= "--:-:-:-:6      NOP;\n";
+    $o .= "--:1:-:-:1  \@P4 STS [t], m;\n";
+    $o .= "--:1:-:-:6  \@P4 STS [t+0x4], im;\n";
+    $o .= "01:-:-:-:6      BAR.SYNC 0x0;\n";
+    $o .= "--:-:-:-:6      ISETP.LT.U32.AND P2, PT, lane, 0x8, PT;\n";
+    $o .= "--:-:-:-:6      SHL t, lane, 0x3;\n";
+    $o .= "--:-:-:-:6      MOV32I m, 0xff800000;\n";
+    $o .= "--:-:-:-:6      MOV32I im, 0xffffffff;\n";
+    $o .= "--:-:2:-:1  \@P2 LDS m, [t];\n";
+    $o .= "--:-:2:-:2  \@P2 LDS im, [t+0x4];\n";
+    $o .= "02:-:-:-:6      NOP;\n";
+    $o .= $bfly->();
+    # thread 0: PART[cta] = (m, im); fence; count
+    $o .= "--:-:-:-:6      SHL t, cta, 0x3;\n";
+    $o .= "--:-:-:-:6      IADD pp0.CC, t, param_PART0;\n";
+    $o .= "--:-:-:-:6      IADD.X pp1, RZ, param_PART1;\n";
+    $o .= "--:-:-:-:6      MOV cp0, param_CNT0;\n";
+    $o .= "--:-:-:-:6      MOV cp1, param_CNT1;\n";
+    $o .= "--:-:-:-:6      ISETP.EQ.AND P4, PT, tid, RZ, PT;\n";
+    $o .= "--:-:-:-:6      MOV t2, 0x1;\n";
+    $o .= "--:-:-:-:6      NOP;\n" x 2;
+    $o .= "--:1:-:-:1  \@P4 STG.E [pp], m;\n";
+    $o .= "--:1:-:-:6  \@P4 STG.E [pp+0x4], im;\n";
+    $o .= "01:-:-:-:6      MEMBAR.GL;\n";
+    $o .= "--:-:-:-:6      MOV t, RZ;\n";
+    $o .= "--:-:2:-:6  \@P4 ATOM.E.ADD t, [cp], t2;\n";
+    $o .= "02:-:5:-:2      SHFL.IDX PT, t, t, RZ, 0x1f;\n";         # warp 0 learns the old count
+    $o .= "10:-:-:-:6      IADD t2, ncta, -0x1;\n";
+    $o .= "--:-:-:-:6      ISETP.NE.AND P0, PT, t, t2, P5;\n";       # not the last CTA (or not warp 0)
+    $o .= "--:-:-:-:6      ISETP.NE.AND P1, PT, t, t2, PT;\n";
+    $o .= "--:-:-:-:6      NOP;\n" x 3;
+    $o .= "--:-:-:-:6  \@P1 EXIT;\n";                                # whole CTAs that are not last
+    $o .= "--:-:-:-:6 \@!P5 EXIT;\n";                                # last CTA: only warp 0 continues
+    # last CTA, warp 0: lanes < ncta read the partials (invalidate L1 first)
+    $o .= "--:-:-:-:6      MEMBAR.GL.IVALLD;\n";
+    $o .= "--:-:-:-:6      ISETP.LT.U32.AND P2, PT, lane, ncta, PT;\n";
+    $o .= "--:-:-:-:6      SHL t, lane, 0x3;\n";
+    $o .= "--:-:-:-:6      IADD qp0.CC, t, param_PART0;\n";
+    $o .= "--:-:-:-:6      IADD.X qp1, RZ, param_PART1;\n";
+    $o .= "--:-:-:-:6      MOV32I m, 0xff800000;\n";
+    $o .= "--:-:-:-:6      MOV32I im, 0xffffffff;\n";
+    $o .= "--:-:1:-:1  \@P2 LDG.E.CV m, [qp];\n";
+    $o .= "--:-:1:-:2  \@P2 LDG.E.CV im, [qp+0x4];\n";
+    $o .= "01:-:-:-:6      NOP;\n";
+    $o .= $bfly->();
+    $o .= "--:-:-:-:6      MOV op0, param_OUT0;\n";
+    $o .= "--:-:-:-:6      MOV op1, param_OUT1;\n";
+    $o .= "--:-:-:-:6      ISETP.EQ.AND P4, PT, lane, RZ, PT;\n";
+    $o .= "--:-:-:-:6      NOP;\n" x 3;
+    $o .= "--:1:-:-:1  \@P4 STG.E [op], im;\n";
+    $o .= "--:1:-:-:1  \@P4 STG.E [op+0x4], m;\n";
+    $o .= "--:1:-:-:6  \@P4 STG.E [cp], RZ;\n";                      # counter back to 0 for the next call
+    $o .= "01:-:-:-:f      EXIT;\n";
+    return $o;
+</CODE>
