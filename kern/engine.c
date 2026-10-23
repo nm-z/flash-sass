@@ -612,6 +612,13 @@ static void pair_dump(FILE *out) {
             fprintf(out,"pairdump check=partial_rows die=%d nonzero=%u first=%u last=%u\n",d,nonzero,first,last);
         }
     }
+    /* PCOL_STAGE_TRACE images: last moe_local_columns stage stamps per CTA. */
+    if(getenv("FLASH_PCOL_STAGE_TRACE") && atoi(getenv("FLASH_PCOL_STAGE_TRACE")))for(int d=0;d<nd;d++) {
+        uint32_t stamp[16][8];CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoH(stamp,dCTL[d]+0x6000,sizeof stamp));
+        for(unsigned c=0;c<16;c++)fprintf(out,"pcolstage die=%d cta=%u quant_join_us=%.3f compute_us=%.3f transport_us=%.3f total_us=%.3f\n",
+            d,c,(uint32_t)(stamp[c][1]-stamp[c][0])/1e3,(uint32_t)(stamp[c][2]-stamp[c][1])/1e3,
+            (uint32_t)(stamp[c][3]-stamp[c][2])/1e3,(uint32_t)(stamp[c][3]-stamp[c][0])/1e3);
+    }
     CK(cuCtxSetCurrent(ctx[0]));fprintf(out,"pairdump_end\n");fflush(out);
 }
 static void state_hashes(FILE *out,int detail) {

@@ -91,9 +91,23 @@ local function addr(dst,base,offset)
  e('IADD '..dst..'0.CC, '..base..'0, '..offset);e('IADD.X '..dst..'1, '..base..'1, RZ')
 end
 local function wait(mask)e('NOP',mask..':-:-:-:6')end
+local function vector_address(stem,p)
+ e(string.format('IADD pc_ptr0.CC, %s%02d, pc_offset',stem,p*2));e(string.format('IADD.X pc_ptr1, %s%02d, RZ',stem,p*2+1))
+end
+-- PCOL_STAGE_TRACE=1 at generation: thread 0 of each CTA stamps SR_GLOBALTIMERLO
+-- at stage k into ctl+0x6000+32*cta+4k. Diagnostic images only.
+local stage_trace=os.getenv('PCOL_STAGE_TRACE')=='1'
+local function stamp(k)
+ if not stage_trace then return end
+ pred('ISETP.EQ.U32.AND P6, PT, tid, RZ, PT')
+ e('S2R pc_timer, SR_GLOBALTIMERLO','--:-:6:-:2');e('SHL pc_tmp2, cta, 0x5')
+ e(string.format('IADD pc_tmp2, pc_tmp2, 0x%x',0x6000+4*k))
+ e('IADD pc_addr0.CC, ctl0, pc_tmp2');e('IADD.X pc_addr1, ctl1, RZ')
+ e('@P6 STG.E [pc_addr], pc_timer','20:2:-:-:2');wait('02')
+end
 l('PCOL_SETUP');e('MOV pc_count, 0x1');e('MOV pc_base_index, pidx');e('BRA PCOL_CACHE')
 l('PCOL4_SETUP');e('MOV pc_count, 0x4');e('IADD pc_base_index, pidx, 0x1')
-l('PCOL_CACHE');wait('3f')
+l('PCOL_CACHE');wait('3f');stamp(0)
 pred('ISETP.LT.U32.AND P4, PT, warp, pc_count, PT');pred('ISETP.LT.U32.AND P5, PT, warp, 0x4, PT')
 e('IADD pc_temp, pc_base_index, warp');e('SHL pc_temp, pc_temp, 0x7');addr('pc_addr','prog','pc_temp')
 e('SHL pc_temp, lane, 0x2');addr('pc_addr','pc_addr','pc_temp');e('MOV pc_word, RZ')
@@ -137,7 +151,7 @@ pred('ISETP.GE.U32.AND P5, PT, pc_word, pc_epoch, PT');pred('VOTE.ALL P5, P5');e
 e('S2R pc_timer, SR_GLOBALTIMERHI','--:-:6:-:2');e('LDS pc_start, [RZ+0xbf5c]','--:-:1:-:2')
 e('IADD pc_timer, pc_timer, -pc_start','21:-:-:-:6');pred('ISETP.GE.U32.AND P5, PT, pc_timer, 0x46, PT')
 pred('VOTE.ANY P5, P5');e('@P5 BRA BEXP');e('BRA PCOL_QUANT_WAIT')
-l('PCOL_QUANT_JOIN');e('BAR.SYNC 0x0');e('MEMBAR.GL.IVALLD')
+l('PCOL_QUANT_JOIN');e('BAR.SYNC 0x0');e('MEMBAR.GL.IVALLD');stamp(1)
 -- Each CTA privately caches four routing lists. Unused positions have invalid IDs.
 pred('ISETP.GE.U32.AND P6, PT, warp, 0x4, PT');e('@P6 BRA PCOL_ROUTE_JOIN')
 e('SHL pc_descriptor, warp, 0x7');e('IADD pc_descriptor, pc_descriptor, 0x8000')
@@ -210,6 +224,19 @@ for p=0,3 do
  e(string.format('LDS pc_coef%d, [pc_scratch+0x%x]',p,0x9014+4*p),'--:-:1:-:2')
 end
 wait('01');pred('ISETP.EQ.U32.AND P6, PT, pc_id, -0x1, PT');e('@P6 BRA PCOL_NEXT_RECORD')
+-- Activations and sums need only rank and row: issue them before the weight
+-- header/code chain so their latency overlaps it.
+pred('ISETP.LT.U32.AND P4, PT, pc_block, pc_blocks, PT')
+for p=0,3 do
+ pred(string.format('ISETP.NE.U32.AND P%d, PT, pc_rank%d, -0x1, P4',p,p))
+ e(string.format('XMAD pc_k, pc_rank%d, pc_channels, RZ',p));e('ISCADD pc_k, pc_lane, pc_k, 0x5')
+ e('SHL pc_offset, pc_k, 0x1');vector_address('pc_qbase',p)
+ for j=0,3 do e(string.format('@P%d LDG.E.CG.128 pc_x%02d, [pc_ptr+0x%x]',p,p*16+j*4,j*16),'--:2:1:-:2')end
+ wait('02')
+ e('SHR.U32 pc_offset, pc_k, 0x5');e('SHL pc_offset, pc_offset, 0x2');vector_address('pc_asbase',p)
+ e(string.format('@P%d LDG.E.CG pc_sum%d, [pc_ptr]',p,p),'--:2:3:-:2');wait('02')
+ e('MOV pc_dot'..p..', RZ');e('MOV pc_value'..p..', RZ')
+end
 e('MOV pc_format, 0x2a');e('MOV pc_exp, pc_id');pred('ISETP.EQ.U32.AND P5, PT, pc_id, 0x200, PT')
 e('@P5 LDS pc_format, [RZ+0x8024]','--:-:1:-:2');e('@P5 MOV pc_exp, RZ');wait('01')
 e('MOV pc_scalebytes, 0x4');e('MOV pc_codebytes, 0x20')
@@ -224,7 +251,7 @@ e('@!P5 MOV pc_other0, pc_W0');e('@!P5 MOV pc_other1, pc_W1');e('@P5 MOV pc_othe
 addr('pc_other','pc_other','pc_offset');e('XMAD pc_offset, pc_row, pc_scalebytes, RZ')
 pred('ISETP.NE.U32.AND P6, PT, pc_format, 0x2a, PT');e('@P6 ISCADD pc_offset, pc_half, pc_offset, 0x1')
 addr('pc_ptr','pc_other','pc_offset');pred('ISETP.LT.U32.AND P4, PT, pc_block, pc_blocks, PT')
-e('@P4 LDG.E.CI.U16 pc_d, [pc_ptr]','--:2:1:-:2');wait('03')
+e('@P4 LDG.E.CI.U16 pc_d, [pc_ptr]','--:2:1:-:2');wait('02')
 e('MOV pc_tmp, pc_codebytes');pred('ISETP.EQ.U32.AND P6, PT, pc_format, 0x6, PT');e('@P6 MOV pc_tmp, 0x20')
 e('XMAD pc_offset, pc_row, pc_tmp, RZ');e('XMAD pc_offset, pc_scalebytes, 0xa00, pc_offset');addr('pc_other','pc_other','pc_offset')
 e('MOV pc_shift, 0x4');pred('ISETP.EQ.U32.AND P6, PT, pc_format, 0x2a, PT');e('@P6 MOV pc_shift, 0x3')
@@ -235,11 +262,11 @@ e('@P4 LDG.E.CI.128 pc_codes0, [pc_ptr]','--:2:1:-:2')
 pred('ISETP.EQ.U32.AND P6, PT, pc_format, 0x8, PT');e('@!P6 BRA PCOL_LOADED')
 e('@P4 LDG.E.CI.128 pc_codes4, [pc_ptr+0x10]','--:2:1:-:2');e('BRA PCOL_LOADED')
 l('PCOL_LOAD_Q2');e('@P4 LDG.E.CI.64 pc_codes0, [pc_ptr]','--:2:1:-:2')
-l('PCOL_LOADED');wait('03')
+l('PCOL_LOADED');wait('02')
 pred('ISETP.EQ.U32.AND P6, PT, pc_format, 0x6, PT');e('@!P6 BRA PCOL_HIGH_DONE')
 e('XMAD pc_tmp, pc_row, 0x18, RZ');e('MOV32I pc_offset, 0x14000');e('IADD pc_offset, pc_offset, -pc_tmp')
 e('ISCADD pc_offset, pc_half, pc_offset, 0x2');addr('pc_ptr','pc_other','pc_offset')
-e('@P4 LDG.E.CI pc_hi, [pc_ptr]','--:2:1:-:2');wait('03');l('PCOL_HIGH_DONE')
+e('@P4 LDG.E.CI pc_hi, [pc_ptr]','--:2:1:-:2');l('PCOL_HIGH_DONE');wait('03')
 for _,entry in ipairs({{42,'Q2'},{2,'Q4'},{6,'Q5'},{8,'Q8'}})do
  pred(string.format('ISETP.EQ.U32.AND P6, PT, pc_format, 0x%x, PT',entry[1]));e('@P6 BRA PCOL_DECODE_'..entry[2])
 end
@@ -262,19 +289,6 @@ for _,kind in ipairs({'Q2','Q4','Q5','Q8','IQ4'})do
  e('BRA PCOL_DECODED')
 end
 l('PCOL_DECODED');e('F2F.F32.F16 pc_d, pc_d.H0','--:-:6:-:2')
-local function vector_address(stem,p)
- e(string.format('IADD pc_ptr0.CC, %s%02d, pc_offset',stem,p*2));e(string.format('IADD.X pc_ptr1, %s%02d, RZ',stem,p*2+1))
-end
-for p=0,3 do
- pred(string.format('ISETP.NE.U32.AND P%d, PT, pc_rank%d, -0x1, P4',p,p))
- e(string.format('XMAD pc_k, pc_rank%d, pc_channels, RZ',p));e('ISCADD pc_k, pc_lane, pc_k, 0x5')
- e('SHL pc_offset, pc_k, 0x1');vector_address('pc_qbase',p)
- for j=0,3 do e(string.format('@P%d LDG.E.CG.128 pc_x%02d, [pc_ptr+0x%x]',p,p*16+j*4,j*16),'--:2:1:-:2')end
- wait('02')
- e('SHR.U32 pc_offset, pc_k, 0x5');e('SHL pc_offset, pc_offset, 0x2');vector_address('pc_asbase',p)
- e(string.format('@P%d LDG.E.CG pc_sum%d, [pc_ptr]',p,p),'--:2:3:-:2');wait('02')
- e('MOV pc_dot'..p..', RZ');e('MOV pc_value'..p..', RZ')
-end
 wait('25')
 for j=0,31 do for p=0,3 do
  e(string.format('@P%d XMAD.S16.S16 pc_dot%d, pc_weight%02d.reuse, pc_x%02d.H%d, pc_dot%d',p,p,j,p*16+j//2,j%2,p),p==3 and '--:-:-:-:3' or '--:-:-:-:1')
@@ -314,9 +328,9 @@ e('BAR.SYNC 0x0','3f:-:-:Y:d');e('IADD pc_rowbase, pc_rowbase, 0x400');e('BRA PC
 -- Transport every (tile, position) job after all tiles are computed: warp w
 -- takes jobs w, w+8, ... so independent board hop chains overlap instead of
 -- each tile's chain finishing before the next tile's compute starts.
-l('PCOL_TRANSPORT')
+l('PCOL_TRANSPORT');stamp(2)
 o[#o+1]=dofile('unique/pair_transport.lua')(maps)
-e('BAR.SYNC 0x0','3f:-:-:Y:d');e('BRA POSITION_END')
+e('BAR.SYNC 0x0','3f:-:-:Y:d');stamp(3);e('BRA POSITION_END')
 replace('</REGISTER_MAPPING>',table.concat(maps,'\n')..'\n</REGISTER_MAPPING>')
 replace('ISETP.GE.U32.AND P6, PT, op, 0x70, PT;','ISETP.GE.U32.AND P6, PT, op, 0x71, PT;')
 replace('--:-:-:-:6      BRA POSITION_END;\n\nembrow_SETUP:',
