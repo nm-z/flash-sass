@@ -1,0 +1,620 @@
+.version 7.4
+.target sm_52
+.address_size 64
+.visible .entry graph_embrow(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_plegate(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[49152];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_argmax(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[49152];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_actq2560(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_ffnact(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_actq6144(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_actq10240(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_actq256(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_rms2560(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_rms10240(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_hcsilu(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_hcmix(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_hcmixx(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_hcwrite(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_hcwsum(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_conv1d(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_dnstep(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[49152];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_dnnorm(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_dnnormx(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_router(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_attnqk(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_attnpart(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[49152];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_attnmerge(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_plerows(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[49152];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_pleconv(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_q2k2560(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[49152];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_q2k640(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[49152];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_q2moeg(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[49152];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_q2moed(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[49152];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_q2acc640(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[49152];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_bf16bias(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_bf16k2560(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_bf16k320(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_bf16hcup(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[49152];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_bf16hc(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_bf16hcx(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[49152];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_bf16hcrx(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[49152];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_bf16hcrwx(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[49152];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_q4kk2560(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_q4kk6144(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_q5kk2560(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_q5kk6144(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_q3kk2560(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_q3kk6144(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_q6kk2560(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_q6kk1536(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_q6kk1536acc(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_iq4k2560(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_iq4k6144(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_b32q40(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_b32q50(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_b32q80(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_b32iq4nl(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_b32q40acc(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_b32q50acc(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_b32q80acc(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_b32iq4nlacc(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_xsend(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_moesel(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_sumn(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_q2moegn(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[49152];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_q2moedn(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[49152];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_amax(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_topk(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[49152];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_sample(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_kvgather(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_attnpartn(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[49152];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_attnqkq(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_idxqk(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_idxscore(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[49152];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_idxsel(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[49152];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_xcopy(.param .align 8 .b8 words[120], .param .u64 ctl)
+{
+.shared .align 16 .b8 smem[16];
+.reg .u32 %r;
+ld.param.u32 %r, [words];
+st.shared.u32 [smem], %r;
+ret;
+}
+.visible .entry graph_advance(.param .align 8 .b8 controls[48])
+{
+    .reg .u64 %c<6>;
+    .reg .u32 %n, %stop;
+    ld.param.u64 %c0, [controls];
+    ld.param.u64 %c1, [controls+8];
+    ld.param.u64 %c2, [controls+16];
+    ld.param.u64 %c3, [controls+24];
+    ld.param.u64 %c4, [controls+32];
+    ld.param.u64 %c5, [controls+40];
+    ld.global.u32 %n, [%c0+8];
+    ld.global.u32 %stop, [%c0+20];
+    add.u32 %n, %n, 1;
+    or.b32 %n, %n, %stop;
+    st.global.wt.u32 [%c0+8], %n;
+    st.global.wt.u32 [%c1+8], %n;
+    st.global.wt.u32 [%c2+8], %n;
+    st.global.wt.u32 [%c3+8], %n;
+    st.global.wt.u32 [%c4+8], %n;
+    st.global.wt.u32 [%c5+8], %n;
+    membar.sys;
+    ret;
+}
+.visible .entry graph_advance_local(.param .u64 control)
+{
+    .reg .u64 %c;
+    .reg .u32 %n, %stop, %expired;
+    .reg .pred %p;
+    ld.param.u64 %c, [control];
+    ld.global.u32 %expired, [%c+44];
+    setp.ne.u32 %p, %expired, 0;
+    @%p ret;
+    ld.global.u32 %n, [%c+8];
+    ld.global.u32 %stop, [%c+20];
+    add.u32 %n, %n, 1;
+    or.b32 %n, %n, %stop;
+    st.global.wt.u32 [%c+8], %n;
+    membar.sys;
+    ret;
+}
+.visible .entry graph_peer_abi() { ret; }

@@ -1,0 +1,429 @@
+# Kernel: graph_bf16k320
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<CONSTANT_MAPPING>
+    graph_arg_gridDimX   : c[0x0][0x14]
+    graph_arg_param_W0   : c[0x0][0x140]
+    graph_arg_param_W1   : c[0x0][0x144]
+    graph_arg_param_X0   : c[0x0][0x148]
+    graph_arg_param_X1   : c[0x0][0x14c]
+    graph_arg_param_Y0   : c[0x0][0x150]
+    graph_arg_param_Y1   : c[0x0][0x154]
+    graph_arg_param_rows : c[0x0][0x158]
+    graph_arg_param_D0   : c[0x0][0x160]
+    graph_arg_param_D1   : c[0x0][0x164]
+    graph_arg_param_XOFF : c[0x0][0x168]
+    graph_arg_param_TAB0 : c[0x0][0x170]
+    graph_arg_param_TAB1 : c[0x0][0x174]
+    graph_arg_param_XH0  : c[0x0][0x178]
+    graph_arg_param_XH1  : c[0x0][0x17c]
+    graph_arg_param_T0   : c[0x0][0x180]
+    graph_arg_param_T1   : c[0x0][0x184]
+    graph_arg_param_tn   : c[0x0][0x188]
+    graph_arg_param_NW0  : c[0x0][0x190]
+    graph_arg_param_NW1  : c[0x0][0x194]
+    graph_arg_param_eps  : c[0x0][0x198]
+    graph_arg_param_YG0  : c[0x0][0x1a0]
+    graph_arg_param_YG1  : c[0x0][0x1a4]
+    graph_arg_param_INJ0 : c[0x0][0x1a8]
+    graph_arg_param_INJ1 : c[0x0][0x1ac]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0-39 : act<00-39>
+    40-59 : w<00-19>
+    60,61 : a<0-1>
+    62,63 : b<0-1>
+    64 : accf
+    65 : t
+    66 : row
+    67 : rowpair
+    68 : rowstep
+    69 : stepw
+    70 : yold
+    71 : bias
+    71 : slice
+    72 : ysum
+    74,75 : wp<0-1>
+    76,77 : yp<0-1>
+    78,79 : bp<0-1>
+    40,41 : xp<0-1>
+    42 : lane
+    43 : grp
+    44 : tid
+    45 : bid
+    46 : off
+    47 : t0
+    48 : t1
+    80 : gridDimX
+    81 : param_W0
+    82 : param_W1
+    83 : param_X0
+    84 : param_X1
+    85 : param_Y0
+    86 : param_Y1
+    87 : param_rows
+    88 : param_D0
+    89 : param_D1
+    90 : param_XOFF
+    91 : param_TAB0
+    92 : param_TAB1
+    93 : param_XH0
+    94 : param_XH1
+    95 : param_T0
+    96 : param_T1
+    97 : param_tn
+    98 : param_NW0
+    99 : param_NW1
+    100 : param_eps
+    101 : param_YG0
+    102 : param_YG1
+    103 : param_INJ0
+    104 : param_INJ1
+    0 : g_tid
+    1 : g_lane
+    2,3 : g_ctl<0-1>
+    4,5 : g_ptr<0-1>
+    6 : g_expected
+    7 : g_value
+    8 : g_time0
+    9 : g_time1
+    10 : g_flags
+    11 : g_index
+    12 : g_one
+    13 : g_count
+    14 : g_tmp
+</REGISTER_MAPPING>
+--:-:-:-:6      MOV g_flags, c[0x0][0x1b0];
+--:-:-:-:6      LOP32I.AND g_flags, g_flags, 0x2;
+--:-:-:-:6      ISETP.EQ.U32.AND P0, PT, g_flags, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_WAIT_DONE;
+--:-:6:-:2      S2R g_tid, SR_TID.X;
+--:-:-:-:6      MOV g_ctl0, c[0x0][0x1b8];
+--:-:-:-:6      MOV g_ctl1, c[0x0][0x1bc];
+20:-:-:-:6      ISETP.EQ.U32.AND P0, PT, g_tid, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:1:-:2  @P0 LDG.E.CV g_value, [g_ctl+0x2c];
+01:2:-:-:2  @P0 STS [RZ], g_value;
+02:-:-:-:6      BAR.SYNC 0x0;
+--:-:1:-:2      LDS g_value, [RZ];
+01:-:-:-:6      ISETP.NE.U32.AND P0, PT, g_value, RZ, PT;
+--:-:-:-:6      BAR.SYNC 0x0;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_EXIT;
+--:-:-:-:6      MOV g_flags, c[0x0][0x1b0];
+--:-:-:-:6      LOP32I.AND g_flags, g_flags, 0x2;
+--:-:-:-:6      ISETP.EQ.U32.AND P0, PT, g_flags, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_WAIT_DONE;
+--:-:-:-:6      ISETP.GE.U32.AND P0, PT, g_tid, 0x20, PT;
+--:-:-:-:6      LOP32I.AND g_lane, g_tid, 0x1f;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_WAIT_BAR;
+--:-:1:-:1      LDG.E.CV g_expected, [g_ctl+0x20];
+--:-:1:-:2      LDG.E.64 g_ptr0, [g_ctl+0x70];
+--:-:-:-:6      SHL g_tmp, g_lane, 0x6;
+01:-:-:-:6      IADD g_ptr0.CC, g_ptr0, g_tmp;
+--:-:-:-:6      IADD.X g_ptr1, g_ptr1, RZ;
+--:-:-:-:6      ISETP.LT.U32.AND P1, PT, g_lane, 0x6, PT;
+--:-:-:-:6      ISETP.EQ.U32.AND P2, PT, g_lane, RZ, PT;
+--:-:6:-:2      S2R g_time0, SR_GLOBALTIMERHI;
+20:-:-:-:6      MOV32I g_value, 0xffffffff;
+GRAPH_WAIT_SPIN:
+--:-:1:-:2  @P1 LDG.E.CV g_value, [g_ptr];
+01:-:-:-:6      ISETP.GE.U32.AND P0, PT, g_value, g_expected, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      VOTE.ALL P0, P0;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_WAIT_BAR;
+--:-:1:-:2      LDG.E.CV g_count, [g_ctl+0x2c];
+--:-:6:-:2      S2R g_time1, SR_GLOBALTIMERHI;
+20:-:-:-:6      IADD g_time1, g_time1, -g_time0;
+--:-:-:-:6      ISETP.GE.U32.AND P0, PT, g_time1, 0x46, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+01:-:-:-:6      ISETP.NE.U32.OR P0, PT, g_count, RZ, P0;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      VOTE.ANY P0, P0;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6 @!P0 BRA GRAPH_WAIT_SPIN;
+--:-:-:-:6      MOV32I g_value, 0x1;
+--:2:-:-:6  @P2 STG.E.WT [g_ctl+0x2c], g_value;
+--:2:-:-:6  @P2 STS [RZ], g_value;
+02:-:-:-:6      MEMBAR.SYS;
+GRAPH_WAIT_BAR:
+--:-:-:-:6      BAR.SYNC 0x0;
+--:-:1:-:2      LDS g_value, [RZ];
+01:-:-:-:6      ISETP.NE.U32.AND P0, PT, g_value, RZ, PT;
+--:-:-:-:6      BAR.SYNC 0x0;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_EXIT;
+GRAPH_WAIT_DONE:
+--:-:-:-:6      MEMBAR.GL.IVALLD;
+--:-:-:-:6      MEMBAR.GL.IVALLD;
+--:-:-:-:6      MOV gridDimX, graph_arg_gridDimX;
+--:-:-:-:6      MOV param_W0, graph_arg_param_W0;
+--:-:-:-:6      MOV param_W1, graph_arg_param_W1;
+--:-:-:-:6      MOV param_X0, graph_arg_param_X0;
+--:-:-:-:6      MOV param_X1, graph_arg_param_X1;
+--:-:-:-:6      MOV param_Y0, graph_arg_param_Y0;
+--:-:-:-:6      MOV param_Y1, graph_arg_param_Y1;
+--:-:-:-:6      MOV param_rows, graph_arg_param_rows;
+--:-:-:-:6      MOV param_D0, graph_arg_param_D0;
+--:-:-:-:6      MOV param_D1, graph_arg_param_D1;
+--:-:-:-:6      MOV param_XOFF, graph_arg_param_XOFF;
+--:-:-:-:6      MOV param_TAB0, graph_arg_param_TAB0;
+--:-:-:-:6      MOV param_TAB1, graph_arg_param_TAB1;
+--:-:-:-:6      MOV param_XH0, graph_arg_param_XH0;
+--:-:-:-:6      MOV param_XH1, graph_arg_param_XH1;
+--:-:-:-:6      MOV param_T0, graph_arg_param_T0;
+--:-:-:-:6      MOV param_T1, graph_arg_param_T1;
+--:-:-:-:6      MOV param_tn, graph_arg_param_tn;
+--:-:-:-:6      MOV param_NW0, graph_arg_param_NW0;
+--:-:-:-:6      MOV param_NW1, graph_arg_param_NW1;
+--:-:-:-:6      MOV param_eps, graph_arg_param_eps;
+--:-:-:-:6      MOV param_YG0, graph_arg_param_YG0;
+--:-:-:-:6      MOV param_YG1, graph_arg_param_YG1;
+--:-:-:-:6      MOV param_INJ0, graph_arg_param_INJ0;
+--:-:-:-:6      MOV param_INJ1, graph_arg_param_INJ1;
+
+
+
+--:-:6:-:1      S2R tid, SR_TID.X;
+--:-:6:-:1      S2R bid, SR_CTAID.X;
+--:-:-:-:6      MOV rowstep, gridDimX;
+20:-:-:-:6      LOP32I.AND lane, tid, 0x7;
+--:-:-:-:1      SHR.U32 grp, tid, 0x3;
+--:-:-:-:6      SHL rowstep, rowstep, 0x5;
+--:-:-:-:1      ISETP.EQ.U32.AND P0, PT, lane, RZ, PT;
+--:-:-:-:6      ISCADD row, bid, grp, 0x5;
+--:-:-:-:6      SHL stepw, rowstep, 0x7;
+--:-:-:-:6      ISCADD stepw, rowstep, stepw, 0x9;
+--:-:-:-:6      ISETP.LT.U32.AND P3, PT, row, param_rows, PT;
+--:-:-:-:6      LOP32I.AND rowpair, row, 0xfffffffc;
+--:-:-:-:6      SHL off, row, 0x7;
+--:-:-:-:6      ISCADD off, row, off, 0x9;
+--:-:-:-:6      ISCADD t1, lane, off, 0x4;
+--:-:-:-:6      IADD wp0.CC, t1, param_W0;
+--:-:-:-:6      IADD.X wp1, RZ, param_W1;
+--:-:-:-:6      SHL t1, row, 0x2;
+--:-:-:-:6      IADD yp0.CC, t1, param_Y0;
+--:-:-:-:6      IADD.X yp1, RZ, param_Y1;
+--:-:-:-:6      SHL t1, lane, 0x5;
+--:-:-:-:6      IADD xp0.CC, t1, param_X0;
+--:-:-:-:6      IADD.X xp1, RZ, param_X1;
+--:-:2:-:1      LDG.E.CI.128 act00, [xp+0x0];
+--:-:2:-:1      LDG.E.CI.128 act04, [xp+0x10];
+--:-:2:-:1      LDG.E.CI.128 act08, [xp+0x100];
+--:-:2:-:1      LDG.E.CI.128 act12, [xp+0x110];
+--:-:2:-:1      LDG.E.CI.128 act16, [xp+0x200];
+--:-:2:-:1      LDG.E.CI.128 act20, [xp+0x210];
+--:-:2:-:1      LDG.E.CI.128 act24, [xp+0x300];
+--:-:2:-:1      LDG.E.CI.128 act28, [xp+0x310];
+--:-:2:-:1      LDG.E.CI.128 act32, [xp+0x400];
+--:-:2:-:2      LDG.E.CI.128 act36, [xp+0x410];
+
+LOOP:
+--:2:1:-:1  @P3 LDG.E.CI.128 w00, [wp+0x0];
+--:2:1:-:1  @P3 LDG.E.CI.128 w04, [wp+0x80];
+--:2:1:-:1  @P3 LDG.E.CI.128 w08, [wp+0x100];
+--:2:1:-:1  @P3 LDG.E.CI.128 w12, [wp+0x180];
+--:2:1:-:2  @P3 LDG.E.CI.128 w16, [wp+0x200];
+--:-:-:-:1      ISETP.LT.U32.AND P2, PT, row, param_rows, P0;
+--:-:-:-:1      IADD rowpair, rowpair, rowstep;
+--:-:-:-:6      MOV accf, RZ;
+--:-:-:-:2      ISETP.LT.U32.AND P1, PT, rowpair, param_rows, PT;
+03:-:-:-:1      SHL a0, w00, 0x10;
+--:-:-:-:6      LOP32I.AND b0, w00, 0xffff0000;
+--:-:-:-:1      FFMA accf, a0, act00, accf;
+--:-:-:-:1      SHL a1, w01, 0x10;
+--:-:-:-:4      LOP32I.AND b1, w01, 0xffff0000;
+--:-:-:-:6      FFMA accf, b0, act01, accf;
+--:-:-:-:1      FFMA accf, a1, act02, accf;
+--:-:-:-:1      SHL a0, w02, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w02, 0xffff0000;
+--:-:-:-:6      FFMA accf, b1, act03, accf;
+--:-:-:-:1      FFMA accf, a0, act04, accf;
+--:-:-:-:1      SHL a1, w03, 0x10;
+--:-:-:-:4      LOP32I.AND b1, w03, 0xffff0000;
+--:-:-:-:6      FFMA accf, b0, act05, accf;
+--:-:-:-:1      FFMA accf, a1, act06, accf;
+--:-:-:-:1      SHL a0, w04, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w04, 0xffff0000;
+--:-:-:-:6      FFMA accf, b1, act07, accf;
+--:-:-:-:1      FFMA accf, a0, act08, accf;
+--:-:-:-:1      SHL a1, w05, 0x10;
+--:-:-:-:4      LOP32I.AND b1, w05, 0xffff0000;
+--:-:-:-:6      FFMA accf, b0, act09, accf;
+--:-:-:-:1      FFMA accf, a1, act10, accf;
+--:-:-:-:1      SHL a0, w06, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w06, 0xffff0000;
+--:-:-:-:6      FFMA accf, b1, act11, accf;
+--:-:-:-:1      FFMA accf, a0, act12, accf;
+--:-:-:-:1      SHL a1, w07, 0x10;
+--:-:-:-:4      LOP32I.AND b1, w07, 0xffff0000;
+--:-:-:-:6      FFMA accf, b0, act13, accf;
+--:-:-:-:1      FFMA accf, a1, act14, accf;
+--:-:-:-:1      SHL a0, w08, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w08, 0xffff0000;
+--:-:-:-:6      FFMA accf, b1, act15, accf;
+--:-:-:-:1      FFMA accf, a0, act16, accf;
+--:-:-:-:1      SHL a1, w09, 0x10;
+--:-:-:-:4      LOP32I.AND b1, w09, 0xffff0000;
+--:-:-:-:6      FFMA accf, b0, act17, accf;
+--:-:-:-:1      FFMA accf, a1, act18, accf;
+--:-:-:-:1      SHL a0, w10, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w10, 0xffff0000;
+--:-:-:-:6      FFMA accf, b1, act19, accf;
+--:-:-:-:1      FFMA accf, a0, act20, accf;
+--:-:-:-:1      SHL a1, w11, 0x10;
+--:-:-:-:4      LOP32I.AND b1, w11, 0xffff0000;
+--:-:-:-:6      FFMA accf, b0, act21, accf;
+--:-:-:-:1      FFMA accf, a1, act22, accf;
+--:-:-:-:1      SHL a0, w12, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w12, 0xffff0000;
+--:-:-:-:6      FFMA accf, b1, act23, accf;
+--:-:-:-:1      FFMA accf, a0, act24, accf;
+--:-:-:-:1      SHL a1, w13, 0x10;
+--:-:-:-:4      LOP32I.AND b1, w13, 0xffff0000;
+--:-:-:-:6      FFMA accf, b0, act25, accf;
+--:-:-:-:1      FFMA accf, a1, act26, accf;
+--:-:-:-:1      SHL a0, w14, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w14, 0xffff0000;
+--:-:-:-:6      FFMA accf, b1, act27, accf;
+--:-:-:-:1      FFMA accf, a0, act28, accf;
+--:-:-:-:1      SHL a1, w15, 0x10;
+--:-:-:-:4      LOP32I.AND b1, w15, 0xffff0000;
+--:-:-:-:6      FFMA accf, b0, act29, accf;
+--:-:-:-:1      FFMA accf, a1, act30, accf;
+--:-:-:-:1      SHL a0, w16, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w16, 0xffff0000;
+--:-:-:-:6      FFMA accf, b1, act31, accf;
+--:-:-:-:1      FFMA accf, a0, act32, accf;
+--:-:-:-:1      SHL a1, w17, 0x10;
+--:-:-:-:4      LOP32I.AND b1, w17, 0xffff0000;
+--:-:-:-:6      FFMA accf, b0, act33, accf;
+--:-:-:-:1      FFMA accf, a1, act34, accf;
+--:-:-:-:1      SHL a0, w18, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w18, 0xffff0000;
+--:-:-:-:6      FFMA accf, b1, act35, accf;
+--:-:-:-:1      FFMA accf, a0, act36, accf;
+--:-:-:-:1      SHL a1, w19, 0x10;
+--:-:-:-:4      LOP32I.AND b1, w19, 0xffff0000;
+--:-:-:-:6      FFMA accf, b0, act37, accf;
+--:-:-:-:6      FFMA accf, a1, act38, accf;
+--:-:-:-:6      FFMA accf, b1, act39, accf;
+--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x4, 0x1f;
+10:-:-:-:6      FADD accf, accf, t;
+--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x2, 0x1f;
+10:-:-:-:6      FADD accf, accf, t;
+--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x1, 0x1f;
+10:-:-:-:6      FADD accf, accf, t;
+--:2:-:-:1  @P2 STG.E [yp], accf;
+--:-:-:-:1      IADD row, row, rowstep;
+02:-:-:-:6      IADD wp0.CC, wp0, stepw;
+--:-:-:-:6      IADD.X wp1, wp1, RZ;
+--:-:-:-:6      ISETP.LT.U32.AND P3, PT, row, param_rows, PT;
+--:-:-:-:6      SHL t, rowstep, 0x2;
+--:-:-:-:6      IADD yp0.CC, yp0, t;
+--:-:-:-:6      IADD.X yp1, yp1, RZ;
+--:-:-:-:6  @P1 BRA LOOP;
+--:-:-:-:f      BRA GRAPH_DONE;
+
+GRAPH_DONE:
+3f:-:-:-:6      NOP;
+--:-:-:-:6      MOV g_flags, c[0x0][0x1b0];
+--:-:-:-:6      LOP32I.AND g_flags, g_flags, 0x1;
+--:-:-:-:6      ISETP.EQ.U32.AND P0, PT, g_flags, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_EXIT;
+--:-:-:-:6      MEMBAR.SYS;
+--:-:-:-:6      BAR.SYNC 0x0;
+--:-:6:-:2      S2R g_tid, SR_TID.X;
+20:-:-:-:6      ISETP.GE.U32.AND P0, PT, g_tid, 0x20, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_EXIT;
+--:-:-:-:6      ISETP.EQ.U32.AND P2, PT, g_tid, RZ, PT;
+--:-:-:-:6      MOV g_ctl0, c[0x0][0x1b8];
+--:-:-:-:6      MOV g_ctl1, c[0x0][0x1bc];
+--:-:-:-:6      MOV g_index, c[0x0][0x1b4];
+--:-:-:-:6      SHL g_index, g_index, 0x2;
+--:-:-:-:6      IADD g_index, g_index, 0x100;
+--:-:-:-:6      IADD g_ptr0.CC, g_ctl0, g_index;
+--:-:-:-:6      IADD.X g_ptr1, g_ctl1, RZ;
+--:-:-:-:6      MOV32I g_one, 0x1;
+--:-:1:-:6  @P2 ATOM.E.ADD g_count, [g_ptr], g_one;
+01:-:3:-:2      SHFL.IDX PT, g_count, g_count, 0x0, 0x1f;
+04:-:-:-:6      IADD g_count, g_count, 0x1;
+--:-:-:-:6      ISETP.NE.U32.AND P0, PT, g_count, c[0x0][0x14], PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_EXIT;
+--:2:-:-:6  @P2 STG.E [g_ptr], RZ;
+--:-:1:-:2      LDG.E.CV g_value, [g_ctl+0x20];
+01:-:-:-:6      IADD g_value, g_value, 0x1;
+--:2:-:-:6  @P2 STG.E [g_ctl+0x20], g_value;
+02:-:1:-:2      LDG.E.64 g_ptr0, [g_ctl+0x40];
+01:2:-:-:6  @P2 STG.E.WT [g_ptr], g_value;
+02:-:1:-:2      LDG.E.64 g_ptr0, [g_ctl+0x48];
+01:2:-:-:6  @P2 STG.E.WT [g_ptr], g_value;
+02:-:1:-:2      LDG.E.64 g_ptr0, [g_ctl+0x50];
+01:2:-:-:6  @P2 STG.E.WT [g_ptr], g_value;
+02:-:1:-:2      LDG.E.64 g_ptr0, [g_ctl+0x58];
+01:2:-:-:6  @P2 STG.E.WT [g_ptr], g_value;
+02:-:1:-:2      LDG.E.64 g_ptr0, [g_ctl+0x60];
+01:2:-:-:6  @P2 STG.E.WT [g_ptr], g_value;
+02:-:1:-:2      LDG.E.64 g_ptr0, [g_ctl+0x68];
+01:2:-:-:6  @P2 STG.E.WT [g_ptr], g_value;
+02:-:-:-:6      MEMBAR.SYS;
+GRAPH_EXIT:
+3f:-:-:-:f      EXIT;

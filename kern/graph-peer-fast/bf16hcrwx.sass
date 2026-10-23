@@ -1,0 +1,1172 @@
+# Kernel: graph_bf16hcrwx
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<CONSTANT_MAPPING>
+    graph_arg_gridDimX   : c[0x0][0x14]
+    graph_arg_param_W0   : c[0x0][0x140]
+    graph_arg_param_W1   : c[0x0][0x144]
+    graph_arg_param_X0   : c[0x0][0x148]
+    graph_arg_param_X1   : c[0x0][0x14c]
+    graph_arg_param_Y0   : c[0x0][0x150]
+    graph_arg_param_Y1   : c[0x0][0x154]
+    graph_arg_param_rows : c[0x0][0x158]
+    graph_arg_param_D0   : c[0x0][0x160]
+    graph_arg_param_D1   : c[0x0][0x164]
+    graph_arg_param_XOFF : c[0x0][0x168]
+    graph_arg_param_TAB0 : c[0x0][0x170]
+    graph_arg_param_TAB1 : c[0x0][0x174]
+    graph_arg_param_XH0  : c[0x0][0x178]
+    graph_arg_param_XH1  : c[0x0][0x17c]
+    graph_arg_param_T0   : c[0x0][0x180]
+    graph_arg_param_T1   : c[0x0][0x184]
+    graph_arg_param_tn   : c[0x0][0x188]
+    graph_arg_param_NW0  : c[0x0][0x190]
+    graph_arg_param_NW1  : c[0x0][0x194]
+    graph_arg_param_eps  : c[0x0][0x198]
+    graph_arg_param_YG0  : c[0x0][0x1a0]
+    graph_arg_param_YG1  : c[0x0][0x1a4]
+    graph_arg_param_INJ0 : c[0x0][0x1a8]
+    graph_arg_param_INJ1 : c[0x0][0x1ac]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0-79 : act<00-79>
+    80-119 : w<00-39>
+    120,121 : a<0-1>
+    122,123 : b<0-1>
+    124 : accf
+    125 : t
+    126 : row
+    127 : rowpair
+    128 : rowstep
+    129 : stepw
+    130 : yold
+    131 : bias
+    131 : slice
+    132 : ysum
+    134,135 : wp<0-1>
+    136,137 : yp<0-1>
+    138,139 : bp<0-1>
+    140,141 : xp<0-1>
+    142-153 : dq<00-11>
+    154 : xo
+    156 : ss
+    157 : mm
+    158 : vv
+    159 : s0
+    160 : hh
+    161 : rr
+    162 : e
+    163 : mneg1
+    164 : invn
+    165 : wq
+    166 : lq
+    167 : sw
+    168 : wr4
+    169 : g
+    170 : ij
+    171 : ft1
+    172 : ft2
+    173 : ft3
+    174 : ft4
+    175 : log2e
+    176 : ln2hi
+    177 : ln2lo
+    178 : c720
+    179 : c120
+    180 : c24
+    181 : c6
+    182 : chalf
+    183 : cone
+    184,185 : sp<0-1>
+    186,187 : np<0-1>
+    188,189 : hp<0-1>
+    190,191 : ib<0-1>
+    192,193 : yb<0-1>
+    194,195 : ob<0-1>
+    82 : lane
+    83 : grp
+    84 : tid
+    85 : bid
+    86 : off
+    87 : t0
+    88 : t1
+    196 : gridDimX
+    197 : param_W0
+    198 : param_W1
+    199 : param_X0
+    200 : param_X1
+    201 : param_Y0
+    202 : param_Y1
+    203 : param_rows
+    204 : param_D0
+    205 : param_D1
+    206 : param_XOFF
+    207 : param_TAB0
+    208 : param_TAB1
+    209 : param_XH0
+    210 : param_XH1
+    211 : param_T0
+    212 : param_T1
+    213 : param_tn
+    214 : param_NW0
+    215 : param_NW1
+    216 : param_eps
+    217 : param_YG0
+    218 : param_YG1
+    219 : param_INJ0
+    220 : param_INJ1
+    0 : g_tid
+    1 : g_lane
+    2,3 : g_ctl<0-1>
+    4,5 : g_ptr<0-1>
+    6 : g_expected
+    7 : g_value
+    8 : g_time0
+    9 : g_time1
+    10 : g_flags
+    11 : g_index
+    12 : g_one
+    13 : g_count
+    14 : g_tmp
+</REGISTER_MAPPING>
+--:-:-:-:6      MOV g_flags, c[0x0][0x1b0];
+--:-:-:-:6      LOP32I.AND g_flags, g_flags, 0x2;
+--:-:-:-:6      ISETP.EQ.U32.AND P0, PT, g_flags, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_WAIT_DONE;
+--:-:6:-:2      S2R g_tid, SR_TID.X;
+--:-:-:-:6      MOV g_ctl0, c[0x0][0x1b8];
+--:-:-:-:6      MOV g_ctl1, c[0x0][0x1bc];
+20:-:-:-:6      ISETP.EQ.U32.AND P0, PT, g_tid, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:1:-:2  @P0 LDG.E.CV g_value, [g_ctl+0x2c];
+01:2:-:-:2  @P0 STS [RZ], g_value;
+02:-:-:-:6      BAR.SYNC 0x0;
+--:-:1:-:2      LDS g_value, [RZ];
+01:-:-:-:6      ISETP.NE.U32.AND P0, PT, g_value, RZ, PT;
+--:-:-:-:6      BAR.SYNC 0x0;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_EXIT;
+--:-:-:-:6      MOV g_flags, c[0x0][0x1b0];
+--:-:-:-:6      LOP32I.AND g_flags, g_flags, 0x2;
+--:-:-:-:6      ISETP.EQ.U32.AND P0, PT, g_flags, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_WAIT_DONE;
+--:-:-:-:6      ISETP.GE.U32.AND P0, PT, g_tid, 0x20, PT;
+--:-:-:-:6      LOP32I.AND g_lane, g_tid, 0x1f;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_WAIT_BAR;
+--:-:1:-:1      LDG.E.CV g_expected, [g_ctl+0x20];
+--:-:1:-:2      LDG.E.64 g_ptr0, [g_ctl+0x70];
+--:-:-:-:6      SHL g_tmp, g_lane, 0x6;
+01:-:-:-:6      IADD g_ptr0.CC, g_ptr0, g_tmp;
+--:-:-:-:6      IADD.X g_ptr1, g_ptr1, RZ;
+--:-:-:-:6      ISETP.LT.U32.AND P1, PT, g_lane, 0x6, PT;
+--:-:-:-:6      ISETP.EQ.U32.AND P2, PT, g_lane, RZ, PT;
+--:-:6:-:2      S2R g_time0, SR_GLOBALTIMERHI;
+20:-:-:-:6      MOV32I g_value, 0xffffffff;
+GRAPH_WAIT_SPIN:
+--:-:1:-:2  @P1 LDG.E.CV g_value, [g_ptr];
+01:-:-:-:6      ISETP.GE.U32.AND P0, PT, g_value, g_expected, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      VOTE.ALL P0, P0;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_WAIT_BAR;
+--:-:1:-:2      LDG.E.CV g_count, [g_ctl+0x2c];
+--:-:6:-:2      S2R g_time1, SR_GLOBALTIMERHI;
+20:-:-:-:6      IADD g_time1, g_time1, -g_time0;
+--:-:-:-:6      ISETP.GE.U32.AND P0, PT, g_time1, 0x46, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+01:-:-:-:6      ISETP.NE.U32.OR P0, PT, g_count, RZ, P0;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      VOTE.ANY P0, P0;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6 @!P0 BRA GRAPH_WAIT_SPIN;
+--:-:-:-:6      MOV32I g_value, 0x1;
+--:2:-:-:6  @P2 STG.E.WT [g_ctl+0x2c], g_value;
+--:2:-:-:6  @P2 STS [RZ], g_value;
+02:-:-:-:6      MEMBAR.SYS;
+GRAPH_WAIT_BAR:
+--:-:-:-:6      BAR.SYNC 0x0;
+--:-:1:-:2      LDS g_value, [RZ];
+01:-:-:-:6      ISETP.NE.U32.AND P0, PT, g_value, RZ, PT;
+--:-:-:-:6      BAR.SYNC 0x0;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_EXIT;
+GRAPH_WAIT_DONE:
+--:-:-:-:6      MEMBAR.GL.IVALLD;
+--:-:-:-:6      MEMBAR.GL.IVALLD;
+--:-:-:-:6      MOV gridDimX, graph_arg_gridDimX;
+--:-:-:-:6      MOV param_W0, graph_arg_param_W0;
+--:-:-:-:6      MOV param_W1, graph_arg_param_W1;
+--:-:-:-:6      MOV param_X0, graph_arg_param_X0;
+--:-:-:-:6      MOV param_X1, graph_arg_param_X1;
+--:-:-:-:6      MOV param_Y0, graph_arg_param_Y0;
+--:-:-:-:6      MOV param_Y1, graph_arg_param_Y1;
+--:-:-:-:6      MOV param_rows, graph_arg_param_rows;
+--:-:-:-:6      MOV param_D0, graph_arg_param_D0;
+--:-:-:-:6      MOV param_D1, graph_arg_param_D1;
+--:-:-:-:6      MOV param_XOFF, graph_arg_param_XOFF;
+--:-:-:-:6      MOV param_TAB0, graph_arg_param_TAB0;
+--:-:-:-:6      MOV param_TAB1, graph_arg_param_TAB1;
+--:-:-:-:6      MOV param_XH0, graph_arg_param_XH0;
+--:-:-:-:6      MOV param_XH1, graph_arg_param_XH1;
+--:-:-:-:6      MOV param_T0, graph_arg_param_T0;
+--:-:-:-:6      MOV param_T1, graph_arg_param_T1;
+--:-:-:-:6      MOV param_tn, graph_arg_param_tn;
+--:-:-:-:6      MOV param_NW0, graph_arg_param_NW0;
+--:-:-:-:6      MOV param_NW1, graph_arg_param_NW1;
+--:-:-:-:6      MOV param_eps, graph_arg_param_eps;
+--:-:-:-:6      MOV param_YG0, graph_arg_param_YG0;
+--:-:-:-:6      MOV param_YG1, graph_arg_param_YG1;
+--:-:-:-:6      MOV param_INJ0, graph_arg_param_INJ0;
+--:-:-:-:6      MOV param_INJ1, graph_arg_param_INJ1;
+
+
+
+--:-:6:-:1      S2R tid, SR_TID.X;
+--:-:6:-:1      S2R bid, SR_CTAID.X;
+--:-:-:-:6      MOV rowstep, gridDimX;
+--:-:-:-:1      MOV32I c120, 0x3c088889;
+--:-:-:-:1      MOV32I c24, 0x3d2aaaab;
+--:-:-:-:1      MOV32I c6, 0x3e2aaaab;
+--:-:-:-:1      MOV32I c720, 0x3ab60b61;
+--:-:-:-:1      MOV32I chalf, 0x3f000000;
+--:-:-:-:1      MOV32I cone, 0x3f800000;
+--:-:-:-:1      MOV32I ln2hi, 0x3f317200;
+--:-:-:-:1      MOV32I ln2lo, 0x35bfbe8e;
+--:-:-:-:1      MOV32I log2e, 0x3fb8aa3b;
+--:-:-:-:1      MOV32I mneg1, 0xbf800000;
+--:-:-:-:1      MOV32I invn, 0x39cccccd;
+20:-:-:-:6      SHR.U32 wq, tid, 0x5;
+--:-:-:-:6      LOP32I.AND lq, tid, 0x1f;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, tid, 0x80, PT;
+--:-:-:-:6      XMAD sw, wq, 0x2800, RZ;
+--:-:-:-:6      ISCADD sw, lq, sw, 0x4;
+--:-:-:-:6      IADD sp0.CC, sw, param_X0;
+--:-:-:-:6      IADD.X sp1, RZ, param_X1;
+--:-:-:-:6      ISETP.EQ.U32.AND P5, PT, lq, RZ, P4;
+--:-:-:-:6      MOV ss, RZ;
+--:-:-:-:6      LOP32I.AND wr4, wq, 0x3;
+--:-:-:-:6      SHL ij, wr4, 0x2;
+--:-:-:-:6      IADD ib0.CC, ij, param_INJ0;
+--:-:-:-:6      IADD.X ib1, RZ, param_INJ1;
+--:-:3:-:2      LDG.E ij, [ib];
+04:-:-:-:6      FMUL ij, ij, 0.25;
+--:-:-:-:6      FADD ft4, -ij, RZ;
+--:-:-:-:6      FMNMX ft4, ft4, 87, PT;
+--:-:-:-:6      FMNMX ft4, ft4, -87, !PT;
+--:-:-:-:6      FMUL ft1, ft4, log2e;
+--:-:-:-:6      FADD ft2, ft1, 12582912;
+--:-:-:-:6      FADD ft2, ft2, -12582912;
+--:-:-:-:6      FFMA ft3, ft2, -ln2hi, ft4;
+--:-:-:-:6      FFMA ft3, ft2, -ln2lo, ft3;
+--:-:-:-:6      FFMA ft1, c720, ft3, c120;
+--:-:-:-:6      FFMA ft1, ft1, ft3, c24;
+--:-:-:-:6      FFMA ft1, ft1, ft3, c6;
+--:-:-:-:6      FFMA ft1, ft1, ft3, chalf;
+--:-:-:-:6      FFMA ft1, ft1, ft3, cone;
+--:-:-:-:6      FFMA ft1, ft1, ft3, cone;
+--:-:3:-:2      F2I.S32.F32 ft2, ft2;
+04:-:-:-:6      IADD ft2, ft2, 0x7f;
+--:-:-:-:6      SHL ft2, ft2, 0x17;
+--:-:-:-:6      FMUL ft4, ft1, ft2;
+--:-:-:-:6      FADD ft4, ft4, 1;
+--:-:3:-:2      MUFU.RCP g, ft4;
+04:-:-:-:6      FFMA ft1, ft4, g, mneg1;
+--:-:-:-:6      FADD.FTZ ft1, -ft1, -RZ;
+--:-:-:-:6      FFMA g, g, ft1, g;
+--:-:-:-:6      FMUL g, g, 2;
+--:-:-:-:6      SHL ij, lq, 0x4;
+--:-:-:-:6      IADD yb0.CC, ij, param_YG0;
+--:-:-:-:6      IADD.X yb1, RZ, param_YG1;
+--:-:1:-:1  @P4 LDG.E.CI.128 act00, [sp+0x0];
+--:-:1:-:1  @P4 LDG.E.CI.128 act04, [sp+0x200];
+--:-:1:-:1  @P4 LDG.E.CI.128 act08, [sp+0x400];
+--:-:1:-:1  @P4 LDG.E.CI.128 act12, [sp+0x600];
+--:-:1:-:1  @P4 LDG.E.CI.128 act16, [sp+0x800];
+--:-:1:-:1  @P4 LDG.E.CI.128 act20, [sp+0xa00];
+--:-:1:-:1  @P4 LDG.E.CI.128 act24, [sp+0xc00];
+--:-:1:-:1  @P4 LDG.E.CI.128 act28, [sp+0xe00];
+--:-:1:-:1  @P4 LDG.E.CI.128 act32, [sp+0x1000];
+--:-:1:-:1  @P4 LDG.E.CI.128 act36, [sp+0x1200];
+--:-:1:-:1  @P4 LDG.E.CI.128 act40, [yb+0x0];
+--:-:1:-:1  @P4 LDG.E.CI.128 act44, [yb+0x200];
+--:-:1:-:1  @P4 LDG.E.CI.128 act48, [yb+0x400];
+--:-:1:-:1  @P4 LDG.E.CI.128 act52, [yb+0x600];
+--:-:1:-:1  @P4 LDG.E.CI.128 act56, [yb+0x800];
+--:-:1:-:1  @P4 LDG.E.CI.128 act60, [yb+0xa00];
+--:-:1:-:1  @P4 LDG.E.CI.128 act64, [yb+0xc00];
+--:-:1:-:1  @P4 LDG.E.CI.128 act68, [yb+0xe00];
+--:-:1:-:1  @P4 LDG.E.CI.128 act72, [yb+0x1000];
+--:-:1:-:2  @P4 LDG.E.CI.128 act76, [yb+0x1200];
+01:-:-:-:1      FFMA act00, g, act40, act00;
+--:-:-:-:1      FFMA act01, g, act41, act01;
+--:-:-:-:1      FFMA act02, g, act42, act02;
+--:-:-:-:1      FFMA act03, g, act43, act03;
+--:-:-:-:1      FFMA act04, g, act44, act04;
+--:-:-:-:1      FFMA act05, g, act45, act05;
+--:-:-:-:1      FFMA act06, g, act46, act06;
+--:-:-:-:1      FFMA act07, g, act47, act07;
+--:-:-:-:1      FFMA act08, g, act48, act08;
+--:-:-:-:1      FFMA act09, g, act49, act09;
+--:-:-:-:1      FFMA act10, g, act50, act10;
+--:-:-:-:1      FFMA act11, g, act51, act11;
+--:-:-:-:1      FFMA act12, g, act52, act12;
+--:-:-:-:1      FFMA act13, g, act53, act13;
+--:-:-:-:1      FFMA act14, g, act54, act14;
+--:-:-:-:1      FFMA act15, g, act55, act15;
+--:-:-:-:1      FFMA act16, g, act56, act16;
+--:-:-:-:1      FFMA act17, g, act57, act17;
+--:-:-:-:1      FFMA act18, g, act58, act18;
+--:-:-:-:1      FFMA act19, g, act59, act19;
+--:-:-:-:1      FFMA act20, g, act60, act20;
+--:-:-:-:1      FFMA act21, g, act61, act21;
+--:-:-:-:1      FFMA act22, g, act62, act22;
+--:-:-:-:1      FFMA act23, g, act63, act23;
+--:-:-:-:1      FFMA act24, g, act64, act24;
+--:-:-:-:1      FFMA act25, g, act65, act25;
+--:-:-:-:1      FFMA act26, g, act66, act26;
+--:-:-:-:1      FFMA act27, g, act67, act27;
+--:-:-:-:1      FFMA act28, g, act68, act28;
+--:-:-:-:1      FFMA act29, g, act69, act29;
+--:-:-:-:1      FFMA act30, g, act70, act30;
+--:-:-:-:1      FFMA act31, g, act71, act31;
+--:-:-:-:1      FFMA act32, g, act72, act32;
+--:-:-:-:1      FFMA act33, g, act73, act33;
+--:-:-:-:1      FFMA act34, g, act74, act34;
+--:-:-:-:1      FFMA act35, g, act75, act35;
+--:-:-:-:1      FFMA act36, g, act76, act36;
+--:-:-:-:1      FFMA act37, g, act77, act37;
+--:-:-:-:1      FFMA act38, g, act78, act38;
+--:-:-:-:6      FFMA act39, g, act79, act39;
+--:-:-:-:6      FFMA ss, act00, act00, ss;
+--:-:-:-:6      FFMA ss, act01, act01, ss;
+--:-:-:-:6      FFMA ss, act02, act02, ss;
+--:-:-:-:6      FFMA ss, act03, act03, ss;
+--:-:-:-:6      FFMA ss, act04, act04, ss;
+--:-:-:-:6      FFMA ss, act05, act05, ss;
+--:-:-:-:6      FFMA ss, act06, act06, ss;
+--:-:-:-:6      FFMA ss, act07, act07, ss;
+--:-:-:-:6      FFMA ss, act08, act08, ss;
+--:-:-:-:6      FFMA ss, act09, act09, ss;
+--:-:-:-:6      FFMA ss, act10, act10, ss;
+--:-:-:-:6      FFMA ss, act11, act11, ss;
+--:-:-:-:6      FFMA ss, act12, act12, ss;
+--:-:-:-:6      FFMA ss, act13, act13, ss;
+--:-:-:-:6      FFMA ss, act14, act14, ss;
+--:-:-:-:6      FFMA ss, act15, act15, ss;
+--:-:-:-:6      FFMA ss, act16, act16, ss;
+--:-:-:-:6      FFMA ss, act17, act17, ss;
+--:-:-:-:6      FFMA ss, act18, act18, ss;
+--:-:-:-:6      FFMA ss, act19, act19, ss;
+--:-:-:-:6      FFMA ss, act20, act20, ss;
+--:-:-:-:6      FFMA ss, act21, act21, ss;
+--:-:-:-:6      FFMA ss, act22, act22, ss;
+--:-:-:-:6      FFMA ss, act23, act23, ss;
+--:-:-:-:6      FFMA ss, act24, act24, ss;
+--:-:-:-:6      FFMA ss, act25, act25, ss;
+--:-:-:-:6      FFMA ss, act26, act26, ss;
+--:-:-:-:6      FFMA ss, act27, act27, ss;
+--:-:-:-:6      FFMA ss, act28, act28, ss;
+--:-:-:-:6      FFMA ss, act29, act29, ss;
+--:-:-:-:6      FFMA ss, act30, act30, ss;
+--:-:-:-:6      FFMA ss, act31, act31, ss;
+--:-:-:-:6      FFMA ss, act32, act32, ss;
+--:-:-:-:6      FFMA ss, act33, act33, ss;
+--:-:-:-:6      FFMA ss, act34, act34, ss;
+--:-:-:-:6      FFMA ss, act35, act35, ss;
+--:-:-:-:6      FFMA ss, act36, act36, ss;
+--:-:-:-:6      FFMA ss, act37, act37, ss;
+--:-:-:-:6      FFMA ss, act38, act38, ss;
+--:-:-:-:6      FFMA ss, act39, act39, ss;
+--:-:1:-:1  @P4 LDG.E.CI.128 act00, [sp+0x1400];
+--:-:1:-:1  @P4 LDG.E.CI.128 act04, [sp+0x1600];
+--:-:1:-:1  @P4 LDG.E.CI.128 act08, [sp+0x1800];
+--:-:1:-:1  @P4 LDG.E.CI.128 act12, [sp+0x1a00];
+--:-:1:-:1  @P4 LDG.E.CI.128 act16, [sp+0x1c00];
+--:-:1:-:1  @P4 LDG.E.CI.128 act20, [sp+0x1e00];
+--:-:1:-:1  @P4 LDG.E.CI.128 act24, [sp+0x2000];
+--:-:1:-:1  @P4 LDG.E.CI.128 act28, [sp+0x2200];
+--:-:1:-:1  @P4 LDG.E.CI.128 act32, [sp+0x2400];
+--:-:1:-:1  @P4 LDG.E.CI.128 act36, [sp+0x2600];
+--:-:1:-:1  @P4 LDG.E.CI.128 act40, [yb+0x1400];
+--:-:1:-:1  @P4 LDG.E.CI.128 act44, [yb+0x1600];
+--:-:1:-:1  @P4 LDG.E.CI.128 act48, [yb+0x1800];
+--:-:1:-:1  @P4 LDG.E.CI.128 act52, [yb+0x1a00];
+--:-:1:-:1  @P4 LDG.E.CI.128 act56, [yb+0x1c00];
+--:-:1:-:1  @P4 LDG.E.CI.128 act60, [yb+0x1e00];
+--:-:1:-:1  @P4 LDG.E.CI.128 act64, [yb+0x2000];
+--:-:1:-:1  @P4 LDG.E.CI.128 act68, [yb+0x2200];
+--:-:1:-:1  @P4 LDG.E.CI.128 act72, [yb+0x2400];
+--:-:1:-:2  @P4 LDG.E.CI.128 act76, [yb+0x2600];
+01:-:-:-:1      FFMA act00, g, act40, act00;
+--:-:-:-:1      FFMA act01, g, act41, act01;
+--:-:-:-:1      FFMA act02, g, act42, act02;
+--:-:-:-:1      FFMA act03, g, act43, act03;
+--:-:-:-:1      FFMA act04, g, act44, act04;
+--:-:-:-:1      FFMA act05, g, act45, act05;
+--:-:-:-:1      FFMA act06, g, act46, act06;
+--:-:-:-:1      FFMA act07, g, act47, act07;
+--:-:-:-:1      FFMA act08, g, act48, act08;
+--:-:-:-:1      FFMA act09, g, act49, act09;
+--:-:-:-:1      FFMA act10, g, act50, act10;
+--:-:-:-:1      FFMA act11, g, act51, act11;
+--:-:-:-:1      FFMA act12, g, act52, act12;
+--:-:-:-:1      FFMA act13, g, act53, act13;
+--:-:-:-:1      FFMA act14, g, act54, act14;
+--:-:-:-:1      FFMA act15, g, act55, act15;
+--:-:-:-:1      FFMA act16, g, act56, act16;
+--:-:-:-:1      FFMA act17, g, act57, act17;
+--:-:-:-:1      FFMA act18, g, act58, act18;
+--:-:-:-:1      FFMA act19, g, act59, act19;
+--:-:-:-:1      FFMA act20, g, act60, act20;
+--:-:-:-:1      FFMA act21, g, act61, act21;
+--:-:-:-:1      FFMA act22, g, act62, act22;
+--:-:-:-:1      FFMA act23, g, act63, act23;
+--:-:-:-:1      FFMA act24, g, act64, act24;
+--:-:-:-:1      FFMA act25, g, act65, act25;
+--:-:-:-:1      FFMA act26, g, act66, act26;
+--:-:-:-:1      FFMA act27, g, act67, act27;
+--:-:-:-:1      FFMA act28, g, act68, act28;
+--:-:-:-:1      FFMA act29, g, act69, act29;
+--:-:-:-:1      FFMA act30, g, act70, act30;
+--:-:-:-:1      FFMA act31, g, act71, act31;
+--:-:-:-:1      FFMA act32, g, act72, act32;
+--:-:-:-:1      FFMA act33, g, act73, act33;
+--:-:-:-:1      FFMA act34, g, act74, act34;
+--:-:-:-:1      FFMA act35, g, act75, act35;
+--:-:-:-:1      FFMA act36, g, act76, act36;
+--:-:-:-:1      FFMA act37, g, act77, act37;
+--:-:-:-:1      FFMA act38, g, act78, act38;
+--:-:-:-:6      FFMA act39, g, act79, act39;
+--:-:-:-:6      FFMA ss, act00, act00, ss;
+--:-:-:-:6      FFMA ss, act01, act01, ss;
+--:-:-:-:6      FFMA ss, act02, act02, ss;
+--:-:-:-:6      FFMA ss, act03, act03, ss;
+--:-:-:-:6      FFMA ss, act04, act04, ss;
+--:-:-:-:6      FFMA ss, act05, act05, ss;
+--:-:-:-:6      FFMA ss, act06, act06, ss;
+--:-:-:-:6      FFMA ss, act07, act07, ss;
+--:-:-:-:6      FFMA ss, act08, act08, ss;
+--:-:-:-:6      FFMA ss, act09, act09, ss;
+--:-:-:-:6      FFMA ss, act10, act10, ss;
+--:-:-:-:6      FFMA ss, act11, act11, ss;
+--:-:-:-:6      FFMA ss, act12, act12, ss;
+--:-:-:-:6      FFMA ss, act13, act13, ss;
+--:-:-:-:6      FFMA ss, act14, act14, ss;
+--:-:-:-:6      FFMA ss, act15, act15, ss;
+--:-:-:-:6      FFMA ss, act16, act16, ss;
+--:-:-:-:6      FFMA ss, act17, act17, ss;
+--:-:-:-:6      FFMA ss, act18, act18, ss;
+--:-:-:-:6      FFMA ss, act19, act19, ss;
+--:-:-:-:6      FFMA ss, act20, act20, ss;
+--:-:-:-:6      FFMA ss, act21, act21, ss;
+--:-:-:-:6      FFMA ss, act22, act22, ss;
+--:-:-:-:6      FFMA ss, act23, act23, ss;
+--:-:-:-:6      FFMA ss, act24, act24, ss;
+--:-:-:-:6      FFMA ss, act25, act25, ss;
+--:-:-:-:6      FFMA ss, act26, act26, ss;
+--:-:-:-:6      FFMA ss, act27, act27, ss;
+--:-:-:-:6      FFMA ss, act28, act28, ss;
+--:-:-:-:6      FFMA ss, act29, act29, ss;
+--:-:-:-:6      FFMA ss, act30, act30, ss;
+--:-:-:-:6      FFMA ss, act31, act31, ss;
+--:-:-:-:6      FFMA ss, act32, act32, ss;
+--:-:-:-:6      FFMA ss, act33, act33, ss;
+--:-:-:-:6      FFMA ss, act34, act34, ss;
+--:-:-:-:6      FFMA ss, act35, act35, ss;
+--:-:-:-:6      FFMA ss, act36, act36, ss;
+--:-:-:-:6      FFMA ss, act37, act37, ss;
+--:-:-:-:6      FFMA ss, act38, act38, ss;
+--:-:-:-:6      FFMA ss, act39, act39, ss;
+--:-:5:-:3      SHFL.BFLY PT, t, ss, 0x10, 0x1f;
+10:-:-:-:6      FADD ss, ss, t;
+--:-:5:-:3      SHFL.BFLY PT, t, ss, 0x8, 0x1f;
+10:-:-:-:6      FADD ss, ss, t;
+--:-:5:-:3      SHFL.BFLY PT, t, ss, 0x4, 0x1f;
+10:-:-:-:6      FADD ss, ss, t;
+--:-:5:-:3      SHFL.BFLY PT, t, ss, 0x2, 0x1f;
+10:-:-:-:6      FADD ss, ss, t;
+--:-:5:-:3      SHFL.BFLY PT, t, ss, 0x1, 0x1f;
+10:-:-:-:6      FADD ss, ss, t;
+--:-:-:-:6      FMUL mm, ss, invn;
+--:-:-:-:6      FADD vv, mm, param_eps;
+--:-:3:-:2      MUFU.RSQ rr, vv;
+04:-:-:-:1      FMUL.FTZ s0, vv, rr;
+--:-:-:-:6      FMUL.FTZ hh, rr, 0.5;
+--:-:-:-:6      FADD.FTZ e, -s0, -RZ;
+--:-:-:-:6      FFMA e, s0, e, vv;
+--:-:-:-:6      FFMA s0, e, hh, s0;
+--:-:3:-:2      MUFU.RCP rr, s0;
+04:-:-:-:6      FFMA e, s0, rr, mneg1;
+--:-:-:-:6      FADD.FTZ e, -e, -RZ;
+--:-:-:-:6      FFMA rr, rr, e, rr;
+--:-:-:-:6      SHL sw, wq, 0x2;
+--:1:-:-:6  @P5 STS [sw+0xa000], rr;
+01:-:-:-:6      BAR.SYNC 0x0;
+--:-:-:-:6      SHR.U32 lq, tid, 0x6;
+--:-:-:-:6      SHL wr4, lq, 0x2;
+--:-:3:-:1      LDS rr, [wr4+0xa000];
+--:-:-:-:6      XMAD sw, tid, 0xa0, RZ;
+--:-:-:-:6      IADD sp0.CC, sw, param_X0;
+--:-:-:-:6      IADD.X sp1, RZ, param_X1;
+--:-:-:-:6      IADD np0.CC, sw, param_NW0;
+--:-:-:-:6      IADD.X np1, RZ, param_NW1;
+--:-:-:-:6      IADD hp0.CC, sw, param_XH0;
+--:-:-:-:6      IADD.X hp1, RZ, param_XH1;
+--:-:-:-:6      SHR.U32 wq, tid, 0x4;
+--:-:-:-:6      ISETP.EQ.U32.AND P6, PT, wq, bid, PT;
+--:-:1:-:1      LDG.E.CI.128 act00, [sp+0x0];
+--:-:1:-:1      LDG.E.CI.128 act04, [sp+0x10];
+--:-:1:-:1      LDG.E.CI.128 act08, [sp+0x20];
+--:-:1:-:1      LDG.E.CI.128 act12, [sp+0x30];
+--:-:1:-:1      LDG.E.CI.128 act16, [sp+0x40];
+--:-:1:-:1      LDG.E.CI.128 act20, [sp+0x50];
+--:-:1:-:1      LDG.E.CI.128 act24, [sp+0x60];
+--:-:1:-:1      LDG.E.CI.128 act28, [sp+0x70];
+--:-:1:-:1      LDG.E.CI.128 act32, [sp+0x80];
+--:-:1:-:1      LDG.E.CI.128 act36, [sp+0x90];
+--:-:-:-:6      SHL ij, lq, 0x2;
+--:-:-:-:6      IADD ib0.CC, ij, param_INJ0;
+--:-:-:-:6      IADD.X ib1, RZ, param_INJ1;
+--:-:3:-:2      LDG.E ij, [ib];
+04:-:-:-:6      FMUL ij, ij, 0.25;
+--:-:-:-:6      FADD ft4, -ij, RZ;
+--:-:-:-:6      FMNMX ft4, ft4, 87, PT;
+--:-:-:-:6      FMNMX ft4, ft4, -87, !PT;
+--:-:-:-:6      FMUL ft1, ft4, log2e;
+--:-:-:-:6      FADD ft2, ft1, 12582912;
+--:-:-:-:6      FADD ft2, ft2, -12582912;
+--:-:-:-:6      FFMA ft3, ft2, -ln2hi, ft4;
+--:-:-:-:6      FFMA ft3, ft2, -ln2lo, ft3;
+--:-:-:-:6      FFMA ft1, c720, ft3, c120;
+--:-:-:-:6      FFMA ft1, ft1, ft3, c24;
+--:-:-:-:6      FFMA ft1, ft1, ft3, c6;
+--:-:-:-:6      FFMA ft1, ft1, ft3, chalf;
+--:-:-:-:6      FFMA ft1, ft1, ft3, cone;
+--:-:-:-:6      FFMA ft1, ft1, ft3, cone;
+--:-:3:-:2      F2I.S32.F32 ft2, ft2;
+04:-:-:-:6      IADD ft2, ft2, 0x7f;
+--:-:-:-:6      SHL ft2, ft2, 0x17;
+--:-:-:-:6      FMUL ft4, ft1, ft2;
+--:-:-:-:6      FADD ft4, ft4, 1;
+--:-:3:-:2      MUFU.RCP g, ft4;
+04:-:-:-:6      FFMA ft1, ft4, g, mneg1;
+--:-:-:-:6      FADD.FTZ ft1, -ft1, -RZ;
+--:-:-:-:6      FFMA g, g, ft1, g;
+--:-:-:-:6      FMUL g, g, 2;
+--:-:-:-:6      LOP32I.AND ij, tid, 0x3f;
+--:-:-:-:6      XMAD ij, ij, 0xa0, RZ;
+--:-:-:-:6      IADD yb0.CC, ij, param_YG0;
+--:-:-:-:6      IADD.X yb1, RZ, param_YG1;
+--:-:-:-:6      IADD ob0.CC, sw, param_D0;
+--:-:-:-:6      IADD.X ob1, RZ, param_D1;
+--:-:1:-:1      LDG.E.CI.128 act40, [yb+0x0];
+--:-:1:-:1      LDG.E.CI.128 act44, [yb+0x10];
+--:-:1:-:1      LDG.E.CI.128 act48, [yb+0x20];
+--:-:1:-:1      LDG.E.CI.128 act52, [yb+0x30];
+--:-:1:-:1      LDG.E.CI.128 act56, [yb+0x40];
+--:-:1:-:1      LDG.E.CI.128 act60, [yb+0x50];
+--:-:1:-:1      LDG.E.CI.128 act64, [yb+0x60];
+--:-:1:-:1      LDG.E.CI.128 act68, [yb+0x70];
+--:-:1:-:1      LDG.E.CI.128 act72, [yb+0x80];
+--:-:1:-:2      LDG.E.CI.128 act76, [yb+0x90];
+01:-:-:-:1      FFMA act00, g, act40, act00;
+--:-:-:-:1      FFMA act01, g, act41, act01;
+--:-:-:-:1      FFMA act02, g, act42, act02;
+--:-:-:-:1      FFMA act03, g, act43, act03;
+--:-:-:-:1      FFMA act04, g, act44, act04;
+--:-:-:-:1      FFMA act05, g, act45, act05;
+--:-:-:-:1      FFMA act06, g, act46, act06;
+--:-:-:-:1      FFMA act07, g, act47, act07;
+--:-:-:-:1      FFMA act08, g, act48, act08;
+--:-:-:-:1      FFMA act09, g, act49, act09;
+--:-:-:-:1      FFMA act10, g, act50, act10;
+--:-:-:-:1      FFMA act11, g, act51, act11;
+--:-:-:-:1      FFMA act12, g, act52, act12;
+--:-:-:-:1      FFMA act13, g, act53, act13;
+--:-:-:-:1      FFMA act14, g, act54, act14;
+--:-:-:-:1      FFMA act15, g, act55, act15;
+--:-:-:-:1      FFMA act16, g, act56, act16;
+--:-:-:-:1      FFMA act17, g, act57, act17;
+--:-:-:-:1      FFMA act18, g, act58, act18;
+--:-:-:-:1      FFMA act19, g, act59, act19;
+--:-:-:-:1      FFMA act20, g, act60, act20;
+--:-:-:-:1      FFMA act21, g, act61, act21;
+--:-:-:-:1      FFMA act22, g, act62, act22;
+--:-:-:-:1      FFMA act23, g, act63, act23;
+--:-:-:-:1      FFMA act24, g, act64, act24;
+--:-:-:-:1      FFMA act25, g, act65, act25;
+--:-:-:-:1      FFMA act26, g, act66, act26;
+--:-:-:-:1      FFMA act27, g, act67, act27;
+--:-:-:-:1      FFMA act28, g, act68, act28;
+--:-:-:-:1      FFMA act29, g, act69, act29;
+--:-:-:-:1      FFMA act30, g, act70, act30;
+--:-:-:-:1      FFMA act31, g, act71, act31;
+--:-:-:-:1      FFMA act32, g, act72, act32;
+--:-:-:-:1      FFMA act33, g, act73, act33;
+--:-:-:-:1      FFMA act34, g, act74, act34;
+--:-:-:-:1      FFMA act35, g, act75, act35;
+--:-:-:-:1      FFMA act36, g, act76, act36;
+--:-:-:-:1      FFMA act37, g, act77, act37;
+--:-:-:-:1      FFMA act38, g, act78, act38;
+--:-:-:-:6      FFMA act39, g, act79, act39;
+--:4:-:-:1  @P6 STG.E.128 [ob+0x0], act00;
+--:4:-:-:1  @P6 STG.E.128 [ob+0x10], act04;
+--:4:-:-:1  @P6 STG.E.128 [ob+0x20], act08;
+--:4:-:-:1  @P6 STG.E.128 [ob+0x30], act12;
+--:4:-:-:1  @P6 STG.E.128 [ob+0x40], act16;
+--:4:-:-:1  @P6 STG.E.128 [ob+0x50], act20;
+--:4:-:-:1  @P6 STG.E.128 [ob+0x60], act24;
+--:4:-:-:1  @P6 STG.E.128 [ob+0x70], act28;
+--:4:-:-:1  @P6 STG.E.128 [ob+0x80], act32;
+--:4:-:-:1  @P6 STG.E.128 [ob+0x90], act36;
+--:-:2:-:1      LDG.E.CI.128 act40, [np+0x0];
+--:-:2:-:1      LDG.E.CI.128 act44, [np+0x10];
+--:-:2:-:1      LDG.E.CI.128 act48, [np+0x20];
+--:-:2:-:1      LDG.E.CI.128 act52, [np+0x30];
+--:-:2:-:1      LDG.E.CI.128 act56, [np+0x40];
+--:-:2:-:1      LDG.E.CI.128 act60, [np+0x50];
+--:-:2:-:1      LDG.E.CI.128 act64, [np+0x60];
+--:-:2:-:1      LDG.E.CI.128 act68, [np+0x70];
+--:-:2:-:1      LDG.E.CI.128 act72, [np+0x80];
+--:-:2:-:2      LDG.E.CI.128 act76, [np+0x90];
+0d:-:-:-:1      FMUL act00, act00, rr;
+--:-:-:-:1      FMUL act01, act01, rr;
+--:-:-:-:1      FMUL act02, act02, rr;
+--:-:-:-:1      FMUL act03, act03, rr;
+--:-:-:-:1      FMUL act04, act04, rr;
+--:-:-:-:1      FMUL act05, act05, rr;
+--:-:-:-:1      FMUL act06, act06, rr;
+--:-:-:-:1      FMUL act07, act07, rr;
+--:-:-:-:1      FMUL act08, act08, rr;
+--:-:-:-:1      FMUL act09, act09, rr;
+--:-:-:-:1      FMUL act10, act10, rr;
+--:-:-:-:1      FMUL act11, act11, rr;
+--:-:-:-:1      FMUL act12, act12, rr;
+--:-:-:-:1      FMUL act13, act13, rr;
+--:-:-:-:1      FMUL act14, act14, rr;
+--:-:-:-:1      FMUL act15, act15, rr;
+--:-:-:-:1      FMUL act16, act16, rr;
+--:-:-:-:1      FMUL act17, act17, rr;
+--:-:-:-:1      FMUL act18, act18, rr;
+--:-:-:-:1      FMUL act19, act19, rr;
+--:-:-:-:1      FMUL act20, act20, rr;
+--:-:-:-:1      FMUL act21, act21, rr;
+--:-:-:-:1      FMUL act22, act22, rr;
+--:-:-:-:1      FMUL act23, act23, rr;
+--:-:-:-:1      FMUL act24, act24, rr;
+--:-:-:-:1      FMUL act25, act25, rr;
+--:-:-:-:1      FMUL act26, act26, rr;
+--:-:-:-:1      FMUL act27, act27, rr;
+--:-:-:-:1      FMUL act28, act28, rr;
+--:-:-:-:1      FMUL act29, act29, rr;
+--:-:-:-:1      FMUL act30, act30, rr;
+--:-:-:-:1      FMUL act31, act31, rr;
+--:-:-:-:1      FMUL act32, act32, rr;
+--:-:-:-:1      FMUL act33, act33, rr;
+--:-:-:-:1      FMUL act34, act34, rr;
+--:-:-:-:1      FMUL act35, act35, rr;
+--:-:-:-:1      FMUL act36, act36, rr;
+--:-:-:-:1      FMUL act37, act37, rr;
+--:-:-:-:1      FMUL act38, act38, rr;
+--:-:-:-:6      FMUL act39, act39, rr;
+02:-:-:-:1      FMUL act00, act00, act40;
+--:-:-:-:1      FMUL act01, act01, act41;
+--:-:-:-:1      FMUL act02, act02, act42;
+--:-:-:-:1      FMUL act03, act03, act43;
+--:-:-:-:1      FMUL act04, act04, act44;
+--:-:-:-:1      FMUL act05, act05, act45;
+--:-:-:-:1      FMUL act06, act06, act46;
+--:-:-:-:1      FMUL act07, act07, act47;
+--:-:-:-:1      FMUL act08, act08, act48;
+--:-:-:-:1      FMUL act09, act09, act49;
+--:-:-:-:1      FMUL act10, act10, act50;
+--:-:-:-:1      FMUL act11, act11, act51;
+--:-:-:-:1      FMUL act12, act12, act52;
+--:-:-:-:1      FMUL act13, act13, act53;
+--:-:-:-:1      FMUL act14, act14, act54;
+--:-:-:-:1      FMUL act15, act15, act55;
+--:-:-:-:1      FMUL act16, act16, act56;
+--:-:-:-:1      FMUL act17, act17, act57;
+--:-:-:-:1      FMUL act18, act18, act58;
+--:-:-:-:1      FMUL act19, act19, act59;
+--:-:-:-:1      FMUL act20, act20, act60;
+--:-:-:-:1      FMUL act21, act21, act61;
+--:-:-:-:1      FMUL act22, act22, act62;
+--:-:-:-:1      FMUL act23, act23, act63;
+--:-:-:-:1      FMUL act24, act24, act64;
+--:-:-:-:1      FMUL act25, act25, act65;
+--:-:-:-:1      FMUL act26, act26, act66;
+--:-:-:-:1      FMUL act27, act27, act67;
+--:-:-:-:1      FMUL act28, act28, act68;
+--:-:-:-:1      FMUL act29, act29, act69;
+--:-:-:-:1      FMUL act30, act30, act70;
+--:-:-:-:1      FMUL act31, act31, act71;
+--:-:-:-:1      FMUL act32, act32, act72;
+--:-:-:-:1      FMUL act33, act33, act73;
+--:-:-:-:1      FMUL act34, act34, act74;
+--:-:-:-:1      FMUL act35, act35, act75;
+--:-:-:-:1      FMUL act36, act36, act76;
+--:-:-:-:1      FMUL act37, act37, act77;
+--:-:-:-:1      FMUL act38, act38, act78;
+--:-:-:-:6      FMUL act39, act39, act79;
+--:1:-:-:1      STS.128 [sw+0x0], act00;
+--:1:-:-:1      STS.128 [sw+0x10], act04;
+--:1:-:-:1      STS.128 [sw+0x20], act08;
+--:1:-:-:1      STS.128 [sw+0x30], act12;
+--:1:-:-:1      STS.128 [sw+0x40], act16;
+--:1:-:-:1      STS.128 [sw+0x50], act20;
+--:1:-:-:1      STS.128 [sw+0x60], act24;
+--:1:-:-:1      STS.128 [sw+0x70], act28;
+--:1:-:-:1      STS.128 [sw+0x80], act32;
+--:1:-:-:1      STS.128 [sw+0x90], act36;
+--:1:-:-:1  @P6 STG.E.128 [hp+0x0], act00;
+--:1:-:-:1  @P6 STG.E.128 [hp+0x10], act04;
+--:1:-:-:1  @P6 STG.E.128 [hp+0x20], act08;
+--:1:-:-:1  @P6 STG.E.128 [hp+0x30], act12;
+--:1:-:-:1  @P6 STG.E.128 [hp+0x40], act16;
+--:1:-:-:1  @P6 STG.E.128 [hp+0x50], act20;
+--:1:-:-:1  @P6 STG.E.128 [hp+0x60], act24;
+--:1:-:-:1  @P6 STG.E.128 [hp+0x70], act28;
+--:1:-:-:1  @P6 STG.E.128 [hp+0x80], act32;
+--:1:-:-:1  @P6 STG.E.128 [hp+0x90], act36;
+01:-:-:-:6      BAR.SYNC 0x0;
+--:-:-:-:6      MOV yp0, param_Y0;
+--:-:-:-:6      MOV yp1, param_Y1;
+--:-:2:-:1      LDG.E.64 dq00, [yp+0x0];
+--:-:2:-:1      LDG.E.64 dq02, [yp+0x8];
+--:-:2:-:1      LDG.E.64 dq04, [yp+0x10];
+--:-:2:-:1      LDG.E.64 dq06, [yp+0x18];
+--:-:2:-:1      LDG.E.64 dq08, [yp+0x20];
+--:-:2:-:2      LDG.E.64 dq10, [yp+0x28];
+20:-:-:-:6      LOP32I.AND lane, tid, 0x1f;
+--:-:-:-:6      SHR.U32 grp, tid, 0x5;
+--:-:-:-:6      ISETP.LT.U32.AND P6, PT, grp, 0x4, PT;
+--:-:-:-:6      LOP32I.AND grp, grp, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      SHL rowstep, rowstep, 0x2;
+--:-:-:-:1      ISETP.EQ.U32.AND P0, PT, lane, RZ, P6;
+--:-:-:-:6      ISCADD row, bid, grp, 0x2;
+--:-:-:-:6      SHL stepw, rowstep, 0xc;
+--:-:-:-:6      ISCADD stepw, rowstep, stepw, 0xe;
+--:-:-:-:6      ISETP.LT.U32.AND P3, PT, row, param_rows, P6;
+--:-:-:-:6      LOP32I.AND rowpair, row, 0xfffffffc;
+--:-:-:-:6      SHL off, row, 0xc;
+--:-:-:-:6      ISCADD off, row, off, 0xe;
+--:-:-:-:6      ISCADD t1, lane, off, 0x4;
+--:-:-:-:6      IADD wp0.CC, t1, param_W0;
+--:-:-:-:6      IADD.X wp1, RZ, param_W1;
+--:-:-:-:6      SHL t1, row, 0x2;
+--:-:-:-:6      LOP32I.AND xo, row, 0xfffffffc;
+--:-:-:-:6      IADD xo, xo, tid;
+--:-:-:-:6      SHL xo, xo, 0x2;
+--:-:-:-:6      IADD xo, xo, param_XOFF;
+--:-:-:-:6      SHL t1, lane, 0x5;
+--:-:-:-:6      MOV xp0, t1;
+02:-:-:-:6      IADD dq00.CC, dq00, xo;
+--:-:-:-:6      IADD.X dq01, dq01, RZ;
+--:-:-:-:6      IADD dq02.CC, dq02, xo;
+--:-:-:-:6      IADD.X dq03, dq03, RZ;
+--:-:-:-:6      IADD dq04.CC, dq04, xo;
+--:-:-:-:6      IADD.X dq05, dq05, RZ;
+--:-:-:-:6      IADD dq06.CC, dq06, xo;
+--:-:-:-:6      IADD.X dq07, dq07, RZ;
+--:-:-:-:6      IADD dq08.CC, dq08, xo;
+--:-:-:-:6      IADD.X dq09, dq09, RZ;
+--:-:-:-:6      IADD dq10.CC, dq10, xo;
+--:-:-:-:6      IADD.X dq11, dq11, RZ;
+
+LOOP:
+--:-:2:-:1      LDS.128 act00, [xp0+0x0];
+--:-:2:-:1      LDS.128 act04, [xp0+0x10];
+--:-:2:-:1      LDS.128 act08, [xp0+0x400];
+--:-:2:-:1      LDS.128 act12, [xp0+0x410];
+--:-:2:-:1      LDS.128 act16, [xp0+0x800];
+--:-:2:-:1      LDS.128 act20, [xp0+0x810];
+--:-:2:-:1      LDS.128 act24, [xp0+0xc00];
+--:-:2:-:1      LDS.128 act28, [xp0+0xc10];
+--:-:2:-:1      LDS.128 act32, [xp0+0x1000];
+--:-:2:-:1      LDS.128 act36, [xp0+0x1010];
+--:-:2:-:1      LDS.128 act40, [xp0+0x1400];
+--:-:2:-:1      LDS.128 act44, [xp0+0x1410];
+--:-:2:-:1      LDS.128 act48, [xp0+0x1800];
+--:-:2:-:1      LDS.128 act52, [xp0+0x1810];
+--:-:2:-:1      LDS.128 act56, [xp0+0x1c00];
+--:-:2:-:1      LDS.128 act60, [xp0+0x1c10];
+--:-:2:-:1      LDS.128 act64, [xp0+0x2000];
+--:-:2:-:1      LDS.128 act68, [xp0+0x2010];
+--:-:2:-:1      LDS.128 act72, [xp0+0x2400];
+--:-:2:-:1      LDS.128 act76, [xp0+0x2410];
+--:2:1:-:1  @P3 LDG.E.CI.128 w00, [wp+0x0];
+--:2:1:-:1  @P3 LDG.E.CI.128 w04, [wp+0x200];
+--:2:1:-:1  @P3 LDG.E.CI.128 w08, [wp+0x400];
+--:2:1:-:1  @P3 LDG.E.CI.128 w12, [wp+0x600];
+--:2:1:-:1  @P3 LDG.E.CI.128 w16, [wp+0x800];
+--:2:1:-:1  @P3 LDG.E.CI.128 w20, [wp+0xa00];
+--:2:1:-:1  @P3 LDG.E.CI.128 w24, [wp+0xc00];
+--:2:1:-:1  @P3 LDG.E.CI.128 w28, [wp+0xe00];
+--:2:1:-:1  @P3 LDG.E.CI.128 w32, [wp+0x1000];
+--:2:1:-:2  @P3 LDG.E.CI.128 w36, [wp+0x1200];
+--:-:-:-:1      ISETP.LT.U32.AND P2, PT, row, param_rows, P0;
+--:-:-:-:1      IADD rowpair, rowpair, rowstep;
+--:-:-:-:6      MOV accf, RZ;
+--:-:-:-:2      ISETP.LT.U32.AND P1, PT, rowpair, param_rows, PT;
+--:-:-:-:6 @!P6 BRA XCOAL_ROW_STORE;
+--:-:-:-:6      MOV slice, RZ;
+HC_SLICE:
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, slice, 0x3, P3;
+--:-:-:-:6      ISETP.EQ.U32.AND P5, PT, slice, RZ, PT;
+--:-:-:-:6      MOV accf, RZ;
+03:-:-:-:1      SHL a0, w00, 0x10;
+--:-:-:-:6      LOP32I.AND b0, w00, 0xffff0000;
+--:-:-:-:1      FFMA accf, a0, act00, accf;
+--:-:-:-:1      SHL a1, w01, 0x10;
+--:-:-:-:4      LOP32I.AND b1, w01, 0xffff0000;
+--:-:-:-:6      FFMA accf, b0, act01, accf;
+--:-:-:-:1      FFMA accf, a1, act02, accf;
+--:-:-:-:1      SHL a0, w02, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w02, 0xffff0000;
+--:-:-:-:5      FFMA accf, b1, act03, accf;
+--:-:2:-:1  @P4 LDS.128 act00, [xp0+0x2800];
+--:-:-:-:1      FFMA accf, a0, act04, accf;
+--:-:-:-:1      SHL a1, w03, 0x10;
+--:-:-:-:3      LOP32I.AND b1, w03, 0xffff0000;
+--:2:1:-:1  @P4 LDG.E.CI.128 w00, [wp+0x1400];
+--:-:-:-:6      FFMA accf, b0, act05, accf;
+--:-:-:-:1      FFMA accf, a1, act06, accf;
+--:-:-:-:1      SHL a0, w04, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w04, 0xffff0000;
+--:-:-:-:5      FFMA accf, b1, act07, accf;
+--:-:2:-:1  @P4 LDS.128 act04, [xp0+0x2810];
+--:-:-:-:1      FFMA accf, a0, act08, accf;
+--:-:-:-:1      SHL a1, w05, 0x10;
+--:-:-:-:4      LOP32I.AND b1, w05, 0xffff0000;
+--:-:-:-:6      FFMA accf, b0, act09, accf;
+--:-:-:-:1      FFMA accf, a1, act10, accf;
+--:-:-:-:1      SHL a0, w06, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w06, 0xffff0000;
+--:-:-:-:5      FFMA accf, b1, act11, accf;
+--:-:2:-:1  @P4 LDS.128 act08, [xp0+0x2c00];
+--:-:-:-:1      FFMA accf, a0, act12, accf;
+--:-:-:-:1      SHL a1, w07, 0x10;
+--:-:-:-:3      LOP32I.AND b1, w07, 0xffff0000;
+--:2:1:-:1  @P4 LDG.E.CI.128 w04, [wp+0x1600];
+--:-:-:-:6      FFMA accf, b0, act13, accf;
+--:-:-:-:1      FFMA accf, a1, act14, accf;
+--:-:-:-:1      SHL a0, w08, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w08, 0xffff0000;
+--:-:-:-:5      FFMA accf, b1, act15, accf;
+--:-:2:-:1  @P4 LDS.128 act12, [xp0+0x2c10];
+--:-:-:-:1      FFMA accf, a0, act16, accf;
+--:-:-:-:1      SHL a1, w09, 0x10;
+--:-:-:-:4      LOP32I.AND b1, w09, 0xffff0000;
+--:-:-:-:6      FFMA accf, b0, act17, accf;
+--:-:-:-:1      FFMA accf, a1, act18, accf;
+--:-:-:-:1      SHL a0, w10, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w10, 0xffff0000;
+--:-:-:-:5      FFMA accf, b1, act19, accf;
+--:-:2:-:1  @P4 LDS.128 act16, [xp0+0x3000];
+--:-:-:-:1      FFMA accf, a0, act20, accf;
+--:-:-:-:1      SHL a1, w11, 0x10;
+--:-:-:-:3      LOP32I.AND b1, w11, 0xffff0000;
+--:2:1:-:1  @P4 LDG.E.CI.128 w08, [wp+0x1800];
+--:-:-:-:6      FFMA accf, b0, act21, accf;
+--:-:-:-:1      FFMA accf, a1, act22, accf;
+--:-:-:-:1      SHL a0, w12, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w12, 0xffff0000;
+--:-:-:-:5      FFMA accf, b1, act23, accf;
+--:-:2:-:1  @P4 LDS.128 act20, [xp0+0x3010];
+--:-:-:-:1      FFMA accf, a0, act24, accf;
+--:-:-:-:1      SHL a1, w13, 0x10;
+--:-:-:-:4      LOP32I.AND b1, w13, 0xffff0000;
+--:-:-:-:6      FFMA accf, b0, act25, accf;
+--:-:-:-:1      FFMA accf, a1, act26, accf;
+--:-:-:-:1      SHL a0, w14, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w14, 0xffff0000;
+--:-:-:-:5      FFMA accf, b1, act27, accf;
+--:-:2:-:1  @P4 LDS.128 act24, [xp0+0x3400];
+--:-:-:-:1      FFMA accf, a0, act28, accf;
+--:-:-:-:1      SHL a1, w15, 0x10;
+--:-:-:-:3      LOP32I.AND b1, w15, 0xffff0000;
+--:2:1:-:1  @P4 LDG.E.CI.128 w12, [wp+0x1a00];
+--:-:-:-:6      FFMA accf, b0, act29, accf;
+--:-:-:-:1      FFMA accf, a1, act30, accf;
+--:-:-:-:1      SHL a0, w16, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w16, 0xffff0000;
+--:-:-:-:5      FFMA accf, b1, act31, accf;
+--:-:2:-:1  @P4 LDS.128 act28, [xp0+0x3410];
+--:-:-:-:1      FFMA accf, a0, act32, accf;
+--:-:-:-:1      SHL a1, w17, 0x10;
+--:-:-:-:4      LOP32I.AND b1, w17, 0xffff0000;
+--:-:-:-:6      FFMA accf, b0, act33, accf;
+--:-:-:-:1      FFMA accf, a1, act34, accf;
+--:-:-:-:1      SHL a0, w18, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w18, 0xffff0000;
+--:-:-:-:5      FFMA accf, b1, act35, accf;
+--:-:2:-:1  @P4 LDS.128 act32, [xp0+0x3800];
+--:-:-:-:1      FFMA accf, a0, act36, accf;
+--:-:-:-:1      SHL a1, w19, 0x10;
+--:-:-:-:3      LOP32I.AND b1, w19, 0xffff0000;
+--:2:1:-:1  @P4 LDG.E.CI.128 w16, [wp+0x1c00];
+--:-:-:-:6      FFMA accf, b0, act37, accf;
+--:-:-:-:1      FFMA accf, a1, act38, accf;
+--:-:-:-:1      SHL a0, w20, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w20, 0xffff0000;
+--:-:-:-:5      FFMA accf, b1, act39, accf;
+--:-:2:-:1  @P4 LDS.128 act36, [xp0+0x3810];
+--:-:-:-:1      FFMA accf, a0, act40, accf;
+--:-:-:-:1      SHL a1, w21, 0x10;
+--:-:-:-:4      LOP32I.AND b1, w21, 0xffff0000;
+--:-:-:-:6      FFMA accf, b0, act41, accf;
+--:-:-:-:1      FFMA accf, a1, act42, accf;
+--:-:-:-:1      SHL a0, w22, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w22, 0xffff0000;
+--:-:-:-:5      FFMA accf, b1, act43, accf;
+--:-:2:-:1  @P4 LDS.128 act40, [xp0+0x3c00];
+--:-:-:-:1      FFMA accf, a0, act44, accf;
+--:-:-:-:1      SHL a1, w23, 0x10;
+--:-:-:-:3      LOP32I.AND b1, w23, 0xffff0000;
+--:2:1:-:1  @P4 LDG.E.CI.128 w20, [wp+0x1e00];
+--:-:-:-:6      FFMA accf, b0, act45, accf;
+--:-:-:-:1      FFMA accf, a1, act46, accf;
+--:-:-:-:1      SHL a0, w24, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w24, 0xffff0000;
+--:-:-:-:5      FFMA accf, b1, act47, accf;
+--:-:2:-:1  @P4 LDS.128 act44, [xp0+0x3c10];
+--:-:-:-:1      FFMA accf, a0, act48, accf;
+--:-:-:-:1      SHL a1, w25, 0x10;
+--:-:-:-:4      LOP32I.AND b1, w25, 0xffff0000;
+--:-:-:-:6      FFMA accf, b0, act49, accf;
+--:-:-:-:1      FFMA accf, a1, act50, accf;
+--:-:-:-:1      SHL a0, w26, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w26, 0xffff0000;
+--:-:-:-:5      FFMA accf, b1, act51, accf;
+--:-:2:-:1  @P4 LDS.128 act48, [xp0+0x4000];
+--:-:-:-:1      FFMA accf, a0, act52, accf;
+--:-:-:-:1      SHL a1, w27, 0x10;
+--:-:-:-:3      LOP32I.AND b1, w27, 0xffff0000;
+--:2:1:-:1  @P4 LDG.E.CI.128 w24, [wp+0x2000];
+--:-:-:-:6      FFMA accf, b0, act53, accf;
+--:-:-:-:1      FFMA accf, a1, act54, accf;
+--:-:-:-:1      SHL a0, w28, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w28, 0xffff0000;
+--:-:-:-:5      FFMA accf, b1, act55, accf;
+--:-:2:-:1  @P4 LDS.128 act52, [xp0+0x4010];
+--:-:-:-:1      FFMA accf, a0, act56, accf;
+--:-:-:-:1      SHL a1, w29, 0x10;
+--:-:-:-:4      LOP32I.AND b1, w29, 0xffff0000;
+--:-:-:-:6      FFMA accf, b0, act57, accf;
+--:-:-:-:1      FFMA accf, a1, act58, accf;
+--:-:-:-:1      SHL a0, w30, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w30, 0xffff0000;
+--:-:-:-:5      FFMA accf, b1, act59, accf;
+--:-:2:-:1  @P4 LDS.128 act56, [xp0+0x4400];
+--:-:-:-:1      FFMA accf, a0, act60, accf;
+--:-:-:-:1      SHL a1, w31, 0x10;
+--:-:-:-:3      LOP32I.AND b1, w31, 0xffff0000;
+--:2:1:-:1  @P4 LDG.E.CI.128 w28, [wp+0x2200];
+--:-:-:-:6      FFMA accf, b0, act61, accf;
+--:-:-:-:1      FFMA accf, a1, act62, accf;
+--:-:-:-:1      SHL a0, w32, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w32, 0xffff0000;
+--:-:-:-:5      FFMA accf, b1, act63, accf;
+--:-:2:-:1  @P4 LDS.128 act60, [xp0+0x4410];
+--:-:-:-:1      FFMA accf, a0, act64, accf;
+--:-:-:-:1      SHL a1, w33, 0x10;
+--:-:-:-:4      LOP32I.AND b1, w33, 0xffff0000;
+--:-:-:-:6      FFMA accf, b0, act65, accf;
+--:-:-:-:1      FFMA accf, a1, act66, accf;
+--:-:-:-:1      SHL a0, w34, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w34, 0xffff0000;
+--:-:-:-:5      FFMA accf, b1, act67, accf;
+--:-:2:-:1  @P4 LDS.128 act64, [xp0+0x4800];
+--:-:-:-:1      FFMA accf, a0, act68, accf;
+--:-:-:-:1      SHL a1, w35, 0x10;
+--:-:-:-:3      LOP32I.AND b1, w35, 0xffff0000;
+--:2:1:-:1  @P4 LDG.E.CI.128 w32, [wp+0x2400];
+--:-:-:-:6      FFMA accf, b0, act69, accf;
+--:-:-:-:1      FFMA accf, a1, act70, accf;
+--:-:-:-:1      SHL a0, w36, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w36, 0xffff0000;
+--:-:-:-:5      FFMA accf, b1, act71, accf;
+--:-:2:-:1  @P4 LDS.128 act68, [xp0+0x4810];
+--:-:-:-:1      FFMA accf, a0, act72, accf;
+--:-:-:-:1      SHL a1, w37, 0x10;
+--:-:-:-:4      LOP32I.AND b1, w37, 0xffff0000;
+--:-:-:-:6      FFMA accf, b0, act73, accf;
+--:-:-:-:1      FFMA accf, a1, act74, accf;
+--:-:-:-:1      SHL a0, w38, 0x10;
+--:-:-:-:4      LOP32I.AND b0, w38, 0xffff0000;
+--:-:-:-:5      FFMA accf, b1, act75, accf;
+--:-:2:-:1  @P4 LDS.128 act72, [xp0+0x4c00];
+--:-:-:-:1      FFMA accf, a0, act76, accf;
+--:-:-:-:1      SHL a1, w39, 0x10;
+--:-:-:-:3      LOP32I.AND b1, w39, 0xffff0000;
+--:2:1:-:1  @P4 LDG.E.CI.128 w36, [wp+0x2600];
+--:-:-:-:6      FFMA accf, b0, act77, accf;
+--:-:-:-:6      FFMA accf, a1, act78, accf;
+--:-:-:-:6      FFMA accf, b1, act79, accf;
+--:-:2:-:1  @P4 LDS.128 act76, [xp0+0x4c10];
+--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x10, 0x1f;
+10:-:-:-:6      FADD accf, accf, t;
+--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x8, 0x1f;
+10:-:-:-:6      FADD accf, accf, t;
+--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x4, 0x1f;
+10:-:-:-:6      FADD accf, accf, t;
+--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x2, 0x1f;
+10:-:-:-:6      FADD accf, accf, t;
+--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x1, 0x1f;
+10:-:-:-:6      FADD accf, accf, t;
+--:-:-:-:6  @P5 MOV ysum, accf;
+--:-:-:-:6 @!P5 FADD ysum, ysum, accf;
+03:-:-:-:6      IADD wp0.CC, wp0, 0x1400;
+--:-:-:-:6      IADD.X wp1, wp1, RZ;
+--:-:-:-:6      IADD xp0, xp0, 0x2800;
+--:-:-:-:6      IADD slice, slice, 0x1;
+--:-:-:-:6  @P4 BRA HC_SLICE;
+--:-:-:-:6  @P3 IADD wp0.CC, wp0, -0x5000;
+--:-:-:-:6  @P3 IADD.X wp1, wp1, -0x1;
+--:-:-:-:6  @P3 IADD xp0, xp0, -0xa000;
+XCOAL_ROW_STORE:
+--:-:-:-:6      LOP32I.AND xo, row, 0x3;
+--:-:-:-:6      SHL xo, xo, 0x2;
+--:2:-:-:2  @P2 STS [xo+0xa020], ysum;
+02:-:-:-:6      BAR.SYNC 0x0;
+--:-:6:-:2      S2R xo, SR_TID.X;
+20:-:-:-:6      ISETP.LT.U32.AND P4, PT, xo, 0x4, PT;
+--:-:-:-:6      IADD t, row, xo;
+--:-:-:-:6      SHL xo, xo, 0x2;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.LT.U32.AND P5, PT, t, param_rows, P4;
+--:-:3:-:2  @P4 LDS ysum, [xo+0xa020];
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+04:2:-:-:1  @P5 STG.E.WT [dq00], ysum;
+--:2:-:-:1  @P5 STG.E.WT [dq02], ysum;
+--:2:-:-:1  @P5 STG.E.WT [dq04], ysum;
+--:2:-:-:1  @P5 STG.E.WT [dq06], ysum;
+--:2:-:-:1  @P5 STG.E.WT [dq08], ysum;
+--:2:-:-:2  @P5 STG.E.WT [dq10], ysum;
+02:-:-:-:6      BAR.SYNC 0x0;
+--:-:-:-:1      IADD row, row, rowstep;
+02:-:-:-:6      IADD wp0.CC, wp0, stepw;
+--:-:-:-:6      IADD.X wp1, wp1, RZ;
+--:-:-:-:6      ISETP.LT.U32.AND P3, PT, row, param_rows, P6;
+--:-:-:-:6      SHL t, rowstep, 0x2;
+--:-:-:-:6      IADD dq00.CC, dq00, t;
+--:-:-:-:6      IADD.X dq01, dq01, RZ;
+--:-:-:-:6      IADD dq02.CC, dq02, t;
+--:-:-:-:6      IADD.X dq03, dq03, RZ;
+--:-:-:-:6      IADD dq04.CC, dq04, t;
+--:-:-:-:6      IADD.X dq05, dq05, RZ;
+--:-:-:-:6      IADD dq06.CC, dq06, t;
+--:-:-:-:6      IADD.X dq07, dq07, RZ;
+--:-:-:-:6      IADD dq08.CC, dq08, t;
+--:-:-:-:6      IADD.X dq09, dq09, RZ;
+--:-:-:-:6      IADD dq10.CC, dq10, t;
+--:-:-:-:6      IADD.X dq11, dq11, RZ;
+--:-:-:-:6  @P1 BRA LOOP;
+--:-:-:-:f      BRA GRAPH_DONE;
+
+GRAPH_DONE:
+3f:-:-:-:6      NOP;
+--:-:-:-:6      MOV g_flags, c[0x0][0x1b0];
+--:-:-:-:6      LOP32I.AND g_flags, g_flags, 0x1;
+--:-:-:-:6      ISETP.EQ.U32.AND P0, PT, g_flags, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_EXIT;
+--:-:-:-:6      MEMBAR.SYS;
+--:-:-:-:6      BAR.SYNC 0x0;
+--:-:6:-:2      S2R g_tid, SR_TID.X;
+20:-:-:-:6      ISETP.GE.U32.AND P0, PT, g_tid, 0x20, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_EXIT;
+--:-:-:-:6      ISETP.EQ.U32.AND P2, PT, g_tid, RZ, PT;
+--:-:-:-:6      MOV g_ctl0, c[0x0][0x1b8];
+--:-:-:-:6      MOV g_ctl1, c[0x0][0x1bc];
+--:-:-:-:6      MOV g_index, c[0x0][0x1b4];
+--:-:-:-:6      SHL g_index, g_index, 0x2;
+--:-:-:-:6      IADD g_index, g_index, 0x100;
+--:-:-:-:6      IADD g_ptr0.CC, g_ctl0, g_index;
+--:-:-:-:6      IADD.X g_ptr1, g_ctl1, RZ;
+--:-:-:-:6      MOV32I g_one, 0x1;
+--:-:1:-:6  @P2 ATOM.E.ADD g_count, [g_ptr], g_one;
+01:-:3:-:2      SHFL.IDX PT, g_count, g_count, 0x0, 0x1f;
+04:-:-:-:6      IADD g_count, g_count, 0x1;
+--:-:-:-:6      ISETP.NE.U32.AND P0, PT, g_count, c[0x0][0x14], PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_EXIT;
+--:2:-:-:6  @P2 STG.E [g_ptr], RZ;
+--:-:1:-:2      LDG.E.CV g_value, [g_ctl+0x20];
+01:-:-:-:6      IADD g_value, g_value, 0x1;
+--:2:-:-:6  @P2 STG.E [g_ctl+0x20], g_value;
+02:-:1:-:2      LDG.E.64 g_ptr0, [g_ctl+0x40];
+01:2:-:-:6  @P2 STG.E.WT [g_ptr], g_value;
+02:-:1:-:2      LDG.E.64 g_ptr0, [g_ctl+0x48];
+01:2:-:-:6  @P2 STG.E.WT [g_ptr], g_value;
+02:-:1:-:2      LDG.E.64 g_ptr0, [g_ctl+0x50];
+01:2:-:-:6  @P2 STG.E.WT [g_ptr], g_value;
+02:-:1:-:2      LDG.E.64 g_ptr0, [g_ctl+0x58];
+01:2:-:-:6  @P2 STG.E.WT [g_ptr], g_value;
+02:-:1:-:2      LDG.E.64 g_ptr0, [g_ctl+0x60];
+01:2:-:-:6  @P2 STG.E.WT [g_ptr], g_value;
+02:-:1:-:2      LDG.E.64 g_ptr0, [g_ctl+0x68];
+01:2:-:-:6  @P2 STG.E.WT [g_ptr], g_value;
+02:-:-:-:6      MEMBAR.SYS;
+GRAPH_EXIT:
+3f:-:-:-:f      EXIT;

@@ -1,0 +1,22 @@
+.version 7.4
+.target sm_52
+.address_size 64
+.visible .entry brx_probe(.param .u64 output, .param .u32 selector)
+{
+.reg .u64 ptr;
+.reg .u32 index, value;
+.reg .pred invalid;
+ld.param.u64 ptr, [output];
+ld.param.u32 index, [selector];
+setp.ge.u32 invalid, index, 4;
+@invalid bra BAD;
+targets: .branchtargets CASE0, CASE1, CASE2, CASE3;
+brx.idx.uni index, targets;
+CASE0: mov.u32 value, 111; bra DONE;
+CASE1: mov.u32 value, 29; bra DONE;
+CASE2: mov.u32 value, 721; bra DONE;
+CASE3: mov.u32 value, 503; bra DONE;
+BAD: mov.u32 value, 0xffffffff;
+DONE: st.global.u32 [ptr], value;
+ret;
+}

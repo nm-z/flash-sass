@@ -1,0 +1,1171 @@
+# Kernel: graph_q3kk6144
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<CONSTANT_MAPPING>
+    graph_arg_gridDimX   : c[0x0][0x14]
+    graph_arg_param_W0   : c[0x0][0x140]
+    graph_arg_param_W1   : c[0x0][0x144]
+    graph_arg_param_X0   : c[0x0][0x148]
+    graph_arg_param_X1   : c[0x0][0x14c]
+    graph_arg_param_Y0   : c[0x0][0x158]
+    graph_arg_param_Y1   : c[0x0][0x15c]
+    graph_arg_param_rows : c[0x0][0x160]
+    graph_arg_param_xs   : c[0x0][0x164]
+    graph_arg_param_AS0  : c[0x0][0x170]
+    graph_arg_param_AS1  : c[0x0][0x174]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0-95 : act<00-95>
+    96-107 : cw<00-11>
+    108-113 : hw<0-5>
+    114-119 : sw<0-5>
+    120-123 : dp<0-3>
+    124-139 : m<00-15>
+    141 : acc00
+    142 : acc01
+    143 : acc02
+    144 : acc03
+    145 : acc04
+    146 : acc05
+    147 : acc06
+    140 : acc07
+    149 : acc08
+    150 : acc09
+    151 : acc10
+    152 : acc11
+    153 : acc12
+    154 : acc13
+    155 : acc14
+    148 : acc15
+    157 : acch0
+    158 : acch1
+    159 : acch2
+    160 : acch3
+    161 : acch4
+    162 : acch5
+    163 : acch6
+    156 : acch7
+    164-166 : hs<1-3>
+    167-172 : as<0-5>
+    173 : dot0
+    174 : dot1
+    175 : dh0
+    176 : dh1
+    177 : sumi
+    178 : sumif
+    179 : dd
+    180 : accf
+    181 : t
+    182 : u
+    183 : scw
+    184 : row
+    185 : rowpair
+    186 : rowstep
+    187 : stepw
+    188,189 : pp<0-1>
+    190,191 : cp<0-1>
+    192,193 : hp<0-1>
+    194,195 : sp<0-1>
+    196,197 : yp<0-1>
+    96,97 : xp<0-1>
+    108,109 : ap<0-1>
+    98 : lane
+    99 : grp
+    100 : tid
+    101 : bid
+    102 : off
+    103 : t1p
+    104 : q
+    105 : jj
+    106 : base2
+    198 : gridDimX
+    199 : param_W0
+    200 : param_W1
+    201 : param_X0
+    202 : param_X1
+    203 : param_Y0
+    204 : param_Y1
+    205 : param_rows
+    206 : param_xs
+    207 : param_AS0
+    208 : param_AS1
+</REGISTER_MAPPING>
+--:-:-:-:6      MEMBAR.GL.IVALLD;
+--:-:-:-:6      MOV gridDimX, graph_arg_gridDimX;
+--:-:-:-:6      MOV param_W0, graph_arg_param_W0;
+--:-:-:-:6      MOV param_W1, graph_arg_param_W1;
+--:-:-:-:6      MOV param_X0, graph_arg_param_X0;
+--:-:-:-:6      MOV param_X1, graph_arg_param_X1;
+--:-:-:-:6      MOV param_Y0, graph_arg_param_Y0;
+--:-:-:-:6      MOV param_Y1, graph_arg_param_Y1;
+--:-:-:-:6      MOV param_rows, graph_arg_param_rows;
+--:-:-:-:6      MOV param_xs, graph_arg_param_xs;
+--:-:-:-:6      MOV param_AS0, graph_arg_param_AS0;
+--:-:-:-:6      MOV param_AS1, graph_arg_param_AS1;
+
+
+
+--:-:6:-:1      S2R tid, SR_TID.X;
+--:-:6:-:1      S2R bid, SR_CTAID.X;
+--:-:-:-:6      MOV rowstep, gridDimX;
+20:-:-:-:6      LOP32I.AND lane, tid, 0x1f;
+--:-:-:-:1      SHR.U32 grp, tid, 0x5;
+--:-:-:-:6      SHL rowstep, rowstep, 0x3;
+--:-:-:-:1      LOP32I.AND jj, lane, 0x7;
+--:-:-:-:1      SHR.U32 q, lane, 0x3;
+--:-:-:-:1      ISETP.EQ.U32.AND P0, PT, lane, RZ, PT;
+--:-:-:-:6      ISCADD row, bid, grp, 0x3;
+--:-:-:-:6      SHL stepw, rowstep, 0x6;
+--:-:-:-:6      ISCADD stepw, rowstep, stepw, 0x7;
+--:-:-:-:6      ISCADD stepw, rowstep, stepw, 0x9;
+--:-:-:-:6      ISCADD stepw, rowstep, stepw, 0xb;
+--:-:-:-:6      LOP32I.AND rowpair, row, 0xffffffff;
+--:-:-:-:6      SHL off, row, 0x6;
+--:-:-:-:6      ISCADD off, row, off, 0x7;
+--:-:-:-:6      ISCADD off, row, off, 0x9;
+--:-:-:-:6      ISCADD off, row, off, 0xb;
+--:-:-:-:6      ISCADD t1p, q, off, 0x4;
+--:-:-:-:6      IADD pp0.CC, t1p, param_W0;
+--:-:-:-:6      IADD.X pp1, RZ, param_W1;
+--:-:-:-:6      SHL base2, q, 0x4;
+--:-:-:-:6      ISCADD base2, q, base2, 0x5;
+--:-:-:-:6      ISCADD base2, q, base2, 0x6;
+--:-:-:-:6      IADD base2, base2, off;
+--:-:-:-:6      IADD base2, base2, 0x40;
+--:-:-:-:6      ISCADD t1p, jj, base2, 0x3;
+--:-:-:-:6      IADD cp0.CC, t1p, param_W0;
+--:-:-:-:6      IADD.X cp1, RZ, param_W1;
+--:-:-:-:6      ISCADD t1p, jj, base2, 0x2;
+--:-:-:-:6      IADD t1p, t1p, 0x40;
+--:-:-:-:6      IADD hp0.CC, t1p, param_W0;
+--:-:-:-:6      IADD.X hp1, RZ, param_W1;
+--:-:-:-:6      ISCADD t1p, jj, base2, 0x1;
+--:-:-:-:6      IADD t1p, t1p, 0x60;
+--:-:-:-:6      IADD sp0.CC, t1p, param_W0;
+--:-:-:-:6      IADD.X sp1, RZ, param_W1;
+--:-:-:-:6      SHL t1p, row, 0x2;
+--:-:-:-:6      IADD yp0.CC, t1p, param_Y0;
+--:-:-:-:6      IADD.X yp1, RZ, param_Y1;
+--:-:-:-:6      SHL t1p, lane, 0x2;
+--:-:-:-:6      IADD ap0.CC, t1p, param_AS0;
+--:-:-:-:6      IADD.X ap1, RZ, param_AS1;
+--:-:2:-:1      LDG.E.CI as0, [ap+0x0];
+--:-:2:-:1      LDG.E.CI as1, [ap+0x80];
+--:-:2:-:1      LDG.E.CI as2, [ap+0x100];
+--:-:2:-:1      LDG.E.CI as3, [ap+0x180];
+--:-:2:-:1      LDG.E.CI as4, [ap+0x200];
+--:-:2:-:1      LDG.E.CI as5, [ap+0x280];
+--:-:-:-:6      SHL t1p, q, 0x9;
+--:-:-:-:6      ISCADD t1p, jj, t1p, 0x6;
+--:-:-:-:6      IADD xp0.CC, t1p, param_X0;
+--:-:-:-:6      IADD.X xp1, RZ, param_X1;
+--:-:2:-:1      LDG.E.CI.128 act00, [xp+0x0];
+--:-:2:-:1      LDG.E.CI.128 act04, [xp+0x10];
+--:-:2:-:1      LDG.E.CI.128 act08, [xp+0x20];
+--:-:2:-:1      LDG.E.CI.128 act12, [xp+0x30];
+--:-:2:-:1      LDG.E.CI.128 act16, [xp+0x800];
+--:-:2:-:1      LDG.E.CI.128 act20, [xp+0x810];
+--:-:2:-:1      LDG.E.CI.128 act24, [xp+0x820];
+--:-:2:-:1      LDG.E.CI.128 act28, [xp+0x830];
+--:-:2:-:1      LDG.E.CI.128 act32, [xp+0x1000];
+--:-:2:-:1      LDG.E.CI.128 act36, [xp+0x1010];
+--:-:2:-:1      LDG.E.CI.128 act40, [xp+0x1020];
+--:-:2:-:1      LDG.E.CI.128 act44, [xp+0x1030];
+--:-:2:-:1      LDG.E.CI.128 act48, [xp+0x1800];
+--:-:2:-:1      LDG.E.CI.128 act52, [xp+0x1810];
+--:-:2:-:1      LDG.E.CI.128 act56, [xp+0x1820];
+--:-:2:-:1      LDG.E.CI.128 act60, [xp+0x1830];
+--:-:2:-:1      LDG.E.CI.128 act64, [xp+0x2000];
+--:-:2:-:1      LDG.E.CI.128 act68, [xp+0x2010];
+--:-:2:-:1      LDG.E.CI.128 act72, [xp+0x2020];
+--:-:2:-:1      LDG.E.CI.128 act76, [xp+0x2030];
+--:-:2:-:1      LDG.E.CI.128 act80, [xp+0x2800];
+--:-:2:-:1      LDG.E.CI.128 act84, [xp+0x2810];
+--:-:2:-:1      LDG.E.CI.128 act88, [xp+0x2820];
+--:-:2:-:6      LDG.E.CI.128 act92, [xp+0x2830];
+
+LOOP:
+--:2:1:-:1      LDG.E.CI.128 dp0, [pp];
+--:2:1:-:1      LDG.E.CI.64 cw00, [cp+0x0];
+--:2:1:-:1      LDG.E.CI.64 cw02, [cp+0x1c0];
+--:2:1:-:1      LDG.E.CI.64 cw04, [cp+0x380];
+--:2:1:-:1      LDG.E.CI.64 cw06, [cp+0x540];
+--:2:1:-:1      LDG.E.CI.64 cw08, [cp+0x700];
+--:2:1:-:1      LDG.E.CI.64 cw10, [cp+0x8c0];
+--:2:1:-:1      LDG.E.CI hw0, [hp+0x0];
+--:2:1:-:1      LDG.E.CI hw1, [hp+0x1c0];
+--:2:1:-:1      LDG.E.CI hw2, [hp+0x380];
+--:2:1:-:1      LDG.E.CI hw3, [hp+0x540];
+--:2:1:-:1      LDG.E.CI hw4, [hp+0x700];
+--:2:1:-:1      LDG.E.CI hw5, [hp+0x8c0];
+--:2:1:-:1      LDG.E.CI.U16 sw0, [sp+0x0];
+--:2:1:-:1      LDG.E.CI.U16 sw1, [sp+0x1c0];
+--:2:1:-:1      LDG.E.CI.U16 sw2, [sp+0x380];
+--:2:1:-:1      LDG.E.CI.U16 sw3, [sp+0x540];
+--:2:1:-:1      LDG.E.CI.U16 sw4, [sp+0x700];
+--:2:1:-:2      LDG.E.CI.U16 sw5, [sp+0x8c0];
+--:-:-:-:1      ISETP.LT.U32.AND P2, PT, row, param_rows, P0;
+--:-:-:-:1      IADD rowpair, rowpair, rowstep;
+--:-:-:-:6      MOV accf, RZ;
+--:-:-:-:2      ISETP.LT.U32.AND P1, PT, rowpair, param_rows, PT;
+03:-:4:-:1      F2F.F32.F16 dd, dp0;
+--:-:-:-:1      PRMT scw, sw0, 0x9180, RZ;
+--:-:-:-:1      LOP32I.AND m00, cw00, 0x00030003;
+--:-:-:-:1      LOP32I.AND m01, cw00, 0x000c000c;
+--:-:-:-:1      LOP32I.AND m02, cw00, 0x00300030;
+--:-:-:-:1      LOP32I.AND m03, cw00, 0x00c000c0;
+--:-:-:-:1      LOP32I.AND m04, cw00, 0x03000300;
+--:-:-:-:1      LOP32I.AND m05, cw00, 0x0c000c00;
+--:-:-:-:1      LOP32I.AND m06, cw00, 0x30003000;
+--:-:-:-:1      LOP32I.AND m07, cw00, 0xc000c000;
+--:-:-:-:1      LOP32I.AND m08, cw01, 0x00030003;
+--:-:-:-:1      LOP32I.AND m09, cw01, 0x000c000c;
+--:-:-:-:1      LOP32I.AND m10, cw01, 0x00300030;
+--:-:-:-:1      LOP32I.AND m11, cw01, 0x00c000c0;
+--:-:-:-:1      LOP32I.AND m12, cw01, 0x03000300;
+--:-:-:-:1      LOP32I.AND m13, cw01, 0x0c000c00;
+--:-:-:-:1      LOP32I.AND m14, cw01, 0x30003000;
+--:-:-:-:1      LOP32I.AND m15, cw01, 0xc000c000;
+--:-:-:-:1      XMAD.U16.S16 acc00, m00.H0, act00.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc01, m01.H0, act00.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc02, m02.H0, act01.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc03, m03.H0, act01.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc04, m04.H0, act02.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc05, m05.H0, act02.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc06, m06.H0, act03.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc07, m07.H0, act03.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc00, m00.H1, act04.H0, acc00;
+--:-:-:-:1      XMAD.U16.S16 acc01, m01.H1, act04.H1, acc01;
+--:-:-:-:1      XMAD.U16.S16 acc02, m02.H1, act05.H0, acc02;
+--:-:-:-:1      XMAD.U16.S16 acc03, m03.H1, act05.H1, acc03;
+--:-:-:-:1      XMAD.U16.S16 acc04, m04.H1, act06.H0, acc04;
+--:-:-:-:1      XMAD.U16.S16 acc05, m05.H1, act06.H1, acc05;
+--:-:-:-:1      XMAD.U16.S16 acc06, m06.H1, act07.H0, acc06;
+--:-:-:-:1      XMAD.U16.S16 acc07, m07.H1, act07.H1, acc07;
+--:-:-:-:1      SHR.U32 hs1, hw0, 0x1;
+--:-:-:-:1      SHR.U32 hs2, hw0, 0x2;
+--:-:-:-:1      SHR.U32 hs3, hw0, 0x3;
+--:-:-:-:1      LOP32I.AND m00, hw0, 0x00010001;
+--:-:-:-:1      LOP32I.AND m01, hw0, 0x00100010;
+--:-:-:-:1      LOP32I.AND m02, hw0, 0x01000100;
+--:-:-:-:1      LOP32I.AND m03, hw0, 0x10001000;
+--:-:-:-:1      XMAD.U16.S16 acc08, m08.H0, act08.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc09, m09.H0, act08.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc10, m10.H0, act09.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc11, m11.H0, act09.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc12, m12.H0, act10.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc13, m13.H0, act10.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc14, m14.H0, act11.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc15, m15.H0, act11.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc08, m08.H1, act12.H0, acc08;
+--:-:-:-:1      XMAD.U16.S16 acc09, m09.H1, act12.H1, acc09;
+--:-:-:-:1      XMAD.U16.S16 acc10, m10.H1, act13.H0, acc10;
+--:-:-:-:1      XMAD.U16.S16 acc11, m11.H1, act13.H1, acc11;
+--:-:-:-:1      XMAD.U16.S16 acc12, m12.H1, act14.H0, acc12;
+--:-:-:-:1      XMAD.U16.S16 acc13, m13.H1, act14.H1, acc13;
+--:-:-:-:1      XMAD.U16.S16 acc14, m14.H1, act15.H0, acc14;
+--:-:-:-:1      XMAD.U16.S16 acc15, m15.H1, act15.H1, acc15;
+--:-:-:-:1      LOP32I.AND m04, hs1, 0x00010001;
+--:-:-:-:1      LOP32I.AND m05, hs1, 0x00100010;
+--:-:-:-:1      LOP32I.AND m06, hs1, 0x01000100;
+--:-:-:-:1      LOP32I.AND m07, hs1, 0x10001000;
+--:-:-:-:1      XMAD.U16.S16 acch0, m00.H0, act00.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch1, m01.H0, act02.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch2, m02.H0, act04.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch3, m03.H0, act06.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch4, m00.H1, act08.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch5, m01.H1, act10.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch6, m02.H1, act12.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch7, m03.H1, act14.H0, RZ;
+--:-:-:-:1      LOP32I.AND m00, hs2, 0x00010001;
+--:-:-:-:1      LOP32I.AND m01, hs2, 0x00100010;
+--:-:-:-:1      LOP32I.AND m02, hs2, 0x01000100;
+--:-:-:-:1      LOP32I.AND m03, hs2, 0x10001000;
+--:-:-:-:1      XMAD.U16.S16 acch0, m04.H0, act00.H1, acch0;
+--:-:-:-:1      XMAD.U16.S16 acch1, m05.H0, act02.H1, acch1;
+--:-:-:-:1      XMAD.U16.S16 acch2, m06.H0, act04.H1, acch2;
+--:-:-:-:1      XMAD.U16.S16 acch3, m07.H0, act06.H1, acch3;
+--:-:-:-:1      XMAD.U16.S16 acch4, m04.H1, act08.H1, acch4;
+--:-:-:-:1      XMAD.U16.S16 acch5, m05.H1, act10.H1, acch5;
+--:-:-:-:1      XMAD.U16.S16 acch6, m06.H1, act12.H1, acch6;
+--:-:-:-:1      XMAD.U16.S16 acch7, m07.H1, act14.H1, acch7;
+--:-:-:-:1      LOP32I.AND m04, hs3, 0x00010001;
+--:-:-:-:1      LOP32I.AND m05, hs3, 0x00100010;
+--:-:-:-:1      LOP32I.AND m06, hs3, 0x01000100;
+--:-:-:-:1      LOP32I.AND m07, hs3, 0x10001000;
+--:-:-:-:1      XMAD.U16.S16 acch0, m00.H0, act01.H0, acch0;
+--:-:-:-:1      XMAD.U16.S16 acch1, m01.H0, act03.H0, acch1;
+--:-:-:-:1      XMAD.U16.S16 acch2, m02.H0, act05.H0, acch2;
+--:-:-:-:1      XMAD.U16.S16 acch3, m03.H0, act07.H0, acch3;
+--:-:-:-:1      XMAD.U16.S16 acch4, m00.H1, act09.H0, acch4;
+--:-:-:-:1      XMAD.U16.S16 acch5, m01.H1, act11.H0, acch5;
+--:-:-:-:1      XMAD.U16.S16 acch6, m02.H1, act13.H0, acch6;
+--:-:-:-:1      XMAD.U16.S16 acch7, m03.H1, act15.H0, acch7;
+--:-:-:-:1      XMAD.U16.S16 acch0, m04.H0, act01.H1, acch0;
+--:-:-:-:1      XMAD.U16.S16 acch1, m05.H0, act03.H1, acch1;
+--:-:-:-:1      XMAD.U16.S16 acch2, m06.H0, act05.H1, acch2;
+--:-:-:-:1      XMAD.U16.S16 acch3, m07.H0, act07.H1, acch3;
+--:-:-:-:1      XMAD.U16.S16 acch4, m04.H1, act09.H1, acch4;
+--:-:-:-:1      XMAD.U16.S16 acch5, m05.H1, act11.H1, acch5;
+--:-:-:-:1      XMAD.U16.S16 acch6, m06.H1, act13.H1, acch6;
+--:-:-:-:1      XMAD.U16.S16 acch7, m07.H1, act15.H1, acch7;
+--:-:-:-:1      SHR acc01, acc01, 0x2;
+--:-:-:-:1      SHR acc02, acc02, 0x4;
+--:-:-:-:1      SHR acc03, acc03, 0x6;
+--:-:-:-:1      SHR acc04, acc04, 0x8;
+--:-:-:-:1      SHR acc05, acc05, 0xa;
+--:-:-:-:1      SHR acc06, acc06, 0xc;
+--:-:-:-:4      SHR acc07, acc07, 0xe;
+--:-:-:-:1      IADD acc00, acc00, acc01;
+--:-:-:-:1      IADD acc02, acc02, acc03;
+--:-:-:-:1      IADD acc04, acc04, acc05;
+--:-:-:-:6      IADD acc06, acc06, acc07;
+--:-:-:-:1      IADD acc00, acc00, acc02;
+--:-:-:-:6      IADD acc04, acc04, acc06;
+--:-:-:-:6      IADD dot0, acc00, acc04;
+--:-:-:-:1      SHR acc09, acc09, 0x2;
+--:-:-:-:1      SHR acc10, acc10, 0x4;
+--:-:-:-:1      SHR acc11, acc11, 0x6;
+--:-:-:-:1      SHR acc12, acc12, 0x8;
+--:-:-:-:1      SHR acc13, acc13, 0xa;
+--:-:-:-:1      SHR acc14, acc14, 0xc;
+--:-:-:-:4      SHR acc15, acc15, 0xe;
+--:-:-:-:1      IADD acc08, acc08, acc09;
+--:-:-:-:1      IADD acc10, acc10, acc11;
+--:-:-:-:1      IADD acc12, acc12, acc13;
+--:-:-:-:6      IADD acc14, acc14, acc15;
+--:-:-:-:1      IADD acc08, acc08, acc10;
+--:-:-:-:6      IADD acc12, acc12, acc14;
+--:-:-:-:6      IADD dot1, acc08, acc12;
+--:-:-:-:1      SHR acch1, acch1, 0x4;
+--:-:-:-:1      SHR acch5, acch5, 0x4;
+--:-:-:-:1      SHR acch2, acch2, 0x8;
+--:-:-:-:1      SHR acch6, acch6, 0x8;
+--:-:-:-:1      SHR acch3, acch3, 0xc;
+--:-:-:-:3      SHR acch7, acch7, 0xc;
+--:-:-:-:1      IADD acch0, acch0, acch1;
+--:-:-:-:1      IADD acch4, acch4, acch5;
+--:-:-:-:1      IADD acch2, acch2, acch3;
+--:-:-:-:6      IADD acch6, acch6, acch7;
+--:-:-:-:1      IADD dh0, acch0, acch2;
+--:-:-:-:6      IADD dh1, acch4, acch6;
+--:-:-:-:1      SHL dh0, dh0, 0x2;
+--:-:-:-:6      SHL dh1, dh1, 0x2;
+--:-:-:-:1      IADD3 dot0, dot0, -dh0, RZ;
+--:-:-:-:6      IADD3 dot1, dot1, -dh1, RZ;
+--:-:-:-:6      XMAD.S16.S16 sumi, dot0, scw, RZ;
+--:-:-:-:6      XMAD.S16.S16 sumi, dot1, scw.H1, sumi;
+--:-:3:-:6      I2F.F32.S32 sumif, sumi;
+0c:-:-:-:6      FMUL u, dd, sumif;
+--:-:-:-:6      FFMA accf, as0, u, accf;
+--:-:4:-:1      F2F.F32.F16 dd, dp0.H1;
+--:-:-:-:1      PRMT scw, sw1, 0x9180, RZ;
+--:-:-:-:1      LOP32I.AND m00, cw02, 0x00030003;
+--:-:-:-:1      LOP32I.AND m01, cw02, 0x000c000c;
+--:-:-:-:1      LOP32I.AND m02, cw02, 0x00300030;
+--:-:-:-:1      LOP32I.AND m03, cw02, 0x00c000c0;
+--:-:-:-:1      LOP32I.AND m04, cw02, 0x03000300;
+--:-:-:-:1      LOP32I.AND m05, cw02, 0x0c000c00;
+--:-:-:-:1      LOP32I.AND m06, cw02, 0x30003000;
+--:-:-:-:1      LOP32I.AND m07, cw02, 0xc000c000;
+--:-:-:-:1      LOP32I.AND m08, cw03, 0x00030003;
+--:-:-:-:1      LOP32I.AND m09, cw03, 0x000c000c;
+--:-:-:-:1      LOP32I.AND m10, cw03, 0x00300030;
+--:-:-:-:1      LOP32I.AND m11, cw03, 0x00c000c0;
+--:-:-:-:1      LOP32I.AND m12, cw03, 0x03000300;
+--:-:-:-:1      LOP32I.AND m13, cw03, 0x0c000c00;
+--:-:-:-:1      LOP32I.AND m14, cw03, 0x30003000;
+--:-:-:-:1      LOP32I.AND m15, cw03, 0xc000c000;
+--:-:-:-:1      XMAD.U16.S16 acc00, m00.H0, act16.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc01, m01.H0, act16.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc02, m02.H0, act17.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc03, m03.H0, act17.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc04, m04.H0, act18.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc05, m05.H0, act18.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc06, m06.H0, act19.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc07, m07.H0, act19.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc00, m00.H1, act20.H0, acc00;
+--:-:-:-:1      XMAD.U16.S16 acc01, m01.H1, act20.H1, acc01;
+--:-:-:-:1      XMAD.U16.S16 acc02, m02.H1, act21.H0, acc02;
+--:-:-:-:1      XMAD.U16.S16 acc03, m03.H1, act21.H1, acc03;
+--:-:-:-:1      XMAD.U16.S16 acc04, m04.H1, act22.H0, acc04;
+--:-:-:-:1      XMAD.U16.S16 acc05, m05.H1, act22.H1, acc05;
+--:-:-:-:1      XMAD.U16.S16 acc06, m06.H1, act23.H0, acc06;
+--:-:-:-:1      XMAD.U16.S16 acc07, m07.H1, act23.H1, acc07;
+--:-:-:-:1      SHR.U32 hs1, hw1, 0x1;
+--:-:-:-:1      SHR.U32 hs2, hw1, 0x2;
+--:-:-:-:1      SHR.U32 hs3, hw1, 0x3;
+--:-:-:-:1      LOP32I.AND m00, hw1, 0x00010001;
+--:-:-:-:1      LOP32I.AND m01, hw1, 0x00100010;
+--:-:-:-:1      LOP32I.AND m02, hw1, 0x01000100;
+--:-:-:-:1      LOP32I.AND m03, hw1, 0x10001000;
+--:-:-:-:1      XMAD.U16.S16 acc08, m08.H0, act24.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc09, m09.H0, act24.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc10, m10.H0, act25.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc11, m11.H0, act25.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc12, m12.H0, act26.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc13, m13.H0, act26.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc14, m14.H0, act27.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc15, m15.H0, act27.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc08, m08.H1, act28.H0, acc08;
+--:-:-:-:1      XMAD.U16.S16 acc09, m09.H1, act28.H1, acc09;
+--:-:-:-:1      XMAD.U16.S16 acc10, m10.H1, act29.H0, acc10;
+--:-:-:-:1      XMAD.U16.S16 acc11, m11.H1, act29.H1, acc11;
+--:-:-:-:1      XMAD.U16.S16 acc12, m12.H1, act30.H0, acc12;
+--:-:-:-:1      XMAD.U16.S16 acc13, m13.H1, act30.H1, acc13;
+--:-:-:-:1      XMAD.U16.S16 acc14, m14.H1, act31.H0, acc14;
+--:-:-:-:1      XMAD.U16.S16 acc15, m15.H1, act31.H1, acc15;
+--:-:-:-:1      LOP32I.AND m04, hs1, 0x00010001;
+--:-:-:-:1      LOP32I.AND m05, hs1, 0x00100010;
+--:-:-:-:1      LOP32I.AND m06, hs1, 0x01000100;
+--:-:-:-:1      LOP32I.AND m07, hs1, 0x10001000;
+--:-:-:-:1      XMAD.U16.S16 acch0, m00.H0, act16.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch1, m01.H0, act18.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch2, m02.H0, act20.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch3, m03.H0, act22.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch4, m00.H1, act24.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch5, m01.H1, act26.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch6, m02.H1, act28.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch7, m03.H1, act30.H0, RZ;
+--:-:-:-:1      LOP32I.AND m00, hs2, 0x00010001;
+--:-:-:-:1      LOP32I.AND m01, hs2, 0x00100010;
+--:-:-:-:1      LOP32I.AND m02, hs2, 0x01000100;
+--:-:-:-:1      LOP32I.AND m03, hs2, 0x10001000;
+--:-:-:-:1      XMAD.U16.S16 acch0, m04.H0, act16.H1, acch0;
+--:-:-:-:1      XMAD.U16.S16 acch1, m05.H0, act18.H1, acch1;
+--:-:-:-:1      XMAD.U16.S16 acch2, m06.H0, act20.H1, acch2;
+--:-:-:-:1      XMAD.U16.S16 acch3, m07.H0, act22.H1, acch3;
+--:-:-:-:1      XMAD.U16.S16 acch4, m04.H1, act24.H1, acch4;
+--:-:-:-:1      XMAD.U16.S16 acch5, m05.H1, act26.H1, acch5;
+--:-:-:-:1      XMAD.U16.S16 acch6, m06.H1, act28.H1, acch6;
+--:-:-:-:1      XMAD.U16.S16 acch7, m07.H1, act30.H1, acch7;
+--:-:-:-:1      LOP32I.AND m04, hs3, 0x00010001;
+--:-:-:-:1      LOP32I.AND m05, hs3, 0x00100010;
+--:-:-:-:1      LOP32I.AND m06, hs3, 0x01000100;
+--:-:-:-:1      LOP32I.AND m07, hs3, 0x10001000;
+--:-:-:-:1      XMAD.U16.S16 acch0, m00.H0, act17.H0, acch0;
+--:-:-:-:1      XMAD.U16.S16 acch1, m01.H0, act19.H0, acch1;
+--:-:-:-:1      XMAD.U16.S16 acch2, m02.H0, act21.H0, acch2;
+--:-:-:-:1      XMAD.U16.S16 acch3, m03.H0, act23.H0, acch3;
+--:-:-:-:1      XMAD.U16.S16 acch4, m00.H1, act25.H0, acch4;
+--:-:-:-:1      XMAD.U16.S16 acch5, m01.H1, act27.H0, acch5;
+--:-:-:-:1      XMAD.U16.S16 acch6, m02.H1, act29.H0, acch6;
+--:-:-:-:1      XMAD.U16.S16 acch7, m03.H1, act31.H0, acch7;
+--:-:-:-:1      XMAD.U16.S16 acch0, m04.H0, act17.H1, acch0;
+--:-:-:-:1      XMAD.U16.S16 acch1, m05.H0, act19.H1, acch1;
+--:-:-:-:1      XMAD.U16.S16 acch2, m06.H0, act21.H1, acch2;
+--:-:-:-:1      XMAD.U16.S16 acch3, m07.H0, act23.H1, acch3;
+--:-:-:-:1      XMAD.U16.S16 acch4, m04.H1, act25.H1, acch4;
+--:-:-:-:1      XMAD.U16.S16 acch5, m05.H1, act27.H1, acch5;
+--:-:-:-:1      XMAD.U16.S16 acch6, m06.H1, act29.H1, acch6;
+--:-:-:-:1      XMAD.U16.S16 acch7, m07.H1, act31.H1, acch7;
+--:-:-:-:1      SHR acc01, acc01, 0x2;
+--:-:-:-:1      SHR acc02, acc02, 0x4;
+--:-:-:-:1      SHR acc03, acc03, 0x6;
+--:-:-:-:1      SHR acc04, acc04, 0x8;
+--:-:-:-:1      SHR acc05, acc05, 0xa;
+--:-:-:-:1      SHR acc06, acc06, 0xc;
+--:-:-:-:4      SHR acc07, acc07, 0xe;
+--:-:-:-:1      IADD acc00, acc00, acc01;
+--:-:-:-:1      IADD acc02, acc02, acc03;
+--:-:-:-:1      IADD acc04, acc04, acc05;
+--:-:-:-:6      IADD acc06, acc06, acc07;
+--:-:-:-:1      IADD acc00, acc00, acc02;
+--:-:-:-:6      IADD acc04, acc04, acc06;
+--:-:-:-:6      IADD dot0, acc00, acc04;
+--:-:-:-:1      SHR acc09, acc09, 0x2;
+--:-:-:-:1      SHR acc10, acc10, 0x4;
+--:-:-:-:1      SHR acc11, acc11, 0x6;
+--:-:-:-:1      SHR acc12, acc12, 0x8;
+--:-:-:-:1      SHR acc13, acc13, 0xa;
+--:-:-:-:1      SHR acc14, acc14, 0xc;
+--:-:-:-:4      SHR acc15, acc15, 0xe;
+--:-:-:-:1      IADD acc08, acc08, acc09;
+--:-:-:-:1      IADD acc10, acc10, acc11;
+--:-:-:-:1      IADD acc12, acc12, acc13;
+--:-:-:-:6      IADD acc14, acc14, acc15;
+--:-:-:-:1      IADD acc08, acc08, acc10;
+--:-:-:-:6      IADD acc12, acc12, acc14;
+--:-:-:-:6      IADD dot1, acc08, acc12;
+--:-:-:-:1      SHR acch1, acch1, 0x4;
+--:-:-:-:1      SHR acch5, acch5, 0x4;
+--:-:-:-:1      SHR acch2, acch2, 0x8;
+--:-:-:-:1      SHR acch6, acch6, 0x8;
+--:-:-:-:1      SHR acch3, acch3, 0xc;
+--:-:-:-:3      SHR acch7, acch7, 0xc;
+--:-:-:-:1      IADD acch0, acch0, acch1;
+--:-:-:-:1      IADD acch4, acch4, acch5;
+--:-:-:-:1      IADD acch2, acch2, acch3;
+--:-:-:-:6      IADD acch6, acch6, acch7;
+--:-:-:-:1      IADD dh0, acch0, acch2;
+--:-:-:-:6      IADD dh1, acch4, acch6;
+--:-:-:-:1      SHL dh0, dh0, 0x2;
+--:-:-:-:6      SHL dh1, dh1, 0x2;
+--:-:-:-:1      IADD3 dot0, dot0, -dh0, RZ;
+--:-:-:-:6      IADD3 dot1, dot1, -dh1, RZ;
+--:-:-:-:6      XMAD.S16.S16 sumi, dot0, scw, RZ;
+--:-:-:-:6      XMAD.S16.S16 sumi, dot1, scw.H1, sumi;
+--:-:3:-:6      I2F.F32.S32 sumif, sumi;
+0c:-:-:-:6      FMUL u, dd, sumif;
+--:-:-:-:6      FFMA accf, as1, u, accf;
+--:-:4:-:1      F2F.F32.F16 dd, dp1;
+--:-:-:-:1      PRMT scw, sw2, 0x9180, RZ;
+--:-:-:-:1      LOP32I.AND m00, cw04, 0x00030003;
+--:-:-:-:1      LOP32I.AND m01, cw04, 0x000c000c;
+--:-:-:-:1      LOP32I.AND m02, cw04, 0x00300030;
+--:-:-:-:1      LOP32I.AND m03, cw04, 0x00c000c0;
+--:-:-:-:1      LOP32I.AND m04, cw04, 0x03000300;
+--:-:-:-:1      LOP32I.AND m05, cw04, 0x0c000c00;
+--:-:-:-:1      LOP32I.AND m06, cw04, 0x30003000;
+--:-:-:-:1      LOP32I.AND m07, cw04, 0xc000c000;
+--:-:-:-:1      LOP32I.AND m08, cw05, 0x00030003;
+--:-:-:-:1      LOP32I.AND m09, cw05, 0x000c000c;
+--:-:-:-:1      LOP32I.AND m10, cw05, 0x00300030;
+--:-:-:-:1      LOP32I.AND m11, cw05, 0x00c000c0;
+--:-:-:-:1      LOP32I.AND m12, cw05, 0x03000300;
+--:-:-:-:1      LOP32I.AND m13, cw05, 0x0c000c00;
+--:-:-:-:1      LOP32I.AND m14, cw05, 0x30003000;
+--:-:-:-:1      LOP32I.AND m15, cw05, 0xc000c000;
+--:-:-:-:1      XMAD.U16.S16 acc00, m00.H0, act32.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc01, m01.H0, act32.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc02, m02.H0, act33.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc03, m03.H0, act33.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc04, m04.H0, act34.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc05, m05.H0, act34.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc06, m06.H0, act35.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc07, m07.H0, act35.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc00, m00.H1, act36.H0, acc00;
+--:-:-:-:1      XMAD.U16.S16 acc01, m01.H1, act36.H1, acc01;
+--:-:-:-:1      XMAD.U16.S16 acc02, m02.H1, act37.H0, acc02;
+--:-:-:-:1      XMAD.U16.S16 acc03, m03.H1, act37.H1, acc03;
+--:-:-:-:1      XMAD.U16.S16 acc04, m04.H1, act38.H0, acc04;
+--:-:-:-:1      XMAD.U16.S16 acc05, m05.H1, act38.H1, acc05;
+--:-:-:-:1      XMAD.U16.S16 acc06, m06.H1, act39.H0, acc06;
+--:-:-:-:1      XMAD.U16.S16 acc07, m07.H1, act39.H1, acc07;
+--:-:-:-:1      SHR.U32 hs1, hw2, 0x1;
+--:-:-:-:1      SHR.U32 hs2, hw2, 0x2;
+--:-:-:-:1      SHR.U32 hs3, hw2, 0x3;
+--:-:-:-:1      LOP32I.AND m00, hw2, 0x00010001;
+--:-:-:-:1      LOP32I.AND m01, hw2, 0x00100010;
+--:-:-:-:1      LOP32I.AND m02, hw2, 0x01000100;
+--:-:-:-:1      LOP32I.AND m03, hw2, 0x10001000;
+--:-:-:-:1      XMAD.U16.S16 acc08, m08.H0, act40.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc09, m09.H0, act40.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc10, m10.H0, act41.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc11, m11.H0, act41.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc12, m12.H0, act42.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc13, m13.H0, act42.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc14, m14.H0, act43.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc15, m15.H0, act43.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc08, m08.H1, act44.H0, acc08;
+--:-:-:-:1      XMAD.U16.S16 acc09, m09.H1, act44.H1, acc09;
+--:-:-:-:1      XMAD.U16.S16 acc10, m10.H1, act45.H0, acc10;
+--:-:-:-:1      XMAD.U16.S16 acc11, m11.H1, act45.H1, acc11;
+--:-:-:-:1      XMAD.U16.S16 acc12, m12.H1, act46.H0, acc12;
+--:-:-:-:1      XMAD.U16.S16 acc13, m13.H1, act46.H1, acc13;
+--:-:-:-:1      XMAD.U16.S16 acc14, m14.H1, act47.H0, acc14;
+--:-:-:-:1      XMAD.U16.S16 acc15, m15.H1, act47.H1, acc15;
+--:-:-:-:1      LOP32I.AND m04, hs1, 0x00010001;
+--:-:-:-:1      LOP32I.AND m05, hs1, 0x00100010;
+--:-:-:-:1      LOP32I.AND m06, hs1, 0x01000100;
+--:-:-:-:1      LOP32I.AND m07, hs1, 0x10001000;
+--:-:-:-:1      XMAD.U16.S16 acch0, m00.H0, act32.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch1, m01.H0, act34.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch2, m02.H0, act36.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch3, m03.H0, act38.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch4, m00.H1, act40.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch5, m01.H1, act42.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch6, m02.H1, act44.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch7, m03.H1, act46.H0, RZ;
+--:-:-:-:1      LOP32I.AND m00, hs2, 0x00010001;
+--:-:-:-:1      LOP32I.AND m01, hs2, 0x00100010;
+--:-:-:-:1      LOP32I.AND m02, hs2, 0x01000100;
+--:-:-:-:1      LOP32I.AND m03, hs2, 0x10001000;
+--:-:-:-:1      XMAD.U16.S16 acch0, m04.H0, act32.H1, acch0;
+--:-:-:-:1      XMAD.U16.S16 acch1, m05.H0, act34.H1, acch1;
+--:-:-:-:1      XMAD.U16.S16 acch2, m06.H0, act36.H1, acch2;
+--:-:-:-:1      XMAD.U16.S16 acch3, m07.H0, act38.H1, acch3;
+--:-:-:-:1      XMAD.U16.S16 acch4, m04.H1, act40.H1, acch4;
+--:-:-:-:1      XMAD.U16.S16 acch5, m05.H1, act42.H1, acch5;
+--:-:-:-:1      XMAD.U16.S16 acch6, m06.H1, act44.H1, acch6;
+--:-:-:-:1      XMAD.U16.S16 acch7, m07.H1, act46.H1, acch7;
+--:-:-:-:1      LOP32I.AND m04, hs3, 0x00010001;
+--:-:-:-:1      LOP32I.AND m05, hs3, 0x00100010;
+--:-:-:-:1      LOP32I.AND m06, hs3, 0x01000100;
+--:-:-:-:1      LOP32I.AND m07, hs3, 0x10001000;
+--:-:-:-:1      XMAD.U16.S16 acch0, m00.H0, act33.H0, acch0;
+--:-:-:-:1      XMAD.U16.S16 acch1, m01.H0, act35.H0, acch1;
+--:-:-:-:1      XMAD.U16.S16 acch2, m02.H0, act37.H0, acch2;
+--:-:-:-:1      XMAD.U16.S16 acch3, m03.H0, act39.H0, acch3;
+--:-:-:-:1      XMAD.U16.S16 acch4, m00.H1, act41.H0, acch4;
+--:-:-:-:1      XMAD.U16.S16 acch5, m01.H1, act43.H0, acch5;
+--:-:-:-:1      XMAD.U16.S16 acch6, m02.H1, act45.H0, acch6;
+--:-:-:-:1      XMAD.U16.S16 acch7, m03.H1, act47.H0, acch7;
+--:-:-:-:1      XMAD.U16.S16 acch0, m04.H0, act33.H1, acch0;
+--:-:-:-:1      XMAD.U16.S16 acch1, m05.H0, act35.H1, acch1;
+--:-:-:-:1      XMAD.U16.S16 acch2, m06.H0, act37.H1, acch2;
+--:-:-:-:1      XMAD.U16.S16 acch3, m07.H0, act39.H1, acch3;
+--:-:-:-:1      XMAD.U16.S16 acch4, m04.H1, act41.H1, acch4;
+--:-:-:-:1      XMAD.U16.S16 acch5, m05.H1, act43.H1, acch5;
+--:-:-:-:1      XMAD.U16.S16 acch6, m06.H1, act45.H1, acch6;
+--:-:-:-:1      XMAD.U16.S16 acch7, m07.H1, act47.H1, acch7;
+--:-:-:-:1      SHR acc01, acc01, 0x2;
+--:-:-:-:1      SHR acc02, acc02, 0x4;
+--:-:-:-:1      SHR acc03, acc03, 0x6;
+--:-:-:-:1      SHR acc04, acc04, 0x8;
+--:-:-:-:1      SHR acc05, acc05, 0xa;
+--:-:-:-:1      SHR acc06, acc06, 0xc;
+--:-:-:-:4      SHR acc07, acc07, 0xe;
+--:-:-:-:1      IADD acc00, acc00, acc01;
+--:-:-:-:1      IADD acc02, acc02, acc03;
+--:-:-:-:1      IADD acc04, acc04, acc05;
+--:-:-:-:6      IADD acc06, acc06, acc07;
+--:-:-:-:1      IADD acc00, acc00, acc02;
+--:-:-:-:6      IADD acc04, acc04, acc06;
+--:-:-:-:6      IADD dot0, acc00, acc04;
+--:-:-:-:1      SHR acc09, acc09, 0x2;
+--:-:-:-:1      SHR acc10, acc10, 0x4;
+--:-:-:-:1      SHR acc11, acc11, 0x6;
+--:-:-:-:1      SHR acc12, acc12, 0x8;
+--:-:-:-:1      SHR acc13, acc13, 0xa;
+--:-:-:-:1      SHR acc14, acc14, 0xc;
+--:-:-:-:4      SHR acc15, acc15, 0xe;
+--:-:-:-:1      IADD acc08, acc08, acc09;
+--:-:-:-:1      IADD acc10, acc10, acc11;
+--:-:-:-:1      IADD acc12, acc12, acc13;
+--:-:-:-:6      IADD acc14, acc14, acc15;
+--:-:-:-:1      IADD acc08, acc08, acc10;
+--:-:-:-:6      IADD acc12, acc12, acc14;
+--:-:-:-:6      IADD dot1, acc08, acc12;
+--:-:-:-:1      SHR acch1, acch1, 0x4;
+--:-:-:-:1      SHR acch5, acch5, 0x4;
+--:-:-:-:1      SHR acch2, acch2, 0x8;
+--:-:-:-:1      SHR acch6, acch6, 0x8;
+--:-:-:-:1      SHR acch3, acch3, 0xc;
+--:-:-:-:3      SHR acch7, acch7, 0xc;
+--:-:-:-:1      IADD acch0, acch0, acch1;
+--:-:-:-:1      IADD acch4, acch4, acch5;
+--:-:-:-:1      IADD acch2, acch2, acch3;
+--:-:-:-:6      IADD acch6, acch6, acch7;
+--:-:-:-:1      IADD dh0, acch0, acch2;
+--:-:-:-:6      IADD dh1, acch4, acch6;
+--:-:-:-:1      SHL dh0, dh0, 0x2;
+--:-:-:-:6      SHL dh1, dh1, 0x2;
+--:-:-:-:1      IADD3 dot0, dot0, -dh0, RZ;
+--:-:-:-:6      IADD3 dot1, dot1, -dh1, RZ;
+--:-:-:-:6      XMAD.S16.S16 sumi, dot0, scw, RZ;
+--:-:-:-:6      XMAD.S16.S16 sumi, dot1, scw.H1, sumi;
+--:-:3:-:6      I2F.F32.S32 sumif, sumi;
+0c:-:-:-:6      FMUL u, dd, sumif;
+--:-:-:-:6      FFMA accf, as2, u, accf;
+--:-:4:-:1      F2F.F32.F16 dd, dp1.H1;
+--:-:-:-:1      PRMT scw, sw3, 0x9180, RZ;
+--:-:-:-:1      LOP32I.AND m00, cw06, 0x00030003;
+--:-:-:-:1      LOP32I.AND m01, cw06, 0x000c000c;
+--:-:-:-:1      LOP32I.AND m02, cw06, 0x00300030;
+--:-:-:-:1      LOP32I.AND m03, cw06, 0x00c000c0;
+--:-:-:-:1      LOP32I.AND m04, cw06, 0x03000300;
+--:-:-:-:1      LOP32I.AND m05, cw06, 0x0c000c00;
+--:-:-:-:1      LOP32I.AND m06, cw06, 0x30003000;
+--:-:-:-:1      LOP32I.AND m07, cw06, 0xc000c000;
+--:-:-:-:1      LOP32I.AND m08, cw07, 0x00030003;
+--:-:-:-:1      LOP32I.AND m09, cw07, 0x000c000c;
+--:-:-:-:1      LOP32I.AND m10, cw07, 0x00300030;
+--:-:-:-:1      LOP32I.AND m11, cw07, 0x00c000c0;
+--:-:-:-:1      LOP32I.AND m12, cw07, 0x03000300;
+--:-:-:-:1      LOP32I.AND m13, cw07, 0x0c000c00;
+--:-:-:-:1      LOP32I.AND m14, cw07, 0x30003000;
+--:-:-:-:1      LOP32I.AND m15, cw07, 0xc000c000;
+--:-:-:-:1      XMAD.U16.S16 acc00, m00.H0, act48.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc01, m01.H0, act48.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc02, m02.H0, act49.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc03, m03.H0, act49.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc04, m04.H0, act50.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc05, m05.H0, act50.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc06, m06.H0, act51.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc07, m07.H0, act51.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc00, m00.H1, act52.H0, acc00;
+--:-:-:-:1      XMAD.U16.S16 acc01, m01.H1, act52.H1, acc01;
+--:-:-:-:1      XMAD.U16.S16 acc02, m02.H1, act53.H0, acc02;
+--:-:-:-:1      XMAD.U16.S16 acc03, m03.H1, act53.H1, acc03;
+--:-:-:-:1      XMAD.U16.S16 acc04, m04.H1, act54.H0, acc04;
+--:-:-:-:1      XMAD.U16.S16 acc05, m05.H1, act54.H1, acc05;
+--:-:-:-:1      XMAD.U16.S16 acc06, m06.H1, act55.H0, acc06;
+--:-:-:-:1      XMAD.U16.S16 acc07, m07.H1, act55.H1, acc07;
+--:-:-:-:1      SHR.U32 hs1, hw3, 0x1;
+--:-:-:-:1      SHR.U32 hs2, hw3, 0x2;
+--:-:-:-:1      SHR.U32 hs3, hw3, 0x3;
+--:-:-:-:1      LOP32I.AND m00, hw3, 0x00010001;
+--:-:-:-:1      LOP32I.AND m01, hw3, 0x00100010;
+--:-:-:-:1      LOP32I.AND m02, hw3, 0x01000100;
+--:-:-:-:1      LOP32I.AND m03, hw3, 0x10001000;
+--:-:-:-:1      XMAD.U16.S16 acc08, m08.H0, act56.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc09, m09.H0, act56.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc10, m10.H0, act57.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc11, m11.H0, act57.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc12, m12.H0, act58.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc13, m13.H0, act58.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc14, m14.H0, act59.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc15, m15.H0, act59.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc08, m08.H1, act60.H0, acc08;
+--:-:-:-:1      XMAD.U16.S16 acc09, m09.H1, act60.H1, acc09;
+--:-:-:-:1      XMAD.U16.S16 acc10, m10.H1, act61.H0, acc10;
+--:-:-:-:1      XMAD.U16.S16 acc11, m11.H1, act61.H1, acc11;
+--:-:-:-:1      XMAD.U16.S16 acc12, m12.H1, act62.H0, acc12;
+--:-:-:-:1      XMAD.U16.S16 acc13, m13.H1, act62.H1, acc13;
+--:-:-:-:1      XMAD.U16.S16 acc14, m14.H1, act63.H0, acc14;
+--:-:-:-:1      XMAD.U16.S16 acc15, m15.H1, act63.H1, acc15;
+--:-:-:-:1      LOP32I.AND m04, hs1, 0x00010001;
+--:-:-:-:1      LOP32I.AND m05, hs1, 0x00100010;
+--:-:-:-:1      LOP32I.AND m06, hs1, 0x01000100;
+--:-:-:-:1      LOP32I.AND m07, hs1, 0x10001000;
+--:-:-:-:1      XMAD.U16.S16 acch0, m00.H0, act48.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch1, m01.H0, act50.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch2, m02.H0, act52.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch3, m03.H0, act54.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch4, m00.H1, act56.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch5, m01.H1, act58.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch6, m02.H1, act60.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch7, m03.H1, act62.H0, RZ;
+--:-:-:-:1      LOP32I.AND m00, hs2, 0x00010001;
+--:-:-:-:1      LOP32I.AND m01, hs2, 0x00100010;
+--:-:-:-:1      LOP32I.AND m02, hs2, 0x01000100;
+--:-:-:-:1      LOP32I.AND m03, hs2, 0x10001000;
+--:-:-:-:1      XMAD.U16.S16 acch0, m04.H0, act48.H1, acch0;
+--:-:-:-:1      XMAD.U16.S16 acch1, m05.H0, act50.H1, acch1;
+--:-:-:-:1      XMAD.U16.S16 acch2, m06.H0, act52.H1, acch2;
+--:-:-:-:1      XMAD.U16.S16 acch3, m07.H0, act54.H1, acch3;
+--:-:-:-:1      XMAD.U16.S16 acch4, m04.H1, act56.H1, acch4;
+--:-:-:-:1      XMAD.U16.S16 acch5, m05.H1, act58.H1, acch5;
+--:-:-:-:1      XMAD.U16.S16 acch6, m06.H1, act60.H1, acch6;
+--:-:-:-:1      XMAD.U16.S16 acch7, m07.H1, act62.H1, acch7;
+--:-:-:-:1      LOP32I.AND m04, hs3, 0x00010001;
+--:-:-:-:1      LOP32I.AND m05, hs3, 0x00100010;
+--:-:-:-:1      LOP32I.AND m06, hs3, 0x01000100;
+--:-:-:-:1      LOP32I.AND m07, hs3, 0x10001000;
+--:-:-:-:1      XMAD.U16.S16 acch0, m00.H0, act49.H0, acch0;
+--:-:-:-:1      XMAD.U16.S16 acch1, m01.H0, act51.H0, acch1;
+--:-:-:-:1      XMAD.U16.S16 acch2, m02.H0, act53.H0, acch2;
+--:-:-:-:1      XMAD.U16.S16 acch3, m03.H0, act55.H0, acch3;
+--:-:-:-:1      XMAD.U16.S16 acch4, m00.H1, act57.H0, acch4;
+--:-:-:-:1      XMAD.U16.S16 acch5, m01.H1, act59.H0, acch5;
+--:-:-:-:1      XMAD.U16.S16 acch6, m02.H1, act61.H0, acch6;
+--:-:-:-:1      XMAD.U16.S16 acch7, m03.H1, act63.H0, acch7;
+--:-:-:-:1      XMAD.U16.S16 acch0, m04.H0, act49.H1, acch0;
+--:-:-:-:1      XMAD.U16.S16 acch1, m05.H0, act51.H1, acch1;
+--:-:-:-:1      XMAD.U16.S16 acch2, m06.H0, act53.H1, acch2;
+--:-:-:-:1      XMAD.U16.S16 acch3, m07.H0, act55.H1, acch3;
+--:-:-:-:1      XMAD.U16.S16 acch4, m04.H1, act57.H1, acch4;
+--:-:-:-:1      XMAD.U16.S16 acch5, m05.H1, act59.H1, acch5;
+--:-:-:-:1      XMAD.U16.S16 acch6, m06.H1, act61.H1, acch6;
+--:-:-:-:1      XMAD.U16.S16 acch7, m07.H1, act63.H1, acch7;
+--:-:-:-:1      SHR acc01, acc01, 0x2;
+--:-:-:-:1      SHR acc02, acc02, 0x4;
+--:-:-:-:1      SHR acc03, acc03, 0x6;
+--:-:-:-:1      SHR acc04, acc04, 0x8;
+--:-:-:-:1      SHR acc05, acc05, 0xa;
+--:-:-:-:1      SHR acc06, acc06, 0xc;
+--:-:-:-:4      SHR acc07, acc07, 0xe;
+--:-:-:-:1      IADD acc00, acc00, acc01;
+--:-:-:-:1      IADD acc02, acc02, acc03;
+--:-:-:-:1      IADD acc04, acc04, acc05;
+--:-:-:-:6      IADD acc06, acc06, acc07;
+--:-:-:-:1      IADD acc00, acc00, acc02;
+--:-:-:-:6      IADD acc04, acc04, acc06;
+--:-:-:-:6      IADD dot0, acc00, acc04;
+--:-:-:-:1      SHR acc09, acc09, 0x2;
+--:-:-:-:1      SHR acc10, acc10, 0x4;
+--:-:-:-:1      SHR acc11, acc11, 0x6;
+--:-:-:-:1      SHR acc12, acc12, 0x8;
+--:-:-:-:1      SHR acc13, acc13, 0xa;
+--:-:-:-:1      SHR acc14, acc14, 0xc;
+--:-:-:-:4      SHR acc15, acc15, 0xe;
+--:-:-:-:1      IADD acc08, acc08, acc09;
+--:-:-:-:1      IADD acc10, acc10, acc11;
+--:-:-:-:1      IADD acc12, acc12, acc13;
+--:-:-:-:6      IADD acc14, acc14, acc15;
+--:-:-:-:1      IADD acc08, acc08, acc10;
+--:-:-:-:6      IADD acc12, acc12, acc14;
+--:-:-:-:6      IADD dot1, acc08, acc12;
+--:-:-:-:1      SHR acch1, acch1, 0x4;
+--:-:-:-:1      SHR acch5, acch5, 0x4;
+--:-:-:-:1      SHR acch2, acch2, 0x8;
+--:-:-:-:1      SHR acch6, acch6, 0x8;
+--:-:-:-:1      SHR acch3, acch3, 0xc;
+--:-:-:-:3      SHR acch7, acch7, 0xc;
+--:-:-:-:1      IADD acch0, acch0, acch1;
+--:-:-:-:1      IADD acch4, acch4, acch5;
+--:-:-:-:1      IADD acch2, acch2, acch3;
+--:-:-:-:6      IADD acch6, acch6, acch7;
+--:-:-:-:1      IADD dh0, acch0, acch2;
+--:-:-:-:6      IADD dh1, acch4, acch6;
+--:-:-:-:1      SHL dh0, dh0, 0x2;
+--:-:-:-:6      SHL dh1, dh1, 0x2;
+--:-:-:-:1      IADD3 dot0, dot0, -dh0, RZ;
+--:-:-:-:6      IADD3 dot1, dot1, -dh1, RZ;
+--:-:-:-:6      XMAD.S16.S16 sumi, dot0, scw, RZ;
+--:-:-:-:6      XMAD.S16.S16 sumi, dot1, scw.H1, sumi;
+--:-:3:-:6      I2F.F32.S32 sumif, sumi;
+0c:-:-:-:6      FMUL u, dd, sumif;
+--:-:-:-:6      FFMA accf, as3, u, accf;
+--:-:4:-:1      F2F.F32.F16 dd, dp2;
+--:-:-:-:1      PRMT scw, sw4, 0x9180, RZ;
+--:-:-:-:1      LOP32I.AND m00, cw08, 0x00030003;
+--:-:-:-:1      LOP32I.AND m01, cw08, 0x000c000c;
+--:-:-:-:1      LOP32I.AND m02, cw08, 0x00300030;
+--:-:-:-:1      LOP32I.AND m03, cw08, 0x00c000c0;
+--:-:-:-:1      LOP32I.AND m04, cw08, 0x03000300;
+--:-:-:-:1      LOP32I.AND m05, cw08, 0x0c000c00;
+--:-:-:-:1      LOP32I.AND m06, cw08, 0x30003000;
+--:-:-:-:1      LOP32I.AND m07, cw08, 0xc000c000;
+--:-:-:-:1      LOP32I.AND m08, cw09, 0x00030003;
+--:-:-:-:1      LOP32I.AND m09, cw09, 0x000c000c;
+--:-:-:-:1      LOP32I.AND m10, cw09, 0x00300030;
+--:-:-:-:1      LOP32I.AND m11, cw09, 0x00c000c0;
+--:-:-:-:1      LOP32I.AND m12, cw09, 0x03000300;
+--:-:-:-:1      LOP32I.AND m13, cw09, 0x0c000c00;
+--:-:-:-:1      LOP32I.AND m14, cw09, 0x30003000;
+--:-:-:-:1      LOP32I.AND m15, cw09, 0xc000c000;
+--:-:-:-:1      XMAD.U16.S16 acc00, m00.H0, act64.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc01, m01.H0, act64.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc02, m02.H0, act65.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc03, m03.H0, act65.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc04, m04.H0, act66.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc05, m05.H0, act66.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc06, m06.H0, act67.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc07, m07.H0, act67.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc00, m00.H1, act68.H0, acc00;
+--:-:-:-:1      XMAD.U16.S16 acc01, m01.H1, act68.H1, acc01;
+--:-:-:-:1      XMAD.U16.S16 acc02, m02.H1, act69.H0, acc02;
+--:-:-:-:1      XMAD.U16.S16 acc03, m03.H1, act69.H1, acc03;
+--:-:-:-:1      XMAD.U16.S16 acc04, m04.H1, act70.H0, acc04;
+--:-:-:-:1      XMAD.U16.S16 acc05, m05.H1, act70.H1, acc05;
+--:-:-:-:1      XMAD.U16.S16 acc06, m06.H1, act71.H0, acc06;
+--:-:-:-:1      XMAD.U16.S16 acc07, m07.H1, act71.H1, acc07;
+--:-:-:-:1      SHR.U32 hs1, hw4, 0x1;
+--:-:-:-:1      SHR.U32 hs2, hw4, 0x2;
+--:-:-:-:1      SHR.U32 hs3, hw4, 0x3;
+--:-:-:-:1      LOP32I.AND m00, hw4, 0x00010001;
+--:-:-:-:1      LOP32I.AND m01, hw4, 0x00100010;
+--:-:-:-:1      LOP32I.AND m02, hw4, 0x01000100;
+--:-:-:-:1      LOP32I.AND m03, hw4, 0x10001000;
+--:-:-:-:1      XMAD.U16.S16 acc08, m08.H0, act72.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc09, m09.H0, act72.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc10, m10.H0, act73.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc11, m11.H0, act73.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc12, m12.H0, act74.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc13, m13.H0, act74.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc14, m14.H0, act75.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc15, m15.H0, act75.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc08, m08.H1, act76.H0, acc08;
+--:-:-:-:1      XMAD.U16.S16 acc09, m09.H1, act76.H1, acc09;
+--:-:-:-:1      XMAD.U16.S16 acc10, m10.H1, act77.H0, acc10;
+--:-:-:-:1      XMAD.U16.S16 acc11, m11.H1, act77.H1, acc11;
+--:-:-:-:1      XMAD.U16.S16 acc12, m12.H1, act78.H0, acc12;
+--:-:-:-:1      XMAD.U16.S16 acc13, m13.H1, act78.H1, acc13;
+--:-:-:-:1      XMAD.U16.S16 acc14, m14.H1, act79.H0, acc14;
+--:-:-:-:1      XMAD.U16.S16 acc15, m15.H1, act79.H1, acc15;
+--:-:-:-:1      LOP32I.AND m04, hs1, 0x00010001;
+--:-:-:-:1      LOP32I.AND m05, hs1, 0x00100010;
+--:-:-:-:1      LOP32I.AND m06, hs1, 0x01000100;
+--:-:-:-:1      LOP32I.AND m07, hs1, 0x10001000;
+--:-:-:-:1      XMAD.U16.S16 acch0, m00.H0, act64.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch1, m01.H0, act66.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch2, m02.H0, act68.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch3, m03.H0, act70.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch4, m00.H1, act72.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch5, m01.H1, act74.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch6, m02.H1, act76.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch7, m03.H1, act78.H0, RZ;
+--:-:-:-:1      LOP32I.AND m00, hs2, 0x00010001;
+--:-:-:-:1      LOP32I.AND m01, hs2, 0x00100010;
+--:-:-:-:1      LOP32I.AND m02, hs2, 0x01000100;
+--:-:-:-:1      LOP32I.AND m03, hs2, 0x10001000;
+--:-:-:-:1      XMAD.U16.S16 acch0, m04.H0, act64.H1, acch0;
+--:-:-:-:1      XMAD.U16.S16 acch1, m05.H0, act66.H1, acch1;
+--:-:-:-:1      XMAD.U16.S16 acch2, m06.H0, act68.H1, acch2;
+--:-:-:-:1      XMAD.U16.S16 acch3, m07.H0, act70.H1, acch3;
+--:-:-:-:1      XMAD.U16.S16 acch4, m04.H1, act72.H1, acch4;
+--:-:-:-:1      XMAD.U16.S16 acch5, m05.H1, act74.H1, acch5;
+--:-:-:-:1      XMAD.U16.S16 acch6, m06.H1, act76.H1, acch6;
+--:-:-:-:1      XMAD.U16.S16 acch7, m07.H1, act78.H1, acch7;
+--:-:-:-:1      LOP32I.AND m04, hs3, 0x00010001;
+--:-:-:-:1      LOP32I.AND m05, hs3, 0x00100010;
+--:-:-:-:1      LOP32I.AND m06, hs3, 0x01000100;
+--:-:-:-:1      LOP32I.AND m07, hs3, 0x10001000;
+--:-:-:-:1      XMAD.U16.S16 acch0, m00.H0, act65.H0, acch0;
+--:-:-:-:1      XMAD.U16.S16 acch1, m01.H0, act67.H0, acch1;
+--:-:-:-:1      XMAD.U16.S16 acch2, m02.H0, act69.H0, acch2;
+--:-:-:-:1      XMAD.U16.S16 acch3, m03.H0, act71.H0, acch3;
+--:-:-:-:1      XMAD.U16.S16 acch4, m00.H1, act73.H0, acch4;
+--:-:-:-:1      XMAD.U16.S16 acch5, m01.H1, act75.H0, acch5;
+--:-:-:-:1      XMAD.U16.S16 acch6, m02.H1, act77.H0, acch6;
+--:-:-:-:1      XMAD.U16.S16 acch7, m03.H1, act79.H0, acch7;
+--:-:-:-:1      XMAD.U16.S16 acch0, m04.H0, act65.H1, acch0;
+--:-:-:-:1      XMAD.U16.S16 acch1, m05.H0, act67.H1, acch1;
+--:-:-:-:1      XMAD.U16.S16 acch2, m06.H0, act69.H1, acch2;
+--:-:-:-:1      XMAD.U16.S16 acch3, m07.H0, act71.H1, acch3;
+--:-:-:-:1      XMAD.U16.S16 acch4, m04.H1, act73.H1, acch4;
+--:-:-:-:1      XMAD.U16.S16 acch5, m05.H1, act75.H1, acch5;
+--:-:-:-:1      XMAD.U16.S16 acch6, m06.H1, act77.H1, acch6;
+--:-:-:-:1      XMAD.U16.S16 acch7, m07.H1, act79.H1, acch7;
+--:-:-:-:1      SHR acc01, acc01, 0x2;
+--:-:-:-:1      SHR acc02, acc02, 0x4;
+--:-:-:-:1      SHR acc03, acc03, 0x6;
+--:-:-:-:1      SHR acc04, acc04, 0x8;
+--:-:-:-:1      SHR acc05, acc05, 0xa;
+--:-:-:-:1      SHR acc06, acc06, 0xc;
+--:-:-:-:4      SHR acc07, acc07, 0xe;
+--:-:-:-:1      IADD acc00, acc00, acc01;
+--:-:-:-:1      IADD acc02, acc02, acc03;
+--:-:-:-:1      IADD acc04, acc04, acc05;
+--:-:-:-:6      IADD acc06, acc06, acc07;
+--:-:-:-:1      IADD acc00, acc00, acc02;
+--:-:-:-:6      IADD acc04, acc04, acc06;
+--:-:-:-:6      IADD dot0, acc00, acc04;
+--:-:-:-:1      SHR acc09, acc09, 0x2;
+--:-:-:-:1      SHR acc10, acc10, 0x4;
+--:-:-:-:1      SHR acc11, acc11, 0x6;
+--:-:-:-:1      SHR acc12, acc12, 0x8;
+--:-:-:-:1      SHR acc13, acc13, 0xa;
+--:-:-:-:1      SHR acc14, acc14, 0xc;
+--:-:-:-:4      SHR acc15, acc15, 0xe;
+--:-:-:-:1      IADD acc08, acc08, acc09;
+--:-:-:-:1      IADD acc10, acc10, acc11;
+--:-:-:-:1      IADD acc12, acc12, acc13;
+--:-:-:-:6      IADD acc14, acc14, acc15;
+--:-:-:-:1      IADD acc08, acc08, acc10;
+--:-:-:-:6      IADD acc12, acc12, acc14;
+--:-:-:-:6      IADD dot1, acc08, acc12;
+--:-:-:-:1      SHR acch1, acch1, 0x4;
+--:-:-:-:1      SHR acch5, acch5, 0x4;
+--:-:-:-:1      SHR acch2, acch2, 0x8;
+--:-:-:-:1      SHR acch6, acch6, 0x8;
+--:-:-:-:1      SHR acch3, acch3, 0xc;
+--:-:-:-:3      SHR acch7, acch7, 0xc;
+--:-:-:-:1      IADD acch0, acch0, acch1;
+--:-:-:-:1      IADD acch4, acch4, acch5;
+--:-:-:-:1      IADD acch2, acch2, acch3;
+--:-:-:-:6      IADD acch6, acch6, acch7;
+--:-:-:-:1      IADD dh0, acch0, acch2;
+--:-:-:-:6      IADD dh1, acch4, acch6;
+--:-:-:-:1      SHL dh0, dh0, 0x2;
+--:-:-:-:6      SHL dh1, dh1, 0x2;
+--:-:-:-:1      IADD3 dot0, dot0, -dh0, RZ;
+--:-:-:-:6      IADD3 dot1, dot1, -dh1, RZ;
+--:-:-:-:6      XMAD.S16.S16 sumi, dot0, scw, RZ;
+--:-:-:-:6      XMAD.S16.S16 sumi, dot1, scw.H1, sumi;
+--:-:3:-:6      I2F.F32.S32 sumif, sumi;
+0c:-:-:-:6      FMUL u, dd, sumif;
+--:-:-:-:6      FFMA accf, as4, u, accf;
+--:-:4:-:1      F2F.F32.F16 dd, dp2.H1;
+--:-:-:-:1      PRMT scw, sw5, 0x9180, RZ;
+--:-:-:-:1      LOP32I.AND m00, cw10, 0x00030003;
+--:-:-:-:1      LOP32I.AND m01, cw10, 0x000c000c;
+--:-:-:-:1      LOP32I.AND m02, cw10, 0x00300030;
+--:-:-:-:1      LOP32I.AND m03, cw10, 0x00c000c0;
+--:-:-:-:1      LOP32I.AND m04, cw10, 0x03000300;
+--:-:-:-:1      LOP32I.AND m05, cw10, 0x0c000c00;
+--:-:-:-:1      LOP32I.AND m06, cw10, 0x30003000;
+--:-:-:-:1      LOP32I.AND m07, cw10, 0xc000c000;
+--:-:-:-:1      LOP32I.AND m08, cw11, 0x00030003;
+--:-:-:-:1      LOP32I.AND m09, cw11, 0x000c000c;
+--:-:-:-:1      LOP32I.AND m10, cw11, 0x00300030;
+--:-:-:-:1      LOP32I.AND m11, cw11, 0x00c000c0;
+--:-:-:-:1      LOP32I.AND m12, cw11, 0x03000300;
+--:-:-:-:1      LOP32I.AND m13, cw11, 0x0c000c00;
+--:-:-:-:1      LOP32I.AND m14, cw11, 0x30003000;
+--:-:-:-:1      LOP32I.AND m15, cw11, 0xc000c000;
+--:-:-:-:1      XMAD.U16.S16 acc00, m00.H0, act80.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc01, m01.H0, act80.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc02, m02.H0, act81.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc03, m03.H0, act81.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc04, m04.H0, act82.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc05, m05.H0, act82.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc06, m06.H0, act83.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc07, m07.H0, act83.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc00, m00.H1, act84.H0, acc00;
+--:-:-:-:1      XMAD.U16.S16 acc01, m01.H1, act84.H1, acc01;
+--:-:-:-:1      XMAD.U16.S16 acc02, m02.H1, act85.H0, acc02;
+--:-:-:-:1      XMAD.U16.S16 acc03, m03.H1, act85.H1, acc03;
+--:-:-:-:1      XMAD.U16.S16 acc04, m04.H1, act86.H0, acc04;
+--:-:-:-:1      XMAD.U16.S16 acc05, m05.H1, act86.H1, acc05;
+--:-:-:-:1      XMAD.U16.S16 acc06, m06.H1, act87.H0, acc06;
+--:-:-:-:1      XMAD.U16.S16 acc07, m07.H1, act87.H1, acc07;
+--:-:-:-:1      SHR.U32 hs1, hw5, 0x1;
+--:-:-:-:1      SHR.U32 hs2, hw5, 0x2;
+--:-:-:-:1      SHR.U32 hs3, hw5, 0x3;
+--:-:-:-:1      LOP32I.AND m00, hw5, 0x00010001;
+--:-:-:-:1      LOP32I.AND m01, hw5, 0x00100010;
+--:-:-:-:1      LOP32I.AND m02, hw5, 0x01000100;
+--:-:-:-:1      LOP32I.AND m03, hw5, 0x10001000;
+--:-:-:-:1      XMAD.U16.S16 acc08, m08.H0, act88.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc09, m09.H0, act88.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc10, m10.H0, act89.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc11, m11.H0, act89.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc12, m12.H0, act90.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc13, m13.H0, act90.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc14, m14.H0, act91.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc15, m15.H0, act91.H1, RZ;
+--:-:-:-:1      XMAD.U16.S16 acc08, m08.H1, act92.H0, acc08;
+--:-:-:-:1      XMAD.U16.S16 acc09, m09.H1, act92.H1, acc09;
+--:-:-:-:1      XMAD.U16.S16 acc10, m10.H1, act93.H0, acc10;
+--:-:-:-:1      XMAD.U16.S16 acc11, m11.H1, act93.H1, acc11;
+--:-:-:-:1      XMAD.U16.S16 acc12, m12.H1, act94.H0, acc12;
+--:-:-:-:1      XMAD.U16.S16 acc13, m13.H1, act94.H1, acc13;
+--:-:-:-:1      XMAD.U16.S16 acc14, m14.H1, act95.H0, acc14;
+--:-:-:-:1      XMAD.U16.S16 acc15, m15.H1, act95.H1, acc15;
+--:-:-:-:1      LOP32I.AND m04, hs1, 0x00010001;
+--:-:-:-:1      LOP32I.AND m05, hs1, 0x00100010;
+--:-:-:-:1      LOP32I.AND m06, hs1, 0x01000100;
+--:-:-:-:1      LOP32I.AND m07, hs1, 0x10001000;
+--:-:-:-:1      XMAD.U16.S16 acch0, m00.H0, act80.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch1, m01.H0, act82.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch2, m02.H0, act84.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch3, m03.H0, act86.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch4, m00.H1, act88.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch5, m01.H1, act90.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch6, m02.H1, act92.H0, RZ;
+--:-:-:-:1      XMAD.U16.S16 acch7, m03.H1, act94.H0, RZ;
+--:-:-:-:1      LOP32I.AND m00, hs2, 0x00010001;
+--:-:-:-:1      LOP32I.AND m01, hs2, 0x00100010;
+--:-:-:-:1      LOP32I.AND m02, hs2, 0x01000100;
+--:-:-:-:1      LOP32I.AND m03, hs2, 0x10001000;
+--:-:-:-:1      XMAD.U16.S16 acch0, m04.H0, act80.H1, acch0;
+--:-:-:-:1      XMAD.U16.S16 acch1, m05.H0, act82.H1, acch1;
+--:-:-:-:1      XMAD.U16.S16 acch2, m06.H0, act84.H1, acch2;
+--:-:-:-:1      XMAD.U16.S16 acch3, m07.H0, act86.H1, acch3;
+--:-:-:-:1      XMAD.U16.S16 acch4, m04.H1, act88.H1, acch4;
+--:-:-:-:1      XMAD.U16.S16 acch5, m05.H1, act90.H1, acch5;
+--:-:-:-:1      XMAD.U16.S16 acch6, m06.H1, act92.H1, acch6;
+--:-:-:-:1      XMAD.U16.S16 acch7, m07.H1, act94.H1, acch7;
+--:-:-:-:1      LOP32I.AND m04, hs3, 0x00010001;
+--:-:-:-:1      LOP32I.AND m05, hs3, 0x00100010;
+--:-:-:-:1      LOP32I.AND m06, hs3, 0x01000100;
+--:-:-:-:1      LOP32I.AND m07, hs3, 0x10001000;
+--:-:-:-:1      XMAD.U16.S16 acch0, m00.H0, act81.H0, acch0;
+--:-:-:-:1      XMAD.U16.S16 acch1, m01.H0, act83.H0, acch1;
+--:-:-:-:1      XMAD.U16.S16 acch2, m02.H0, act85.H0, acch2;
+--:-:-:-:1      XMAD.U16.S16 acch3, m03.H0, act87.H0, acch3;
+--:-:-:-:1      XMAD.U16.S16 acch4, m00.H1, act89.H0, acch4;
+--:-:-:-:1      XMAD.U16.S16 acch5, m01.H1, act91.H0, acch5;
+--:-:-:-:1      XMAD.U16.S16 acch6, m02.H1, act93.H0, acch6;
+--:-:-:-:1      XMAD.U16.S16 acch7, m03.H1, act95.H0, acch7;
+--:-:-:-:1      XMAD.U16.S16 acch0, m04.H0, act81.H1, acch0;
+--:-:-:-:1      XMAD.U16.S16 acch1, m05.H0, act83.H1, acch1;
+--:-:-:-:1      XMAD.U16.S16 acch2, m06.H0, act85.H1, acch2;
+--:-:-:-:1      XMAD.U16.S16 acch3, m07.H0, act87.H1, acch3;
+--:-:-:-:1      XMAD.U16.S16 acch4, m04.H1, act89.H1, acch4;
+--:-:-:-:1      XMAD.U16.S16 acch5, m05.H1, act91.H1, acch5;
+--:-:-:-:1      XMAD.U16.S16 acch6, m06.H1, act93.H1, acch6;
+--:-:-:-:1      XMAD.U16.S16 acch7, m07.H1, act95.H1, acch7;
+--:-:-:-:1      SHR acc01, acc01, 0x2;
+--:-:-:-:1      SHR acc02, acc02, 0x4;
+--:-:-:-:1      SHR acc03, acc03, 0x6;
+--:-:-:-:1      SHR acc04, acc04, 0x8;
+--:-:-:-:1      SHR acc05, acc05, 0xa;
+--:-:-:-:1      SHR acc06, acc06, 0xc;
+--:-:-:-:4      SHR acc07, acc07, 0xe;
+--:-:-:-:1      IADD acc00, acc00, acc01;
+--:-:-:-:1      IADD acc02, acc02, acc03;
+--:-:-:-:1      IADD acc04, acc04, acc05;
+--:-:-:-:6      IADD acc06, acc06, acc07;
+--:-:-:-:1      IADD acc00, acc00, acc02;
+--:-:-:-:6      IADD acc04, acc04, acc06;
+--:-:-:-:6      IADD dot0, acc00, acc04;
+--:-:-:-:1      SHR acc09, acc09, 0x2;
+--:-:-:-:1      SHR acc10, acc10, 0x4;
+--:-:-:-:1      SHR acc11, acc11, 0x6;
+--:-:-:-:1      SHR acc12, acc12, 0x8;
+--:-:-:-:1      SHR acc13, acc13, 0xa;
+--:-:-:-:1      SHR acc14, acc14, 0xc;
+--:-:-:-:4      SHR acc15, acc15, 0xe;
+--:-:-:-:1      IADD acc08, acc08, acc09;
+--:-:-:-:1      IADD acc10, acc10, acc11;
+--:-:-:-:1      IADD acc12, acc12, acc13;
+--:-:-:-:6      IADD acc14, acc14, acc15;
+--:-:-:-:1      IADD acc08, acc08, acc10;
+--:-:-:-:6      IADD acc12, acc12, acc14;
+--:-:-:-:6      IADD dot1, acc08, acc12;
+--:-:-:-:1      SHR acch1, acch1, 0x4;
+--:-:-:-:1      SHR acch5, acch5, 0x4;
+--:-:-:-:1      SHR acch2, acch2, 0x8;
+--:-:-:-:1      SHR acch6, acch6, 0x8;
+--:-:-:-:1      SHR acch3, acch3, 0xc;
+--:-:-:-:3      SHR acch7, acch7, 0xc;
+--:-:-:-:1      IADD acch0, acch0, acch1;
+--:-:-:-:1      IADD acch4, acch4, acch5;
+--:-:-:-:1      IADD acch2, acch2, acch3;
+--:-:-:-:6      IADD acch6, acch6, acch7;
+--:-:-:-:1      IADD dh0, acch0, acch2;
+--:-:-:-:6      IADD dh1, acch4, acch6;
+--:-:-:-:1      SHL dh0, dh0, 0x2;
+--:-:-:-:6      SHL dh1, dh1, 0x2;
+--:-:-:-:1      IADD3 dot0, dot0, -dh0, RZ;
+--:-:-:-:6      IADD3 dot1, dot1, -dh1, RZ;
+--:-:-:-:6      XMAD.S16.S16 sumi, dot0, scw, RZ;
+--:-:-:-:6      XMAD.S16.S16 sumi, dot1, scw.H1, sumi;
+--:-:3:-:6      I2F.F32.S32 sumif, sumi;
+0c:-:-:-:6      FMUL u, dd, sumif;
+--:-:-:-:6      FFMA accf, as5, u, accf;
+--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x10, 0x1f;
+10:-:-:-:6      FADD accf, accf, t;
+--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x8, 0x1f;
+10:-:-:-:6      FADD accf, accf, t;
+--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x4, 0x1f;
+10:-:-:-:6      FADD accf, accf, t;
+--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x2, 0x1f;
+10:-:-:-:6      FADD accf, accf, t;
+--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x1, 0x1f;
+10:-:-:-:6      FADD accf, accf, t;
+--:2:-:-:1  @P2 STG.E [yp], accf;
+--:-:-:-:1      IADD row, row, rowstep;
+02:-:-:-:6      IADD pp0.CC, pp0, stepw;
+--:-:-:-:6      IADD.X pp1, pp1, RZ;
+--:-:-:-:6      IADD cp0.CC, cp0, stepw;
+--:-:-:-:6      IADD.X cp1, cp1, RZ;
+--:-:-:-:6      IADD hp0.CC, hp0, stepw;
+--:-:-:-:6      IADD.X hp1, hp1, RZ;
+--:-:-:-:6      IADD sp0.CC, sp0, stepw;
+--:-:-:-:6      IADD.X sp1, sp1, RZ;
+--:-:-:-:6      SHL t, rowstep, 0x2;
+--:-:-:-:6      IADD yp0.CC, yp0, t;
+--:-:-:-:6      IADD.X yp1, yp1, RZ;
+--:-:-:-:6  @P1 BRA LOOP;
+--:-:-:-:f      BRA GRAPH_DONE;
+
+
+GRAPH_DONE:
+3f:-:-:-:6      MEMBAR.SYS;
+--:-:-:-:f      EXIT;

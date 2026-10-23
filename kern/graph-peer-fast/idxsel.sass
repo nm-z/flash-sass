@@ -1,0 +1,1345 @@
+# Kernel: graph_idxsel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<CONSTANT_MAPPING>
+    graph_arg_param_SC0  : c[0x0][0x140]
+    graph_arg_param_SC1  : c[0x0][0x144]
+    graph_arg_param_HST0 : c[0x0][0x148]
+    graph_arg_param_HST1 : c[0x0][0x14c]
+    graph_arg_param_SEL0 : c[0x0][0x150]
+    graph_arg_param_SEL1 : c[0x0][0x154]
+    graph_arg_param_t    : c[0x0][0x158]
+    graph_arg_param_nblk : c[0x0][0x15c]
+    graph_arg_param_pass : c[0x0][0x160]
+    graph_ctl0 : c[0x0][0x1b8]
+    graph_ctl1 : c[0x0][0x1bc]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0-7   : a<0-7>
+    8     : s
+    9     : sx
+    10    : tt
+    11    : kk
+    12    : pre
+    13    : bb
+    14    : abv
+    15    : cum
+    16    : tid
+    17    : lane
+    18    : warp
+    19    : cta
+    20    : nv
+    21    : start
+    22    : end
+    23    : e
+    24    : u
+    25    : t
+    26    : t2
+    27    : t3
+    28    : T
+    29    : need
+    30    : gtc
+    31    : eqc
+    32    : one
+    33    : sd
+    34    : sm
+    35    : msk
+    36    : eqf
+    37    : gtf
+    38    : sel
+    39    : eqi
+    40    : seli
+    41    : eqrun
+    42    : selrun
+    43    : eqw
+    44    : selw
+    45    : eqtot
+    46    : seltot
+    47    : sbase
+    48    : nc
+    49    : pass
+    50,51 : hp<0-1>
+    52,53 : sp<0-1>
+    54,55 : op<0-1>
+    56    : lmax
+    57    : nit
+    58 : param_SC0
+    59 : param_SC1
+    60 : param_HST0
+    61 : param_HST1
+    62 : param_SEL0
+    63 : param_SEL1
+    64 : param_t
+    65 : param_nblk
+    66 : param_pass
+    68,69 : graph_cp<0-1>
+    70 : graph_position
+    0 : g_tid
+    1 : g_lane
+    2,3 : g_ctl<0-1>
+    4,5 : g_ptr<0-1>
+    6 : g_expected
+    7 : g_value
+    8 : g_time0
+    9 : g_time1
+    10 : g_flags
+    11 : g_index
+    12 : g_one
+    13 : g_count
+    14 : g_tmp
+</REGISTER_MAPPING>
+--:-:-:-:6      MOV g_flags, c[0x0][0x1b0];
+--:-:-:-:6      LOP32I.AND g_flags, g_flags, 0x2;
+--:-:-:-:6      ISETP.EQ.U32.AND P0, PT, g_flags, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_WAIT_DONE;
+--:-:6:-:2      S2R g_tid, SR_TID.X;
+--:-:-:-:6      MOV g_ctl0, c[0x0][0x1b8];
+--:-:-:-:6      MOV g_ctl1, c[0x0][0x1bc];
+20:-:-:-:6      ISETP.EQ.U32.AND P0, PT, g_tid, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:1:-:2  @P0 LDG.E.CV g_value, [g_ctl+0x2c];
+01:2:-:-:2  @P0 STS [RZ], g_value;
+02:-:-:-:6      BAR.SYNC 0x0;
+--:-:1:-:2      LDS g_value, [RZ];
+01:-:-:-:6      ISETP.NE.U32.AND P0, PT, g_value, RZ, PT;
+--:-:-:-:6      BAR.SYNC 0x0;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_EXIT;
+--:-:-:-:6      MOV g_flags, c[0x0][0x1b0];
+--:-:-:-:6      LOP32I.AND g_flags, g_flags, 0x2;
+--:-:-:-:6      ISETP.EQ.U32.AND P0, PT, g_flags, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_WAIT_DONE;
+--:-:-:-:6      ISETP.GE.U32.AND P0, PT, g_tid, 0x20, PT;
+--:-:-:-:6      LOP32I.AND g_lane, g_tid, 0x1f;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_WAIT_BAR;
+--:-:1:-:1      LDG.E.CV g_expected, [g_ctl+0x20];
+--:-:1:-:2      LDG.E.64 g_ptr0, [g_ctl+0x70];
+--:-:-:-:6      SHL g_tmp, g_lane, 0x6;
+01:-:-:-:6      IADD g_ptr0.CC, g_ptr0, g_tmp;
+--:-:-:-:6      IADD.X g_ptr1, g_ptr1, RZ;
+--:-:-:-:6      ISETP.LT.U32.AND P1, PT, g_lane, 0x6, PT;
+--:-:-:-:6      ISETP.EQ.U32.AND P2, PT, g_lane, RZ, PT;
+--:-:6:-:2      S2R g_time0, SR_GLOBALTIMERHI;
+20:-:-:-:6      MOV32I g_value, 0xffffffff;
+GRAPH_WAIT_SPIN:
+--:-:1:-:2  @P1 LDG.E.CV g_value, [g_ptr];
+01:-:-:-:6      ISETP.GE.U32.AND P0, PT, g_value, g_expected, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      VOTE.ALL P0, P0;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_WAIT_BAR;
+--:-:1:-:2      LDG.E.CV g_count, [g_ctl+0x2c];
+--:-:6:-:2      S2R g_time1, SR_GLOBALTIMERHI;
+20:-:-:-:6      IADD g_time1, g_time1, -g_time0;
+--:-:-:-:6      ISETP.GE.U32.AND P0, PT, g_time1, 0x46, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+01:-:-:-:6      ISETP.NE.U32.OR P0, PT, g_count, RZ, P0;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      VOTE.ANY P0, P0;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6 @!P0 BRA GRAPH_WAIT_SPIN;
+--:-:-:-:6      MOV32I g_value, 0x1;
+--:2:-:-:6  @P2 STG.E.WT [g_ctl+0x2c], g_value;
+--:2:-:-:6  @P2 STS [RZ], g_value;
+02:-:-:-:6      MEMBAR.SYS;
+GRAPH_WAIT_BAR:
+--:-:-:-:6      BAR.SYNC 0x0;
+--:-:1:-:2      LDS g_value, [RZ];
+01:-:-:-:6      ISETP.NE.U32.AND P0, PT, g_value, RZ, PT;
+--:-:-:-:6      BAR.SYNC 0x0;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_EXIT;
+GRAPH_WAIT_DONE:
+--:-:-:-:6      MEMBAR.GL.IVALLD;
+--:-:-:-:6      MEMBAR.GL.IVALLD;
+--:-:-:-:6      MOV param_SC0, graph_arg_param_SC0;
+--:-:-:-:6      MOV param_SC1, graph_arg_param_SC1;
+--:-:-:-:6      MOV param_HST0, graph_arg_param_HST0;
+--:-:-:-:6      MOV param_HST1, graph_arg_param_HST1;
+--:-:-:-:6      MOV param_SEL0, graph_arg_param_SEL0;
+--:-:-:-:6      MOV param_SEL1, graph_arg_param_SEL1;
+--:-:-:-:6      MOV param_t, graph_arg_param_t;
+--:-:-:-:6      MOV param_nblk, graph_arg_param_nblk;
+--:-:-:-:6      MOV param_pass, graph_arg_param_pass;
+--:-:-:-:6      MOV graph_cp0, graph_ctl0;
+--:-:-:-:6      MOV graph_cp1, graph_ctl1;
+--:-:6:-:2      LDG.E.CV graph_position, [graph_cp+0x8];
+20:-:-:-:6      IADD param_t, param_t, graph_position;
+
+
+--:-:6:-:1      S2R tid, SR_TID.X;
+--:-:6:-:1      S2R cta, SR_CTAID.X;
+--:-:-:-:6      MOV t, param_t;
+--:-:-:-:6      IADD t, t, 0x1;
+--:-:-:-:6      SHR.U32 nv, t, 0x2;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.LE.U32.AND P0, PT, nv, param_nblk, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_DONE;
+20:-:-:-:6      SHR.U32 warp, tid, 0x5;
+--:-:-:-:6      LOP32I.AND lane, tid, 0x1f;
+--:-:-:-:6      MOV one, 0x1;
+--:-:-:-:6      MOV pass, param_pass;
+--:-:-:-:6      IADD t, nv, 0xf;
+--:-:-:-:6      SHR.U32 t, t, 0x4;
+--:-:-:-:6      XMAD start, cta, t, RZ;
+--:-:-:-:6      IADD end, start, t;
+--:-:-:-:6      IMNMX.U32 end, end, nv, PT;
+--:-:-:-:6      IMNMX.U32 start, start, nv, PT;
+--:-:-:-:6      IADD lmax, pass, -0x1;
+--:-:-:-:6      IMNMX.U32 lmax, lmax, 0x4, PT;
+--:-:-:-:6      SHL t2, tid, 0x2;
+--:-:-:-:6      STS [t2], RZ;
+--:-:-:-:6      MOV kk, param_nblk;
+--:-:-:-:6      MOV pre, RZ;
+--:-:-:-:6      ISETP.NE.U32.AND P1, PT, warp, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P1 BRA SCANBAR;
+--:-:-:-:6      SHL t2, lane, 0x5;
+--:-:-:-:6      IADD hp0.CC, t2, param_HST0;
+--:-:-:-:6      IADD.X hp1, RZ, param_HST1;
+--:-:-:-:6      ISETP.LT.U32.AND P2, PT, lmax, 0x1, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P2 BRA SCANBAR;
+--:-:1:-:1      LDG.E.128 a0, [hp+0x0];
+--:-:1:-:2      LDG.E.128 a4, [hp+0x10];
+01:-:-:-:1      IADD s, a0, a1;
+--:-:-:-:1      IADD tt, a2, a3;
+--:-:-:-:1      IADD t, a4, a5;
+--:-:-:-:6      IADD t2, a6, a7;
+--:-:-:-:1      IADD s, s, tt;
+--:-:-:-:6      IADD t, t, t2;
+--:-:-:-:6      IADD s, s, t;
+--:-:-:-:6      MOV sx, s;
+--:-:5:-:2      SHFL.DOWN P0, tt, sx, 0x1, 0x1f;
+10:-:-:-:6  @P0 IADD sx, sx, tt;
+--:-:5:-:2      SHFL.DOWN P0, tt, sx, 0x2, 0x1f;
+10:-:-:-:6  @P0 IADD sx, sx, tt;
+--:-:5:-:2      SHFL.DOWN P0, tt, sx, 0x4, 0x1f;
+10:-:-:-:6  @P0 IADD sx, sx, tt;
+--:-:5:-:2      SHFL.DOWN P0, tt, sx, 0x8, 0x1f;
+10:-:-:-:6  @P0 IADD sx, sx, tt;
+--:-:5:-:2      SHFL.DOWN P0, tt, sx, 0x10, 0x1f;
+10:-:-:-:6  @P0 IADD sx, sx, tt;
+--:-:-:-:6      IADD cum, sx, -s;
+--:-:-:-:6      ISETP.GE.U32.AND P5, PT, sx, kk, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.LT.U32.AND P1, PT, cum, kk, P5;
+--:-:-:-:6      MOV bb, RZ;
+--:-:-:-:6      MOV abv, RZ;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      IADD nc, cum, a7;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x8, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a6;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x7, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a5;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x6, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a4;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x5, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a3;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x4, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a2;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x3, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a1;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x2, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a0;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x1, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:5:-:2      SHFL.BFLY PT, tt, bb, 0x10, 0x1f;
+10:-:-:-:6      IMNMX.U32 bb, bb, tt, !PT;
+--:-:5:-:2      SHFL.BFLY PT, tt, abv, 0x10, 0x1f;
+10:-:-:-:6      IADD abv, abv, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, bb, 0x8, 0x1f;
+10:-:-:-:6      IMNMX.U32 bb, bb, tt, !PT;
+--:-:5:-:2      SHFL.BFLY PT, tt, abv, 0x8, 0x1f;
+10:-:-:-:6      IADD abv, abv, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, bb, 0x4, 0x1f;
+10:-:-:-:6      IMNMX.U32 bb, bb, tt, !PT;
+--:-:5:-:2      SHFL.BFLY PT, tt, abv, 0x4, 0x1f;
+10:-:-:-:6      IADD abv, abv, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, bb, 0x2, 0x1f;
+10:-:-:-:6      IMNMX.U32 bb, bb, tt, !PT;
+--:-:5:-:2      SHFL.BFLY PT, tt, abv, 0x2, 0x1f;
+10:-:-:-:6      IADD abv, abv, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, bb, 0x1, 0x1f;
+10:-:-:-:6      IMNMX.U32 bb, bb, tt, !PT;
+--:-:5:-:2      SHFL.BFLY PT, tt, abv, 0x1, 0x1f;
+10:-:-:-:6      IADD abv, abv, tt;
+--:-:-:-:6      IADD kk, kk, -abv;
+--:-:-:-:6      SHL pre, pre, 0x8;
+--:-:-:-:6      IADD pre, pre, bb;
+--:-:-:-:6      IADD pre, pre, -0x1;
+--:-:-:-:6      ISETP.LT.U32.AND P2, PT, lmax, 0x2, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P2 BRA SCANBAR;
+--:-:1:-:1      LDG.E.128 a0, [hp+0x400];
+--:-:1:-:2      LDG.E.128 a4, [hp+0x410];
+01:-:-:-:1      IADD s, a0, a1;
+--:-:-:-:1      IADD tt, a2, a3;
+--:-:-:-:1      IADD t, a4, a5;
+--:-:-:-:6      IADD t2, a6, a7;
+--:-:-:-:1      IADD s, s, tt;
+--:-:-:-:6      IADD t, t, t2;
+--:-:-:-:6      IADD s, s, t;
+--:-:-:-:6      MOV sx, s;
+--:-:5:-:2      SHFL.DOWN P0, tt, sx, 0x1, 0x1f;
+10:-:-:-:6  @P0 IADD sx, sx, tt;
+--:-:5:-:2      SHFL.DOWN P0, tt, sx, 0x2, 0x1f;
+10:-:-:-:6  @P0 IADD sx, sx, tt;
+--:-:5:-:2      SHFL.DOWN P0, tt, sx, 0x4, 0x1f;
+10:-:-:-:6  @P0 IADD sx, sx, tt;
+--:-:5:-:2      SHFL.DOWN P0, tt, sx, 0x8, 0x1f;
+10:-:-:-:6  @P0 IADD sx, sx, tt;
+--:-:5:-:2      SHFL.DOWN P0, tt, sx, 0x10, 0x1f;
+10:-:-:-:6  @P0 IADD sx, sx, tt;
+--:-:-:-:6      IADD cum, sx, -s;
+--:-:-:-:6      ISETP.GE.U32.AND P5, PT, sx, kk, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.LT.U32.AND P1, PT, cum, kk, P5;
+--:-:-:-:6      MOV bb, RZ;
+--:-:-:-:6      MOV abv, RZ;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      IADD nc, cum, a7;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x8, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a6;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x7, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a5;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x6, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a4;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x5, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a3;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x4, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a2;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x3, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a1;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x2, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a0;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x1, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:5:-:2      SHFL.BFLY PT, tt, bb, 0x10, 0x1f;
+10:-:-:-:6      IMNMX.U32 bb, bb, tt, !PT;
+--:-:5:-:2      SHFL.BFLY PT, tt, abv, 0x10, 0x1f;
+10:-:-:-:6      IADD abv, abv, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, bb, 0x8, 0x1f;
+10:-:-:-:6      IMNMX.U32 bb, bb, tt, !PT;
+--:-:5:-:2      SHFL.BFLY PT, tt, abv, 0x8, 0x1f;
+10:-:-:-:6      IADD abv, abv, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, bb, 0x4, 0x1f;
+10:-:-:-:6      IMNMX.U32 bb, bb, tt, !PT;
+--:-:5:-:2      SHFL.BFLY PT, tt, abv, 0x4, 0x1f;
+10:-:-:-:6      IADD abv, abv, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, bb, 0x2, 0x1f;
+10:-:-:-:6      IMNMX.U32 bb, bb, tt, !PT;
+--:-:5:-:2      SHFL.BFLY PT, tt, abv, 0x2, 0x1f;
+10:-:-:-:6      IADD abv, abv, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, bb, 0x1, 0x1f;
+10:-:-:-:6      IMNMX.U32 bb, bb, tt, !PT;
+--:-:5:-:2      SHFL.BFLY PT, tt, abv, 0x1, 0x1f;
+10:-:-:-:6      IADD abv, abv, tt;
+--:-:-:-:6      IADD kk, kk, -abv;
+--:-:-:-:6      SHL pre, pre, 0x8;
+--:-:-:-:6      IADD pre, pre, bb;
+--:-:-:-:6      IADD pre, pre, -0x1;
+--:-:-:-:6      ISETP.LT.U32.AND P2, PT, lmax, 0x3, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P2 BRA SCANBAR;
+--:-:1:-:1      LDG.E.128 a0, [hp+0x800];
+--:-:1:-:2      LDG.E.128 a4, [hp+0x810];
+01:-:-:-:1      IADD s, a0, a1;
+--:-:-:-:1      IADD tt, a2, a3;
+--:-:-:-:1      IADD t, a4, a5;
+--:-:-:-:6      IADD t2, a6, a7;
+--:-:-:-:1      IADD s, s, tt;
+--:-:-:-:6      IADD t, t, t2;
+--:-:-:-:6      IADD s, s, t;
+--:-:-:-:6      MOV sx, s;
+--:-:5:-:2      SHFL.DOWN P0, tt, sx, 0x1, 0x1f;
+10:-:-:-:6  @P0 IADD sx, sx, tt;
+--:-:5:-:2      SHFL.DOWN P0, tt, sx, 0x2, 0x1f;
+10:-:-:-:6  @P0 IADD sx, sx, tt;
+--:-:5:-:2      SHFL.DOWN P0, tt, sx, 0x4, 0x1f;
+10:-:-:-:6  @P0 IADD sx, sx, tt;
+--:-:5:-:2      SHFL.DOWN P0, tt, sx, 0x8, 0x1f;
+10:-:-:-:6  @P0 IADD sx, sx, tt;
+--:-:5:-:2      SHFL.DOWN P0, tt, sx, 0x10, 0x1f;
+10:-:-:-:6  @P0 IADD sx, sx, tt;
+--:-:-:-:6      IADD cum, sx, -s;
+--:-:-:-:6      ISETP.GE.U32.AND P5, PT, sx, kk, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.LT.U32.AND P1, PT, cum, kk, P5;
+--:-:-:-:6      MOV bb, RZ;
+--:-:-:-:6      MOV abv, RZ;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      IADD nc, cum, a7;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x8, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a6;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x7, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a5;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x6, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a4;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x5, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a3;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x4, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a2;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x3, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a1;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x2, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a0;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x1, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:5:-:2      SHFL.BFLY PT, tt, bb, 0x10, 0x1f;
+10:-:-:-:6      IMNMX.U32 bb, bb, tt, !PT;
+--:-:5:-:2      SHFL.BFLY PT, tt, abv, 0x10, 0x1f;
+10:-:-:-:6      IADD abv, abv, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, bb, 0x8, 0x1f;
+10:-:-:-:6      IMNMX.U32 bb, bb, tt, !PT;
+--:-:5:-:2      SHFL.BFLY PT, tt, abv, 0x8, 0x1f;
+10:-:-:-:6      IADD abv, abv, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, bb, 0x4, 0x1f;
+10:-:-:-:6      IMNMX.U32 bb, bb, tt, !PT;
+--:-:5:-:2      SHFL.BFLY PT, tt, abv, 0x4, 0x1f;
+10:-:-:-:6      IADD abv, abv, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, bb, 0x2, 0x1f;
+10:-:-:-:6      IMNMX.U32 bb, bb, tt, !PT;
+--:-:5:-:2      SHFL.BFLY PT, tt, abv, 0x2, 0x1f;
+10:-:-:-:6      IADD abv, abv, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, bb, 0x1, 0x1f;
+10:-:-:-:6      IMNMX.U32 bb, bb, tt, !PT;
+--:-:5:-:2      SHFL.BFLY PT, tt, abv, 0x1, 0x1f;
+10:-:-:-:6      IADD abv, abv, tt;
+--:-:-:-:6      IADD kk, kk, -abv;
+--:-:-:-:6      SHL pre, pre, 0x8;
+--:-:-:-:6      IADD pre, pre, bb;
+--:-:-:-:6      IADD pre, pre, -0x1;
+--:-:-:-:6      ISETP.LT.U32.AND P2, PT, lmax, 0x4, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P2 BRA SCANBAR;
+--:-:1:-:1      LDG.E.128 a0, [hp+0xc00];
+--:-:1:-:2      LDG.E.128 a4, [hp+0xc10];
+01:-:-:-:1      IADD s, a0, a1;
+--:-:-:-:1      IADD tt, a2, a3;
+--:-:-:-:1      IADD t, a4, a5;
+--:-:-:-:6      IADD t2, a6, a7;
+--:-:-:-:1      IADD s, s, tt;
+--:-:-:-:6      IADD t, t, t2;
+--:-:-:-:6      IADD s, s, t;
+--:-:-:-:6      MOV sx, s;
+--:-:5:-:2      SHFL.DOWN P0, tt, sx, 0x1, 0x1f;
+10:-:-:-:6  @P0 IADD sx, sx, tt;
+--:-:5:-:2      SHFL.DOWN P0, tt, sx, 0x2, 0x1f;
+10:-:-:-:6  @P0 IADD sx, sx, tt;
+--:-:5:-:2      SHFL.DOWN P0, tt, sx, 0x4, 0x1f;
+10:-:-:-:6  @P0 IADD sx, sx, tt;
+--:-:5:-:2      SHFL.DOWN P0, tt, sx, 0x8, 0x1f;
+10:-:-:-:6  @P0 IADD sx, sx, tt;
+--:-:5:-:2      SHFL.DOWN P0, tt, sx, 0x10, 0x1f;
+10:-:-:-:6  @P0 IADD sx, sx, tt;
+--:-:-:-:6      IADD cum, sx, -s;
+--:-:-:-:6      ISETP.GE.U32.AND P5, PT, sx, kk, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.LT.U32.AND P1, PT, cum, kk, P5;
+--:-:-:-:6      MOV bb, RZ;
+--:-:-:-:6      MOV abv, RZ;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      IADD nc, cum, a7;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x8, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a6;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x7, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a5;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x6, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a4;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x5, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a3;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x4, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a2;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x3, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a1;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x2, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:-:-:6      IADD nc, cum, a0;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, cum, kk, P1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      ISETP.GE.U32.AND P3, PT, nc, kk, P4;
+--:-:-:-:6      ISCADD t, lane, 0x1, 0x3;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV bb, t;
+--:-:-:-:6  @P3 MOV abv, cum;
+--:-:-:-:6      MOV cum, nc;
+--:-:5:-:2      SHFL.BFLY PT, tt, bb, 0x10, 0x1f;
+10:-:-:-:6      IMNMX.U32 bb, bb, tt, !PT;
+--:-:5:-:2      SHFL.BFLY PT, tt, abv, 0x10, 0x1f;
+10:-:-:-:6      IADD abv, abv, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, bb, 0x8, 0x1f;
+10:-:-:-:6      IMNMX.U32 bb, bb, tt, !PT;
+--:-:5:-:2      SHFL.BFLY PT, tt, abv, 0x8, 0x1f;
+10:-:-:-:6      IADD abv, abv, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, bb, 0x4, 0x1f;
+10:-:-:-:6      IMNMX.U32 bb, bb, tt, !PT;
+--:-:5:-:2      SHFL.BFLY PT, tt, abv, 0x4, 0x1f;
+10:-:-:-:6      IADD abv, abv, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, bb, 0x2, 0x1f;
+10:-:-:-:6      IMNMX.U32 bb, bb, tt, !PT;
+--:-:5:-:2      SHFL.BFLY PT, tt, abv, 0x2, 0x1f;
+10:-:-:-:6      IADD abv, abv, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, bb, 0x1, 0x1f;
+10:-:-:-:6      IMNMX.U32 bb, bb, tt, !PT;
+--:-:5:-:2      SHFL.BFLY PT, tt, abv, 0x1, 0x1f;
+10:-:-:-:6      IADD abv, abv, tt;
+--:-:-:-:6      IADD kk, kk, -abv;
+--:-:-:-:6      SHL pre, pre, 0x7;
+--:-:-:-:6      IADD pre, pre, bb;
+--:-:-:-:6      IADD pre, pre, -0x1;
+
+SCANBAR:
+--:-:-:-:6      ISETP.EQ.U32.AND P1, PT, tid, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P1 STS [RZ+0x400], kk;
+--:-:-:-:6  @P1 STS [RZ+0x404], pre;
+--:-:-:-:6      BAR.SYNC 0x0;
+--:-:1:-:1      LDS kk, [RZ+0x400];
+--:-:1:-:2      LDS pre, [RZ+0x404];
+--:-:-:-:6      IADD e, start, tid;
+--:-:-:-:6      ISETP.EQ.U32.AND P1, PT, pass, 0x5, PT;
+--:-:-:-:6      ISETP.EQ.U32.AND P2, PT, pass, 0x6, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+01:-:-:-:6  @P1 BRA COUNT;
+--:-:-:-:6  @P2 BRA COMPACT;
+--:-:-:-:6      ISETP.EQ.U32.AND P3, PT, pass, 0x4, PT;
+--:-:-:-:6      SHL sd, pass, 0x3;
+--:-:-:-:6      MOV32I t, 0x1f;
+--:-:-:-:6      IADD sd, t, -sd;
+--:-:-:-:6      IMNMX sd, sd, RZ, !PT;
+--:-:-:-:6      MOV32I msk, 0xff;
+--:-:-:-:6      IADD sm, sd, 0x8;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 MOV32I msk, 0x7f;
+--:-:-:-:6  @P3 IADD sm, sd, 0x7;
+--:-:-:-:6      BAR.SYNC 0x0;
+--:-:-:-:6      IADD nit, end, -start;
+--:-:-:-:6      IADD nit, nit, 0xff;
+--:-:-:-:6      SHR.U32 nit, nit, 0x8;
+
+HLOOP:
+--:-:-:-:6      ISETP.EQ.U32.AND P6, PT, nit, RZ, PT;
+--:-:-:-:6      ISETP.GE.U32.AND P0, PT, e, end, PT;
+--:-:-:-:6      SHL t, e, 0x2;
+--:-:-:-:6      IADD sp0.CC, t, param_SC0;
+--:-:-:-:6      IADD.X sp1, RZ, param_SC1;
+--:-:-:-:6      MOV u, RZ;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P6 BRA HDONE;
+--:-:1:-:2 @!P0 LDG.E u, [sp];
+01:-:-:-:6      SHR.U32 t, u, sm;
+--:-:-:-:6      SHR.U32 t2, u, sd;
+--:-:-:-:6      ISETP.EQ.U32.AND P1, PT, t, pre, !P0;
+--:-:-:-:6      LOP.AND t2, t2, msk;
+--:-:-:-:6      SHL t2, t2, 0x2;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:1  @P1 ATOMS.ADD RZ, [t2], one;
+--:-:-:-:6      IADD e, e, 0x100;
+--:-:-:-:6      IADD nit, nit, -0x1;
+--:-:-:-:6      BRA HLOOP;
+
+HDONE:
+--:-:-:-:6      BAR.SYNC 0x0;
+--:-:-:-:6      IADD t, pass, -0x1;
+--:-:-:-:6      SHL t, t, 0xa;
+--:-:-:-:6      SHL t2, tid, 0x2;
+--:-:1:-:2      LDS u, [t2];
+--:-:-:-:6      IADD t, t, t2;
+--:-:-:-:6      IADD hp0.CC, t, param_HST0;
+--:-:-:-:6      IADD.X hp1, RZ, param_HST1;
+01:-:-:-:6      ISETP.NE.U32.AND P1, PT, u, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:2:-:-:6  @P1 RED.E.ADD [hp], u;
+02:-:-:-:f      BRA GRAPH_DONE;
+
+COUNT:
+--:-:-:-:6      MOV T, pre;
+--:-:-:-:6      MOV gtc, RZ;
+--:-:-:-:6      MOV eqc, RZ;
+--:-:-:-:6      IADD nit, end, -start;
+--:-:-:-:6      IADD nit, nit, 0xff;
+--:-:-:-:6      SHR.U32 nit, nit, 0x8;
+
+CLOOP:
+--:-:-:-:6      ISETP.EQ.U32.AND P6, PT, nit, RZ, PT;
+--:-:-:-:6      ISETP.GE.U32.AND P0, PT, e, end, PT;
+--:-:-:-:6      SHL t, e, 0x2;
+--:-:-:-:6      IADD sp0.CC, t, param_SC0;
+--:-:-:-:6      IADD.X sp1, RZ, param_SC1;
+--:-:-:-:6      MOV u, RZ;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P6 BRA CDONE;
+--:-:1:-:2 @!P0 LDG.E u, [sp];
+01:-:-:-:6      ISETP.GT.U32.AND P1, PT, u, T, !P0;
+--:-:-:-:6      ISETP.EQ.U32.AND P2, PT, u, T, !P0;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P1 IADD gtc, gtc, 0x1;
+--:-:-:-:6  @P2 IADD eqc, eqc, 0x1;
+--:-:-:-:6      IADD e, e, 0x100;
+--:-:-:-:6      IADD nit, nit, -0x1;
+--:-:-:-:6      BRA CLOOP;
+
+CDONE:
+--:-:5:-:2      SHFL.BFLY PT, tt, gtc, 0x10, 0x1f;
+10:-:-:-:6      IADD gtc, gtc, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, gtc, 0x8, 0x1f;
+10:-:-:-:6      IADD gtc, gtc, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, gtc, 0x4, 0x1f;
+10:-:-:-:6      IADD gtc, gtc, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, gtc, 0x2, 0x1f;
+10:-:-:-:6      IADD gtc, gtc, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, gtc, 0x1, 0x1f;
+10:-:-:-:6      IADD gtc, gtc, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, eqc, 0x10, 0x1f;
+10:-:-:-:6      IADD eqc, eqc, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, eqc, 0x8, 0x1f;
+10:-:-:-:6      IADD eqc, eqc, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, eqc, 0x4, 0x1f;
+10:-:-:-:6      IADD eqc, eqc, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, eqc, 0x2, 0x1f;
+10:-:-:-:6      IADD eqc, eqc, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, eqc, 0x1, 0x1f;
+10:-:-:-:6      IADD eqc, eqc, tt;
+--:-:-:-:6      SHL t, warp, 0x2;
+--:-:-:-:6      ISETP.EQ.U32.AND P1, PT, lane, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:1  @P1 STS [t+0x420], gtc;
+--:-:-:-:6  @P1 STS [t+0x440], eqc;
+--:-:-:-:6      BAR.SYNC 0x0;
+--:-:-:-:6      ISETP.EQ.U32.AND P1, PT, tid, RZ, PT;
+--:-:-:-:6      MOV gtc, RZ;
+--:-:-:-:6      MOV eqc, RZ;
+--:-:1:-:1      LDS t, [RZ+0x420];
+--:-:1:-:2      LDS t2, [RZ+0x440];
+01:-:-:-:1      IADD gtc, gtc, t;
+--:-:-:-:6      IADD eqc, eqc, t2;
+--:-:1:-:1      LDS t, [RZ+0x424];
+--:-:1:-:2      LDS t2, [RZ+0x444];
+01:-:-:-:1      IADD gtc, gtc, t;
+--:-:-:-:6      IADD eqc, eqc, t2;
+--:-:1:-:1      LDS t, [RZ+0x428];
+--:-:1:-:2      LDS t2, [RZ+0x448];
+01:-:-:-:1      IADD gtc, gtc, t;
+--:-:-:-:6      IADD eqc, eqc, t2;
+--:-:1:-:1      LDS t, [RZ+0x42c];
+--:-:1:-:2      LDS t2, [RZ+0x44c];
+01:-:-:-:1      IADD gtc, gtc, t;
+--:-:-:-:6      IADD eqc, eqc, t2;
+--:-:1:-:1      LDS t, [RZ+0x430];
+--:-:1:-:2      LDS t2, [RZ+0x450];
+01:-:-:-:1      IADD gtc, gtc, t;
+--:-:-:-:6      IADD eqc, eqc, t2;
+--:-:1:-:1      LDS t, [RZ+0x434];
+--:-:1:-:2      LDS t2, [RZ+0x454];
+01:-:-:-:1      IADD gtc, gtc, t;
+--:-:-:-:6      IADD eqc, eqc, t2;
+--:-:1:-:1      LDS t, [RZ+0x438];
+--:-:1:-:2      LDS t2, [RZ+0x458];
+01:-:-:-:1      IADD gtc, gtc, t;
+--:-:-:-:6      IADD eqc, eqc, t2;
+--:-:1:-:1      LDS t, [RZ+0x43c];
+--:-:1:-:2      LDS t2, [RZ+0x45c];
+01:-:-:-:1      IADD gtc, gtc, t;
+--:-:-:-:6      IADD eqc, eqc, t2;
+--:-:-:-:6      SHL t, cta, 0x3;
+--:-:-:-:6      IADD hp0.CC, t, param_HST0;
+--:-:-:-:6      IADD.X hp1, RZ, param_HST1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:2:-:-:1  @P1 STG.E [hp+0x1000], gtc;
+--:2:-:-:6  @P1 STG.E [hp+0x1004], eqc;
+02:-:-:-:f      BRA GRAPH_DONE;
+
+COMPACT:
+--:-:-:-:6      MOV T, pre;
+--:-:-:-:6      MOV need, kk;
+--:-:-:-:6      MOV gtc, RZ;
+--:-:-:-:6      MOV eqc, RZ;
+--:-:-:-:6      ISETP.NE.U32.AND P1, PT, warp, RZ, PT;
+--:-:-:-:6      ISETP.LT.U32.AND P2, PT, lane, cta, PT;
+--:-:-:-:6      SHL t, lane, 0x3;
+--:-:-:-:6      IADD hp0.CC, t, param_HST0;
+--:-:-:-:6      IADD.X hp1, RZ, param_HST1;
+--:-:-:-:6      PSETP.AND.AND P2, PT, P2, !P1, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:1:-:1  @P2 LDG.E.CV gtc, [hp+0x1000];
+--:-:1:-:2  @P2 LDG.E.CV eqc, [hp+0x1004];
+--:-:-:-:6  @P1 BRA CPREF;
+01:-:-:-:6      NOP;
+--:-:5:-:2      SHFL.BFLY PT, tt, gtc, 0x10, 0x1f;
+10:-:-:-:6      IADD gtc, gtc, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, gtc, 0x8, 0x1f;
+10:-:-:-:6      IADD gtc, gtc, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, gtc, 0x4, 0x1f;
+10:-:-:-:6      IADD gtc, gtc, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, gtc, 0x2, 0x1f;
+10:-:-:-:6      IADD gtc, gtc, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, gtc, 0x1, 0x1f;
+10:-:-:-:6      IADD gtc, gtc, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, eqc, 0x10, 0x1f;
+10:-:-:-:6      IADD eqc, eqc, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, eqc, 0x8, 0x1f;
+10:-:-:-:6      IADD eqc, eqc, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, eqc, 0x4, 0x1f;
+10:-:-:-:6      IADD eqc, eqc, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, eqc, 0x2, 0x1f;
+10:-:-:-:6      IADD eqc, eqc, tt;
+--:-:5:-:2      SHFL.BFLY PT, tt, eqc, 0x1, 0x1f;
+10:-:-:-:6      IADD eqc, eqc, tt;
+--:-:-:-:6      ISETP.EQ.U32.AND P3, PT, tid, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:1  @P3 STS [RZ+0x408], gtc;
+--:-:-:-:6  @P3 STS [RZ+0x40c], eqc;
+
+CPREF:
+--:-:-:-:6      BAR.SYNC 0x0;
+--:-:1:-:1      LDS gtc, [RZ+0x408];
+--:-:1:-:2      LDS eqc, [RZ+0x40c];
+01:-:-:-:6      IMNMX.U32 t, eqc, need, PT;
+--:-:-:-:6      IADD selrun, gtc, t;
+--:-:-:-:6      MOV eqrun, eqc;
+--:-:-:-:6      SHL t2, warp, 0x2;
+
+KLOOP:
+--:-:-:-:6      ISETP.GE.U32.AND P0, PT, e, end, PT;
+--:-:-:-:6      SHL t, e, 0x2;
+--:-:-:-:6      IADD sp0.CC, t, param_SC0;
+--:-:-:-:6      IADD.X sp1, RZ, param_SC1;
+--:-:-:-:6      MOV u, RZ;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:1:-:2 @!P0 LDG.E u, [sp];
+01:-:-:-:6      ISETP.GT.U32.AND P1, PT, u, T, !P0;
+--:-:-:-:6      ISETP.EQ.U32.AND P2, PT, u, T, !P0;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      MOV gtf, RZ;
+--:-:-:-:6      MOV eqf, RZ;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P1 MOV gtf, 0x1;
+--:-:-:-:6  @P2 MOV eqf, 0x1;
+--:-:-:-:6      MOV eqi, eqf;
+--:-:5:-:2      SHFL.UP P0, tt, eqi, 0x1, 0x0;
+10:-:-:-:6  @P0 IADD eqi, eqi, tt;
+--:-:5:-:2      SHFL.UP P0, tt, eqi, 0x2, 0x0;
+10:-:-:-:6  @P0 IADD eqi, eqi, tt;
+--:-:5:-:2      SHFL.UP P0, tt, eqi, 0x4, 0x0;
+10:-:-:-:6  @P0 IADD eqi, eqi, tt;
+--:-:5:-:2      SHFL.UP P0, tt, eqi, 0x8, 0x0;
+10:-:-:-:6  @P0 IADD eqi, eqi, tt;
+--:-:5:-:2      SHFL.UP P0, tt, eqi, 0x10, 0x0;
+10:-:-:-:6  @P0 IADD eqi, eqi, tt;
+--:-:5:-:2      SHFL.IDX PT, eqw, eqi, 0x1f, 0x1f;
+10:-:-:-:6      ISETP.EQ.U32.AND P3, PT, lane, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P3 STS [t2+0x420], eqw;
+--:-:-:-:6      BAR.SYNC 0x0;
+--:-:-:-:6      MOV eqtot, RZ;
+--:-:-:-:6      MOV sbase, RZ;
+--:-:1:-:2      LDS tt, [RZ+0x420];
+01:-:-:-:6      ISETP.GT.U32.AND P4, PT, warp, 0x0, PT;
+--:-:-:-:6      IADD eqtot, eqtot, tt;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P4 IADD sbase, sbase, tt;
+--:-:1:-:2      LDS tt, [RZ+0x424];
+01:-:-:-:6      ISETP.GT.U32.AND P4, PT, warp, 0x1, PT;
+--:-:-:-:6      IADD eqtot, eqtot, tt;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P4 IADD sbase, sbase, tt;
+--:-:1:-:2      LDS tt, [RZ+0x428];
+01:-:-:-:6      ISETP.GT.U32.AND P4, PT, warp, 0x2, PT;
+--:-:-:-:6      IADD eqtot, eqtot, tt;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P4 IADD sbase, sbase, tt;
+--:-:1:-:2      LDS tt, [RZ+0x42c];
+01:-:-:-:6      ISETP.GT.U32.AND P4, PT, warp, 0x3, PT;
+--:-:-:-:6      IADD eqtot, eqtot, tt;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P4 IADD sbase, sbase, tt;
+--:-:1:-:2      LDS tt, [RZ+0x430];
+01:-:-:-:6      ISETP.GT.U32.AND P4, PT, warp, 0x4, PT;
+--:-:-:-:6      IADD eqtot, eqtot, tt;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P4 IADD sbase, sbase, tt;
+--:-:1:-:2      LDS tt, [RZ+0x434];
+01:-:-:-:6      ISETP.GT.U32.AND P4, PT, warp, 0x5, PT;
+--:-:-:-:6      IADD eqtot, eqtot, tt;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P4 IADD sbase, sbase, tt;
+--:-:1:-:2      LDS tt, [RZ+0x438];
+01:-:-:-:6      ISETP.GT.U32.AND P4, PT, warp, 0x6, PT;
+--:-:-:-:6      IADD eqtot, eqtot, tt;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P4 IADD sbase, sbase, tt;
+--:-:1:-:2      LDS tt, [RZ+0x43c];
+01:-:-:-:6      ISETP.GT.U32.AND P4, PT, warp, 0x7, PT;
+--:-:-:-:6      IADD eqtot, eqtot, tt;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P4 IADD sbase, sbase, tt;
+--:-:-:-:6      IADD t3, eqrun, sbase;
+--:-:-:-:6      IADD t3, t3, eqi;
+--:-:-:-:6      IADD t3, t3, -eqf;
+--:-:-:-:6      ISETP.LT.U32.AND P4, PT, t3, need, P2;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      PSETP.OR.AND P4, PT, P1, P4, PT;
+--:-:-:-:6      MOV sel, RZ;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P4 MOV sel, 0x1;
+--:-:-:-:6      MOV seli, sel;
+--:-:5:-:2      SHFL.UP P0, tt, seli, 0x1, 0x0;
+10:-:-:-:6  @P0 IADD seli, seli, tt;
+--:-:5:-:2      SHFL.UP P0, tt, seli, 0x2, 0x0;
+10:-:-:-:6  @P0 IADD seli, seli, tt;
+--:-:5:-:2      SHFL.UP P0, tt, seli, 0x4, 0x0;
+10:-:-:-:6  @P0 IADD seli, seli, tt;
+--:-:5:-:2      SHFL.UP P0, tt, seli, 0x8, 0x0;
+10:-:-:-:6  @P0 IADD seli, seli, tt;
+--:-:5:-:2      SHFL.UP P0, tt, seli, 0x10, 0x0;
+10:-:-:-:6  @P0 IADD seli, seli, tt;
+--:-:5:-:2      SHFL.IDX PT, selw, seli, 0x1f, 0x1f;
+10:-:-:-:6      NOP;
+--:-:-:-:6  @P3 STS [t2+0x440], selw;
+--:-:-:-:6      BAR.SYNC 0x0;
+--:-:-:-:6      MOV seltot, RZ;
+--:-:-:-:6      MOV sbase, RZ;
+--:-:1:-:2      LDS tt, [RZ+0x440];
+01:-:-:-:6      ISETP.GT.U32.AND P5, PT, warp, 0x0, PT;
+--:-:-:-:6      IADD seltot, seltot, tt;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P5 IADD sbase, sbase, tt;
+--:-:1:-:2      LDS tt, [RZ+0x444];
+01:-:-:-:6      ISETP.GT.U32.AND P5, PT, warp, 0x1, PT;
+--:-:-:-:6      IADD seltot, seltot, tt;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P5 IADD sbase, sbase, tt;
+--:-:1:-:2      LDS tt, [RZ+0x448];
+01:-:-:-:6      ISETP.GT.U32.AND P5, PT, warp, 0x2, PT;
+--:-:-:-:6      IADD seltot, seltot, tt;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P5 IADD sbase, sbase, tt;
+--:-:1:-:2      LDS tt, [RZ+0x44c];
+01:-:-:-:6      ISETP.GT.U32.AND P5, PT, warp, 0x3, PT;
+--:-:-:-:6      IADD seltot, seltot, tt;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P5 IADD sbase, sbase, tt;
+--:-:1:-:2      LDS tt, [RZ+0x450];
+01:-:-:-:6      ISETP.GT.U32.AND P5, PT, warp, 0x4, PT;
+--:-:-:-:6      IADD seltot, seltot, tt;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P5 IADD sbase, sbase, tt;
+--:-:1:-:2      LDS tt, [RZ+0x454];
+01:-:-:-:6      ISETP.GT.U32.AND P5, PT, warp, 0x5, PT;
+--:-:-:-:6      IADD seltot, seltot, tt;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P5 IADD sbase, sbase, tt;
+--:-:1:-:2      LDS tt, [RZ+0x458];
+01:-:-:-:6      ISETP.GT.U32.AND P5, PT, warp, 0x6, PT;
+--:-:-:-:6      IADD seltot, seltot, tt;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P5 IADD sbase, sbase, tt;
+--:-:1:-:2      LDS tt, [RZ+0x45c];
+01:-:-:-:6      ISETP.GT.U32.AND P5, PT, warp, 0x7, PT;
+--:-:-:-:6      IADD seltot, seltot, tt;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P5 IADD sbase, sbase, tt;
+--:-:-:-:6      IADD t3, selrun, sbase;
+--:-:-:-:6      IADD t3, t3, seli;
+--:-:-:-:6      IADD t3, t3, -sel;
+--:-:-:-:6      SHL t3, t3, 0x2;
+--:-:-:-:6      IADD op0.CC, t3, param_SEL0;
+--:-:-:-:6      IADD.X op1, RZ, param_SEL1;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:3:-:-:1  @P4 STG.E [op], e;
+--:-:-:-:6      IADD eqrun, eqrun, eqtot;
+--:-:-:-:6      IADD selrun, selrun, seltot;
+--:-:-:-:6      IADD e, e, 0x100;
+--:-:-:-:6      IADD t, e, -tid;
+--:-:-:-:6      ISETP.LT.U32.AND P0, PT, t, end, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA KLOOP;
+06:-:-:-:f      BRA GRAPH_DONE;
+
+GRAPH_DONE:
+3f:-:-:-:6      NOP;
+--:-:-:-:6      MOV g_flags, c[0x0][0x1b0];
+--:-:-:-:6      LOP32I.AND g_flags, g_flags, 0x1;
+--:-:-:-:6      ISETP.EQ.U32.AND P0, PT, g_flags, RZ, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_EXIT;
+--:-:-:-:6      MEMBAR.SYS;
+--:-:-:-:6      BAR.SYNC 0x0;
+--:-:6:-:2      S2R g_tid, SR_TID.X;
+20:-:-:-:6      ISETP.GE.U32.AND P0, PT, g_tid, 0x20, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_EXIT;
+--:-:-:-:6      ISETP.EQ.U32.AND P2, PT, g_tid, RZ, PT;
+--:-:-:-:6      MOV g_ctl0, c[0x0][0x1b8];
+--:-:-:-:6      MOV g_ctl1, c[0x0][0x1bc];
+--:-:-:-:6      MOV g_index, c[0x0][0x1b4];
+--:-:-:-:6      SHL g_index, g_index, 0x2;
+--:-:-:-:6      IADD g_index, g_index, 0x100;
+--:-:-:-:6      IADD g_ptr0.CC, g_ctl0, g_index;
+--:-:-:-:6      IADD.X g_ptr1, g_ctl1, RZ;
+--:-:-:-:6      MOV32I g_one, 0x1;
+--:-:1:-:6  @P2 ATOM.E.ADD g_count, [g_ptr], g_one;
+01:-:3:-:2      SHFL.IDX PT, g_count, g_count, 0x0, 0x1f;
+04:-:-:-:6      IADD g_count, g_count, 0x1;
+--:-:-:-:6      ISETP.NE.U32.AND P0, PT, g_count, c[0x0][0x14], PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P0 BRA GRAPH_EXIT;
+--:2:-:-:6  @P2 STG.E [g_ptr], RZ;
+--:-:1:-:2      LDG.E.CV g_value, [g_ctl+0x20];
+01:-:-:-:6      IADD g_value, g_value, 0x1;
+--:2:-:-:6  @P2 STG.E [g_ctl+0x20], g_value;
+02:-:1:-:2      LDG.E.64 g_ptr0, [g_ctl+0x40];
+01:2:-:-:6  @P2 STG.E.WT [g_ptr], g_value;
+02:-:1:-:2      LDG.E.64 g_ptr0, [g_ctl+0x48];
+01:2:-:-:6  @P2 STG.E.WT [g_ptr], g_value;
+02:-:1:-:2      LDG.E.64 g_ptr0, [g_ctl+0x50];
+01:2:-:-:6  @P2 STG.E.WT [g_ptr], g_value;
+02:-:1:-:2      LDG.E.64 g_ptr0, [g_ctl+0x58];
+01:2:-:-:6  @P2 STG.E.WT [g_ptr], g_value;
+02:-:1:-:2      LDG.E.64 g_ptr0, [g_ctl+0x60];
+01:2:-:-:6  @P2 STG.E.WT [g_ptr], g_value;
+02:-:1:-:2      LDG.E.64 g_ptr0, [g_ctl+0x68];
+01:2:-:-:6  @P2 STG.E.WT [g_ptr], g_value;
+02:-:-:-:6      MEMBAR.SYS;
+GRAPH_EXIT:
+3f:-:-:-:f      EXIT;

@@ -1,0 +1,52 @@
+# Kernel: graph_xcopy
+
+
+
+
+
+
+
+
+
+<CONSTANT_MAPPING>
+    graph_arg_param_SRC0 : c[0x0][0x140]
+    graph_arg_param_SRC1 : c[0x0][0x144]
+    graph_arg_param_DST0 : c[0x0][0x148]
+    graph_arg_param_DST1 : c[0x0][0x14c]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0-3   : x<0-3>
+    4     : tid
+    5     : cta
+    6     : off
+    8,9   : sp<0-1>
+    10,11 : dp<0-1>
+    21 : param_SRC0
+    22 : param_SRC1
+    23 : param_DST0
+    24 : param_DST1
+</REGISTER_MAPPING>
+--:-:-:-:6      MEMBAR.GL.IVALLD;
+--:-:-:-:6      MOV param_SRC0, graph_arg_param_SRC0;
+--:-:-:-:6      MOV param_SRC1, graph_arg_param_SRC1;
+--:-:-:-:6      MOV param_DST0, graph_arg_param_DST0;
+--:-:-:-:6      MOV param_DST1, graph_arg_param_DST1;
+
+
+--:-:6:-:1      S2R tid, SR_TID.X;
+--:-:6:-:1      S2R cta, SR_CTAID.X;
+20:-:-:-:6      ISCADD off, cta, tid, 0x8;
+--:-:-:-:6      SHL off, off, 0x4;
+--:-:-:-:6      IADD sp0.CC, off, param_SRC0;
+--:-:-:-:6      IADD.X sp1, RZ, param_SRC1;
+--:-:-:-:6      IADD dp0.CC, off, param_DST0;
+--:-:-:-:6      IADD.X dp1, RZ, param_DST1;
+--:-:2:-:2      LDG.E.CV.128 x0, [sp];
+02:1:-:-:6      STG.E.128 [dp], x0;
+01:-:-:-:f      BRA GRAPH_DONE;
+
+
+GRAPH_DONE:
+3f:-:-:-:6      MEMBAR.SYS;
+--:-:-:-:f      EXIT;
