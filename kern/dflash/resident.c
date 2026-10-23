@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 enum { MATRIX,NORM,CONV,ADD,SWIGLU,ROPE,CACHE,ATTENTION,ATTENTION_MERGE,
        FEATURES,EMBEDDING,TOPK_LOGITS,TOPK_PAIRS,HEAD_MERGE,SELECT,NFUNCTIONS };
@@ -222,13 +223,20 @@ int dflash_resident_begin(dflash_resident *r,unsigned processed,char *err,size_t
     }
     return dflash_resident_finish(r,err,nerr);
 }
+/* FLASH_DFLASH_TIMING=1 serializes each draft stage to time it on the host.
+ * Diagnostic only: the synchronizations remove the normal overlap. */
+static double stage_now(void){struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return t.tv_sec+1e-9*t.tv_nsec;}
 int dflash_resident_propose(dflash_resident *r,uint32_t anchor,uint32_t inputs[4],char *err,size_t nerr) {
     if(anchor>=248320){snprintf(err,nerr,"DFlash2 anchor outside target vocabulary");return -1;}
+    static int timing=-1;if(timing<0)timing=getenv("FLASH_DFLASH_TIMING") && atoi(getenv("FLASH_DFLASH_TIMING"));
+    double t0=stage_now(),t1=t0,t2=t0;
     unsigned owner=r->rank;TRY(cuCtxSetCurrent(r->target[owner].context));
     TRY(cuStreamSynchronize(r->stream[owner]));
+    double t_ready=stage_now();
     r->host_control->context=r->context;r->host_control->anchor=anchor;
     TRY(cuMemcpyHtoDAsync(r->control,r->host_control,sizeof *r->host_control,r->stream[owner]));
     TRY(cuGraphLaunch(r->backbone,r->stream[owner]));TRY(cuEventRecord(r->hidden_ready,r->stream[owner]));
+    if(timing){TRY(cuStreamSynchronize(r->stream[owner]));t1=stage_now();}
     CUdeviceptr hidden=r->x+4*2560;
     for(unsigned d=0;d<6;d++) {
         TRY(cuCtxSetCurrent(r->target[d].context));TRY(cuStreamWaitEvent(r->stream[d],r->hidden_ready,0));
@@ -236,10 +244,13 @@ int dflash_resident_propose(dflash_resident *r,uint32_t anchor,uint32_t inputs[4
         else TRY(cuMemcpyPeerAsync(r->head_input[d],r->target[d].context,hidden,r->target[owner].context,3*2560*4,r->stream[d]));
         TRY(cuGraphLaunch(r->head[d],r->stream[d]));TRY(cuEventRecord(r->head_ready[d],r->stream[d]));
     }
+    if(timing){for(unsigned d=0;d<6;d++){TRY(cuCtxSetCurrent(r->target[d].context));TRY(cuStreamSynchronize(r->stream[d]));}t2=stage_now();}
     TRY(cuCtxSetCurrent(r->target[owner].context));
     for(unsigned d=0;d<6;d++)TRY(cuStreamWaitEvent(r->stream[owner],r->head_ready[d],0));
     TRY(cuGraphLaunch(r->select,r->stream[owner]));
     TRY(cuMemcpyDtoHAsync(r->host_tokens,r->tokens,16,r->stream[owner]));TRY(cuStreamSynchronize(r->stream[owner]));
+    if(timing)fprintf(stderr,"draft_timing prior_ms=%.3f backbone_ms=%.3f head_ms=%.3f select_ms=%.3f total_ms=%.3f\n",
+        (t_ready-t0)*1e3,(t1-t_ready)*1e3,(t2-t1)*1e3,(stage_now()-t2)*1e3,(stage_now()-t0)*1e3);
     memcpy(inputs,r->host_tokens,16);return 0;
 }
 int dflash_resident_finish(dflash_resident *r,char *err,size_t nerr) {

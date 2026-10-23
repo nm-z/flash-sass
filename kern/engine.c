@@ -558,6 +558,16 @@ static void pair_dump(FILE *out) {
         buffer_stats(out,d,"up_local",b->balance_up_local,4u*64);
         buffer_stats(out,d,"lw",b->lw,4u*10);
         buffer_stats(out,d,"router_logits",b->r,4u*(513+16));
+        {
+            unsigned rows=(unsigned)sp[d][0].on;float *v=malloc((size_t)rows*4);
+            if(v) {
+                CK(cuMemcpyDtoH(v,b->hlo,(size_t)rows*4));unsigned i1=0,i2=0;
+                for(unsigned i=1;i<rows;i++){if(v[i]>v[i1]){i2=i1;i1=i;}else if(i2==i1||v[i]>v[i2])i2=i;}
+                fprintf(out,"pairdump die=%d logits top1=%u:%.9g top2=%u:%.9g first=%.9g,%.9g,%.9g,%.9g\n",
+                    d,i1,v[i1],i2,v[i2],v[0],v[1],v[2],v[3]);
+                free(v);
+            }
+        }
         buffer_stats(out,d,"shared_gate",b->s,16);
         if(b->unique_router_packets) {
             uint32_t packet[6][UNIQUE_ROUTE_PACKET_WORDS],ids[10];

@@ -53,6 +53,14 @@ static int balance_batch_impl(prog_t *out,const prog_t *const *positions,
     const char *proposer=getenv("FLASH_BALANCED_SPECULATE");
     int hcup4=count==4 && ((hcup4_env && atoi(hcup4_env)) || (proposer && !strcmp(proposer,"dflash2")));
     int native_hcup=hcup5 || hcup4;
+    /* FLASH_B4_GENERIC: diagnostic bitmask forcing generic per-position
+     * replay for a native B4 family (1 matrix, 2 hcup, 4 dn, 8 gr, 16 moe,
+     * 32 router; 64 skips bundle transposition). */
+    const char *generic_env=getenv("FLASH_B4_GENERIC");
+    unsigned generic=generic_env?(unsigned)strtoul(generic_env,NULL,0):0u;
+    int nat_matrix=hcup4 && !(generic&1u),nat_dn=hcup4 && !(generic&4u),nat_gr=hcup4 && !(generic&8u);
+    int nat_moe=hcup4 && !(generic&16u),nat_router=hcup4 && !(generic&32u);
+    if(hcup4 && (generic&2u))native_hcup=0;
     if(hcup4 && !local_quant_ready)return -1;
     const char *localq_env=getenv("FLASH_BALANCED_HCUP5_LOCALQ");
     int localq=localq_env && atoi(localq_env)!=0 && hcup5;
@@ -80,7 +88,7 @@ static int balance_batch_impl(prog_t *out,const prog_t *const *positions,
             stats.native_hcup_phases++;
         }
         stats.outer_phases++;
-        unsigned matrix_k=0,matrix_op=hcup4?native_matrix(a,span,&matrix_k):0;
+        unsigned matrix_k=0,matrix_op=nat_matrix?native_matrix(a,span,&matrix_k):0;
         if(matrix_op) {
             for(unsigned p=1;p<count;p++) {
                 const phase_t *q=positions[p]->p+i;
@@ -90,14 +98,14 @@ static int balance_batch_impl(prog_t *out,const prog_t *const *positions,
             }
             stats.native_matrix_phases++;
         }
-        if(hcup4 && a->w[0]==OP_DNSTEP && span==1 && (a->w[24]|a->w[25]) && (a->w[26]|a->w[27]))
+        if(nat_dn && a->w[0]==OP_DNSTEP && span==1 && (a->w[24]|a->w[25]) && (a->w[26]|a->w[27]))
             stats.native_dn_phases++;
-        if(hcup4 && a->w[0]==OP_PAIRED_DOWN) {
+        if(nat_moe && a->w[0]==OP_PAIRED_DOWN) {
             if(span!=1 || a->w[8]<1 || a->w[8]>2)return -1;
             stats.native_moe_phases++;stats.inner_grid_joins++;
         }
-        if(hcup4 && a->w[0]==OP_UNIQUE_ROUTER){if(span!=1)return -1;stats.native_matrix_phases++;}
-        if(hcup4 && span==1 && (a->w[0]==OP_BF16HCRX || a->w[0]==OP_BF16HCRWX || a->w[0]==94u)) {
+        if(nat_router && a->w[0]==OP_UNIQUE_ROUTER){if(span!=1)return -1;stats.native_matrix_phases++;}
+        if(nat_gr && span==1 && (a->w[0]==OP_BF16HCRX || a->w[0]==OP_BF16HCRWX || a->w[0]==94u)) {
             if(!(a->w[30]&1u) || a->w[31] || a->w[1]!=16 || !a->w[8])return -1;
             for(unsigned p=1;p<count;p++) {
                 const phase_t *q=positions[p]->p+i;
@@ -128,7 +136,7 @@ static int balance_batch_impl(prog_t *out,const prog_t *const *positions,
         unsigned span=phase_descriptors(a);
         phase_t *wrap=image+at++;memset(wrap,0,sizeof *wrap);
         wrap->w[0]=OP_BALANCED_BATCH;wrap->w[1]=16;
-        unsigned matrix_k=0,matrix_op=hcup4?native_matrix(a,span,&matrix_k):0;
+        unsigned matrix_k=0,matrix_op=nat_matrix?native_matrix(a,span,&matrix_k):0;
         if(matrix_op) {
             wrap->w[0]=matrix_op;wrap->w[8]=matrix_k;
             wrap->w[9]=matrix_op==OP_DFLASH_Q2_4?((matrix_k/32+15u)&~15u)+matrix_k/4:
@@ -147,11 +155,11 @@ static int balance_batch_impl(prog_t *out,const prog_t *const *positions,
             }
         }
         if(native_hcup && a->w[0]==96u)wrap->w[0]=OP_BALANCED_HCUP5;
-        if(hcup4 && a->w[0]==OP_PAIRED_DOWN)wrap->w[0]=OP_PAIRED_DOWN4;
-        if(hcup4 && a->w[0]==OP_UNIQUE_ROUTER)wrap->w[0]=OP_DFLASH_ROUTER4;
-        if(hcup4 && a->w[0]==OP_DNSTEP && span==1 && (a->w[24]|a->w[25]) && (a->w[26]|a->w[27]))
+        if(nat_moe && a->w[0]==OP_PAIRED_DOWN)wrap->w[0]=OP_PAIRED_DOWN4;
+        if(nat_router && a->w[0]==OP_UNIQUE_ROUTER)wrap->w[0]=OP_DFLASH_ROUTER4;
+        if(nat_dn && a->w[0]==OP_DNSTEP && span==1 && (a->w[24]|a->w[25]) && (a->w[26]|a->w[27]))
             wrap->w[0]=OP_DFLASH_DN4;
-        if(hcup4 && span==1 && (a->w[0]==OP_BF16HCRX || a->w[0]==OP_BF16HCRWX || a->w[0]==94u)) {
+        if(nat_gr && span==1 && (a->w[0]==OP_BF16HCRX || a->w[0]==OP_BF16HCRWX || a->w[0]==94u)) {
             wrap->w[0]=OP_DFLASH_GR4;
             wrap->w[6]=(uint32_t)local_quant_ready;wrap->w[7]=(uint32_t)(local_quant_ready>>32);
         }
@@ -234,7 +242,8 @@ int prog_balance_batch(prog_t *out,const prog_t *const *positions,
         copies[p]=*positions[p];copies[p].p=malloc((size_t)copies[p].n*sizeof(phase_t));
         if(!copies[p].p){result=-2;goto done;}
         memcpy(copies[p].p,positions[p]->p,(size_t)copies[p].n*sizeof(phase_t));
-        if(transpose_matrix_bundles(copies+p))goto done;
+        const char *generic_env=getenv("FLASH_B4_GENERIC");
+        if(!(generic_env && (strtoul(generic_env,NULL,0)&64u)) && transpose_matrix_bundles(copies+p))goto done;
     }
     result=balance_batch_impl(out,inputs,count,work,ready);
 done:
