@@ -1,0 +1,23 @@
+{
+  "status": 200,
+  "headers": {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    "Transfer-Encoding": "chunked",
+    "Connection": "close"
+  },
+  "request": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "Return the single word hello."
+      }
+    ],
+    "max_tokens": 4,
+    "stream": true,
+    "temperature": 0,
+    "chat_template_kwargs": {
+      "enable_thinking": false
+    }
+  }
+}

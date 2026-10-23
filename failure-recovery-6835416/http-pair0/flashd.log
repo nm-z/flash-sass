@@ -1,0 +1,38 @@
+flashd: Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-sass, 512 positions, sampling defaults from the GGUF: temp 0 top_k 20 top_p 0.95 (greedy), listening on 127.0.0.1:39853
+flashd: 18 prompt (0 from the cache, snapshot at 17) + 2 generated tokens, 1765.7 ms (first 1634.7), stop, pp 11.0 decode 7.6 tok/s, queued 0.0 s
+flashd: engine: error: PLE I/O position 0 head 3 offset 5518414632 bytes 17/90: unexpected EOF
+flashd: the engine failed during the response (0 reasoning + 0 answer tokens had been generated)
+flashd: 18 prompt (0 from the cache, snapshot at 17) + 2 generated tokens, 534.7 ms (first 506.3), stop, pp 35.6 decode 35.2 tok/s, queued 0.0 s
+flashd: engine: error: PLE I/O position 0 head 3 offset 5518414632 bytes 17/90: unexpected EOF
+flashd: the engine failed during the response (0 reasoning + 0 answer tokens had been generated)
+flashd: 18 prompt (0 from the cache, snapshot at 17) + 2 generated tokens, 533.0 ms (first 504.8), stop, pp 35.7 decode 35.5 tok/s, queued 0.0 s
+flashd: engine: error: PLE I/O position 160 head 3 offset 6767137362 bytes 17/90: unexpected EOF
+flashd: the engine failed during the response (0 reasoning + 0 answer tokens had been generated)
+flashd: 18 prompt (0 from the cache, snapshot at 17) + 2 generated tokens, 535.2 ms (first 506.7), stop, pp 35.5 decode 35.1 tok/s, queued 0.0 s
+flashd: engine: error: PLE I/O position 160 head 3 offset 6767137362 bytes 17/90: unexpected EOF
+flashd: the engine failed during the response (0 reasoning + 0 answer tokens had been generated)
+flashd: 18 prompt (0 from the cache, snapshot at 17) + 2 generated tokens, 547.7 ms (first 518.6), stop, pp 34.7 decode 34.4 tok/s, queued 0.0 s
+flashd: engine: error: PLE I/O position 161 head 3 offset 6767137362 bytes 17/90: unexpected EOF
+flashd: the engine failed during the response (0 reasoning + 0 answer tokens had been generated)
+flashd: 18 prompt (0 from the cache, snapshot at 17) + 2 generated tokens, 537.0 ms (first 508.3), stop, pp 35.4 decode 34.8 tok/s, queued 0.0 s
+flashd: engine: error: PLE I/O position 161 head 3 offset 6767137362 bytes 17/90: unexpected EOF
+flashd: the engine failed during the response (0 reasoning + 0 answer tokens had been generated)
+flashd: 18 prompt (0 from the cache, snapshot at 17) + 2 generated tokens, 537.8 ms (first 509.2), stop, pp 35.3 decode 35.0 tok/s, queued 0.0 s
+flashd: engine: error: PLE I/O position 0 head 3 offset 5518414632 bytes 17/90: Input/output error
+flashd: the engine failed during the response (0 reasoning + 0 answer tokens had been generated)
+flashd: 18 prompt (0 from the cache, snapshot at 17) + 2 generated tokens, 538.3 ms (first 509.6), stop, pp 35.3 decode 34.8 tok/s, queued 0.0 s
+flashd: engine: error: PLE I/O position 0 head 3 offset 5518414632 bytes 17/90: Input/output error
+flashd: the engine failed during the response (0 reasoning + 0 answer tokens had been generated)
+flashd: 18 prompt (0 from the cache, snapshot at 17) + 2 generated tokens, 538.2 ms (first 509.5), stop, pp 35.3 decode 34.8 tok/s, queued 0.0 s
+flashd: engine: error: PLE I/O position 160 head 3 offset 6767137362 bytes 17/90: Input/output error
+flashd: the engine failed during the response (0 reasoning + 0 answer tokens had been generated)
+flashd: 18 prompt (0 from the cache, snapshot at 17) + 2 generated tokens, 542.7 ms (first 513.6), stop, pp 35.0 decode 34.4 tok/s, queued 0.0 s
+flashd: engine: error: PLE I/O position 160 head 3 offset 6767137362 bytes 17/90: Input/output error
+flashd: the engine failed during the response (0 reasoning + 0 answer tokens had been generated)
+flashd: 18 prompt (0 from the cache, snapshot at 17) + 2 generated tokens, 546.2 ms (first 517.0), stop, pp 34.8 decode 34.2 tok/s, queued 0.0 s
+flashd: engine: error: PLE I/O position 161 head 3 offset 6767137362 bytes 17/90: Input/output error
+flashd: the engine failed during the response (0 reasoning + 0 answer tokens had been generated)
+flashd: 18 prompt (0 from the cache, snapshot at 17) + 2 generated tokens, 549.3 ms (first 520.1), stop, pp 34.6 decode 34.2 tok/s, queued 0.0 s
+flashd: engine: error: PLE I/O position 161 head 3 offset 6767137362 bytes 17/90: Input/output error
+flashd: the engine failed during the response (0 reasoning + 0 answer tokens had been generated)
+flashd: 18 prompt (0 from the cache, snapshot at 17) + 2 generated tokens, 550.1 ms (first 520.7), stop, pp 34.6 decode 34.0 tok/s, queued 0.0 s

@@ -1,0 +1,323 @@
+{
+  "status": "PASS",
+  "kind": "real-PLE real-flashd failure/recovery",
+  "config": "config rev=6835416996dc76200045cec02adf6c43b9e42c63 kv_host=0 ple_disk=1 maxt=512 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=1 two_position=0 cubin=/home/nate/claude/flash-sass-prs/ple-build-6835416/kern/die.cubin cubin_fnv=805be15e22699af4",
+  "core": "/tmp/flash-owned-failure-recovery-6835416-pair0.sock",
+  "flashd": "/home/nate/claude/flash-sass-prs/ple-build-6835416/kern/flashd",
+  "gguf": "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf",
+  "driver_sha256": "91dc835877d157cf339da4698bdf4d3d0a62d89eb3cb23736f46791575c60186",
+  "cases": [
+    {
+      "case": "eof_pos0_json",
+      "status": "PASS",
+      "http_status": 502,
+      "before": {
+        "launches": 19,
+        "failed": 0,
+        "pos": 0,
+        "head": 0,
+        "snapshot": 0
+      },
+      "after": {
+        "launches": 19,
+        "failed": 1,
+        "pos": 0,
+        "head": 3,
+        "snapshot": 0
+      },
+      "recovered": {
+        "launches": 21,
+        "failed": 0,
+        "pos": 0,
+        "head": 0,
+        "snapshot": 17
+      }
+    },
+    {
+      "case": "eof_pos0_sse",
+      "status": "PASS",
+      "http_status": 200,
+      "before": {
+        "launches": 22,
+        "failed": 0,
+        "pos": 0,
+        "head": 0,
+        "snapshot": 0
+      },
+      "after": {
+        "launches": 22,
+        "failed": 1,
+        "pos": 0,
+        "head": 3,
+        "snapshot": 0
+      },
+      "recovered": {
+        "launches": 24,
+        "failed": 0,
+        "pos": 0,
+        "head": 0,
+        "snapshot": 17
+      }
+    },
+    {
+      "case": "eof_pos160_json",
+      "status": "PASS",
+      "http_status": 502,
+      "before": {
+        "launches": 25,
+        "failed": 0,
+        "pos": 0,
+        "head": 0,
+        "snapshot": 0
+      },
+      "after": {
+        "launches": 26,
+        "failed": 1,
+        "pos": 160,
+        "head": 3,
+        "snapshot": 0
+      },
+      "recovered": {
+        "launches": 28,
+        "failed": 0,
+        "pos": 0,
+        "head": 0,
+        "snapshot": 17
+      }
+    },
+    {
+      "case": "eof_pos160_sse",
+      "status": "PASS",
+      "http_status": 200,
+      "before": {
+        "launches": 29,
+        "failed": 0,
+        "pos": 0,
+        "head": 0,
+        "snapshot": 0
+      },
+      "after": {
+        "launches": 30,
+        "failed": 1,
+        "pos": 160,
+        "head": 3,
+        "snapshot": 0
+      },
+      "recovered": {
+        "launches": 32,
+        "failed": 0,
+        "pos": 0,
+        "head": 0,
+        "snapshot": 17
+      }
+    },
+    {
+      "case": "eof_pos161_json",
+      "status": "PASS",
+      "http_status": 502,
+      "before": {
+        "launches": 33,
+        "failed": 0,
+        "pos": 0,
+        "head": 0,
+        "snapshot": 0
+      },
+      "after": {
+        "launches": 34,
+        "failed": 1,
+        "pos": 161,
+        "head": 3,
+        "snapshot": 0
+      },
+      "recovered": {
+        "launches": 36,
+        "failed": 0,
+        "pos": 0,
+        "head": 0,
+        "snapshot": 17
+      }
+    },
+    {
+      "case": "eof_pos161_sse",
+      "status": "PASS",
+      "http_status": 200,
+      "before": {
+        "launches": 37,
+        "failed": 0,
+        "pos": 0,
+        "head": 0,
+        "snapshot": 0
+      },
+      "after": {
+        "launches": 38,
+        "failed": 1,
+        "pos": 161,
+        "head": 3,
+        "snapshot": 0
+      },
+      "recovered": {
+        "launches": 40,
+        "failed": 0,
+        "pos": 0,
+        "head": 0,
+        "snapshot": 17
+      }
+    },
+    {
+      "case": "eio_pos0_json",
+      "status": "PASS",
+      "http_status": 502,
+      "before": {
+        "launches": 41,
+        "failed": 0,
+        "pos": 0,
+        "head": 0,
+        "snapshot": 0
+      },
+      "after": {
+        "launches": 41,
+        "failed": 1,
+        "pos": 0,
+        "head": 3,
+        "snapshot": 0
+      },
+      "recovered": {
+        "launches": 43,
+        "failed": 0,
+        "pos": 0,
+        "head": 0,
+        "snapshot": 17
+      }
+    },
+    {
+      "case": "eio_pos0_sse",
+      "status": "PASS",
+      "http_status": 200,
+      "before": {
+        "launches": 44,
+        "failed": 0,
+        "pos": 0,
+        "head": 0,
+        "snapshot": 0
+      },
+      "after": {
+        "launches": 44,
+        "failed": 1,
+        "pos": 0,
+        "head": 3,
+        "snapshot": 0
+      },
+      "recovered": {
+        "launches": 46,
+        "failed": 0,
+        "pos": 0,
+        "head": 0,
+        "snapshot": 17
+      }
+    },
+    {
+      "case": "eio_pos160_json",
+      "status": "PASS",
+      "http_status": 502,
+      "before": {
+        "launches": 47,
+        "failed": 0,
+        "pos": 0,
+        "head": 0,
+        "snapshot": 0
+      },
+      "after": {
+        "launches": 48,
+        "failed": 1,
+        "pos": 160,
+        "head": 3,
+        "snapshot": 0
+      },
+      "recovered": {
+        "launches": 50,
+        "failed": 0,
+        "pos": 0,
+        "head": 0,
+        "snapshot": 17
+      }
+    },
+    {
+      "case": "eio_pos160_sse",
+      "status": "PASS",
+      "http_status": 200,
+      "before": {
+        "launches": 51,
+        "failed": 0,
+        "pos": 0,
+        "head": 0,
+        "snapshot": 0
+      },
+      "after": {
+        "launches": 52,
+        "failed": 1,
+        "pos": 160,
+        "head": 3,
+        "snapshot": 0
+      },
+      "recovered": {
+        "launches": 54,
+        "failed": 0,
+        "pos": 0,
+        "head": 0,
+        "snapshot": 17
+      }
+    },
+    {
+      "case": "eio_pos161_json",
+      "status": "PASS",
+      "http_status": 502,
+      "before": {
+        "launches": 55,
+        "failed": 0,
+        "pos": 0,
+        "head": 0,
+        "snapshot": 0
+      },
+      "after": {
+        "launches": 56,
+        "failed": 1,
+        "pos": 161,
+        "head": 3,
+        "snapshot": 0
+      },
+      "recovered": {
+        "launches": 58,
+        "failed": 0,
+        "pos": 0,
+        "head": 0,
+        "snapshot": 17
+      }
+    },
+    {
+      "case": "eio_pos161_sse",
+      "status": "PASS",
+      "http_status": 200,
+      "before": {
+        "launches": 59,
+        "failed": 0,
+        "pos": 0,
+        "head": 0,
+        "snapshot": 0
+      },
+      "after": {
+        "launches": 60,
+        "failed": 1,
+        "pos": 161,
+        "head": 3,
+        "snapshot": 0
+      },
+      "recovered": {
+        "launches": 62,
+        "failed": 0,
+        "pos": 0,
+        "head": 0,
+        "snapshot": 17
+      }
+    }
+  ]
+}

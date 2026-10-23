@@ -1,0 +1,50 @@
+[
+  {
+    "direction": "in",
+    "line": "config"
+  },
+  {
+    "direction": "out",
+    "line": "config rev=6835416996dc76200045cec02adf6c43b9e42c63 kv_host=0 ple_disk=1 maxt=512 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=1 two_position=1 cubin=/home/nate/claude/flash-sass-prs/ple-build-6835416/kern/die.cubin cubin_fnv=805be15e22699af4"
+  },
+  {
+    "direction": "in",
+    "line": "info"
+  },
+  {
+    "direction": "out",
+    "line": "info 512 1"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "chat 0 1 2"
+  },
+  {
+    "direction": "out",
+    "line": "tok 220"
+  },
+  {
+    "direction": "out",
+    "line": "done 1 0 2 59.5 59.3 0 0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=24 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  }
+]

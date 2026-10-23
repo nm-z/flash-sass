@@ -1,0 +1,22 @@
+flashcore: PLE rows are read from /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf on demand (FLASH_PLE_DISK): 1 MB pinned instead of 28.8 GB, no table load
+flashcore: 6 dies, weights and PLE table resident after 1 s
+engine: 6 dies, 48 blocks, up to 512 positions, 53 MB of buffers per die, ready in 0.6 s
+flashcore: engine /home/nate/claude/flash-sass-prs/ple-build-6835416/kern/libengine_pleiotest.so ready in 0.6 s
+ready
+flashcore: listening on /tmp/flash-owned-failure-recovery-6835416-pair0.sock
+engine: PLE I/O position 0 head 3 offset 6954249432 bytes 17/90: unexpected EOF
+engine: PLE I/O position 160 head 3 offset 6809004372 bytes 17/90: unexpected EOF
+engine: PLE I/O position 0 head 3 offset 6954249432 bytes 17/90: Input/output error
+engine: PLE I/O position 160 head 3 offset 6809004372 bytes 17/90: Input/output error
+engine: PLE I/O position 0 head 3 offset 5518414632 bytes 17/90: unexpected EOF
+engine: PLE I/O position 0 head 3 offset 5518414632 bytes 17/90: unexpected EOF
+engine: PLE I/O position 160 head 3 offset 6767137362 bytes 17/90: unexpected EOF
+engine: PLE I/O position 160 head 3 offset 6767137362 bytes 17/90: unexpected EOF
+engine: PLE I/O position 161 head 3 offset 6767137362 bytes 17/90: unexpected EOF
+engine: PLE I/O position 161 head 3 offset 6767137362 bytes 17/90: unexpected EOF
+engine: PLE I/O position 0 head 3 offset 5518414632 bytes 17/90: Input/output error
+engine: PLE I/O position 0 head 3 offset 5518414632 bytes 17/90: Input/output error
+engine: PLE I/O position 160 head 3 offset 6767137362 bytes 17/90: Input/output error
+engine: PLE I/O position 160 head 3 offset 6767137362 bytes 17/90: Input/output error
+engine: PLE I/O position 161 head 3 offset 6767137362 bytes 17/90: Input/output error
+engine: PLE I/O position 161 head 3 offset 6767137362 bytes 17/90: Input/output error

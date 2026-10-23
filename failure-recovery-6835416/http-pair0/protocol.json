@@ -1,0 +1,870 @@
+[
+  {
+    "direction": "in",
+    "line": "config"
+  },
+  {
+    "direction": "out",
+    "line": "config rev=6835416996dc76200045cec02adf6c43b9e42c63 kv_host=0 ple_disk=1 maxt=512 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=1 two_position=0 cubin=/home/nate/claude/flash-sass-prs/ple-build-6835416/kern/die.cubin cubin_fnv=805be15e22699af4"
+  },
+  {
+    "direction": "in",
+    "line": "info"
+  },
+  {
+    "direction": "out",
+    "line": "info 512 1"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "chat 0 1 2"
+  },
+  {
+    "direction": "out",
+    "line": "tok 220"
+  },
+  {
+    "direction": "out",
+    "line": "done 1 0 2 242.5 242.3 0 0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=16 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "chat 0 1 2"
+  },
+  {
+    "direction": "out",
+    "line": "tok 220"
+  },
+  {
+    "direction": "out",
+    "line": "done 1 0 2 56.3 56.1 0 0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=19 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test eof 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test eof 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=19 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=19 failed=1 pos=0 head=3 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=21 failed=0 pos=0 head=0 snapshot=17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "chat 0 1 2"
+  },
+  {
+    "direction": "out",
+    "line": "tok 220"
+  },
+  {
+    "direction": "out",
+    "line": "done 1 0 2 56.4 56.1 0 0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=22 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test eof 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test eof 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=22 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=22 failed=1 pos=0 head=3 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=24 failed=0 pos=0 head=0 snapshot=17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "chat 0 1 2"
+  },
+  {
+    "direction": "out",
+    "line": "tok 220"
+  },
+  {
+    "direction": "out",
+    "line": "done 1 0 2 56.3 56.1 0 0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=25 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test eof 160 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test eof 160 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=25 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=26 failed=1 pos=160 head=3 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=28 failed=0 pos=0 head=0 snapshot=17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "chat 0 1 2"
+  },
+  {
+    "direction": "out",
+    "line": "tok 220"
+  },
+  {
+    "direction": "out",
+    "line": "done 1 0 2 56.5 56.2 0 0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=29 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test eof 160 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test eof 160 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=29 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=30 failed=1 pos=160 head=3 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=32 failed=0 pos=0 head=0 snapshot=17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "chat 0 1 2"
+  },
+  {
+    "direction": "out",
+    "line": "tok 220"
+  },
+  {
+    "direction": "out",
+    "line": "done 1 0 2 56.6 56.4 0 0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=33 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test eof 161 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test eof 161 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=33 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=34 failed=1 pos=161 head=3 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=36 failed=0 pos=0 head=0 snapshot=17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "chat 0 1 2"
+  },
+  {
+    "direction": "out",
+    "line": "tok 220"
+  },
+  {
+    "direction": "out",
+    "line": "done 1 0 2 56.6 56.4 0 0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=37 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test eof 161 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test eof 161 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=37 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=38 failed=1 pos=161 head=3 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=40 failed=0 pos=0 head=0 snapshot=17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "chat 0 1 2"
+  },
+  {
+    "direction": "out",
+    "line": "tok 220"
+  },
+  {
+    "direction": "out",
+    "line": "done 1 0 2 56.8 56.6 0 0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=41 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test eio 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test eio 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=41 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=41 failed=1 pos=0 head=3 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=43 failed=0 pos=0 head=0 snapshot=17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "chat 0 1 2"
+  },
+  {
+    "direction": "out",
+    "line": "tok 220"
+  },
+  {
+    "direction": "out",
+    "line": "done 1 0 2 56.8 56.6 0 0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=44 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test eio 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test eio 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=44 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=44 failed=1 pos=0 head=3 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=46 failed=0 pos=0 head=0 snapshot=17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "chat 0 1 2"
+  },
+  {
+    "direction": "out",
+    "line": "tok 220"
+  },
+  {
+    "direction": "out",
+    "line": "done 1 0 2 56.8 56.7 0 0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=47 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test eio 160 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test eio 160 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=47 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=48 failed=1 pos=160 head=3 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=50 failed=0 pos=0 head=0 snapshot=17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "chat 0 1 2"
+  },
+  {
+    "direction": "out",
+    "line": "tok 220"
+  },
+  {
+    "direction": "out",
+    "line": "done 1 0 2 57.2 57.1 0 0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=51 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test eio 160 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test eio 160 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=51 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=52 failed=1 pos=160 head=3 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=54 failed=0 pos=0 head=0 snapshot=17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "chat 0 1 2"
+  },
+  {
+    "direction": "out",
+    "line": "tok 220"
+  },
+  {
+    "direction": "out",
+    "line": "done 1 0 2 57.6 57.5 0 0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=55 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test eio 161 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test eio 161 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=55 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=56 failed=1 pos=161 head=3 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=58 failed=0 pos=0 head=0 snapshot=17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "chat 0 1 2"
+  },
+  {
+    "direction": "out",
+    "line": "tok 220"
+  },
+  {
+    "direction": "out",
+    "line": "done 1 0 2 57.8 57.5 0 0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=59 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test eio 161 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test eio 161 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=59 failed=0 pos=0 head=0 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=60 failed=1 pos=161 head=3 snapshot=0"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test status"
+  },
+  {
+    "direction": "out",
+    "line": "ple_io_test launches=62 failed=0 pos=0 head=0 snapshot=17"
+  },
+  {
+    "direction": "in",
+    "line": "ple_io_test none 0 3 17"
+  },
+  {
+    "direction": "out",
+    "line": "ok: ple_io_test none 0 3 17"
+  }
+]

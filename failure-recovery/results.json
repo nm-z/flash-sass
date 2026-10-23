@@ -1,0 +1,30 @@
+{
+  "status": "RUNNING_OR_FAILED",
+  "config": {
+    "source": "/home/nate/claude/flash-sass-prs/ple-build-6835416",
+    "validation": "/home/nate/claude/flash-sass-prs/ple-validation-6835416",
+    "label": "failure-recovery",
+    "revision": "6835416996dc76200045cec02adf6c43b9e42c63",
+    "kind": "ple",
+    "library": "libengine_pleiotest.so",
+    "paired_modes": [
+      0,
+      1
+    ],
+    "http_script": "/home/nate/claude/flash-sass-prs/ple-build-6835416/kern/ple_io_http_check.py"
+  },
+  "commands": [
+    {
+      "label": "gpu-before",
+      "argv": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm",
+        "--format=csv"
+      ],
+      "exit": 0,
+      "seconds": 0.1145083169976715
+    }
+  ],
+  "cores": [],
+  "runner_sha256": "6e8748adbb0b265a503463dad84f501b94305d85bb75ceca043225a8f2e85a21"
+}

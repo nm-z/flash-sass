@@ -1,0 +1,23 @@
+{
+  "status": 200,
+  "headers": {
+    "Content-Type": "application/json",
+    "Cache-Control": "no-store",
+    "Content-Length": "470",
+    "Connection": "close"
+  },
+  "request": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "Return the single word hello."
+      }
+    ],
+    "max_tokens": 4,
+    "stream": false,
+    "temperature": 0,
+    "chat_template_kwargs": {
+      "enable_thinking": false
+    }
+  }
+}

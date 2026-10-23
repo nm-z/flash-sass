@@ -1,0 +1,10 @@
+{
+  "status": "FAIL",
+  "kind": "real-PLE real-flashd failure/recovery",
+  "config": "config rev=6835416996dc76200045cec02adf6c43b9e42c63 kv_host=0 ple_disk=1 maxt=512 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=1 two_position=1 cubin=/home/nate/claude/flash-sass-prs/ple-build-6835416/kern/die.cubin cubin_fnv=805be15e22699af4",
+  "core": "/tmp/flash-owned-failure-recovery-6835416-pair1.sock",
+  "flashd": "/home/nate/claude/flash-sass-prs/ple-build-6835416/kern/flashd",
+  "gguf": "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf",
+  "driver_sha256": "91dc835877d157cf339da4698bdf4d3d0a62d89eb3cb23736f46791575c60186",
+  "cases": []
+}
