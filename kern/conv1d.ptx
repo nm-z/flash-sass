@@ -1,0 +1,15 @@
+// Skeleton for MaxAs: same entry name and parameter layout as conv1d.sass.
+.version 7.4
+.target sm_52
+.address_size 64
+
+.visible .entry conv1d(.param .u64 px, .param .u64 pstate, .param .u64 pw, .param .u64 pu, .param .u32 t, .param .u32 n)
+{
+	.reg .u32 %r<2>;
+	.reg .pred %p;
+	ld.param.u32 %r0, [n];
+	mov.u32 %r1, %tid.x;
+	setp.lt.u32 %p, %r1, %r0;
+	@%p ret;
+	ret;
+}
