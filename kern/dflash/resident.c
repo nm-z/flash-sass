@@ -16,6 +16,7 @@ struct dflash_resident {
     dflash_target_binding target[6];
     unsigned rank,context;
     CUmodule module[6];CUfunction fn[6][NFUNCTIONS];CUstream stream[6];
+    CUmodule q4k_module;CUfunction q4k;   /* optional PTX four-row Q4_K matrix */
     CUevent hidden_ready,head_ready[6];
     CUgraph backbone_graph,append_graph,head_graph[6],select_graph;
     CUgraphExec backbone,append,head[6],select;
@@ -41,11 +42,43 @@ static CUdeviceptr weight(dflash_resident *r,const gguf_tensor *t) {return r->ar
 static int launch(dflash_resident *r,unsigned rank,unsigned fn,unsigned gx,unsigned gy,unsigned threads,void **args,char *err,size_t nerr) {
     TRY(cuLaunchKernel(r->fn[rank][fn],gx,gy,1,threads,1,1,0,r->stream[rank],args,NULL));return 0;
 }
-static int matrix(dflash_resident *r,const gguf_tensor *t,CUdeviceptr input,CUdeviceptr output,char *err,size_t nerr) {
+static int matrix_reference(dflash_resident *r,const gguf_tensor *t,CUdeviceptr input,CUdeviceptr output,char *err,size_t nerr) {
     CUdeviceptr w=weight(r,t);unsigned rows=(unsigned)t->dims[1],k=(unsigned)t->dims[0],count=4,type=t->type;
     unsigned stride=(unsigned)(dflash_tensor_bytes(t)/rows);
     void *args[]={&w,&input,&output,&rows,&k,&count,&type,&stride};
     return launch(r,r->rank,MATRIX,(rows+3)/4,1,128,args,err,nerr);
+}
+/* Each 256-thread CTA covers 32 rows: eight warps of four rows. */
+static int matrix(dflash_resident *r,const gguf_tensor *t,CUdeviceptr input,CUdeviceptr output,char *err,size_t nerr) {
+    if(!r->q4k || t->type!=DFLASH_Q4_K || t->dims[0]%256)return matrix_reference(r,t,input,output,err,nerr);
+    CUdeviceptr w=weight(r,t);unsigned rows=(unsigned)t->dims[1],k=(unsigned)t->dims[0];
+    unsigned stride=(unsigned)(dflash_tensor_bytes(t)/rows);
+    void *args[]={&w,&input,&output,&rows,&k,&stride};
+    TRY(cuLaunchKernel(r->q4k,(rows+31)/32,1,1,256,1,1,0,r->stream[r->rank],args,NULL));return 0;
+}
+/* FLASH_DFLASH_MATRIX_CHECK=1: compare both kernels on one input per Q4_K
+ * matrix of layer 0 before capturing graphs. Diagnostic only. */
+static int matrix_check(dflash_resident *r,char *err,size_t nerr) {
+    if(!r->q4k || !getenv("FLASH_DFLASH_MATRIX_CHECK") || !atoi(getenv("FLASH_DFLASH_MATRIX_CHECK")))return 0;
+    dflash_layer_weights *w=r->model.layer;
+    const gguf_tensor *list[]={w->q,w->k,w->gate,w->down,w->attention_output,w->attn_conv_projection};
+    TRY(cuCtxSetCurrent(r->target[r->rank].context));
+    for(unsigned i=0;i<sizeof list/sizeof *list;i++) {
+        const gguf_tensor *t=list[i];if(t->type!=DFLASH_Q4_K)continue;
+        unsigned rows=(unsigned)t->dims[1],k=(unsigned)t->dims[0];
+        float *x=malloc((size_t)4*k*4),*a=malloc((size_t)4*rows*4),*b=malloc((size_t)4*rows*4);
+        if(!x||!a||!b){free(x);free(a);free(b);snprintf(err,nerr,"DFlash2 check allocation");return -1;}
+        uint32_t s=12345u;for(size_t j=0;j<(size_t)4*k;j++){s=s*1664525u+1013904223u;x[j]=((float)(s>>8)/16777216.f-.5f);}
+        CUdeviceptr dx,da,db;TRY(cuMemAlloc(&dx,(size_t)4*k*4));TRY(cuMemAlloc(&da,(size_t)4*rows*4));TRY(cuMemAlloc(&db,(size_t)4*rows*4));
+        TRY(cuMemcpyHtoD(dx,x,(size_t)4*k*4));
+        if(matrix_reference(r,t,dx,da,err,nerr) || matrix(r,t,dx,db,err,nerr))return -1;
+        TRY(cuStreamSynchronize(r->stream[r->rank]));
+        TRY(cuMemcpyDtoH(a,da,(size_t)4*rows*4));TRY(cuMemcpyDtoH(b,db,(size_t)4*rows*4));
+        double worst=0,scale=0;for(size_t j=0;j<(size_t)4*rows;j++){double e=fabs((double)a[j]-b[j]);if(e>worst)worst=e;if(fabs(a[j])>scale)scale=fabs(a[j]);}
+        fprintf(stderr,"dflash_matrix_check tensor=%u rows=%u k=%u max_abs=%.6g scale=%.6g\n",i,rows,k,worst,scale);
+        cuMemFree(dx);cuMemFree(da);cuMemFree(db);free(x);free(a);free(b);
+    }
+    return 0;
 }
 static int norm(dflash_resident *r,CUdeviceptr input,CUdeviceptr output,const gguf_tensor *t,unsigned width,unsigned vectors,char *err,size_t nerr) {
     CUdeviceptr w=weight(r,t);float epsilon=r->model.epsilon;
@@ -191,6 +224,12 @@ static int initialize(dflash_resident *r,const char *model,const char *module,ch
         DO(allocate(r,d,&r->top_b[d],(size_t)3*blocks*16*sizeof(dflash_candidate),err,nerr));
     }
 #undef ALLOC
+    const char *q4k=getenv("FLASH_DFLASH_Q4K_CUBIN");
+    if(q4k && *q4k) {
+        TRY(cuCtxSetCurrent(r->target[rank].context));
+        TRY(cuModuleLoad(&r->q4k_module,q4k));TRY(cuModuleGetFunction(&r->q4k,r->q4k_module,"df4_q4k_matrix"));
+    }
+    DO(matrix_check(r,err,nerr));
     DO(backbone(r,err,nerr));DO(append_graph(r,err,nerr));
     for(unsigned d=0;d<6;d++)DO(head_graph(r,d,err,nerr));
     return select_graph(r,err,nerr);
@@ -270,6 +309,7 @@ void dflash_resident_close(dflash_resident *r) {
     if(r->backbone)cuGraphExecDestroy(r->backbone);if(r->backbone_graph)cuGraphDestroy(r->backbone_graph);
     if(r->append)cuGraphExecDestroy(r->append);if(r->append_graph)cuGraphDestroy(r->append_graph);
     if(r->select)cuGraphExecDestroy(r->select);if(r->select_graph)cuGraphDestroy(r->select_graph);
+    if(r->q4k_module)cuModuleUnload(r->q4k_module);
     if(r->hidden_ready)cuEventDestroy(r->hidden_ready);
     if(r->host_control)cuMemFreeHost(r->host_control);if(r->host_tokens)cuMemFreeHost(r->host_tokens);
     for(unsigned i=r->allocations;i;i--) {unsigned d=r->allocation[i-1].rank;cuCtxSetCurrent(r->target[d].context);cuMemFree(r->allocation[i-1].pointer);}

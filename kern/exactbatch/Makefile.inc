@@ -222,6 +222,11 @@ DFLASH_NVCC ?= /home/nate/qwen3-next/toolchains/cuda-11.8/bin/nvcc
 DFLASH_CCBIN ?= /home/nate/qwen3-next/toolchains/gcc11/usr/bin
 dflash/device.cubin: dflash/device.cu dflash/device.h
 	$(DFLASH_NVCC) -ccbin $(DFLASH_CCBIN) -cubin -arch=sm_52 -O3 --fmad=true -o $@ $<
+# Four-row Q4_K draft matrix, generated as PTX (FLASH_DFLASH_Q4K_CUBIN).
+dflash/q4k4.ptx: dflash/q4k4.lua
+	lua5.4 dflash/q4k4.lua $@
+dflash/q4k4.cubin: dflash/q4k4.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ $<
 DFLASH_QUANT_SRC = dflash/gguf_model.c dflash/resident.c
 libengine_dflash2.so: $(ENGINE_SRC) $(DFLASH_QUANT_SRC) dflash/engine_quant.inc dflash/target.h dflash/device.h dflash/resident.h dflash/gguf_model.h exactbatch/prog_group.c exactbatch/prog_group.h balance/batch.c balance/batch.h balance/speculate.c unique/board_host.inc unique/transport.h exact_ops.h prog.h engine.h core.h prefill.h trace_host.inc timings.h qsa_state.h ple_read_pool.h ple_read_reload.h phase/plan.h balance/attention_plan.h
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -pthread -DFLASH_EXACT_BATCH -DFLASH_BALANCED_SPEC_NATIVE -DFLASH_DFLASH_QUANT -DFLASH_REV='"$(FLASH_REV)-dflash2"' -o $@.new $(ENGINE_SRC) $(DFLASH_QUANT_SRC) exactbatch/prog_group.c balance/batch.c -I. -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
