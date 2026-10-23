@@ -1,0 +1,214 @@
+# Isolated scalar Q3 occupancy experiment. Same int16 producer/tile ABI and
+# q3_k_dot_code arithmetic; one block step lives in registers at a time.
+# Full X16/AS stay immutable in CTA shared memory across row iterations.
+# No main die opcode uses this generator.
+# Q3_STREAM_PREFETCH_ALL=1 keeps every row's original weight/scale fragments
+# and activation scales resident; only X16 block operands stream from shared.
+# Q3_STREAM_NIBBLE_DOT=1 adds packed resident signed16 biases to the proven
+# biased-nibble integer emitter; the floating-point chain stays unchanged.
+<CONSTANT_MAPPING>
+    gridDimX : c[0x0][0x14]
+    param_W0 : c[0x0][0x140]
+    param_W1 : c[0x0][0x144]
+    param_X0 : c[0x0][0x148]
+    param_X1 : c[0x0][0x14c]
+    param_Y0 : c[0x0][0x158]
+    param_Y1 : c[0x0][0x15c]
+    param_rows : c[0x0][0x160]
+    param_AS0 : c[0x0][0x170]
+    param_AS1 : c[0x0][0x174]
+</CONSTANT_MAPPING>
+<REGISTER_MAPPING>
+    0-15 : act<00-15>
+    16,17 : cw<00-01>
+    18 : hw0
+    19 : sw0
+<CODE>
+    return $ENV{Q3_STREAM_PREFETCH_ALL} ? '' : "    20 : dp0\n";
+</CODE>
+    21 : as0
+    22-37 : m<00-15>
+    38 : acc07
+    39-45 : acc<00-06>
+    46 : acc15
+    47-53 : acc<08-14>
+    54 : acch7
+    55-61 : acch<0-6>
+    62-64 : hs<1-3>
+    65 : dot0
+    66 : dot1
+    67 : dh0
+    68 : dh1
+    69 : sumi
+    70 : sumif
+    71 : dd
+    72 : accf
+    73 : t
+    74 : u
+    75 : scw
+    76 : row
+    77 : rowpair
+    78 : rowstep
+    79 : stepw
+    80 : sx
+    81 : sa
+    82,83 : pp<0-1>
+    84,85 : cp<0-1>
+    86,87 : hp<0-1>
+    88,89 : sp<0-1>
+    90,91 : yp<0-1>
+    # Prologue aliases retire before the first block loads/decoding.
+    16,17 : xp<0-1>
+    18,19 : ap<0-1>
+    24 : tid
+    25 : bid
+    26 : lane
+    27 : grp
+    28 : off
+    29 : tmp
+    30 : q
+    31 : jj
+<CODE>
+    return '' unless $ENV{Q3_STREAM_PREFETCH_ALL};
+    my $K=$ENV{GEMV_K}||2560;my $L=$K==2560?16:32;my $n=($K/256)/($L/8);
+    my $r=92;my $o='';
+    $o.=sprintf "    %d-%d : cw<02-%02d>\n",$r,$r+2*$n-3,2*$n-1;
+    $r+=2*$n-2;
+    for my $i(1..$n-1){$o.=sprintf "    %d : hw%d\n",$r++,$i;}
+    for my $i(1..$n-1){$o.=sprintf "    %d : sw%d\n",$r++,$i;}
+    die 'unaligned packed scales' if$r%4;
+    $o.=sprintf "    %d-%d : dp<0-3>\n",$r,$r+3;$r+=4;
+    for my $i(1..$n-1){$o.=sprintf "    %d : as%d\n",$r++,$i;}
+    if($ENV{Q3_STREAM_NIBBLE_DOT}){
+        for my$i(0..$n-1){$o.=sprintf "    %d : pb%d\n",$r++,$i;}
+    }
+    die 'prefetched Q3 exceeds two-CTA register target' if$r>128;
+    return$o;
+</CODE>
+</REGISTER_MAPPING>
+<CODE>
+    my $K=$ENV{GEMV_K}||2560;
+    die 'Q3 stream supports K=2560 or 6144' unless $K==2560||$K==6144;
+    my $all=$ENV{Q3_STREAM_PREFETCH_ALL}//0;
+    die 'Q3_STREAM_PREFETCH_ALL must be 0 or 1' unless$all=~/\A[01]\z/;
+    my $nibble=$ENV{Q3_STREAM_NIBBLE_DOT}//0;
+    die 'Q3_STREAM_NIBBLE_DOT must be 0 or 1' unless$nibble=~/\A[01]\z/;
+    die 'nibble stream requires full weight prefetch' if$nibble&&!$all;
+    my $L=$K==2560?16:32;my $Q=$L/8;my $n=($K/256)/$Q;
+    my $R=256/$L;my $lgL=$L==16?4:5;my $lgR=$R==16?4:3;
+    my $S=16*$Q+112*($K/256);my $bstep=112*$Q;
+    my $o='';my $nop="--:-:-:-:6      NOP;\n";
+    my $mul=sub {my($d,$r,$c)=@_;my @b=grep{$c&(1<<$_)}0..30;
+        $o.=sprintf "--:-:-:-:6      SHL %s, %s, 0x%x;\n",$d,$r,shift @b;
+        $o.=sprintf "--:-:-:-:6      ISCADD %s, %s, %s, 0x%x;\n",$d,$r,$d,$_ for @b;
+    };
+    $o.="--:-:6:-:1      S2R tid, SR_TID.X;\n--:-:6:-:2      S2R bid, SR_CTAID.X;\n20:-:-:-:6      SHL sx, tid, 0x4;\n";
+    $o.="--:-:-:-:6      IADD xp0.CC, sx, param_X0;\n--:-:-:-:6      IADD.X xp1, RZ, param_X1;\n";
+    for(my $b=0;$b<2*$K;$b+=4096) {
+        my $threads=(2*$K-$b)/16;$threads=256 if $threads>256;
+        $o.=sprintf "02:-:-:-:6      ISETP.LT.U32.AND P4, PT, tid, 0x%x, PT;\n",$threads;
+        $o.=$nop x3;
+        $o.=sprintf "--:2:1:-:2  \@P4 LDG.E.128 act00, [xp+0x%x];\n01:2:-:-:2  \@P4 STS.128 [sx+0x%x], act00;\n",$b,$b;
+    }
+    unless($all){
+        $o.="02:-:-:-:6      SHL sa, tid, 0x2;\n--:-:-:-:6      IADD ap0.CC, sa, param_AS0;\n--:-:-:-:6      IADD.X ap1, RZ, param_AS1;\n";
+        $o.=sprintf "--:-:-:-:6      ISETP.LT.U32.AND P4, PT, tid, 0x%x, PT;\n",$K/32;
+        $o.=$nop x3;
+        $o.="--:2:1:-:2  \@P4 LDG.E act00, [ap];\n";
+        $o.=sprintf "01:2:-:-:2  \@P4 STS [sa+0x%x], act00;\n",2*$K;
+    }
+    $o.="03:-:-:-:6      BAR.SYNC 0x0;\n";
+    $o.=sprintf "--:-:-:-:6      LOP32I.AND lane, tid, 0x%x;\n--:-:-:-:6      SHR.U32 grp, tid, 0x%x;\n--:-:-:-:6      SHR.U32 q, lane, 0x3;\n--:-:-:-:6      LOP32I.AND jj, lane, 0x7;\n",$L-1,$lgL;
+    $o.="--:-:-:-:6      ISETP.EQ.U32.AND P0, PT, lane, RZ, PT;\n--:-:-:-:6      MOV rowstep, gridDimX;\n";
+    $o.=sprintf "--:-:-:-:6      SHL rowstep, rowstep, 0x%x;\n--:-:-:-:6      ISCADD row, bid, grp, 0x%x;\n",$lgR,$lgR;
+    $o.=sprintf "--:-:-:-:6      LOP32I.AND rowpair, row, 0x%08x;\n",(~(32/$L-1))&0xffffffff;
+    $mul->('stepw','rowstep',$S);$mul->('off','row',$S);
+    $o.="--:-:-:-:6      ISCADD tmp, q, off, 0x4;\n--:-:-:-:6      IADD pp0.CC, tmp, param_W0;\n--:-:-:-:6      IADD.X pp1, RZ, param_W1;\n";
+    $mul->('tmp','q',112);
+    $o.="--:-:-:-:6      IADD off, off, tmp;\n";
+    $o.=sprintf "--:-:-:-:6      IADD off, off, 0x%x;\n",16*$Q;
+    $o.="--:-:-:-:6      ISCADD tmp, jj, off, 0x3;\n--:-:-:-:6      IADD cp0.CC, tmp, param_W0;\n--:-:-:-:6      IADD.X cp1, RZ, param_W1;\n";
+    $o.="--:-:-:-:6      ISCADD tmp, jj, off, 0x2;\n--:-:-:-:6      IADD tmp, tmp, 0x40;\n--:-:-:-:6      IADD hp0.CC, tmp, param_W0;\n--:-:-:-:6      IADD.X hp1, RZ, param_W1;\n";
+    $o.="--:-:-:-:6      ISCADD tmp, jj, off, 0x1;\n--:-:-:-:6      IADD tmp, tmp, 0x60;\n--:-:-:-:6      IADD sp0.CC, tmp, param_W0;\n--:-:-:-:6      IADD.X sp1, RZ, param_W1;\n";
+    $o.="--:-:-:-:6      SHL tmp, row, 0x2;\n--:-:-:-:6      IADD yp0.CC, tmp, param_Y0;\n--:-:-:-:6      IADD.X yp1, RZ, param_Y1;\n";
+    $o.="--:-:-:-:6      SHL sx, q, 0x9;\n--:-:-:-:6      ISCADD sx, jj, sx, 0x6;\n--:-:-:-:6      SHL sa, lane, 0x2;\n";
+    $o.=sprintf "--:-:-:-:6      IADD sa, sa, 0x%x;\n",2*$K;
+    if($all){
+        $o.="--:-:-:-:6      SHL tmp, lane, 0x2;\n--:-:-:-:6      IADD ap0.CC, tmp, param_AS0;\n--:-:-:-:6      IADD.X ap1, RZ, param_AS1;\n";
+        for my$i(0..$n-1){$o.=sprintf "--:2:1:-:%d      LDG.E.CI as%d, [ap+0x%x];\n",$i==$n-1?2:1,$i,4*$L*$i;}
+        # ap aliases hw0/sw0: retire all AS loads before weights overwrite it.
+        $o.="03:-:-:-:6      NOP;\n";
+    }
+    require './q3_k_math.pl';
+    if($nibble){
+        require './q3_nibble_math.pl';
+        my $pair=q3_nibble_pair_bias_code();
+        $pair=~s/\A((?:[^\n]*MOV32I[^\n]*\n){5})// or die 'missing nibble constants';
+        $o.=$1;
+        # CW registers are dead until the initial weight prefetch. Use them
+        # as two independent signed16-sum chains, then pack their low halves.
+        for my$i(0..$n-1){
+            for my$j(0..3){$o.=sprintf "--:2:1:-:%d      LDS.128 act%02d, [sx+0x%x];\n",$j==3?2:1,4*$j,512*$Q*$i+16*$j;}
+            $o.="03:-:-:-:6      NOP;\n";
+            my $bias=$pair;
+            my $a=sprintf('cw%02d',2*$i);my $b=sprintf('cw%02d',2*$i+1);
+            $bias=~s/\bbias00\b/$a/g;$bias=~s/\bbias01\b/$b/g;
+            # Its last chain normally stalls five cycles. Packing immediately
+            # requires six before the final temporary's dependent read.
+            $bias=~s/:5([^\n]*XMAD[^\n]*\n)\z/:6$1/ or die 'missing bias tail';
+            $o.=$bias;
+            $o.=sprintf "--:-:-:-:6      PRMT pb%d, %s, 0x5410, %s;\n",$i,$a,$b;
+        }
+    }
+    my @math;
+    if($all){
+        # Weight prefetch uses scoreboard 6, separate from shared activation
+        # loads on 1. Later blocks must not wait for the following row's W.
+        $o.="--:-:-:-:6      ISETP.LT.U32.AND P3, PT, row, param_rows, PT;\n".$nop x3;
+        $o.="--:2:6:-:1  \@P3 LDG.E.CI.128 dp0, [pp];\n";
+        for my$i(0..$n-1){$o.=sprintf "--:2:6:-:1  \@P3 LDG.E.CI.64 cw%02d, [cp+0x%x];\n",2*$i,$bstep*$i;}
+        for my$i(0..$n-1){$o.=sprintf "--:2:6:-:1  \@P3 LDG.E.CI hw%d, [hp+0x%x];\n",$i,$bstep*$i;}
+        for my$i(0..$n-1){$o.=sprintf "--:2:6:-:%d  \@P3 LDG.E.CI.U16 sw%d, [sp+0x%x];\n",$i==$n-1?2:1,$i,$bstep*$i;}
+        # Initially consume current W before advancing addresses. During ROW
+        # they point at the next row, exactly as in Q3_ROW_PREFETCH=1.
+        $o.="22:-:-:-:6      NOP;\n";
+        for my$p(qw(pp cp hp sp)){$o.=sprintf "--:-:-:-:6      IADD %s0.CC, %s0, stepw;\n--:-:-:-:6      IADD.X %s1, %s1, RZ;\n",$p,$p,$p,$p;}
+        my $original=$nibble?q3_nibble_dot_code($n,0,$bstep):q3_k_dot_code($n,0,$bstep);
+        @math=$original=~/(.*?FFMA accf, as\d+, u, accf;\n)/sg;
+        die 'missing scalar Q3 block' unless @math==$n;
+        if($nibble){
+            for my$i(0..$n-1){
+                my $replaced=($math[$i]=~s/, bias\d+;/, RZ;/g);
+                die 'unexpected nibble bias seeds' unless$replaced==2;
+                my $correction=sprintf "--:-:-:-:6      XMAD.S16.S16 dot0, pb%d, 0x1, dot0;\n--:-:-:-:6      XMAD.S16.S16 dot1, pb%d.H1, 0x1, dot1;\n",$i,$i;
+                $math[$i]=~s/^(--:-:-:-:6\s+XMAD\.S16\.S16 sumi, dot0, scw, RZ;)/$correction$1/m or die 'missing nibble correction point';
+            }
+        }
+    }
+    $o.="ROW:\n--:-:-:-:6      ISETP.LT.U32.AND P2, PT, row, param_rows, P0;\n";
+    if($all){$o.="--:-:-:-:6      IADD t, row, rowstep;\n--:-:-:-:6      ISETP.LT.U32.AND P3, PT, t, param_rows, PT;\n";}
+    else{$o.="--:-:-:-:6      ISETP.LT.U32.AND P3, PT, row, param_rows, PT;\n";}
+    $o.="--:-:-:-:6      IADD rowpair, rowpair, rowstep;\n--:-:-:-:6      MOV accf, RZ;\n--:-:-:-:6      ISETP.LT.U32.AND P1, PT, rowpair, param_rows, PT;\n";
+    for my $i(0..$n-1) {
+        unless($all){$o.=sprintf "--:2:1:-:2  \@P3 LDG.E.CI.U16 dp0, [pp+0x%x];\n--:2:1:-:1  \@P3 LDG.E.CI.64 cw00, [cp+0x%x];\n--:2:1:-:1  \@P3 LDG.E.CI hw0, [hp+0x%x];\n--:2:1:-:2  \@P3 LDG.E.CI.U16 sw0, [sp+0x%x];\n",2*$i,$bstep*$i,$bstep*$i,$bstep*$i;}
+        for my $j(0..3){$o.=sprintf "--:2:1:-:%d      LDS.128 act%02d, [sx+0x%x];\n",$j==3?2:1,4*$j,512*$Q*$i+16*$j;}
+        if($all){
+            my $part=$math[$i];
+            $part=~s/\bact(\d+)/sprintf('act%02d',$1-16*$i)/eg;
+            # The first block also consumes all current-row prefetched W.
+            # Remaining blocks wait for X only, preserving next-row overlap.
+            my $wait=$i?'01':'21';$part=~s/^..:/$wait:/;
+            $o.=$part;
+            $o.=sprintf "--:2:6:-:1  \@P3 LDG.E.CI.64 cw%02d, [cp+0x%x];\n--:2:6:-:1  \@P3 LDG.E.CI hw%d, [hp+0x%x];\n--:2:6:-:2  \@P3 LDG.E.CI.U16 sw%d, [sp+0x%x];\n",2*$i,$bstep*$i,$i,$bstep*$i,$i,$bstep*$i;
+            $o.="--:2:6:-:2  \@P3 LDG.E.CI.128 dp0, [pp];\n" if$i==$n-1;
+        }else{
+            $o.=sprintf "--:-:1:-:2      LDS as0, [sa+0x%x];\n",4*$L*$i;
+            $o.=q3_k_dot_code(1,0,$bstep);
+        }
+    }
+    for(my $x=$L/2;$x>=1;$x>>=1){$o.=sprintf "--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x%x, 0x1f;\n10:-:-:-:6      FADD accf, accf, t;\n",$x;}
+    $o.="--:2:-:-:1  \@P2 STG.E [yp], accf;\n--:-:-:-:1      IADD row, row, rowstep;\n02:-:-:-:6      IADD pp0.CC, pp0, stepw;\n--:-:-:-:6      IADD.X pp1, pp1, RZ;\n";
+    for my $p(qw(cp hp sp)){$o.=sprintf "--:-:-:-:6      IADD %s0.CC, %s0, stepw;\n--:-:-:-:6      IADD.X %s1, %s1, RZ;\n",$p,$p,$p,$p;}
+    $o.="--:-:-:-:6      SHL t, rowstep, 0x2;\n--:-:-:-:6      IADD yp0.CC, yp0, t;\n--:-:-:-:6      IADD.X yp1, yp1, RZ;\n--:-:-:-:6  \@P1 BRA ROW;\n--:-:-:-:f      EXIT;\n";
+    return $o;
+</CODE>
