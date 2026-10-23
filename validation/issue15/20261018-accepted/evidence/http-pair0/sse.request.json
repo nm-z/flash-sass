@@ -1,0 +1,14 @@
+{
+   "chat_template_kwargs" : {
+      "enable_thinking" : false
+   },
+   "max_tokens" : 4,
+   "messages" : [
+      {
+         "content" : "Return the single word hello.",
+         "role" : "user"
+      }
+   ],
+   "stream" : true,
+   "temperature" : 0
+}

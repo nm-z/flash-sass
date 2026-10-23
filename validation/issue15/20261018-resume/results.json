@@ -1,0 +1,89 @@
+{
+  "status": "BLOCKED",
+  "implementation_sha": "bec699ca07f6cf1ac7452a93698d41509aa58576",
+  "cpu_hostname": "engi",
+  "cpu_boot_id": "d42b112a-aedc-4dc4-9985-4a514d300317",
+  "regression_before": {
+    "base_sha": "7a77ed99011bc396c2bae28d5370a6bdee5d2d57",
+    "change": "New program-allocation regression applied before the engine fix",
+    "build_exit_code": 0,
+    "test_exit_code": 134,
+    "expected_failure": true,
+    "log": "allocation-before.log"
+  },
+  "checks": [
+    {
+      "name": "CPU fixture build",
+      "command": "make -C kern 'CC=cc -L/opt/cuda/targets/x86_64-linux/lib/stubs' timings_test flashd_timing_test flashd trace_session_test prefill_plan_test",
+      "exit_code": 0,
+      "log": "cpu-build.log"
+    },
+    {
+      "name": "Canonical timing fixtures",
+      "command": "./kern/timings_test",
+      "exit_code": 0,
+      "log": "timings.log"
+    },
+    {
+      "name": "Actual session and forced allocation failures",
+      "command": "LD_LIBRARY_PATH=/home/nate/codex/flash-issue15-resume.rDB4vj/cuda-stubs ./kern/trace_session_test",
+      "exit_code": 0,
+      "log": "session.log"
+    },
+    {
+      "name": "Shared lock guard",
+      "command": "perl validation/issue15/engine_guard_test.pl",
+      "exit_code": 0,
+      "assertions": 16,
+      "log": "engine-guard.tap"
+    },
+    {
+      "name": "Actual frontend fixtures",
+      "command": "perl kern/flashd_timing_test.pl",
+      "exit_code": 0,
+      "fixture_groups": 33,
+      "transport_cases": 30,
+      "log": "http-fixtures.tap.gz"
+    },
+    {
+      "name": "Prefill planner",
+      "command": "./kern/prefill_plan_test",
+      "exit_code": 0,
+      "log": "prefill-plan.log"
+    },
+    {
+      "name": "Committed production engine build on engi with CUDA stub link",
+      "command": "make -C kern 'CC=cc -L/opt/cuda/targets/x86_64-linux/lib/stubs' FLASH_REV=bec699ca07f6cf1ac7452a93698d41509aa58576 -W engine.c libengine.so",
+      "exit_code": 0,
+      "log": "engine-build.log"
+    },
+    {
+      "name": "Whitespace check",
+      "command": "git diff --check",
+      "exit_code": 0
+    },
+    {
+      "name": "Unchanged target guard and device source",
+      "command": "git diff --exit-code 5f6c120bab7b5cd2fc734575a127b40a9394b6ff bec699ca07f6cf1ac7452a93698d41509aa58576 -- validation/issue15/run_target.pl validation/issue15/EngineGuard.pm kern/die.pl kern/trace.pl",
+      "exit_code": 0
+    }
+  ],
+  "target": {
+    "hostname": "archy",
+    "status": "BLOCKED",
+    "exit_code": 75,
+    "last_checked_utc": "2026-10-18T03:32:14Z",
+    "reason": "Shared /tmp/flash-sass-engine-validation.lock held by issue-19 model validator PID 4010221",
+    "preflight_source_sha": "5f6c120bab7b5cd2fc734575a127b40a9394b6ff",
+    "note": "Only the unchanged preflight guard was invoked from the existing frozen source. It did not acquire the lock, execute GPU queries, start a core, or validate a request.",
+    "gpu_queries": 0,
+    "cores_started": 0,
+    "results": "target-preflight-final.json",
+    "lock_owner": "lock-owner.txt"
+  },
+  "not_measured": [
+    "Real target-GPU request at the current implementation",
+    "Raw device/host event reconciliation for that request",
+    "Observation and transport overhead for that request"
+  ]
+}
