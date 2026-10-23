@@ -1,0 +1,74 @@
+{
+  "request": "chat 8 323 11 198 264 323 323 315 279 11 499 374 198 374 11 11 264 311 374 220 198 11 499 11 11 315 220 11 389 13 389 264 311 311 13 374 198 279 315 198 315 11 499 315 311 315 264 323 323 315 389 279 11 315 264 499 374 279 374 220 389 374 279 11 264 11 279 374 279 220 220 389 323 323 311 374 374 13 374 13 220 264 374 323 499 323 13 13 315 389 13 499 323 220 279 198 499 13 220 323 198 389 198 389 499 323 264 311 264 13 279 389 323 374 13 323 315 13 11 323 499 198 499 323 311 220 374 264 13 374 315 311 279 220 499 499 389 11 198 198 11 198 499 374 11 13 13 315 315 11 315 220 13 374 374 264 198 279 279 13 389 315 220 311 11 311 311 264 11 11 311 220 11 220 264 315 220 198 389 374 11 279 323 13 389 499 11 13 499 264 374 323 11 374 220 220 13 279 499 323 389 198 279 323 264 323 11 279 11 198 311 374 198 315 374 499 323 11 11 11 315 323 311 13 311 13 315 374 220 279 499 311 13 13 389 279 311 279 198 389 11 374 220 374 323 389 11 389 315 220 220 11 311 220 13 13 11",
+  "request_start_ns": 14749761396545,
+  "request_end_ns": 14757346061396,
+  "generated_ids": [
+    315,
+    323,
+    315,
+    11,
+    315,
+    323,
+    315,
+    11,
+    315
+  ],
+  "client_observed_ns": [
+    14757113477152,
+    14757142680573,
+    14757171717758,
+    14757200830513,
+    14757229935587,
+    14757258917821,
+    14757287932742,
+    14757317075241,
+    14757346024761
+  ],
+  "raw": [
+    "tok 315",
+    "tok 323",
+    "tok 315",
+    "tok 11",
+    "tok 315",
+    "tok 323",
+    "tok 315",
+    "tok 11",
+    "tok 315",
+    "done 9 0 256 7579.1 7346.5 0 255"
+  ],
+  "done": {
+    "generated": 9,
+    "ended": 0,
+    "prompt": 256,
+    "run_ms": 7579.1,
+    "first_ms": 7346.5,
+    "resumed": 0,
+    "snapshot": 255
+  },
+  "intervals_ns": [
+    29203421,
+    29037185,
+    29112755,
+    29105074,
+    28982234,
+    29014921,
+    29142499,
+    28949520
+  ],
+  "decode_intervals": 8,
+  "client_decode_ms": 232.547609,
+  "request_ttft_ms": 7352.080607,
+  "request_completion_ms": 7584.664851,
+  "reported_post_first_ms": 232.60000000000036,
+  "gpu_after": {
+    "argv": [
+      "nvidia-smi",
+      "--query-gpu=index,uuid,driver_version,pci.bus_id,memory.used,memory.free,utilization.gpu,temperature.gpu,clocks.current.sm,clocks.current.memory,ecc.mode.current,pcie.link.gen.current,pcie.link.width.current",
+      "--format=csv"
+    ],
+    "exit": 0,
+    "stdout": "index, uuid, driver_version, pci.bus_id, memory.used [MiB], memory.free [MiB], utilization.gpu [%], temperature.gpu, clocks.current.sm [MHz], clocks.current.memory [MHz], ecc.mode.current, pcie.link.gen.current, pcie.link.width.current\n0, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f, 470.256.02, 00000000:03:00.0, 7539 MiB, 79 MiB, 55 %, 62, 1177 MHz, 2505 MHz, Enabled, 3, 16\n1, GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28, 470.256.02, 00000000:04:00.0, 6529 MiB, 1089 MiB, 51 %, 46, 1177 MHz, 2505 MHz, Enabled, 3, 16\n2, GPU-c767d250-4454-d181-d648-8706b5f2fb64, 470.256.02, 00000000:07:00.0, 7513 MiB, 105 MiB, 76 %, 60, 1177 MHz, 2505 MHz, Enabled, 3, 16\n3, GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6, 470.256.02, 00000000:08:00.0, 7583 MiB, 35 MiB, 100 %, 44, 1177 MHz, 2505 MHz, Enabled, 3, 16\n4, GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d, 470.256.02, 00000000:0B:00.0, 6541 MiB, 1077 MiB, 72 %, 76, 1177 MHz, 2505 MHz, Enabled, 3, 16\n5, GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4, 470.256.02, 00000000:0C:00.0, 6548 MiB, 1070 MiB, 100 %, 54, 1177 MHz, 2505 MHz, Enabled, 3, 16\n6, GPU-431371bd-b482-96b2-4b70-04f83c6d075b, 470.256.02, 00000000:12:00.0, 3 MiB, 7615 MiB, 0 %, 34, 405 MHz, 324 MHz, Enabled, 1, 16\n7, GPU-7ed9f65b-0233-0113-dfc1-05f4039decb4, 470.256.02, 00000000:13:00.0, 71 MiB, 7547 MiB, 0 %, 31, 872 MHz, 2505 MHz, Enabled, 3, 16\n",
+    "stderr": ""
+  },
+  "status": "complete"
+}
