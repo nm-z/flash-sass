@@ -1,0 +1,24 @@
+# build output
+*.cubin
+*.dis
+*.so
+*.so.new
+*.o
+kern/die.sass
+kern/die_trace.sass
+kern/die_trace16.sass
+kern/dieops.h
+# the MaxAs checkout (patches are in maxas-patch/)
+maxas/
+# test and host programs built from the sources next to them
+ref/ref_test
+ref/attn_contract_test
+ref/ggufhdr
+kern/*_test
+kern/ple_read_bench
+kern/ple_read_audit
+kern/hold
+kern/flashcore
+kern/flashd
+
+kern/ple_ram
