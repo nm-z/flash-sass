@@ -45,6 +45,13 @@ local function geometry(a)
   end
   put('row_tiles',math.ceil(rows/tile))
   if n=='q2moedn' then
+   local split=sass:find('q2moedn_SPLIT_DOT:',1,true)~=nil
+   put('dot_lane_assignments',issued_rows*ranks*(split and 8 or 4))
+   put('integer_pair_shuffles',split and issued_rows*ranks*8*5 or 0)
+   if sass:find('q2moedn_LUT_BUILD:',1,true) then
+    put('lut_table_entries',math.ceil(rows/tile)*ranks*320*16)
+    put('lut_lookups',issued_rows*ranks*8*5*8)
+   end
    local mapped=sass:find('LDG.E.CG bd_owner, [bd_address]',1,true)~=nil
    put('expert_dispatches',math.ceil(rows/tile)*10*(mapped and 1 or 6))
    put('owner_map_lookups',mapped and math.ceil(rows/tile)*10 or 0)

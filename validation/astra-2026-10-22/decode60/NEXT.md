@@ -1,37 +1,35 @@
 # Current work toward 60 TPS
 
-The complete distributed-quantization experiment is implemented and preserved
-at commit29c92ec on `perf/distributed-quant-20261022`. Its best full-model run
-was23.635491116TPS, slower than the ordinary local preparation path. See the
-linked report in README.md; this is no longer pending implementation.
+The retained default is v97:25.146432488TPS,492 phases, maximum pairwise
+assigned-work ratio1.076923077. Its128 short-reference outputs,288 retained
+state hashes, full head audit and4096-token baseline fixture pass.60TPS has
+not been achieved. Physical GPUs2 and7 remain reserved for Nate.
 
-The production build now includes routed-expert weight prefetch. v96 measured
-25.023809159TPS; v97 removes redundant pointer construction after the first
-expert and tightens integer-address scheduling, measuring25.146432488TPS.
-Both match128 reference outputs and all288 retained state hashes. Both keep
-492 phases, with maximum pairwise assigned-work ratio1.076923077. The v97
-4096-token fixture also passes with both output tokens matching the retained
-baseline; its two output tokens are not a decode-throughput benchmark.
+Two larger matrix-execution alternatives are now complete and preserved in
+normal build targets. `die_balanced_split.cubin` uses eight lanes per routed
+down row (v98,24.992749323TPS). `die_balanced_lut.cubin` uses exact activation
+pair lookup tables (v100,24.804969555TPS). The first LUT version, v99, retained
+unused register activation loads and measured24.464268428TPS. Removing those
+loads recovered some time, but neither alternative beat the retained default.
+All three match128 reference outputs and288 state hashes. See README.md for
+canonical DB jobs and implementation details. These are individual observations,
+not randomized estimates of small performance differences.
 
-Objective weights remain throughput1.0, fidelity1.0, phase/work constraints1.0,
-engineering time0.8 and cost0.8. The lower-effort approach tightens and overlaps
-work within the existing matrix geometry: it is complete here, and its measured
-benefit is small. The higher-effort alternative changes the Q2 row/lane
-geometry and activation/weight representation together, reducing the serial
-integer dot-product work each active lane performs. This requires complete
-producer/consumer coverage and preservation of half-block accumulation order;
-weight padding must not be confused with useful balanced work.
+The distributed-quantization experiment remains complete at commit29c92ec on
+`perf/distributed-quant-20261022`. Its best run was23.635491116TPS, slower than
+local preparation; it is not an unimplemented next step.
 
-The next substantial implementation should address matrix execution itself.
-Current routed-down rows use four lanes and five serial half-block bodies per
-lane. An eight-lane geometry can divide each original32-value half-block
-between a pair of lanes, summing their integer dot products before conversion
-to FP32. Keeping the same five half-blocks and the same four-way FP32 reduction
-would preserve the original accumulation association. Each thread would hold
-40 activation words instead of80; one shuffle/add per half-block replaces
-half its integer multiplication work. Activation and weight addressing,
-prefetch, tail guards and retained-work accounting must change together.
-The weight representation itself can stay unchanged. Gate/up needs its own
-geometry analysis. This is an unimplemented
-candidate, not a claimed speedup, and must be completed for the full kernel
-before a hardware run. Do not substitute a partial-layer benchmark.
+Objective weights: throughput1.0, fidelity1.0, phase/work constraints1.0,
+engineering time0.8, cost0.8. The lower-effort lane split was expected to shorten
+per-lane integer work and use the idle half of each routed-down CTA. It did
+so structurally, but did not improve the request time. The larger lookup-table
+alternative removed the multiplies from the row body; table preparation,
+shared reads and added joins did not earn back their cost in these runs.
+
+A remaining implementation direction is a genuinely looped Q2 body with
+per-half-block activation loads, instead of the earlier compact-Q2 experiment's
+large register-copy dispatch. The original five FP32 accumulation steps must
+remain in order. Any implementation must include producer/shared-memory
+lifetime, all tail warps, weight addressing and the real full-model path before
+running. The lane and LUT results warn against treating a smaller instruction
+body or more active warps as proof of better throughput.

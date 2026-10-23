@@ -5,7 +5,7 @@ correct outputs, fewer than500 physical phases/token and the pairwise
 assigned-work bound. Physical GPUs2 and7 remain reserved for Nate.
 **The target is not achieved.**
 
-Latest measured candidate: **v97,25.146432488 TPS**, with492 phases/token.
+Retained default: **v97,25.146432488 TPS**, with492 phases/token.
 All128 short-context reference outputs and all288 retained state hashes match.
 The4096-token long-context fixture also passes. These are individual
 measurements, not a controlled estimate of the small differences between them.
@@ -41,6 +41,9 @@ A/B estimates. Raw output and metadata remain in archy's canonical GPUq DB
 | v91,independent load bursts | `6237e3e2-a49f-44a5-86f3-8662d22b6d83` |24.793978201|128 reference tokens, head audit and work readback pass;288 state hashes match v78 |
 | v96,next-expert weight prefetch | `1af22970-954d-4940-8e4e-b981240a55b6` |25.023809159|128 reference tokens, head audit and work readback pass;288 state hashes match v78 |
 | v97,prefetch address scheduling and pointer bypass | `8e3af1ee-31af-4160-b9ee-c4a38f087534` |25.146432488|128 reference tokens, head audit and work readback pass;288 state hashes match v78 |
+| v98,eight-lane routed down | `7c27fc6e-2970-4170-be87-1cdfd68f71b1` |24.992749323|128 reference tokens, head audit and work readback pass;288 state hashes match v78; opt-in |
+| v99,exact activation-pair lookup tables | `ee8b6f3f-aff5-4e94-9511-47b616844d8a` |24.464268428|Same output/state/audit checks pass; slower |
+| v100,lookup tables without superseded register loads | `4a4ceadf-e881-4523-a616-09e3a880c46c` |24.804969555|Same output/state/audit checks pass; opt-in |
 
 The down-projection phase contains both routed and shared projections. On
 logical die5 its accumulated profile time falls from10.670ms/token in v79 to
@@ -195,6 +198,42 @@ throughput. See the [long work table](work-v97-long.tsv) and
 [summary](work-v97-long-summary.txt).
 
 ## Other retained experiments
+
+The routed-down lane split and lookup-table paths are complete production
+images. Build `die_balanced_split.cubin` for v98 or `die_balanced_lut.cubin`
+for v100. Both use the ordinary balanced engine/program and all48 layers;
+their weight and activation storage ABI is unchanged. The default
+`die_balanced.cubin` retains the faster v97 implementation.
+After adding the separate build targets, all three rebuilt cubins were
+byte-for-byte identical to the measured v97, v98 and v100 artifacts respectively;
+no GPU run was repeated just for the build-rule change.
+
+`balance/split_down.lua` assigns eight lanes to each32-row routed-down tile,
+doubling useful warps from four to eight on a full tile. Each partner computes
+sixteen integer products per half-block. One partner subtracts the original
+activation sum; the pair adds its exact integer results before conversion to
+FP32. The same five FMAs and four-way FP32 reduction follow. All native and
+prefetched weight addresses, activation addresses, row initialization and
+tail handling follow the new geometry. Full-kernel register allocation stays249.
+The v98 audit passes7,428 component comparisons, with492 phases and maximum
+pairwise assigned-work ratio1.076923077.
+
+`balance/down_lut.lua` adds320 activation-pair tables per selected expert,
+each with16 exact integer combinations and a padded17-entry stride. The
+21,760-byte shared-memory table replaces integer multiplies in the routed-down
+body. All CTA warps construct the table, including invalid tail warps; those
+warps bypass matrix accesses after the construction barrier and rejoin before
+the next expert. FP32 accumulation remains unchanged. v100 also removes the
+superseded per-row activation loads. Both LUT variants pass7,524 work-component
+comparisons,492 phases and the same maximum pairwise ratio. Raw descriptors,
+profiles and request timings remain in the canonical DB jobs above.
+
+These changes did not improve full-request throughput. Routed-down phase time
+across the six dies is4.783–4.955ms/token in v97,4.897–5.107ms in v98,
+5.904–6.053ms in v99, and5.209–5.374ms in v100. These totals include shared
+projection, preparation and phase-boundary effects. The experiments do not
+justify claiming an isolated arithmetic speedup from the shorter instruction
+body. No long-context run was added for these slower alternatives.
 
 `balance/compact_q2.lua` folds five identical68-instruction half-block bodies
 into one loop, binding operands into free registers while preserving all

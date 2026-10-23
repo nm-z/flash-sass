@@ -89,12 +89,15 @@ die_phase.cubin: die_phase.sass die_phase.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ die_phase.ptx
 	$(MAXAS) -i die_phase.sass $@
 
-die_balanced.sass: die_phase.sass balance/embedding.lua balance/ple.lua balance/moe.lua balance/prepare.lua balance/attention.lua balance/attention_heads.lua balance/head.lua balance/head_producer.lua balance/publish.lua balance/quant_publish.lua balance/schedule.lua balance/composite.lua phase/quant_emit.lua phase/serial_dependencies.lua phase/predicate_latency.lua
+BALANCED_DOWN_IMAGES = die_balanced.sass die_balanced_split.sass die_balanced_lut.sass
+$(BALANCED_DOWN_IMAGES): die_phase.sass balance/embedding.lua balance/ple.lua balance/moe.lua balance/prepare.lua balance/attention.lua balance/attention_heads.lua balance/head.lua balance/head_producer.lua balance/publish.lua balance/quant_publish.lua balance/schedule.lua balance/composite.lua phase/quant_emit.lua phase/serial_dependencies.lua phase/predicate_latency.lua
 	$(LUA) balance/embedding.lua $< $@.embedding
 	$(LUA) balance/ple.lua $@.embedding $@.ple
 	$(LUA) balance/moe.lua $@.ple $@.moe
 	$(LUA) balance/prefetch_experts.lua $@.moe $@.prefetched
-	$(LUA) balance/attention.lua $@.prefetched $@.attention
+	$(if $(filter die_balanced_split.sass die_balanced_lut.sass,$@),$(LUA) balance/split_down.lua $@.prefetched $@.splitdown,cp $@.prefetched $@.splitdown)
+	$(if $(filter die_balanced_lut.sass,$@),$(LUA) balance/down_lut.lua $@.splitdown $@.downimpl,cp $@.splitdown $@.downimpl)
+	$(LUA) balance/attention.lua $@.downimpl $@.attention
 	$(LUA) balance/head.lua $@.attention $@.head
 	$(LUA) balance/publish.lua $@.head $@.published
 	$(LUA) balance/quant_publish.lua $@.published $@.quantpublished
@@ -105,12 +108,13 @@ die_balanced.sass: die_phase.sass balance/embedding.lua balance/ple.lua balance/
 	$(LUA) phase/predicate_latency.lua $@.bursts $@ $@.predicate.csv
 die_balanced.ptx: die_phase.ptx balance/marker.ptxinc
 	cat $^ > $@
-die_balanced.sass: exactbatch/Makefile.inc
-die_balanced.sass: balance/load_bursts.lua
-die_balanced.sass: balance/prefetch_experts.lua
+$(BALANCED_DOWN_IMAGES): exactbatch/Makefile.inc balance/load_bursts.lua balance/prefetch_experts.lua balance/split_down.lua balance/down_lut.lua
 die_balanced.cubin: die_balanced.sass die_balanced.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ die_balanced.ptx
 	$(MAXAS) -i die_balanced.sass $@
+die_balanced_split.cubin die_balanced_lut.cubin: %.cubin: %.sass die_balanced.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ die_balanced.ptx
+	$(MAXAS) -i $< $@
 
 # Complete production-image experiment: replicated local GR-up. It has a
 # distinct marker so an ordinary image cannot silently execute its descriptors.
