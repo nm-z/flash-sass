@@ -1,0 +1,162 @@
+# Kernel: mailbox
+#
+# Die-to-die mailbox: a 40 KB payload (10240 words) plus a sequence word, written
+# with P2P stores into the receiving die's memory. One CTA of 256 threads per die.
+#
+# role 0 (sender), per iteration i = 1..iters: every thread stores its 40 words
+# (value i + index) into the remote payload; BAR.SYNC; warp 0: MEMBAR.SYS, lane 0
+# stores i into the remote sequence word; then spins until the local sequence
+# word (the receiver's acknowledgement) reads i; BAR.SYNC.
+# role 1 (receiver): warp 0 spins until the local sequence word reads i;
+# MEMBAR.SYS; BAR.SYNC; every thread loads its 40 words (LDG.CV) and counts
+# mismatches against i + index; BAR.SYNC; lane 0 of warp 0 stores i into the
+# remote sequence word as the acknowledgement.
+# At the end every thread adds its mismatch count into out[0] (RED.E.ADD).
+# Predicates are consumed >= 18 cycles after they are written; the mismatch test
+# is integer (XOR/OR) with a single ISETP per 16 B.
+#
+# Params: 0:0x140:8 lseq  1:0x148:8 rseq  2:0x150:8 lpay  3:0x158:8 rpay
+#         4:0x160:4 iters  5:0x164:4 role  6:0x168:8 out
+
+<CONSTANT_MAPPING>
+    param_lseq0 : c[0x0][0x140]
+    param_lseq1 : c[0x0][0x144]
+    param_rseq0 : c[0x0][0x148]
+    param_rseq1 : c[0x0][0x14c]
+    param_lpay0 : c[0x0][0x150]
+    param_lpay1 : c[0x0][0x154]
+    param_rpay0 : c[0x0][0x158]
+    param_rpay1 : c[0x0][0x15c]
+    param_iters : c[0x0][0x160]
+    param_role  : c[0x0][0x164]
+    param_out0  : c[0x0][0x168]
+    param_out1  : c[0x0][0x16c]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0-1   : ls<0-1>
+    2-3   : rs<0-1>
+    4-5   : pp<0-1>
+    6-7   : op<0-1>
+    8-11  : v<0-3>
+    12-15 : w<0-3>
+    16-19 : u<0-3>
+    20    : tid
+    21    : i
+    22    : base
+    23    : bad
+    24    : s
+    25    : t
+    26    : role
+</REGISTER_MAPPING>
+
+--:-:6:-:1      S2R tid, SR_TID.X;
+--:-:-:-:6      MOV i, RZ;
+--:-:-:-:1      MOV bad, RZ;
+--:-:-:-:6      MOV role, param_role;
+20:-:-:-:6      ISETP.NE.U32.AND P0, PT, tid, RZ, PT;         # P0: tid != 0
+--:-:-:-:6      ISETP.GE.U32.AND P5, PT, tid, 0x20, PT;       # P5: not warp 0
+--:-:-:-:6      ISETP.NE.U32.AND P6, PT, role, RZ, PT;        # P6: receiver
+--:-:-:-:6      MOV ls0, param_lseq0;
+--:-:-:-:6      MOV ls1, param_lseq1;
+--:-:-:-:6      MOV rs0, param_rseq0;
+--:-:-:-:6      MOV rs1, param_rseq1;
+--:-:-:-:6      MOV op0, param_out0;
+--:-:-:-:6      MOV op1, param_out1;
+# base = 40 tid (word index of this thread's first word); byte offset 160 tid
+--:-:-:-:6      SHL base, tid, 0x3;
+--:-:-:-:6      ISCADD base, tid, base, 0x5;
+--:-:-:-:6      SHL t, base, 0x2;
+# pp = payload (remote for the sender, local for the receiver) + 160 tid
+--:-:-:-:6  @P6 IADD pp0.CC, t, param_lpay0;
+--:-:-:-:6  @P6 IADD.X pp1, RZ, param_lpay1;
+--:-:-:-:6 @!P6 IADD pp0.CC, t, param_rpay0;
+--:-:-:-:6 @!P6 IADD.X pp1, RZ, param_rpay1;
+
+LOOP:
+--:-:-:-:6      IADD i, i, 0x1;
+--:-:-:-:6  @P6 BRA RECV;
+# ---- sender: write the payload, alternating v/w with read barriers 1/2 ----
+--:-:-:-:6      IADD s, base, i;
+<CODE>
+    my $o = '';
+    for my $k (0..9) {
+        my $set = ($k & 1) ? 'w' : 'v';
+        my $bar = ($k & 1) ? 2 : 1;
+        my $wait = ($k & 1) ? '02' : '01';
+        $o .= sprintf "%s:-:-:-:1      IADD %s0, s, 0x%x;\n", $wait, $set, 4*$k;
+        $o .= sprintf "--:-:-:-:1      IADD %s1, s, 0x%x;\n", $set, 4*$k + 1;
+        $o .= sprintf "--:-:-:-:1      IADD %s2, s, 0x%x;\n", $set, 4*$k + 2;
+        $o .= sprintf "--:-:-:-:6      IADD %s3, s, 0x%x;\n", $set, 4*$k + 3;
+        $o .= sprintf "--:%d:-:-:1      STG.E.128 [pp+0x%x], %s0;\n", $bar, 16*$k, $set;
+    }
+    return $o;
+</CODE>
+--:-:-:-:6      BAR.SYNC 0x0;
+--:-:-:-:6  @P5 BRA SDONE;
+--:-:-:-:6      MEMBAR.SYS;
+--:-:-:-:6 @!P0 STG.E.WT [rs], i;
+SSPIN:
+--:-:3:-:2      LDG.E.CV t, [ls];
+04:-:-:-:6      ISETP.GE.U32.AND P4, PT, t, i, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6 @!P4 BRA SSPIN;
+SDONE:
+--:-:-:-:6      BAR.SYNC 0x0;
+--:-:-:-:6      BRA NEXT;
+# ---- receiver ----
+RECV:
+--:-:-:-:6  @P5 BRA RWAITED;
+RSPIN:
+--:-:3:-:2      LDG.E.CV t, [ls];
+04:-:-:-:6      ISETP.GE.U32.AND P4, PT, t, i, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6 @!P4 BRA RSPIN;
+--:-:-:-:6      MEMBAR.SYS;
+RWAITED:
+--:-:-:-:6      BAR.SYNC 0x0;
+--:-:-:-:6      IADD s, base, i;
+<CODE>
+    # loads alternate w (barrier 1) / u (barrier 2); block k+1 is issued before block k is checked
+    my $o = '';
+    my $ld = sub { my $k = shift; my $set = ($k & 1) ? 'u' : 'w'; my $bar = ($k & 1) ? 2 : 1;
+                   return sprintf "--:-:%d:-:1      LDG.E.CV.128 %s0, [pp+0x%x];\n", $bar, $set, 16*$k; };
+    $o .= $ld->(0);
+    for my $k (0..9) {
+        my $set = ($k & 1) ? 'u' : 'w';
+        my $wait = ($k & 1) ? '02' : '01';
+        $o .= $ld->($k + 1) if $k + 1 <= 9;
+        $o .= sprintf "--:-:-:-:1      IADD v0, s, 0x%x;\n", 4*$k;
+        $o .= sprintf "--:-:-:-:1      IADD v1, s, 0x%x;\n", 4*$k + 1;
+        $o .= sprintf "--:-:-:-:1      IADD v2, s, 0x%x;\n", 4*$k + 2;
+        $o .= sprintf "--:-:-:-:6      IADD v3, s, 0x%x;\n", 4*$k + 3;
+        $o .= sprintf "%s:-:-:-:1      LOP.XOR v0, %s0, v0;\n", $wait, $set;
+        $o .= sprintf "--:-:-:-:1      LOP.XOR v1, %s1, v1;\n", $set;
+        $o .= sprintf "--:-:-:-:1      LOP.XOR v2, %s2, v2;\n", $set;
+        $o .= sprintf "--:-:-:-:6      LOP.XOR v3, %s3, v3;\n", $set;
+        $o .= "--:-:-:-:1      LOP.OR v0, v0, v1;\n";
+        $o .= "--:-:-:-:6      LOP.OR v2, v2, v3;\n";
+        $o .= "--:-:-:-:6      LOP.OR v0, v0, v2;\n";
+        $o .= "--:-:-:-:6      ISETP.NE.U32.AND P1, PT, v0, RZ, PT;\n";
+        $o .= "--:-:-:-:6      NOP;\n";
+        $o .= "--:-:-:-:6      NOP;\n";
+        $o .= "--:-:-:-:6      NOP;\n";
+        $o .= "--:-:-:-:6  \@P1 IADD bad, bad, 0x1;\n";
+    }
+    return $o;
+</CODE>
+--:-:-:-:6      BAR.SYNC 0x0;
+--:-:-:-:6  @P5 BRA NEXT;
+--:-:-:-:6 @!P0 STG.E.WT [rs], i;
+NEXT:
+--:-:-:-:6      ISETP.LT.U32.AND P2, PT, i, param_iters, PT;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6      NOP;
+--:-:-:-:6  @P2 BRA LOOP;
+--:-:-:-:6      RED.E.ADD [op], bad;
+--:-:-:-:f      EXIT;
