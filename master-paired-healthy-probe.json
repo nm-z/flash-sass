@@ -1,0 +1,19 @@
+{
+  "source": "/home/nate/claude/flash-sass-prs/trace-build-7262065",
+  "validation": "/home/nate/claude/flash-sass-prs/trace-validation-7262065",
+  "label": "master-paired-healthy-probe",
+  "revision": "72620653d4bb3dc10e3cb405695550db7152bae7",
+  "kind": "command",
+  "library": "libengine.so",
+  "paired_modes": [
+    1
+  ],
+  "commands": [
+    [
+      "perl",
+      "/home/nate/claude/flash-sass-prs/owned_pair_probe.pl",
+      "{socket}",
+      "{out}/probe-pair{paired}.json"
+    ]
+  ]
+}

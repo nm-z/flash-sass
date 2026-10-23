@@ -1,0 +1,37 @@
+{"label": "gpu-before", "argv": ["nvidia-smi", "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm", "--format=csv"], "exit": 0, "seconds": 0.11431320900010178}
+{"label": "cpu-pair0", "argv": ["/home/nate/claude/flash-sass-prs/ple-build-4ba9e11/kern/ple_io_test"], "exit": 0, "seconds": 0.003861482997308485}
+{"label": "socket-pair0", "argv": ["python3", "/home/nate/claude/flash-sass-prs/ple-build-4ba9e11/kern/ple_io_check.py", "/tmp/flash-owned-failure-recovery-pair0.sock"], "exit": 1, "seconds": 91.11442215200077}
+Traceback (most recent call last):
+  File "/home/nate/claude/flash-sass-prs/shadow_validation_job.py", line 50, in <module>
+    run("socket-pair"+str(paired),["python3",str(src/"ple_io_check.py"),sock],e)
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/nate/claude/flash-sass-prs/shadow_validation_job.py", line 17, in run
+    if rc:raise RuntimeError(label+" returned "+str(rc))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: socket-pair0 returned 1
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/nate/claude/flash-sass-prs/shadow_validation_job.py", line 62, in <module>
+    try:p.wait(timeout=10)
+        ~~~~~~^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 1279, in wait
+    return self._wait(timeout=timeout)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 2076, in _wait
+    raise TimeoutExpired(self.args, timeout)
+subprocess.TimeoutExpired: Command '['/home/nate/claude/flash-sass-prs/ple-build-4ba9e11/kern/flashcore', '/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf', '/home/nate/claude/flash-sass-prs/ple-build-4ba9e11/kern/libengine_pleiotest.so', '/tmp/hold-h0.manifest', '/tmp/hold-h1.manifest', '/tmp/hold-h2.manifest', '/tmp/hold-h3.manifest', '/tmp/hold-h4.manifest', '/tmp/hold-h5.manifest']' timed out after 10 seconds
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/nate/claude/flash-sass-prs/shadow_validation_job.py", line 63, in <module>
+    except subprocess.TimeoutExpired:p.kill();p.wait(timeout=10)
+                                              ~~~~~~^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 1279, in wait
+    return self._wait(timeout=timeout)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 2076, in _wait
+    raise TimeoutExpired(self.args, timeout)
+subprocess.TimeoutExpired: Command '['/home/nate/claude/flash-sass-prs/ple-build-4ba9e11/kern/flashcore', '/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf', '/home/nate/claude/flash-sass-prs/ple-build-4ba9e11/kern/libengine_pleiotest.so', '/tmp/hold-h0.manifest', '/tmp/hold-h1.manifest', '/tmp/hold-h2.manifest', '/tmp/hold-h3.manifest', '/tmp/hold-h4.manifest', '/tmp/hold-h5.manifest']' timed out after 10 seconds

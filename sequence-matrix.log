@@ -1,0 +1,14 @@
+{"label": "gpu-before", "argv": ["nvidia-smi", "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm", "--format=csv"], "exit": 0, "seconds": 0.11436511499778135}
+{"label": "command0-pair0", "argv": ["/home/nate/claude/flash-sass-prs/sequence-build-c67d391/kern/seqsched_test"], "exit": 0, "seconds": 0.0016359220026060939}
+{"label": "command1-pair0", "argv": ["/home/nate/claude/flash-sass-prs/sequence-build-c67d391/kern/output_tokens_test", "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf"], "exit": 0, "seconds": 0.06441544099652674}
+{"label": "command2-pair0", "argv": ["perl", "/home/nate/claude/flash-sass-prs/sequence-build-c67d391/kern/sequence_check.pl", "/tmp/flash-owned-slots2-kv0-q1-b1-pair0.sock", "/home/nate/claude/flash-sass-prs/sequence-validation-c67d391/slots2-kv0-q1-b1/sequence-results.json"], "exit": 0, "seconds": 19.960025264997967}
+{"label": "gpu-after", "argv": ["nvidia-smi", "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm", "--format=csv"], "exit": 0, "seconds": 0.11439989299833542}
+PASS owned-core validation
+CONFIG /home/nate/claude/flash-sass-prs/slots2-kv0-q1-b1.json EXIT 0
+{"label": "gpu-before", "argv": ["nvidia-smi", "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm", "--format=csv"], "exit": 0, "seconds": 0.11447384100029012}
+{"label": "command0-pair0", "argv": ["/home/nate/claude/flash-sass-prs/sequence-build-c67d391/kern/seqsched_test"], "exit": 0, "seconds": 0.0018914090032922104}
+{"label": "command1-pair0", "argv": ["/home/nate/claude/flash-sass-prs/sequence-build-c67d391/kern/output_tokens_test", "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf"], "exit": 0, "seconds": 0.06421176400181139}
+{"label": "command2-pair0", "argv": ["perl", "/home/nate/claude/flash-sass-prs/sequence-build-c67d391/kern/sequence_check.pl", "/tmp/flash-owned-slots2-kv1-q8-b512-pair0.sock", "/home/nate/claude/flash-sass-prs/sequence-validation-c67d391/slots2-kv1-q8-b512/sequence-results.json"], "exit": 0, "seconds": 9.836283630000253}
+{"label": "gpu-after", "argv": ["nvidia-smi", "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm", "--format=csv"], "exit": 0, "seconds": 0.11430078800185584}
+PASS owned-core validation
+CONFIG /home/nate/claude/flash-sass-prs/slots2-kv1-q8-b512.json EXIT 0

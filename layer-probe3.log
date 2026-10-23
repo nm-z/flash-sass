@@ -1,0 +1,15 @@
+{"label": "gpu-before", "argv": ["nvidia-smi", "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm", "--format=csv"], "exit": 0, "seconds": 0.11431211399758467}
+{"label": "command0-pair1", "argv": ["perl", "/home/nate/claude/flash-sass-prs/owned_pair_probe32.pl", "/tmp/flash-owned-nofuse-layers8-pair1.sock", "/home/nate/claude/flash-sass-prs/ple-diagnostic-nofuse-validation-6835416/nofuse-layers8/probe-pair1.json"], "exit": 0, "seconds": 1.6180682890044409}
+{"label": "gpu-after", "argv": ["nvidia-smi", "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm", "--format=csv"], "exit": 0, "seconds": 0.11422770500212209}
+PASS owned-core validation
+CONFIG /home/nate/claude/flash-sass-prs/nofuse-layers8.json EXIT 0
+{"label": "gpu-before", "argv": ["nvidia-smi", "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm", "--format=csv"], "exit": 0, "seconds": 0.11434321200067643}
+{"label": "command0-pair1", "argv": ["perl", "/home/nate/claude/flash-sass-prs/owned_pair_probe32.pl", "/tmp/flash-owned-nofuse-layers16-pair1.sock", "/home/nate/claude/flash-sass-prs/ple-diagnostic-nofuse-validation-6835416/nofuse-layers16/probe-pair1.json"], "exit": 0, "seconds": 1.7687942379998276}
+{"label": "gpu-after", "argv": ["nvidia-smi", "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm", "--format=csv"], "exit": 0, "seconds": 0.11487980299716583}
+PASS owned-core validation
+CONFIG /home/nate/claude/flash-sass-prs/nofuse-layers16.json EXIT 0
+{"label": "gpu-before", "argv": ["nvidia-smi", "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm", "--format=csv"], "exit": 0, "seconds": 0.11457367399998475}
+{"label": "command0-pair1", "argv": ["perl", "/home/nate/claude/flash-sass-prs/owned_pair_probe32.pl", "/tmp/flash-owned-nofuse-layers32-pair1.sock", "/home/nate/claude/flash-sass-prs/ple-diagnostic-nofuse-validation-6835416/nofuse-layers32/probe-pair1.json"], "exit": 0, "seconds": 2.169432416994823}
+{"label": "gpu-after", "argv": ["nvidia-smi", "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm", "--format=csv"], "exit": 0, "seconds": 0.11441479799395893}
+PASS owned-core validation
+CONFIG /home/nate/claude/flash-sass-prs/nofuse-layers32.json EXIT 0

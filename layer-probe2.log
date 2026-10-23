@@ -1,0 +1,10 @@
+{"label": "gpu-before", "argv": ["nvidia-smi", "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm", "--format=csv"], "exit": 0, "seconds": 0.11430122499587014}
+{"label": "command0-pair1", "argv": ["perl", "/home/nate/claude/flash-sass-prs/owned_pair_probe32.pl", "/tmp/flash-owned-nofuse-layers2-pair1.sock", "/home/nate/claude/flash-sass-prs/ple-diagnostic-nofuse-validation-6835416/nofuse-layers2/probe-pair1.json"], "exit": 0, "seconds": 1.4678307939975639}
+{"label": "gpu-after", "argv": ["nvidia-smi", "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm", "--format=csv"], "exit": 0, "seconds": 0.11474259100214113}
+PASS owned-core validation
+CONFIG /home/nate/claude/flash-sass-prs/nofuse-layers2.json EXIT 0
+{"label": "gpu-before", "argv": ["nvidia-smi", "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm", "--format=csv"], "exit": 0, "seconds": 0.11457831899315352}
+{"label": "command0-pair1", "argv": ["perl", "/home/nate/claude/flash-sass-prs/owned_pair_probe32.pl", "/tmp/flash-owned-nofuse-layers4-pair1.sock", "/home/nate/claude/flash-sass-prs/ple-diagnostic-nofuse-validation-6835416/nofuse-layers4/probe-pair1.json"], "exit": 0, "seconds": 1.4173473569971975}
+{"label": "gpu-after", "argv": ["nvidia-smi", "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm", "--format=csv"], "exit": 0, "seconds": 0.11485250099940458}
+PASS owned-core validation
+CONFIG /home/nate/claude/flash-sass-prs/nofuse-layers4.json EXIT 0

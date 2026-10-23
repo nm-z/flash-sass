@@ -1,0 +1,6 @@
+{"label": "gpu-before", "argv": ["nvidia-smi", "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm", "--format=csv"], "exit": 0, "seconds": 0.1145083169976715}
+Traceback (most recent call last):
+  File "/home/nate/claude/flash-sass-prs/shadow_validation_job.py", line 29, in <module>
+    sock="/tmp/flash-owned-"+cfg["label"]+"-pair"+str(paired)+".sock";assert not Path(sock).exists();e["FLASH_SOCK"]=sock
+                                                                             ^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

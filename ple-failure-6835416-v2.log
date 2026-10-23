@@ -1,0 +1,17 @@
+{"label": "gpu-before", "argv": ["nvidia-smi", "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm", "--format=csv"], "exit": 0, "seconds": 0.11463794599694666}
+{"label": "cpu-pair0", "argv": ["/home/nate/claude/flash-sass-prs/ple-build-6835416/kern/ple_io_test"], "exit": 0, "seconds": 0.0018536399948061444}
+{"label": "descriptor-pair0", "argv": ["/home/nate/claude/flash-sass-prs/ple-build-6835416/kern/pair_prog_test"], "exit": 0, "seconds": 0.0015948500004014932}
+{"label": "socket-pair0", "argv": ["python3", "/home/nate/claude/flash-sass-prs/ple-build-6835416/kern/ple_io_check.py", "/tmp/flash-owned-failure-recovery-6835416-pair0.sock"], "exit": 0, "seconds": 40.199990722998336}
+{"label": "http-pair0", "argv": ["python3", "/home/nate/claude/flash-sass-prs/ple-build-6835416/kern/ple_io_http_check.py", "--flashd", "/home/nate/claude/flash-sass-prs/ple-build-6835416/kern/flashd", "--gguf", "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf", "--core", "/tmp/flash-owned-failure-recovery-6835416-pair0.sock", "--out", "/home/nate/claude/flash-sass-prs/ple-validation-6835416/failure-recovery-6835416/http-pair0"], "exit": 0, "seconds": 47.477590258997225}
+{"label": "cpu-pair1", "argv": ["/home/nate/claude/flash-sass-prs/ple-build-6835416/kern/ple_io_test"], "exit": 0, "seconds": 0.015310148999560624}
+{"label": "descriptor-pair1", "argv": ["/home/nate/claude/flash-sass-prs/ple-build-6835416/kern/pair_prog_test"], "exit": 0, "seconds": 0.03388498899585102}
+{"label": "socket-pair1", "argv": ["python3", "/home/nate/claude/flash-sass-prs/ple-build-6835416/kern/ple_io_check.py", "/tmp/flash-owned-failure-recovery-6835416-pair1.sock"], "exit": 0, "seconds": 27.729018910002196}
+{"label": "http-pair1", "argv": ["python3", "/home/nate/claude/flash-sass-prs/ple-build-6835416/kern/ple_io_http_check.py", "--flashd", "/home/nate/claude/flash-sass-prs/ple-build-6835416/kern/flashd", "--gguf", "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf", "--core", "/tmp/flash-owned-failure-recovery-6835416-pair1.sock", "--out", "/home/nate/claude/flash-sass-prs/ple-validation-6835416/failure-recovery-6835416/http-pair1"], "exit": 1, "seconds": 5.576642015999823}
+Traceback (most recent call last):
+  File "/home/nate/claude/flash-sass-prs/shadow_validation_job.py", line 53, in <module>
+    run("http-pair"+str(paired),["python3",str(script),"--flashd",str(src/"flashd"),"--gguf","/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf","--core",sock,"--out",str(out/("http-pair"+str(paired)))],e)
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/nate/claude/flash-sass-prs/shadow_validation_job.py", line 17, in run
+    if rc:raise RuntimeError(label+" returned "+str(rc))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: http-pair1 returned 1

@@ -1,0 +1,23 @@
+ok: engine reloaded
+{"depth": 3100, "pair": 0, "placement": "host", "tok_s": 20.570474876093098, "resumed": 3099}
+{"depth": 3100, "pair": 0, "placement": "vram", "tok_s": 20.932451479003074, "resumed": 3099}
+{"depth": 3100, "pair": 1, "placement": "vram", "tok_s": 22.403893547455233, "resumed": 3099}
+{"depth": 3100, "pair": 1, "placement": "host", "tok_s": 21.94452450538468, "resumed": 3099}
+{"depth": 3100, "pair": 2, "placement": "host", "tok_s": 19.38419141302164, "resumed": 3099}
+{"depth": 3100, "pair": 2, "placement": "vram", "tok_s": 21.378878650553368, "resumed": 3099}
+{"depth": 3100, "pair": 3, "placement": "vram", "tok_s": 23.44220957624616, "resumed": 3099}
+{"depth": 3100, "pair": 3, "placement": "host", "tok_s": 20.16422540077968, "resumed": 3099}
+{"depth": 3100, "pair": 4, "placement": "host", "tok_s": 19.799576837534893, "resumed": 3099}
+{"depth": 3100, "pair": 4, "placement": "vram", "tok_s": 21.018847470308295, "resumed": 3099}
+{"depth": 8000, "pair": 0, "placement": "host", "tok_s": 21.843225688291984, "resumed": 7999}
+{"depth": 8000, "pair": 0, "placement": "vram", "tok_s": 22.23284333782815, "resumed": 7999}
+{"depth": 8000, "pair": 1, "placement": "vram", "tok_s": 23.393672012597854, "resumed": 7999}
+{"depth": 8000, "pair": 1, "placement": "host", "tok_s": 21.899024076288008, "resumed": 7999}
+{"depth": 8000, "pair": 2, "placement": "host", "tok_s": 21.857379145510702, "resumed": 7999}
+{"depth": 8000, "pair": 2, "placement": "vram", "tok_s": 20.842709479113452, "resumed": 7999}
+{"depth": 8000, "pair": 3, "placement": "vram", "tok_s": 23.79370882702003, "resumed": 7999}
+{"depth": 8000, "pair": 3, "placement": "host", "tok_s": 22.290143322863162, "resumed": 7999}
+{"depth": 8000, "pair": 4, "placement": "host", "tok_s": 22.384008425654148, "resumed": 7999}
+{"depth": 8000, "pair": 4, "placement": "vram", "tok_s": 23.82246398496119, "resumed": 7999}
+ok: engine reloaded
+config rev=unknown-dirty kv_host=0 ple_disk=1 maxt=230000 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=4096 cubin=/home/nate/claude/flash-sass-next/kern/die.cubin cubin_fnv=7e7f74fbd71bd973

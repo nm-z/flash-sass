@@ -1,0 +1,4 @@
+{"label": "gpu-before", "argv": ["nvidia-smi", "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm", "--format=csv"], "exit": 0, "seconds": 0.11445092500071041}
+{"label": "lifecycle-pair1", "argv": ["python3", "/home/nate/claude/flash-sass-prs/trace-build-7262065/kern/trace_lifecycle_check.py", "--socket", "/tmp/flash-owned-lifecycle-paired-pair1.sock", "--source-sha", "72620653d4bb3dc10e3cb405695550db7152bae7", "--out", "/home/nate/claude/flash-sass-prs/trace-validation-7262065/lifecycle-paired/trace-pair1", "--pair-check"], "exit": 0, "seconds": 5.175413301003573}
+{"label": "gpu-after", "argv": ["nvidia-smi", "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm", "--format=csv"], "exit": 0, "seconds": 0.11461171799601289}
+PASS owned-core validation

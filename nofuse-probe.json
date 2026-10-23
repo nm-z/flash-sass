@@ -1,0 +1,19 @@
+{
+  "source": "/home/nate/claude/flash-sass-prs/ple-diagnostic-nofuse-6835416",
+  "validation": "/home/nate/claude/flash-sass-prs/ple-diagnostic-nofuse-validation-6835416",
+  "label": "nofuse-probe",
+  "revision": "6835416996dc76200045cec02adf6c43b9e42c63-diagnostic-nofuse",
+  "kind": "command",
+  "library": "libengine_pleiotest.so",
+  "paired_modes": [
+    1
+  ],
+  "commands": [
+    [
+      "perl",
+      "/home/nate/claude/flash-sass-prs/owned_pair_probe.pl",
+      "{socket}",
+      "{out}/probe-pair{paired}.json"
+    ]
+  ]
+}

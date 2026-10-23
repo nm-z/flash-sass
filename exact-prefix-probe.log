@@ -1,0 +1,50 @@
+{"label": "gpu-before", "argv": ["nvidia-smi", "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm", "--format=csv"], "exit": 0, "seconds": 0.11449410400382476}
+{"label": "command0-pair0", "argv": ["perl", "/home/nate/claude/flash-sass-prs/owned_pair_probe32.pl", "/tmp/flash-owned-scalar-identical-prefixes-pair0.sock", "/home/nate/claude/flash-sass-prs/ple-diagnostic-nofuse-validation-6835416/scalar-identical-prefixes/probe-pair0.json"], "exit": 0, "seconds": 2.1184672149975086}
+{"label": "gpu-after", "argv": ["nvidia-smi", "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm", "--format=csv"], "exit": 0, "seconds": 0.11440424899774371}
+PASS owned-core validation
+CONFIG /home/nate/claude/flash-sass-prs/scalar-identical-prefixes.json EXIT 0
+{"label": "gpu-before", "argv": ["nvidia-smi", "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm", "--format=csv"], "exit": 0, "seconds": 0.11433657399902586}
+{"label": "command0-pair1", "argv": ["perl", "/home/nate/claude/flash-sass-prs/owned_pair_probe_single32.pl", "/tmp/flash-owned-paired-fresh-prefix32-pair1.sock", "/home/nate/claude/flash-sass-prs/ple-diagnostic-nofuse-validation-6835416/paired-fresh-prefix32/probe-pair1.json"], "exit": 25, "seconds": 0.26450748999923235}
+Traceback (most recent call last):
+  File "/home/nate/claude/flash-sass-prs/shadow_validation_job.py", line 62, in <module>
+    run("command"+str(k)+"-pair"+str(paired),command,e,cfg.get("command_timeout",360))
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/nate/claude/flash-sass-prs/shadow_validation_job.py", line 17, in run
+    if rc:raise RuntimeError(label+" returned "+str(rc))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: command0-pair1 returned 25
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/nate/claude/flash-sass-prs/shadow_validation_job.py", line 68, in <module>
+    try:p.wait(timeout=10)
+        ~~~~~~^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 1279, in wait
+    return self._wait(timeout=timeout)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 2076, in _wait
+    raise TimeoutExpired(self.args, timeout)
+subprocess.TimeoutExpired: Command '['/home/nate/claude/flash-sass-prs/ple-diagnostic-nofuse-6835416/kern/flashcore', '/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf', '/home/nate/claude/flash-sass-prs/ple-diagnostic-nofuse-6835416/kern/libengine_pleiotest.so', '/tmp/hold-h0.manifest', '/tmp/hold-h1.manifest', '/tmp/hold-h2.manifest', '/tmp/hold-h3.manifest', '/tmp/hold-h4.manifest', '/tmp/hold-h5.manifest']' timed out after 10 seconds
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/nate/claude/flash-sass-prs/shadow_validation_job.py", line 69, in <module>
+    except subprocess.TimeoutExpired:p.kill();p.wait(timeout=10)
+                                              ~~~~~~^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 1279, in wait
+    return self._wait(timeout=timeout)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 2076, in _wait
+    raise TimeoutExpired(self.args, timeout)
+subprocess.TimeoutExpired: Command '['/home/nate/claude/flash-sass-prs/ple-diagnostic-nofuse-6835416/kern/flashcore', '/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf', '/home/nate/claude/flash-sass-prs/ple-diagnostic-nofuse-6835416/kern/libengine_pleiotest.so', '/tmp/hold-h0.manifest', '/tmp/hold-h1.manifest', '/tmp/hold-h2.manifest', '/tmp/hold-h3.manifest', '/tmp/hold-h4.manifest', '/tmp/hold-h5.manifest']' timed out after 10 seconds
+CONFIG /home/nate/claude/flash-sass-prs/paired-fresh-prefix32.json EXIT 1
+Traceback (most recent call last):
+  File "/home/nate/claude/flash-sass-prs/run_exact_prefix_probe.py", line 3, in <module>
+    r=subprocess.run(["python3",'/home/nate/claude/flash-sass-prs/shadow_validation_job.py',c]);print("CONFIG",c,"EXIT",r.returncode,flush=True);r.check_returncode()
+                                                                                                                                                 ~~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.14/subprocess.py", line 509, in check_returncode
+    raise CalledProcessError(self.returncode, self.args, self.stdout,
+                             self.stderr)
+subprocess.CalledProcessError: Command '['python3', '/home/nate/claude/flash-sass-prs/shadow_validation_job.py', '/home/nate/claude/flash-sass-prs/paired-fresh-prefix32.json']' returned non-zero exit status 1.
