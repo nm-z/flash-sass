@@ -7,7 +7,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+static unsigned native_matrix_format(const phase_t *a,unsigned span,unsigned *k);
+/* FLASH_B4_MATRIX_MASK: diagnostic set of native B4 matrix formats, bit
+ * (op - OP_DFLASH_Q4K4): 1 Q4_K, 2 Q5_K, 4 Q2, 8 Q3_K, 16 Q6_K, 32 IQ4, 64 BF16. */
 static unsigned native_matrix(const phase_t *a,unsigned span,unsigned *k) {
+    unsigned op=native_matrix_format(a,span,k);
+    const char *mask_env=getenv("FLASH_B4_MATRIX_MASK");
+    if(op && mask_env && !((strtoul(mask_env,NULL,0)>>(op-OP_DFLASH_Q4K4))&1u))return 0;
+    return op;
+}
+static unsigned native_matrix_format(const phase_t *a,unsigned span,unsigned *k) {
     if(span!=1 || a->w[31] || (a->w[30]&PHASE_BALANCED_ROW8 && a->w[23]!=1))return 0;
     switch(a->w[0]) {
     case OP_Q4KK2560:*k=2560;return OP_DFLASH_Q4K4;

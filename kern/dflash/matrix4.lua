@@ -223,8 +223,8 @@ for _,bits in ipairs({4,5,2,3,6,8})do
   elseif bits==8 then
    pred('ISETP.LT.U32.AND P4, PT, dqm_code, 0x8, PT')
    e('LOP32I.AND dqm_temp, dqm_code, 0x7')
-   e('@P4 PRMT dqm_code, dqm_lut0, dqm_lut1, dqm_temp')
-   e('@!P4 PRMT dqm_code, dqm_lut2, dqm_lut3, dqm_temp')
+   e('@P4 PRMT dqm_code, dqm_lut0, dqm_temp, dqm_lut1') -- selector is the middle operand
+   e('@!P4 PRMT dqm_code, dqm_lut2, dqm_temp, dqm_lut3')
    e('BFE dqm_code, dqm_code, 0x800')
   end
   if scaled then e('XMAD.S16.S16 dqm_code, dqm_code, '..(bits==8 and 'dqm_header1' or j<16 and 'dqm_sc' or 'dqm_min')..', RZ')end

@@ -255,7 +255,7 @@ for _,kind in ipairs({'Q2','Q4','Q5','Q8','IQ4'})do
    e(string.format('IADD pc_weight%02d, pc_weight%02d, -0x10',j,j))
   elseif kind=='IQ4' then
    pred(string.format('ISETP.LT.U32.AND P6, PT, pc_weight%02d, 0x8, PT',j));e(string.format('LOP32I.AND pc_tmp, pc_weight%02d, 0x7',j))
-   e(string.format('@P6 PRMT pc_weight%02d, pc_lut0, pc_lut1, pc_tmp',j));e(string.format('@!P6 PRMT pc_weight%02d, pc_lut2, pc_lut3, pc_tmp',j))
+   e(string.format('@P6 PRMT pc_weight%02d, pc_lut0, pc_tmp, pc_lut1',j));e(string.format('@!P6 PRMT pc_weight%02d, pc_lut2, pc_tmp, pc_lut3',j))
    e(string.format('BFE pc_weight%02d, pc_weight%02d, 0x800',j,j))
   end
  end
