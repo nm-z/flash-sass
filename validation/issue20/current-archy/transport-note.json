@@ -1,0 +1,7 @@
+{
+  "outer_command_exit_code": 124,
+  "outer_timeout_ms": 30000,
+  "artifact_status": "PASS",
+  "test_cases": 46,
+  "note": "The SSH command timed out at the orchestration layer. The completed report on archy records every child exit code; all invalid cases returned 2 before the CUDA trap. CPU output and exact-build hashes are retained separately."
+}
