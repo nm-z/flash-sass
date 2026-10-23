@@ -191,8 +191,8 @@ die_chunk_fp8.cubin: die_chunk_fp8.sass die_chunk_fp8.ptx
 libengine.so libengine_exact.so libengine_mtp.so libengine_mtp_chunk.so libengine_dflash.so libengine_verify.so libengine_chunk.so: fp8/storage.h
 
 EXACT_TEST_SRC = exactbatch/prog_group.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c
-libengine_exact.so: $(ENGINE_SRC) exactbatch/prog_group.c exactbatch/prog_group.h exact_ops.h prog.h engine.h core.h prefill.h trace_host.inc timings.h qsa_state.h ple_read_pool.h ple_read_reload.h
-	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -pthread -DFLASH_EXACT_BATCH -DFLASH_REV='"$(FLASH_REV)-exact"' -o $@.new $(ENGINE_SRC) exactbatch/prog_group.c -I. -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
+libengine_exact.so: $(ENGINE_SRC) exactbatch/prog_group.c exactbatch/prog_group.h balance/batch.c balance/batch.h balance/speculate.c exact_ops.h prog.h engine.h core.h prefill.h trace_host.inc timings.h qsa_state.h ple_read_pool.h ple_read_reload.h
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -pthread -DFLASH_EXACT_BATCH -DFLASH_BALANCED_SPEC_NATIVE -DFLASH_REV='"$(FLASH_REV)-exact"' -o $@.new $(ENGINE_SRC) exactbatch/prog_group.c balance/batch.c -I. -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
 
 exact_bf16_test: exactbatch/bf16_test.c exact_ops.h exactbatch/prog_group.h $(EXACT_TEST_SRC)
 	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -o $@ exactbatch/bf16_test.c $(EXACT_TEST_SRC) -I. -Iexactbatch -I../ref -I$(CUDA)/include -lcuda -lm

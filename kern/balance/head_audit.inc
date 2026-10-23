@@ -12,8 +12,8 @@ static void balance_head_audit(FILE *out) {
         uint32_t actual[16][2],indices[16],counts[16]={0};float maxima[16];
         if(!logits){failures++;fprintf(out,"headaudit error=allocation die=%d\n",d);break;}
         for(unsigned c=0;c<16;c++){indices[c]=UINT32_MAX;maxima[c]=-INFINITY;}
-        CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoH(logits,db[d].hlo,(size_t)rows*4));
-        CK(cuMemcpyDtoH(actual,db[d].apart,sizeof actual));
+        CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoH(logits,position_buf(d,last_position_slot)->hlo,(size_t)rows*4));
+        CK(cuMemcpyDtoH(actual,position_buf(d,last_position_slot)->apart,sizeof actual));
         unsigned nonfinite=0;
         for(unsigned r=0;r<rows;r++) {
             /* Q5_K2560 produces16 adjacent rows per CTA iteration, with
@@ -38,7 +38,7 @@ static void balance_head_audit(FILE *out) {
                 winner=maxima[c];winner_index=global;winner_bits=bits;
             }
         }
-        uint32_t die_actual[2];CK(cuMemcpyDtoH(die_actual,db[d].amo,sizeof die_actual));
+        uint32_t die_actual[2];CK(cuMemcpyDtoH(die_actual,position_buf(d,last_position_slot)->amo,sizeof die_actual));
         int die_valid=die_index!=UINT32_MAX && die_actual[0]==die_index && die_actual[1]==die_bits;
         failures+=!die_valid;
         fprintf(out,"headdie die=%d actual_index=%u expected_index=%u actual_bits=%08x expected_bits=%08x valid=%d\n",
@@ -47,8 +47,8 @@ static void balance_head_audit(FILE *out) {
     }
     for(int d=0;d<nd;d++) {
         uint32_t actual[2],token;CK(cuCtxSetCurrent(ctx[d]));
-        CK(cuMemcpyDtoH(actual,db[d].tokout,sizeof actual));
-        CK(cuMemcpyDtoH(&token,db[d].toks+4u*(size_t)(last_positions-1),4));
+        CK(cuMemcpyDtoH(actual,position_buf(d,last_position_slot)->tokout,sizeof actual));
+        CK(cuMemcpyDtoH(&token,position_buf(d,last_position_slot)->toks+4u*(size_t)(last_positions-1),4));
         int valid=winner_index!=UINT32_MAX && actual[0]==winner_index && actual[1]==winner_bits && token==winner_index;
         failures+=!valid;
         fprintf(out,"headwinner die=%d actual_index=%u expected_index=%u actual_bits=%08x expected_bits=%08x token=%u valid=%d\n",

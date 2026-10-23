@@ -69,6 +69,10 @@ e('@P5 BRA BATCH_NEXT_DONE','--:-:-:Y:d')
 e('LDS bb_position, [RZ+0xba20]','--:-:1:-:2')
 e('LDS bb_count, [RZ+0xba18]','--:-:1:-:2')
 e('BAR.SYNC 0x1','01:-:-:Y:d') -- all warps sample the old position
+-- Native GROUP_NEXT invalidates before deciding whether the group is done.
+-- Cover the last position too: its stores may be restored/replayed at a host
+-- boundary or consumed through a following no-grid phase.
+e('MEMBAR.GL.IVALLD','3f:-:-:Y:d')
 e('IADD bb_position, bb_position, 0x1')
 pred('ISETP.GE.U32.AND P6, PT, bb_position, bb_count, PT')
 e('@P6 BRA BATCH_RESTORE','--:-:-:Y:d')

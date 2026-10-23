@@ -116,6 +116,7 @@ static dn_weights_t (*dw)[NB]; static dn_bufs_t db[MAXD]; static xchg_t xc[MAXD]
 static dn_bufs_t db_pair[MAXD]; static xchg_t xc_pair[MAXD];
 #ifdef FLASH_EXACT_BATCH
 #include "exactbatch/prog_group.h"
+#include "balance/batch.h"
 static unsigned exact_width;
 static dn_bufs_t db_exact[7][MAXD];
 static xchg_t xc_exact[7][MAXD];
@@ -131,6 +132,9 @@ static CUdeviceptr verify_dn[7][MAXD][NB],verify_conv[7][MAXD][NB],verify_ring[7
 #endif
 static unsigned program_capacity = 4096, active_program_positions = 1;
 static unsigned allocated_positions = 1;
+static int balanced_speculation,last_extra_executed;
+static unsigned last_position_slot;
+static dn_bufs_t *position_buf(int,unsigned);
 static int producer_quant,group_matrices,residual_fp8;
 static int gr_replicate_ffn;
 static int balanced_local_up;
@@ -187,6 +191,7 @@ static unsigned attn_q_split_mode;
 #endif
 static char cubin_path[512]; static uint64_t cubin_fnv;   /* identity of the loaded kernel image: FNV-1a 64 of the cubin file */
 static const char *profile_op_name(unsigned op) {
+    if(row_balance && op==108u)return "balanced_batch";
     if(op<OP_COUNT)return die_opname[op];
     const char *names[]={"grwrite_read","dnnormq_x","hcupq_x","router_select","dnstep_normq","gdn_full","router_full","attnmergeq_x","qsa_select","qsa_score_select","qsa_part_merge","plegate_norm","ple_rowsq","qsa_full_bal"};
     return op>=94 && op<108?names[op-94]:"extended";
@@ -456,7 +461,7 @@ static void state_hashes(FILE *out,int detail) {
 			fprintf(out, "statehash die=%d layer=%d state=%016llx\n", d, bb, (unsigned long long)h);
 		}
 		uint64_t ple = device_fnv(dst_ple[d], 4 * 10 * 10240, seed);
-		uint64_t logits = device_fnv(db[d].hlo, 4u * (unsigned)sp[d][0].on, seed);
+		uint64_t logits = device_fnv(position_buf(d,last_position_slot)->hlo, 4u * (unsigned)sp[d][0].on, seed);
 		fprintf(out, "statehash die=%d ple=%016llx logits=%016llx\n", d, (unsigned long long)ple, (unsigned long long)logits);
 	}
 	CK(cuCtxSetCurrent(ctx[0]));
@@ -563,7 +568,7 @@ static void clone_position(int d, dn_bufs_t *b, xchg_t *x, int alias_attention) 
 	SECOND(iqk); SECOND(iq); SECOND(sc); SECOND(hst); SECOND(sel);
 	SECOND(pg); SECOND(pgq); SECOND(pgs32); SECOND(pgs16); SECOND(pgas);
 	SECOND(lk); SECOND(kn); SECOND(qn); SECOND(lv); SECOND(pG); SECOND(pgates); SECOND(px); SECOND(prows);
-	int copy_head = !alias_attention;
+	int copy_head = !alias_attention || row_balance;
 #ifdef FLASH_VERIFY_NATIVE
 	copy_head |= verify_accept != 0;
 #endif
@@ -809,8 +814,8 @@ static void upload_programs(const prog_t *P, unsigned *nph, unsigned positions) 
             prof_publications[d]+=(flags&128u)!=0;
             i += (int)step;
         }
-        if(producer_quant && (positions!=1 || prof_nph[d]>=500)) {
-            fprintf(stderr,"phase candidate not runnable: die %d has %d phases, %u positions; require single-position production decode below 500 phases on every die\n",d,prof_nph[d],positions);
+        if(producer_quant && ((positions!=1 && !balanced_speculation) || prof_nph[d]>=500)) {
+            fprintf(stderr,"phase candidate not runnable: die %d has %d phases, %u positions\n",d,prof_nph[d],positions);
             longjmp(run_jb,1);
         }
         if(d && producer_quant && getenv("FLASH_LOCKSTEP_PHASES") && atoi(getenv("FLASH_LOCKSTEP_PHASES")) && prof_nph[d]!=prof_nph[0]) {
@@ -984,7 +989,7 @@ static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 		uint32_t limit=0;CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoH(&limit,dCTL[d]+0x2c,4));
 		if (limit) {fprintf(stderr,"engine: die %d reached the kernel time limit\n",d);longjmp(run_jb,1);}
 	}
-	if (getenv("FLASH_VERIFY_STREAM") && atoi(getenv("FLASH_VERIFY_STREAM")) && r->count >= r->nprompt) {
+	if (!balanced_speculation && getenv("FLASH_VERIFY_STREAM") && atoi(getenv("FLASH_VERIFY_STREAM")) && r->count >= r->nprompt) {
 		unsigned start = (unsigned)r->nprompt - 1, n = (unsigned)r->count - start, bad = 0;
 		uint32_t *final = malloc((size_t)n * 4);
 		if (!final) { fprintf(stderr,"engine: stream verification allocation failed\n"); longjmp(run_jb,1); }
@@ -1123,8 +1128,15 @@ static int prepare_images(const engine_img *imgs, int nimg, int nprompt, int T) 
 #ifdef FLASH_VERIFY_NATIVE
 #include "exactbatch/engine_verify.c"
 #endif
+#ifdef FLASH_BALANCED_SPEC_NATIVE
+#include "balance/speculate.c"
+#endif
 
 int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], const sampling *sm, int snap_at, const engine_img *imgs, int nimg, const engine_cb *cb, run_stats *st) {
+    last_extra_executed=0;last_position_slot=0;
+#ifdef FLASH_BALANCED_SPEC_NATIVE
+    memset(&bspec,0,sizeof bspec);
+#endif
     kv_trace_complete = 0;
     timing_request_start=now();timing_run_start=0;
     trace_request++;
@@ -1137,6 +1149,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
     memset(trace_host,0,sizeof trace_host);
     if(!flash_timing_request_fits(nprompt,n_new,MAXT))return -1;
     int T=nprompt+n_new;
+    int use_speculative=balanced_speculation && (n_new>0 || (cb && cb->token));
     trace_status="running";
 	/* a CUDA error from here on unwinds to this point: the contexts are no longer usable, the core rebuilds them (return -2) */
 	in_run = 1;
@@ -1156,6 +1169,11 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	int irc = prepare_images(imgs, nimg, nprompt, T);
 	if (irc) { trace_status="image_error";in_run = 0; last_timing.error_code=irc;last_timing.build_ms=(now()-timing_request_start)*1e3;return irc; }
 	int samp_k = (sm && sm->temp > 0.f && sm->top_k >= 2) ? (sm->top_k > 32 ? 32 : sm->top_k) : 0;
+    if(use_speculative && (nimg || snap_at || samp_k)) {
+        fprintf(stderr,"engine: balanced speculation supports greedy text without new snapshots\n");
+        trace_status="argument_error";in_run=0;last_timing.error_code=-1;
+        last_timing.build_ms=(now()-timing_request_start)*1e3;return -1;
+    }
 #ifdef FLASH_VERIFY_NATIVE
 	if (verify_accept && (nimg || snap_at || snap_s || samp_k || nprompt < 25)) {
 		fprintf(stderr,"engine: rollback audit requires at least25 prompt tokens, greedy text, no snapshots\n");
@@ -1211,6 +1229,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	prog_t *pair = two_position ? new_request_programs() : NULL;
     /* gen 0 is the existing teacher-forced, full-head diagnostic interface. */
     int need_prefix = prefill_chunk && (n_new > 0 || (cb && cb->token));
+    if(use_speculative)need_prefix=1;
 #ifdef FLASH_VERIFY_NATIVE
     if (verify_accept) need_prefix = 1;
 #endif
@@ -1221,7 +1240,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
     prog_t *batch = NULL;
     int need_batch = 0;
 #ifdef FLASH_EXACT_BATCH
-    need_batch = exact_width && need_prefix && !nimg && nprompt - 1 - resume >= (int)exact_width;
+    need_batch = exact_width && !balanced_speculation && need_prefix && !nimg && nprompt - 1 - resume >= (int)exact_width;
 #ifdef FLASH_VERIFY_NATIVE
     if (verify_accept) need_batch = 0;
 #endif
@@ -1326,6 +1345,10 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	 * in-flight pump fills it. Reading the entire lookahead before launch
 	 * serialized cold prompt I/O with all of the prompt's compute. */
 	ple_pump(&r, 1);
+#ifdef FLASH_BALANCED_SPEC_NATIVE
+    if(use_speculative)balanced_spec_run(&r,P,prefix,stop);
+    else {
+#endif
 #ifdef FLASH_VERIFY_NATIVE
 	if (verification) verify_audit_run(&r,P,prefix,verification);
 	else {
@@ -1358,6 +1381,9 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 #ifdef FLASH_VERIFY_NATIVE
 	}
 #endif
+#ifdef FLASH_BALANCED_SPEC_NATIVE
+    }
+#endif
 	double t2 = now();
 	trace_completed = (unsigned)r.count; trace_aborted = r.aborted != 0; trace_ended = r.ended != 0;
 	trace_status = r.aborted ? "aborted" : "completed";
@@ -1373,6 +1399,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
     trace_ended=!!(model_stop_flag&0x80000000u);
     if(st)st->ended=(int)trace_ended;
     last_timing=(flash_timing){.request_id=trace_request,.prompt=nprompt,.resumed=resume,.completed=r.count,
+        .extra_executed=last_extra_executed,.speculative=use_speculative,
         .ended=!!(model_stop_flag&0x80000000u),.stop_known=1,.aborted=r.aborted,.first_valid=(r.tfirst!=0),
         .counts_known=1,.counts_final=1,.error_code=0,
         .build_ms=(t1-timing_request_start)*1e3,.run_ms=(t2-t1)*1e3,
@@ -1484,6 +1511,17 @@ int engine_init(core_t *c) {
     if(xtrace_n>(gr_write_trace?256u:16u) || (gr_write_trace && !xtrace_n)){fprintf(stderr,"invalid trace window\n");return -1;}
 	if (c->abi != CORE_ABI) { fprintf(stderr, "engine: the core speaks ABI %d, this library was built for %d\n", c->abi, CORE_ABI); return -1; }
     if(!classify_holder_layout(c))return -1;
+    const char *spec=getenv("FLASH_BALANCED_SPECULATE");balanced_speculation=0;
+    if(spec && strcmp(spec,"0")) {
+#ifdef FLASH_BALANCED_SPEC_NATIVE
+        if(strcmp(spec,"lookup") || !row_balance || trace_n || xtrace_n || body_trace) {
+            fprintf(stderr,"engine: balanced speculation requires lookup mode, balanced holders and tracing off\n");return -1;
+        }
+        balanced_speculation=1;
+#else
+        fprintf(stderr,"engine: balanced speculation requires the exact engine build\n");return -1;
+#endif
+    }
     if(body_trace && !row_balance) {
         fprintf(stderr,"engine: balanced body tracing requires balanced holders\n");return -1;
     }
@@ -1547,11 +1585,13 @@ int engine_init(core_t *c) {
 	allocated_positions = two_position ? 2 : 1;
 #ifdef FLASH_EXACT_BATCH
 	const char *batch_env = getenv("FLASH_PHASE_BATCH");
+    if(balanced_speculation && (!batch_env || !strcmp(batch_env,"0")))batch_env="5";
 	if (batch_env && strcmp(batch_env, "0") && strcmp(batch_env, "5") && strcmp(batch_env, "8")) {
 		fprintf(stderr, "engine: FLASH_PHASE_BATCH must be 0, 5 or 8\n");
 		longjmp(init_jb, 1);
 	}
 	exact_width = batch_env ? (unsigned)atoi(batch_env) : 0;
+    if(balanced_speculation && exact_width!=5) {fprintf(stderr,"engine: balanced speculation requires five-position capacity\n");longjmp(init_jb,1);}
 	exact_cubin_path[0] = 0; exact_cubin_fnv = 0;
 	if (exact_width) {
 		const char *image = getenv("FLASH_EXACT_CUBIN");
@@ -1571,7 +1611,7 @@ int engine_init(core_t *c) {
 		longjmp(init_jb, 1);
 	}
 	if (getenv("FLASH_ENGINE_MAXT")) { int m = atoi(getenv("FLASH_ENGINE_MAXT")); if (m > 0 && m <= c->maxt) MAXT = m; }   /* a library reloaded with FLASH_ENGINE_MAXT=n serves fewer positions than the core was started for (the KV caches shrink) */
-    if(row_balance && allocated_positions!=1) {
+    if(row_balance && allocated_positions!=1 && !balanced_speculation) {
         fprintf(stderr,"engine: balanced holders require one causal position per dispatch\n");longjmp(init_jb,1);
     }
 	const char *cubin = getenv("FLASH_CUBIN") ? getenv("FLASH_CUBIN") : "die.cubin";
@@ -1609,6 +1649,7 @@ int engine_init(core_t *c) {
 		CUfunction marker;
 		CK(cuCtxSetCurrent(ctx[d])); CK(cuModuleLoad(&exact_mod[d], exact_cubin_path));
 		CK(cuModuleGetFunction(&marker, exact_mod[d], "flash_exact_batch_abi_v1"));
+        if(balanced_speculation){check_fused_moe_module(exact_mod[d]);CK(cuModuleGetFunction(&marker,exact_mod[d],"flash_balance_batch_abi_v1"));}
 		CK(cuModuleGetFunction(&exact_fn[d], exact_mod[d], "die"));
 	}
 #endif
@@ -1968,6 +2009,7 @@ void engine_fini(void) {
     memset(producer_local_tables,0,sizeof producer_local_tables);gr_replicate_ffn=0;balanced_local_up=0;
 	memset(db_pair, 0, sizeof db_pair); memset(xc_pair, 0, sizeof xc_pair); two_position = prefill_chunk = 0;
 	allocated_positions = active_program_positions = 1; program_capacity = 4096;
+    balanced_speculation=last_extra_executed=0;last_position_slot=0;
     memset(embedding_tables,0,sizeof embedding_tables);memset(producer_tables,0,sizeof producer_tables);memset(residual_encoded,0,sizeof residual_encoded);
     memset(phase_gr_sum_cache,0,sizeof phase_gr_sum_cache);
     producer_quant=group_matrices=residual_fp8=0;
@@ -2068,6 +2110,9 @@ int engine_session(FILE *in, FILE *out) {
 		if (!strncmp(p, "hosttrace", 9)) { host_trace_dump(out); fflush(out); continue; }
         if(!strncmp(p,"xtrace ",7)){exchange_trace_dump(out,atoi(p+7));fflush(out);continue;}
         if(!strncmp(p,"bodytrace ",10)){balance_body_dump(out,atoi(p+10));fflush(out);continue;}
+#ifdef FLASH_BALANCED_SPEC_NATIVE
+        if(!strcmp(p,"specstats\n")){balanced_spec_stats(out);continue;}
+#endif
         if(!strcmp(p,"plecache\n")) {
             fprintf(out,"plecache device_rows=%d bytes_per_die=%zu staged_positions=%llu row_copy_bytes=%llu flag_copy_bytes=%llu queue_ms=%.6f ready_clock=device_poll host_ready_timestamp_available=%d dma_workers=%u warm_before_read=%d mean_enqueue_finish_spread_us=%.6f max_enqueue_finish_spread_us=%.6f\n",
                 ple_device_cache,ple_device_cache_bytes,(unsigned long long)ple_device_positions,
@@ -2173,6 +2218,7 @@ int engine_session(FILE *in, FILE *out) {
 #endif
 #ifdef FLASH_EXACT_BATCH
 			fprintf(out, " phase_batch=%u exact_cubin=%s exact_cubin_fnv=%016llx", exact_width, exact_width ? exact_cubin_path : "none", (unsigned long long)exact_cubin_fnv);
+            fprintf(out," balanced_speculative=%d proposer=%s",balanced_speculation,balanced_speculation?"prompt_lookup_1_16":"none");
 #endif
 #ifdef FLASH_MTP_NATIVE
 			fprintf(out," mtp_shadow=%d mtp_mode=%d mtp_rollout=%d mtp_model=%s mtp_cubin=%s mtp_cubin_fnv=%016llx",mtp_enabled==1,mtp_enabled,mtp_enabled==2,mtp_enabled?mtp_model_path:"none",mtp_enabled?mtp_cubin_path:"none",(unsigned long long)mtp_cubin_fnv);

@@ -37,6 +37,13 @@ int main(int argc,char **argv){
     check(resume,4,6,3,3);flash_timing_values v=flash_timing_derive(&resume);
     near(v.post_ms,30);near(v.prompt_rate,150);near(v.decode_rate,100);
     assert(v.prompt_rate_valid && v.decode_rate_valid);
+    flash_timing speculative=resume;speculative.speculative=1;speculative.extra_executed=17;
+    v=flash_timing_derive(&speculative);
+    assert(v.generated==4 && v.executed==23 && v.decode_intervals==3);
+    near(v.decode_rate,100); /* Discarded/replayed work never becomes output tokens. */
+    assert(!flash_timing_json(json,sizeof json,&speculative));
+    assert(strstr(json,"\"positions_executed\":23"));
+    assert(strstr(json,"\"counter_semantics\":\"committed_positions_with_speculative_execution\""));
     flash_timing prompt_only=resume;prompt_only.completed=9;prompt_only.first_valid=0;
     check(prompt_only,0,2,2,0);assert(!flash_timing_derive(&prompt_only).decode_rate_valid);
     flash_timing stop={.prompt=6,.completed=6,.counts_known=1,.counts_final=1,.stop_known=1,.ended=1,.first_valid=1,.run_ms=6,.first_ms=6};

@@ -8,6 +8,7 @@
 typedef struct {
     unsigned long long request_id;
     int prompt, resumed, completed, ended, aborted;
+    int extra_executed, speculative;
     int first_valid, device_first_valid;
     double build_ms, run_ms, first_ms, device_first_ms;
     int counts_known, counts_final, error_code, stop_known;
@@ -32,6 +33,7 @@ static inline flash_timing_values flash_timing_derive(const flash_timing *t) {
     int r=t->resumed>0?t->resumed:0;
     v.generated=c>=p?c-(p-1):0;
     v.executed=c>r?c-r:0;
+    if(t->extra_executed>0)v.executed+=t->extra_executed;
     int pp=c<p?c:p;
     v.prompt_processed=pp>r?pp-r:0;
     v.decode_intervals=v.generated>1?v.generated-1:0;
@@ -96,7 +98,7 @@ static inline int flash_timing_json(char *out,size_t cap,const flash_timing *t) 
         "\"resumed_positions\":%s,\"positions_completed\":%s,\"positions_executed\":%s,"
         "\"prompt_positions_processed\":%s,\"generated_tokens\":%s,\"decode_intervals\":%s,"
         "\"counts_known\":%s,\"counts_final\":%s,\"error_code\":%d,"
-        "\"counter_semantics\":\"last_observed_completed_positions\","
+        "\"counter_semantics\":\"%s\","
         "\"stop_token_observed\":%s,\"aborted\":%s,"
         "\"build_ms\":%s,\"run_ms\":%s,\"first_observed_ms\":%s,\"post_first_ms\":%s,"
         "\"prompt_positions_per_second\":%s,\"decode_tokens_per_second\":%s,"
@@ -108,6 +110,7 @@ static inline int flash_timing_json(char *out,size_t cap,const flash_timing *t) 
         "\"predicted_n\":%s,\"predicted_ms\":%s,\"predicted_per_second\":%s,\"decode_ms\":%s}",
         t->request_id,t->prompt,resumed,completed,executed,prompt,generated,intervals,
         t->counts_known?"true":"false",t->counts_final?"true":"false",t->error_code,
+        t->speculative?"committed_positions_with_speculative_execution":"last_observed_completed_positions",
         t->stop_known?(t->ended?"true":"false"):"null",t->aborted?"true":"false",
         b,r,f,p,pr,dr,start,first,last,t->device_traced_tokens,d,dd,dv,
         t->prompt,resumed,f,pr,generated,p,dr,p);

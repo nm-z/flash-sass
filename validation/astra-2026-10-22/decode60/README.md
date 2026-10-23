@@ -5,6 +5,12 @@ correct outputs, fewer than500 physical phases/token and the pairwise
 assigned-work bound. Physical GPUs2 and7 remain reserved for Nate.
 **The target is not achieved.**
 
+The greedy lossless speculative loop is now implemented and validated on the
+short/repeated and4K fixtures. With prompt lookup it measures10.74 committed TPS
+and652.125 accounted synchronization phases/committed token, so it is an opt-in
+correctness foundation, not the retained performance default. See
+[implementation, failed experiments and final evidence](SPECULATIVE.md).
+
 Retained default: **v104,25.721831473 and25.792883107 TPS**, with492 phases/token.
 Both short requests match all128 reference outputs and all288 retained state
 hashes each. The4096-token long-context fixture also passes. These are individual

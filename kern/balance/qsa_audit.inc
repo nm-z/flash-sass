@@ -47,9 +47,9 @@ static void qsa_audit(FILE *out) {
         CK(cuCtxSetCurrent(ctx[d]));
 #define QA_READ(dst,src,bytes) CK(cuMemcpyDtoH((dst),(src),(bytes)))
 #define QA_CMP(name,a,r,count,width,isfloat) do { components++;failures+=qsa_audit_compare(out,d,name,a,r,count,width,isfloat); } while(0)
-        QA_READ(qg,db[d].qg,4*4*512);QA_READ(qo,db[d].qo,4*4*256);
-        QA_READ(k,db[d].k,sizeof k);QA_READ(v,db[d].v,sizeof v);
-        QA_READ(cs,db[d].rope_cs+(size_t)t*128,sizeof cs);QA_READ(sn,db[d].rope_sn+(size_t)t*128,sizeof sn);
+        QA_READ(qg,position_buf(d,last_position_slot)->qg,4*4*512);QA_READ(qo,position_buf(d,last_position_slot)->qo,4*4*256);
+        QA_READ(k,position_buf(d,last_position_slot)->k,sizeof k);QA_READ(v,position_buf(d,last_position_slot)->v,sizeof v);
+        QA_READ(cs,position_buf(d,last_position_slot)->rope_cs+(size_t)t*128,sizeof cs);QA_READ(sn,position_buf(d,last_position_slot)->rope_sn+(size_t)t*128,sizeof sn);
         QA_READ(norm,dw[d][47].attn_q_norm,sizeof norm);
         for(int h=0;h<4;h++)qk_norm_rope_gpu(qg+h*512,norm,eps,cs,sn,rq+h*256);
         QA_CMP("q_norm_rope",qo,rq,1024,4,1);
@@ -69,12 +69,12 @@ static void qsa_audit(FILE *out) {
                 memcpy((kv?vs:ks)+(size_t)p*16+h*8,raws+(size_t)p*8,16);
             }
         }
-        QA_READ(sel,db[d].sel,((size_t)nblk_qsa+1)*4);
+        QA_READ(sel,position_buf(d,last_position_slot)->sel,((size_t)nblk_qsa+1)*4);
         unsigned nv=(t+1)/4;int valid=1;
         if(nv>nblk_qsa)for(unsigned i=0;i<nblk_qsa;i++)if(sel[i]>=nv)valid=0;
         if(!valid){failures++;fprintf(out,"qsaaudit die=%d error=selection_out_of_bounds\n",d);continue;}
         qsa_gather_gpu(kq,ks,vq,vs,sel,t,nblk_qsa,rk,rv);
-        QA_READ(kc,db[d].kc,kcf*4);QA_READ(vc,db[d].vc,vcf*4);
+        QA_READ(kc,position_buf(d,last_position_slot)->kc,kcf*4);QA_READ(vc,position_buf(d,last_position_slot)->vc,vcf*4);
         for(unsigned p=0;p<n;p++)for(int j=0;j<256;j++){
             flat[(size_t)p*256+j]=kc[attn_kidx(p,0,j)];rflat[(size_t)p*256+j]=rk[attn_kidx(p,0,j)];
             kc[attn_kidx(p,1,j)]=kc[attn_kidx(p,0,j)];
@@ -88,19 +88,19 @@ static void qsa_audit(FILE *out) {
         QA_CMP("gather_v",flat,rflat,(size_t)n*256,4,1);
         for(int h=4;h<24;h++){memcpy(qo+h*256,qo+(h%4)*256,1024);memcpy(qg+h*512,qg+(h%4)*512,2048);}
         attn_partials_gpu(qo,kc,vc,n,rpm,rpd,rpo);
-        QA_READ(pm,db[d].pm,4*4*8);QA_READ(pd,db[d].pd,4*4*8);QA_READ(po,db[d].po,4*4*8*256);
+        QA_READ(pm,position_buf(d,last_position_slot)->pm,4*4*8);QA_READ(pd,position_buf(d,last_position_slot)->pd,4*4*8);QA_READ(po,position_buf(d,last_position_slot)->po,4*4*8*256);
         QA_CMP("partial_max",pm,rpm,32,4,1);QA_CMP("partial_den",pd,rpd,32,4,1);QA_CMP("partial_out",po,rpo,8192,4,1);
         for(int h=4;h<24;h++){
             memcpy(pm+h*8,pm+(h%4)*8,32);memcpy(pd+h*8,pd+(h%4)*8,32);
             memcpy(po+h*8*256,po+(h%4)*8*256,8*256*4);
         }
-        attn_merge_gpu(pm,pd,po,qg,rout);QA_READ(aout,db[d].aout,4*1024);
+        attn_merge_gpu(pm,pd,po,qg,rout);QA_READ(aout,position_buf(d,last_position_slot)->aout,4*1024);
         QA_CMP("merge_gate",aout,rout,1024,4,1);
         int16_t aq[1024],eq[1024];int32_t a32[32],e32[32],a16[64],e16[64];float as[32],es[32];
         quant_act_gpu32(aout,1024,eq,e32,e16,es);
         size_t off=(size_t)dw[d][47].attn_head_first*256;
-        QA_READ(aq,db[d].oq+off*2,sizeof aq);QA_READ(a32,db[d].os32+off/32*4,sizeof a32);
-        QA_READ(a16,db[d].os16+off/16*4,sizeof a16);QA_READ(as,db[d].oas+off/32*4,sizeof as);
+        QA_READ(aq,position_buf(d,last_position_slot)->oq+off*2,sizeof aq);QA_READ(a32,position_buf(d,last_position_slot)->os32+off/32*4,sizeof a32);
+        QA_READ(a16,position_buf(d,last_position_slot)->os16+off/16*4,sizeof a16);QA_READ(as,position_buf(d,last_position_slot)->oas+off/32*4,sizeof as);
         QA_CMP("activation_codes",aq,eq,1024,2,0);QA_CMP("activation_sum32",a32,e32,32,4,0);
         QA_CMP("activation_sum16",a16,e16,64,4,0);QA_CMP("activation_scales",as,es,32,4,1);
 #undef QA_READ

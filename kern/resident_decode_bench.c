@@ -95,6 +95,9 @@ static FILE *start(const char *core,const char *lib,const char *cubin,int fused)
     child=fork(); if(child<0) fail("fork");
     if(!child) {
         int balanced=getenv("BENCH_ROW_BALANCE") && atoi(getenv("BENCH_ROW_BALANCE"));
+        int speculation=getenv("BENCH_BALANCED_SPEC") && atoi(getenv("BENCH_BALANCED_SPEC"));
+        if(speculation && !balanced)_exit(2);
+        setenv("FLASH_BALANCED_SPECULATE",speculation?"lookup":"0",1);
         setenv("FLASH_SOCK",socket_path,1);
         setenv("CUDA_VISIBLE_DEVICES","0,1,2,3,4,5,6",1);
         setenv("FLASH_ANCHOR_DIE","6",1);
@@ -124,6 +127,10 @@ static FILE *start(const char *core,const char *lib,const char *cubin,int fused)
             setenv("FLASH_FUSED_GR","1",1);setenv("FLASH_PRODUCER_QUANT","1",1);setenv("FLASH_MATRIX_GROUP","1",1);
             setenv("FLASH_GR_REPLICATE_FFN","0",1);setenv("FLASH_RESIDUAL_FP8","0",1);setenv("FLASH_PHASE_BATCH","0",1);
             setenv("FLASH_MTP_AUDIT","0",1);setenv("FLASH_LAYERS","48",1);setenv("FLASH_NBLK","512",1);
+            if(speculation) {
+                const char *batch=getenv("BENCH_BALANCED_BATCH_CUBIN");if(!batch || !*batch)_exit(2);
+                setenv("FLASH_PHASE_BATCH","5",1);setenv("FLASH_EXACT_CUBIN",batch,1);
+            }
             setenv("FLASH_XTRACE",getenv("BENCH_XTRACE")?getenv("BENCH_XTRACE"):"0",1);
             setenv("FLASH_BODY_TRACE",getenv("BENCH_BODY_TRACE")?getenv("BENCH_BODY_TRACE"):"0",1);
             char paths[6][1024];char *args[10]={(char *)core,"/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf",(char *)lib};
@@ -194,6 +201,10 @@ static void check_scope(FILE *f,int mtp_expected,int verify_expected) {
     value(line,"nblk","",blocks,sizeof blocks);
     if(strcmp(layers,"48/48") || strcmp(dies,"6") || strcmp(blocks,"512"))
         fail("benchmark requires full 48 layers, six dies, and 512 attention blocks");
+    if(getenv("BENCH_BALANCED_SPEC") && atoi(getenv("BENCH_BALANCED_SPEC"))) {
+        char spec[16];value(line,"balanced_speculative","missing",spec,sizeof spec);
+        if(strcmp(spec,"1"))fail("balanced speculative mode was not enabled");
+    }
     if(mtp_expected>=0) {
         char actual[16];value(line,"mtp_shadow","missing",actual,sizeof actual);
         if(strcmp(actual,mtp_expected?"1":"0"))fail("MTP shadow mode could not be enabled; no request submitted");
@@ -406,6 +417,7 @@ int main(int argc,char **argv) {
         if(getenv("FLASH_FAULT_CTL") && atoi(getenv("FLASH_FAULT_CTL")))workload="fault-phase-diagnostic";
         if(getenv("BENCH_QSA_AUDIT") && atoi(getenv("BENCH_QSA_AUDIT")))workload="qsa-component-audit";
         if(getenv("BENCH_HEAD_AUDIT") && atoi(getenv("BENCH_HEAD_AUDIT")))workload="head-component-audit";
+        if(getenv("BENCH_BALANCED_SPEC") && atoi(getenv("BENCH_BALANCED_SPEC")))workload="lossless-speculative-decode";
         if(pair_cost && plain_decode)name=arm?"teacher-forced-candidate":"teacher-forced-baseline";
         if(plain_decode && getenv("BENCH_BASE_PHASE") && atoi(getenv("BENCH_BASE_PHASE")))name=arm?"split-candidate":"phase-baseline";
         printf("{\"arm\":\"%s\",\"workload\":\"%s\",\"prompt_tokens\":%d,\"generated_tokens\":%d,\"warmup_runs\":%d,\"baseline_compared\":%s,\"reference_kind\":\"%s\"}\n",name,repeatability?"same_kernel_repeatability":workload,pair_cost?positions:64*prompt_copies,pair_cost?0:generate,arm&&verify_matrix?8:1,(candidate_only||repeatability)?"false":"true",repeatability?"first_request_same_kernel":mtp_audit>=2?"none":reference?"frozen_scalar":"first_run");
@@ -500,6 +512,7 @@ int main(int argc,char **argv) {
                 free(al);if(!complete)fail("incomplete QSA audit");
             }
             if(getenv("BENCH_PLE_CACHE_STATS") && atoi(getenv("BENCH_PLE_CACHE_STATS")))command(f,"plecache");
+            if(getenv("BENCH_BALANCED_SPEC") && atoi(getenv("BENCH_BALANCED_SPEC")))command(f,"specstats");
             if(getenv("BENCH_PLE_HANDOFF") && atoi(getenv("BENCH_PLE_HANDOFF"))) {
                 fputs("plehandoff\n",f);fflush(f);char *hl=NULL;size_t hc=0;int complete=0;unsigned rows=0;
                 while(getline(&hl,&hc,f)>0){

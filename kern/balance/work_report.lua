@@ -69,6 +69,11 @@ local function geometry(a)
   end
   if w[30]&0x800000~=0 then put('reduced_values',rows*6) end
   if w[30]&0x1000000~=0 then put('head_candidates',rows);put('cta_winners',16) end
+ elseif n=='balanced_batch' then
+  assert(w[2]>=2 and w[2]<=5 and w[3]>=1,'balanced batch shape')
+  assert(((w[30]>>8)&255)==1+w[2]*w[3],'balanced batch descriptor span')
+  put('causal_positions',w[2]);put('native_descriptors_per_position',w[3])
+  put('inner_grid_joins',(w[5]~=0 or w[4]==107) and w[2] or 0)
  elseif n=='embrow' then
   put('columns',w[1]*32);put('packed_row_bytes',w[17]);put('peers',w[19]);put('published_values',w[1]*32*4*w[19])
  elseif n=='bf16hcrx' or n=='bf16hcrwx' or n=='grwrite_read' then

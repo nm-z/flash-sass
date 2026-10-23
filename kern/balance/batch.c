@@ -22,6 +22,8 @@ int prog_balance_batch(prog_t *out,const prog_t *const *positions,
            memcmp(q->stop,first->stop,sizeof q->stop))return -1;
     }
     balance_batch_work stats={.positions=count};
+    const char *strict_env=getenv("FLASH_BALANCED_BATCH_STRICT");
+    int strict=strict_env && atoi(strict_env)!=0;
     for(int i=0;i<first->n;) {
         const phase_t *a=first->p+i;
         unsigned span=phase_descriptors(a);
@@ -38,7 +40,7 @@ int prog_balance_batch(prog_t *out,const prog_t *const *positions,
         stats.peer_acquires+=(a->w[30]&2u)!=0;
         /* QSA owns shared rolling indexer state and possibly aliased gather
          * scratch. Every CTA must finish one position before another starts. */
-        if(a->w[0]==OP_BALANCED_SELECT)stats.inner_grid_joins+=count;
+        if(strict || a->w[0]==OP_BALANCED_SELECT)stats.inner_grid_joins+=count;
         i+=(int)span;
     }
     if(stats.outer_phases>=500)return -1;
@@ -52,6 +54,7 @@ int prog_balance_batch(prog_t *out,const prog_t *const *positions,
         phase_t *wrap=image+at++;memset(wrap,0,sizeof *wrap);
         wrap->w[0]=OP_BALANCED_BATCH;wrap->w[1]=16;
         wrap->w[2]=count;wrap->w[3]=span;wrap->w[4]=a->w[0];
+        wrap->w[5]=strict || a->w[0]==OP_BALANCED_SELECT;
         wrap->w[30]=(a->w[30]&~(PHASE_GROUP_FLAG|PHASE_FUSED_FLAG|
                        PHASE_CHAIN_FLAG|PHASE_WIDTH_MASK))|
                        PHASE_GROUP_FLAG|PHASE_FUSED_FLAG|((1+count*span)<<8);
@@ -61,7 +64,7 @@ int prog_balance_batch(prog_t *out,const prog_t *const *positions,
              * publish together at its final system release. Native child
              * chains and their internal dependencies remain untouched. */
             image[at].w[30]=(image[at].w[30]&~3u)|4u;
-            if(a->w[0]==OP_BALANCED_SELECT)
+            if(strict || a->w[0]==OP_BALANCED_SELECT)
                 image[at].w[30]&=~(4u|0x20000u);
             at+=span;
         }

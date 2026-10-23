@@ -1,30 +1,44 @@
 # Current work toward60 TPS
 
-Retained scalar default: v104,25.721831473 and25.792883107TPS,492 phases/token,
-maximum pairwise assigned-work ratio1.076923077. Two short requests and the4K
-fixture pass; reference outputs, state hashes, head audits and work audits are
-recorded in README.md. Physical GPUs2 and7 remain reserved.60TPS is not achieved.
+Retained scalar default: v104,25.72–25.79TPS,492 phases/token and maximum
+pairwise assigned-work ratio1.076923077. GPUs2 and7 remain reserved.
+The60TPS goal remains active and unachieved.
 
-Nate has now explicitly authorized lossless MTP/speculative decoding with all
-work included in throughput and phase accounting. The main work is the balanced
-full-model verifier and lossless controller, not additional unchecked draft
-rollouts. See SPECULATIVE.md for implemented code, unvalidated assumptions and
-the concrete remaining integration/recovery work.
+The balanced speculative loop is now operational for greedy text using prompt
+lookup. It includes real target verification, acceptance/rejection, block-entry
+snapshots, recovery replay, PLE restaging and counters for discarded/replayed work.
+The corrected v111 frame matches both128-token requests, all576 short state
+hashes, the two long-context tokens and all288 long state hashes. It also passes
+GPU/stream/next-input and full-head audits. See SPECULATIVE.md for canonical jobs,
+artifact versions and the earlier failed state comparisons.
 
-The balanced batch descriptor builder and nested production kernel frame compile.
-They are not wired into a runnable engine mode yet. Do not remove the scalar-only
-runtime guard without completing per-position buffer lifetime, acceptance,
-rejection, state restoration, PLE restaging and honest work counters together.
-No partial batch GPU run has been performed.
+Its performance is10.74 committed TPS with16/205 draft tokens accepted and
+652.125 synchronization phases per committed token. This fails both performance
+requirements. The final scalar replay's492-phase readback does not establish
+that the full speculative request meets the phase limit.
 
-The router scheduling experiment is also complete. It preserves the lowest-index
-tie rule and original routing-weight polynomial/sum order, with batched independent
-comparisons and exponent chains. v105 measured25.597726149 and25.761084376TPS;
-both requests match128 reference outputs and288 state hashes each. It did not
-show a clear throughput gain and remains in `die_balanced_router.cubin`.
+The new causal handoff must remain before the batch-end decision, including the
+last position. Omitting it caused282 state-hash differences despite identical
+output tokens. The final path does not enable the diagnostic all-phase grid joins.
+The existing CPU timing test passes with speculative execution-count coverage.
 
-Objective weights remain throughput1.0, fidelity1.0, phase/work constraints1.0,
-engineering time0.8 and cost0.8. Further scalar scheduling was the lower-effort
-alternative; its latest router result did not materially close the gap. The
-higher-effort speculative path can amortize target work, but only with complete
-acceptance/recovery and measured acceptance. It is the selected next approach.
+Next: native multi-position matrix execution and a stronger balanced proposer.
+The measured five-position target takes136.18ms per verification call, so a
+better proposer alone cannot achieve60TPS with this implementation. The present
+wrapper is an exact causal replay path; it does not yet share matrix weights
+and decoding between positions. The largest inclusive scalar family is hcupq_x
+(GR up/mix/quantization), followed by routed gate/up/down and GR reads.
+
+Objective weights: throughput1.0, fidelity1.0, phase/work constraints1.0,
+engineering time0.8, cost0.8. The lower-effort option is tightening prompt-lookup
+matching; it may avoid bad guesses but leaves the measured verifier bottleneck.
+The higher-effort option is native batched matrix bodies plus learned drafting.
+Select the latter. Reuse the complete controller and preserve its work accounting;
+do not return to unchecked legacy MTP/DFlash output or omit recovery cost.
+
+Cached DFlash2 config: hidden2560, intermediate7680, five draft layers, block8,
+target48 layers and feature taps5/15/25/35/45. The current DFlash engine uses a
+single extra device, CPU elementwise/attention work and unchecked output; it
+cannot simply be enabled under the current GPU reservation/work-balance rules.
+Native MTP's current expert split is also unequal. Required future changes must
+cover all participating dies and all model work before the next full-model run.
