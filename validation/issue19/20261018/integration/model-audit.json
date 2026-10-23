@@ -1,0 +1,29 @@
+{
+  "status": "PASS",
+  "source_revision": "d46d188a435c5d959993f16dc1f78c837cc9f70d",
+  "checked_model_record_hashes": 47,
+  "corpus_sha256": "b6fde5d541106553ed422b1b40c422eb93b8550ac8a9f8a44148ef7035c901ea",
+  "original_engine_restored": true,
+  "contexts": [
+    {
+      "positions": 128,
+      "rows": 24,
+      "groups": 49152,
+      "max_k": "15.7117481",
+      "max_v": "34.5206795",
+      "counts": {
+        "zero_groups": 0,
+        "underflow_groups": 0,
+        "subnormal_scale_groups": 0,
+        "clipped_groups": 0,
+        "would_overflow_groups": 0,
+        "nonfinite_input_groups": 0,
+        "nonfinite_stored_scales": 0,
+        "scale_mismatches": 0,
+        "missing_slots": 0
+      },
+      "tokens_sha256": "db62eb7e55106127f12b403de5901fe074d5b2c052205b6e8b9749a46d368c77",
+      "time": "time: 15900.9 ms for 128 positions run (0 from the snapshot; 124.23 ms per position run; first token 15900.9 ms; 1154 phases; programs 4 ms; 0 paired positions; 0 prefill chunks)"
+    }
+  ]
+}
