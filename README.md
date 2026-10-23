@@ -1,7 +1,7 @@
 # flash-sass
 An inference engine for **Qwen3.8-Flash-Next**, specifically the Q2 variant of: 
 https://huggingface.co/ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF
-Using **Maxwell SASS** (via [MaxAs](https://github.com/NervanaSystems/maxas)) for multiple **Tesla M60** GPUs. By default each die runs **one persistent kernel per response** Weights stay in the GGUF's own block formats and are dotted as integers with packed `XMAD`.
+Using **Maxwell SASS** (via [MaxAs](https://github.com/NervanaSystems/maxas) and https://huggingface.co/incoai/Qwen3.8-Flash-Next-DFlash2-GGUF/blob/main/Qwen3.8-Flash-Next-DFlash2-Q4_K_M.gguf) for multiple **Tesla M60** GPUs. By default each die runs **one persistent kernel per response** Weights stay in the GGUF's own block formats and are dotted as integers with packed `XMAD`.
 
 - row split
 - expert split
