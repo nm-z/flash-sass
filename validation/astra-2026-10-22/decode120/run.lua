@@ -56,7 +56,7 @@ local env={
  'BENCH_BALANCED_BATCH_CUBIN='..work..'/die_dflash2_b4.cubin',
  'FLASH_DFLASH_RANK=2','FLASH_DFLASH_DEVICE_CUBIN='..work..'/dflash/device.cubin',
  'FLASH_DFLASH_Q4K_CUBIN='..(os.getenv('DECODE120_Q4K_CUBIN') or work..'/dflash/q4k4.cubin'),
- 'FLASH_B4_GENERIC='..(os.getenv('FLASH_B4_GENERIC') or '66'),
+ 'FLASH_B4_GENERIC='..(os.getenv('FLASH_B4_GENERIC') or '67'),
  'FLASH_DFLASH_GGUF=/home/nate/models-cache/flash-sass/dflash2-q4km/Qwen3.8-Flash-Next-DFlash2-Q4_K_M.gguf',
  'FLASH_BALANCED_HCUP5=0','FLASH_BALANCED_HCUP5_LOCALQ=0','FLASH_BALANCED_GR_PACKET=0',
  'FLASH_PLE_DEVICE_CACHE=1','FLASH_WATCHDOG_S=30'

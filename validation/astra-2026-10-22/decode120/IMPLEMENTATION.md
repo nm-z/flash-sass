@@ -225,3 +225,28 @@ Diagnostics added: `FLASH_B4_GENERIC`, `FLASH_B4_MATRIX_MASK`, `FLASH_B4_JOIN_OP
 `FLASH_DFLASH_TIMING`, `FLASH_DFLASH_MATRIX_CHECK`, engine `pairdump` (router packets,
 FFN buffers, cross-die invariants, logits), absolute state statistics in
 `statehash detail`, `BENCH_LAYERS` + `FLASH_DIAG_LAYERS`, `BENCH_PAIR_DUMP`.
+
+### Update 12:47 PM – 1:10 PM
+
+| Configuration (128 tokens, 0 mismatches vs scalar in every row) | TPS | Verify ms/round | gpuq |
+|---|---|---|---|
+| + PTX target-head candidates (draft 11.9 ms) | 23.05 | 104.6 | d13ce593 |
+| + PTX Q6_K draft matrix (draft 10.1 ms) | 23.56 | 104.5 | 8f52bc6d |
+| native Q5_K/IQ4/Q4_K matrices off (`FLASH_B4_MATRIX_MASK=92`) | 25.17 | 96.4 | f420d0cf |
+| **all native matrices off (`FLASH_B4_GENERIC=67`, current default)** | **25.60** | 95.6 | 0ff1e18c |
+| same, width 2 / width 3 | 24.06 / 23.57 | 63.9 / 88.4 | 138a8ea4 / 7b4fa9b9 |
+| paired scalar target, same jobs | 26.5–26.9 | — | — |
+
+Scalar per-token profile on die 0 (36.65 ms, 528 phases; gpuq scalar-profile job):
+moe_local_columns 9.51 ms, hcupq_x 4.14, q2moegn 3.82, bf16hcrwx 3.10,
+grwrite_read 3.00, router_shard 1.99, q3kk2560 1.86, dnstep_normq 1.82,
+iq4k2560 1.37, qsa_full_bal 1.37, iq4k6144 0.97, q4kk6144 0.89, head 0.60.
+The native B4 matrix kernels cost 3.0–6.5× their scalar op (head 6.5×, iq4k6144
+5.3×, q4kk6144 4.8×), no better than generic replay of the scalar op; native
+MoE4 (1.8×) is the only native family that pays. Native DN4/GR4/router4 are
+bit-exact and neutral. A B4 verify is ~2.5 scalar steps, and B4 programs run
+~840 phases against 528 for scalar (retained-prefix ops are unfused), so
+speculation remains ~4% slower than scalar on this layout. Reaching the NEXT.md
+budget needs verify near one scalar step: phase-count/fusion parity for the
+retained-prefix program and B4 kernels that are actually faster than four
+scalar replays, starting with moe_local_columns and q2moegn.
