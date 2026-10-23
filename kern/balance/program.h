@@ -28,7 +28,8 @@ static void balance_group(prog_t *p,int first,unsigned width) {
 static void prog_balanced_moe(prog_t *p,const split_t *s,const dn_weights_t *w,
                              const dn_bufs_t *b,CUdeviceptr z,CUdeviceptr sin,
                              CUdeviceptr inj) {
-    unsigned gate_rows=balance_row_count(640,(unsigned)s->d,(unsigned)s->n,8);
+    unsigned gate_rows=w->paired_columns?paired_channels((unsigned)s->d,w->balanced_layer):
+        balance_row_count(640,(unsigned)s->d,(unsigned)s->n,8);
     unsigned down_rows=balance_row_count(2560,(unsigned)s->d,(unsigned)s->n,8);
     if(w->unique_rows) {
         ph_bf16(p,OP_UNIQUE_ROUTER,w->ffn_gate_inp_x,z,b->r,
@@ -47,17 +48,34 @@ static void prog_balanced_moe(prog_t *p,const split_t *s,const dn_weights_t *w,
     int first=p->n;
     ph_q2(p,OP_Q2MOEGN,w->ffn_gate_exps,b->zq,b->zs32,b->balance_gate_local,
           gate_rows,b->lidx,b->zas,0,b->ne);
-    balance_row_descriptor(p->p+p->n-1,(unsigned)s->d,gate_rows,b->balance_gate_targets,640,10,0,w->balanced_layer);
+    balance_row_descriptor(p->p+p->n-1,(unsigned)s->d,gate_rows,w->paired_columns?0:b->balance_gate_targets,640,10,0,w->balanced_layer);
     if(w->unique_rows)p->p[p->n-1].w[30]|=PHASE_UNIQUE_ROUTE;
     ph_q2(p,OP_Q2MOEGN,w->ffn_up_exps,b->zq,b->zs32,b->balance_up_local,
           gate_rows,b->lidx,b->zas,0,b->ne);
-    balance_row_descriptor(p->p+p->n-1,(unsigned)s->d,gate_rows,b->balance_up_targets,640,10,0,w->balanced_layer);
+    balance_row_descriptor(p->p+p->n-1,(unsigned)s->d,gate_rows,w->paired_columns?0:b->balance_up_targets,640,10,0,w->balanced_layer);
     ph_gemv_any(p,w->ffn_gate_shexp_type,2560,w->ffn_gate_shexp,b->zq,b->zs32,b->zs16,
                 b->balance_gate_local+40u*gate_rows,gate_rows,b->zas,0,0);
-    balance_row_descriptor(p->p+p->n-1,(unsigned)s->d,gate_rows,b->balance_gate_targets,640,1,6400,w->balanced_layer);
+    balance_row_descriptor(p->p+p->n-1,(unsigned)s->d,gate_rows,w->paired_columns?0:b->balance_gate_targets,640,1,6400,w->balanced_layer);
     ph_gemv_any(p,w->ffn_up_shexp_type,2560,w->ffn_up_shexp,b->zq,b->zs32,b->zs16,
                 b->balance_up_local+40u*gate_rows,gate_rows,b->zas,0,0);
-    balance_row_descriptor(p->p+p->n-1,(unsigned)s->d,gate_rows,b->balance_up_targets,640,1,6400,w->balanced_layer);
+    balance_row_descriptor(p->p+p->n-1,(unsigned)s->d,gate_rows,w->paired_columns?0:b->balance_up_targets,640,1,6400,w->balanced_layer);
+    if(w->paired_columns) {
+        /* All four matrices write local channels. Their local completion is
+         * sufficient for SiLU/quantization and the paired down projection. */
+        p->p[first].w[30]|=8u|32u|(4u<<8);
+        phase_t *a=prog_add(p,OP_PAIRED_DOWN,16);
+        ph_ptr(a,0x140,w->ffn_down_exps);ph_ptr(a,0x148,w->ffn_down_shexp);
+        ph_ptr(a,0x150,b->paired_config);ph_u32(a,0x158,gate_rows/64);
+        ph_u32(a,0x15c,w->ffn_down_shexp_type);ph_u32(a,0x160,w->balanced_layer);
+        ph_u32(a,0x164,(unsigned)s->d);ph_ptr(a,0x168,b->paired_targets);
+        ph_ptr(a,0x170,b->paired_partial);ph_ptr(a,0x178,b->balance_quant_ready);
+        a->w[30]|=1u;p->pending_wait=1;p->xj++;
+        a=prog_add(p,OP_HCWSUM,16);
+        ph_ptr(a,0x140,inj);ph_ptr(a,0x148,b->paired_received);ph_ptr(a,0x150,b->S);
+        ph_u32(a,0x158,2560);ph_u32(a,0x15c,10240);ph_u32(a,0x164,6);
+        ph_ptr(a,0x168,b->out);ph_ptr(a,0x170,sin);
+        return;
+    }
     balance_group(p,first,4);
     first=p->n;
     ph_q2(p,OP_Q2MOEDN,w->ffn_down_exps,b->hq,b->hs32,b->balance_down_local,

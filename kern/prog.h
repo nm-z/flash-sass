@@ -98,6 +98,7 @@ typedef struct {
 	CUdeviceptr hc_attn_norm, hc_attn_dj, hc_attn_up;
     unsigned balanced_rows,balanced_layer,embedding_first,embedding_columns,embedding_stride;
     unsigned unique_rows;
+    unsigned paired_columns;
 	unsigned attn_q_split, attn_q_first, attn_q_rows;
     unsigned attn_head_first,attn_head_count,attn_kv_heads;
 	CUdeviceptr hc_ffn_norm, hc_ffn_dj, hc_ffn_up;
@@ -132,6 +133,7 @@ typedef struct {
     CUdeviceptr balance_index_local,balance_index_targets,balance_attention_targets,balance_attn_ready;
     CUdeviceptr unique_router_packets,unique_router_targets,unique_router_config;
     CUdeviceptr unique_k_local,unique_v_local,unique_k_targets,unique_v_targets;
+    CUdeviceptr paired_partial,paired_received,paired_targets,paired_config;
 	CUdeviceptr S2;                   /* 10240 scratch stream: the attention side's write lands here (bf16hcrwx), the MoE end writes S */
 	CUdeviceptr xh, t;                /* 10240; 324 = SiLU(0.25 down) ++ inj */
 	CUdeviceptr ldown, lup, lz;       /* djn; 4 x 32 cbn; 32 cbn */

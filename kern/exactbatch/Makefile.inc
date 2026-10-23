@@ -174,30 +174,41 @@ die_unique.cubin: die_unique.sass die_unique.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ die_unique.ptx
 	$(MAXAS) -i die_unique.sass $@
 
+die_paired.sass: die_unique.sass unique/down.lua phase/quant_emit.lua
+	$(LUA) unique/down.lua $< $@.raw
+	$(LUA) phase/predicate_latency.lua $@.raw $@ $@.predicate.csv
+die_paired.ptx: die_unique.ptx unique/paired_marker.ptxinc
+	cat $^ > $@
+die_paired.cubin: die_paired.sass die_paired.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ die_paired.ptx
+	$(MAXAS) -i die_paired.sass $@
+
 # DFlash2 uses the same full target image for prefill and retained-prefix B4.
 # The native GR matrix has four independent chains over one weight stream.
-die_dflash2_scalar.sass: die_unique.sass dflash/target.lua
+die_dflash2_scalar.sass: die_paired.sass dflash/target.lua
 	$(LUA) dflash/target.lua $< $@.raw
 	$(LUA) phase/predicate_latency.lua $@.raw $@ $@.predicate.csv
-die_dflash2_scalar.ptx: die_unique.ptx dflash/target_marker.ptxinc
+die_dflash2_scalar.ptx: die_paired.ptx dflash/target_marker.ptxinc
 	cat $^ > $@
 die_dflash2_scalar.cubin: die_dflash2_scalar.sass die_dflash2_scalar.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ die_dflash2_scalar.ptx
 	$(MAXAS) -i die_dflash2_scalar.sass $@
-die_dflash2_b4.sass: die_balanced.sass balance/batch_frame.lua balance/hcup5.lua balance/receiver_quant.lua unique/gdn.lua unique/router.lua unique/collective.lua dflash/target.lua dflash/dn4.lua dflash/gr4.lua dflash/matrix4.lua dflash/bf16_4.lua
+die_dflash2_b4.sass: die_balanced.sass balance/batch_frame.lua balance/hcup5.lua balance/receiver_quant.lua unique/gdn.lua unique/router.lua unique/collective.lua unique/down.lua unique/down4.lua dflash/target.lua dflash/dn4.lua dflash/gr4.lua dflash/matrix4.lua dflash/bf16_4.lua
 	$(LUA) balance/batch_frame.lua $< $@.frame
 	$(LUA) balance/hcup5.lua $@.frame $@.hcup4 4
 	$(LUA) balance/receiver_quant.lua $@.hcup4 $@.localq
 	$(LUA) unique/gdn.lua $@.localq $@.gdn
 	$(LUA) unique/router.lua $@.gdn $@.router
 	$(LUA) unique/collective.lua $@.router $@.collective
-	$(LUA) dflash/target.lua $@.collective $@.target
+	$(LUA) unique/down.lua $@.collective $@.columns
+	$(LUA) dflash/target.lua $@.columns $@.target
 	$(LUA) dflash/dn4.lua $@.target $@.dn4 $@.collective
 	$(LUA) dflash/gr4.lua $@.dn4 $@.gr4
 	$(LUA) dflash/matrix4.lua $@.gr4 $@.matrix
 	$(LUA) dflash/bf16_4.lua $@.matrix $@.bf16
-	$(LUA) phase/predicate_latency.lua $@.bf16 $@ $@.predicate.csv
-die_dflash2_b4.ptx: die_unique.ptx dflash/batch_marker.ptxinc dflash/target_marker.ptxinc
+	$(LUA) unique/down4.lua $@.bf16 $@.down4
+	$(LUA) phase/predicate_latency.lua $@.down4 $@ $@.predicate.csv
+die_dflash2_b4.ptx: die_paired.ptx dflash/batch_marker.ptxinc dflash/target_marker.ptxinc
 	cat $^ > $@
 die_dflash2_b4.cubin: die_dflash2_b4.sass die_dflash2_b4.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ die_dflash2_b4.ptx

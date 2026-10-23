@@ -6,6 +6,7 @@ typedef struct { range_t r[6]; int nr; int rows_total; int experts; unsigned row
 static int split_on;
 static int balance_on;
 static int unique_on;
+static int paired_on;
 static split_t SP;
 #include "balance/layout.h"
 #include "balance/embedding.h"

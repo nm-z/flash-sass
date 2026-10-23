@@ -53,9 +53,9 @@ static jmp_buf init_jb, run_jb; static int in_init, in_run;
 static void balance_fault_dump(void);
 #define CK(x) do { CUresult r_ = (x); if (r_ != CUDA_SUCCESS) { const char *s_ = "?"; cuGetErrorString(r_, &s_); fprintf(stderr, "engine.c:%d: %s -> %s\n", __LINE__, #x, s_); if (in_init) longjmp(init_jb, 1); if (in_run) { balance_fault_dump(); longjmp(run_jb, 1); } exit(1); } } while (0)
 static double now(void) { struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts); return ts.tv_sec + ts.tv_nsec * 1e-9; }
-static int row_balance,unique_rows,body_trace;
+static int row_balance,unique_rows,paired_columns,body_trace;
 static int classify_holder_layout(const core_t *c) {
-    unsigned marked=0,unique_marked=0,physical=0;row_balance=unique_rows=0;
+    unsigned marked=0,unique_marked=0,paired_marked=0,physical=0;row_balance=unique_rows=paired_columns=0;
     for(int d=0;d<c->nd;d++) {
         const hold_tensor *t=hold_find(&c->ar[d],FLASH_BALANCE_LAYOUT_MARKER);
         if(!t)continue;
@@ -73,6 +73,13 @@ static int classify_holder_layout(const core_t *c) {
             }
             unique_marked++;
         }
+        const hold_tensor *pc=hold_find(&c->ar[d],FLASH_PAIRED_LAYOUT_MARKER);
+        if(pc) {
+            if(!u || pc->off || pc->bytes || pc->type || pc->rows!=d || pc->K!=6 || pc->stride!=64 || pc->experts!=1) {
+                fprintf(stderr,"engine: invalid paired-column marker in logical slot %d\n",d);return 0;
+            }
+            paired_marked++;
+        }
     }
     if(marked && marked!=(unsigned)c->nd) {
         fprintf(stderr,"engine: cannot mix balanced and legacy holders\n");return 0;
@@ -82,6 +89,10 @@ static int classify_holder_layout(const core_t *c) {
         fprintf(stderr,"engine: cannot mix unique-row and replicated-row holders\n");return 0;
     }
     unique_rows=unique_marked!=0;
+    if(paired_marked && paired_marked!=(unsigned)c->nd) {
+        fprintf(stderr,"engine: cannot mix paired-column and row-sharded expert holders\n");return 0;
+    }
+    paired_columns=paired_marked!=0;
     return 1;
 }
 
@@ -236,6 +247,8 @@ static const char *profile_op_name(unsigned op) {
     if(dflash_quant && op==109u)return "balanced_hcup4";
 #endif
     if(unique_rows && op==OP_UNIQUE_ROUTER)return "router_shard";
+    if(paired_columns && op==OP_PAIRED_DOWN)return "moe_local_columns";
+    if(paired_columns && op==OP_PAIRED_DOWN4)return "moe_local_columns4";
     if(row_balance && op==108u)return "balanced_batch";
     if(row_balance && op==109u)return "balanced_hcup5";
     if(row_balance && op==110u)return "balanced_prequant";
@@ -252,13 +265,16 @@ static void check_fused_moe_module(CUmodule module) {
     }
     CUresult balanced_marker=cuModuleGetFunction(&marker,module,"flash_balanced_rows_abi_v1");
     if(row_balance){CK(balanced_marker);CK(cuModuleGetFunction(&marker,module,"flash_balance_head_peer_abi_v2"));}
+    else if(balanced_marker==CUDA_SUCCESS) {
+        fprintf(stderr,"engine: balanced SASS requires row-balanced holders and program\n");CK(CUDA_ERROR_INVALID_IMAGE);
+    }
     CUresult unique_marker=cuModuleGetFunction(&marker,module,"flash_unique_rows_abi_v1");
     if((unique_marker==CUDA_SUCCESS)!=!!unique_rows) {
         fprintf(stderr,"engine: unique-row holder and kernel layouts must agree\n");longjmp(init_jb,1);
     }
-    else if(balanced_marker==CUDA_SUCCESS) {
-        fprintf(stderr,"engine: balanced SASS requires row-balanced holders and program\n");
-        CK(CUDA_ERROR_INVALID_IMAGE);
+    CUresult paired_marker=cuModuleGetFunction(&marker,module,"flash_paired_columns_abi_v1");
+    if((paired_marker==CUDA_SUCCESS)!=!!paired_columns) {
+        fprintf(stderr,"engine: paired-column holder and kernel layouts must agree\n");longjmp(init_jb,1);
     }
     if(row_balance)CK(cuModuleGetFunction(&marker,module,"flash_balance_head_producer_abi_v2"));
     if(row_balance)CK(cuModuleGetFunction(&marker,module,"flash_balance_down_owner_map_abi_v3"));
@@ -618,6 +634,7 @@ static void clone_position(int d, dn_bufs_t *b, xchg_t *x, int alias_attention) 
     SECOND(balance_gate_local);SECOND(balance_up_local);SECOND(balance_down_local);SECOND(balance_quant_ready);
     SECOND(balance_index_local);SECOND(balance_attn_ready);
     SECOND(unique_router_packets);SECOND(unique_k_local);SECOND(unique_v_local);
+    SECOND(paired_partial);SECOND(paired_received);
 	SECOND(qg); SECOND(k); SECOND(v); SECOND(qo); SECOND(aout);
 	/* Wide headless programs serialize gather/partial/merge per position. */
 	if (!alias_attention) { SECOND(kc); SECOND(vc); SECOND(pm); SECOND(pd); SECOND(po); }
@@ -1881,7 +1898,8 @@ int engine_init(core_t *c) {
         if(row_balance) {
             unsigned gate_rows=balance_row_count(640,(unsigned)d,(unsigned)nd,8);
             unsigned down_rows=balance_row_count(2560,(unsigned)d,(unsigned)nd,8);
-            b->balance_gate_local=dalloc(44u*gate_rows);b->balance_up_local=dalloc(44u*gate_rows);
+            unsigned expert_rows=paired_columns?128:gate_rows;
+            b->balance_gate_local=dalloc(44u*expert_rows);b->balance_up_local=dalloc(44u*expert_rows);
             b->balance_down_local=dalloc(24u*down_rows);b->balance_quant_ready=dalloc(64);
             b->balance_index_local=dalloc(4u*gate_rows);b->balance_attn_ready=dalloc(64);
             if(unique_rows) {
@@ -1889,6 +1907,7 @@ int engine_init(core_t *c) {
                 unsigned kv_rows=balance_row_count(512,(unsigned)d,(unsigned)nd,8);
                 b->unique_k_local=dalloc(4u*kv_rows);b->unique_v_local=dalloc(4u*kv_rows);
             }
+            if(paired_columns){b->paired_partial=dalloc(4u*2560);b->paired_received=dalloc(24u*2560);}
         }
 		b->out = dalloc(4 * 2560);
         unsigned heads=row_balance?4u:24u;
@@ -1927,6 +1946,7 @@ int engine_init(core_t *c) {
 			dn_weights_t *w = &dw[d][bb]; int is_attn = BLK_IS_ATTN(bb);
             w->balanced_rows=(unsigned)row_balance;w->balanced_layer=(unsigned)bb;
             w->unique_rows=(unsigned)unique_rows;
+            w->paired_columns=(unsigned)paired_columns;
             if(row_balance) {
                 w->attn_head_first=balance_attention_first((unsigned)d,(unsigned)nd);
                 w->attn_head_count=balance_attention_heads((unsigned)d,(unsigned)nd);w->attn_kv_heads=1;
@@ -2060,6 +2080,12 @@ int engine_init(core_t *c) {
         b->balance_attention_targets=producer_tables[p][d][1];
         CUdeviceptr heads[6];for(int e=0;e<nd;e++)heads[e]=position_buf(e,p)->amo;
         b->balance_head_sources=dalloc(sizeof heads);CK(cuMemcpyHtoD(b->balance_head_sources,heads,sizeof heads));
+        if(paired_columns) {
+            CUdeviceptr targets[6];for(int e=0;e<nd;e++)targets[e]=position_buf(e,p)->paired_received+4u*2560u*(unsigned)d;
+            b->paired_targets=dalloc(sizeof targets);CK(cuMemcpyHtoD(b->paired_targets,targets,sizeof targets));
+            CUdeviceptr config[9]={b->balance_gate_local,b->balance_up_local,b->hq,b->hs32,b->hs16,b->has,b->lidx,b->lw,b->s};
+            b->paired_config=dalloc(sizeof config);CK(cuMemcpyHtoD(b->paired_config,config,sizeof config));
+        }
         if(unique_rows) {
             CUdeviceptr packet[6],keys[6],values[6];
             for(int e=0;e<nd;e++) {

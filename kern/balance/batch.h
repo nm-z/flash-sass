@@ -17,6 +17,7 @@ typedef struct {
     unsigned native_dn_phases;
     unsigned native_gr_phases;
     unsigned native_matrix_phases;
+    unsigned native_moe_phases;
     unsigned local_quant_phases;
 } balance_batch_work;
 /* Every input is a complete, already-fused balanced position program. The

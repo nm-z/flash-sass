@@ -22,6 +22,7 @@ static const char *suffix(const char *name) {
     const char *p=strchr(name+4,'.');return p?p+1:NULL;
 }
 #include "../hold_selection.h"
+#include "../unique/columns.h"
 
 CUresult cuCtxCreate_v2(CUcontext *,unsigned,CUdevice);
 static void die(const char *s) { fprintf(stderr,"native_weights: %s: %s\n",s,strerror(errno));exit(1); }
@@ -197,10 +198,11 @@ static void balance(backing src[6],const char *out) {
     hold_arena dst[6]={{0}};int fd[6]={-1,-1,-1,-1,-1,-1};char dirs[6][1024];
     if(out){newdir(out);policy_save(out);}
     for(int d=0;d<6;d++) {
-        dst[d].die=(int[]){0,1,6,3,4,5}[d];
+        dst[d].die=paired_on?d:(int[]){0,1,6,3,4,5}[d];
         hold_tensor marker={0};snprintf(marker.name,sizeof marker.name,"%s",FLASH_BALANCE_LAYOUT_MARKER);
         marker.rows=d;marker.K=6;marker.stride=8;marker.experts=1;add_tensor(dst+d,marker);
         if(unique_on){snprintf(marker.name,sizeof marker.name,"%s",FLASH_UNIQUE_LAYOUT_MARKER);add_tensor(dst+d,marker);}
+        if(paired_on){snprintf(marker.name,sizeof marker.name,"%s",FLASH_PAIRED_LAYOUT_MARKER);marker.stride=64;add_tensor(dst+d,marker);}
         if(out){char sub[64],p[1024];snprintf(sub,sizeof sub,"die%d",d);path(dirs[d],out,sub);newdir(dirs[d]);path(p,dirs[d],"arena.bin");fd[d]=fresh(p);}
     }
     /* The first holder has zero-byte metadata for unowned projections, too.
@@ -215,11 +217,24 @@ static void balance(backing src[6],const char *out) {
         shape g=infer(src,name);const hold_tensor *sample=NULL;
         for(int d=0;d<6;d++){const hold_tensor *t=hold_find(&src[d].a,name);if(t && t->bytes){sample=t;break;}}
         require(sample!=NULL,"missing sample tensor");
+        int gate_columns=paired_on && suf &&
+            (!strcmp(suf,"ffn_gate_exps.weight") || !strcmp(suf,"ffn_up_exps.weight") ||
+             !strcmp(suf,"ffn_gate_shexp.weight") || !strcmp(suf,"ffn_up_shexp.weight"));
+        int down_columns=paired_on && suf &&
+            (!strcmp(suf,"ffn_down_exps.weight") || !strcmp(suf,"ffn_down_shexp.weight"));
         for(int d=0;d<6;d++) {
             split_on=balance_on=1;holder_split(d,6,block_of(name));sel_t sel;select_rows(name,g.rows,g.experts,&sel);
             unsigned rows=sel.row_grain?balance_row_count((unsigned)g.rows,d,6,sel.row_grain):selected(&sel);
+            unsigned blocks=paired_blocks((unsigned)d,(unsigned)block_of(name));
+            unsigned first_block=paired_first_block((unsigned)d,(unsigned)block_of(name));
+            if(gate_columns){require(g.rows==640 && g.K==2560 && g.slices==1,"paired gate/up shape");rows=64*blocks;}
+            if(down_columns){require(g.rows==2560 && g.K==640 && g.slices==1 && paired_record_bytes(sample->type),"paired down format/shape");rows=2560;}
             hold_tensor t=*sample;t.rows=(int)rows*g.slices;t.experts=g.experts;
             t.bytes=(size_t)t.rows*(unsigned)t.experts*g.rowbytes;
+            if(down_columns) {
+                t.K=(int)(64*blocks);t.stride=(int)(blocks*paired_record_bytes(t.type));
+                t.bytes=(size_t)rows*(unsigned)t.experts*(unsigned)t.stride;
+            }
             if(sel.embedding_groups){require(sample->type==GG_Q3_K && g.K==2560 && g.rowbytes==1100,"embedding source must be original raw Q3_K");t.rows=g.rows;t.K=(int)sel.embedding_groups*32;t.stride=(int)sel.embedding_groups*16;t.bytes=(size_t)t.rows*(unsigned)t.stride;}
             add_tensor(dst+d,t);t=dst[d].t[dst[d].n-1];
             printf("native_plan logical=%d tensor=%s rows=%d K=%d experts=%d bytes=%zu offset=%zu\n",d,name,t.rows,t.K,t.experts,t.bytes,t.off);
@@ -231,10 +246,18 @@ static void balance(backing src[6],const char *out) {
                     for(unsigned j=0;j<sel.embedding_groups;j++)
                         balance_pack_embedding_group(source,32*(sel.embedding_first+j),image+((size_t)r*sel.embedding_groups+j)*16);
                 }
+            } else if(down_columns) {
+                size_t block_bytes=(size_t)rows*paired_record_bytes(t.type);
+                for(unsigned e=0;e<(unsigned)g.experts;e++)for(unsigned r=0;r<rows;r++) {
+                    const unsigned char *source=source_row(src,&g,r,e,0);
+                    for(unsigned b=0;b<blocks;b++)paired_pack_down(t.type,source,first_block+b,r,rows,
+                        image+((size_t)e*blocks+b)*block_bytes);
+                }
             } else for(unsigned e=0;e<(unsigned)g.experts;e++)for(unsigned s=0;s<(unsigned)g.slices;s++) {
                 const unsigned char *expert=g.experts>1?source_row(src,&g,0,e,s):NULL;
                 for(unsigned r=0;r<rows;r++) {
-                    unsigned global=sel.row_grain?balance_global_row(r,d,6,sel.row_grain):global_index(&sel,r);
+                    unsigned global=gate_columns?64*first_block+r:
+                        sel.row_grain?balance_global_row(r,d,6,sel.row_grain):global_index(&sel,r);
                     const unsigned char *source=expert?expert+(size_t)global*g.rowbytes:source_row(src,&g,global,e,s);
                     memcpy(image+(((size_t)e*g.slices+s)*rows+r)*g.rowbytes,source,g.rowbytes);
                 }
@@ -319,8 +342,8 @@ int main(int argc,char **argv) {
         require(getenv("SPLIT_SHARES") && getenv("ATTN_MAP"),"source split policy required");
         for(int d=0;d<6;d++){int logical;metadata_read(&src[d].a,argv[d+2],&logical);require(logical<0,"plan expects live original manifests");}
         balance(src,NULL);
-    } else if(argc==4 && (!strcmp(argv[1],"balance") || !strcmp(argv[1],"unique"))) {
-        unique_on=!strcmp(argv[1],"unique");
+    } else if(argc==4 && (!strcmp(argv[1],"balance") || !strcmp(argv[1],"unique") || !strcmp(argv[1],"paired"))) {
+        paired_on=!strcmp(argv[1],"paired");unique_on=paired_on || !strcmp(argv[1],"unique");
         policy_read(argv[2]);
         for(int d=0;d<6;d++) {
             char sub[64],dir[1024],p[1024];snprintf(sub,sizeof sub,"die%d",d);path(dir,argv[2],sub);path(p,dir,"metadata.bin");int logical;metadata_read(&src[d].a,p,&logical);require(logical==d,"cached source rank mismatch");
@@ -328,6 +351,6 @@ int main(int argc,char **argv) {
             src[d].image=mmap(NULL,src[d].a.bytes,PROT_READ,MAP_PRIVATE,fd,0);if(src[d].image==MAP_FAILED)die("map source cache");close(fd);
         }
         balance(src,argv[3]);
-    } else {fprintf(stderr,"usage: native_weights save NEW_DIR MANIFEST0..5 | plan MANIFEST0..5 | balance|unique SOURCE_CACHE NEW_CACHE | seal RECOVERED_CACHE | load|launch DIE_CACHE PHYSICAL_GPU NEW_MANIFEST\n");return 2;}
+    } else {fprintf(stderr,"usage: native_weights save NEW_DIR MANIFEST0..5 | plan MANIFEST0..5 | balance|unique|paired SOURCE_CACHE NEW_CACHE | seal RECOVERED_CACHE | load|launch DIE_CACHE PHYSICAL_GPU NEW_MANIFEST\n");return 2;}
     for(int d=0;d<6;d++){if(src[d].image)munmap((void *)src[d].image,src[d].a.bytes);free(src[d].a.t);}return 0;
 }

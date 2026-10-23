@@ -63,7 +63,7 @@ static int balance_batch_impl(prog_t *out,const prog_t *const *positions,
         const phase_t *a=first->p+i;
         unsigned span=phase_descriptors(a);
         if(!span || span>(unsigned)(first->n-i) || 1+span*count>255 ||
-           (a->w[0]>=OP_BALANCED_BATCH && a->w[0]!=OP_UNIQUE_ROUTER && a->w[0]!=OP_DFLASH_FEATURES))return -1;
+           (a->w[0]>=OP_BALANCED_BATCH && a->w[0]!=OP_UNIQUE_ROUTER && a->w[0]!=OP_PAIRED_DOWN && a->w[0]!=OP_DFLASH_FEATURES))return -1;
         for(unsigned p=1;p<count;p++)for(unsigned j=0;j<span;j++) {
             const phase_t *x=a+j,*y=positions[p]->p+i+j;
             if(x->w[0]!=y->w[0] || x->w[1]!=y->w[1] ||
@@ -92,6 +92,10 @@ static int balance_batch_impl(prog_t *out,const prog_t *const *positions,
         }
         if(hcup4 && a->w[0]==OP_DNSTEP && span==1 && (a->w[24]|a->w[25]) && (a->w[26]|a->w[27]))
             stats.native_dn_phases++;
+        if(hcup4 && a->w[0]==OP_PAIRED_DOWN) {
+            if(span!=1 || a->w[8]<1 || a->w[8]>2)return -1;
+            stats.native_moe_phases++;stats.inner_grid_joins++;
+        }
         if(hcup4 && span==1 && (a->w[0]==OP_BF16HCRX || a->w[0]==OP_BF16HCRWX || a->w[0]==94u)) {
             if(!(a->w[30]&1u) || a->w[31] || a->w[1]!=16 || !a->w[8])return -1;
             for(unsigned p=1;p<count;p++) {
@@ -141,6 +145,7 @@ static int balance_batch_impl(prog_t *out,const prog_t *const *positions,
             }
         }
         if(native_hcup && a->w[0]==96u)wrap->w[0]=OP_BALANCED_HCUP5;
+        if(hcup4 && a->w[0]==OP_PAIRED_DOWN)wrap->w[0]=OP_PAIRED_DOWN4;
         if(hcup4 && a->w[0]==OP_DNSTEP && span==1 && (a->w[24]|a->w[25]) && (a->w[26]|a->w[27]))
             wrap->w[0]=OP_DFLASH_DN4;
         if(hcup4 && span==1 && (a->w[0]==OP_BF16HCRX || a->w[0]==OP_BF16HCRWX || a->w[0]==94u)) {

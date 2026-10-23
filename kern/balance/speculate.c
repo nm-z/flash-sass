@@ -9,6 +9,7 @@ static struct {
     unsigned long long native_dn_phases;
     unsigned long long native_gr_phases;
     unsigned long long native_matrix_phases;
+    unsigned long long native_moe_phases;
     unsigned long long local_quant_phases;
     double build_ms,draft_ms,decode_ms;
     unsigned verify_calls[6],replay_calls[6];
@@ -68,6 +69,7 @@ static void balanced_spec_profile(const prog_t *program,unsigned start,unsigned 
             const phase_t *a=p->p+i;unsigned op=a->w[0];
             int fused=op==OP_BALANCED_HCUP5;
             if(op>=OP_DFLASH_DN4 && op<=OP_DFLASH_BF16_4)op=a->w[4];
+            if(op==OP_PAIRED_DOWN4)op=a->w[4];
             if(op==OP_BALANCED_BATCH || op==OP_BALANCED_PREQUANT || fused)op=a->w[4];
             if(previous>=0 && op<128) {
                 total[op]+=(uint32_t)(ts[i]-ts[previous])/1e3;count[op]++;native[op]+=fused;
@@ -142,6 +144,7 @@ static void balanced_execute(runctx *r,const prog_t *program,unsigned start,unsi
     bspec.native_dn_phases+=work->native_dn_phases;
     bspec.native_gr_phases+=work->native_gr_phases;
     bspec.native_matrix_phases+=work->native_matrix_phases;
+    bspec.native_moe_phases+=work->native_moe_phases;
     bspec.local_quant_phases+=work->local_quant_phases;
     if(replay){bspec.replay_calls[width]++;bspec.replay_ms[width]+=(now()-begin)*1e3;}
     else {bspec.verify_calls[width]++;bspec.verify_ms[width]+=(now()-begin)*1e3;}
@@ -287,6 +290,7 @@ static void balanced_spec_stats(FILE *out) {
         w,bspec.verify_calls[w],w,bspec.verify_ms[w],w,bspec.replay_calls[w],w,bspec.replay_ms[w]);
     fprintf(out," native_hcup_phases=%llu native_dn4_phases=%llu native_gr4_phases=%llu",bspec.native_hcup_phases,bspec.native_dn_phases,bspec.native_gr_phases);
     fprintf(out," native_matrix4_phases=%llu",bspec.native_matrix_phases);
+    fprintf(out," native_moe4_phases=%llu",bspec.native_moe_phases);
     fprintf(out," receiver_quant_phases=%llu",bspec.local_quant_phases);
     fprintf(out," state_bank_selections=%llu maintenance_host_ms=%.6f",bspec.state_selections,bspec.maintenance_ms);
     for(unsigned n=1;n<=4;n++)fprintf(out," committed_%u_blocks=%u",n,bspec.committed_histogram[n]);

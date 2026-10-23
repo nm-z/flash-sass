@@ -86,22 +86,41 @@ intermediate benchmark loop.
   global top-ten routing is formed from six small candidate packets. QSA K/V
   projection rows are also read once. These new layouts have distinct ABIs.
   The current collective change aggregates completion flags only.
+- Paired MoE cache format and production path: each die owns one or two
+  contiguous 64-channel blocks, with rank two always light and the other light
+  rank rotating per layer. Gate/up rows and down columns use the same selection.
+  `native_weights paired SOURCE_CACHE NEW_CACHE` copies the original packed
+  codes/scales. Q2 down columns use separate scale/code planes at exactly 18
+  bytes per output row per 64-channel block. Shared Q4_0, Q5_0, Q8_0 and IQ4_NL
+  columns retain their existing codes/scales; Q5 uses a separate high-bit plane
+  so the low-code vector loads remain aligned without per-row padding.
+- Scalar and B4 compact-column down operators now quantize only the local
+  intermediate and evaluate the routed/shared down columns. B4 builds a private
+  union of the four expert lists; overlapping experts reuse weights. Per-rank
+  partials preserve each position's router-rank addition order. Completed
+  64-row output tiles publish while later tiles compute. Gate/up intermediates
+  have no peer publication in this path. Final partials currently retain the
+  six-die sum; board-pair reduction/transport is still outstanding.
 
 ## Work still required to earn the budget
 
-1. Complete native B4 router and block-32 shared-down coverage, then integrate
-   them with the new MoE split. Routed expert weights are still handled by the
-   existing operators. The dense native matrix bodies have been written but
+1. Complete native B4 router and integration of the new target families. The
+   routed gate/up weights still use the existing operators over their local
+   channel rows; native compact-column down includes routed and block-32
+   shared-down work. The dense and MoE native bodies have been written but
    their instruction scheduling, assembly and execution are not yet verified.
    The target is not yet entitled to the 8.243 ms modeled B4 matrix service.
-2. Pair MoE gate/up row shards with compact down-column shards; eliminate the
-   exchanged expert intermediate. Current unique placement still uses the
-   older row-sharded MoE intermediate exchange. Implement the ten 64-channel
-   blocks and count capacity/imbalance, including the fenced die.
+2. Generate the new paired cache and account for its actual capacity alongside
+   target state, DFlash and existing allocations. The row/column layout and
+   local-intermediate path are written but no cache was generated or loaded.
+   The old unique mode remains separately identified and still uses its old
+   exchanged expert intermediate. The new paired mode has a separate ABI.
 3. Board-pair tiled payload transport and MoE reduce/scatter. Aggregating flags
    is not the guide's hierarchical payload implementation. Current physical
    placement remains 0,1,6,3,4,5; it is not automatically the proposed board-pair
-   topology. Preserve unrelated allocations and the existing memory fence.
+   topology. New paired-cache catalogs nominate 0,1,2,3,4,5, but loading must
+   match the actual board topology and capacity. Preserve unrelated allocations
+   and the existing memory fence.
 4. Fold target-feature capture into suitable residual producers and complete
    native B4 convolution work. Separate feature capture currently interrupts
    five write/read fusions. Ring-bank copying is extra state traffic, although

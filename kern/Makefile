@@ -452,7 +452,7 @@ die: die.cubin die_test
 hold: hold.c hold_selection.h prog.c prog.h dieops.h balance/layout.h balance/embedding.h balance/program.h ../ref/quant.c ../ref/gguf.c ../ref/quant.h ../ref/gguf.h ../ref/split.c ../ref/split.h
 	$(CC) -std=gnu99 -O2 -Wall -o $@ hold.c prog.c ../ref/quant.c ../ref/gguf.c ../ref/split.c -I../ref -I$(CUDA)/include -lcuda -lm
 
-native_weights: balance/native_weights.c hold_selection.h holdc.c hold.h prog.c prog.h balance/layout.h balance/embedding.h unique/layout.h ../ref/split.c ../ref/split.h ../ref/quant.c ../ref/gguf.c
+native_weights: balance/native_weights.c hold_selection.h holdc.c hold.h prog.c prog.h balance/layout.h balance/embedding.h unique/layout.h unique/columns.h ../ref/split.c ../ref/split.h ../ref/quant.c ../ref/gguf.c
 	$(CC) -std=gnu99 -O2 -Wall -o $@ balance/native_weights.c holdc.c prog.c ../ref/split.c ../ref/quant.c ../ref/gguf.c -I. -I../ref -I$(CUDA)/include -lcuda -lm
 
 # ---- DeltaNet readout norm + gate ----
