@@ -16,7 +16,7 @@ struct dflash_resident {
     dflash_target_binding target[6];
     unsigned rank,context;
     CUmodule module[6];CUfunction fn[6][NFUNCTIONS];CUstream stream[6];
-    CUmodule q4k_module;CUfunction q4k;   /* optional PTX four-row Q4_K matrix */
+    CUmodule q4k_module;CUfunction q4k,q6k;   /* optional PTX four-row Q4_K/Q6_K matrices */
     CUmodule head_module[6];CUfunction q5t[6];   /* same PTX module: three-position head */
     CUevent hidden_ready,head_ready[6];
     CUgraph backbone_graph,append_graph,head_graph[6],select_graph;
@@ -51,21 +51,22 @@ static int matrix_reference(dflash_resident *r,const gguf_tensor *t,CUdeviceptr 
 }
 /* Each 256-thread CTA covers 32 rows: eight warps of four rows. */
 static int matrix(dflash_resident *r,const gguf_tensor *t,CUdeviceptr input,CUdeviceptr output,char *err,size_t nerr) {
-    if(!r->q4k || t->type!=DFLASH_Q4_K || t->dims[0]%256)return matrix_reference(r,t,input,output,err,nerr);
+    CUfunction f=t->type==DFLASH_Q4_K?r->q4k:t->type==DFLASH_Q6_K?r->q6k:NULL;
+    if(!f || t->dims[0]%256)return matrix_reference(r,t,input,output,err,nerr);
     CUdeviceptr w=weight(r,t);unsigned rows=(unsigned)t->dims[1],k=(unsigned)t->dims[0];
     unsigned stride=(unsigned)(dflash_tensor_bytes(t)/rows);
     void *args[]={&w,&input,&output,&rows,&k,&stride};
-    TRY(cuLaunchKernel(r->q4k,(rows+31)/32,1,1,256,1,1,0,r->stream[r->rank],args,NULL));return 0;
+    TRY(cuLaunchKernel(f,(rows+31)/32,1,1,256,1,1,0,r->stream[r->rank],args,NULL));return 0;
 }
 /* FLASH_DFLASH_MATRIX_CHECK=1: compare both kernels on one input per Q4_K
  * matrix of layer 0 before capturing graphs. Diagnostic only. */
 static int matrix_check(dflash_resident *r,char *err,size_t nerr) {
     if(!r->q4k || !getenv("FLASH_DFLASH_MATRIX_CHECK") || !atoi(getenv("FLASH_DFLASH_MATRIX_CHECK")))return 0;
     dflash_layer_weights *w=r->model.layer;
-    const gguf_tensor *list[]={w->q,w->k,w->gate,w->down,w->attention_output,w->attn_conv_projection};
+    const gguf_tensor *list[]={w->q,w->k,w->gate,w->down,w->attention_output,w->attn_conv_projection,w[2].v,w[2].down};
     TRY(cuCtxSetCurrent(r->target[r->rank].context));
     for(unsigned i=0;i<sizeof list/sizeof *list;i++) {
-        const gguf_tensor *t=list[i];if(t->type!=DFLASH_Q4_K)continue;
+        const gguf_tensor *t=list[i];if(t->type!=DFLASH_Q4_K && t->type!=DFLASH_Q6_K)continue;
         unsigned rows=(unsigned)t->dims[1],k=(unsigned)t->dims[0];
         float *x=malloc((size_t)4*k*4),*a=malloc((size_t)4*rows*4),*b=malloc((size_t)4*rows*4);
         if(!x||!a||!b){free(x);free(a);free(b);snprintf(err,nerr,"DFlash2 check allocation");return -1;}
@@ -253,7 +254,7 @@ static int initialize(dflash_resident *r,const char *model,const char *module,ch
     const char *q4k=getenv("FLASH_DFLASH_Q4K_CUBIN");
     if(q4k && *q4k) {
         TRY(cuCtxSetCurrent(r->target[rank].context));
-        TRY(cuModuleLoad(&r->q4k_module,q4k));TRY(cuModuleGetFunction(&r->q4k,r->q4k_module,"df4_q4k_matrix"));
+        TRY(cuModuleLoad(&r->q4k_module,q4k));TRY(cuModuleGetFunction(&r->q4k,r->q4k_module,"df4_q4k_matrix"));TRY(cuModuleGetFunction(&r->q6k,r->q4k_module,"df4_q6k_matrix"));
         for(unsigned d=0;d<6;d++) {
             TRY(cuCtxSetCurrent(r->target[d].context));
             TRY(cuModuleLoad(&r->head_module[d],q4k));TRY(cuModuleGetFunction(&r->q5t[d],r->head_module[d],"df3_q5t_matrix"));

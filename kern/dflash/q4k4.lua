@@ -193,4 +193,84 @@ end
 e('QDONE:')
 e('  ret;')
 e('}')
+
+-- Four-position ggml Q6_K (210-byte blocks: ql[128], qh[64], int8 scales[16],
+-- f16 d). Lane l covers element 128n+32part+l for n in 0..1, part in 0..3.
+e('')
+e('.visible .entry df4_q6k_matrix(.param .u64 pw,.param .u64 px,.param .u64 py,')
+e('    .param .u32 prows,.param .u32 pk,.param .u32 pstride)')
+e('{')
+e('  .reg .pred %valid<4>,%more,%lead;')
+e('  .reg .b16 %hd;')
+e('  .reg .b32 %rtid,%lane,%rwarp,%rcta,%rows,%k,%stride,%r0,%blocks,%b,%hsel;')
+e('  .reg .b32 %t<8>,%lo<4>,%qh<2>,%sw<4>,%code;')
+e('  .reg .b64 %w,%x,%y,%rowp<4>,%xa,%addr,%off,%blk;')
+e('  .reg .f32 %d,%wv,%dd;')
+for p=0,3 do e(string.format('  .reg .f32 %%xv%d_<8>;',p))end
+for r=0,3 do e(string.format('  .reg .f32 %%acc%d_<4>;',r))end
+e('  ld.param.u64 %w,[pw];ld.param.u64 %x,[px];ld.param.u64 %y,[py];')
+e('  ld.param.u32 %rows,[prows];ld.param.u32 %k,[pk];ld.param.u32 %stride,[pstride];')
+e('  cvta.to.global.u64 %w,%w;cvta.to.global.u64 %x,%x;cvta.to.global.u64 %y,%y;')
+e('  mov.u32 %rtid,%tid.x;and.b32 %lane,%rtid,31;shr.u32 %rwarp,%rtid,5;mov.u32 %rcta,%ctaid.x;')
+e('  shl.b32 %r0,%rcta,3;add.u32 %r0,%r0,%rwarp;shl.b32 %r0,%r0,2;')
+e('  setp.ge.u32 %more,%r0,%rows;@%more bra SDONE;')
+for r=0,3 do
+ e(string.format('  add.u32 %%t0,%%r0,%d;setp.lt.u32 %%valid%d,%%t0,%%rows;',r,r))
+ e(string.format('  @%%valid%d mul.wide.u32 %%off,%%t0,%%stride;@!%%valid%d mul.wide.u32 %%off,%%r0,%%stride;',r,r))
+ e(string.format('  add.u64 %%rowp%d,%%w,%%off;',r))
+ for p=0,3 do e(string.format('  mov.f32 %%acc%d_%d,0f00000000;',r,p))end
+end
+e('  shr.u32 %hsel,%lane,4;shl.b32 %hsel,%hsel,3;')   -- bit offset of scale byte (l>>4) within a pair
+e('  shr.u32 %blocks,%k,8;mov.u32 %b,0;')
+e('SLOOP:')
+e('  shl.b32 %t0,%b,8;add.u32 %t0,%t0,%lane;')
+for p=0,3 do
+ e(string.format('  mad.lo.u32 %%t1,%%k,%d,%%t0;mul.wide.u32 %%off,%%t1,4;add.u64 %%xa,%%x,%%off;',p))
+ for s=0,7 do  -- s = 4n + part -> column 128n+32part
+  local n,part=s//4,s%4
+  e(string.format('  ld.global.nc.f32 %%xv%d_%d,[%%xa+%d];',p,s,4*(128*n+32*part)))
+ end
+end
+e('  mul.lo.u32 %t2,%b,210;cvt.u64.u32 %blk,%t2;')
+for r=0,3 do
+ e(string.format('  @!%%valid%d bra SSKIP%d;',r,r))
+ e(string.format('  add.u64 %%addr,%%rowp%d,%%blk;',r))
+ e('  cvt.u64.u32 %off,%lane;add.u64 %xa,%addr,%off;')
+ for n=0,1 do
+  e(string.format('  ld.global.nc.u8 %%lo%d,[%%xa+%d];ld.global.nc.u8 %%lo%d,[%%xa+%d];ld.global.nc.u8 %%qh%d,[%%xa+%d];',2*n,64*n,2*n+1,64*n+32,n,128+32*n))
+ end
+ -- scales[16] at 192 and d at 208 are not 4-byte aligned in a 210-byte block.
+ for i=0,15 do if i%4==0 then e(string.format('  mov.u32 %%sw%d,0;',i//4))end end
+ for i=0,15 do
+  e(string.format('  ld.global.nc.u8 %%t3,[%%addr+%d];shl.b32 %%t3,%%t3,%d;or.b32 %%sw%d,%%sw%d,%%t3;',192+i,8*(i%4),i//4,i//4))
+ end
+ e('  ld.global.nc.u16 %hd,[%addr+208];cvt.f32.f16 %d,%hd;')
+ for s=0,7 do
+  local n,part=s//4,s%4
+  local lo=string.format('%%lo%d',2*n+(part%2))
+  e(string.format('  bfe.u32 %%code,%s,%d,4;bfe.u32 %%t4,%%qh%d,%d,2;shl.b32 %%t4,%%t4,4;or.b32 %%code,%%code,%%t4;add.s32 %%code,%%code,-32;',lo,part>=2 and 4 or 0,n,2*part))
+  -- scale index 8n+2part+(l>>4): word (8n+2part)/4, byte ((2part)%4)+(l>>4)
+  local word=(8*n+2*part)//4;local base=8*((2*part)%4)
+  e(string.format('  add.u32 %%t5,%%hsel,%d;bfe.s32 %%t6,%%sw%d,%%t5,8;mul.lo.s32 %%t6,%%t6,%%code;cvt.rn.f32.s32 %%wv,%%t6;mul.f32 %%wv,%%wv,%%d;',base,word))
+  for p=0,3 do e(string.format('  fma.rn.f32 %%acc%d_%d,%%wv,%%xv%d_%d,%%acc%d_%d;',r,p,p,s,r,p))end
+ end
+ e(string.format('SSKIP%d:',r))
+end
+e('  add.u32 %b,%b,1;setp.lt.u32 %more,%b,%blocks;@%more bra SLOOP;')
+for r=0,3 do for p=0,3 do
+ for _,delta in ipairs({16,8,4,2,1})do
+  e(string.format('  shfl.sync.down.b32 %%dd,%%acc%d_%d,%d,31,0xffffffff;add.f32 %%acc%d_%d,%%acc%d_%d,%%dd;',r,p,delta,r,p,r,p))
+ end
+end end
+e('  setp.eq.u32 %lead,%lane,0;@!%lead bra SDONE;')
+for r=0,3 do
+ e(string.format('  @!%%valid%d bra SSTORED%d;',r,r))
+ for p=0,3 do
+  e(string.format('  add.u32 %%t0,%%r0,%d;mad.lo.u32 %%t0,%%rows,%d,%%t0;mul.wide.u32 %%off,%%t0,4;add.u64 %%addr,%%y,%%off;st.global.f32 [%%addr],%%acc%d_%d;',r,p,r,p))
+ end
+ e(string.format('SSTORED%d:',r))
+end
+e('SDONE:')
+e('  ret;')
+e('}')
 local f=assert(io.open(out,'w'));f:write(table.concat(o,'\n')..'\n');f:close()
