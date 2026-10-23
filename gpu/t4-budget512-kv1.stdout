@@ -1,0 +1,17 @@
+attention mode: qsa (production INT8 QSA; instruction-order twin)
+FLASH_NBLK=512 FLASH_KV_HOST=1; cache positions=128 compact positions=4128
+PLE table /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf mapped for the twin; 4 prompt positions x 16 rows staged for the GPU
+production embedding owner: die 0
+6 die(s), blocks [0, 48), embed, head, 4 tokens (4 prompt)
+  die 0 asserted QSA opcodes and FLASH_NBLK=512 for 0 layer(s)
+  die 1 asserted QSA opcodes and FLASH_NBLK=512 for 4 layer(s)
+  die 2 asserted QSA opcodes and FLASH_NBLK=512 for 0 layer(s)
+  die 3 asserted QSA opcodes and FLASH_NBLK=512 for 0 layer(s)
+  die 4 asserted QSA opcodes and FLASH_NBLK=512 for 4 layer(s)
+  die 5 asserted QSA opcodes and FLASH_NBLK=512 for 4 layer(s)
+token   0: id     10 ->     18 1202 phases; twin 0.00 s, dies 27.979 ms
+token   1: id     11 ->    220 1202 phases; twin 0.00 s, dies 27.959 ms
+token   2: id     12 ->    198 1202 phases; twin 0.00 s, dies 27.945 ms
+captured 4 teacher-forced GPU logit rows; checkpoint/reference provenance still required
+token   3: id     13 ->    271 1202 phases; twin 0.00 s, dies 28.097 ms
+OK: 4 of 4 tokens run; mean 27.995 ms per token
