@@ -7,9 +7,8 @@ assigned-work bound. Physical GPUs2 and7 remain reserved for Nate.
 
 Latest measured candidate: **v97,25.146432488 TPS**, with492 phases/token.
 All128 short-context reference outputs and all288 retained state hashes match.
-The last candidate with the long-context fixture completed is v91,
-24.793978201 TPS. These are individual measurements, not a controlled estimate
-of the small difference between them.
+The4096-token long-context fixture also passes. These are individual
+measurements, not a controlled estimate of the small differences between them.
 
 Priority scores for this work: throughput1.0, fidelity1.0, retaining the
 established work/phase requirements1.0, engineering time0.8, cost0.8.
@@ -186,6 +185,14 @@ the prefetched row is available, and uses the native six-cycle schedule for
 new integer address instructions. Predicate and XMAD spacing remain conservative.
 Its [work table](work-v97.tsv) and [summary](work-v97-summary.txt) retain all
 7,332 passing component comparisons and maximum pairwise ratio1.076923077.
+
+v97 long-context job `c25ae752-3978-40be-b133-507608cf78d7` completed all4097
+causal positions after a4096-token prompt, producing760 and1156 as in the
+existing v80 fixture. The complete head audit and retained-program audit
+pass. Total request run time is167954.8ms. This checks longer-sequence behavior
+of the asynchronous prefetch; two generated tokens do not establish decode
+throughput. See the [long work table](work-v97-long.tsv) and
+[summary](work-v97-long-summary.txt).
 
 ## Other retained experiments
 

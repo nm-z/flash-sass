@@ -10,8 +10,8 @@ The production build now includes routed-expert weight prefetch. v96 measured
 expert and tightens integer-address scheduling, measuring25.146432488TPS.
 Both match128 reference outputs and all288 retained state hashes. Both keep
 492 phases, with maximum pairwise assigned-work ratio1.076923077. The v97
-4096-token fixture is being checked separately; its two output tokens are
-not a decode-throughput benchmark.
+4096-token fixture also passes with both output tokens matching the retained
+baseline; its two output tokens are not a decode-throughput benchmark.
 
 Objective weights remain throughput1.0, fidelity1.0, phase/work constraints1.0,
 engineering time0.8 and cost0.8. The lower-effort approach tightens and overlaps
