@@ -1,0 +1,126 @@
+1		R16/R17	LDG.E.CG.128 grcache_tmp0, [grcache_src]
+2		R18/R19	STG.E.128 [grcache_dst], grcache_sum0
+3		R206/R207	LDG.E.CG grreadsum_ij, [grreadsum_ib]
+4	@P4	R200/R201	@P4 LDG.E.CG.128 grreadsum_act00, [grreadsum_sp+0x0]
+5	@P4	R200/R201	@P4 LDG.E.CG.128 grreadsum_act04, [grreadsum_sp+0x200]
+6	@P4	R200/R201	@P4 LDG.E.CG.128 grreadsum_act08, [grreadsum_sp+0x400]
+7	@P4	R200/R201	@P4 LDG.E.CG.128 grreadsum_act12, [grreadsum_sp+0x600]
+8	@P4	R200/R201	@P4 LDG.E.CG.128 grreadsum_act16, [grreadsum_sp+0x800]
+9	@P4	R200/R201	@P4 LDG.E.CG.128 grreadsum_act20, [grreadsum_sp+0xa00]
+10	@P4	R200/R201	@P4 LDG.E.CG.128 grreadsum_act24, [grreadsum_sp+0xc00]
+11	@P4	R200/R201	@P4 LDG.E.CG.128 grreadsum_act28, [grreadsum_sp+0xe00]
+12	@P4	R200/R201	@P4 LDG.E.CG.128 grreadsum_act32, [grreadsum_sp+0x1000]
+13	@P4	R200/R201	@P4 LDG.E.CG.128 grreadsum_act36, [grreadsum_sp+0x1200]
+14	@P4	R208/R209	@P4 LDG.E.CG.128 grreadsum_act40, [grreadsum_yb+0x0]
+15	@P4	R208/R209	@P4 LDG.E.CG.128 grreadsum_act44, [grreadsum_yb+0x200]
+16	@P4	R208/R209	@P4 LDG.E.CG.128 grreadsum_act48, [grreadsum_yb+0x400]
+17	@P4	R208/R209	@P4 LDG.E.CG.128 grreadsum_act52, [grreadsum_yb+0x600]
+18	@P4	R208/R209	@P4 LDG.E.CG.128 grreadsum_act56, [grreadsum_yb+0x800]
+19	@P4	R208/R209	@P4 LDG.E.CG.128 grreadsum_act60, [grreadsum_yb+0xa00]
+20	@P4	R208/R209	@P4 LDG.E.CG.128 grreadsum_act64, [grreadsum_yb+0xc00]
+21	@P4	R208/R209	@P4 LDG.E.CG.128 grreadsum_act68, [grreadsum_yb+0xe00]
+22	@P4	R208/R209	@P4 LDG.E.CG.128 grreadsum_act72, [grreadsum_yb+0x1000]
+23	@P4	R208/R209	@P4 LDG.E.CG.128 grreadsum_act76, [grreadsum_yb+0x1200]
+24	@P4	R200/R201	@P4 LDG.E.CG.128 grreadsum_act00, [grreadsum_sp+0x1400]
+25	@P4	R200/R201	@P4 LDG.E.CG.128 grreadsum_act04, [grreadsum_sp+0x1600]
+26	@P4	R200/R201	@P4 LDG.E.CG.128 grreadsum_act08, [grreadsum_sp+0x1800]
+27	@P4	R200/R201	@P4 LDG.E.CG.128 grreadsum_act12, [grreadsum_sp+0x1a00]
+28	@P4	R200/R201	@P4 LDG.E.CG.128 grreadsum_act16, [grreadsum_sp+0x1c00]
+29	@P4	R200/R201	@P4 LDG.E.CG.128 grreadsum_act20, [grreadsum_sp+0x1e00]
+30	@P4	R200/R201	@P4 LDG.E.CG.128 grreadsum_act24, [grreadsum_sp+0x2000]
+31	@P4	R200/R201	@P4 LDG.E.CG.128 grreadsum_act28, [grreadsum_sp+0x2200]
+32	@P4	R200/R201	@P4 LDG.E.CG.128 grreadsum_act32, [grreadsum_sp+0x2400]
+33	@P4	R200/R201	@P4 LDG.E.CG.128 grreadsum_act36, [grreadsum_sp+0x2600]
+34	@P4	R208/R209	@P4 LDG.E.CG.128 grreadsum_act40, [grreadsum_yb+0x1400]
+35	@P4	R208/R209	@P4 LDG.E.CG.128 grreadsum_act44, [grreadsum_yb+0x1600]
+36	@P4	R208/R209	@P4 LDG.E.CG.128 grreadsum_act48, [grreadsum_yb+0x1800]
+37	@P4	R208/R209	@P4 LDG.E.CG.128 grreadsum_act52, [grreadsum_yb+0x1a00]
+38	@P4	R208/R209	@P4 LDG.E.CG.128 grreadsum_act56, [grreadsum_yb+0x1c00]
+39	@P4	R208/R209	@P4 LDG.E.CG.128 grreadsum_act60, [grreadsum_yb+0x1e00]
+40	@P4	R208/R209	@P4 LDG.E.CG.128 grreadsum_act64, [grreadsum_yb+0x2000]
+41	@P4	R208/R209	@P4 LDG.E.CG.128 grreadsum_act68, [grreadsum_yb+0x2200]
+42	@P4	R208/R209	@P4 LDG.E.CG.128 grreadsum_act72, [grreadsum_yb+0x2400]
+43	@P4	R208/R209	@P4 LDG.E.CG.128 grreadsum_act76, [grreadsum_yb+0x2600]
+44		R200/R201	LDG.E.CG.128 grreadsum_act00, [grreadsum_sp+0x0]
+45		R200/R201	LDG.E.CG.128 grreadsum_act04, [grreadsum_sp+0x10]
+46		R200/R201	LDG.E.CG.128 grreadsum_act08, [grreadsum_sp+0x20]
+47		R200/R201	LDG.E.CG.128 grreadsum_act12, [grreadsum_sp+0x30]
+48		R200/R201	LDG.E.CG.128 grreadsum_act16, [grreadsum_sp+0x40]
+49		R200/R201	LDG.E.CG.128 grreadsum_act20, [grreadsum_sp+0x50]
+50		R200/R201	LDG.E.CG.128 grreadsum_act24, [grreadsum_sp+0x60]
+51		R200/R201	LDG.E.CG.128 grreadsum_act28, [grreadsum_sp+0x70]
+52		R200/R201	LDG.E.CG.128 grreadsum_act32, [grreadsum_sp+0x80]
+53		R200/R201	LDG.E.CG.128 grreadsum_act36, [grreadsum_sp+0x90]
+54		R206/R207	LDG.E.CG grreadsum_ij, [grreadsum_ib]
+55		R208/R209	LDG.E.CG.128 grreadsum_act40, [grreadsum_yb+0x0]
+56		R208/R209	LDG.E.CG.128 grreadsum_act44, [grreadsum_yb+0x10]
+57		R208/R209	LDG.E.CG.128 grreadsum_act48, [grreadsum_yb+0x20]
+58		R208/R209	LDG.E.CG.128 grreadsum_act52, [grreadsum_yb+0x30]
+59		R208/R209	LDG.E.CG.128 grreadsum_act56, [grreadsum_yb+0x40]
+60		R208/R209	LDG.E.CG.128 grreadsum_act60, [grreadsum_yb+0x50]
+61		R208/R209	LDG.E.CG.128 grreadsum_act64, [grreadsum_yb+0x60]
+62		R208/R209	LDG.E.CG.128 grreadsum_act68, [grreadsum_yb+0x70]
+63		R208/R209	LDG.E.CG.128 grreadsum_act72, [grreadsum_yb+0x80]
+64		R208/R209	LDG.E.CG.128 grreadsum_act76, [grreadsum_yb+0x90]
+65	@P6	R210/R211	@P6 STG.E.128 [grreadsum_ob+0x0], grreadsum_act00
+66	@P6	R210/R211	@P6 STG.E.128 [grreadsum_ob+0x10], grreadsum_act04
+67	@P6	R210/R211	@P6 STG.E.128 [grreadsum_ob+0x20], grreadsum_act08
+68	@P6	R210/R211	@P6 STG.E.128 [grreadsum_ob+0x30], grreadsum_act12
+69	@P6	R210/R211	@P6 STG.E.128 [grreadsum_ob+0x40], grreadsum_act16
+70	@P6	R210/R211	@P6 STG.E.128 [grreadsum_ob+0x50], grreadsum_act20
+71	@P6	R210/R211	@P6 STG.E.128 [grreadsum_ob+0x60], grreadsum_act24
+72	@P6	R210/R211	@P6 STG.E.128 [grreadsum_ob+0x70], grreadsum_act28
+73	@P6	R210/R211	@P6 STG.E.128 [grreadsum_ob+0x80], grreadsum_act32
+74	@P6	R210/R211	@P6 STG.E.128 [grreadsum_ob+0x90], grreadsum_act36
+75		R202/R203	LDG.E.CI.128 grreadsum_act40, [grreadsum_np+0x0]
+76		R202/R203	LDG.E.CI.128 grreadsum_act44, [grreadsum_np+0x10]
+77		R202/R203	LDG.E.CI.128 grreadsum_act48, [grreadsum_np+0x20]
+78		R202/R203	LDG.E.CI.128 grreadsum_act52, [grreadsum_np+0x30]
+79		R202/R203	LDG.E.CI.128 grreadsum_act56, [grreadsum_np+0x40]
+80		R202/R203	LDG.E.CI.128 grreadsum_act60, [grreadsum_np+0x50]
+81		R202/R203	LDG.E.CI.128 grreadsum_act64, [grreadsum_np+0x60]
+82		R202/R203	LDG.E.CI.128 grreadsum_act68, [grreadsum_np+0x70]
+83		R202/R203	LDG.E.CI.128 grreadsum_act72, [grreadsum_np+0x80]
+84		R202/R203	LDG.E.CI.128 grreadsum_act76, [grreadsum_np+0x90]
+85	@P6	R204/R205	@P6 STG.E.128 [grreadsum_hp+0x0], grreadsum_act00
+86	@P6	R204/R205	@P6 STG.E.128 [grreadsum_hp+0x10], grreadsum_act04
+87	@P6	R204/R205	@P6 STG.E.128 [grreadsum_hp+0x20], grreadsum_act08
+88	@P6	R204/R205	@P6 STG.E.128 [grreadsum_hp+0x30], grreadsum_act12
+89	@P6	R204/R205	@P6 STG.E.128 [grreadsum_hp+0x40], grreadsum_act16
+90	@P6	R204/R205	@P6 STG.E.128 [grreadsum_hp+0x50], grreadsum_act20
+91	@P6	R204/R205	@P6 STG.E.128 [grreadsum_hp+0x60], grreadsum_act24
+92	@P6	R204/R205	@P6 STG.E.128 [grreadsum_hp+0x70], grreadsum_act28
+93	@P6	R204/R205	@P6 STG.E.128 [grreadsum_hp+0x80], grreadsum_act32
+94	@P6	R204/R205	@P6 STG.E.128 [grreadsum_hp+0x90], grreadsum_act36
+95		R152/R153	LDG.E.CG.64 grreadsum_dq00, [grreadsum_yp+0x0]
+96		R152/R153	LDG.E.CG.64 grreadsum_dq02, [grreadsum_yp+0x8]
+97		R152/R153	LDG.E.CG.64 grreadsum_dq04, [grreadsum_yp+0x10]
+98		R152/R153	LDG.E.CG.64 grreadsum_dq06, [grreadsum_yp+0x18]
+99		R152/R153	LDG.E.CG.64 grreadsum_dq08, [grreadsum_yp+0x20]
+100		R152/R153	LDG.E.CG.64 grreadsum_dq10, [grreadsum_yp+0x28]
+101	@P3	R150/R151	@P3 LDG.E.CI.128 grreadsum_w00, [grreadsum_wp+0x0]
+102	@P3	R150/R151	@P3 LDG.E.CI.128 grreadsum_w04, [grreadsum_wp+0x200]
+103	@P3	R150/R151	@P3 LDG.E.CI.128 grreadsum_w08, [grreadsum_wp+0x400]
+104	@P3	R150/R151	@P3 LDG.E.CI.128 grreadsum_w12, [grreadsum_wp+0x600]
+105	@P3	R150/R151	@P3 LDG.E.CI.128 grreadsum_w16, [grreadsum_wp+0x800]
+106	@P3	R150/R151	@P3 LDG.E.CI.128 grreadsum_w20, [grreadsum_wp+0xa00]
+107	@P3	R150/R151	@P3 LDG.E.CI.128 grreadsum_w24, [grreadsum_wp+0xc00]
+108	@P3	R150/R151	@P3 LDG.E.CI.128 grreadsum_w28, [grreadsum_wp+0xe00]
+109	@P3	R150/R151	@P3 LDG.E.CI.128 grreadsum_w32, [grreadsum_wp+0x1000]
+110	@P3	R150/R151	@P3 LDG.E.CI.128 grreadsum_w36, [grreadsum_wp+0x1200]
+111	@P4	R150/R151	@P4 LDG.E.CI.128 grreadsum_w00, [grreadsum_wp+0x1400]
+112	@P4	R150/R151	@P4 LDG.E.CI.128 grreadsum_w04, [grreadsum_wp+0x1600]
+113	@P4	R150/R151	@P4 LDG.E.CI.128 grreadsum_w08, [grreadsum_wp+0x1800]
+114	@P4	R150/R151	@P4 LDG.E.CI.128 grreadsum_w12, [grreadsum_wp+0x1a00]
+115	@P4	R150/R151	@P4 LDG.E.CI.128 grreadsum_w16, [grreadsum_wp+0x1c00]
+116	@P4	R150/R151	@P4 LDG.E.CI.128 grreadsum_w20, [grreadsum_wp+0x1e00]
+117	@P4	R150/R151	@P4 LDG.E.CI.128 grreadsum_w24, [grreadsum_wp+0x2000]
+118	@P4	R150/R151	@P4 LDG.E.CI.128 grreadsum_w28, [grreadsum_wp+0x2200]
+119	@P4	R150/R151	@P4 LDG.E.CI.128 grreadsum_w32, [grreadsum_wp+0x2400]
+120	@P4	R150/R151	@P4 LDG.E.CI.128 grreadsum_w36, [grreadsum_wp+0x2600]
+121	@P5	R158/R159	@P5 STG.E.WT [grreadsum_dq00], grreadsum_ysum
+122	@P5	R160/R161	@P5 STG.E.WT [grreadsum_dq02], grreadsum_ysum
+123	@P5	R162/R163	@P5 STG.E.WT [grreadsum_dq04], grreadsum_ysum
+124	@P5	R164/R165	@P5 STG.E.WT [grreadsum_dq06], grreadsum_ysum
+125	@P5	R166/R167	@P5 STG.E.WT [grreadsum_dq08], grreadsum_ysum
+126	@P5	R168/R169	@P5 STG.E.WT [grreadsum_dq10], grreadsum_ysum
