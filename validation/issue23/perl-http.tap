@@ -1,0 +1,56 @@
+ok 1 - success HTTP server completed
+ok 2 - success exit
+ok 3 - success retains HTTP artifacts
+ok 4 - success correct response
+ok 5 - prompt count
+ok 6 - interval duration
+ok 7 - wrong HTTP server completed
+ok 8 - wrong exit
+ok 9 - wrong retains HTTP artifacts
+ok 10 - wrong answer fails
+ok 11 - wrong answer never passes
+ok 12 - missing-answer HTTP server completed
+ok 13 - missing-answer exit
+ok 14 - missing-answer retains HTTP artifacts
+ok 15 - api-error HTTP server completed
+ok 16 - api-error exit
+ok 17 - api-error retains HTTP artifacts
+ok 18 - missing-timings HTTP server completed
+ok 19 - missing-timings exit
+ok 20 - missing-timings retains HTTP artifacts
+ok 21 - bad-rate HTTP server completed
+ok 22 - bad-rate exit
+ok 23 - bad-rate retains HTTP artifacts
+ok 24 - malformed HTTP server completed
+ok 25 - malformed exit
+ok 26 - malformed retains HTTP artifacts
+ok 27 - http-error HTTP server completed
+ok 28 - http-error exit
+ok 29 - http-error retains HTTP artifacts
+ok 30 - single-null HTTP server completed
+ok 31 - single-null exit
+ok 32 - single-null retains HTTP artifacts
+ok 33 - single-null correct response
+ok 34 - single-zero HTTP server completed
+ok 35 - single-zero exit
+ok 36 - single-zero retains HTTP artifacts
+ok 37 - single-zero correct response
+ok 38 - no-output HTTP server completed
+ok 39 - no-output exit
+ok 40 - no-output retains HTTP artifacts
+ok 41 - all-unknown HTTP server completed
+ok 42 - all-unknown exit
+ok 43 - all-unknown retains HTTP artifacts
+ok 44 - canonical-success HTTP server completed
+ok 45 - canonical-success exit
+ok 46 - canonical-success retains HTTP artifacts
+ok 47 - canonical-success correct response
+ok 48 - canonical-unknown HTTP server completed
+ok 49 - canonical-unknown exit
+ok 50 - canonical-unknown retains HTTP artifacts
+ok 51 - canonical-aborted HTTP server completed
+ok 52 - canonical-aborted exit
+ok 53 - canonical-aborted retains HTTP artifacts
+ok 54 - transport exit
+ok 55 - transport diagnostic
+1..55
