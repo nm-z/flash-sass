@@ -2,6 +2,7 @@
 #define FLASH_BALANCE_BATCH_H
 #include "../prog.h"
 #define OP_BALANCED_BATCH 108u
+#define OP_BALANCED_HCUP5 109u
 #define BALANCED_BATCH_MAX 5u
 typedef struct {
     unsigned positions;
@@ -10,6 +11,7 @@ typedef struct {
     unsigned inner_grid_joins;
     unsigned publications;
     unsigned peer_acquires;
+    unsigned native_hcup_phases;
 } balance_batch_work;
 /* Every input is a complete, already-fused balanced position program. The
  * wrapper preserves complete physical-phase bundles, including their child

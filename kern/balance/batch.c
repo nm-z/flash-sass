@@ -24,6 +24,9 @@ int prog_balance_batch(prog_t *out,const prog_t *const *positions,
     balance_batch_work stats={.positions=count};
     const char *strict_env=getenv("FLASH_BALANCED_BATCH_STRICT");
     int strict=strict_env && atoi(strict_env)!=0;
+    const char *hcup_env=getenv("FLASH_BALANCED_HCUP5");
+    int hcup5=hcup_env && atoi(hcup_env)!=0 && count==5;
+    if(hcup5 && strict)return -1;
     for(int i=0;i<first->n;) {
         const phase_t *a=first->p+i;
         unsigned span=phase_descriptors(a);
@@ -33,6 +36,16 @@ int prog_balance_batch(prog_t *out,const prog_t *const *positions,
             const phase_t *x=a+j,*y=positions[p]->p+i+j;
             if(x->w[0]!=y->w[0] || x->w[1]!=y->w[1] ||
                x->w[30]!=y->w[30] || x->w[31]!=y->w[31])return -1;
+        }
+        if(hcup5 && a->w[0]==96u) {
+            if(span!=1 || a->w[1]!=16 || a->w[31] || !a->w[8] || a->w[8]>2048 || a->w[8]%128 ||
+               (a->w[20]!=320 && a->w[20]!=324))return -1;
+            for(unsigned p=0;p<count;p++) {
+                const phase_t *x=positions[p]->p+i;
+                if(x->w[2]!=a->w[2] || x->w[3]!=a->w[3] || x->w[8]!=a->w[8] ||
+                   x->w[12]!=a->w[12] || x->w[20]!=a->w[20])return -1;
+            }
+            stats.native_hcup_phases++;
         }
         stats.outer_phases++;
         stats.causal_phase_replays+=count;
@@ -53,6 +66,7 @@ int prog_balance_batch(prog_t *out,const prog_t *const *positions,
         unsigned span=phase_descriptors(a);
         phase_t *wrap=image+at++;memset(wrap,0,sizeof *wrap);
         wrap->w[0]=OP_BALANCED_BATCH;wrap->w[1]=16;
+        if(hcup5 && a->w[0]==96u)wrap->w[0]=OP_BALANCED_HCUP5;
         wrap->w[2]=count;wrap->w[3]=span;wrap->w[4]=a->w[0];
         wrap->w[5]=strict || a->w[0]==OP_BALANCED_SELECT;
         wrap->w[30]=(a->w[30]&~(PHASE_GROUP_FLAG|PHASE_FUSED_FLAG|

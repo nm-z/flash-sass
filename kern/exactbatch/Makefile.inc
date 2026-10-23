@@ -120,9 +120,10 @@ die_balanced_split.cubin die_balanced_lut.cubin die_balanced_stream.cubin die_ba
 
 # Balanced speculative target: whole production phases retain their internal
 # descriptor chains and composite bodies. Runtime enablement is separate.
-die_balanced_batch.sass: die_balanced.sass balance/batch_frame.lua
+die_balanced_batch.sass: die_balanced.sass balance/batch_frame.lua balance/hcup5.lua
 	$(LUA) balance/batch_frame.lua $< $@.raw
-	$(LUA) phase/predicate_latency.lua $@.raw $@ $@.predicate.csv
+	$(LUA) balance/hcup5.lua $@.raw $@.hcup5
+	$(LUA) phase/predicate_latency.lua $@.hcup5 $@ $@.predicate.csv
 die_balanced_batch.ptx: die_balanced.ptx balance/batch_marker.ptxinc
 	cat $^ > $@
 die_balanced_batch.cubin: die_balanced_batch.sass die_balanced_batch.ptx

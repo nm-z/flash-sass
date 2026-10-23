@@ -192,6 +192,7 @@ static unsigned attn_q_split_mode;
 static char cubin_path[512]; static uint64_t cubin_fnv;   /* identity of the loaded kernel image: FNV-1a 64 of the cubin file */
 static const char *profile_op_name(unsigned op) {
     if(row_balance && op==108u)return "balanced_batch";
+    if(row_balance && op==109u)return "balanced_hcup5";
     if(op<OP_COUNT)return die_opname[op];
     const char *names[]={"grwrite_read","dnnormq_x","hcupq_x","router_select","dnstep_normq","gdn_full","router_full","attnmergeq_x","qsa_select","qsa_score_select","qsa_part_merge","plegate_norm","ple_rowsq","qsa_full_bal"};
     return op>=94 && op<108?names[op-94]:"extended";
@@ -1649,7 +1650,11 @@ int engine_init(core_t *c) {
 		CUfunction marker;
 		CK(cuCtxSetCurrent(ctx[d])); CK(cuModuleLoad(&exact_mod[d], exact_cubin_path));
 		CK(cuModuleGetFunction(&marker, exact_mod[d], "flash_exact_batch_abi_v1"));
-        if(balanced_speculation){check_fused_moe_module(exact_mod[d]);CK(cuModuleGetFunction(&marker,exact_mod[d],"flash_balance_batch_abi_v1"));}
+        if(balanced_speculation){
+            check_fused_moe_module(exact_mod[d]);CK(cuModuleGetFunction(&marker,exact_mod[d],"flash_balance_batch_abi_v1"));
+            if(getenv("FLASH_BALANCED_HCUP5") && atoi(getenv("FLASH_BALANCED_HCUP5")))
+                CK(cuModuleGetFunction(&marker,exact_mod[d],"flash_balance_hcup5_abi_v1"));
+        }
 		CK(cuModuleGetFunction(&exact_fn[d], exact_mod[d], "die"));
 	}
 #endif

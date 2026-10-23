@@ -5,6 +5,7 @@ static struct {
     unsigned blocks,drafted,accepted,rejected,recoveries,verified,replayed,committed;
     unsigned long long outer_phases,causal_replays,inner_joins,publications,acquires;
     unsigned long long snapshot_bytes,restore_bytes;
+    unsigned long long native_hcup_phases;
     double build_ms,draft_ms,decode_ms;
     unsigned verify_calls[6],replay_calls[6];
     double verify_ms[6],replay_ms[6];
@@ -78,6 +79,7 @@ static void balanced_execute(runctx *r,const prog_t *program,unsigned start,unsi
     bspec.causal_replays+=work->causal_phase_replays;
     bspec.inner_joins+=work->inner_grid_joins;
     bspec.publications+=work->publications;bspec.acquires+=work->peer_acquires;
+    bspec.native_hcup_phases+=work->native_hcup_phases;
     if(replay){bspec.replay_calls[width]++;bspec.replay_ms[width]+=(now()-begin)*1e3;}
     else {bspec.verify_calls[width]++;bspec.verify_ms[width]+=(now()-begin)*1e3;}
 }
@@ -175,6 +177,7 @@ static void balanced_spec_stats(FILE *out) {
         bspec.committed?(double)(bspec.outer_phases+bspec.inner_joins)/bspec.committed:0);
     for(unsigned w=1;w<=5;w++)fprintf(out," w%u_verify_calls=%u w%u_verify_ms=%.6f w%u_replay_calls=%u w%u_replay_ms=%.6f",
         w,bspec.verify_calls[w],w,bspec.verify_ms[w],w,bspec.replay_calls[w],w,bspec.replay_ms[w]);
+    fprintf(out," native_hcup5_phases=%llu",bspec.native_hcup_phases);
     fputc('\n',out);
     fflush(out);
 }
