@@ -1,0 +1,16 @@
+ok 1 - fragmented line retains NUL
+ok 2 - coalesced second line
+ok 3 - unterminated final line at EOF
+ok 4 - EOF exhausted
+ok 5 - fragment server completed
+ok 6 - partial line times out
+ok 7 - read deadline is bounded
+ok 8 - partial buffer survives timeout
+ok 9 - EOF after resumed line
+ok 10 - timeout server completed
+ok 11 - optional response cap enforced
+ok 12 - cap server completed
+ok 13 - blocked large write times out
+ok 14 - nonblocking write deadline is bounded
+ok 15 - write deadline server completed
+1..15
