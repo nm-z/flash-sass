@@ -26,6 +26,8 @@
 # a combine reads an accumulator >= 6 issues after its last XMAD.
 # Barriers: 1 = row loads, 2 = store reads and prologue loads, 3 = I2F, 4 = F2F,
 # 5 = SHFL, 6 = S2R.
+# Q3_ROW_PREFETCH=1 overlaps the next row's loads with the current row's
+# arithmetic. Default 0 retains the original instruction stream.
 #
 # Params: 0:0x140:8 W  1:0x148:8 X16  2:0x150:8 S32 (unused)  3:0x158:8 Y
 #         4:0x160:4 rows  5:0x164:4 xs  6:0x168:8 dbg
@@ -97,6 +99,8 @@
     my $lgR = int(log($R)/log(2) + 0.5);
     my $wrows = 32 / $L;
     my $bstep = 112 * $Q;                   # bytes between a lane's consecutive blocks
+    my $prefetch = $ENV{Q3_ROW_PREFETCH} // 0;
+    die "Q3_ROW_PREFETCH must be 0 or 1" unless $prefetch =~ /\A[01]\z/;
     my $mulc = sub {
         my ($d, $rr, $cst) = @_;
         my @bits = grep { $cst & (1 << $_) } 0..31;
@@ -160,11 +164,28 @@
         }
     }
 
-    $o .= "\nLOOP:\n";
+    # xp aliases cw00/cw01. Retire activation loads before weight loads
+    # overwrite those address registers; LDG may consume its address late.
+    $o .= "02:-:-:-:6      NOP;\n";
+    $o .= "\nLOOP:\n" unless $prefetch;
     $o .= "--:2:1:-:1      LDG.E.CI.128 dp0, [pp];\n";
     for my $i (0..$n-1) { $o .= sprintf "--:2:1:-:1      LDG.E.CI.64 cw%02d, [cp+0x%x];\n", 2*$i, $bstep*$i; }
     for my $i (0..$n-1) { $o .= sprintf "--:2:1:-:1      LDG.E.CI hw%d, [hp+0x%x];\n", $i, $bstep*$i; }
     for my $i (0..$n-1) { $o .= sprintf "--:2:1:-:%s      LDG.E.CI.U16 sw%d, [sp+0x%x];\n", $i == $n-1 ? '2' : '1', $i, $bstep*$i; }
+    if ($prefetch) {
+        # Initial weights are complete before their pointers move. During LOOP
+        # these four pointers name the following row; yp still names this row.
+        $o .= "03:-:-:-:6      NOP;\n";
+        for my $p (qw(pp cp hp sp)) {
+            $o .= sprintf "--:-:-:-:6      IADD %s0.CC, %s0, stepw;\n", $p, $p;
+            $o .= sprintf "--:-:-:-:6      IADD.X %s1, %s1, RZ;\n", $p, $p;
+        }
+        $o .= "\nLOOP:\n";
+        # P1 controls the warp-uniform loop. P3 additionally excludes invalid
+        # row groups in a partially populated final warp from future loads.
+        $o .= "--:-:-:-:6      IADD t, row, rowstep;\n";
+        $o .= "--:-:-:-:6      ISETP.LT.U32.AND P3, PT, t, param_rows, PT;\n";
+    }
     $o .= "--:-:-:-:1      ISETP.LT.U32.AND P2, PT, row, param_rows, P0;\n";
     $o .= "--:-:-:-:1      IADD rowpair, rowpair, rowstep;\n";
     $o .= "--:-:-:-:6      MOV accf, RZ;\n";
@@ -271,6 +292,18 @@
         $o .= "--:-:3:-:6      I2F.F32.S32 sumif, sumi;\n";
         $o .= "0c:-:-:-:6      FMUL u, dd, sumif;\n";
         $o .= sprintf "--:-:-:-:6      FFMA accf, as%d, u, accf;\n", $i;
+        if ($prefetch) {
+            # This block's codes/high bits/scales are dead. Reuse their registers
+            # for the following row while the remaining current blocks compute.
+            # Read barrier 2 guards every pointer until the row-end wait; write
+            # barrier 1 is consumed by the following row's first F2F (03).
+            $o .= sprintf "--:2:1:-:1  \@P3 LDG.E.CI.64 cw%02d, [cp+0x%x];\n", 2*$i, $bstep*$i;
+            $o .= sprintf "--:2:1:-:1  \@P3 LDG.E.CI hw%d, [hp+0x%x];\n", $i, $bstep*$i;
+            $o .= sprintf "--:2:1:-:2  \@P3 LDG.E.CI.U16 sw%d, [sp+0x%x];\n", $i, $bstep*$i;
+            # Packed d contains scales for several current blocks. It cannot
+            # be replaced until every block has converted its current scale.
+            $o .= "--:2:1:-:2  \@P3 LDG.E.CI.128 dp0, [pp];\n" if $i == $n-1;
+        }
     }
     for (my $x = $L / 2; $x >= 1; $x >>= 1) {
         $o .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x%x, 0x1f;\n", $x;
