@@ -1,0 +1,10 @@
+{"case": "success", "exit": 0, "expected": 0, "stdout": "2 paragraphs  prompt 100 tok  prefill 50.0 tok/s  decode 25.0 tok/s (10 intervals in 400.0 ms)  PASS"}
+{"case": "wrong", "exit": 1, "expected": 1, "stdout": "2 paragraphs  prompt 100 tok  prefill 50.0 tok/s  decode 25.0 tok/s (10 intervals in 400.0 ms)  FAIL"}
+{"case": "missing-answer", "exit": 2, "expected": 2, "stdout": ""}
+{"case": "api-error", "exit": 2, "expected": 2, "stdout": ""}
+{"case": "missing-timings", "exit": 2, "expected": 2, "stdout": ""}
+{"case": "bad-rate", "exit": 2, "expected": 2, "stdout": ""}
+{"case": "malformed", "exit": 2, "expected": 2, "stdout": ""}
+{"case": "http-error", "exit": 2, "expected": 2, "stdout": ""}
+{"case": "transport", "exit": 2, "expected": 2}
+PASS: nine response/HTTP/transport cases
