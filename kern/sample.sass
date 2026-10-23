@@ -1,0 +1,230 @@
+# Kernel: sample
+#
+# Picks the next token from the dies' top-K lists (topk.sass), top-k -> top-p -> temperature
+# in llama.cpp's order, one warp; every die runs it on the same gathered lists and gets the
+# same token.
+#   lane l loads rank l of each die's list (PAIRS[die][32] = (u32 index within the die's rows,
+#   u32 value bits)), index += BASES[die]; K rounds of the router's extraction (FMNMX chain +
+#   butterfly, lowest index among equals, knock-out) give the global top K in lanes 0..K-1.
+#   e_r = exp(v_r - v_0); total = butterfly sum; cum = Kogge-Stone inclusive scan; rank r is
+#   kept iff the exclusive prefix < top_p * total (rank 0 always); w_r = exp((v_r - v_0) invT)
+#   for the kept ranks, 0 otherwise; W = sum w, cum2 = scan of w, thr = u W with u = RND[tok];
+#   the token is the first rank with cum2 > thr (clamped to the last kept rank).
+# invT = 1 / temperature. With K = 1 this is the argmax (rank 0).
+# The token goes where amax.sass puts it: TOKS[tok], IDS[tok + 1] once past the prompt, and a
+# stop token past the prompt sets *END = 0x80000000 (the framework then ends the response).
+# Bit-exact twin: ref/sample.c sample_gpu (exp is fmath's exp_gpu).
+#
+# Params: 0:0x140 PAIRS  1:0x148 BASES  2:0x150 ndies  3:0x154 K  4:0x158 top_p  5:0x15c invT
+#         6:0x160 IDS  7:0x168 TOKS  8:0x170 tok  9:0x174 nprompt  10:0x178 stop0  11:0x17c stop1
+#         12:0x180 END  13:0x188 RND
+
+<CONSTANT_MAPPING>
+    param_PAIRS0 : c[0x0][0x140]
+    param_PAIRS1 : c[0x0][0x144]
+    param_BASES0 : c[0x0][0x148]
+    param_BASES1 : c[0x0][0x14c]
+    param_ndies  : c[0x0][0x150]
+    param_K      : c[0x0][0x154]
+    param_topp   : c[0x0][0x158]
+    param_invT   : c[0x0][0x15c]
+    param_IDS0   : c[0x0][0x160]
+    param_IDS1   : c[0x0][0x164]
+    param_TOKS0  : c[0x0][0x168]
+    param_TOKS1  : c[0x0][0x16c]
+    param_tok    : c[0x0][0x170]
+    param_nprompt : c[0x0][0x174]
+    param_stop0  : c[0x0][0x178]
+    param_stop1  : c[0x0][0x17c]
+    param_END0   : c[0x0][0x180]
+    param_END1   : c[0x0][0x184]
+    param_RND0   : c[0x0][0x188]
+    param_RND1   : c[0x0][0x18c]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0-5   : v<0-5>
+    6-11  : kb<0-5>
+    12    : log2e
+    13    : ln2hi
+    14    : ln2lo
+    15    : c720
+    16    : c120
+    17    : c24
+    18    : c6
+    19    : chalf
+    20    : cone
+    21    : tid
+    22    : lane
+    23    : mx
+    24    : ix
+    25    : d
+    26    : t
+    27    : r
+    28    : neginf
+    29    : sm
+    30    : si
+    31    : m0
+    32    : e
+    33    : tot
+    34    : cum
+    35    : excl
+    36    : thr
+    37    : w
+    38    : W
+    39    : u
+    40    : cand
+    41    : lk
+    42    : tk
+    43    : tk1
+    44    : ft1
+    45    : ft2
+    46    : ft3
+    47    : bs
+    48,49 : pp<0-1>
+    50,51 : bp<0-1>
+    52,53 : tp<0-1>
+    54,55 : ip<0-1>
+    56,57 : ep<0-1>
+    58,59 : up<0-1>
+    60    : ev
+    61    : tkn
+    62    : ft4
+</REGISTER_MAPPING>
+
+<CODE>
+    require './fmath.pl';
+    my %C = map { $_ => $_ } qw(log2e ln2hi ln2lo c720 c120 c24 c6 chalf cone);
+    my $o = '';
+    # butterfly over the warp: $op is FADD or IMNMX.U32 ... ; operand $reg is combined with its xor partner
+    my $bfly = sub {
+        my ($op, $reg) = @_;
+        my $x = '';
+        for my $s (16, 8, 4, 2, 1) {
+            $x .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, %s, 0x%x, 0x1f;\n", $reg, $s;
+            $x .= sprintf "10:-:-:-:6      %s;\n", sprintf($op, $reg, $reg);
+        }
+        return $x;
+    };
+    # inclusive scan over lanes of $reg (Kogge-Stone, FADD)
+    my $scan = sub {
+        my ($reg) = @_;
+        my $x = '';
+        for my $s (1, 2, 4, 8, 16) {
+            $x .= sprintf "--:-:5:-:3      SHFL.UP P2, t, %s, 0x%x, 0x0;\n", $reg, $s;
+            $x .= sprintf "10:-:-:-:6  \@P2 FADD %s, %s, t;\n", $reg, $reg;
+        }
+        return $x;
+    };
+    $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
+    $o .= fm_consts(\%C);
+    $o .= "--:-:-:-:6      MOV32I neginf, 0xff800000;\n";
+    $o .= "20:-:-:-:6      LOP32I.AND lane, tid, 0x1f;\n";
+    $o .= "--:-:-:-:6      SHL t, lane, 0x3;\n";
+    $o .= "--:-:-:-:6      IADD pp0.CC, t, param_PAIRS0;\n";
+    $o .= "--:-:-:-:6      IADD.X pp1, RZ, param_PAIRS1;\n";
+    $o .= "--:-:-:-:6      MOV bp0, param_BASES0;\n";
+    $o .= "--:-:-:-:6      MOV bp1, param_BASES1;\n";
+    for my $j (0 .. 5) {
+        $o .= sprintf "--:-:-:-:6      MOV32I kb%d, 0xffffffff;\n", $j;
+        $o .= sprintf "--:-:-:-:6      MOV32I v%d, 0xff800000;\n", $j;
+        $o .= sprintf "--:-:-:-:6      ISETP.GT.U32.AND P0, PT, param_ndies, 0x%x, PT;\n", $j;
+        $o .= "--:-:-:-:6      NOP;\n" x 3;
+        $o .= sprintf "--:-:1:-:1  \@P0 LDG.E kb%d, [pp+0x%x];\n", $j, 0x100 * $j;
+        $o .= sprintf "--:-:1:-:1  \@P0 LDG.E v%d, [pp+0x%x];\n", $j, 0x100 * $j + 4;
+        $o .= sprintf "--:-:1:-:2  \@P0 LDG.E bs, [bp+0x%x];\n", 4 * $j;
+        $o .= "01:-:-:-:6  \@P0 IADD kb$j, kb$j, bs;\n";
+    }
+    $o .= "--:-:-:-:6      MOV32I sm, 0xff800000;\n";
+    $o .= "--:-:-:-:6      MOV32I si, 0xffffffff;\n";
+    $o .= "--:-:-:-:6      MOV r, RZ;\n";
+    # K rounds of extraction over 6 registers
+    $o .= "\nRS:\n";
+    $o .= "--:-:-:-:6      FMNMX mx, v0, v1, !PT;\n";
+    $o .= sprintf "--:-:-:-:6      FMNMX mx, mx, v%d, !PT;\n", $_ for 2 .. 5;
+    $o .= $bfly->('FMNMX %s, %s, t, !PT', 'mx');
+    $o .= "--:-:-:-:6      MOV32I ix, 0xffffffff;\n";
+    for my $k (0 .. 5) {
+        $o .= sprintf "--:-:-:-:6      LOP.XOR d, v%d, mx;\n", $k;
+        $o .= sprintf "--:-:-:-:6      ICMP.EQ t, kb%d, ix, d;\n", $k;
+        $o .= "--:-:-:-:6      IMNMX.U32 ix, ix, t, PT;\n";
+    }
+    $o .= $bfly->('IMNMX.U32 %s, %s, t, PT', 'ix');
+    $o .= "--:-:-:-:6      IADD d, lane, -r;\n";
+    $o .= "--:-:-:-:6      ICMP.EQ sm, mx, sm, d;\n";
+    $o .= "--:-:-:-:6      ICMP.EQ si, ix, si, d;\n";
+    for my $k (0 .. 5) {
+        $o .= sprintf "--:-:-:-:6      IADD d, kb%d, -ix;\n", $k;
+        $o .= sprintf "--:-:-:-:6      ICMP.EQ v%d, neginf, v%d, d;\n", $k, $k;
+    }
+    $o .= "--:-:-:-:6      IADD r, r, 0x1;\n";
+    $o .= "--:-:-:-:6      ISETP.LT.U32.AND P0, PT, r, param_K, PT;\n";
+    $o .= "--:-:-:-:6      NOP;\n" x 3;
+    $o .= "--:-:-:-:6  \@P0 BRA RS;\n";
+    # lane r < K holds rank r
+    # lane r < K holds rank r
+    $o .= "--:-:5:-:2      SHFL.IDX PT, m0, sm, RZ, 0x1f;\n";
+    $o .= "--:-:-:-:6      ISETP.LT.U32.AND P0, PT, lane, param_K, PT;\n";
+    $o .= "10:-:-:-:6      FADD ft1, sm, -m0;\n";
+    $o .= fm_exp('e', 'ft1', 'ft2', 'ft3', 'ft4', \%C);
+    $o .= "--:-:-:-:6  \@!P0 MOV e, RZ;\n";
+    $o .= "--:-:-:-:6      MOV tot, e;\n";
+    $o .= $bfly->('FADD %s, %s, t', 'tot');
+    $o .= "--:-:-:-:6      MOV cum, e;\n";
+    $o .= $scan->('cum');
+    $o .= "--:-:5:-:3      SHFL.UP P2, excl, cum, 0x1, 0x0;\n";
+    $o .= "10:-:-:-:6 \@!P2 MOV excl, RZ;\n";
+    $o .= "--:-:-:-:6      FMUL thr, tot, param_topp;\n";
+    $o .= "--:-:-:-:6      NOP;\n" x 3;
+    $o .= "--:-:-:-:6      FSETP.LT.AND P1, PT, excl, thr, P0;\n";
+    $o .= "--:-:-:-:6      FADD ft1, sm, -m0;\n";
+    $o .= "--:-:-:-:6      FMUL ft1, ft1, param_invT;\n";
+    $o .= fm_exp('w', 'ft1', 'ft2', 'ft3', 'ft4', \%C);
+    $o .= "--:-:-:-:6  \@!P1 MOV w, RZ;\n";
+    $o .= "--:-:-:-:6      MOV W, w;\n";
+    $o .= $bfly->('FADD %s, %s, t', 'W');
+    $o .= "--:-:-:-:6      MOV cum, w;\n";
+    $o .= $scan->('cum');
+    # u = RND[tok]
+    $o .= "--:-:-:-:6      SHL t, param_tok, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD up0.CC, t, param_RND0;\n";
+    $o .= "--:-:-:-:6      IADD.X up1, RZ, param_RND1;\n";
+    $o .= "--:-:3:-:2      LDG.E u, [up];\n";
+    $o .= "04:-:-:-:6      FMUL thr, W, u;\n";
+    $o .= "--:-:-:-:6      NOP;\n" x 3;
+    $o .= "--:-:-:-:6      FSETP.GT.AND P3, PT, cum, thr, PT;\n";
+    $o .= "--:-:-:-:6      FSETP.GT.AND P4, PT, w, RZ, PT;\n";
+    $o .= "--:-:-:-:6      MOV32I cand, 0x20;\n";
+    $o .= "--:-:-:-:6      MOV lk, RZ;\n";
+    $o .= "--:-:-:-:6      NOP;\n" x 3;
+    $o .= "--:-:-:-:6  \@P3 MOV cand, lane;\n";
+    $o .= "--:-:-:-:6  \@P4 MOV lk, lane;\n";
+    $o .= $bfly->('IMNMX.U32 %s, %s, t, PT', 'cand');
+    $o .= $bfly->('IMNMX.U32 %s, %s, t, !PT', 'lk');
+    $o .= "--:-:-:-:6      IMNMX.U32 cand, cand, lk, PT;\n";
+    $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P1, PT, lane, RZ, PT;\n";
+    $o .= "--:-:5:-:2      SHFL.IDX PT, tkn, si, cand, 0x1f;\n";                # the token (global index)
+    # the token goes to TOKS[tok] and, once past the prompt, to IDS[tok + 1]; a stop token ends the turn
+    $o .= "--:-:-:-:6      MOV tk, param_tok;\n";
+    $o .= "--:-:-:-:6      IADD tk1, tk, 0x1;\n";
+    $o .= "--:-:-:-:6      ISETP.GE.U32.AND P4, PT, tk1, param_nprompt, P1;\n";
+    $o .= "--:-:-:-:6      SHL t, tk, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD tp0.CC, t, param_TOKS0;\n";
+    $o .= "--:-:-:-:6      IADD.X tp1, RZ, param_TOKS1;\n";
+    $o .= "--:-:-:-:6      SHL t, tk1, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD ip0.CC, t, param_IDS0;\n";
+    $o .= "--:-:-:-:6      IADD.X ip1, RZ, param_IDS1;\n";
+    $o .= "--:-:-:-:6      MOV ep0, param_END0;\n";
+    $o .= "--:-:-:-:6      MOV ep1, param_END1;\n";
+    $o .= "--:-:-:-:6      MOV32I ev, 0x80000000;\n";
+    $o .= "10:-:-:-:6      ISETP.EQ.U32.AND P5, PT, tkn, param_stop0, P4;\n";
+    $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P6, PT, tkn, param_stop1, P4;\n";
+    $o .= "--:-:-:-:6      NOP;\n" x 3;
+    $o .= "--:-:-:-:6      PSETP.OR.AND P5, PT, P5, P6, PT;\n";
+    $o .= "--:-:-:-:6      NOP;\n" x 3;
+    $o .= "--:2:-:-:1  \@P1 STG.E [tp], tkn;\n";
+    $o .= "--:2:-:-:1  \@P4 STG.E [ip], tkn;\n";
+    $o .= "--:2:-:-:6  \@P5 STG.E [ep], ev;\n";
+    $o .= "02:-:-:-:f      EXIT;\n";
+    return $o;
+</CODE>
