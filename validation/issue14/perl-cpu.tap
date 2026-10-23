@@ -1,0 +1,134 @@
+# Subtest: partition and phase zero
+    ok 1 - publication interval
+    ok 2 - phase time
+    ok 3 - between phases
+    ok 4 - publication footer
+    ok 5 - first publication position excluded from decode work
+    ok 6 - PLE wait partition
+    1..6
+ok 1 - partition and phase zero
+# Subtest: 64 bit epoch
+    ok 1 - interval independent of absolute epoch
+    1..1
+ok 2 - 64 bit epoch
+# Subtest: missing phase
+    ok 1 - missing rejected
+    1..1
+ok 3 - missing phase
+# Subtest: duplicate phase
+    ok 1 - duplicate rejected
+    1..1
+ok 4 - duplicate phase
+# Subtest: missing publication
+    ok 1 - missing publication rejected
+    1..1
+ok 5 - missing publication
+# Subtest: wrong layout
+    ok 1 - 16 CTA layout rejected
+    1..1
+ok 6 - wrong layout
+# Subtest: invalid PLE wait
+    ok 1 - wait outside body rejected
+    1..1
+ok 7 - invalid PLE wait
+# Subtest: single publication
+    ok 1 - no intervals
+    ok 2 - zero decode duration
+    1..2
+ok 8 - single publication
+# Subtest: manifest gate
+    ok 1 - KV placement difference allowed
+    ok 2 - unexplained configuration difference rejected
+    1..2
+ok 9 - manifest gate
+# Subtest: failed driver query cannot pass
+    ok 1 - query failure rejected
+    ok 2 - valid XML accepted
+    1..2
+ok 10 - failed driver query cannot pass
+# Subtest: core launch records
+    ok 1 - valid launch metadata retained
+    ok 2 - missing setting rejected
+    1..2
+ok 11 - core launch records
+# Subtest: host short read
+    ok 1 - short read invalidates measurement
+    1..1
+ok 12 - host short read
+# Subtest: legacy lifecycle is analysis only
+    ok 1 - absent historical lifecycle remains unknown
+    ok 2 - live lifecycle required
+    1..2
+ok 13 - legacy lifecycle is analysis only
+# Subtest: current lifecycle success
+    ok 1 - reported success
+    ok 2 - completed positions retained
+    1..2
+ok 14 - current lifecycle success
+# Subtest: failed lifecycle cannot be historical success
+    ok 1 - aborted phase rejected
+    ok 2 - aborted host rejected
+    ok 3 - argument_error phase rejected
+    ok 4 - argument_error host rejected
+    ok 5 - image_error phase rejected
+    ok 6 - image_error host rejected
+    ok 7 - device_error phase rejected
+    ok 8 - device_error host rejected
+    ok 9 - running phase rejected
+    ok 10 - running host rejected
+    ok 11 - none phase rejected
+    ok 12 - none host rejected
+    1..12
+ok 15 - failed lifecycle cannot be historical success
+# Subtest: stop analyzable but not fixed continuation
+    ok 1 - stopped historical trace analyzable
+    ok 2 - fixed continuation rejects stop
+    1..2
+ok 16 - stop analyzable but not fixed continuation
+# Subtest: partial or malformed lifecycle
+    ok 1 - partial metadata rejected
+    ok 2 - malformed lifecycle {"aborted":"2"}
+    ok 3 - malformed lifecycle {"ended":"false"}
+    ok 4 - malformed lifecycle {"completed":"-1"}
+    ok 5 - malformed lifecycle {"requested":"nan"}
+    ok 6 - malformed lifecycle {"completed":"2049"}
+    ok 7 - malformed lifecycle {"completed":"2051"}
+    1..7
+ok 17 - partial or malformed lifecycle
+# Subtest: wrong request or excessive window
+    ok 1 - wrong request rejected
+    ok 2 - window beyond completed positions rejected
+    1..2
+ok 18 - wrong request or excessive window
+# Subtest: CSV quoting and gzip
+    ok 1 - CSV quoting
+    ok 2 - compressed rows retained
+    1..2
+ok 19 - CSV quoting and gzip
+# Subtest: subprocess capture
+    ok 1 - exit status
+    ok 2 - stdout
+    ok 3 - stderr
+    1..3
+ok 20 - subprocess capture
+# Subtest: subprocess drains large stderr
+    ok 1 - large-output child exits
+    ok 2 - all stderr captured
+    ok 3 - stdout not blocked
+    1..3
+ok 21 - subprocess drains large stderr
+# Subtest: exact file identity
+    ok 1 - size
+    ok 2 - SHA256
+    ok 3 - integer nanosecond timestamp
+    1..3
+ok 22 - exact file identity
+# Subtest: committed historical prompt identity
+    ok 1 - known first 32 IDs
+    ok 2 - all 262000 historical IDs
+    1..2
+ok 23 - committed historical prompt identity
+ok 24 - historical prompt length
+ok 25 - historical first 32 prompt IDs
+ok 26 - every historical prompt ID matches
+1..26

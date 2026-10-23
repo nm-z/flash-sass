@@ -1,0 +1,97 @@
+{
+   "artifacts" : {
+      "die.cubin" : "116d828f20139d144d46d7d8115a28e35313dac1f6c24ba81c1b5c0984f50e14",
+      "die_trace.cubin" : "9879f0ebd02fa8e5a38069863132395a49926938123bac5936711192b1a0dc0d",
+      "flashcore" : "0257e1fbf4a6505bc54ed230b93abe22d5f21ed66daa22345a85b73f6a673d06",
+      "flashd" : "ade7d7fc607376587c743827d24e074809eb6ba9d2d40045da63a54d840eccc5",
+      "libengine.so" : "0a1a43124af3476f186d449957adcb6d5d23e19362e2573c80b0cc7ebe1ac780"
+   },
+   "commands" : [
+      {
+         "argv" : [
+            "nvidia-smi",
+            "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm",
+            "--format=csv"
+         ],
+         "exit_code" : 0,
+         "name" : "gpu-before",
+         "seconds" : 0.100476026535034,
+         "timed_out" : false
+      },
+      {
+         "argv" : [
+            "/home/nate/claude/flash-sass-resolve/timing-a2d339b/kern/trace_session_test"
+         ],
+         "exit_code" : 0,
+         "name" : "session-fixtures",
+         "seconds" : 0.0504930019378662,
+         "timed_out" : false
+      },
+      {
+         "argv" : [
+            "/home/nate/claude/flash-sass-resolve/timing-a2d339b/kern/output_tokens_test",
+            "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf"
+         ],
+         "exit_code" : 0,
+         "name" : "output-token-regression",
+         "seconds" : 0.1005699634552,
+         "timed_out" : false
+      },
+      {
+         "argv" : [
+            "nvidia-smi",
+            "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm",
+            "--format=csv"
+         ],
+         "exit_code" : 0,
+         "name" : "gpu-after-failure",
+         "seconds" : 0.1008141040802,
+         "timed_out" : false
+      }
+   ],
+   "cores" : [
+      {
+         "argv" : [
+            "/home/nate/claude/flash-sass-resolve/timing-a2d339b/kern/flashcore",
+            "/home/nate/flash-ple/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+            "/home/nate/claude/flash-sass-resolve/timing-a2d339b/kern/libengine.so",
+            "/tmp/hold-h0.manifest",
+            "/tmp/hold-h1.manifest",
+            "/tmp/hold-h2.manifest",
+            "/tmp/hold-h3.manifest",
+            "/tmp/hold-h4.manifest",
+            "/tmp/hold-h5.manifest"
+         ],
+         "exit_code" : 1,
+         "paired" : 0,
+         "pid" : 2740304,
+         "socket" : "/tmp/flash-owned-issue15-a2d339b78d-0-2740281.sock"
+      }
+   ],
+   "environment" : {
+      "ATTN_DIE" : "1",
+      "ATTN_MAP" : "1,1,1,1,4,4,4,4,5,5,5,5",
+      "CUDA_DEVICE_ORDER" : "PCI_BUS_ID",
+      "CUDA_VISIBLE_DEVICES" : "0,1,2,3,4,5,7",
+      "FLASH_ANCHOR_DIE" : "7",
+      "FLASH_CUBIN" : "/home/nate/claude/flash-sass-resolve/timing-a2d339b/kern/die_trace.cubin",
+      "FLASH_ENGINE_MAXT" : "512",
+      "FLASH_KV_HOST" : "0",
+      "FLASH_MAXIMG" : "1",
+      "FLASH_MAXT" : "512",
+      "FLASH_NBLK" : "512",
+      "FLASH_PLE_DISK" : "1",
+      "FLASH_PLE_OFF" : "192",
+      "FLASH_TRACE" : "4",
+      "FLASH_WATCHDOG_S" : "60",
+      "SPLIT_SHARES" : "112,97,81,116,97,97"
+   },
+   "error" : "Owned core exited at startup (exit 1); see core-pair0.log\n",
+   "finished_utc" : "2026-10-17T22:59:34Z",
+   "hostname" : "archy",
+   "runner_sha256" : "b14c5a4b361b4912f623bc00ee758cc42ca05be4b219015b1d40f5ad98a4390e",
+   "source" : "/home/nate/claude/flash-sass-resolve/timing-a2d339b",
+   "source_sha" : "a2d339b78daafad052142de1a3eff56250d87f7b",
+   "started_utc" : "2026-10-17T22:59:33Z",
+   "status" : "FAIL"
+}
