@@ -1,0 +1,76 @@
+{
+  "status": "PASS",
+  "measured_stages": [
+    {
+      "revision": "6da421bccb68e613ecbdc8142104935deecccb29",
+      "modes": [
+        "cpu",
+        "build",
+        "gpu",
+        "model"
+      ],
+      "model_positions": [
+        128,
+        32768,
+        65536
+      ],
+      "host": "archy"
+    },
+    {
+      "revision": "d46d188a435c5d959993f16dc1f78c837cc9f70d",
+      "modes": [
+        "cpu",
+        "build",
+        "gpu",
+        "model"
+      ],
+      "model_positions": [
+        128
+      ],
+      "capacity": 65552,
+      "host": "archy"
+    },
+    {
+      "revision": "5b3ea525005fa5f8573ab544bfbeee6783c62e25",
+      "modes": [
+        "scalar successful-call benchmark"
+      ],
+      "host": "engi"
+    }
+  ],
+  "runtime_trees": {
+    "6da421bccb68e613ecbdc8142104935deecccb29": {
+      "kern": "6b96a204ea55f724f1be55939ece76cd6d2c76b5",
+      "ref": "b688a0960b40063c50414bb8be48284fd1420398"
+    },
+    "d46d188a435c5d959993f16dc1f78c837cc9f70d": {
+      "kern": "a8281bae0dab13da77fdbd2a92275e0717a68e53",
+      "ref": "2537e4a2c308bb87bc33e76e3d723dad8bee1471"
+    }
+  },
+  "runtime_and_runner_unchanged_since_merged_revision": true,
+  "archives": {
+    "cpu-build-gpu-raw.tar.gz": {
+      "sha256": "3a4dce497e202bf41e9b379b04449de31cc8ef77640d9b811aa0aaae25d14c63",
+      "bytes": 422174,
+      "files": 182,
+      "recorded_file_hash_checks": 180
+    },
+    "model-raw.tar.gz": {
+      "sha256": "bad37f72b8ea0e4230646cc2d803a3729dc1f152f1d8ed8e4b3cc8e0c96f141e",
+      "bytes": 1135339,
+      "files": 95,
+      "recorded_file_hash_checks": 82
+    },
+    "integration/integration-raw.tar.gz": {
+      "sha256": "f28c4cf405c7007724376fb44af376b03c88cfbb75310054c79e2a87777dede5",
+      "bytes": 1343062,
+      "files": 272,
+      "recorded_file_hash_checks": 256
+    }
+  },
+  "scalar_raw_stdout_stderr_hash_checks": 14,
+  "checkpoint_status": "PASS: all 128/32768/65536 contexts completed at 6da421b; all event/error counts zero and original engine restored.",
+  "merged_status": "PASS: CPU/build/GPU, 128 positions at capacity 65552, checkpoint/input/output/layer/state parity, and original engine restoration.",
+  "scope": "Long contexts were measured at 6da421b only. Applicability to the unchanged path after the merge is supported by artifact/source identity and the actual 128-position merged comparison; it is not a repeated long-context execution. Scalar timing was measured separately at 5b3ea52."
+}
