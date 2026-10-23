@@ -1,0 +1,11 @@
+old decode: NOT a bijection
+new decode: NOT a bijection
+n keys | old: busy units / CTAs / deepest CTA | new: busy units / CTAs / deepest CTA
+   500 |  4 units /  2 CTAs / 2 sequential  |  4 units /  4 CTAs / 1 sequential 
+  1024 |  4 units /  2 CTAs / 2 sequential  |  4 units /  4 CTAs / 1 sequential 
+  2048 |  8 units /  4 CTAs / 2 sequential  |  8 units /  8 CTAs / 1 sequential 
+  2049 | 12 units /  6 CTAs / 2 sequential  | 12 units / 12 CTAs / 1 sequential 
+  2050 | 12 units /  6 CTAs / 2 sequential  | 12 units / 12 CTAs / 1 sequential 
+  2051 | 12 units /  6 CTAs / 2 sequential  | 12 units / 12 CTAs / 1 sequential 
+  4096 | 16 units /  8 CTAs / 2 sequential  | 16 units / 16 CTAs / 1 sequential 
+  8192 | 32 units / 16 CTAs / 2 sequential  | 32 units / 16 CTAs / 2 sequential 

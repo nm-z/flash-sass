@@ -1,0 +1,73 @@
+# Kernel: sumn
+#
+# Fixed-order reduction of the dies' partial sums after an exchange:
+#   out[i] = ((((p0[i] + p1[i]) + p2[i]) + p3[i]) + p4[i]) + p5[i],  i < n
+# with p_e at SRC + e * stride and only the first ndies parts added (the same
+# order on every die, so every die ends with identical bits). One element per
+# thread, grid = ceil(n / 256); n need not be a multiple of 32.
+#
+# Params: 0:0x140 SRC  1:0x148 stride  2:0x150 OUT  3:0x158 n  4:0x15c ndies
+
+<CONSTANT_MAPPING>
+    param_SRC0   : c[0x0][0x140]
+    param_SRC1   : c[0x0][0x144]
+    param_stride : c[0x0][0x148]
+    param_OUT0   : c[0x0][0x150]
+    param_OUT1   : c[0x0][0x154]
+    param_n      : c[0x0][0x158]
+    param_ndies  : c[0x0][0x15c]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0-5   : p<0-5>
+    6     : tid
+    7     : bid
+    8     : tg
+    9     : t
+    10    : acc
+    11    : st
+    12,13 : ap<0-1>
+    14,15 : op<0-1>
+    16-27 : aq<00-11>
+</REGISTER_MAPPING>
+
+<CODE>
+    my $o = '';
+    $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
+    $o .= "--:-:6:-:1      S2R bid, SR_CTAID.X;\n";
+    $o .= "20:-:-:-:6      ISCADD tg, bid, tid, 0x8;\n";
+    # Control flow stays uniform per warp (a branch that splits a warp never reconverges in the persistent
+    # kernel, and the broken warp is the all-gather's ragged one afterwards): the warp leaves only when its
+    # first element is beyond n; a lane beyond n reads element n - 1 and stores nothing (P0).
+    $o .= "--:-:-:-:6      ISETP.GE.U32.AND P0, PT, tg, param_n, PT;\n";
+    $o .= "--:-:-:-:6      LOP32I.AND t, tg, 0xffffffe0;\n";
+    $o .= "--:-:-:-:6      ISETP.GE.U32.AND P6, PT, t, param_n, PT;\n";
+    $o .= "--:-:-:-:6      MOV t, param_n;\n";
+    $o .= "--:-:-:-:6      IADD t, t, -0x1;\n";
+    $o .= "--:-:-:-:6      IMNMX.U32 t, tg, t, PT;\n";
+    $o .= "--:-:-:-:6      SHL t, t, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD ap0.CC, t, param_SRC0;\n";
+    $o .= "--:-:-:-:6      IADD.X ap1, RZ, param_SRC1;\n";
+    $o .= "--:-:-:-:6      IADD op0.CC, t, param_OUT0;\n";
+    $o .= "--:-:-:-:6      IADD.X op1, RZ, param_OUT1;\n";
+    $o .= "--:-:-:-:6      MOV st, param_stride;\n";
+    $o .= "--:-:-:-:6      MOV t, param_ndies;\n";
+    $o .= sprintf "--:-:-:-:6      ISETP.GT.U32.AND P%d, PT, t, 0x%x, PT;\n", $_, $_ for 1..5;   # part e exists (ndies > e)
+    $o .= "--:-:-:-:6  \@P6 EXIT;\n";
+    # the six part addresses first (a load reads its address register late: never
+    # advance a pointer right behind the LDG that uses it)
+    $o .= "--:-:-:-:6      IADD aq00.CC, ap0, RZ;\n";
+    $o .= "--:-:-:-:6      IADD.X aq01, ap1, RZ;\n";
+    for my $e (1..5) {
+        $o .= sprintf "--:-:-:-:6      IADD aq%02d.CC, aq%02d, st;\n", 2 * $e, 2 * $e - 2;
+        $o .= sprintf "--:-:-:-:6      IADD.X aq%02d, aq%02d, RZ;\n", 2 * $e + 1, 2 * $e - 1;
+    }
+    for my $e (0..5) {
+        $o .= sprintf "--:-:1:-:%s  %s LDG.E p%d, [aq%02d];\n", $e == 5 ? '2' : '1', $e ? "\@P$e" : '   ', $e, 2 * $e;
+    }
+    $o .= "01:-:-:-:6      MOV acc, p0;\n";
+    $o .= sprintf "--:-:-:-:6  \@P%d FADD acc, acc, p%d;\n", $_, $_ for 1..5;
+    $o .= "--:2:-:-:1 \@!P0 STG.E [op], acc;\n";
+    $o .= "02:-:-:-:f      EXIT;\n";
+    return $o;
+</CODE>

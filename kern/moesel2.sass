@@ -1,0 +1,131 @@
+# Kernel: moesel2
+#
+# The unit list of one die of the K-split MoE (kern/hold2.c): of the routed experts idx[10] / w[10]
+# (every die holds the same router result) every expert e brings this die's units of it,
+# map[e] = (first slot << 8) | count. In rank order, entry k of the list is (slot, weight):
+# LIDX[k] = first + i, LW[k] = w[rank] for i < count; *NE = the number of entries (at most 32).
+# Also zero-fills this die's partial sum (2560 floats). One warp: lane r < 10 takes rank r and finds
+# its first entry by summing the earlier ranks' counts (SHFL.IDX gathers, no predicates).
+#
+# Params: 0:0x140 IDX  1:0x148 W  2:0x150 MAP  3:0x158 LIDX  4:0x160 LW  5:0x168 NE  6:0x170 PART
+
+<CONSTANT_MAPPING>
+    param_IDX0  : c[0x0][0x140]
+    param_IDX1  : c[0x0][0x144]
+    param_W0    : c[0x0][0x148]
+    param_W1    : c[0x0][0x14c]
+    param_MAP0  : c[0x0][0x150]
+    param_MAP1  : c[0x0][0x154]
+    param_LIDX0 : c[0x0][0x158]
+    param_LIDX1 : c[0x0][0x15c]
+    param_LW0   : c[0x0][0x160]
+    param_LW1   : c[0x0][0x164]
+    param_NE0   : c[0x0][0x168]
+    param_NE1   : c[0x0][0x16c]
+    param_PART0 : c[0x0][0x170]
+    param_PART1 : c[0x0][0x174]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0-3     : z<0-3>
+    4       : tid
+    5       : lane
+    6       : e
+    7       : w
+    8       : m
+    9       : cnt
+    10      : first
+    11      : off
+    12      : total
+    13      : t
+    14      : t2
+    15      : sel
+    16,17   : ip<0-1>
+    18,19   : wp<0-1>
+    20,21   : mp<0-1>
+    22,23   : lp<0-1>
+    24,25   : vp<0-1>
+    26,27   : pp<0-1>
+    28      : slot
+    30,31   : bq<0-1>
+</REGISTER_MAPPING>
+
+<CODE>
+    my $o = '';
+    $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
+    $o .= "20:-:-:-:6      LOP32I.AND lane, tid, 0x1f;\n";
+    $o .= "--:-:-:-:6      ISETP.LT.U32.AND P0, PT, lane, 0xa, PT;\n";
+    $o .= "--:-:-:-:6      SHL t, lane, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD ip0.CC, t, param_IDX0;\n";
+    $o .= "--:-:-:-:6      IADD.X ip1, RZ, param_IDX1;\n";
+    $o .= "--:-:-:-:6      IADD wp0.CC, t, param_W0;\n";
+    $o .= "--:-:-:-:6      IADD.X wp1, RZ, param_W1;\n";
+    $o .= "--:-:-:-:6      MOV e, RZ;\n";
+    $o .= "--:-:-:-:6      MOV w, RZ;\n";
+    $o .= "--:-:1:-:1  \@P0 LDG.E e, [ip];\n";
+    $o .= "--:-:2:-:1  \@P0 LDG.E w, [wp];\n";
+    # zero this die's partial meanwhile: lane l stores floats 4 (l + 32 i), i < 20
+    $o .= "--:-:-:-:6      MOV z0, RZ;\n--:-:-:-:6      MOV z1, RZ;\n--:-:-:-:6      MOV z2, RZ;\n--:-:-:-:6      MOV z3, RZ;\n";
+    $o .= "--:-:-:-:6      SHL t, lane, 0x4;\n";
+    $o .= "--:-:-:-:6      IADD pp0.CC, t, param_PART0;\n";
+    $o .= "--:-:-:-:6      IADD.X pp1, RZ, param_PART1;\n";
+    $o .= sprintf "--:3:-:-:1      STG.E.128 [pp+0x%x], z0;\n", 512 * $_ for 0..19;
+    # m = map[e]; ranks past 9 hold count 0
+    $o .= "01:-:-:-:6      SHL t, e, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD mp0.CC, t, param_MAP0;\n";
+    $o .= "--:-:-:-:6      IADD.X mp1, RZ, param_MAP1;\n";
+    $o .= "--:-:-:-:6      MOV m, RZ;\n";
+    $o .= "--:-:1:-:2  \@P0 LDG.E m, [mp];\n";
+    $o .= "01:-:-:-:6      LOP32I.AND cnt, m, 0xff;\n";
+    $o .= "--:-:-:-:6      SHR.U32 first, m, 0x8;\n";
+    # off = sum of cnt over the lanes below this one; total = sum over the ten ranks
+    $o .= "--:-:-:-:6      MOV off, RZ;\n";
+    $o .= "--:-:-:-:6      MOV total, RZ;\n";
+    for my $i (0..9) {
+        $o .= sprintf "--:-:5:-:2      SHFL.IDX PT, t2, cnt, 0x%x, 0x1f;\n", $i;
+        $o .= sprintf "--:-:-:-:6      IADD sel, -lane, 0x%x;\n", $i;           # i - lane < 0 exactly for the lanes above i
+        $o .= "--:-:-:-:6      SHR sel, sel, 0x1f;\n";                           # all ones then
+        $o .= "10:-:-:-:6      LOP.AND sel, sel, t2;\n";
+        $o .= "--:-:-:-:6      IADD off, off, sel;\n";
+        $o .= "--:-:-:-:6      IADD total, total, t2;\n";
+    }
+    # entries off + c, c < cnt (cnt <= 3)
+    for my $c (0..2) {
+        $o .= sprintf "--:-:-:-:6      ISETP.GT.U32.AND P%d, PT, cnt, 0x%x, PT;\n", $c + 1, $c;
+    }
+    $o .= "--:-:-:-:6      SHL t, off, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD lp0.CC, t, param_LIDX0;\n";
+    $o .= "--:-:-:-:6      IADD.X lp1, RZ, param_LIDX1;\n";
+    $o .= "--:-:-:-:6      IADD vp0.CC, t, param_LW0;\n";
+    $o .= "--:-:-:-:6      IADD.X vp1, RZ, param_LW1;\n";
+    for my $c (0..2) {
+        $o .= sprintf "%s:-:-:-:6      IADD slot, first, 0x%x;\n", $c ? "04" : "--", $c;   # the earlier entry's store has read slot
+        $o .= sprintf "02:3:-:-:1  \@P%d STG.E [lp+0x%x], slot;\n", $c + 1, 4 * $c;
+        $o .= sprintf "--:3:-:-:6  \@P%d STG.E [vp+0x%x], w;\n", $c + 1, 4 * $c;
+    }
+    # lane 0 publishes the count
+    $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P4, PT, lane, RZ, PT;\n";
+    $o .= "--:-:-:-:6      MOV ip0, param_NE0;\n";
+    $o .= "--:-:-:-:6      MOV ip1, param_NE1;\n";
+    $o .= "--:-:-:-:6      NOP;\n--:-:-:-:6      NOP;\n";
+    $o .= "--:3:-:-:1  \@P4 STG.E [ip], total;\n";
+    if ($ENV{DIE_BEACON}) {
+        # fault diagnosis: the last list's inputs in the die's beacon words (host-mapped, readable after a fault):
+        # word 16 + r = idx[r], 28 + r = map[idx[r]], 26 = the entry count
+        $o .= "--:-:1:-:2      LDS.64 bq0, [RZ+0xbf40];\n";
+        $o .= "--:-:-:-:6      ISETP.LT.U32.AND P5, PT, tid, 0xa, PT;\n";
+        $o .= "--:-:-:-:6      SHL t, lane, 0x2;\n";
+        $o .= "--:-:-:-:6      NOP;\n--:-:-:-:6      NOP;\n";
+        $o .= "01:-:-:-:6      ISETP.NE.U32.AND P5, PT, bq0, RZ, P5;\n";
+        $o .= "--:-:-:-:6      IADD bq0.CC, bq0, t;\n";
+        $o .= "--:-:-:-:6      IADD.X bq1, bq1, RZ;\n";
+        $o .= "--:-:-:-:6      NOP;\n--:-:-:-:6      NOP;\n--:-:-:-:6      NOP;\n";
+        $o .= "--:3:-:-:1  \@P5 STG.E.WT [bq+0x40], e;\n";
+        $o .= "--:3:-:-:1  \@P5 STG.E.WT [bq+0x70], m;\n";
+        $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P6, PT, tid, RZ, P5;\n";
+        $o .= "--:-:-:-:6      NOP;\n--:-:-:-:6      NOP;\n--:-:-:-:6      NOP;\n";
+        $o .= "--:3:-:-:1  \@P6 STG.E.WT [bq+0x68], total;\n";
+    }
+    $o .= "04:-:-:-:f      EXIT;\n";
+    return $o;
+</CODE>

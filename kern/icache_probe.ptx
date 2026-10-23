@@ -1,0 +1,9 @@
+// Skeleton for MaxAs: the entry name and parameter of icache_probe.sass
+.version 7.4
+.target sm_52
+.address_size 64
+
+.visible .entry icache_probe(.param .u64 pout)
+{
+	ret;
+}

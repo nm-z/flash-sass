@@ -1,0 +1,19 @@
+// Skeleton for MaxAs: the entry name, parameter layout and shared memory of gemm_q50 (GEMM_FMT=q50 gen_gemm.rb):
+// two 8-k tiles of 128 fp32 (positions and dequantised rows), double buffered. The
+// 32-k block tile (W = the tile, crow = row stride); ps/cstride/srow/sstride are unused.
+.version 7.4
+.target sm_52
+.address_size 64
+
+.visible .entry gemm_q50(.param .u64 pw, .param .u64 px, .param .u64 pc, .param .u32 rows, .param .u32 npos, .param .u32 k, .param .u32 ldx, .param .u64 pdbg, .param .u64 ps, .param .u32 crow, .param .u32 cstride, .param .u32 srow, .param .u32 sstride)
+{
+	.shared .align 16 .b8 tiles[16384];
+	.reg .u32 %r<2>;
+	.reg .pred %p;
+	ld.param.u32 %r0, [rows];
+	mov.u32 %r1, %tid.x;
+	setp.lt.u32 %p, %r1, %r0;
+	@%p ret;
+	st.shared.u32 [tiles], %r1;
+	ret;
+}

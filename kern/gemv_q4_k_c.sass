@@ -1,0 +1,287 @@
+# Kernel: gemv_q4_k_c
+#
+# The Q4_K / Q5_K GEMV of gemv_q4_k.sass (GEMV_FMT=q4_k or q5_k; same tile, same params, same arithmetic
+# and float order, so the same gemv_q4_k_ref / gemv_q5_k_ref results) with the sub-block steps rolled
+# into one loop, as gemv_q3_k_c does for Q3_K: x, its per-32 sums and its per-32 scales are staged in
+# shared memory once per CTA (x at 0, sums at 2 K, scales at 2 K + K / 8); lane l takes sub-block
+# s = lane + L i at step i; the steps of all rows run as one flat sequence, the 16 B header, the 16 B
+# of nibbles and (q5_k) the 4 B of high bits of step j + 1 loading while step j computes; q4_k_math.pl
+# holds the step arithmetic.
+#
+# Barriers: 1 = the next step's weight loads, 2 = LDS (and the store's read), 3 = I2F, 4 = F2F,
+# 5 = SHFL, 6 = S2R and the next-step address reads.
+#
+# Params: 0:0x140:8 W  1:0x148:8 X16  2:0x150:8 S32  3:0x158:8 Y
+#         4:0x160:4 rows  5:0x164:4 xs  6:0x168:8 dbg  7:0x170:8 AS
+
+<CONSTANT_MAPPING>
+    gridDimX   : c[0x0][0x14]
+    param_W0   : c[0x0][0x140]
+    param_W1   : c[0x0][0x144]
+    param_X0   : c[0x0][0x148]
+    param_X1   : c[0x0][0x14c]
+    param_S0   : c[0x0][0x150]
+    param_S1   : c[0x0][0x154]
+    param_Y0   : c[0x0][0x158]
+    param_Y1   : c[0x0][0x15c]
+    param_rows : c[0x0][0x160]
+    param_xs   : c[0x0][0x164]
+    param_AS0  : c[0x0][0x170]
+    param_AS1  : c[0x0][0x174]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0-15    : act<00-15>
+    16-19   : q<00-03>
+    20-23   : hdr<00-03>
+    24-27   : nq<0-3>
+    28-31   : nh<0-3>
+    32-39   : m<0-7>
+    41      : acc0
+    42      : acc1
+    43      : acc2
+    44      : acc3
+    45      : acc4
+    46      : acc5
+    47      : acc6
+    40      : acc7
+    49      : acch0
+    50      : acch1
+    51      : acch2
+    52      : acch3
+    53      : acch4
+    54      : acch5
+    55      : acch6
+    48      : acch7
+    56      : qh0
+    57      : nqh
+    58-60   : hs<1-3>
+    61      : dh
+    62      : sum0
+    63      : as0
+    64      : sc
+    65      : mn
+    66      : dot
+    67      : dotf
+    68      : scf
+    69      : t1
+    70      : t2
+    71      : t2f
+    72      : dd
+    73      : dm
+    74      : accf
+    75      : t
+    76      : u
+    77      : u1
+    78      : u2
+    79      : u3
+    80      : shj
+    81      : stepi
+    82      : row
+    83      : rowpair
+    84      : rowstep
+    85      : stepw
+    86      : dH
+    87      : dHB
+    88      : dQ
+    89      : dQB
+    90      : dC
+    91      : dCB
+    92      : xb
+    93      : sbase
+    94      : abase
+    95      : hsel
+    96      : qsel
+    97      : csel
+    98      : sa
+    99      : sa2
+    100,101 : hb2<0-1>
+    102,103 : cq2<0-1>
+    104,105 : ch2<0-1>
+    106,107 : yp<0-1>
+    108     : lane
+    109     : grp
+    110     : tid
+    111     : bid
+    112     : off
+    113     : t1p
+    114     : l8
+    115     : jj
+    116,117 : xp<0-1>
+    118,119 : ap<0-1>
+    120,121 : bp<0-1>
+</REGISTER_MAPPING>
+
+<CODE>
+    my $K = $ENV{GEMV_K} || 2560;
+    my $q5 = ($ENV{GEMV_FMT} || 'q4_k') eq 'q5_k';
+    my $L = $K >= 6144 ? 32 : 16;
+    my $n = ($K / 32) / $L;                 # sub-block steps per row: 5 or 6
+    my $B = $K / 256;
+    my $R = 256 / $L;                       # rows per CTA iteration
+    my $S = ($q5 ? 176 : 144) * $B;         # row stride
+    my $lgL = int(log($L)/log(2) + 0.5);
+    my $lgR = int(log($R)/log(2) + 0.5);
+    my $wrows = 32 / $L;
+    my $bstep = $L / 8;                     # blocks between a lane's consecutive sub-blocks
+    my ($hstep, $qstep, $cstep) = (16 * $bstep, 128 * $bstep, 32 * $bstep);
+    my $xstep = 64 * $L;                    # activation bytes between steps
+    my $chunks = 2 * $K / 16;               # 16 B activation chunks to stage
+    my $schunks = $K / 128;                 # 16 B chunks of the sums (and of the scales)
+    die "gemv_q4_k_c: $chunks activation chunks exceed three per thread" if $chunks > 768;
+    my $lg = sub { int(log($_[0])/log(2) + 0.5) };
+    my $mulc = sub {
+        my ($d, $rr, $c) = @_;
+        my @bits = grep { $c & (1 << $_) } 0..31;
+        my $first = shift @bits;
+        my $x = sprintf "--:-:-:-:6      SHL %s, %s, 0x%x;\n", $d, $rr, $first;
+        $x .= sprintf "--:-:-:-:6      ISCADD %s, %s, %s, 0x%x;\n", $d, $rr, $d, $_ for @bits;
+        return $x;
+    };
+    my $o = '';
+    $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
+    $o .= "--:-:6:-:1      S2R bid, SR_CTAID.X;\n";
+    $o .= "--:-:-:-:6      MOV rowstep, gridDimX;\n";
+    $o .= sprintf "20:-:-:-:6      LOP32I.AND lane, tid, 0x%x;\n", $L - 1;
+    $o .= sprintf "--:-:-:-:1      SHR.U32 grp, tid, 0x%x;\n", $lgL;
+    $o .= sprintf "--:-:-:-:6      SHL rowstep, rowstep, 0x%x;\n", $lgR;
+    $o .= "--:-:-:-:1      LOP32I.AND jj, lane, 0x7;\n";
+    $o .= "--:-:-:-:1      SHR.U32 l8, lane, 0x3;\n";
+    $o .= "--:-:-:-:1      ISETP.EQ.U32.AND P0, PT, lane, RZ, PT;\n";
+    $o .= sprintf "--:-:-:-:6      ISCADD row, bid, grp, 0x%x;\n", $lgR;
+    $o .= "--:-:-:-:6      LOP32I.AND shj, jj, 0x3;\n";
+    $o .= "--:-:-:-:6      SHL shj, shj, 0x3;\n";
+    $o .= $mulc->('stepw', 'rowstep', $S);
+    $o .= sprintf "--:-:-:-:6      LOP32I.AND rowpair, row, 0x%08x;\n", (~($wrows - 1)) & 0xffffffff;
+    $o .= $mulc->('off', 'row', $S);
+    # stage x, the sums and the scales: thread t copies 16 B chunks t, t + 256, t + 512 of x and chunk t of S32 / AS
+    my @st = map { sprintf "act%02d", 4 * $_ } 0..3;   # staging quads alias the activations and the nibbles (dead until the loop)
+    push @st, 'q00';
+    my $nst = int(($chunks + 255) / 256);
+    $o .= "--:-:-:-:6      SHL t1p, tid, 0x4;\n";
+    $o .= "--:-:-:-:6      IADD xp0.CC, t1p, param_X0;\n";
+    $o .= "--:-:-:-:6      IADD.X xp1, RZ, param_X1;\n";
+    $o .= "--:-:-:-:6      IADD bp0.CC, t1p, param_S0;\n";
+    $o .= "--:-:-:-:6      IADD.X bp1, RZ, param_S1;\n";
+    $o .= "--:-:-:-:6      IADD ap0.CC, t1p, param_AS0;\n";
+    $o .= "--:-:-:-:6      IADD.X ap1, RZ, param_AS1;\n";
+    for my $c (0..$nst-1) {
+        my $lim = $chunks - 256 * $c;
+        $o .= sprintf "--:-:-:-:6      ISETP.LT.U32.AND P%d, PT, tid, 0x%x, PT;\n", 3 + $c, $lim < 256 ? $lim : 256;
+    }
+    $o .= sprintf "--:-:-:-:6      ISETP.LT.U32.AND P6, PT, tid, 0x%x, PT;\n", $schunks;
+    $o .= "--:-:-:-:6      NOP;\n--:-:-:-:6      NOP;\n";
+    for my $c (0..$nst-1) { $o .= sprintf "--:-:1:-:1  \@P%d LDG.E.CI.128 %s, [xp+0x%x];\n", 3 + $c, $st[$c], 4096 * $c; }
+    $o .= sprintf "--:-:1:-:1  \@P6 LDG.E.CI.128 %s, [bp];\n", $st[3];
+    $o .= sprintf "--:-:1:-:1  \@P6 LDG.E.CI.128 %s, [ap];\n", $st[4];
+    # pointers of the first step: hb2 = W + off + 16 l8 ; cq2 = W + off + 16 B + 128 l8 + 16 j ; ch2 = W + off + 144 B + 32 l8 + 4 j
+    $o .= "--:-:-:-:6      ISCADD t1p, l8, off, 0x4;\n";
+    $o .= "--:-:-:-:6      IADD hb20.CC, t1p, param_W0;\n";
+    $o .= "--:-:-:-:6      IADD.X hb21, RZ, param_W1;\n";
+    $o .= "--:-:-:-:6      ISCADD t1p, l8, off, 0x7;\n";
+    $o .= "--:-:-:-:6      ISCADD t1p, jj, t1p, 0x4;\n";
+    $o .= sprintf "--:-:-:-:6      IADD t1p, t1p, 0x%x;\n", 16 * $B;
+    $o .= "--:-:-:-:6      IADD cq20.CC, t1p, param_W0;\n";
+    $o .= "--:-:-:-:6      IADD.X cq21, RZ, param_W1;\n";
+    if ($q5) {
+        $o .= "--:-:-:-:6      ISCADD t1p, l8, off, 0x5;\n";
+        $o .= "--:-:-:-:6      ISCADD t1p, jj, t1p, 0x2;\n";
+        $o .= sprintf "--:-:-:-:6      IADD t1p, t1p, 0x%x;\n", 144 * $B;
+        $o .= "--:-:-:-:6      IADD ch20.CC, t1p, param_W0;\n";
+        $o .= "--:-:-:-:6      IADD.X ch21, RZ, param_W1;\n";
+    }
+    $o .= "--:-:-:-:6      SHL t1p, row, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD yp0.CC, t1p, param_Y0;\n";
+    $o .= "--:-:-:-:6      IADD.X yp1, RZ, param_Y1;\n";
+    # flat-step deltas: within a row +step; from a row's last step to the next row's first +stepw - (n-1) step
+    $o .= sprintf "--:-:-:-:6      MOV32I dH, 0x%x;\n", $hstep;
+    $o .= sprintf "--:-:-:-:6      IADD dHB, stepw, -0x%x;\n", ($n - 1) * $hstep;
+    $o .= sprintf "--:-:-:-:6      MOV32I dQ, 0x%x;\n", $qstep;
+    $o .= sprintf "--:-:-:-:6      IADD dQB, stepw, -0x%x;\n", ($n - 1) * $qstep;
+    if ($q5) {
+        $o .= sprintf "--:-:-:-:6      MOV32I dC, 0x%x;\n", $cstep;
+        $o .= sprintf "--:-:-:-:6      IADD dCB, stepw, -0x%x;\n", ($n - 1) * $cstep;
+    }
+    # shared-memory bases: sub-block lane + L i: activations at 64 (lane + L i), sum at 2 K + 4 (lane + L i), scale at 2 K + K / 8 + 4 (lane + L i)
+    $o .= "--:-:-:-:6      SHL xb, lane, 0x6;\n";
+    $o .= sprintf "--:-:-:-:6      ISCADD sbase, lane, 0x%x, 0x2;\n", 2 * $K;
+    $o .= sprintf "--:-:-:-:6      ISCADD abase, lane, 0x%x, 0x2;\n", 2 * $K + $K / 8;
+    $o .= "--:-:-:-:6      SHL t1p, tid, 0x4;\n";
+    for my $c (0..$nst-1) { $o .= sprintf "%s:2:-:-:1  \@P%d STS.128 [t1p+0x%x], %s;\n", $c ? '--' : '01', 3 + $c, 4096 * $c, $st[$c]; }
+    $o .= sprintf "--:2:-:-:1  \@P6 STS.128 [t1p+0x%x], %s;\n", 2 * $K, $st[3];
+    $o .= sprintf "--:2:-:-:1  \@P6 STS.128 [t1p+0x%x], %s;\n", 2 * $K + $K / 8, $st[4];
+    $o .= "02:-:-:-:6      BAR.SYNC 0x0;\n";
+    # P6 = this lane's sub-block index j >= 4 (the scale decode); P3: this lane's row exists
+    $o .= "--:-:-:-:1      ISETP.GE.U32.AND P6, PT, jj, 0x4, PT;\n";
+    $o .= "--:-:-:-:1      ISETP.LT.U32.AND P3, PT, row, param_rows, PT;\n";
+    $o .= "--:-:-:-:1      ISETP.LT.U32.AND P2, PT, row, param_rows, P0;\n";
+    $o .= "--:-:-:-:6      MOV stepi, RZ;\n";
+    $o .= "--:-:-:-:6      MOV accf, RZ;\n";
+    $o .= "--:-:-:-:6      NOP;\n";
+    $o .= "--:6:1:-:1  \@P3 LDG.E.CI.128 nh0, [hb2];\n";
+    $o .= "--:6:1:-:1  \@P3 LDG.E.CI nqh, [ch2];\n" if $q5;
+    $o .= "--:6:1:-:2  \@P3 LDG.E.CI.128 nq0, [cq2];\n";
+    $o .= "20:-:-:-:6      IADD hb20.CC, hb20, dH;\n--:-:-:-:6      IADD.X hb21, hb21, RZ;\n";
+    $o .= "--:-:-:-:6      IADD cq20.CC, cq20, dQ;\n--:-:-:-:6      IADD.X cq21, cq21, RZ;\n";
+    $o .= "--:-:-:-:6      IADD ch20.CC, ch20, dC;\n--:-:-:-:6      IADD.X ch21, ch21, RZ;\n" if $q5;
+
+    $o .= "\nLOOP:\n";
+    # this step's weights; P3 = the row of step j + 1 exists (the next row after a row's last step)
+    $o .= "01:-:-:-:1      MOV hdr00, nh0;\n";
+    $o .= "--:-:-:-:1      MOV hdr01, nh1;\n";
+    $o .= "--:-:-:-:1      MOV hdr02, nh2;\n";
+    $o .= "--:-:-:-:1      MOV hdr03, nh3;\n";
+    $o .= "--:-:-:-:1      MOV q00, nq0;\n";
+    $o .= "--:-:-:-:1      MOV q01, nq1;\n";
+    $o .= "--:-:-:-:1      MOV q02, nq2;\n";
+    $o .= "--:-:-:-:1      MOV q03, nq3;\n";
+    $o .= "--:-:-:-:1      MOV qh0, nqh;\n" if $q5;
+    $o .= sprintf "--:-:-:-:1      ISETP.EQ.U32.AND P4, PT, stepi, 0x%x, PT;\n", $n - 1;
+    $o .= sprintf "--:-:-:-:1      ISETP.EQ.U32.AND P5, PT, stepi, 0x%x, PT;\n", $n - 2;
+    $o .= "--:-:-:-:6      IADD t, row, rowstep;\n";
+    $o .= sprintf "--:-:-:-:6      SHL t1p, stepi, 0x%x;\n", $lg->($xstep);
+    $o .= "--:-:-:-:6      IADD t1p, t1p, xb;\n";
+    $o .= sprintf "--:-:-:-:6      ISCADD sa, stepi, abase, 0x%x;\n", $lg->(4 * $L);
+    $o .= sprintf "--:-:-:-:6      ISCADD sa2, stepi, sbase, 0x%x;\n", $lg->(4 * $L);
+    $o .= "--:-:-:-:6      SEL t, t, row, P4;\n";
+    $o .= "--:-:-:-:6      ISETP.LT.U32.AND P3, PT, t, param_rows, PT;\n";
+    $o .= "--:-:2:-:1      LDS.128 act00, [t1p];\n";
+    $o .= "--:-:2:-:1      LDS.128 act04, [t1p+0x10];\n";
+    $o .= "--:-:2:-:1      LDS.128 act08, [t1p+0x20];\n";
+    $o .= "--:-:2:-:1      LDS.128 act12, [t1p+0x30];\n";
+    $o .= "--:-:2:-:1      LDS as0, [sa];\n";
+    $o .= "--:-:2:-:1      LDS sum0, [sa2];\n";
+    $o .= "--:-:-:-:6      SEL hsel, dHB, dH, P5;\n";
+    $o .= "--:-:-:-:6      SEL qsel, dQB, dQ, P5;\n";
+    $o .= "--:-:-:-:6      SEL csel, dCB, dC, P5;\n" if $q5;
+    $o .= "--:6:1:-:1  \@P3 LDG.E.CI.128 nh0, [hb2];\n";
+    $o .= "--:6:1:-:1  \@P3 LDG.E.CI nqh, [ch2];\n" if $q5;
+    $o .= "--:6:1:-:2  \@P3 LDG.E.CI.128 nq0, [cq2];\n";
+    $o .= "20:-:-:-:6      IADD hb20.CC, hb20, hsel;\n--:-:-:-:6      IADD.X hb21, hb21, RZ;\n";
+    $o .= "--:-:-:-:6      IADD cq20.CC, cq20, qsel;\n--:-:-:-:6      IADD.X cq21, cq21, RZ;\n";
+    $o .= "--:-:-:-:6      IADD ch20.CC, ch20, csel;\n--:-:-:-:6      IADD.X ch21, ch21, RZ;\n" if $q5;
+    require './q4_k_math.pl';
+    # the step's weights are already in registers (the MOVs above): wait only for the LDS
+    $o .= q4_k_step_code($q5, '02', 'P6');
+    $o .= "--:-:-:-:6      IADD stepi, stepi, 0x1;\n";
+    $o .= "--:-:-:-:6 \@!P4 BRA LOOP;\n";
+
+    # row end: butterfly, store, next row (P1: the warp's next row pair exists)
+    for (my $x = $L / 2; $x >= 1; $x >>= 1) {
+        $o .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, accf, 0x%x, 0x1f;\n", $x;
+        $o .= "10:-:-:-:6      FADD accf, accf, t;\n";
+    }
+    $o .= "--:2:-:-:1  \@P2 STG.E [yp], accf;\n";
+    $o .= "--:-:-:-:6      IADD row, row, rowstep;\n";
+    $o .= "--:-:-:-:6      IADD rowpair, rowpair, rowstep;\n";
+    $o .= "--:-:-:-:6      SHL t, rowstep, 0x2;\n";
+    $o .= "--:-:-:-:1      ISETP.LT.U32.AND P1, PT, rowpair, param_rows, PT;\n";
+    $o .= "--:-:-:-:1      ISETP.LT.U32.AND P2, PT, row, param_rows, P0;\n";
+    $o .= "02:-:-:-:6      IADD yp0.CC, yp0, t;\n";
+    $o .= "--:-:-:-:6      IADD.X yp1, yp1, RZ;\n";
+    $o .= "--:-:-:-:6      MOV stepi, RZ;\n";
+    $o .= "--:-:-:-:6      MOV accf, RZ;\n";
+    $o .= "--:-:-:-:6  \@P1 BRA LOOP;\n";
+    $o .= "--:-:-:-:f      EXIT;\n";
+    return $o;
+</CODE>

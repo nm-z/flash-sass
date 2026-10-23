@@ -1,0 +1,278 @@
+# Kernel: router
+#
+# MoE router, one warp: 512 logits (lane l holds r[16 l .. 16 l + 15]).
+#   m0 = max r (lane FMNMX chain, xor 16..1 butterfly)
+#   10 rounds: m_j = max of the remaining values; the lowest index among the
+#     values bit-equal to m_j (XOR + ICMP.EQ candidates, IMNMX.U32 chain and
+#     butterfly); that element becomes -inf (IADD + ICMP.EQ, no predicates)
+#   e_j = exp(m_j - m0) (fmath), den = ((e_0 + e_1) + ...) in selection order,
+#   w_j = e_j * rcp(den); s = sigmoid(sh). Lane 0 stores idx[10], w[10], s.
+# Bit-exact twin: ref/router.c router_gpu.
+#
+# Params: 0:0x140:8 R  1:0x148:8 SH  2:0x150:8 IDX  3:0x158:8 W  4:0x160:8 S
+
+<CONSTANT_MAPPING>
+    param_R0   : c[0x0][0x140]
+    param_R1   : c[0x0][0x144]
+    param_SH0  : c[0x0][0x148]
+    param_SH1  : c[0x0][0x14c]
+    param_I0   : c[0x0][0x150]
+    param_I1   : c[0x0][0x154]
+    param_W0   : c[0x0][0x158]
+    param_W1   : c[0x0][0x15c]
+    param_S0   : c[0x0][0x160]
+    param_S1   : c[0x0][0x164]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0-15  : v<00-15>
+    16-31 : kb<00-15>
+    32-41 : m<0-9>
+    42-51 : e<0-9>
+    52-56 : ft<1-5>
+    57    : log2e
+    58    : ln2hi
+    59    : ln2lo
+    60    : c720
+    61    : c120
+    62    : c24
+    63    : c6
+    64    : c11
+    65    : c9
+    66    : c7
+    67    : c5
+    68    : c3
+    69    : mneg1
+    70    : chalf
+    71    : cone
+    72    : tid
+    73    : lane
+    74    : t
+    75    : mx
+    76    : ix
+    77    : d
+    78    : neginf
+    79    : den
+    80    : sh
+    81    : mtop
+    82    : idx0
+    83    : idx1
+    84    : idx2
+    85    : idx3
+    86    : idx4
+    87    : idx5
+    88    : idx6
+    89    : idx7
+    90    : idx8
+    91    : idx9
+    92,93 : rp<0-1>
+    94,95 : op<0-1>
+</REGISTER_MAPPING>
+
+<CODE>
+    require './fmath.pl';
+    my %C = map { $_ => $_ } qw(log2e ln2hi ln2lo c720 c120 c24 c6 c11 c9 c7 c5 c3 mneg1 chalf cone);
+    my $o = '';
+    # ROUTER_LOOP=1: the same selection and arithmetic as a 10-round loop with tree
+    # reductions, about a fifth of the code. Max and the lowest equal index do not depend
+    # on the combination order; each exp, the den sum (in selection order), the reciprocal
+    # and the weights keep the reference sequence. Lane j keeps round j's index and weight.
+    if ($ENV{ROUTER_LOOP}) {
+        my ($jr, $myw, $myidx, $ffff) = ('d', 'idx8', 'idx9', 'e9');
+        my @tmp = ((map { "m$_" } 0..9), (map { "e$_" } 0..8), (map { "idx$_" } 0..7));
+        # issue each fixed-latency (6 cycle) instruction as soon as its sources are ready
+        my $sched = sub {
+            my ($ins) = @_;
+            my (%ready, @issue);
+            for my $i (0 .. scalar(@$ins) - 1) {
+                my ($txt, $dst, $srcs) = @{$ins->[$i]};
+                my $t = $i ? $issue[$i - 1] + 1 : 0;
+                for my $s (@$srcs) { $t = $ready{$s} if exists $ready{$s} && $ready{$s} > $t; }
+                $issue[$i] = $t;
+                $ready{$dst} = $t + 6 if defined $dst;
+            }
+            my $c = '';
+            for my $i (0 .. scalar(@$ins) - 1) {
+                my $stall = $i < scalar(@$ins) - 1 ? $issue[$i + 1] - $issue[$i] : 6;
+                my $pad = 0;
+                while ($stall > 15) { $pad++; $stall -= 6; }
+                $c .= sprintf "--:-:-:-:%x      %s;\n", $stall, $ins->[$i][0];
+                $c .= "--:-:-:-:6      NOP;\n" x $pad;
+            }
+            return $c;
+        };
+        # balanced tree over @$src with $op (dst, a, b, tail), result in $dst; $inplace
+        # writes each pair's result over its first operand (the sources are dead afterwards)
+        my $tree = sub {
+            my ($op, $tail, $src, $dst, $inplace) = @_;
+            my @cur = @$src; my @ins; my $k = 0;
+            while (@cur > 1) {
+                my @next;
+                while (@cur >= 2) {
+                    my ($a, $b) = splice(@cur, 0, 2);
+                    my $r = (@cur == 0 && @next == 0) ? $dst : $inplace ? $a : $tmp[$k++];
+                    die "router: tree temps exhausted" unless defined $r;
+                    push @ins, [ "$op $r, $a, $b$tail", $r, [ $a, $b ] ];
+                    push @next, $r;
+                }
+                push @next, @cur; @cur = @next;
+            }
+            return @ins;
+        };
+        my $bfly = sub {
+            my ($op, $reg, $tail) = @_;
+            my $c = '';
+            for my $x (16, 8, 4, 2, 1) {
+                $c .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, %s, 0x%x, 0x1f;\n", $reg, $x;
+                $c .= "10:-:-:-:6      $op $reg, $reg, t$tail;\n";
+            }
+            return $c;
+        };
+        my @v = map { sprintf "v%02d", $_ } 0..15;
+        my @kb = map { sprintf "kb%02d", $_ } 0..15;
+        $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
+        $o .= fm_consts(\%C);
+        $o .= "--:-:-:-:6      MOV32I neginf, 0xff800000;\n";
+        $o .= "--:-:-:-:6      MOV32I $ffff, 0xffffffff;\n";
+        $o .= "20:-:-:-:6      ISETP.GE.U32.AND P0, PT, tid, 0x20, PT;\n";
+        $o .= "--:-:-:-:6      LOP32I.AND lane, tid, 0x1f;\n";
+        $o .= "--:-:-:-:6      SHL t, lane, 0x6;\n";
+        $o .= "--:-:-:-:6  \@P0 EXIT;\n";
+        $o .= "--:-:-:-:6      IADD rp0.CC, t, param_R0;\n";
+        $o .= "--:-:-:-:6      IADD.X rp1, RZ, param_R1;\n";
+        $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P1, PT, lane, RZ, PT;\n";
+        $o .= sprintf "--:-:1:-:%s      LDG.E.128 v%02d, [rp+0x%x];\n", $_ == 3 ? '2' : '1', 4*$_, 16*$_ for 0..3;
+        $o .= "--:-:-:-:6      MOV op0, param_SH0;\n";
+        $o .= "--:-:-:-:6      MOV op1, param_SH1;\n";
+        $o .= "--:-:2:-:2      LDG.E sh, [op];\n";
+        $o .= "--:-:-:-:6      SHL t, lane, 0x4;\n";
+        $o .= sprintf "--:-:-:-:%s      IADD kb%02d, t, 0x%x;\n", $_ == 15 ? '6' : '1', $_, $_ for 0..15;
+        $o .= "--:-:-:-:6      MOV den, RZ;\n";
+        $o .= "--:-:-:-:6      MOV $jr, RZ;\n";
+        # m0: the largest of the 512 logits
+        $o .= "01:-:-:-:6      NOP;\n";
+        $o .= $sched->([ $tree->('FMNMX', ', !PT', \@v, 'mx') ]);
+        $o .= $bfly->('FMNMX', 'mx', ', !PT');
+        $o .= "--:-:-:-:6      MOV mtop, mx;\n";
+        $o .= "LOOP:\n";
+        # m_j: the largest remaining value
+        $o .= $sched->([ $tree->('FMNMX', ', !PT', \@v, 'mx') ]);
+        $o .= $bfly->('FMNMX', 'mx', ', !PT');
+        # its lowest index among bit-equal values (XOR + ICMP.EQ candidates, unsigned min)
+        my @cand = @tmp[0..15];
+        my @ins = map { [ "LOP.XOR $cand[$_], $v[$_], mx", $cand[$_], [ $v[$_] ] ] } 0..15;
+        push @ins, map { [ "ICMP.EQ $cand[$_], $kb[$_], $ffff, $cand[$_]", $cand[$_], [ $cand[$_] ] ] } 0..15;
+        push @ins, $tree->('IMNMX.U32', ', PT', \@cand, 'ix', 1);
+        $o .= $sched->(\@ins);
+        $o .= $bfly->('IMNMX.U32', 'ix', ', PT');
+        # knock the winner out
+        my @dk = @tmp[0..15];
+        @ins = map { [ "IADD $dk[$_], $kb[$_], -ix", $dk[$_], [] ] } 0..15;
+        push @ins, map { [ "ICMP.EQ $v[$_], neginf, $v[$_], $dk[$_]", $v[$_], [ $dk[$_] ] ] } 0..15;
+        $o .= $sched->(\@ins);
+        # e_j = exp(m_j - m0) and den in selection order; lane j keeps index j and e_j
+        $o .= "--:-:-:-:6      FADD ft5, mx, -mtop;\n";
+        $o .= fm_exp('e8', 'ft5', 'ft1', 'ft2', 'ft3', \%C);
+        $o .= "--:-:-:-:6      FADD den, den, e8;\n";
+        $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P2, PT, lane, $jr, PT;\n";
+        $o .= "--:-:-:-:6      IADD $jr, $jr, 0x1;\n";
+        $o .= "--:-:-:-:6      NOP;\n";
+        $o .= "--:-:-:-:6      ISETP.LT.U32.AND P3, PT, $jr, 0xa, PT;\n";
+        $o .= "--:-:-:-:6  \@P2 MOV $myw, e8;\n";
+        $o .= "--:-:-:-:6  \@P2 MOV $myidx, ix;\n";
+        $o .= "--:-:-:-:6      NOP;\n";
+        $o .= "--:-:-:-:6  \@P3 BRA LOOP;\n";
+        $o .= fm_rcp('t', 'den', 'ft1', \%C);
+        $o .= "--:-:-:-:6      FMUL $myw, $myw, t;\n";
+        $o .= "02:-:-:-:6      MOV ft5, sh;\n";
+        $o .= fm_sigmoid('sh', 'ft5', 'ft1', 'ft2', 'ft3', 'ft4', \%C);
+        $o .= "--:-:-:-:6      ISETP.LT.U32.AND P2, PT, lane, 0xa, PT;\n";
+        $o .= "--:-:-:-:6      SHL t, lane, 0x2;\n";
+        $o .= "--:-:-:-:6      IADD op0.CC, t, param_I0;\n";
+        $o .= "--:-:-:-:6      IADD.X op1, RZ, param_I1;\n";
+        $o .= "--:2:-:-:6  \@P2 STG.E [op], $myidx;\n";
+        $o .= "02:-:-:-:6      IADD op0.CC, t, param_W0;\n";
+        $o .= "--:-:-:-:6      IADD.X op1, RZ, param_W1;\n";
+        $o .= "--:2:-:-:6  \@P2 STG.E [op], $myw;\n";
+        $o .= "02:-:-:-:6      MOV op0, param_S0;\n";
+        $o .= "--:-:-:-:6      MOV op1, param_S1;\n";
+        $o .= "--:2:-:-:1  \@P1 STG.E [op], sh;\n";
+        $o .= "02:-:-:-:f      EXIT;\n";
+        return $o;
+    }
+    $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
+    $o .= fm_consts(\%C);
+    $o .= "--:-:-:-:6      MOV32I neginf, 0xff800000;\n";
+    $o .= "20:-:-:-:6      ISETP.GE.U32.AND P0, PT, tid, 0x20, PT;\n";
+    $o .= "--:-:-:-:6      LOP32I.AND lane, tid, 0x1f;\n";
+    $o .= "--:-:-:-:6      SHL t, lane, 0x6;\n";
+    $o .= "--:-:-:-:6  \@P0 EXIT;\n";
+    $o .= "--:-:-:-:6      IADD rp0.CC, t, param_R0;\n";
+    $o .= "--:-:-:-:6      IADD.X rp1, RZ, param_R1;\n";
+    $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P1, PT, lane, RZ, PT;\n";
+    $o .= sprintf "--:-:1:-:%s      LDG.E.128 v%02d, [rp+0x%x];\n", $_ == 3 ? '2' : '1', 4*$_, 16*$_ for 0..3;
+    $o .= "--:-:-:-:6      MOV op0, param_SH0;\n";
+    $o .= "--:-:-:-:6      MOV op1, param_SH1;\n";
+    $o .= "--:-:2:-:2      LDG.E sh, [op];\n";
+    # kb_k = 16 lane + k
+    $o .= "--:-:-:-:6      SHL t, lane, 0x4;\n";
+    $o .= sprintf "--:-:-:-:%s      IADD kb%02d, t, 0x%x;\n", $_ == 15 ? '6' : '1', $_, $_ for 0..15;
+    # m0
+    $o .= "01:-:-:-:6      FMNMX mx, v00, v01, !PT;\n";
+    $o .= sprintf "--:-:-:-:6      FMNMX mx, mx, v%02d, !PT;\n", $_ for 2..15;
+    for my $x (16, 8, 4, 2, 1) {
+        $o .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, mx, 0x%x, 0x1f;\n", $x;
+        $o .= "10:-:-:-:6      FMNMX mx, mx, t, !PT;\n";
+    }
+    $o .= "--:-:-:-:6      MOV mtop, mx;\n";
+    for my $j (0..9) {
+        if ($j > 0) {
+            $o .= "--:-:-:-:6      FMNMX mx, v00, v01, !PT;\n";
+            $o .= sprintf "--:-:-:-:6      FMNMX mx, mx, v%02d, !PT;\n", $_ for 2..15;
+            for my $x (16, 8, 4, 2, 1) {
+                $o .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, mx, 0x%x, 0x1f;\n", $x;
+                $o .= "10:-:-:-:6      FMNMX mx, mx, t, !PT;\n";
+            }
+        }
+        $o .= "--:-:-:-:6      MOV m$j, mx;\n";
+        # lowest index with v == mx: candidates via XOR + ICMP.EQ, then IMNMX.U32
+        $o .= "--:-:-:-:6      MOV32I ix, 0xffffffff;\n";
+        for my $k (0..15) {
+            $o .= sprintf "--:-:-:-:6      LOP.XOR d, v%02d, mx;\n", $k;
+            $o .= sprintf "--:-:-:-:6      ICMP.EQ t, kb%02d, ix, d;\n", $k;
+            $o .= "--:-:-:-:6      IMNMX.U32 ix, ix, t, PT;\n";
+        }
+        for my $x (16, 8, 4, 2, 1) {
+            $o .= sprintf "--:-:5:-:3      SHFL.BFLY PT, t, ix, 0x%x, 0x1f;\n", $x;
+            $o .= "10:-:-:-:6      IMNMX.U32 ix, ix, t, PT;\n";
+        }
+        $o .= "--:-:-:-:6      MOV idx$j, ix;\n";
+        # knock the winner out
+        for my $k (0..15) {
+            $o .= sprintf "--:-:-:-:6      IADD d, kb%02d, -ix;\n", $k;
+            $o .= sprintf "--:-:-:-:6      ICMP.EQ v%02d, neginf, v%02d, d;\n", $k, $k;
+        }
+    }
+    # weights (every lane computes them; lane 0 stores)
+    for my $j (0..9) {
+        $o .= "--:-:-:-:6      FADD ft5, m$j, -mtop;\n";
+        $o .= fm_exp("e$j", 'ft5', 'ft1', 'ft2', 'ft3', \%C);
+    }
+    $o .= "--:-:-:-:6      MOV den, e0;\n";
+    $o .= sprintf "--:-:-:-:6      FADD den, den, e%d;\n", $_ for 1..9;
+    $o .= fm_rcp('t', 'den', 'ft1', \%C);
+    $o .= sprintf "--:-:-:-:%s      FMUL e%d, e%d, t;\n", $_ == 9 ? '6' : '1', $_, $_ for 0..9;
+    $o .= "02:-:-:-:6      MOV ft5, sh;\n";
+    $o .= fm_sigmoid('sh', 'ft5', 'ft1', 'ft2', 'ft3', 'ft4', \%C);
+    $o .= "--:-:-:-:6      MOV op0, param_I0;\n";
+    $o .= "--:-:-:-:6      MOV op1, param_I1;\n";
+    $o .= sprintf "--:2:-:-:1  \@P1 STG.E [op+0x%x], idx%d;\n", 4*$_, $_ for 0..9;
+    $o .= "02:-:-:-:6      MOV op0, param_W0;\n";
+    $o .= "--:-:-:-:6      MOV op1, param_W1;\n";
+    $o .= sprintf "--:2:-:-:1  \@P1 STG.E [op+0x%x], e%d;\n", 4*$_, $_ for 0..9;
+    $o .= "02:-:-:-:6      MOV op0, param_S0;\n";
+    $o .= "--:-:-:-:6      MOV op1, param_S1;\n";
+    $o .= "--:2:-:-:1  \@P1 STG.E [op], sh;\n";
+    $o .= "02:-:-:-:f      EXIT;\n";
+    return $o;
+</CODE>

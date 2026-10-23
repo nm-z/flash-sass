@@ -1,0 +1,18 @@
+// Skeleton for MaxAs: the entry name and parameter layout of gemv_q3_k, plus the shared memory
+// gemv_q3_k_c stages x and its scales in (2 K + K / 8 bytes, K = 6144 at most).
+.version 7.4
+.target sm_52
+.address_size 64
+
+.visible .entry gemv_q3_k(.param .u64 pw, .param .u64 px, .param .u64 ps, .param .u64 py, .param .u32 rows, .param .f32 xs, .param .u64 pdbg, .param .u64 pas)
+{
+	.shared .align 16 .b8 stage[13056];
+	.reg .u32 %r<2>;
+	.reg .pred %p;
+	ld.param.u32 %r0, [rows];
+	mov.u32 %r1, %tid.x;
+	setp.lt.u32 %p, %r1, %r0;
+	@%p ret;
+	st.shared.u32 [stage], %r1;
+	ret;
+}

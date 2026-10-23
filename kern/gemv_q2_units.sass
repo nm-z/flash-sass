@@ -1,0 +1,263 @@
+# Kernel: gemv_q2_units  (op q2downu)
+#
+# The routed experts' down projection on one die of the unit split (kern/hold2.c, ref/split2.h):
+#   y[r] = PART[r] + sum_{k < NE} LW[k] * dot(unit LIDX[k] row r, act k)
+# for the 2560 output rows. A unit is block j (64 columns) of one expert's down rows, stored as
+# 2560 x 16 B of 2-bit codes, then 2560 fp16 scales (46080 B per unit slot); act k is the int16-coded
+# SiLU(g) * u of list entry k's 64 FFN rows with its two per-32 sums and scales (op ffnact128).
+# Each row's result goes to the inbox of the die that owns the row (the reduce-scatter): owner = the
+# number of boundaries B1..B5 at or below r, address TAB[owner] + XOFF + 4 r (XOFF = slot + this die's
+# 2560-float region), so every owner receives six partial vectors side by side.
+#
+# CTA b takes rows 160 b .. 160 b + 159, one per thread; threads 160..255 only help stage. The unit
+# list and the activations are staged in shared memory once; each thread walks the list with two
+# register sets in flight (A: even entries, B: odd), so a unit's 18 B are loaded two entries ahead.
+# Per 32-element half the integer dot is the gemv_q2_0 sequence (8 masks, 16 XMAD, shift-sum with the
+# -sum folded into the first XMAD), then accf = fma(as_h, d * dot_h, accf); entries are summed by FFMA
+# in list order on top of PART.
+#
+# Shared memory: entry k's 64 codes at 144 k (+128: two int32 sums, +136: two scales), the list at
+# 0x1200 + 8 k (slot, weight); at most 32 entries.
+#
+# Params: 0:0x140 W  1:0x148 X16  2:0x150 S32  3:0x158 TAB  4:0x160 rows  5:0x164 XOFF  6:0x168 LIDX
+#         7:0x170 AS  8:0x178 LW  9:0x180 NE  10:0x188 PART  11:0x190 B1 .. 0x1a0 B5
+
+<CONSTANT_MAPPING>
+    param_W0    : c[0x0][0x140]
+    param_W1    : c[0x0][0x144]
+    param_X0    : c[0x0][0x148]
+    param_X1    : c[0x0][0x14c]
+    param_S0    : c[0x0][0x150]
+    param_S1    : c[0x0][0x154]
+    param_TAB0  : c[0x0][0x158]
+    param_TAB1  : c[0x0][0x15c]
+    param_rows  : c[0x0][0x160]
+    param_XOFF  : c[0x0][0x164]
+    param_LI0   : c[0x0][0x168]
+    param_LI1   : c[0x0][0x16c]
+    param_AS0   : c[0x0][0x170]
+    param_AS1   : c[0x0][0x174]
+    param_LW0   : c[0x0][0x178]
+    param_LW1   : c[0x0][0x17c]
+    param_NE0   : c[0x0][0x180]
+    param_NE1   : c[0x0][0x184]
+    param_PA0   : c[0x0][0x188]
+    param_PA1   : c[0x0][0x18c]
+    param_B1    : c[0x0][0x190]
+    param_B2    : c[0x0][0x194]
+    param_B3    : c[0x0][0x198]
+    param_B4    : c[0x0][0x19c]
+    param_B5    : c[0x0][0x1a0]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0-31    : act<00-31>
+    32-35   : qa<0-3>
+    36-39   : qb<0-3>
+    40      : da
+    41      : db
+    42-49   : m<0-7>
+    50-57   : acc<0-7>
+    58      : dot
+    59      : dotf
+    60      : u
+    61      : accf
+    62      : t
+    63      : y
+    64      : ne
+    65      : k
+    66      : r
+    67      : tid
+    68      : bid
+    69      : sl
+    70      : lw
+    71      : dsc
+    72,73   : ns<0-1>
+    74,75   : as<0-1>
+    76,77   : wa<0-1>
+    78,79   : wb<0-1>
+    80,81   : sa<0-1>
+    82,83   : sb<0-1>
+    84,85   : pp<0-1>
+    86,87   : cb<0-1>
+    88,89   : sbp<0-1>
+    90,91   : dst<0-1>
+    92      : slotv
+    93      : t2
+    94      : own
+    95      : j
+</REGISTER_MAPPING>
+
+<CODE>
+    my $o = '';
+    my $UB = 46080;          # bytes per unit slot
+    my $SC = 40960;          # offset of the scales in a slot
+    my $LST = 0x1200;        # the staged list
+    # ---- prologue: ids, NE, the row, PART ----
+    $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
+    $o .= "--:-:6:-:1      S2R bid, SR_CTAID.X;\n";
+    $o .= "--:-:-:-:6      MOV pp0, param_NE0;\n";
+    $o .= "--:-:-:-:6      MOV pp1, param_NE1;\n";
+    $o .= "--:-:1:-:2      LDG.E ne, [pp];\n";
+    $o .= "20:-:-:-:6      XMAD r, bid, 0xa0, tid;\n";                       # r = 160 bid + tid
+    $o .= "--:-:-:-:6      ISETP.LT.U32.AND P4, PT, tid, 0xa0, PT;\n";           # P4: this thread owns a row (rows = 2560 = 16 x 160)
+    # cb = W + 16 r (codes), sbp = W + 40960 + 2 r (scales)
+    $o .= "--:-:-:-:6      SHL t, r, 0x4;\n";
+    $o .= "--:-:-:-:6      IADD cb0.CC, t, param_W0;\n";
+    $o .= "--:-:-:-:6      IADD.X cb1, RZ, param_W1;\n";
+    $o .= "--:-:-:-:6      SHL t, r, 0x1;\n";
+    $o .= sprintf "--:-:-:-:6      IADD t, t, 0x%x;\n", $SC;
+    $o .= "--:-:-:-:6      IADD sbp0.CC, t, param_W0;\n";
+    $o .= "--:-:-:-:6      IADD.X sbp1, RZ, param_W1;\n";
+    # y = PART[r]
+    $o .= "--:-:-:-:6      SHL t, r, 0x2;\n";
+    $o .= "01:-:-:-:6      IADD pp0.CC, t, param_PA0;\n";                        # the NE load has read pp (it is complete)
+    $o .= "--:-:-:-:6      IADD.X pp1, RZ, param_PA1;\n";
+    $o .= "--:-:-:-:6      MOV y, RZ;\n";
+    $o .= "--:2:6:-:1  \@P4 LDG.E y, [pp];\n";                                   # loads read their address late: read barrier 2, retired at the BAR.SYNC
+    # ---- stage: thread t < ne loads entry t (64 codes, 2 sums, 2 scales, slot, weight) ----
+    $o .= "01:-:-:-:6      ISETP.LT.U32.AND P0, PT, tid, ne, PT;\n";
+    $o .= "--:-:-:-:6      SHL t, tid, 0x7;\n";                                  # 128 t
+    $o .= "--:-:-:-:6      IADD wa0.CC, t, param_X0;\n";
+    $o .= "--:-:-:-:6      IADD.X wa1, RZ, param_X1;\n";
+    $o .= sprintf "--:2:3:-:1  \@P0 LDG.E.128 act%02d, [wa+0x%x];\n", 4 * $_, 16 * $_ for 0..7;
+    $o .= "--:-:-:-:6      SHL t, tid, 0x3;\n";                                  # 8 t
+    $o .= "--:-:-:-:6      IADD wb0.CC, t, param_S0;\n";
+    $o .= "--:-:-:-:6      IADD.X wb1, RZ, param_S1;\n";
+    $o .= "--:2:3:-:1  \@P0 LDG.E.64 ns0, [wb];\n";
+    $o .= "--:-:-:-:6      IADD sa0.CC, t, param_AS0;\n";
+    $o .= "--:-:-:-:6      IADD.X sa1, RZ, param_AS1;\n";
+    $o .= "--:2:3:-:1  \@P0 LDG.E.64 as0, [sa];\n";
+    $o .= "--:-:-:-:6      SHL t2, tid, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD sb0.CC, t2, param_LI0;\n";
+    $o .= "--:-:-:-:6      IADD.X sb1, RZ, param_LI1;\n";
+    $o .= "--:2:3:-:1  \@P0 LDG.E slotv, [sb];\n";
+    $o .= "--:-:-:-:6      IADD dst0.CC, t2, param_LW0;\n";
+    $o .= "--:-:-:-:6      IADD.X dst1, RZ, param_LW1;\n";
+    $o .= "--:2:3:-:2  \@P0 LDG.E lw, [dst];\n";
+    $o .= "--:-:-:-:6      XMAD sl, tid, 0x90, RZ;\n";                           # 144 t
+    $o .= sprintf "04:4:-:-:1  \@P0 STS.128 [sl+0x%x], act%02d;\n", 16 * $_, 4 * $_ for 0..7;
+    $o .= "--:4:-:-:1  \@P0 STS.64 [sl+0x80], ns0;\n";
+    $o .= "--:4:-:-:1  \@P0 STS.64 [sl+0x88], as0;\n";
+    $o .= sprintf "--:4:-:-:1  \@P0 STS [t+0x%x], slotv;\n", $LST;
+    $o .= sprintf "--:4:-:-:2  \@P0 STS [t+0x%x], lw;\n", $LST + 4;
+    $o .= "2a:-:-:-:6      BAR.SYNC 0x0;\n";
+    # threads without a row are done (no barrier follows)
+    $o .= "--:-:-:-:6 \@!P4 BRA DONE;\n";
+    # ---- the first two entries in flight ----
+    $o .= "--:-:-:-:6      MOV k, RZ;\n";
+    return $o;
+</CODE>
+<CODE>
+    my $UB = 46080; my $LST = 0x1200;
+    # issue(set, entry register, barrier): slot from the staged list, then the unit's 16 B of codes and its scale
+    my $issue = sub {
+        my ($set, $jreg, $bar) = @_;
+        my ($q, $d, $w, $s) = $set eq 'A' ? ('qa', 'da', 'wa', 'sa') : ('qb', 'db', 'wb', 'sb');
+        my $c = '';
+        $c .= "--:-:-:-:6      ISETP.LT.U32.AND P2, PT, $jreg, ne, PT;\n";
+        $c .= "--:-:-:-:6      SHL t2, $jreg, 0x3;\n";
+        $c .= "--:-:-:-:6      NOP;\n--:-:-:-:6      NOP;\n";
+        $c .= sprintf "--:-:5:-:2  \@P2 LDS slotv, [t2+0x%x];\n", $LST;
+        $c .= sprintf "10:-:-:-:6      XMAD t2, slotv, 0x%x, RZ;\n", $UB;
+        $c .= "--:-:-:-:6      IADD ${w}0.CC, cb0, t2;\n";
+        $c .= "--:-:-:-:6      IADD.X ${w}1, cb1, RZ;\n";
+        $c .= "--:-:-:-:6      IADD ${s}0.CC, sbp0, t2;\n";
+        $c .= "--:-:-:-:6      IADD.X ${s}1, sbp1, RZ;\n";
+        $c .= "--:-:$bar:-:1  \@P2 LDG.E.CI.128 ${q}0, [$w];\n";
+        $c .= "--:-:$bar:-:2  \@P2 LDG.E.CI.U16 $d, [$s];\n";
+        return $c;
+    };
+    # compute(set, entry register k, wait mask of the set's barrier): y = fma(lw_k, dot_k, y)
+    my $compute = sub {
+        my ($set, $kreg, $wm) = @_;
+        my ($q, $d) = $set eq 'A' ? ('qa', 'da') : ('qb', 'db');
+        my @c;
+        push @c, "--:-:-:-:6      XMAD sl, $kreg, 0x90, RZ;\n";
+        push @c, "--:-:-:-:6      SHL t2, $kreg, 0x3;\n";
+        push @c, sprintf("--:-:3:-:1      LDS.128 act%02d, [sl+0x%x];\n", 4 * $_, 16 * $_) for 0..7;
+        push @c, "--:-:3:-:1      LDS.64 ns0, [sl+0x80];\n";
+        push @c, "--:-:3:-:1      LDS.64 as0, [sl+0x88];\n";
+        push @c, sprintf("--:-:3:-:2      LDS lw, [t2+0x%x];\n", $LST + 4);
+        push @c, "$wm:-:4:-:2      F2F.F32.F16 dsc, $d;\n";
+        push @c, "04:-:-:-:6      IADD3 ns0, RZ, -ns0, RZ;\n";
+        push @c, "--:-:-:-:6      IADD3 ns1, RZ, -ns1, RZ;\n";
+        for my $h (0..1) {
+            for my $w (0..1) {
+                my $qr = $q . (2 * $h + $w);
+                for my $s (0..7) {
+                    push @c, sprintf "--:-:-:-:1      LOP32I.AND m%d, %s, 0x%08x;\n", $s, $qr, (0x00030003 << (2 * $s)) & 0xffffffff;
+                }
+                for my $hsel (0, 1) {
+                    for my $s (0..7) {
+                        my $elem = 16 * $w + 8 * $hsel + $s;
+                        my $reg = 16 * $h + int($elem / 2);
+                        my $part = ($elem & 1) ? 'H1' : 'H0';
+                        my $add = ($w == 0 && $hsel == 0) ? ($s == 0 ? "ns$h" : 'RZ') : "acc$s";
+                        push @c, sprintf "--:-:-:-:1      XMAD.U16.S16 acc%d, m%d.%s, act%02d.%s, %s;\n", $s, $s, ($hsel ? 'H1' : 'H0'), $reg, $part, $add;
+                    }
+                }
+            }
+            push @c, sprintf("--:-:-:-:1      SHR acc%d, acc%d, 0x%x;\n", $_, $_, 2 * $_) for 1..7;
+            push @c, "--:-:-:-:1      IADD acc0, acc0, acc1;\n";
+            push @c, "--:-:-:-:2      IADD acc2, acc2, acc3;\n";
+            push @c, "--:-:-:-:2      IADD acc4, acc4, acc5;\n";
+            push @c, "--:-:-:-:2      IADD acc6, acc6, acc7;\n";
+            push @c, "--:-:-:-:4      IADD acc0, acc0, acc2;\n";
+            push @c, "--:-:-:-:6      IADD acc4, acc4, acc6;\n";
+            push @c, "--:-:-:-:6      IADD dot, acc0, acc4;\n";
+            push @c, "--:-:5:-:6      I2F.F32.S32 dotf, dot;\n";
+            push @c, "18:-:-:-:6      FMUL u, dsc, dotf;\n";
+            push @c, $h ? "--:-:-:-:6      FFMA accf, as1, u, accf;\n" : "--:-:-:-:6      FMUL accf, as0, u;\n";
+        }
+        push @c, "--:-:-:-:6      FFMA y, lw, accf, y;\n";
+        return join '', @c;
+    };
+    my $o = '';
+    $o .= "--:-:-:-:6      MOV j, RZ;\n";
+    $o .= $issue->('A', 'j', 1);
+    $o .= "--:-:-:-:6      MOV j, 0x1;\n";
+    $o .= $issue->('B', 'j', 2);
+    $o .= "\nULOOP:\n";
+    $o .= "--:-:-:-:6      ISETP.GE.U32.AND P1, PT, k, ne, PT;\n";
+    $o .= "--:-:-:-:6      NOP;\n" x 3;
+    $o .= "--:-:-:-:6  \@P1 BRA DONE;\n";
+    $o .= $compute->('A', 'k', '01');
+    $o .= "--:-:-:-:6      IADD j, k, 0x2;\n";
+    $o .= $issue->('A', 'j', 1);
+    $o .= "--:-:-:-:6      IADD j, k, 0x1;\n";
+    $o .= "--:-:-:-:6      ISETP.GE.U32.AND P1, PT, j, ne, PT;\n";
+    $o .= "--:-:-:-:6      NOP;\n" x 3;
+    $o .= "--:-:-:-:6  \@P1 BRA DONE;\n";
+    $o .= $compute->('B', 'j', '02');
+    $o .= "--:-:-:-:6      IADD j, k, 0x3;\n";
+    $o .= $issue->('B', 'j', 2);
+    $o .= "--:-:-:-:6      IADD k, k, 0x2;\n";
+    $o .= "--:-:-:-:6      BRA ULOOP;\n";
+    return $o;
+</CODE>
+
+DONE:
+<CODE>
+    my $o = '';
+    # owner = #{ i : r >= B_i } without predicates: ((B_i - 1 - r) >> 31) is 1 exactly when r >= B_i
+    $o .= "--:-:-:-:6      MOV own, RZ;\n";
+    for my $i (1..5) {
+        $o .= "--:-:-:-:6      IADD t, -r, param_B$i;\n";
+        $o .= "--:-:-:-:6      IADD t, t, -0x1;\n";
+        $o .= "--:-:-:-:6      SHR.U32 t, t, 0x1f;\n";
+        $o .= "--:-:-:-:6      IADD own, own, t;\n";
+    }
+    # dst = TAB[own] + XOFF + 4 r
+    $o .= "--:-:-:-:6      SHL t, own, 0x3;\n";
+    $o .= "--:-:-:-:6      IADD pp0.CC, t, param_TAB0;\n";
+    $o .= "--:-:-:-:6      IADD.X pp1, RZ, param_TAB1;\n";
+    $o .= "--:-:1:-:2  \@P4 LDG.E.64 dst0, [pp];\n";
+    $o .= "--:-:-:-:6      SHL t, r, 0x2;\n";
+    $o .= "--:-:-:-:6      IADD t, t, param_XOFF;\n";
+    $o .= "01:-:-:-:6      IADD dst0.CC, dst0, t;\n";
+    $o .= "--:-:-:-:6      IADD.X dst1, dst1, RZ;\n";
+    $o .= "07:2:-:-:1  \@P4 STG.E.WT [dst], y;\n";
+    $o .= "--:-:-:-:f      EXIT;\n";
+    return $o;
+</CODE>

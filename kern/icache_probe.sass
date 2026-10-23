@@ -1,0 +1,37 @@
+# Kernel: icache_probe
+#
+# N straight-line instructions executed R times per thread (ICP_N, ICP_R): the time per instruction against N shows how much code the
+# instruction caches of a Maxwell SM hold (the knee) and what a miss costs. Params: 0:0x140 out (u32)
+
+<CONSTANT_MAPPING>
+    param_out0 : c[0x0][0x140]
+    param_out1 : c[0x0][0x144]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0     : acc
+    1     : cnt
+    2     : tmp
+    4,5   : op<0-1>
+</REGISTER_MAPPING>
+
+<CODE>
+    my $n = $ENV{ICP_N} || 1024;
+    my $r = $ENV{ICP_R} || 1000;
+    my $o = '';
+    $o .= "--:-:-:-:6      MOV acc, RZ;\n";
+    $o .= sprintf "--:-:-:-:6      MOV32I cnt, 0x%x;\n", $r;
+    $o .= "--:-:-:-:6      MOV tmp, RZ;\n";
+    $o .= "LOOP:\n";
+    # independent single-cycle ALU instructions, the control word reused 3 per 32 B as in every kernel
+    $o .= "--:-:-:-:1      IADD acc, acc, 0x1;\n" x $n;
+    $o .= "--:-:-:-:6      IADD cnt, cnt, -0x1;\n";
+    $o .= "--:-:-:-:6      ISETP.NE.U32.AND P0, PT, cnt, RZ, PT;\n";
+    $o .= "--:-:-:-:6      NOP;\n--:-:-:-:6      NOP;\n";
+    $o .= "--:-:-:-:6  \@P0 BRA LOOP;\n";
+    $o .= "--:-:-:-:6      MOV op0, param_out0;\n";
+    $o .= "--:-:-:-:6      MOV op1, param_out1;\n";
+    $o .= "--:2:-:-:6      STG.E [op], acc;\n";
+    $o .= "02:-:-:-:f      EXIT;\n";
+    return $o;
+</CODE>
