@@ -1,0 +1,15 @@
+// Skeleton for MaxAs; gemv_q8_0 is replaced by the Makefile. Same parameter layout as every gemv_*.sass.
+.version 7.4
+.target sm_52
+.address_size 64
+
+.visible .entry gemv_q8_0(.param .u64 pw, .param .u64 px, .param .u64 ps, .param .u64 py, .param .u32 rows, .param .f32 xs, .param .u64 pdbg, .param .u64 pas)
+{
+	.reg .u32 %r<2>;
+	.reg .pred %p;
+	ld.param.u32 %r0, [rows];
+	mov.u32 %r1, %tid.x;
+	setp.lt.u32 %p, %r1, %r0;
+	@%p ret;
+	ret;
+}
