@@ -36,7 +36,9 @@ static int position_join(unsigned op) {
     static unsigned ops[32],n;static int loaded;
     if(!loaded) {
         const char *list=getenv("FLASH_B4_JOIN_OPS");
-        if(!list)list="15,16,24,98";
+        /* conv1d, dnstep, pleconv, dnnormq_x, dnstep_normq, dflash_features:
+         * with these joined, all-generic B4 logits are bit-identical to scalar. */
+        if(!list)list="15,16,24,95,98,113";
         for(const char *p=list;*p && n<32;) {
             char *end;unsigned long v=strtoul(p,&end,0);if(end==p)break;
             ops[n++]=(unsigned)v;p=*end==','?end+1:end;
