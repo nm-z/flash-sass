@@ -1,42 +1,37 @@
-# Next candidate: distribute activation preparation
+# Current work toward 60 TPS
 
-Current validated default is v91:24.793978201 TPS,492 phases. The60-TPS goal
-remains unchanged. The following is a proposed next full-kernel change, not
-implemented behavior or an achieved performance claim.
+The complete distributed-quantization experiment is implemented and preserved
+at commit29c92ec on `perf/distributed-quant-20261022`. Its best full-model run
+was23.635491116TPS, slower than the ordinary local preparation path. See the
+linked report in README.md; this is no longer pending implementation.
 
-The current gate/up group broadcasts FP32 values to all six dies. Each die
-then repeats the same7040-value SiLU/up multiplication and quantization before
-its routed-down rows. Consider assigning each complete32-value quantization
-group to one die, with group owner `group_index % 6`. There are220 groups,
-so dies receive36 or37 groups, within the pairwise work bound. Weight rows
-and down-projection ownership remain unchanged.
+The production build now includes routed-expert weight prefetch. v96 measured
+25.023809159TPS; v97 removes redundant pointer construction after the first
+expert and tightens integer-address scheduling, measuring25.146432488TPS.
+Both match128 reference outputs and all288 retained state hashes. Both keep
+492 phases, with maximum pairwise assigned-work ratio1.076923077. The v97
+4096-token fixture is being checked separately; its two output tokens are
+not a decode-throughput benchmark.
 
-Each owning warp must read the four eight-row source stripes from the
-existing per-die `balance_gate_local` and `balance_up_local` buffers. Those
-buffers remain rank-major with104/112 local rows. Shared-expert rank10 follows
-the ten routed ranks. A CPU-built immutable pointer map can select the
-correct source and local row without changing expert IDs or arithmetic.
-Gate/up still needs its system-visible producer release before remote reads.
+Objective weights remain throughput1.0, fidelity1.0, phase/work constraints1.0,
+engineering time0.8 and cost0.8. The lower-effort approach tightens and overlaps
+work within the existing matrix geometry: it is complete here, and its measured
+benefit is small. The higher-effort alternative changes the Q2 row/lane
+geometry and activation/weight representation together, reducing the serial
+integer dot-product work each active lane performs. This requires complete
+producer/consumer coverage and preservation of half-block accumulation order;
+weight padding must not be confused with useful balanced work.
 
-Do not send four separately addressed quantization arrays for every group:
-that may replace the saved bytes with more PCIe transactions. A possible
-transport record contains64 code bytes plus S32, both S16 sums and the FP32
-activation scale (80 useful bytes), aligned to a fixed record stride. The
-complete K640 consumers—Q2 routed/down/shared and all B32 shared-down
-formats—must consume that record directly, preserving every original value.
-The current mutable activation loads are coherent `.CG` loads; do not turn
-them into stale read-only-cache accesses.
-
-All six dies must observe completion of distributed quantization before any
-down matrix reads its local received records. The current preparation join
-is local, so it is insufficient for this layout. Implement the real system
-release/acquire dependency within the existing down phase, retain epoch
-uniqueness, and account for its added communication explicitly. Fewer bytes
-does not establish a speedup if that dependency or peer-read latency costs
-more than it saves.
-
-Implement producer publication, ownership, the complete consumer format and
-the cross-die readiness path together before a GPU run. Then execute the full
-48-layer model and head through GPUq, using the existing reference and state
-fixtures. Do not substitute a partial-layer kernel, lower-quality outputs,
-unchecked proposals, or an averaged-work gate for the60-TPS objective.
+The next substantial implementation should address matrix execution itself.
+Current routed-down rows use four lanes and five serial half-block bodies per
+lane. An eight-lane geometry can divide each original32-value half-block
+between a pair of lanes, summing their integer dot products before conversion
+to FP32. Keeping the same five half-blocks and the same four-way FP32 reduction
+would preserve the original accumulation association. Each thread would hold
+40 activation words instead of80; one shuffle/add per half-block replaces
+half its integer multiplication work. Activation and weight addressing,
+prefetch, tail guards and retained-work accounting must change together.
+The weight representation itself can stay unchanged. Gate/up needs its own
+geometry analysis. This is an unimplemented
+candidate, not a claimed speedup, and must be completed for the full kernel
+before a hardware run. Do not substitute a partial-layer benchmark.

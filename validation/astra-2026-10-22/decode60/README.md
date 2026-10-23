@@ -5,10 +5,11 @@ correct outputs, fewer than500 physical phases/token and the pairwise
 assigned-work bound. Physical GPUs2 and7 remain reserved for Nate.
 **The target is not achieved.**
 
-Current default candidate: **v91,24.793978201 TPS**, with492 phases/token.
-Short-context reference outputs, all288 retained state hashes, and the
-long-context baseline outputs pass. The unsuccessful compact-Q2 and local-GR
-experiments are retained below; they are not enabled in the default image.
+Latest measured candidate: **v97,25.146432488 TPS**, with492 phases/token.
+All128 short-context reference outputs and all288 retained state hashes match.
+The last candidate with the long-context fixture completed is v91,
+24.793978201 TPS. These are individual measurements, not a controlled estimate
+of the small difference between them.
 
 Priority scores for this work: throughput1.0, fidelity1.0, retaining the
 established work/phase requirements1.0, engineering time0.8, cost0.8.
@@ -39,6 +40,8 @@ A/B estimates. Raw output and metadata remain in archy's canonical GPUq DB
 | v89,complete local GR-up matrices | `2da84d75-b6ba-4d0c-9599-b8269e0dfd47` |23.449704315|128 reference tokens and head audit pass;493 phases,306 publications; replication not promoted |
 | v90,unrolled default with tail guards | `3ea9c188-f9b1-4f5a-b36d-dcda6ea76c44` |23.794250711|128 reference tokens and head audit pass |
 | v91,independent load bursts | `6237e3e2-a49f-44a5-86f3-8662d22b6d83` |24.793978201|128 reference tokens, head audit and work readback pass;288 state hashes match v78 |
+| v96,next-expert weight prefetch | `1af22970-954d-4940-8e4e-b981240a55b6` |25.023809159|128 reference tokens, head audit and work readback pass;288 state hashes match v78 |
+| v97,prefetch address scheduling and pointer bypass | `8e3af1ee-31af-4160-b9ee-c4a38f087534` |25.146432488|128 reference tokens, head audit and work readback pass;288 state hashes match v78 |
 
 The down-projection phase contains both routed and shared projections. On
 logical die5 its accumulated profile time falls from10.670ms/token in v79 to
@@ -155,6 +158,36 @@ This is a long-context baseline-preservation check, not an independent
 original-model oracle or a two-token throughput benchmark.
 
 ## Completed experiments not enabled by default
+
+The complete distributed activation quantization path is preserved on
+[perf/distributed-quant-20261022](https://github.com/nm-z/flash-sass/tree/perf/distributed-quant-20261022),
+commit29c92ec. It includes producer routing, cross-die readiness and every
+K640 consumer format. Four full-model versions measured18.718,23.215,23.220
+and23.635TPS. All128 output IDs matched; the last also matched all288 retained
+state hashes. The extra publication/dependency cost outweighed the saved
+quantization work. See its
+[full results](https://github.com/nm-z/flash-sass/blob/29c92ec/validation/astra-2026-10-22/decode60/distributed-quant/README.md).
+
+## Expert prefetch candidate
+
+`balance/prefetch_experts.lua` pipelines the next selected expert's complete
+immutable Q2 weight row behind current-expert arithmetic, for both routed
+gate/up and routed down. Gate/up advances two ranks in each paired stream;
+down advances one. Separate scoreboard slot6 protects prefetched results,
+while slot4 protects their address reads and is retired before native slot4
+reuse. Down also prefetches the routing weight and original accumulation owner.
+The arithmetic and output accumulation order are unchanged. Register count
+remains249; the CPU program, weight layout and phase count are unchanged.
+The v96 retained-program audit is in [work table](work-v96.tsv) and
+[summary](work-v96-summary.txt).
+
+The v97 revision removes redundant current-weight pointer construction once
+the prefetched row is available, and uses the native six-cycle schedule for
+new integer address instructions. Predicate and XMAD spacing remain conservative.
+Its [work table](work-v97.tsv) and [summary](work-v97-summary.txt) retain all
+7,332 passing component comparisons and maximum pairwise ratio1.076923077.
+
+## Other retained experiments
 
 `balance/compact_q2.lua` folds five identical68-instruction half-block bodies
 into one loop, binding operands into free registers while preserving all
