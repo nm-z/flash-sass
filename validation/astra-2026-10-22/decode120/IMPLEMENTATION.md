@@ -250,3 +250,19 @@ speculation remains ~4% slower than scalar on this layout. Reaching the NEXT.md
 budget needs verify near one scalar step: phase-count/fusion parity for the
 retained-prefix program and B4 kernels that are actually faster than four
 scalar replays, starting with moe_local_columns and q2moegn.
+
+Phase counts are near parity (die 0: scalar 527, B4 573 outer phases: +36 split
+dnstep/dnnormq_x, +5 feature capture, +5 hcwsum/bf16hcrx where captures break GR
+fusion). The B4 program costs 2.43x the scalar token (89.1 vs 36.7 ms); the largest
+increments are q2moegn +9.3 ms (3.4x, routed gate/up plus the per-position router
+merge on CTA0 while 15 CTAs spin), moe_local_columns +7.2 ms, bf16hcrwx +4.9,
+grwrite_read +4.0, q3kk2560 +3.8, hcupq_x +3.7, qsa_full_bal +3.0.
+
+The scalar MoE is itself the largest gap to the NEXT.md model: moe_local_columns
+(9.51 ms) + q2moegn (3.82 ms) = 13.3 ms per scalar token versus 0.95 ms modeled for
+routed experts. moe_local_columns spends ~198 us per layer for roughly 1 MB of
+weights per die, which points at the board-hierarchical gather/reduce/broadcast
+latency rather than weight bandwidth; it is also the main candidate for why the
+paired layout's scalar decode (26.6 TPS) trails the whole-expert layout (40 TPS).
+Next measurement: time moe_local_columns' compute separately from its transport
+stages, then compare against a direct row-owner reduction.
