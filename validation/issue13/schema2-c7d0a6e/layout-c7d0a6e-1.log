@@ -1,0 +1,13 @@
+pass=0 count=2 end=0 exchange=2 grid=6
+device=Tesla M60 ctas=1 records=6 words=16
+sample t=0 cta=0 phase=0 generation=0 dispatch_ns=1024 body_ns=1024
+sample t=0 cta=0 phase=1 generation=0 dispatch_ns=4096 body_ns=1024
+sample t=0 cta=0 phase=2 generation=1 dispatch_ns=4096 body_ns=1024
+sample t=1 cta=0 phase=0 generation=1 dispatch_ns=1024 body_ns=1024
+sample t=1 cta=0 phase=1 generation=1 dispatch_ns=4096 body_ns=1024
+sample t=1 cta=0 phase=2 generation=2 dispatch_ns=4096 body_ns=1024
+PASS dispatch/body boundaries, generation, peer-publication brackets, phase zero, per-token reconciliation
+pass=1 count=2 end=0 exchange=2 grid=6
+PASS CTA mode mismatch: no trace writes, canaries intact
+pass=2 count=2 end=0 exchange=2 grid=6
+PASS record stride mismatch: no trace writes, canaries intact

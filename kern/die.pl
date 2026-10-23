@@ -39,7 +39,8 @@ my $CTA_TRACE = $ENV{DIE_CTA_TRACE} || 0;
 die "DIE_CTA_TRACE must be 0 or 1\n" unless $CTA_TRACE =~ /\A[01]\z/;
 die "DIE_TRACE and DIE_CTA_TRACE cannot both be enabled: overlapping ctl+0xd0..0xe4 trace ABI\n" if $CTA_TRACE && $ENV{DIE_TRACE};
 my $WORK_OFF = 0xbf6c;
-# Opt-in trace ABI: ctl+d0 pointer; d8 first token; dc token capacity;
+# DIE_CTA_TRACE ABI only (mutually exclusive with DIE_TRACE): ctl+d0 pointer;
+# d8 first token; dc token capacity;
 # e0 CTA count (16); e4 launch nonce. Records are [token][phase][CTA], 64 B.
 # u64[0..4]: exchange-start/end, body-start/end, phase-end.
 # u32[10..15]: token, phase, physical CTA, opcode, nonempty units, nonce.
@@ -365,6 +366,7 @@ SASS
     $dispatch .= "--:-:-:-:6  \@P6 BRA ${tag}_SETUP;\n";
     my $step = $kind eq 'cta' ? $NCTA : 8 * $NCTA;
     $body .= "\n${tag}_SETUP:\n";
+    $body .= trace_code(8, $TOK_OFF, "8_${tag}");
     $body .= cta_trace_code(2, $tag);
     if ($kind eq 'cta') {
         $body .= "--:-:-:-:6      MOV vid, cta;\n";
@@ -393,7 +395,9 @@ SASS
 
 my @cta_trace = map { cta_trace_code($_) } 0..4;
 my $cta_trace_map = $CTA_TRACE ? "    18,19 : cta_traceclock<0-1>\n" : '';
-my @trace = map { trace_code($_, $TOK_OFF, $STEP_OFF) } 0..7;
+my @trace = map { trace_code($_, $TOK_OFF, undef, $FLAGS_OFF) } 0..10;
+my $unknown_body = trace_code(8, $TOK_OFF, '8_unknown');
+my $trace_send_fence = $ENV{DIE_TRACE} ? "02:-:-:-:6  \@P4 MEMBAR.SYS;\n" : '';
 # All lanes see the same descriptor opcode. A range tree bounds dispatch by
 # ceil(log2(OP_COUNT)) comparisons instead of scanning every preceding opcode.
 # Keep the linear emitter available for matched measurements. Invalid opcodes
@@ -430,7 +434,6 @@ elsif ($dispatch_mode eq 'jump') {
         $dispatch .= "--:-:-:-:6      NOP;\n" x 2;
     }
 }
-
 print <<"EOF";
 # Kernel: die
 #
@@ -477,6 +480,12 @@ print <<"EOF";
     28,29 : xg<0-1>
     30,31 : xh<0-1>
     32,33 : xi<0-1>
+    34,35 : tr_fw<0-1>
+    36,37 : tr_cp<0-1>
+    38,39 : tr_clock<0-1>
+    40    : tr_old
+    41    : tr_t
+    42    : tr_one
 $maps$cta_trace_map</REGISTER_MAPPING>
 
 --:-:6:-:1      S2R tid, SR_TID.X;
@@ -671,9 +680,10 @@ XWBAR:
 --:-:-:-:6  \@P5 BRA EXPIRED;
 XWDONE:
 $cta_trace[1]$trace[2]OP_DISPATCH:
-$dispatch--:-:-:-:6      BRA POSITION_END;
+$dispatch$unknown_body--:-:-:-:6      BRA POSITION_END;
 $body
 POSITION_END:
+$trace[3]# Body completion precedes the framework's position and grid barriers.
 # Units of a stateful op belong to the same CTA for both positions. Finish every
 # unit and make its writes visible before replaying this op with position 1.
 # Independent ops also take this path; the grid barrier and peer flags happen
@@ -704,7 +714,7 @@ POSITION_END:
 01:-:-:-:6      BRA OP_DISPATCH;
 
 PHASE_END:
-$trace[3]# ---- grid barrier (warp 0 counts in; everyone waits at BAR 1) ----
+# ---- grid barrier (warp 0 counts in; everyone waits at BAR 1) ----
 --:-:-:-:6      BAR.SYNC 0x1;
 $cta_trace[3]--:-:-:-:6      ISETP.GE.U32.AND P6, PT, tid, 0x20, PT;
 --:-:-:-:6      ISETP.NE.U32.AND P5, PT, tid, RZ, PT;
@@ -787,6 +797,7 @@ $cta_trace[3]--:-:-:-:6      ISETP.GE.U32.AND P6, PT, tid, 0x20, PT;
 --:-:-:-:6      IADD xi0.CC, xi0, units;
 --:-:-:-:6      IADD.X xi1, xi1, RZ;
 --:-:-:-:6      ISETP.EQ.U32.AND P2, PT, cta, RZ, P4;
+$trace[9]# Profiling brackets the six flag stores without clobbering live peer pointers.
 --:2:-:-:1  \@P4 STG.E.WT [xc], op;
 --:2:-:-:1  \@P4 STG.E.WT [xd], op;
 --:2:-:-:1  \@P4 STG.E.WT [xf], op;
@@ -795,6 +806,7 @@ $cta_trace[3]--:-:-:-:6      ISETP.GE.U32.AND P6, PT, tid, 0x20, PT;
 --:2:-:-:1  \@P4 STG.E.WT [xi], op;
 --:2:-:-:1  \@P4 STS [RZ+0x@{[sprintf '%x', $XG_OFF]}], op;
 --:2:-:-:6  \@P2 STG.E [bar_cp+0x20], op;
+$trace_send_fence$trace[10]# The profiling-only system fence completes publication before the upper bracket.
 BSPIN:
 --:-:1:-:2  \@P3 LDG.E.CV bar_g2, [xa+0x80];
 01:-:-:-:6      ISETP.GE.U32.AND P4, PT, bar_g2, bar_g, PT;

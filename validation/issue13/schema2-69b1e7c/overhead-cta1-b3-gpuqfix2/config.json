@@ -1,0 +1,121 @@
+{
+  "socket": "/tmp/flash.sock",
+  "lock_path": "/tmp/fs13-validation.lock",
+  "prompt_ids": [
+    10,
+    11
+  ],
+  "new": 3,
+  "repeats": 1,
+  "warmups": 2,
+  "timeout_seconds": 120,
+  "busy_wait_seconds": 60,
+  "allowed_holders": [
+    {
+      "pid": 2210,
+      "command": "fence",
+      "cmdline_sha256": "1bf03e7611cde065f87e21113f9d22b90d695ab717a167cb5f89a17b0b31a695"
+    },
+    {
+      "pid": 2911,
+      "command": "llama-server",
+      "cmdline_sha256": "e263e1c3ca888d20a2bbf718ea88841683427ecca08852803cbf4d2a2907a90b"
+    },
+    {
+      "pid": 323389,
+      "command": "hold",
+      "cmdline_sha256": "ee78ce9330ec2c4c04f780ed31c31e34fdce10d5321167679b4bf09f7e489c98"
+    },
+    {
+      "pid": 323390,
+      "command": "hold",
+      "cmdline_sha256": "fbdbbceabef6f74f1afc408cf03beeedc89128160f5092703ca7b8e2e1a21860"
+    },
+    {
+      "pid": 323391,
+      "command": "hold",
+      "cmdline_sha256": "ebdd3c35d9754b051e9e5236094342c346f296cc8f45ba918f12bda3919d8da2"
+    },
+    {
+      "pid": 323392,
+      "command": "hold",
+      "cmdline_sha256": "39e6f0029436e573005428c1794b7d230323cc69439f89b0a1dbe2cb204b6b09"
+    },
+    {
+      "pid": 323393,
+      "command": "hold",
+      "cmdline_sha256": "12d244538a6a0d9dfea5a2c55a05dbec78eff9f61897fe877a58be990a706539"
+    },
+    {
+      "pid": 323394,
+      "command": "hold",
+      "cmdline_sha256": "a7547a60509ca7eb80fb73c6df4ad33a0bb07125f31c94d10c31363d6f72b3bc"
+    },
+    {
+      "pid": 4065652,
+      "command": "flashcore",
+      "cmdline_sha256": "c5ce27ab6c2bcf9cfa45b283ab57753c69d2f96ff4b39a113c9460c35c17ea98"
+    }
+  ],
+  "expected_common": {
+    "rev": "69b1e7c",
+    "kv_host": "0",
+    "kv_trace": "0",
+    "ple_disk": "1",
+    "ple_readers": "1",
+    "ple_file": "/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf",
+    "ple_cache": "/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf",
+    "maxt": "512",
+    "layers": "48/48",
+    "nblk": "512",
+    "dies": "6",
+    "attn_dies": "1,4,5",
+    "split": "112,97,81,116,97,97",
+    "attn_map": "1,1,1,1,4,4,4,4,5,5,5,5",
+    "img_rows": "1",
+    "rope_owner": "5",
+    "two_position": "0",
+    "prefill_chunk": "0",
+    "attn_q_split": "1",
+    "attn_q_mask": "3f",
+    "trace_ctas": "1",
+    "trace_schema": "2"
+  },
+  "modes": {
+    "ordinary": {
+      "cubin": "/dev/shm/fs13-69b1e7c/kern/die.cubin",
+      "cubin_fnv": "9abf8aafb9134d59",
+      "trace_tokens": 0,
+      "prepare_argv": [
+        "ruby",
+        "/dev/shm/fs13-69b1e7c/kern/trace_control.rb",
+        "/dev/shm/fs13-69b1e7c/evidence/schema2/control.json",
+        "ordinary1"
+      ]
+    },
+    "traced": {
+      "cubin": "/dev/shm/fs13-69b1e7c/kern/die_trace.cubin",
+      "cubin_fnv": "dbe85d5d64db3abc",
+      "trace_tokens": 4,
+      "prepare_argv": [
+        "ruby",
+        "/dev/shm/fs13-69b1e7c/kern/trace_control.rb",
+        "/dev/shm/fs13-69b1e7c/evidence/schema2/control.json",
+        "traced1"
+      ]
+    }
+  },
+  "restore_argv": [
+    "ruby",
+    "/dev/shm/fs13-69b1e7c/kern/trace_control.rb",
+    "/dev/shm/fs13-69b1e7c/evidence/schema2/control.json",
+    "restore"
+  ],
+  "identity_paths": {
+    "library": "/dev/shm/fs13-69b1e7c/kern/libengine.so",
+    "source_manifest": "/dev/shm/fs13-69b1e7c/evidence/schema2/source-manifest.txt",
+    "weights_manifest": "/dev/shm/fs13-69b1e7c/evidence/schema2/weights-manifest.txt",
+    "ordinary_cubin": "/dev/shm/fs13-69b1e7c/kern/die.cubin",
+    "traced_cubin": "/dev/shm/fs13-69b1e7c/kern/die_trace.cubin"
+  }
+}

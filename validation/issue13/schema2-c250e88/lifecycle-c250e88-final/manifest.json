@@ -1,0 +1,11 @@
+{
+  "hostname": "archy",
+  "source_sha": "c250e88",
+  "config": "config rev=c250e88 kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf maxt=512 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=1 rope_owner=5 trace_tokens=16 trace_ctas=1 trace_schema=2 two_position=1 prefill_chunk=0 prefill_auto=0 attn_q_split=1 attn_q_mask=3f cubin=/dev/shm/fs13-c250e88/kern/die_trace.cubin cubin_fnv=dbe85d5d64db3abc",
+  "cubin_sha256": "8ad2ae307c6802ac539de3261f6584aa838ee2f83563656efac69d336a37dd56",
+  "socket": "/tmp/flash.sock",
+  "device_fault_injected": false,
+  "pair_check_requested": true,
+  "pair_check_executed": true,
+  "checker_sha256": "b2bcbc4af1a5e72a5ab6c375d25d22dc7804c5611eb706a75d9723e3865d68ae"
+}

@@ -126,7 +126,7 @@ test-gemv: all
 	./gemv_test $(SHARD1) blk.4.ffn_down_exps.weight 0 20
 
 clean:
-	rm -f *.cubin *.dis *.so *.so.new die.sass die_trace.sass die_trace16.sass dieops.h flashcore flashd flashvis hold memtest fence die_balance die_balance_capture *_test ple_read_bench ple_read_audit
+	rm -f *.cubin *.cubin.new *.dis *.so *.so.new die.sass die_trace.sass die_trace16.sass dieops.h flashcore flashd flashvis hold memtest fence die_balance die_balance_capture *_test ple_read_bench ple_read_audit
 
 .PHONY: all test test-gemv clean
 
@@ -597,15 +597,18 @@ pair_bf16_plan_test: pair_bf16_plan_test.c prog.c prog.h dieops.h ../ref/quant.c
 
 # Profiling images use separate generated files; changing a shell variable cannot leave a stale production image.
 die_trace.sass: die.pl trace.pl $(DIE_OPS)
-	DIE_TRACE=1 perl die.pl > $@
+	DIE_TRACE=1 DIE_CTA_TRACE=0 perl die.pl > $@
 die_trace16.sass: die.pl trace.pl $(DIE_OPS)
-	DIE_TRACE=16 perl die.pl > $@
+	DIE_TRACE=16 DIE_CTA_TRACE=0 perl die.pl > $@
 die_trace.cubin: die_trace.sass skel_die.cubin
-	cp skel_die.cubin $@
-	$(MAXAS) -i die_trace.sass $@
+	cp skel_die.cubin $@.new
+	$(MAXAS) -i die_trace.sass $@.new && mv -f $@.new $@
 die_trace16.cubin: die_trace16.sass skel_die.cubin
-	cp skel_die.cubin $@
-	$(MAXAS) -i die_trace16.sass $@
+	cp skel_die.cubin $@.new
+	$(MAXAS) -i die_trace16.sass $@.new && mv -f $@.new $@
+
+trace_layout_test: trace_layout_test.c dieops.h
+	$(CC) -std=gnu99 -O2 -Wall -Wextra -o $@ $< -I$(CUDA)/include -lcuda
 
 timings_test: timings_test.c timings.h
 	$(CC) -std=gnu99 -O2 -Wall -Wextra -UNDEBUG -o $@ timings_test.c -lm

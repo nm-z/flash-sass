@@ -1,0 +1,151 @@
+{
+  "block": 1,
+  "position": 1,
+  "slot": 1,
+  "mode": "ordinary",
+  "kind": "measured",
+  "sample": 1,
+  "directory": "/dev/shm/fs13-69b1e7c/evidence/schema2/overhead-cta16-b1-gpuqfix2/slot-01-ordinary/measured-01",
+  "config": {
+    "rev": "69b1e7c",
+    "kv_host": "0",
+    "kv_trace": "0",
+    "ple_disk": "1",
+    "ple_readers": "1",
+    "ple_file": "/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf",
+    "ple_cache": "/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf",
+    "maxt": "512",
+    "layers": "48/48",
+    "nblk": "512",
+    "dies": "6",
+    "attn_dies": "1,4,5",
+    "split": "112,97,81,116,97,97",
+    "attn_map": "1,1,1,1,4,4,4,4,5,5,5,5",
+    "img_rows": "1",
+    "rope_owner": "5",
+    "trace_tokens": "0",
+    "trace_ctas": "16",
+    "trace_schema": "2",
+    "two_position": "0",
+    "prefill_chunk": "0",
+    "attn_q_split": "1",
+    "attn_q_mask": "3f",
+    "cubin": "/dev/shm/fs13-69b1e7c/kern/die.cubin",
+    "cubin_fnv": "9abf8aafb9134d59"
+  },
+  "tokens": [
+    220,
+    15
+  ],
+  "token_arrival_ns": [
+    144612314906448,
+    144612339591990
+  ],
+  "started_ns": 144612260798245,
+  "finished_ns": 144612339726840,
+  "wall_ns": 78928595,
+  "first_token_ns": 54108203,
+  "steady_decode_ns_per_token": 24685542.0,
+  "done": "done 2 0 2 74.7 49.9 0 0",
+  "run_ms_rounded": 74.7,
+  "first_ms_rounded": 49.9,
+  "traces": [
+    {
+      "file": "trace-0.raw.gz",
+      "header": "error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=3 status=completed aborted=0 ended=0 completed=3 requested=3",
+      "metadata": {
+        "FLASH_TRACE": "1..256",
+        "request": "3",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "3",
+        "requested": "3"
+      },
+      "sha256": "499da67bab868fc4d20f599320bbb77a64064e69e7594be24b435ee081bdda1a"
+    },
+    {
+      "file": "trace-1.raw.gz",
+      "header": "error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=3 status=completed aborted=0 ended=0 completed=3 requested=3",
+      "metadata": {
+        "FLASH_TRACE": "1..256",
+        "request": "3",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "3",
+        "requested": "3"
+      },
+      "sha256": "499da67bab868fc4d20f599320bbb77a64064e69e7594be24b435ee081bdda1a"
+    },
+    {
+      "file": "trace-2.raw.gz",
+      "header": "error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=3 status=completed aborted=0 ended=0 completed=3 requested=3",
+      "metadata": {
+        "FLASH_TRACE": "1..256",
+        "request": "3",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "3",
+        "requested": "3"
+      },
+      "sha256": "499da67bab868fc4d20f599320bbb77a64064e69e7594be24b435ee081bdda1a"
+    },
+    {
+      "file": "trace-3.raw.gz",
+      "header": "error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=3 status=completed aborted=0 ended=0 completed=3 requested=3",
+      "metadata": {
+        "FLASH_TRACE": "1..256",
+        "request": "3",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "3",
+        "requested": "3"
+      },
+      "sha256": "499da67bab868fc4d20f599320bbb77a64064e69e7594be24b435ee081bdda1a"
+    },
+    {
+      "file": "trace-4.raw.gz",
+      "header": "error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=3 status=completed aborted=0 ended=0 completed=3 requested=3",
+      "metadata": {
+        "FLASH_TRACE": "1..256",
+        "request": "3",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "3",
+        "requested": "3"
+      },
+      "sha256": "499da67bab868fc4d20f599320bbb77a64064e69e7594be24b435ee081bdda1a"
+    },
+    {
+      "file": "trace-5.raw.gz",
+      "header": "error: trace <die> requires FLASH_TRACE=1..256 and a completed run; request=3 status=completed aborted=0 ended=0 completed=3 requested=3",
+      "metadata": {
+        "FLASH_TRACE": "1..256",
+        "request": "3",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "3",
+        "requested": "3"
+      },
+      "sha256": "499da67bab868fc4d20f599320bbb77a64064e69e7594be24b435ee081bdda1a"
+    },
+    {
+      "file": "hosttrace.raw.gz",
+      "header": "error: no completed host trace; request=3 status=completed aborted=0 ended=0 completed=3 requested=3",
+      "metadata": {
+        "request": "3",
+        "status": "completed",
+        "aborted": "0",
+        "ended": "0",
+        "completed": "3",
+        "requested": "3"
+      },
+      "sha256": "07dae8996df61ec219c9922a0698c76d96349d5b81fc90174f4b823d3aa2aaa1"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "layout": "CTA1",
+  "capture_count": 6,
+  "host_token_rows": 24,
+  "ple_bytes": {
+    "n": 24,
+    "mean": 1440.0,
+    "min": 1440.0,
+    "max": 1440.0
+  },
+  "ple_short_reads_total": 0,
+  "ple_read_ns": {
+    "n": 24,
+    "mean": 24681.875,
+    "min": 16291.0,
+    "max": 46900.0
+  },
+  "ple_staging_ns": {
+    "n": 24,
+    "mean": 63323.208333333336,
+    "min": 39658.0,
+    "max": 110441.0
+  },
+  "ple_ready_bracket_ns": {
+    "n": 24,
+    "mean": 102.79166666666667,
+    "min": 42.0,
+    "max": 414.0
+  },
+  "callback_ns": {
+    "n": 24,
+    "mean": 12373.208333333334,
+    "min": 6384.0,
+    "max": 19429.0
+  }
+}

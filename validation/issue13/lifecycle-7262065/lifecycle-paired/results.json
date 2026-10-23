@@ -1,0 +1,97 @@
+{
+  "status": "PASS",
+  "config": {
+    "source": "/home/nate/claude/flash-sass-prs/trace-build-7262065",
+    "validation": "/home/nate/claude/flash-sass-prs/trace-validation-7262065",
+    "label": "lifecycle-paired",
+    "revision": "72620653d4bb3dc10e3cb405695550db7152bae7",
+    "kind": "trace",
+    "cubin": "die_trace.cubin",
+    "trace_tokens": 4,
+    "paired_modes": [
+      1
+    ]
+  },
+  "commands": [
+    {
+      "label": "gpu-before",
+      "argv": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm",
+        "--format=csv"
+      ],
+      "exit": 0,
+      "seconds": 0.11445092500071041
+    },
+    {
+      "label": "lifecycle-pair1",
+      "argv": [
+        "python3",
+        "/home/nate/claude/flash-sass-prs/trace-build-7262065/kern/trace_lifecycle_check.py",
+        "--socket",
+        "/tmp/flash-owned-lifecycle-paired-pair1.sock",
+        "--source-sha",
+        "72620653d4bb3dc10e3cb405695550db7152bae7",
+        "--out",
+        "/home/nate/claude/flash-sass-prs/trace-validation-7262065/lifecycle-paired/trace-pair1",
+        "--pair-check"
+      ],
+      "exit": 0,
+      "seconds": 5.175413301003573
+    },
+    {
+      "label": "gpu-after",
+      "argv": [
+        "nvidia-smi",
+        "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm",
+        "--format=csv"
+      ],
+      "exit": 0,
+      "seconds": 0.11461171799601289
+    }
+  ],
+  "cores": [
+    {
+      "pid": 2127088,
+      "argv": [
+        "/home/nate/claude/flash-sass-prs/trace-build-7262065/kern/flashcore",
+        "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf",
+        "/home/nate/claude/flash-sass-prs/trace-build-7262065/kern/libengine.so",
+        "/tmp/hold-h0.manifest",
+        "/tmp/hold-h1.manifest",
+        "/tmp/hold-h2.manifest",
+        "/tmp/hold-h3.manifest",
+        "/tmp/hold-h4.manifest",
+        "/tmp/hold-h5.manifest"
+      ],
+      "environment": {
+        "CUDA_VISIBLE_DEVICES": "0,1,2,3,4,5,7",
+        "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
+        "SPLIT_SHARES": "112,97,81,116,97,97",
+        "ATTN_DIE": "1",
+        "ATTN_MAP": "1,1,1,1,4,4,4,4,5,5,5,5",
+        "FLASH_ANCHOR_DIE": "7",
+        "FLASH_MAXT": "512",
+        "FLASH_ENGINE_MAXT": "512",
+        "FLASH_MAXIMG": "1",
+        "FLASH_PLE_DISK": "1",
+        "FLASH_PLE_OFF": "192",
+        "FLASH_NBLK": "512",
+        "FLASH_KV_HOST": "0",
+        "FLASH_WATCHDOG_S": "60",
+        "FLASH_TWO_POSITION": "1",
+        "FLASH_TRACE": "4",
+        "FLASH_CUBIN": "/home/nate/claude/flash-sass-prs/trace-build-7262065/kern/die_trace.cubin",
+        "FLASH_SOCK": "/tmp/flash-owned-lifecycle-paired-pair1.sock"
+      },
+      "library_sha256": "0ecd9a26da5d133d93253bdf464f7bb1ccc9796445c714a77099c6207037643b",
+      "cubin_sha256": "54f39d86d0d708c95115fd429a06cc37125f77b992123e072061235f5b3dc0f2",
+      "started_utc": "2026-10-17T20:48:41.913819+00:00",
+      "config": "config rev=72620653d4bb3dc10e3cb405695550db7152bae7 kv_host=0 ple_disk=1 maxt=512 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=1 trace_tokens=4 two_position=1 cubin=/home/nate/claude/flash-sass-prs/trace-build-7262065/kern/die_trace.cubin cubin_fnv=3c940dc11e292f13",
+      "post_check_info": "info 512 1",
+      "owned_core_exit": -15,
+      "finished_utc": "2026-10-17T20:48:49.058715+00:00"
+    }
+  ],
+  "runner_sha256": "103f055f11f5f685d06df415688b2f7681abbab9cbae38909abb9d8cf1b2e7b6"
+}

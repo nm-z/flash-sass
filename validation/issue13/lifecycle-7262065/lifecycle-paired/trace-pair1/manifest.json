@@ -1,0 +1,12 @@
+{
+  "hostname": "archy",
+  "source_sha": "72620653d4bb3dc10e3cb405695550db7152bae7",
+  "config": "config rev=72620653d4bb3dc10e3cb405695550db7152bae7 kv_host=0 ple_disk=1 maxt=512 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=1 trace_tokens=4 two_position=1 cubin=/home/nate/claude/flash-sass-prs/trace-build-7262065/kern/die_trace.cubin cubin_fnv=3c940dc11e292f13",
+  "cubin_sha256": "54f39d86d0d708c95115fd429a06cc37125f77b992123e072061235f5b3dc0f2",
+  "socket": "/tmp/flash-owned-lifecycle-paired-pair1.sock",
+  "device_fault_injected": false,
+  "pair_check_requested": true,
+  "two_position": true,
+  "pair_check_executed": true,
+  "driver_sha256": "08e3a4683d004eee572d794a04d6cbb0c0d001ca8f0f61be9beb948781fcc5e6"
+}

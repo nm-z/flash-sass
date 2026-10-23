@@ -1,0 +1,154 @@
+{
+  "wall_ns": {
+    "modes": {
+      "ordinary": {
+        "n": 2,
+        "mean": 78864976.5,
+        "median": 78864976.5,
+        "min": 78791099,
+        "max": 78938854,
+        "sample_sd": 104478.56245421834
+      },
+      "traced": {
+        "n": 2,
+        "mean": 94735247.0,
+        "median": 94735247.0,
+        "min": 94370718,
+        "max": 95099776,
+        "sample_sd": 515521.85567830194
+      }
+    },
+    "abba_blocks": [
+      {
+        "block": 1,
+        "means": {
+          "ordinary": 78864976.5,
+          "traced": 94735247.0
+        },
+        "overhead_percent": 20.123343978933406
+      }
+    ],
+    "overhead_percent": {
+      "n": 1,
+      "mean": 20.123343978933406,
+      "median": 20.123343978933406,
+      "min": 20.123343978933406,
+      "max": 20.123343978933406,
+      "sample_sd": null
+    }
+  },
+  "first_token_ns": {
+    "modes": {
+      "ordinary": {
+        "n": 2,
+        "mean": 54035492.5,
+        "median": 54035492.5,
+        "min": 53957431,
+        "max": 54113554,
+        "sample_sd": 110395.63199918736
+      },
+      "traced": {
+        "n": 2,
+        "mean": 64672903.0,
+        "median": 64672903.0,
+        "min": 64355834,
+        "max": 64989972,
+        "sample_sd": 448403.2800080749
+      }
+    },
+    "abba_blocks": [
+      {
+        "block": 1,
+        "means": {
+          "ordinary": 54035492.5,
+          "traced": 64672903.0
+        },
+        "overhead_percent": 19.685969365412937
+      }
+    ],
+    "overhead_percent": {
+      "n": 1,
+      "mean": 19.685969365412937,
+      "median": 19.685969365412937,
+      "min": 19.685969365412937,
+      "max": 19.685969365412937,
+      "sample_sd": null
+    }
+  },
+  "steady_decode_ns_per_token": {
+    "modes": {
+      "ordinary": {
+        "n": 2,
+        "mean": 24674479.5,
+        "median": 24674479.5,
+        "min": 24659213.0,
+        "max": 24689746.0,
+        "sample_sd": 21590.091349968854
+      },
+      "traced": {
+        "n": 2,
+        "mean": 29934293.5,
+        "median": 29934293.5,
+        "min": 29918545.0,
+        "max": 29950042.0,
+        "sample_sd": 22271.74228703269
+      }
+    },
+    "abba_blocks": [
+      {
+        "block": 1,
+        "means": {
+          "ordinary": 24674479.5,
+          "traced": 29934293.5
+        },
+        "overhead_percent": 21.316818456089415
+      }
+    ],
+    "overhead_percent": {
+      "n": 1,
+      "mean": 21.316818456089415,
+      "median": 21.316818456089415,
+      "min": 21.316818456089415,
+      "max": 21.316818456089415,
+      "sample_sd": null
+    }
+  },
+  "run_ms_rounded": {
+    "modes": {
+      "ordinary": {
+        "n": 2,
+        "mean": 74.75,
+        "median": 74.75,
+        "min": 74.7,
+        "max": 74.8,
+        "sample_sd": 0.07071067811865074
+      },
+      "traced": {
+        "n": 2,
+        "mean": 90.1,
+        "median": 90.1,
+        "min": 89.9,
+        "max": 90.3,
+        "sample_sd": 0.282842712474613
+      }
+    },
+    "abba_blocks": [
+      {
+        "block": 1,
+        "means": {
+          "ordinary": 74.75,
+          "traced": 90.1
+        },
+        "overhead_percent": 20.53511705685618
+      }
+    ],
+    "overhead_percent": {
+      "n": 1,
+      "mean": 20.53511705685618,
+      "median": 20.53511705685618,
+      "min": 20.53511705685618,
+      "max": 20.53511705685618,
+      "sample_sd": null
+    }
+  }
+}

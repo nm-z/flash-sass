@@ -1,0 +1,24 @@
+[
+  {
+    "id": 88063,
+    "job_id": "a87330b2-d055-42dc-8161-b29cbb42b0fb",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 0,
+    "observed_ns": "1792590401861377979",
+    "bytes": 96,
+    "sha256": "68e926d4ab2dfd30950479ccd907a4ca493f1c1108da411a74cc2164c36e6d32",
+    "text": "PASS lifecycle evidence saved to /dev/shm/fs13-c250e88/evidence/schema2/lifecycle-c250e88-final\n"
+  },
+  {
+    "id": 88067,
+    "job_id": "a87330b2-d055-42dc-8161-b29cbb42b0fb",
+    "kind": "collector_error",
+    "source": "trace",
+    "ordinal": 0,
+    "observed_ns": "1792590401878649148",
+    "bytes": 103,
+    "sha256": "30349a93d1d8c356fb6dc81ab296392e83b76d83f2b7e22d67e7a50c1df4d6d1",
+    "text": "RuntimeError: resident engine has no enabled trace producer; raw job-provided traces are still imported"
+  }
+]

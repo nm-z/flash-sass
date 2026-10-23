@@ -1,0 +1,57 @@
+[
+  {
+    "id": 86631,
+    "job_id": "4dedb631-a9e2-4b0f-8e50-58d6e7728550",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 0,
+    "observed_ns": "1792588550891398948",
+    "bytes": 46,
+    "sha256": "8a51a2139ee644b68c622f0ebe5fdac019fb83b32e165b6639d42a2f119a3ba8",
+    "text": "warmup slot=1 mode=ordinary wall_ns=128549752\n"
+  },
+  {
+    "id": 86633,
+    "job_id": "4dedb631-a9e2-4b0f-8e50-58d6e7728550",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 1,
+    "observed_ns": "1792588552362795590",
+    "bytes": 46,
+    "sha256": "60ac626b8a4b26d9cf2151f1807396c9bbded0baf6eb3d66ffda6081c2d81e74",
+    "text": "warmup slot=1 mode=ordinary wall_ns=128281856\n"
+  },
+  {
+    "id": 86636,
+    "job_id": "4dedb631-a9e2-4b0f-8e50-58d6e7728550",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 2,
+    "observed_ns": "1792588553956891461",
+    "bytes": 48,
+    "sha256": "7d0367a057b1e45269150d98f66d5abe476c4940fad1dd39a2da780d3ca1a85a",
+    "text": "measured slot=1 mode=ordinary wall_ns=128521795\n"
+  },
+  {
+    "id": 86639,
+    "job_id": "4dedb631-a9e2-4b0f-8e50-58d6e7728550",
+    "kind": "stderr",
+    "source": "stderr",
+    "ordinal": 0,
+    "observed_ns": "1792588556999199129",
+    "bytes": 42,
+    "sha256": "69ba907fecf6321f88a9796e9cfe8984f9d67df5e10451403d59aa6915708454",
+    "text": "TraceValidation::Error: prepare failed: 1\n"
+  },
+  {
+    "id": 86643,
+    "job_id": "4dedb631-a9e2-4b0f-8e50-58d6e7728550",
+    "kind": "collector_error",
+    "source": "trace",
+    "ordinal": 0,
+    "observed_ns": "1792588557018379874",
+    "bytes": 103,
+    "sha256": "30349a93d1d8c356fb6dc81ab296392e83b76d83f2b7e22d67e7a50c1df4d6d1",
+    "text": "RuntimeError: resident engine has no enabled trace producer; raw job-provided traces are still imported"
+  }
+]

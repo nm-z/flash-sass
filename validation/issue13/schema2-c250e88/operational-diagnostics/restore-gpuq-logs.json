@@ -1,0 +1,24 @@
+[
+  {
+    "id": 86659,
+    "job_id": "ac408909-6957-4918-a3bb-0ae270905664",
+    "kind": "stdout",
+    "source": "stdout",
+    "ordinal": 0,
+    "observed_ns": "1792588643627499543",
+    "bytes": 993,
+    "sha256": "24c911041a91e1e6733e7f02754cc822f498e7a57becfe12b2d3d94d7f8b8198",
+    "text": "> reload /home/nate/codex/flash-astra-build-20261018/qsplit-release/kern/libengine.so FLASH_ENGINE_MAXT=230000 FLASH_MAXIMG=4096 FLASH_NBLK=512 FLASH_PLE_DISK=1 FLASH_PLE_READERS=1 FLASH_KV_HOST=0 FLASH_KV_TRACE=0 FLASH_TWO_POSITION=1 FLASH_PREFILL_CHUNK=64 FLASH_WATCHDOG_S=600 FLASH_TRACE=0 FLASH_TRACE_CTAS=1 FLASH_CUBIN=/home/nate/codex/flash-astra-build-20261018/iq4-bias/kern/die.cubin\nok: engine reloaded\nconfig rev=attention-q-release kv_host=0 kv_trace=0 ple_disk=1 ple_readers=1 ple_file=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf ple_cache=/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf maxt=230000 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=4096 rope_owner=5 trace_tokens=0 two_position=1 prefill_chunk=64 attn_q_split=1 attn_q_mask=3f cubin=/home/nate/codex/flash-astra-build-20261018/iq4-bias/kern/die.cubin cubin_fnv=9abf8aafb9134d59\nPASS original resident configuration restored\n"
+  },
+  {
+    "id": 86663,
+    "job_id": "ac408909-6957-4918-a3bb-0ae270905664",
+    "kind": "collector_error",
+    "source": "trace",
+    "ordinal": 0,
+    "observed_ns": "1792588643647321823",
+    "bytes": 103,
+    "sha256": "30349a93d1d8c356fb6dc81ab296392e83b76d83f2b7e22d67e7a50c1df4d6d1",
+    "text": "RuntimeError: resident engine has no enabled trace producer; raw job-provided traces are still imported"
+  }
+]

@@ -1,0 +1,5 @@
+PASS exact per-CTA/token and same-die reconciliation; grid joins; known makespan bounds
+PASS independent epoch shifts above 2^53 preserve durations and causal bounds
+PASS single-position scope keeps earlier-token time outside its first bucket
+PASS incomplete CTA coverage rejected
+PASS inconsistent generation coverage rejected
