@@ -1,0 +1,617 @@
+{
+   "artifact_sha256" : {
+      "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.ids.fixed_iq_bf16_mean_norm_rope_return_casts.u32" : "1f102f025fbd1aa867d65b2c427f26b3407c6bf173ea39fdaf3efb4b92eba94e",
+      "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.ids.fixed_iq_exported_pool.u32" : "22589d5118994586616dce7381c7740a5894d8db4a1fe3b946dcc138a5021971",
+      "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.ids.fixed_iq_fp16_mean_norm_rope_return_casts.u32" : "b303d43354874750175d88aa8bbeb630eaef73ba4fb61021c5f32bfa32f0fef1",
+      "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.ids.fixed_iq_fp64_pool.u32" : "9eb4bb106371976ceeeee48b995f6050b3b5334accec0f9ca8eeefcbf44d7a02",
+      "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.ids.fixed_iq_scalar_fp32_pool.u32" : "9eb4bb106371976ceeeee48b995f6050b3b5334accec0f9ca8eeefcbf44d7a02",
+      "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.ids.fixed_iq_scalar_fp32_pool_fp16_store.u32" : "22589d5118994586616dce7381c7740a5894d8db4a1fe3b946dcc138a5021971",
+      "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.ids.reference_fp64.u32" : "9eb4bb106371976ceeeee48b995f6050b3b5334accec0f9ca8eeefcbf44d7a02",
+      "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.pool.reference_fp64.f64" : "7f858f3953aabe085480f7107e52af96a8ee274ef05e7a5d195b06184c02bade",
+      "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.query.reference_fp64.f64" : "5d524d90b62d2b2d3c25b746fbef0df3ebcbe693b5192831324ddd559fbf56e9",
+      "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.scores.fixed_iq_bf16_mean_norm_rope_return_casts.f64" : "84e008b093c92584695c45e13f2dc9dd7ec6c849ce7987e48060ca54d1c566f4",
+      "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.scores.fixed_iq_exported_pool.f64" : "cadc3b004708386f230ad4541108874945ca5efa8a84a902243067e182c63fa3",
+      "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.scores.fixed_iq_fp16_mean_norm_rope_return_casts.f64" : "00103cbf7763b726f1a9a5882fc90ce993cbb13bf6cbbf7da3c55be4eae235db",
+      "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.scores.fixed_iq_fp64_pool.f64" : "6c387a9969404669248b00f892dcd29c1f47dc8552dac2da28d3774721570f70",
+      "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.scores.fixed_iq_scalar_fp32_pool.f64" : "884b5549d3c67e6926f3fd529f7ebc1e05676b733f2566585eb35d731716af68",
+      "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.scores.fixed_iq_scalar_fp32_pool_fp16_store.f64" : "1228e995868f9a065f3216902c814448bcbcaa577f7e5586e92fe13b992c4d31",
+      "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.scores.reference_fp64.f64" : "65ee699de3bb6fe2236b6f63462b0cf9627c2b831f93dc357d98568b138c0473"
+   },
+   "attended_keys" : 2047,
+   "budget" : 512,
+   "candidate_raw_scores_vs_exported_inputs_fp64" : {
+      "count" : 0,
+      "max_abs" : null,
+      "relative_l2" : null,
+      "rms" : null
+   },
+   "candidate_scaled_scores_vs_exported_inputs_fp64" : {
+      "count" : 0,
+      "max_abs" : null,
+      "relative_l2" : null,
+      "rms" : null
+   },
+   "candidate_scaled_scores_vs_full_fp64" : {
+      "count" : 0,
+      "max_abs" : null,
+      "relative_l2" : null,
+      "rms" : null
+   },
+   "candidate_score_convention" : "unscaled_sum_head_relu_dot",
+   "candidate_score_readback_present" : false,
+   "candidate_score_readback_ranking" : null,
+   "capture_completion_metadata" : {
+      "FLASH_KV_HOST" : 0,
+      "budget" : 512,
+      "byte_order" : "little",
+      "complete" : true,
+      "die" : 0,
+      "epsilon" : 1e-06,
+      "evidence_kind" : "synthetic_cpu_fixture",
+      "full_model" : false,
+      "hidden_input_generator" : "fixed_lcg_fp32_v1",
+      "hidden_input_seed" : 4242,
+      "indexer_projection" : "original_bf16_index_qk_proj",
+      "layer" : 3,
+      "pool_dtype" : "fp16",
+      "positions" : 2053,
+      "production_gpu_indexer_executed" : false,
+      "rope_base" : 10000000,
+      "schema" : "flash-sass.qsa-layer-capture.v1",
+      "selection_source" : "reference_qsa_c",
+      "snapshot_lengths" : [
+         2047,
+         2048,
+         2049,
+         2050,
+         2051,
+         2052,
+         2053
+      ],
+      "teacher_forced" : false,
+      "weights_file_sha256" : "0fe8d836b886ac8942f74e835e17487f53454e96bf38263d45fb329006dde7a9",
+      "weights_origin" : "original_checkpoint_safetensors_layer3",
+      "weights_revision" : "de4b8e4d43b917e7706784d8bb445c9af86a3540"
+   },
+   "capture_snapshot_metadata" : {
+      "attended_keys" : 2047,
+      "budget" : 512,
+      "complete_blocks" : 511,
+      "die" : 0,
+      "evidence_kind" : "synthetic_cpu_fixture",
+      "layer" : 3,
+      "length" : 2047,
+      "position" : 2046,
+      "schema" : "flash-sass.qsa-layer-snapshot.v1",
+      "scores_source" : "reference_qsa_c",
+      "selected_blocks" : 511,
+      "selected_ids_source" : "reference_qsa_c",
+      "sparse_exclusion" : false,
+      "tail" : 3,
+      "teacher_forced" : false
+   },
+   "complete" : true,
+   "complete_blocks" : 511,
+   "computation_complete" : true,
+   "epsilon" : 1e-06,
+   "gamma_convention" : "supplied_multiplicative_gamma_no_add_one",
+   "gpu_execution_performed_by_replay" : false,
+   "independent_checkpoint_evidence" : false,
+   "input_hashes_match_before_after_replay" : true,
+   "input_origin" : "synthetic_cpu_fixture",
+   "input_sha256" : {
+      "/home/nate/.local/state/nates-dsh/builds/build-3730932-1792574818792740333.uVJapR/source/validation/issue22/model-indexer-limits.json" : "f40c61f1932be2994f198340e2c24a52fa9280abbac844327ee0f82b6a6e0806",
+      "/home/nate/.local/state/nates-dsh/builds/build-3730932-1792574818792740333.uVJapR/source/validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/indexer-capture/complete.json" : "8b4c6298c2a34235f6349eddc090b3770fc5a7760ea8fec8310314b0d63b6819",
+      "/home/nate/.local/state/nates-dsh/builds/build-3730932-1792574818792740333.uVJapR/source/validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/indexer-capture/ikn.f32" : "b51b2612efd91f5b55b18e38c40940598ba2f3bf8a17f7e054c792ea07dfeb33",
+      "/home/nate/.local/state/nates-dsh/builds/build-3730932-1792574818792740333.uVJapR/source/validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/indexer-capture/iqn.f32" : "dcf50473b9568dfbdadcb4cf340bac623f39a28e876d2b9e8b8e02c4ed022592",
+      "/home/nate/.local/state/nates-dsh/builds/build-3730932-1792574818792740333.uVJapR/source/validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/indexer-capture/n2047/iq.f32" : "229b84fffc68544427d36ba09a987ccbf2d480111b585b63894967ef1f1a8e7e",
+      "/home/nate/.local/state/nates-dsh/builds/build-3730932-1792574818792740333.uVJapR/source/validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/indexer-capture/n2047/iqk.f32" : "851308bba3b354e777cbef6a6225459817ba7e24f82148a6ef11ffff9a2f0595",
+      "/home/nate/.local/state/nates-dsh/builds/build-3730932-1792574818792740333.uVJapR/source/validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/indexer-capture/n2047/pool.f16" : "b67c0c5760bad141f8aae849a84e34df71380228b4dfd7a134314626f0706c7b",
+      "/home/nate/.local/state/nates-dsh/builds/build-3730932-1792574818792740333.uVJapR/source/validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/indexer-capture/n2047/selected_ids.u32" : "eda3b8c086b641aa3cdfc2deccbdb52b7f409b0b9a39bc7775b97389ef0374ad",
+      "/home/nate/.local/state/nates-dsh/builds/build-3730932-1792574818792740333.uVJapR/source/validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/indexer-capture/n2047/snapshot.json" : "dfc66e1a1bb71a92e4080ecd75426e45189bae84fd5dd8a3e4f16df95073bb32",
+      "/home/nate/.local/state/nates-dsh/builds/build-3730932-1792574818792740333.uVJapR/source/validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/indexer-capture/raw_ik.f32" : "d51f06e1fce2405ab097bf7f42756506c1ccc00cbebe01055f40b0aa691fadb3",
+      "/home/nate/.local/state/nates-dsh/builds/build-3730932-1792574818792740333.uVJapR/source/validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/indexer-capture/rope_cs.f32" : "55029fca13c745dd848c10c5a952143dfb325e05ff9de228aab97146006ce992",
+      "/home/nate/.local/state/nates-dsh/builds/build-3730932-1792574818792740333.uVJapR/source/validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/indexer-capture/rope_sn.f32" : "039ee82116f52da4c30789cb6b0bbe30910370054ea8c8cfb607f2d75998586f"
+   },
+   "length" : 2047,
+   "modes" : [
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 65408,
+            "max_abs" : 0.00040227304092455,
+            "relative_l2" : 0.000204322224618706,
+            "rms" : 1.3802290990348e-05
+         },
+         "ids_artifact" : "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.ids.reference_fp64.u32",
+         "name" : "reference_fp64",
+         "pool_mode_vs_fp64" : {
+            "count" : 65408,
+            "max_abs" : 0,
+            "relative_l2" : 0,
+            "rms" : 0
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : 0,
+            "cutoff_margin" : null,
+            "cutoff_ties" : 1,
+            "selected_at_cutoff" : 1,
+            "selected_blocks" : 511,
+            "strict_above" : 510
+         },
+         "scores_artifact" : "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.scores.reference_fp64.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 511,
+            "max_abs" : 2.90576241540608e-09,
+            "relative_l2" : 2.63512107295021e-08,
+            "rms" : 5.91449528780361e-10
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 511,
+            "max_abs" : 0,
+            "relative_l2" : 0,
+            "rms" : 0
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 511,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 511
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 511,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 511
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 65408,
+            "max_abs" : 0.00040227304092455,
+            "relative_l2" : 0.000204322224618706,
+            "rms" : 1.3802290990348e-05
+         },
+         "ids_artifact" : "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.ids.fixed_iq_fp64_pool.u32",
+         "name" : "fixed_iq_fp64_pool",
+         "pool_mode_vs_fp64" : {
+            "count" : 65408,
+            "max_abs" : 0,
+            "relative_l2" : 0,
+            "rms" : 0
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : 0,
+            "cutoff_margin" : null,
+            "cutoff_ties" : 1,
+            "selected_at_cutoff" : 1,
+            "selected_blocks" : 511,
+            "strict_above" : 510
+         },
+         "scores_artifact" : "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.scores.fixed_iq_fp64_pool.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 511,
+            "max_abs" : 0,
+            "relative_l2" : 0,
+            "rms" : 0
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 511,
+            "max_abs" : 2.90576241540608e-09,
+            "relative_l2" : 2.63512109039208e-08,
+            "rms" : 5.91449528780361e-10
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 511,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 511
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 511,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 511
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 65408,
+            "max_abs" : 0.000402331352233887,
+            "relative_l2" : 0.000204318383344891,
+            "rms" : 1.38020314211369e-05
+         },
+         "ids_artifact" : "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.ids.fixed_iq_scalar_fp32_pool.u32",
+         "name" : "fixed_iq_scalar_fp32_pool",
+         "pool_mode_vs_fp64" : {
+            "count" : 65408,
+            "max_abs" : 1.6595021989918e-07,
+            "relative_l2" : 9.72233887172901e-08,
+            "rms" : 6.56759441929499e-09
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : 0,
+            "cutoff_margin" : null,
+            "cutoff_ties" : 1,
+            "selected_at_cutoff" : 1,
+            "selected_blocks" : 511,
+            "strict_above" : 510
+         },
+         "scores_artifact" : "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.scores.fixed_iq_scalar_fp32_pool.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 511,
+            "max_abs" : 1.02016609535016e-08,
+            "relative_l2" : 8.75470142676075e-08,
+            "rms" : 1.96498145251189e-09
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 511,
+            "max_abs" : 1.31074233689077e-08,
+            "relative_l2" : 9.30251172101702e-08,
+            "rms" : 2.08793675324068e-09
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 511,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 511
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 511,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 511
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 65408,
+            "max_abs" : 6.103515625e-05,
+            "relative_l2" : 4.35494687779753e-06,
+            "rms" : 2.94184636885202e-07
+         },
+         "ids_artifact" : "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.ids.fixed_iq_scalar_fp32_pool_fp16_store.u32",
+         "name" : "fixed_iq_scalar_fp32_pool_fp16_store",
+         "pool_mode_vs_fp64" : {
+            "count" : 65408,
+            "max_abs" : 0.00040227304092455,
+            "relative_l2" : 0.000204322239565708,
+            "rms" : 1.38022920000417e-05
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : 0,
+            "cutoff_margin" : null,
+            "cutoff_ties" : 1,
+            "selected_at_cutoff" : 1,
+            "selected_blocks" : 511,
+            "strict_above" : 510
+         },
+         "scores_artifact" : "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.scores.fixed_iq_scalar_fp32_pool_fp16_store.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 511,
+            "max_abs" : 1.80270279528105e-05,
+            "relative_l2" : 0.000177771557292438,
+            "rms" : 3.99005969290998e-06
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 511,
+            "max_abs" : 1.80288223044917e-05,
+            "relative_l2" : 0.000177774359946309,
+            "rms" : 3.99012257170428e-06
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 511,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 511
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 511,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 511
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 65408,
+            "max_abs" : 0.0009765625,
+            "relative_l2" : 0.000404636206850857,
+            "rms" : 2.73336924530437e-05
+         },
+         "ids_artifact" : "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.ids.fixed_iq_fp16_mean_norm_rope_return_casts.u32",
+         "name" : "fixed_iq_fp16_mean_norm_rope_return_casts",
+         "pool_mode_vs_fp64" : {
+            "count" : 65408,
+            "max_abs" : 0.000714077179325923,
+            "relative_l2" : 0.000348268734563407,
+            "rms" : 2.35261065028769e-05
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : 0,
+            "cutoff_margin" : null,
+            "cutoff_ties" : 1,
+            "selected_at_cutoff" : 1,
+            "selected_blocks" : 511,
+            "strict_above" : 510
+         },
+         "scores_artifact" : "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.scores.fixed_iq_fp16_mean_norm_rope_return_casts.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 511,
+            "max_abs" : 3.16815476649676e-05,
+            "relative_l2" : 0.000309401010410577,
+            "rms" : 6.94446580424583e-06
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 511,
+            "max_abs" : 3.1680096464641e-05,
+            "relative_l2" : 0.000309400002289679,
+            "rms" : 6.94444313113692e-06
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 511,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 511
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 511,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 511
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 65408,
+            "max_abs" : 0.0048828125,
+            "relative_l2" : 0.00284121381794388,
+            "rms" : 0.000191941419588539
+         },
+         "ids_artifact" : "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.ids.fixed_iq_bf16_mean_norm_rope_return_casts.u32",
+         "name" : "fixed_iq_bf16_mean_norm_rope_return_casts",
+         "pool_mode_vs_fp64" : {
+            "count" : 65408,
+            "max_abs" : 0.00494208045223887,
+            "relative_l2" : 0.00283444151214738,
+            "rms" : 0.000191471028757576
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : 0,
+            "cutoff_margin" : null,
+            "cutoff_ties" : 1,
+            "selected_at_cutoff" : 1,
+            "selected_blocks" : 511,
+            "strict_above" : 510
+         },
+         "scores_artifact" : "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.scores.fixed_iq_bf16_mean_norm_rope_return_casts.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 511,
+            "max_abs" : 0.000252747268084531,
+            "relative_l2" : 0.00254535540873729,
+            "rms" : 5.71301741134327e-05
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 511,
+            "max_abs" : 0.000252745524122043,
+            "relative_l2" : 0.00254535541655532,
+            "rms" : 5.71301739107627e-05
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 511,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 511
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 511,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 511
+         }
+      },
+      {
+         "exported_pool_vs_mode" : {
+            "count" : 65408,
+            "max_abs" : 0,
+            "relative_l2" : 0,
+            "rms" : 0
+         },
+         "ids_artifact" : "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.ids.fixed_iq_exported_pool.u32",
+         "name" : "fixed_iq_exported_pool",
+         "pool_mode_vs_fp64" : {
+            "count" : 65408,
+            "max_abs" : 0.00040227304092455,
+            "relative_l2" : 0.000204322224618706,
+            "rms" : 1.3802290990348e-05
+         },
+         "ranking" : {
+            "ambiguous_cutoff" : false,
+            "cutoff" : 0,
+            "cutoff_margin" : null,
+            "cutoff_ties" : 1,
+            "selected_at_cutoff" : 1,
+            "selected_blocks" : 511,
+            "strict_above" : 510
+         },
+         "scores_artifact" : "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.scores.fixed_iq_exported_pool.f64",
+         "scores_vs_fixed_iq_fp64_pool" : {
+            "count" : 511,
+            "max_abs" : 1.80270279528105e-05,
+            "relative_l2" : 0.000177735965599023,
+            "rms" : 3.98926084193821e-06
+         },
+         "scores_vs_full_fp64" : {
+            "count" : 511,
+            "max_abs" : 1.80288223044917e-05,
+            "relative_l2" : 0.000177738772204624,
+            "rms" : 3.98932380943387e-06
+         },
+         "selection_vs_fixed_iq_fp64_pool" : {
+            "canonical_overlap" : 511,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 511
+         },
+         "selection_vs_full_fp64" : {
+            "canonical_overlap" : 511,
+            "exact_tie_compatible" : true,
+            "missing_strictly_above_cutoff" : 0,
+            "selected_below_cutoff" : 0,
+            "selected_blocks" : 511
+         }
+      }
+   ],
+   "numerical_gates" : {
+      "checks" : [
+         {
+            "actual" : 0,
+            "applicable" : true,
+            "limit" : 0,
+            "metric" : "raw_last_key_snapshot_vs_prefix.max_abs",
+            "passes" : true,
+            "sense" : "max"
+         },
+         {
+            "actual" : null,
+            "applicable" : false,
+            "limit" : 0.001,
+            "metric" : "candidate_raw_scores_vs_exported_inputs_fp64.max_abs",
+            "passes" : null,
+            "sense" : "max"
+         },
+         {
+            "actual" : null,
+            "applicable" : false,
+            "limit" : 0.02,
+            "metric" : "candidate_scaled_scores_vs_full_fp64.max_abs",
+            "passes" : null,
+            "sense" : "max"
+         },
+         {
+            "actual" : 3.3812591337945e-08,
+            "applicable" : true,
+            "limit" : 1e-05,
+            "metric" : "query_exported_vs_fp64.max_abs",
+            "passes" : true,
+            "sense" : "max"
+         },
+         {
+            "actual" : null,
+            "applicable" : false,
+            "limit" : true,
+            "metric" : "provided_selection_vs_candidate_score_readback.exact_tie_compatible",
+            "passes" : null,
+            "sense" : "equals"
+         },
+         {
+            "actual" : 1,
+            "applicable" : true,
+            "limit" : 0.99,
+            "metric" : "provided_selection_vs_full_fp64.canonical_overlap_fraction",
+            "passes" : true,
+            "sense" : "min"
+         }
+      ],
+      "enabled" : true,
+      "limits" : {
+         "candidate_raw_score_max_abs" : 0.001,
+         "candidate_scaled_score_max_abs" : 0.02,
+         "candidate_selection_exact_ties" : true,
+         "full_fp64_selection_min_overlap" : 0.99,
+         "query_max_abs" : 1e-05,
+         "raw_last_key_max_abs" : 0,
+         "schema" : "flash-sass.qsa-numerical-limits.v1"
+      },
+      "limits_sha256" : "f40c61f1932be2994f198340e2c24a52fa9280abbac844327ee0f82b6a6e0806",
+      "passed" : true,
+      "predeclaration_attested" : false,
+      "scope" : "postprojection indexer only; excludes attention, projection and checkpoint quality"
+   },
+   "pool_fp64_artifact" : "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.pool.reference_fp64.f64",
+   "positions" : 2053,
+   "precision_notes" : [
+      "FP64 controls frozen FP32 inputs, not original weights",
+      "Scalar FP32 reductions and reciprocal sqrt may differ from device kernels",
+      "FP16/BF16 modes cast FP32 mean, RMSNorm return and RoPE return",
+      "All modes use supplied FP32 RoPE tables",
+      "Modes 1 through 6 hold the exported query fixed",
+      "No inferred pass thresholds"
+   ],
+   "production_budget" : true,
+   "provided_selection_vs_candidate_score_readback" : null,
+   "provided_selection_vs_exported_inputs_fp64" : {
+      "canonical_overlap" : 511,
+      "exact_tie_compatible" : true,
+      "missing_strictly_above_cutoff" : 0,
+      "selected_below_cutoff" : 0,
+      "selected_blocks" : 511
+   },
+   "provided_selection_vs_full_fp64" : {
+      "canonical_overlap" : 511,
+      "exact_tie_compatible" : true,
+      "missing_strictly_above_cutoff" : 0,
+      "selected_below_cutoff" : 0,
+      "selected_blocks" : 511
+   },
+   "quality_validation" : false,
+   "query_exported_vs_fp64" : {
+      "count" : 512,
+      "max_abs" : 3.3812591337945e-08,
+      "relative_l2" : 6.04804512376827e-08,
+      "rms" : 3.20183108713812e-09
+   },
+   "query_exported_vs_scalar_fp32" : {
+      "count" : 512,
+      "max_abs" : 8.94069671630859e-08,
+      "relative_l2" : 1.27781917561897e-07,
+      "rms" : 6.76476675042818e-09
+   },
+   "query_fp64_artifact" : "validation/issue22/review-20261021-original-layer3/indexer-cutoff-window-2047-2053-r3/replay/n2047-indexer-replay.json.pending.1965688.query.reference_fp64.f64",
+   "query_scalar_fp32_vs_fp64" : {
+      "count" : 512,
+      "max_abs" : 6.68172210338547e-08,
+      "relative_l2" : 9.71877761409696e-08,
+      "rms" : 5.14511443896265e-09
+   },
+   "raw_last_key_snapshot_vs_prefix" : {
+      "count" : 128,
+      "max_abs" : 0,
+      "relative_l2" : 0,
+      "rms" : 0
+   },
+   "reference_commit" : "8498ed425fa01bbee7d086efdf1a6634c2962aed",
+   "reference_source" : "src/transformers/models/qwen4_exp/modeling_qwen4_exp.py",
+   "replay_executable_sha256" : "ebb38ccaf70a18a04890f07f8af01f70318ec62eb88f86eab7e909cbbc4b589e",
+   "schema" : "flash-sass.qsa-quality-replay.v1",
+   "scope" : "postprojection_indexer_only",
+   "score_convention" : "sum_head_relu_dot_div_sqrt_128",
+   "selected_blocks" : 511,
+   "selection_tie_policy" : "lower_block_id_for_exact_equal_scores",
+   "sparse_exclusion" : false,
+   "tail_token_ids" : [
+      2044,
+      2045,
+      2046
+   ],
+   "tie_tolerance" : 0,
+   "wrapper_source_sha256" : "58466e04eee9629884ad8fa1cabdc7742d68b6f1391e438716112c86687ba54a"
+}
