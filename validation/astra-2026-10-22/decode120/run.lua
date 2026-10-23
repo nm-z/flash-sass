@@ -61,5 +61,5 @@ local env={
 }
 local command={'env'};for _,v in ipairs(env)do command[#command+1]=v end
 for _,v in ipairs({work..'/resident_decode_bench',work..'/flashcore',work..'/libengine_dflash2.so',
-                  work..'/die_dflash2_scalar.cubin',work..'/die_dflash2_b4.cubin'})do command[#command+1]=v end
+                  os.getenv('DECODE120_SCALAR_CUBIN') or work..'/die_dflash2_scalar.cubin',work..'/die_dflash2_b4.cubin'})do command[#command+1]=v end
 run(command)

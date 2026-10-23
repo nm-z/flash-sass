@@ -59,7 +59,18 @@ static int restore(void) {
 }
 static void cleanup(void) {
     if(restore_pending) { restore(); return; }
-    if(child>0) { kill(child,SIGTERM); waitpid(child,NULL,0); child=-1; }
+    if(child>0) {
+        if(server_pid>0 && server_pid!=child) {
+            kill(server_pid,SIGTERM);
+            /* Let instrumentation drain its diagnostics and close helper
+             * processes after the actual core exits. */
+            for(unsigned attempt=0;attempt<100;attempt++) {
+                if(waitpid(child,NULL,WNOHANG)==child){child=-1;break;}
+                struct timespec pause={.tv_nsec=100000000};nanosleep(&pause,NULL);
+            }
+        }
+        if(child>0){kill(child,SIGTERM);waitpid(child,NULL,0);child=-1;}
+    }
     if(*socket_path && strncmp(socket_path,"/tmp/flash-60-",14)==0) unlink(socket_path);
 }
 static void fail(const char *why) { fprintf(stderr,"decode benchmark: %s\n",why); cleanup(); exit(1); }
@@ -80,7 +91,9 @@ static void start_cuda_debugger(void) {
     ARG("-ex");ARG("info cuda kernels");ARG("-ex");ARG("info cuda threads");
     ARG("-ex");ARG("info registers");ARG("-ex");ARG("x/12i $pc");
     for(int d=0;d<6;d++) {
-        int physical=getenv("BENCH_ROW_BALANCE") && atoi(getenv("BENCH_ROW_BALANCE")) && d==2?6:d;
+        int legacy_balance=getenv("BENCH_ROW_BALANCE") && atoi(getenv("BENCH_ROW_BALANCE")) &&
+            !(getenv("BENCH_DFLASH2") && atoi(getenv("BENCH_DFLASH2")));
+        int physical=legacy_balance && d==2?6:d;
         snprintf(focus[d],sizeof focus[d],"cuda device %d sm 0 warp 0 lane 0",physical);
         ARG("-ex");ARG(focus[d]);ARG("-ex");ARG("info registers R0 R3 R7 R8 R13 R18 R19 R20 R21 R22 R24 R25");
         ARG("-ex");ARG("info registers R240 R241 R242 R243 R244 R245 R246 R247 R248");
@@ -141,6 +154,12 @@ static FILE *start(const char *core,const char *lib,const char *cubin,int fused,
                 if(snprintf(paths[d],sizeof paths[d],"%s/h%d.ipc.bin",dir,d)>=(int)sizeof paths[d])_exit(2);
                 args[d+3]=paths[d];
             }
+            const char *sanitizer=getenv("BENCH_CUDA_SANITIZER");
+            if(sanitizer && *sanitizer) {
+                char *instrumented[24]={(char *)sanitizer,"--tool","memcheck","--error-exitcode","17","--print-limit","40","--report-api-errors","no"};
+                unsigned at=9;for(unsigned j=0;args[j];j++)instrumented[at++]=args[j];instrumented[at]=NULL;
+                execv(sanitizer,instrumented);perror("exec full-core sanitizer");_exit(127);
+            }
             execv(core,args);perror("exec balanced flashcore");_exit(127);
         }
         const char *holder_dir=getenv("BENCH_HOLDER_DIR");
@@ -171,6 +190,8 @@ static FILE *start(const char *core,const char *lib,const char *cubin,int fused,
         struct sockaddr_un sa={.sun_family=AF_UNIX}; strcpy(sa.sun_path,socket_path);
         if(connect(fd,(struct sockaddr *)&sa,sizeof sa)==0) {
             server_pid=child;
+            struct ucred peer;socklen_t peer_size=sizeof peer;
+            if(!getsockopt(fd,SOL_SOCKET,SO_PEERCRED,&peer,&peer_size))server_pid=peer.pid;
             struct timeval tv={.tv_sec=request_timeout()};
             setsockopt(fd,SOL_SOCKET,SO_RCVTIMEO,&tv,sizeof tv);
             setsockopt(fd,SOL_SOCKET,SO_SNDTIMEO,&tv,sizeof tv);

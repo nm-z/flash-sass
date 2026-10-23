@@ -186,6 +186,7 @@ static uint32_t *phase_watch;
  * stamps when a CUDA fault makes device copies unavailable. No model phase,
  * arithmetic, dispatch, or SASS instruction changes. Never use for timing. */
 static uint32_t *fault_ctl[MAXD];
+static uint32_t *gr_address_trace[MAXD];
 #include "phase/ownership.h"
 #include "phase/gr_replica.h"
 static unsigned gr_fusions;
@@ -405,6 +406,19 @@ static void balance_fault_dump(void) {
         fprintf(stderr,"fault_phase die=%d physical=%d token=%u last_completed=%d next_phase=%d descriptor=%u op=%s diagnostic_host_control=1 timing_valid=0\n",
             d,ar[d].die,ctl[2],last,next,next<prof_nph[d]?prof_index[d][next]:0,
             next<prof_nph[d]?profile_op_name(prof_op[d][next]):"token-boundary");
+        if(gr_address_trace[d])for(unsigned c=0;c<16;c++)for(unsigned w=0;w<8;w++) {
+            unsigned lo=UINT_MAX,hi=0,n=0,phase=0;uint64_t minimum=UINT64_MAX,maximum=0;
+            for(unsigned lane=0;lane<32;lane++) {
+                volatile uint32_t *v=gr_address_trace[d]+4u*(c*256+w*32+lane);
+                unsigned site=v[2];if(!site)continue;
+                uint64_t address=(uint64_t)v[0]|((uint64_t)v[1]<<32);
+                if(site<lo)lo=site;if(site>hi)hi=site;
+                if(address<minimum)minimum=address;if(address>maximum)maximum=address;
+                phase=v[3];n++;
+            }
+            if(n)fprintf(stderr,"gr_address die=%d cta=%u warp=%u phase=%u lanes=%u site_min=%u site_max=%u base_min=%016llx base_max=%016llx\n",
+                d,c,w,phase,n,lo,hi,(unsigned long long)minimum,(unsigned long long)maximum);
+        }
         if(next<prof_nph[d])for(unsigned k=0;k<8;k++)if(request_programs[k]) {
             const prog_t *p=request_programs[k]+d;unsigned index=prof_index[d][next];
             if(index>=(unsigned)p->n || p->p[index].w[0]!=prof_op[d][next])continue;
@@ -682,7 +696,10 @@ static void reset_fresh_sequence(int d) {
         ZERO(zq);ZERO(zs32);ZERO(zs16);ZERO(zas);
         ZERO(lqkv);ZERO(lgate);ZERO(la);ZERO(lu);ZERO(lo);ZERO(lon);
         ZERO(oq);ZERO(os32);ZERO(os16);ZERO(oas);ZERO(ly);
-        ZERO(r);ZERO(idx);ZERO(w);ZERO(s);ZERO(lidx);ZERO(lw);ZERO(ne);ZERO(part);
+        ZERO(r);ZERO(idx);ZERO(w);ZERO(s);ZERO(lidx);ZERO(lw);ZERO(part);
+        /* Unique routing embeds its immutable configuration pointer at +8.
+         * Only the expert count and completion epoch are request state. */
+        if(unique_rows)CK(cuMemsetD32(b->ne,0,2));else ZERO(ne);
         ZERO(g);ZERO(gu);ZERO(hq);ZERO(hs32);ZERO(hs16);ZERO(has);ZERO(out);
         ZERO(balance_gate_local);ZERO(balance_up_local);ZERO(balance_down_local);
         ZERO(balance_index_local);
@@ -2153,6 +2170,12 @@ int engine_init(core_t *c) {
 		for (int e = 0; e < 6; e++) { uint64_t a = e < nd ? (uint64_t)xc[e].flags + (unique_rows?4u:64u) * (unsigned)d : (uint64_t)dCTL[d] + 0xc0; memcpy(&hdr[16 + 2 * e], &a, 8); }
 		uint64_t mf = (uint64_t)xc[d].flags; memcpy(&hdr[28], &mf, 8);
 		CK(cuMemsetD8(dCTL[d], 0, 0x100)); CK(cuMemcpyHtoD(dCTL[d], hdr, sizeof hdr));
+        if(getenv("FLASH_GR_ADDRESS_TRACE") && atoi(getenv("FLASH_GR_ADDRESS_TRACE"))) {
+            CUdeviceptr trace;
+            CK(cuMemHostAlloc((void **)&gr_address_trace[d],65536,CU_MEMHOSTALLOC_PORTABLE|CU_MEMHOSTALLOC_DEVICEMAP));
+            memset(gr_address_trace[d],0,65536);CK(cuMemHostGetDevicePointer(&trace,gr_address_trace[d],0));
+            CK(cuMemcpyHtoD(dCTL[d]+0xd0,&trace,sizeof trace));
+        }
 	}
 	for (unsigned p = 1; p < allocated_positions; p++) {
 		for (int d = 0; d < 6; d++) tab[d] = (uint64_t)position_xchg(d < nd ? d : 0, p)->inbox;
@@ -2225,6 +2248,7 @@ void engine_fini(void) {
 	if (h_rnd) cuMemFreeHost(h_rnd);
 	if (h_tok) cuMemFreeHost(h_tok);
     for(int d=0;d<MAXD;d++)if(fault_ctl[d]){cuMemFreeHost(fault_ctl[d]);fault_ctl[d]=NULL;}
+    for(int d=0;d<MAXD;d++)if(gr_address_trace[d]){cuMemFreeHost(gr_address_trace[d]);gr_address_trace[d]=NULL;}
     if(phase_watch){cuMemFreeHost(phase_watch);phase_watch=NULL;}
 	if (h_abort) cuMemFreeHost(h_abort);
 	h_ids = NULL; h_toks = NULL; h_rnd = NULL; h_tok = NULL; h_abort = NULL;

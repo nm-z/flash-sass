@@ -81,7 +81,7 @@ local quant=dofile('balance/../phase/quant_emit.lua')(maps)
 local q=quant('bpleq',1,0xbfd0,
  '--:-:-:Y:d MOV %_v0, bple_value;\n--:-:-:Y:d MOV %_index, bple_out;',
  '--:-:-:Y:d BRA POSITION_END;')
-q=rep(q,'LDS.64 bpleq_table0, [RZ+0xbfd0];','MOV bpleq_table0, RZ;')
+q=rep(q,'--:-:1:-:2 LDS.64 bpleq_table0, [RZ+0xbfd0];','--:-:-:-:6 MOV bpleq_table0, RZ;')
 q=rep(q,'--:-:-:-:6 MOV32I bpleq_mneg1, 0xbf800000;',
  '--:-:-:-:6 MOV bpleq_table1, RZ;\n--:-:-:-:6 MOV32I bpleq_mneg1, 0xbf800000;')
 for _,p in ipairs({{'bpleq_qp0',0,0xbfd0},{'bpleq_sp320',8,0xbfd8},

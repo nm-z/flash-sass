@@ -57,8 +57,10 @@ pred('ISETP.EQ.U32.AND P6, PT, bt_active, RZ, PT');e('@P6 BRA BOARD_TRANSPORT_DO
 e('LDG.E.CG.64 bt_flags0, [bt_control+0xe8]','--:-:1:-:2')
 e('LDG.E.CG.64 bt_targets0, [bt_control+0xf0]','--:-:1:-:2')
 e('LDG.E.CG.64 bt_buddy0, [bt_control+0xf8]','--:-:1:-:2')
-e('LDG.E.CG bt_die, [bt_control+0xc]','--:-:3:-:2')
-e('LDS bt_epoch, [RZ+0xbf74]','--:-:3:-:2');wait('05')
+-- Global and shared loads have different completion paths. Do not let the
+-- shared epoch load replace the outstanding global die-index dependency.
+e('LDG.E.CG bt_die, [bt_control+0xc]','--:-:2:-:2')
+e('LDS bt_epoch, [RZ+0xbf74]','--:-:3:-:2');wait('07')
 e('IADD bt_epoch, bt_epoch, 0x1');e('LOP32I.AND bt_parity, bt_die, 0x1')
 -- Every writer fences before CTA thread zero publishes payload readiness.
 e('MEMBAR.SYS');e('BAR.SYNC 0x0')

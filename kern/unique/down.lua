@@ -163,7 +163,9 @@ e('IMNMX.U32 pc_index, tid, 0x28, PT');e('MOV32I pc_id, 0x200')
 for p=0,3 do
  pred(string.format('ISETP.GE.U32.AND P4, PT, pc_index, 0x%x, PT',10*p))
  pred(string.format('ISETP.LT.U32.AND P4, PT, pc_index, 0x%x, P4',10*(p+1)))
- e(string.format('IADD pc_temp, pc_index, -0x%x',10*p));e('SHL pc_temp, pc_temp, 0x2')
+ if p==0 then e('MOV pc_temp, pc_index')
+ else e(string.format('IADD pc_temp, pc_index, -0x%x',10*p))end
+ e('SHL pc_temp, pc_temp, 0x2')
  e(string.format('@P4 LDS pc_id, [pc_temp+0x%x]',0x8800+p*64),'--:-:1:-:2')
 end
 wait('01')
