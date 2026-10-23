@@ -69,12 +69,13 @@ local function geometry(a)
   end
   if w[30]&0x800000~=0 then put('reduced_values',rows*6) end
   if w[30]&0x1000000~=0 then put('head_candidates',rows);put('cta_winners',16) end
- elseif n=='balanced_batch' or n=='balanced_hcup5' then
+ elseif n=='balanced_batch' or n=='balanced_hcup5' or n=='balanced_prequant' then
   assert(w[2]>=2 and w[2]<=5 and w[3]>=1,'balanced batch shape')
   assert(((w[30]>>8)&255)==1+w[2]*w[3],'balanced batch descriptor span')
   put('causal_positions',w[2]);put('native_descriptors_per_position',w[3])
   put('inner_grid_joins',(w[5]~=0 or w[4]==107) and w[2] or 0)
   if n=='balanced_hcup5' then assert(w[2]==5 and w[3]==1 and w[4]==96,'native HCUP5 shape');put('shared_weight_passes',1) end
+  if n=='balanced_prequant' then assert(w[2]==5,'receiver quantization width');put('receiver_quant_values',12800);put('receiver_grid_joins',1)end
  elseif n=='embrow' then
   put('columns',w[1]*32);put('packed_row_bytes',w[17]);put('peers',w[19]);put('published_values',w[1]*32*4*w[19])
  elseif n=='bf16hcrx' or n=='bf16hcrwx' or n=='grwrite_read' then
@@ -83,6 +84,12 @@ local function geometry(a)
   assert(sass:find('SHL '..tag..'_rowstep, '..tag..'_rowstep, 0x2;',1,true),'GR read row tile')
   put('issued_dot_values',math.ceil(w[8]/4)*4*10240)
   put('published_values',w[8]*6)
+  if sass:find(tag..'_PACK_WAIT:',1,true) then
+   assert(w[8]<=64 and w[1]==16 and (w[20]~=0 or w[21]~=0),'GR packet geometry')
+   put('local_packet_values',w[8]);put('local_packet_arrivals',16)
+   put('peer_publication_ctas',1);put('peer_publication_warps',6)
+   put('peer_publication_chunks',12)
+  end
   if n~='bf16hcrx' then put('residual_values',10240) end
   if n=='grwrite_read' then put('sum_values',2560*(w[30]&0x400000~=0 and 1 or 6)) end
  elseif n=='hcupq_x' then

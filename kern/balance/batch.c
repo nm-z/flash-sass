@@ -6,7 +6,7 @@
 #include <string.h>
 
 int prog_balance_batch(prog_t *out,const prog_t *const *positions,
-                       unsigned count,balance_batch_work *work) {
+                       unsigned count,balance_batch_work *work,CUdeviceptr local_quant_ready) {
     if(!out || !positions || count<2 || count>BALANCED_BATCH_MAX)return -1;
     const prog_t *first=positions[0];
     if(!first || first->n<=0 || !first->p || first->xr || first->nxr ||
@@ -26,7 +26,11 @@ int prog_balance_batch(prog_t *out,const prog_t *const *positions,
     int strict=strict_env && atoi(strict_env)!=0;
     const char *hcup_env=getenv("FLASH_BALANCED_HCUP5");
     int hcup5=hcup_env && atoi(hcup_env)!=0 && count==5;
+    const char *localq_env=getenv("FLASH_BALANCED_HCUP5_LOCALQ");
+    int localq=localq_env && atoi(localq_env)!=0 && hcup5;
+    if(localq && !local_quant_ready)return -1;
     if(hcup5 && strict)return -1;
+    int preceding_hcup=0;
     for(int i=0;i<first->n;) {
         const phase_t *a=first->p+i;
         unsigned span=phase_descriptors(a);
@@ -48,25 +52,36 @@ int prog_balance_batch(prog_t *out,const prog_t *const *positions,
             stats.native_hcup_phases++;
         }
         stats.outer_phases++;
+        if(localq && preceding_hcup) {
+            if(!(a->w[30]&2u) || a->w[0]==96u)return -1;
+            stats.local_quant_phases++;stats.inner_grid_joins++;
+        }
         stats.causal_phase_replays+=count;
         stats.publications+=(a->w[30]&1u)!=0;
         stats.peer_acquires+=(a->w[30]&2u)!=0;
         /* QSA owns shared rolling indexer state and possibly aliased gather
          * scratch. Every CTA must finish one position before another starts. */
         if(strict || a->w[0]==OP_BALANCED_SELECT)stats.inner_grid_joins+=count;
+        preceding_hcup=hcup5 && a->w[0]==96u;
         i+=(int)span;
     }
+    if(localq && preceding_hcup)return -1;
     if(stats.outer_phases>=500)return -1;
     size_t n=(size_t)first->n*count+stats.outer_phases;
     if(n>INT_MAX || n>SIZE_MAX/sizeof(phase_t))return -2;
     phase_t *image=malloc(n*sizeof *image);if(!image)return -2;
-    size_t at=0;
+    size_t at=0;preceding_hcup=0;
     for(int i=0;i<first->n;) {
         const phase_t *a=first->p+i;
         unsigned span=phase_descriptors(a);
         phase_t *wrap=image+at++;memset(wrap,0,sizeof *wrap);
         wrap->w[0]=OP_BALANCED_BATCH;wrap->w[1]=16;
         if(hcup5 && a->w[0]==96u)wrap->w[0]=OP_BALANCED_HCUP5;
+        if(localq && preceding_hcup) {
+            wrap->w[0]=OP_BALANCED_PREQUANT;
+            wrap->w[6]=(uint32_t)local_quant_ready;wrap->w[7]=(uint32_t)(local_quant_ready>>32);
+        }
+        if(localq && a->w[0]==96u)wrap->w[6]=1;
         wrap->w[2]=count;wrap->w[3]=span;wrap->w[4]=a->w[0];
         wrap->w[5]=strict || a->w[0]==OP_BALANCED_SELECT;
         wrap->w[30]=(a->w[30]&~(PHASE_GROUP_FLAG|PHASE_FUSED_FLAG|
@@ -82,7 +97,7 @@ int prog_balance_batch(prog_t *out,const prog_t *const *positions,
                 image[at].w[30]&=~(4u|0x20000u);
             at+=span;
         }
-        i+=(int)span;
+        preceding_hcup=hcup5 && a->w[0]==96u;i+=(int)span;
     }
     if(at!=n){free(image);return -3;}
     free(out->p);free(out->xr);*out=*first;

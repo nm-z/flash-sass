@@ -43,6 +43,7 @@ kern/die_phase.sass
 /kern/die_balanced_stream.*
 /kern/die_balanced_router.*
 /kern/die_balanced_batch.*
+/kern/die_balanced_hcuptrace.*
 /kern/die_balanced_body.*
 /kern/die_balanced_exchange.*
 /kern/native_weights
@@ -108,3 +109,6 @@ kern/mtp_ops.h
 *.sass.fixed
 *.sass.pipeline
 *.sass.fixed.csv
+/kern/die_balanced_grpacket.sass
+/kern/die_balanced_grpacket.sass.*
+/kern/die_balanced_grpacket.ptx

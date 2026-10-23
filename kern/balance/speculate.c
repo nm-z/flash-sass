@@ -6,9 +6,11 @@ static struct {
     unsigned long long outer_phases,causal_replays,inner_joins,publications,acquires;
     unsigned long long snapshot_bytes,restore_bytes;
     unsigned long long native_hcup_phases;
+    unsigned long long local_quant_phases;
     double build_ms,draft_ms,decode_ms;
     unsigned verify_calls[6],replay_calls[6];
     double verify_ms[6],replay_ms[6];
+    unsigned profiled[6];
 } bspec;
 static unsigned balanced_draft_limit=4;
 
@@ -37,6 +39,48 @@ static size_t balanced_snapshot_bytes(void) {
     }
     return bytes;
 }
+/* Optional first-call profile from the existing outer phase timestamps. It
+ * preserves the underlying opcode identity inside generic/native wrappers.
+ * Readback time remains part of decode_work_ms; these are inclusive device
+ * phase intervals, not isolated matrix-body or host-clock measurements. */
+static void balanced_spec_profile(const prog_t *program,unsigned start,unsigned width) {
+    const char *option=getenv("FLASH_SPEC_PROFILE_WIDTH");
+    if(!option || (unsigned)atoi(option)!=width || bspec.profiled[width])return;
+    bspec.profiled[width]=1;
+    for(int d=0;d<nd;d++) {
+        const prog_t *p=program+d;uint32_t *ts=malloc((size_t)p->n*4);
+        if(!ts){fprintf(stderr,"engine: speculative profile allocation\n");longjmp(run_jb,1);}
+        CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoH(ts,dCTL[d]+0x100,(size_t)p->n*4));
+        double total[128]={0};unsigned count[128]={0},native[128]={0};int previous=-1;
+        for(int i=0;i<p->n;) {
+            const phase_t *a=p->p+i;unsigned op=a->w[0];
+            int fused=op==OP_BALANCED_HCUP5;
+            if(op==OP_BALANCED_BATCH || op==OP_BALANCED_PREQUANT || fused)op=a->w[4];
+            if(previous>=0 && op<128) {
+                total[op]+=(uint32_t)(ts[i]-ts[previous])/1e3;count[op]++;native[op]+=fused;
+            }
+            previous=i;i+=(int)phase_descriptors(a);
+        }
+        free(ts);
+        for(unsigned op=0;op<128;op++)if(count[op])
+            fprintf(stderr,"specprofile start=%u width=%u die=%d op=%s phases=%u native=%u us=%.3f\n",
+                start,width,d,profile_op_name(op),count[op],native[op],total[op]);
+        if(native[96] && getenv("FLASH_HCUP5_STAGE_TRACE") && atoi(getenv("FLASH_HCUP5_STAGE_TRACE"))) {
+            if(0x100u+4u*(unsigned)p->n>0x6000u){fprintf(stderr,"engine: HCUP trace overlaps phase timestamps\n");longjmp(run_jb,1);}
+            unsigned rows=0;
+            for(int i=0;i<p->n;i+=(int)phase_descriptors(p->p+i))
+                if(p->p[i].w[0]==OP_BALANCED_HCUP5)rows=p->p[i+1].w[8];
+            uint32_t stages[16][8];CK(cuMemcpyDtoH(stages,dCTL[d]+0x6000,sizeof stages));
+            for(unsigned c=0;c<16;c++)fprintf(stderr,
+                "hcupstage start=%u width=%u die=%d cta=%u sm=%u matrix_active=%u input_us=%.3f matrix_us=%.3f gate_quant_us=%.3f publish_us=%.3f timing=instrumented_last_hcup\n",
+                start,width,d,c,stages[c][5],c*32<rows/4,
+                (uint32_t)(stages[c][1]-stages[c][0])/1e3,
+                (uint32_t)(stages[c][2]-stages[c][1])/1e3,
+                (uint32_t)(stages[c][3]-stages[c][2])/1e3,
+                (uint32_t)(stages[c][4]-stages[c][3])/1e3);
+        }
+    }
+}
 static void balanced_stage(runctx *r,unsigned start,unsigned width,const uint32_t *input) {
     memcpy(h_ids+start,input,4u*width);
     for(unsigned p=0;p<width;p++)ple_seq[start+p]=input[p];
@@ -47,6 +91,7 @@ static void balanced_stage(runctx *r,unsigned start,unsigned width,const uint32_
         CK(cuMemcpyHtoD(db[d].ids+4ull*start,input,4u*width));
         CK(cuMemsetD32(dCTL[d]+0x8,start,1));
         CK(cuMemsetD32(dCTL[d]+0x14,0,2));
+        if(balanced_prequant_ready[d])CK(cuMemsetD32(balanced_prequant_ready[d],0,16));
         if(ple_device_cache)CK(cuMemsetD32(ple_device_ready[d]+4ull*start,0,width));
         /* Replay can reuse exactly the same token/layer epoch. Clear its
          * local completion slots before any producer or consumer launches. */
@@ -80,8 +125,10 @@ static void balanced_execute(runctx *r,const prog_t *program,unsigned start,unsi
     bspec.inner_joins+=work->inner_grid_joins;
     bspec.publications+=work->publications;bspec.acquires+=work->peer_acquires;
     bspec.native_hcup_phases+=work->native_hcup_phases;
+    bspec.local_quant_phases+=work->local_quant_phases;
     if(replay){bspec.replay_calls[width]++;bspec.replay_ms[width]+=(now()-begin)*1e3;}
     else {bspec.verify_calls[width]++;bspec.verify_ms[width]+=(now()-begin)*1e3;}
+    if(!replay)balanced_spec_profile(program,start,width);
 }
 static void balanced_spec_run(runctx *r,const prog_t *full,const prog_t *prefix,const uint32_t stop[2]) {
     memset(&bspec,0,sizeof bspec);last_extra_executed=0;
@@ -113,7 +160,7 @@ static void balanced_spec_run(runctx *r,const prog_t *full,const prog_t *prefix,
                 for(unsigned p=0;p<width;p++) {
                     model_program(&one[p],d,p,UINT32_MAX,no_stop,0,1,1,1,0);positions[p]=one+p;
                 }
-                prog_init(&program[width][d]);int rc=prog_balance_batch(&program[width][d],positions,width,&w);
+                prog_init(&program[width][d]);int rc=prog_balance_batch(&program[width][d],positions,width,&w,balanced_prequant_ready[d]);
                 for(unsigned p=0;p<width;p++)prog_free(one+p);
                 if(rc || (d && memcmp(&work[width],&w,sizeof w))) {
                     fprintf(stderr,"engine: incompatible balanced speculative program width=%u die=%d rc=%d\n",width,d,rc);longjmp(run_jb,1);
@@ -178,6 +225,7 @@ static void balanced_spec_stats(FILE *out) {
     for(unsigned w=1;w<=5;w++)fprintf(out," w%u_verify_calls=%u w%u_verify_ms=%.6f w%u_replay_calls=%u w%u_replay_ms=%.6f",
         w,bspec.verify_calls[w],w,bspec.verify_ms[w],w,bspec.replay_calls[w],w,bspec.replay_ms[w]);
     fprintf(out," native_hcup5_phases=%llu",bspec.native_hcup_phases);
+    fprintf(out," receiver_quant_phases=%llu",bspec.local_quant_phases);
     fputc('\n',out);
     fflush(out);
 }

@@ -6,10 +6,15 @@ assigned-work bound. Physical GPUs2 and7 remain reserved for Nate.
 **The target is not achieved.**
 
 The greedy lossless speculative loop is now implemented and validated on the
-short/repeated and4K fixtures. With prompt lookup it measures10.74 committed TPS
-and652.125 accounted synchronization phases/committed token, so it is an opt-in
-correctness foundation, not the retained performance default. See
+short/repeated and4K fixtures. The latest native GR-up/receiver-quantization
+experiment measures11.06–11.19 committed TPS and689.2578125 accounted
+synchronization phases/committed token with prompt lookup. It remains opt-in.
+The generic controller measured10.74TPS and652.125 phases. See
 [implementation, failed experiments and final evidence](SPECULATIVE.md).
+
+Scalar GR-down packet candidate v119 measures25.97/25.95TPS, with all256
+reference tokens and576 state hashes matching,492 phases and maximum pairwise
+assigned-work ratio1.076923077. See [the packet report](gr-packet/README.md).
 
 Retained default: **v104,25.721831473 and25.792883107 TPS**, with492 phases/token.
 Both short requests match all128 reference outputs and all288 retained state
@@ -25,11 +30,21 @@ ranks can travel in contiguous peer transactions; it requires coordinated
 producer and consumer changes. The former has measured benefit; the latter
 is the next step after the scatter-publication regression below.
 
-All results are full64-token prompt/128-generated requests using the same
+The scalar history table below covers full64-token prompt/128-generated requests using the same
 frozen original reference, scalar decode, MTP off and the six persistent
 balanced holders. These are individual observations, not matched randomized
 A/B estimates. Raw output and metadata remain in archy's canonical GPUq DB
 `/home/nate/.local/state/gpuq/history.sqlite3`.
+
+Nate's original operating budget is3.8ms selected experts,3.8ms attention/shared
+weights and0.6ms handoffs, about8.2ms total. It is a reference budget, not an
+achieved measurement.60TPS allows16.7ms/token; retained scalar measurements
+are about38.8ms. The current schedule has402 peer acquires, versus approximately
+100 handoffs in that budget. Applying the original6µs assumption to all402
+gives2.412ms, so the handoff count alone does not explain the observed gap.
+Payload publication, actual weight execution and effective throughput must be
+measured separately. The current six-die placement also differs from the
+budget's four expert dies plus main die. No new hardware ceiling is inferred.
 
 | Version | Canonical job | Decode TPS | Result |
 |---|---|---:|---|

@@ -1,44 +1,51 @@
 # Current work toward60 TPS
 
-Retained scalar default: v104,25.72–25.79TPS,492 phases/token and maximum
-pairwise assigned-work ratio1.076923077. GPUs2 and7 remain reserved.
-The60TPS goal remains active and unachieved.
+The60TPS goal remains active and unachieved. GPUs2 and7 remain reserved.
+Retained scalar default: v104,25.72–25.79TPS,492 physical phases and maximum
+pairwise assigned-work ratio1.076923077. Scalar packet candidate v119 measures
+25.97/25.95TPS; both requests match all576 state hashes and256 frozen IDs,
+and actual492-phase descriptors pass all7,913 work-component checks.
 
-The balanced speculative loop is now operational for greedy text using prompt
-lookup. It includes real target verification, acceptance/rejection, block-entry
-snapshots, recovery replay, PLE restaging and counters for discarded/replayed work.
-The corrected v111 frame matches both128-token requests, all576 short state
-hashes, the two long-context tokens and all288 long state hashes. It also passes
-GPU/stream/next-input and full-head audits. See SPECULATIVE.md for canonical jobs,
-artifact versions and the earlier failed state comparisons.
+The complete greedy speculative controller includes acceptance/rejection,
+snapshot/recovery replay, PLE restaging and accounting for discarded work.
+Its proposer is prompt lookup. Native five-position GR-up shares the weight
+stream and sends only FP32 Z; the consumer reconstructs exact quantization
+locally. Verification falls from about136.2 to126.5ms per five-position call.
+Complete requests measure11.06/11.19TPS,16/205 drafts accepted,689.2578125
+synchronization phases/committed token. The final scalar program's492 phases
+do not establish compliance for the complete speculative request.
 
-Its performance is10.74 committed TPS with16/205 draft tokens accepted and
-652.125 synchronization phases per committed token. This fails both performance
-requirements. The final scalar replay's492-phase readback does not establish
-that the full speculative request meets the phase limit.
+Preserve the causal batch handoff before the end decision, including the last
+position. Omitting it caused282 differing state hashes despite identical IDs.
+The diagnostic all-phase joins are not enabled in the retained controller.
 
-The new causal handoff must remain before the batch-end decision, including the
-last position. Omitting it caused282 state-hash differences despite identical
-output tokens. The final path does not enable the diagnostic all-phase grid joins.
-The existing CPU timing test passes with speculative execution-count coverage.
+Objective weights: throughput1.0, fidelity1.0, phase/work requirements1.0,
+engineering time0.8, cost0.8. The lower-effort communication alternative changes
+existing tiny peer stores' issue schedule: predicted small gain, low cost.
+The higher-effort alternative collects a whole die's small GR-down vector,
+then sends contiguous chunks: predicted fewer peer transactions, with a local
+completion wait. Selected and implemented the latter across all97 GR-down
+reads. The observed scalar improvement is small; retain it as an opt-in path.
 
-Next: native multi-position matrix execution and a stronger balanced proposer.
-The measured five-position target takes136.18ms per verification call, so a
-better proposer alone cannot achieve60TPS with this implementation. The present
-wrapper is an exact causal replay path; it does not yet share matrix weights
-and decoding between positions. The largest inclusive scalar family is hcupq_x
-(GR up/mix/quantization), followed by routed gate/up/down and GR reads.
+GR packet preserves each CTA's dot rows. CTA0 waits for local readiness then
+publishes; other CTAs proceed to the existing footer. No new full-grid phase
+or peer exchange is introduced. Words20..21 reference position-private ldown;
+each launch clears readiness. A module marker prevents incompatible images.
 
-Objective weights: throughput1.0, fidelity1.0, phase/work constraints1.0,
-engineering time0.8, cost0.8. The lower-effort option is tightening prompt-lookup
-matching; it may avoid bad guesses but leaves the measured verifier bottleneck.
-The higher-effort option is native batched matrix bodies plus learned drafting.
-Select the latter. Reuse the complete controller and preserve its work accounting;
-do not return to unchecked legacy MTP/DFlash output or omit recovery cost.
+The stage trace shows payload costs beyond exchange counts. The final native
+HCUP's die0 active CTAs spent about227µs publishing FP32 plus quantized forms;
+receiver-local quantization reduces this stage to4.096µs. Projection remains
+18.432µs. This is one instrumented operation, not a97-phase average. Corrected
+SM IDs show16 resident CTAs on16 SMs,13 owning matrix rows on die0. The earlier
+SM field was invalid because MaxAs encoded SR_SMID as lane ID.
 
-Cached DFlash2 config: hidden2560, intermediate7680, five draft layers, block8,
-target48 layers and feature taps5/15/25/35/45. The current DFlash engine uses a
-single extra device, CPU elementwise/attention work and unchecked output; it
-cannot simply be enabled under the current GPU reservation/work-balance rules.
-Native MTP's current expert split is also unequal. Required future changes must
-cover all participating dies and all model work before the next full-model run.
+Next: native multi-position execution beyond GR-up and a strong balanced
+proposer. Existing DFlash2 uses a single extra device, CPU operations and
+unchecked drafts; it cannot be enabled unchanged. Cached config: hidden2560,
+intermediate7680, five draft layers, block8, feature taps5/15/25/35/45. Native
+MTP also needs balanced row ownership instead of unequal whole-expert ranges.
+
+Nate's8.2ms budget remains the accounting reference, not a revised ceiling.
+402 peer acquires at the original6µs sum to2.412ms, which does not explain
+38.8ms scalar decode. Do not infer a hardware ceiling from current verifier
+measurements or the weak lookup acceptance rate.

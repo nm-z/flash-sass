@@ -3,6 +3,7 @@
 #include "../prog.h"
 #define OP_BALANCED_BATCH 108u
 #define OP_BALANCED_HCUP5 109u
+#define OP_BALANCED_PREQUANT 110u
 #define BALANCED_BATCH_MAX 5u
 typedef struct {
     unsigned positions;
@@ -12,6 +13,7 @@ typedef struct {
     unsigned publications;
     unsigned peer_acquires;
     unsigned native_hcup_phases;
+    unsigned local_quant_phases;
 } balance_batch_work;
 /* Every input is a complete, already-fused balanced position program. The
  * wrapper preserves complete physical-phase bundles, including their child
@@ -19,5 +21,5 @@ typedef struct {
  * Counters distinguish outer publications from causal replays/local joins;
  * speculative accounting must divide total work by committed tokens only. */
 int prog_balance_batch(prog_t *out,const prog_t *const *positions,
-                       unsigned count,balance_batch_work *work);
+                       unsigned count,balance_batch_work *work,CUdeviceptr local_quant_ready);
 #endif

@@ -120,10 +120,11 @@ die_balanced_split.cubin die_balanced_lut.cubin die_balanced_stream.cubin die_ba
 
 # Balanced speculative target: whole production phases retain their internal
 # descriptor chains and composite bodies. Runtime enablement is separate.
-die_balanced_batch.sass: die_balanced.sass balance/batch_frame.lua balance/hcup5.lua
+die_balanced_batch.sass: die_balanced.sass balance/batch_frame.lua balance/hcup5.lua balance/receiver_quant.lua
 	$(LUA) balance/batch_frame.lua $< $@.raw
 	$(LUA) balance/hcup5.lua $@.raw $@.hcup5
-	$(LUA) phase/predicate_latency.lua $@.hcup5 $@ $@.predicate.csv
+	$(LUA) balance/receiver_quant.lua $@.hcup5 $@.localq
+	$(LUA) phase/predicate_latency.lua $@.localq $@ $@.predicate.csv
 die_balanced_batch.ptx: die_balanced.ptx balance/batch_marker.ptxinc
 	cat $^ > $@
 die_balanced_batch.cubin: die_balanced_batch.sass die_balanced_batch.ptx
@@ -131,6 +132,23 @@ die_balanced_batch.cubin: die_balanced_batch.sass die_balanced_batch.ptx
 	$(MAXAS) -i die_balanced_batch.sass $@
 balance/batch.o: balance/batch.c balance/batch.h exactbatch/prog_group.h
 	$(CC) -std=gnu99 -O2 -Wall -Wextra -I. -I$(CUDA)/include -c $< -o $@
+die_balanced_hcuptrace.sass: die_balanced_batch.sass balance/hcup_trace.lua
+	$(LUA) balance/hcup_trace.lua $< $@.raw
+	$(LUA) phase/predicate_latency.lua $@.raw $@ $@.predicate.csv
+die_balanced_hcuptrace.ptx: die_balanced_batch.ptx balance/hcup_trace.ptxinc
+	cat $^ > $@
+die_balanced_hcuptrace.cubin: die_balanced_hcuptrace.sass die_balanced_hcuptrace.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ die_balanced_hcuptrace.ptx
+	$(MAXAS) -i die_balanced_hcuptrace.sass $@
+
+die_balanced_grpacket.sass: die_balanced.sass balance/gr_packet.lua
+	$(LUA) balance/gr_packet.lua $< $@.raw
+	$(LUA) phase/predicate_latency.lua $@.raw $@ $@.predicate.csv
+die_balanced_grpacket.ptx: die_balanced.ptx balance/gr_packet.ptxinc
+	cat $^ > $@
+die_balanced_grpacket.cubin: die_balanced_grpacket.sass die_balanced_grpacket.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ die_balanced_grpacket.ptx
+	$(MAXAS) -i die_balanced_grpacket.sass $@
 
 # Complete production-image experiment: replicated local GR-up. It has a
 # distinct marker so an ordinary image cannot silently execute its descriptors.

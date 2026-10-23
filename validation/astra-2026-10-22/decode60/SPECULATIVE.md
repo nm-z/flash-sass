@@ -6,6 +6,13 @@ runs with acceptance, rejection and state recovery. Its current proposer is
 60-TPS objective is not achieved, and this configuration exceeds the end-to-end
 phase target. The retained scalar default remains v104 at25.72–25.79TPS.
 
+Latest update: native five-position GR-up plus receiver-local quantization
+reduces measured five-position verification to126.5ms. Complete repeated requests
+measure11.06/11.19TPS with689.2578125 synchronization phases per committed token.
+All256 frozen IDs and576 state hashes match. See [native implementation,
+canonical runs and operation tables](speculative/native-hcup5.md). The generic
+controller results below remain historical evidence, not the latest candidate.
+
 Nate explicitly authorized lossless speculative decoding with drafting,
 verification and recovery included in throughput and phase accounting.
 Physical GPUs2 and7 remain reserved; compute uses0,1,6,3,4,5.

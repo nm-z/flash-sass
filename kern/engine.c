@@ -133,11 +133,13 @@ static CUdeviceptr verify_dn[7][MAXD][NB],verify_conv[7][MAXD][NB],verify_ring[7
 static unsigned program_capacity = 4096, active_program_positions = 1;
 static unsigned allocated_positions = 1;
 static int balanced_speculation,last_extra_executed;
+static CUdeviceptr balanced_prequant_ready[MAXD];
 static unsigned last_position_slot;
 static dn_bufs_t *position_buf(int,unsigned);
 static int producer_quant,group_matrices,residual_fp8;
 static int gr_replicate_ffn;
 static int balanced_local_up;
+static int balanced_gr_packet;
 static uint32_t *phase_watch;
 /* Diagnostic-only host-mapped control pages retain the existing phase footer
  * stamps when a CUDA fault makes device copies unavailable. No model phase,
@@ -193,6 +195,7 @@ static char cubin_path[512]; static uint64_t cubin_fnv;   /* identity of the loa
 static const char *profile_op_name(unsigned op) {
     if(row_balance && op==108u)return "balanced_batch";
     if(row_balance && op==109u)return "balanced_hcup5";
+    if(row_balance && op==110u)return "balanced_prequant";
     if(op<OP_COUNT)return die_opname[op];
     const char *names[]={"grwrite_read","dnnormq_x","hcupq_x","router_select","dnstep_normq","gdn_full","router_full","attnmergeq_x","qsa_select","qsa_score_select","qsa_part_merge","plegate_norm","ple_rowsq","qsa_full_bal"};
     return op>=94 && op<108?names[op-94]:"extended";
@@ -223,6 +226,10 @@ static void check_fused_moe_module(CUmodule module) {
     if(gr_write_trace)CK(cuModuleGetFunction(&marker,module,"flash_gr_write_trace_abi_v1"));
     if(gr_replicate_ffn)CK(cuModuleGetFunction(&marker,module,"flash_gr_local_abi_v1"));
     if(balanced_local_up)CK(cuModuleGetFunction(&marker,module,"flash_balanced_local_up_abi_v1"));
+    CUresult packet_marker=cuModuleGetFunction(&marker,module,"flash_balance_gr_packet_abi_v1");
+    if((packet_marker==CUDA_SUCCESS)!=!!balanced_gr_packet) {
+        fprintf(stderr,"engine: GR packet module and FLASH_BALANCED_GR_PACKET must agree\n");longjmp(init_jb,1);
+    }
     if(residual_fp8)CK(cuModuleGetFunction(&marker,module,"flash_fp8_residual_abi_v1"));
 #ifdef FLASH_CHUNK_NATIVE
 	const char *chunk_image = getenv("FLASH_CHUNK_CUBIN");
@@ -726,6 +733,14 @@ static void model_program(prog_t *P, int d, unsigned position, unsigned nprompt,
     phase_edges_fuse(P,position,d,layers);
     phase_matrix_groups=matrix_group(P);
     phase_reduce_waits(P);
+    if(balanced_gr_packet)for(int i=0;i<P->n;i++) {
+        phase_t *a=P->p+i;
+        if(a->w[0]!=OP_BF16HCRX && a->w[0]!=OP_BF16HCRWX && a->w[0]!=94u)continue;
+        if(a->w[1]!=16 || !a->w[8] || a->w[8]>64 || !(a->w[30]&1u) || a->w[20] || a->w[21]) {
+            fprintf(stderr,"engine: incompatible GR packet descriptor\n");longjmp(run_jb,1);
+        }
+        ph_ptr(a,0x188,b->ldown);
+    }
     /* Diagnostic isolation of inter-phase overlap. The complete merged bodies
      * and 499 dispatches remain; only local join elision is disabled. */
     if(producer_quant && getenv("FLASH_STRICT_PHASE_JOINS") && atoi(getenv("FLASH_STRICT_PHASE_JOINS")))
@@ -923,6 +938,8 @@ static void run_segment(runctx *r, const unsigned *nph, int ntok_) {
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
 		CK(cuMemsetD32(dCTL[d]+0x2c,0,1));
+        if(balanced_gr_packet)for(unsigned p=0;p<allocated_positions;p++)
+            CK(cuMemsetD32(position_buf(d,p)->ldown+256,0,16));
 		unsigned ntok = (unsigned)ntok_; void *params[] = { &dPROG[d], (void *)&nph[d], &dCTL[d], &ntok };
 		CUfunction kernel = fn[d];
 #ifdef FLASH_EXACT_BATCH
@@ -1552,6 +1569,10 @@ int engine_init(core_t *c) {
     residual_fp8=getenv("FLASH_RESIDUAL_FP8") && atoi(getenv("FLASH_RESIDUAL_FP8"));
     gr_replicate_ffn=getenv("FLASH_GR_REPLICATE_FFN")?atoi(getenv("FLASH_GR_REPLICATE_FFN")):0;
     balanced_local_up=getenv("FLASH_BALANCED_LOCAL_UP")?atoi(getenv("FLASH_BALANCED_LOCAL_UP")):0;
+    balanced_gr_packet=getenv("FLASH_BALANCED_GR_PACKET")?atoi(getenv("FLASH_BALANCED_GR_PACKET")):0;
+    if(balanced_gr_packet && (balanced_gr_packet!=1 || !row_balance || gr_replicate_ffn || gr_write_trace)) {
+        fprintf(stderr,"engine: GR packet requires balanced holders, no GR trace/replication, value1\n");longjmp(init_jb,1);
+    }
     if(balanced_local_up && (!row_balance || balanced_local_up!=1 || gr_replicate_ffn)) {
         fprintf(stderr,"engine: local GR-up requires balanced scalar holders and value1\n");longjmp(init_jb,1);
     }
@@ -1654,6 +1675,14 @@ int engine_init(core_t *c) {
             check_fused_moe_module(exact_mod[d]);CK(cuModuleGetFunction(&marker,exact_mod[d],"flash_balance_batch_abi_v1"));
             if(getenv("FLASH_BALANCED_HCUP5") && atoi(getenv("FLASH_BALANCED_HCUP5")))
                 CK(cuModuleGetFunction(&marker,exact_mod[d],"flash_balance_hcup5_abi_v1"));
+            if(getenv("FLASH_HCUP5_STAGE_TRACE") && atoi(getenv("FLASH_HCUP5_STAGE_TRACE")))
+                CK(cuModuleGetFunction(&marker,exact_mod[d],"flash_balance_hcup5_trace_abi_v1"));
+            if(getenv("FLASH_BALANCED_HCUP5_LOCALQ") && atoi(getenv("FLASH_BALANCED_HCUP5_LOCALQ"))) {
+                if(!getenv("FLASH_BALANCED_HCUP5") || !atoi(getenv("FLASH_BALANCED_HCUP5"))) {
+                    fprintf(stderr,"engine: receiver quantization requires native HCUP5\n");longjmp(init_jb,1);
+                }
+                CK(cuModuleGetFunction(&marker,exact_mod[d],"flash_balance_hcup5_localq_abi_v1"));
+            }
         }
 		CK(cuModuleGetFunction(&exact_fn[d], exact_mod[d], "die"));
 	}
@@ -1862,6 +1891,8 @@ int engine_init(core_t *c) {
             CK(cuMemHostGetDevicePointer(&dCTL[d],fault_ctl[d],0));
             fprintf(stderr,"engine: diagnostic host-mapped control die=%d timing_valid=0\n",d);
         } else dCTL[d]=dalloc(control_bytes);
+        if(balanced_speculation && getenv("FLASH_BALANCED_HCUP5_LOCALQ") && atoi(getenv("FLASH_BALANCED_HCUP5_LOCALQ")))
+            balanced_prequant_ready[d]=dalloc(16*sizeof(uint32_t));
 		x->xgen = dCTL[d] + 0x20;
 		for (unsigned p = 1; p < allocated_positions; p++) alloc_position(d, p);
 #ifdef FLASH_DFLASH_NATIVE
@@ -2011,10 +2042,11 @@ void engine_fini(void) {
 	memset(dTRACE, 0, sizeof dTRACE); trace_n = trace_valid = 0;
     memset(dXTRACE,0,sizeof dXTRACE);xtrace_n=xtrace_first=xtrace_count=0;
     gr_write_trace=0;
-    memset(producer_local_tables,0,sizeof producer_local_tables);gr_replicate_ffn=0;balanced_local_up=0;
+    memset(producer_local_tables,0,sizeof producer_local_tables);gr_replicate_ffn=0;balanced_local_up=0;balanced_gr_packet=0;
 	memset(db_pair, 0, sizeof db_pair); memset(xc_pair, 0, sizeof xc_pair); two_position = prefill_chunk = 0;
 	allocated_positions = active_program_positions = 1; program_capacity = 4096;
     balanced_speculation=last_extra_executed=0;last_position_slot=0;
+    memset(balanced_prequant_ready,0,sizeof balanced_prequant_ready);
     memset(embedding_tables,0,sizeof embedding_tables);memset(producer_tables,0,sizeof producer_tables);memset(residual_encoded,0,sizeof residual_encoded);
     memset(phase_gr_sum_cache,0,sizeof phase_gr_sum_cache);
     producer_quant=group_matrices=residual_fp8=0;
