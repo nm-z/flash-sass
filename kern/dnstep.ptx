@@ -1,0 +1,17 @@
+// Skeleton for MaxAs: same entry name and parameter layout as dnstep.sass.
+.version 7.4
+.target sm_52
+.address_size 64
+
+.visible .entry dnstep(.param .u64 ps, .param .u64 pq, .param .u64 pk, .param .u64 pv, .param .u64 pa, .param .u64 pb, .param .u64 pssma, .param .u64 po, .param .f32 eps, .param .u32 hb, .param .u32 kb)
+{
+	.shared .align 16 .b8 smem[2048];
+	.reg .u32 %r<2>;
+	.reg .f32 %f<1>;
+	.reg .pred %p;
+	ld.param.f32 %f0, [eps];
+	mov.u32 %r1, %tid.x;
+	setp.lt.u32 %p, %r1, %r1;
+	@%p ret;
+	ret;
+}
