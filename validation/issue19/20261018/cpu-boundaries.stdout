@@ -1,0 +1,89 @@
+quant-range cpu fixture=0 case=zero input=00000000 expected_scale=0000 scale=0000 q1=0 q2=0 deq1=00000000 deq2=00000000
+quant-range cpu fixture=1 case=zero input=80000000 expected_scale=0000 scale=0000 q1=0 q2=0 deq1=00000000 deq2=00000000
+quant-range cpu fixture=2 case=underflow-witness input=358637bd expected_scale=0000 scale=0000 q1=-127 q2=127 deq1=80000000 deq2=00000000
+quant-range cpu fixture=3 case=underflow-witness input=b58637bd expected_scale=0000 scale=0000 q1=127 q2=-127 deq1=00000000 deq2=80000000
+quant-range cpu fixture=4 case=ordinary-one input=3f800000 expected_scale=2008 scale=2008 q1=-127 q2=127 deq1=bf7ffc00 deq2=3f7ffc00
+quant-range cpu fixture=5 case=ordinary-one input=bf800000 expected_scale=2008 scale=2008 q1=127 q2=-127 deq1=3f7ffc00 deq2=bf7ffc00
+quant-range cpu fixture=6 case=clip-predecessor input=4afde03f expected_scale=7bff scale=7bff q1=-127 q2=127 deq1=cafde040 deq2=4afde040
+quant-range cpu fixture=7 case=clip-predecessor input=cafde03f expected_scale=7bff scale=7bff q1=127 q2=-127 deq1=4afde040 deq2=cafde040
+quant-range cpu fixture=8 case=clip-limit input=4afde040 expected_scale=7bff scale=7bff q1=-127 q2=127 deq1=cafde040 deq2=4afde040
+quant-range cpu fixture=9 case=clip-limit input=cafde040 expected_scale=7bff scale=7bff q1=127 q2=-127 deq1=4afde040 deq2=cafde040
+quant-range cpu fixture=10 case=clip-successor input=4afde041 expected_scale=7bff scale=7bff q1=-127 q2=127 deq1=cafde040 deq2=4afde040
+quant-range cpu fixture=11 case=clip-successor input=cafde041 expected_scale=7bff scale=7bff q1=127 q2=-127 deq1=4afde040 deq2=cafde040
+quant-range cpu fixture=12 case=overflow-witness input=4b189680 expected_scale=7bff scale=7bff q1=-127 q2=127 deq1=cafde040 deq2=4afde040
+quant-range cpu fixture=13 case=overflow-witness input=cb189680 expected_scale=7bff scale=7bff q1=127 q2=-127 deq1=4afde040 deq2=cafde040
+quant-range cpu fixture=14 case=maximum-finite input=7f7fffff expected_scale=7bff scale=7bff q1=-127 q2=127 deq1=cafde040 deq2=4afde040
+quant-range cpu fixture=15 case=maximum-finite input=ff7fffff expected_scale=7bff scale=7bff q1=127 q2=-127 deq1=4afde040 deq2=cafde040
+quant-range cpu fixture=16 case=last-zero-scale input=367e0001 expected_scale=0000 scale=0000 q1=-127 q2=127 deq1=80000000 deq2=00000000
+quant-range cpu fixture=17 case=last-zero-scale input=b67e0001 expected_scale=0000 scale=0000 q1=127 q2=-127 deq1=00000000 deq2=80000000
+quant-range cpu fixture=18 case=first-nonzero-scale input=367e0002 expected_scale=0001 scale=0001 q1=-127 q2=127 deq1=b6fe0000 deq2=36fe0000
+quant-range cpu fixture=19 case=first-nonzero-scale input=b67e0002 expected_scale=0001 scale=0001 q1=127 q2=-127 deq1=36fe0000 deq2=b6fe0000
+quant-range cpu fixture=20 case=last-scale-0001 input=373e7fff expected_scale=0001 scale=0001 q1=-127 q2=127 deq1=b6fe0000 deq2=36fe0000
+quant-range cpu fixture=21 case=last-scale-0001 input=b73e7fff expected_scale=0001 scale=0001 q1=127 q2=-127 deq1=36fe0000 deq2=b6fe0000
+quant-range cpu fixture=22 case=first-scale-0002 input=373e8000 expected_scale=0002 scale=0002 q1=-127 q2=127 deq1=b77e0000 deq2=377e0000
+quant-range cpu fixture=23 case=first-scale-0002 input=b73e8000 expected_scale=0002 scale=0002 q1=127 q2=-127 deq1=377e0000 deq2=b77e0000
+quant-range cpu fixture=24 case=last-subnormal-scale input=3bfde03f expected_scale=03ff scale=03ff q1=-127 q2=127 deq1=bbfdc080 deq2=3bfdc080
+quant-range cpu fixture=25 case=last-subnormal-scale input=bbfde03f expected_scale=03ff scale=03ff q1=127 q2=-127 deq1=3bfdc080 deq2=bbfdc080
+quant-range cpu fixture=26 case=first-normal-scale input=3bfde040 expected_scale=0400 scale=0400 q1=-127 q2=127 deq1=bbfe0000 deq2=3bfe0000
+quant-range cpu fixture=27 case=first-normal-scale input=bbfde040 expected_scale=0400 scale=0400 q1=127 q2=-127 deq1=3bfe0000 deq2=bbfe0000
+quant-range cpu fixture=28 case=last-scale-0400 input=3bfe1fc1 expected_scale=0400 scale=0400 q1=-127 q2=127 deq1=bbfe0000 deq2=3bfe0000
+quant-range cpu fixture=29 case=last-scale-0400 input=bbfe1fc1 expected_scale=0400 scale=0400 q1=127 q2=-127 deq1=3bfe0000 deq2=bbfe0000
+quant-range cpu fixture=30 case=first-scale-0401 input=3bfe1fc2 expected_scale=0401 scale=0401 q1=-127 q2=127 deq1=bbfe3f80 deq2=3bfe3f80
+quant-range cpu fixture=31 case=first-scale-0401 input=bbfe1fc2 expected_scale=0401 scale=0401 q1=127 q2=-127 deq1=3bfe3f80 deq2=bbfe3f80
+quant-range cpu fixture=32 case=last-scale-3c00 input=42fe1fc1 expected_scale=3c00 scale=3c00 q1=-127 q2=127 deq1=c2fe0000 deq2=42fe0000
+quant-range cpu fixture=33 case=last-scale-3c00 input=c2fe1fc1 expected_scale=3c00 scale=3c00 q1=127 q2=-127 deq1=42fe0000 deq2=c2fe0000
+quant-range cpu fixture=34 case=first-scale-3c01 input=42fe1fc2 expected_scale=3c01 scale=3c01 q1=-127 q2=127 deq1=c2fe3f80 deq2=42fe3f80
+quant-range cpu fixture=35 case=first-scale-3c01 input=c2fe1fc2 expected_scale=3c01 scale=3c01 q1=127 q2=-127 deq1=42fe3f80 deq2=c2fe3f80
+quant-range cpu fixture=36 case=last-scale-7bfe input=4afdd060 expected_scale=7bfe scale=7bfe q1=-127 q2=127 deq1=cafdc080 deq2=4afdc080
+quant-range cpu fixture=37 case=last-scale-7bfe input=cafdd060 expected_scale=7bfe scale=7bfe q1=127 q2=-127 deq1=4afdc080 deq2=cafdc080
+quant-range cpu fixture=38 case=first-scale-7bff input=4afdd061 expected_scale=7bff scale=7bff q1=-127 q2=127 deq1=cafde040 deq2=4afde040
+quant-range cpu fixture=39 case=first-scale-7bff input=cafdd061 expected_scale=7bff scale=7bff q1=127 q2=-127 deq1=4afde040 deq2=cafde040
+quant-range cpu fixture=40 case=unbounded-last-finite input=4afdf01f expected_scale=7bff scale=7bff q1=-127 q2=127 deq1=cafde040 deq2=4afde040
+quant-range cpu fixture=41 case=unbounded-last-finite input=cafdf01f expected_scale=7bff scale=7bff q1=127 q2=-127 deq1=4afde040 deq2=cafde040
+quant-range cpu fixture=42 case=unbounded-first-inf input=4afdf020 expected_scale=7bff scale=7bff q1=-127 q2=127 deq1=cafde040 deq2=4afde040
+quant-range cpu fixture=43 case=unbounded-first-inf input=cafdf020 expected_scale=7bff scale=7bff q1=127 q2=-127 deq1=4afde040 deq2=cafde040
+PASS: 44 explicit signed KV range fixtures; adjacent scale boundaries verified
+input=00000000 scale=0000 q1=0 q2=0
+input=80000000 scale=0000 q1=0 q2=0
+input=2edbe6ff scale=0000 q1=-127 q2=127
+input=358637bd scale=0000 q1=-127 q2=127
+input=b58637bd scale=0000 q1=127 q2=-127
+input=3dcccccd scale=1273 q1=-127 q2=127
+input=3f800000 scale=2008 q1=-127 q2=127
+input=bf800000 scale=2008 q1=127 q2=-127
+input=453b8000 scale=4de8 q1=-127 q2=127
+input=4afde040 scale=7bff q1=-127 q2=127
+input=cafde040 scale=7bff q1=127 q2=-127
+input=4b189680 scale=7bff q1=-127 q2=127
+input=cb189680 scale=7bff q1=127 q2=-127
+input=7f7fffff scale=7bff q1=-127 q2=127
+input=ff7fffff scale=7bff q1=127 q2=-127
+input=4afde03f scale=7bff q1=-127 q2=127
+input=4afde041 scale=7bff q1=-127 q2=127
+input=367dffff scale=0000 q1=-127 q2=127
+input=367e0000 scale=0000 q1=-127 q2=127
+input=367e0001 scale=0000 q1=-127 q2=127
+input=b67e0000 scale=0000 q1=127 q2=-127
+input=373e7fff scale=0001 q1=-127 q2=127
+input=373e8000 scale=0002 q1=-127 q2=127
+input=373e8001 scale=0002 q1=-127 q2=127
+input=b73e8000 scale=0002 q1=127 q2=-127
+input=3bfde03f scale=03ff q1=-127 q2=127
+input=3bfde040 scale=0400 q1=-127 q2=127
+input=3bfde041 scale=0400 q1=-127 q2=127
+input=bbfde040 scale=0400 q1=127 q2=-127
+input=3bfe1fbf scale=0400 q1=-127 q2=127
+input=3bfe1fc0 scale=0400 q1=-127 q2=127
+input=3bfe1fc1 scale=0400 q1=-127 q2=127
+input=bbfe1fc0 scale=0400 q1=127 q2=-127
+input=42fe1fbf scale=3c00 q1=-127 q2=127
+input=42fe1fc0 scale=3c00 q1=-127 q2=127
+input=42fe1fc1 scale=3c00 q1=-127 q2=127
+input=c2fe1fc0 scale=3c00 q1=127 q2=-127
+input=4afdd05f scale=7bfe q1=-127 q2=127
+input=4afdd060 scale=7bfe q1=-127 q2=127
+input=4afdd061 scale=7bff q1=-127 q2=127
+input=cafdd060 scale=7bfe q1=127 q2=-127
+input=4afdf020 scale=7bff q1=-127 q2=127
+input=cafdf020 scale=7bff q1=127 q2=-127
+PASS: bounded finite quantizer, in-range compatibility, half boundaries, underflow, overflow, unchanged nonfinite rejection

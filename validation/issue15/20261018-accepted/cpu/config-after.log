@@ -1,0 +1,63 @@
+ok 1 - one terminal LF is accepted
+ok 2 - baseline fields are preserved
+ok 3 - restore plan contains precisely the five changed effective knobs
+ok 4 - legacy trace exception records its semantic basis
+ok 5 - candidates change only the requested five knobs
+ok 6 - known effective trace is restored
+ok 7 - baseline pair mode is restored
+ok 8 - safe relative baseline path retained
+ok 9 - known disabled trace accepted
+ok 10 - unknown revision without trace
+ok 11 - unknown revision without trace identifies the reason
+ok 12 - legacy revision with different binary
+ok 13 - legacy revision with different binary identifies the reason
+ok 14 - malformed token
+ok 15 - malformed token identifies the reason
+ok 16 - missing response prefix
+ok 17 - missing response prefix identifies the reason
+ok 18 - duplicate key
+ok 19 - duplicate key identifies the reason
+ok 20 - missing required key
+ok 21 - missing required key identifies the reason
+ok 22 - embedded control
+ok 23 - embedded control identifies the reason
+ok 24 - embedded equals in value
+ok 25 - embedded equals in value identifies the reason
+ok 26 - relative candidate path
+ok 27 - relative candidate path identifies the reason
+ok 28 - unsafe candidate path
+ok 29 - unsafe candidate path identifies the reason
+ok 30 - invalid known trace
+ok 31 - invalid known trace identifies the reason
+ok 32 - excessive known trace
+ok 33 - excessive known trace identifies the reason
+ok 34 - unsupported layers
+ok 35 - unsupported layers identifies the reason
+ok 36 - unsupported nblk
+ok 37 - unsupported nblk identifies the reason
+ok 38 - unsupported dies
+ok 39 - unsupported dies identifies the reason
+ok 40 - unsupported kv_host
+ok 41 - unsupported kv_host identifies the reason
+ok 42 - unsupported ple_disk
+ok 43 - unsupported ple_disk identifies the reason
+ok 44 - unsupported prefill_chunk
+ok 45 - unsupported prefill_chunk identifies the reason
+ok 46 - unsupported maxt
+ok 47 - unsupported maxt identifies the reason
+ok 48 - unsupported maxt
+ok 49 - unsupported maxt identifies the reason
+ok 50 - unsupported img_rows
+ok 51 - unsupported img_rows identifies the reason
+ok 52 - unsupported two_position
+ok 53 - unsupported two_position identifies the reason
+ok 54 - unsupported split
+ok 55 - unsupported split identifies the reason
+ok 56 - unsupported attn_dies
+ok 57 - unsupported attn_dies identifies the reason
+ok 58 - unsupported attn_map
+ok 59 - unsupported attn_map identifies the reason
+ok 60 - FNV-1a known vector ''
+ok 61 - FNV-1a known vector 'a'
+ok 62 - FNV-1a known vector 'hello'
+1..62
