@@ -1,0 +1,15 @@
+// Skeleton for MaxAs: same entry name and parameter layout as plegate.sass.
+.version 7.4
+.target sm_52
+.address_size 64
+
+.visible .entry plegate(.param .u64 pkn, .param .u64 pqn, .param .u64 pv, .param .u64 pg, .param .u64 pgates)
+{
+	.shared .align 16 .b8 smem[32];
+	.reg .u32 %r<2>;
+	.reg .pred %p;
+	mov.u32 %r1, %tid.x;
+	setp.lt.u32 %p, %r1, %r1;
+	@%p ret;
+	ret;
+}
