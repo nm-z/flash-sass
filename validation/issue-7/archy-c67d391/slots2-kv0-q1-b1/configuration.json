@@ -1,0 +1,31 @@
+{
+  "source": "/home/nate/claude/flash-sass-prs/sequence-build-c67d391",
+  "validation": "/home/nate/claude/flash-sass-prs/sequence-validation-c67d391",
+  "label": "slots2-kv0-q1-b1",
+  "revision": "c67d391c8d04e790d1b25a4ced31e5515c41e7fe",
+  "kind": "command",
+  "paired_modes": [
+    0
+  ],
+  "extra_env": {
+    "FLASH_SEQUENCES": "2",
+    "FLASH_QUANTUM": "1",
+    "FLASH_KV_HOST": "0",
+    "FLASH_NBLK": "1"
+  },
+  "commands": [
+    [
+      "{source}/seqsched_test"
+    ],
+    [
+      "{source}/output_tokens_test",
+      "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf"
+    ],
+    [
+      "perl",
+      "{source}/sequence_check.pl",
+      "{socket}",
+      "{out}/sequence-results.json"
+    ]
+  ]
+}
