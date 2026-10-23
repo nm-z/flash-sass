@@ -1,0 +1,216 @@
+# Kernel: xchg  (XCHG_MODE = send | wait)
+#
+# The exchange between the dies of a tensor-split step, as two phases of the
+# persistent program (the die's grid barrier between them orders every CTA's
+# peer writes before the flag):
+#
+#   send: every CTA copies its share of this die's part (nbytes at SRC) into the
+#         slot of every die's inbox (P2P stores, the local inbox included), at
+#         slot + myoff, so the parts of the dies tile the gathered vector (or
+#         sit side by side for a reduction); each thread then MEMBAR.SYS. CTA 0
+#         thread 0 bumps this die's exchange counter *XG.
+#   wait: every thread reads g = *XG; CTA 0 thread 0 fences (MEMBAR.SYS) and
+#         stores g into flag[me] of every die (STG.WT); warp 0 of every CTA
+#         spins (LDG.CV) on this die's six flags until all read >= g (flags of
+#         absent dies hold 0xffffffff), then MEMBAR.SYS. Consumers run in later
+#         phases, after the grid barrier's MEMBAR.GL.IVALLD.
+#
+# TAB: u64[12] = inbox base of die 0..5, flag base (u32[6]) of die 0..5.
+# Slots are double-buffered by the program (slot = (exchange index & 1) * SLOT),
+# which is safe because an exchange's data is consumed before the die's next
+# wait phase (see SPEC).
+#
+# Params (send): 0:0x140 TAB  1:0x148 SRC  2:0x150 nbytes  3:0x154 myoff  4:0x158 slot
+#                5:0x15c ndies  6:0x160 XG  7:0x168 me
+# A negative signed ndies selects just destination (-ndies-1). Positive counts
+# keep the original fanout. The persistent image exports xsend_target_abi.
+# Params (wait): 0:0x140 TAB  1:0x148 me  2:0x14c ndies  3:0x150 XG  4:0x158 slot  5:0x15c total
+#   (slot, total: the slot region to refresh in L2 after the flags, see below)
+
+<CONSTANT_MAPPING>
+    param_TAB0   : c[0x0][0x140]
+    param_TAB1   : c[0x0][0x144]
+    param_SRC0   : c[0x0][0x148]
+    param_SRC1   : c[0x0][0x14c]
+    param_nbytes : c[0x0][0x150]
+    param_myoff  : c[0x0][0x154]
+    param_slot   : c[0x0][0x158]
+    param_ndies  : c[0x0][0x15c]
+    param_XG0    : c[0x0][0x160]
+    param_XG1    : c[0x0][0x164]
+    param_sme    : c[0x0][0x168]
+    param_me     : c[0x0][0x148]
+    param_wndies : c[0x0][0x14c]
+    param_WXG0   : c[0x0][0x150]
+    param_WXG1   : c[0x0][0x154]
+    param_wslot  : c[0x0][0x158]
+    param_wtotal : c[0x0][0x15c]
+</CONSTANT_MAPPING>
+
+<REGISTER_MAPPING>
+    0-11  : pb<00-11>
+    12-23 : dq<00-11>
+    24,25 : tp<0-1>
+    26,27 : sp<0-1>
+    28,29 : xp<0-1>
+    30,31 : fp<0-1>
+    32    : tid
+    33    : bid
+    34    : w
+    35    : t
+    36    : t2
+    37    : v
+    38    : g
+    39    : lane
+    40-45 : fl<0-5>
+    46    : m
+    47    : wc
+    48    : nw1
+    49    : wb
+    50,51 : ea<0-1>
+    52-63 : da<00-11>
+</REGISTER_MAPPING>
+
+<CODE>
+    my $mode = $ENV{XCHG_MODE} || 'send';
+    my $o = '';
+    $o .= "--:-:6:-:1      S2R tid, SR_TID.X;\n";
+    $o .= "--:-:6:-:1      S2R bid, SR_CTAID.X;\n";
+    $o .= "--:-:-:-:6      MOV tp0, param_TAB0;\n";
+    $o .= "--:-:-:-:6      MOV tp1, param_TAB1;\n";
+    if ($mode eq 'send') {
+        # destination pointers: inbox_e + slot + myoff
+        $o .= sprintf "--:-:1:-:%d      LDG.E.64 pb%02d, [tp+0x%x];\n", $_ == 5 ? 2 : 1, 2 * $_, 8 * $_ for 0..5;
+        $o .= "20:-:-:-:6      ISCADD w, bid, tid, 0x8;\n";                    # word index
+        $o .= "--:-:-:-:6      MOV t, param_slot;\n";
+        $o .= "--:-:-:-:6      IADD t, t, param_myoff;\n";
+        $o .= "--:-:-:-:6      MOV m, param_ndies;\n";
+        for my $e (0..5) {
+            $o .= sprintf "--:-:-:-:6      ISETP.GT.AND P%d, PT, m, 0x%x, PT;\n", $e, $e;   # positive count: die e exists
+            $o .= sprintf "01:-:-:-:6      IADD dq%02d.CC, pb%02d, t;\n", 2 * $e, 2 * $e;
+            $o .= sprintf "--:-:-:-:6      IADD.X dq%02d, pb%02d, RZ;\n", 2 * $e + 1, 2 * $e + 1;
+        }
+        # The pointer setup above separates each predicate's producer from
+        # this OR. A targeted exchange still uses the normal framework flags.
+        $o .= sprintf "--:-:-:-:6      ISETP.EQ.OR P%d, PT, m, -0x%x, P%d;\n", $_, $_+1, $_ for 0..5;
+        $o .= "--:-:-:-:6      MOV sp0, param_SRC0;\n";
+        $o .= "--:-:-:-:6      MOV sp1, param_SRC1;\n";
+        # Control flow stays uniform per warp (a branch that splits a warp never
+        # reconverges in the persistent kernel): the loop runs while the warp's first
+        # word is in range, and a thread past the end rewrites the last word (the same
+        # value to the same address).
+        $o .= "--:-:-:-:6      MOV nw1, param_nbytes;\n";
+        $o .= "--:-:-:-:6      SHR.U32 nw1, nw1, 0x2;\n";
+        $o .= "--:-:-:-:6      IADD nw1, nw1, -0x1;\n";                        # last word
+        $o .= "--:-:-:-:6      LOP32I.AND wb, w, 0xffffffe0;\n";               # the warp's first word
+        $o .= "--:-:-:-:6      SHL t, wb, 0x2;\n";
+        $o .= "--:-:-:-:6      ISETP.LT.U32.AND P6, PT, t, param_nbytes, PT;\n";
+        $o .= "--:-:-:-:6      NOP;\n" x 3;
+        $o .= "--:-:-:-:6 \@!P6 BRA SENT;\n";
+        $o .= "WORD:\n";
+        $o .= "--:-:-:-:6      IMNMX.U32 wc, w, nw1, PT;\n";
+        $o .= "--:-:-:-:6      SHL t2, wc, 0x2;\n";
+        $o .= "--:-:-:-:6      IADD ea0.CC, sp0, t2;\n";
+        $o .= "--:-:-:-:6      IADD.X ea1, sp1, RZ;\n";
+        for my $e (0..5) {
+            $o .= sprintf "--:-:-:-:6      IADD da%02d.CC, dq%02d, t2;\n", 2 * $e, 2 * $e;
+            $o .= sprintf "--:-:-:-:6      IADD.X da%02d, dq%02d, RZ;\n", 2 * $e + 1, 2 * $e + 1;
+        }
+        $o .= "--:-:1:-:2      LDG.E v, [ea];\n";
+        $o .= "--:-:-:-:6      IADD w, w, 0x1000;\n";                          # 16 CTAs x 256 threads
+        $o .= "--:-:-:-:6      IADD wb, wb, 0x1000;\n";
+        $o .= "--:-:-:-:6      SHL t, wb, 0x2;\n";
+        $o .= "--:-:-:-:6      ISETP.LT.U32.AND P6, PT, t, param_nbytes, PT;\n";
+        $o .= "--:-:-:-:6      NOP;\n" x 3;                                            # P6 is read 18+ cycles after it is set
+        $o .= sprintf "01:2:-:-:%d  \@P%d STG.E.WT [da%02d], v;\n", $_ == 5 ? 6 : 1, $_, 2 * $_ for 0..5;
+        $o .= "02:-:-:-:6  \@P6 BRA WORD;\n";
+        $o .= "SENT:\n";
+        # A targeted send may have no local payload store. Complete each
+        # writer's remote stores before the CTA leader publishes its flag.
+        $o .= "02:-:-:-:6      ISETP.LT.AND P6, PT, m, RZ, PT;\n";
+        $o .= "--:-:-:-:6      NOP;\n" x 3;
+        $o .= "--:-:-:-:6  \@P6 MEMBAR.SYS;\n";
+        # the fence, the exchange count and the flags are the die framework's (descriptor
+        # word 30 bit 0 marks this a send phase: at its end thread 0 of every CTA fences
+        # and publishes the count to flags_e[me][cta] of every die)
+        $o .= "--:-:-:-:f      EXIT;\n";
+    } else {
+        # flag bases: fp_e = flags_e + 4 me (to store), sp = flags_me (to poll)
+        $o .= sprintf "--:-:1:-:%d      LDG.E.64 pb%02d, [tp+0x%x];\n", $_ == 5 ? 2 : 1, 2 * $_, 48 + 8 * $_ for 0..5;
+        $o .= "--:-:-:-:6      MOV xp0, param_WXG0;\n";
+        $o .= "--:-:-:-:6      MOV xp1, param_WXG1;\n";
+        $o .= "--:-:1:-:2      LDG.E.CV g, [xp];\n";
+        $o .= "20:-:-:-:6      IADD t, bid, tid;\n";
+        $o .= "--:-:-:-:6      ISETP.EQ.U32.AND P0, PT, t, RZ, PT;\n";          # CTA 0 thread 0
+        $o .= "--:-:-:-:6      ISETP.GE.U32.AND P6, PT, tid, 0x20, PT;\n";      # not warp 0
+        $o .= "--:-:-:-:6      MOV m, param_wndies;\n";
+        $o .= "--:-:-:-:6      MOV t, param_me;\n";
+        $o .= "--:-:-:-:6      SHL t, t, 0x2;\n";
+        for my $e (0..5) {
+            $o .= sprintf "--:-:-:-:6      ISETP.GT.U32.AND P%d, PT, m, 0x%x, P0;\n", $e, $e if $e;   # die e exists and I am CTA 0 thread 0
+            $o .= sprintf "01:-:-:-:6      IADD dq%02d.CC, pb%02d, t;\n", 2 * $e, 2 * $e;
+            $o .= sprintf "--:-:-:-:6      IADD.X dq%02d, pb%02d, RZ;\n", 2 * $e + 1, 2 * $e + 1;
+        }
+        $o .= "--:-:-:-:6      MOV t2, param_me;\n";
+        $o .= "--:-:-:-:6      SHL t2, t2, 0x3;\n";
+        $o .= "--:-:-:-:6      IADD tp0.CC, tp0, t2;\n";
+        $o .= "--:-:-:-:6      IADD.X tp1, tp1, RZ;\n";
+        $o .= "--:-:1:-:2      LDG.E.64 sp0, [tp+0x30];\n";                    # my flag array
+        $o .= "--:-:-:-:6  \@P6 BRA WAITED;\n";
+        $o .= "01:-:-:-:6      MEMBAR.SYS;\n";
+        $o .= "--:1:-:-:1  \@P0 STG.E.WT [dq00], g;\n";
+        $o .= sprintf "--:1:-:-:%d  \@P%d STG.E.WT [dq%02d], g;\n", $_ == 5 ? 6 : 1, $_, 2 * $_ for 1..5;
+        $o .= "SPIN:\n";
+        $o .= "01:-:3:-:1      LDG.E.CV fl0, [sp];\n";
+        $o .= "--:-:3:-:1      LDG.E.CV fl1, [sp+0x4];\n";
+        $o .= "--:-:3:-:1      LDG.E.CV fl2, [sp+0x8];\n";
+        $o .= "--:-:3:-:1      LDG.E.CV fl3, [sp+0xc];\n";
+        $o .= "--:-:3:-:1      LDG.E.CV fl4, [sp+0x10];\n";
+        $o .= "--:-:3:-:2      LDG.E.CV fl5, [sp+0x14];\n";
+        $o .= "04:-:-:-:1      IMNMX.U32 m, fl0, fl1, PT;\n";
+        $o .= "--:-:-:-:1      IMNMX.U32 t, fl2, fl3, PT;\n";
+        $o .= "--:-:-:-:6      IMNMX.U32 t2, fl4, fl5, PT;\n";
+        $o .= "--:-:-:-:6      IMNMX.U32 m, m, t, PT;\n";
+        $o .= "--:-:-:-:6      IMNMX.U32 m, m, t2, PT;\n";
+        $o .= "--:-:-:-:6      ISETP.GE.U32.AND P4, PT, m, g, PT;\n";
+        $o .= "--:-:-:-:6      NOP;\n" x 3;
+        if ($ENV{DIE_T0_OFF}) {   # inside the die kernel: leave the wait 300 s after launch (the framework then ends the kernel)
+            $o .= "--:-:6:-:2      S2R t, SR_GLOBALTIMERHI;\n";
+            $o .= sprintf "--:-:6:-:2      LDS t2, [RZ+0x%x];\n", $ENV{DIE_T0_OFF};
+            $o .= "20:-:-:-:6      IADD t, t, -t2;\n";
+            $o .= "--:-:-:-:6      ISETP.GE.U32.AND P5, PT, t, 0x46, PT;\n";
+            $o .= "--:-:-:-:6      NOP;\n" x 3;
+            $o .= "--:-:-:-:6      VOTE.ANY P5, P5;\n";
+            $o .= "--:-:-:-:6      NOP;\n" x 3;
+            $o .= "--:-:-:-:6  \@P5 BRA SPINEXP;\n";
+        }
+        $o .= "--:-:-:-:6 \@!P4 BRA SPIN;\n";
+        $o .= "--:-:-:-:6      MEMBAR.SYS;\n";
+        if ($ENV{DIE_T0_OFF}) {
+            $o .= "--:-:-:-:6      BRA WAITED;\n";
+            $o .= "SPINEXP:\n";
+            $o .= "--:-:-:-:6      MOV32I t, 0x1;\n";
+            $o .= sprintf "--:2:-:-:6      STS [RZ+0x%x], t;\n", $ENV{DIE_EXP_OFF};
+            $o .= "02:-:-:-:6      NOP;\n";
+        }
+        $o .= "WAITED:\n";
+        $o .= "--:-:-:-:6      BAR.SYNC 0x0;\n";
+        # Refresh: this die's L2 may still hold the slot's lines from the slot's previous
+        # use, and the peers' PCIe writes landed behind them (seen as stale 128-float
+        # chunks on every die but the one whose weight traffic had evicted the lines).
+        # Every thread of the die re-fetches one 16 B chunk with LDG.CV (clamped to the
+        # last chunk), so the consumers that follow read what arrived.
+        $o .= "--:-:1:-:2      LDG.E.64 ea0, [tp];\n";                         # my inbox
+        $o .= "--:-:-:-:6      ISCADD t2, bid, tid, 0x8;\n";
+        $o .= "--:-:-:-:6      SHL t2, t2, 0x4;\n";
+        $o .= "--:-:-:-:6      MOV wc, param_wtotal;\n";
+        $o .= "--:-:-:-:6      IADD wc, wc, -0x10;\n";
+        $o .= "--:-:-:-:6      IMNMX.U32 t2, t2, wc, PT;\n";
+        $o .= "--:-:-:-:6      IADD t2, t2, param_wslot;\n";
+        $o .= "01:-:-:-:6      IADD da00.CC, ea0, t2;\n";
+        $o .= "--:-:-:-:6      IADD.X da01, ea1, RZ;\n";
+        $o .= "--:-:1:-:2      LDG.E.CV.128 fl0, [da00];\n";
+        $o .= "01:-:-:-:f      EXIT;\n";
+    }
+    return $o;
+</CODE>
