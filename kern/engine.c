@@ -13,6 +13,7 @@
 #include "hold.h"
 #include "prog.h"
 #include "balance/layout.h"
+#include "unique/layout.h"
 #include "split.h"
 #include "qsa.h"
 #include "qsa_state.h"
@@ -52,9 +53,9 @@ static jmp_buf init_jb, run_jb; static int in_init, in_run;
 static void balance_fault_dump(void);
 #define CK(x) do { CUresult r_ = (x); if (r_ != CUDA_SUCCESS) { const char *s_ = "?"; cuGetErrorString(r_, &s_); fprintf(stderr, "engine.c:%d: %s -> %s\n", __LINE__, #x, s_); if (in_init) longjmp(init_jb, 1); if (in_run) { balance_fault_dump(); longjmp(run_jb, 1); } exit(1); } } while (0)
 static double now(void) { struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts); return ts.tv_sec + ts.tv_nsec * 1e-9; }
-static int row_balance,body_trace;
+static int row_balance,unique_rows,body_trace;
 static int classify_holder_layout(const core_t *c) {
-    unsigned marked=0,physical=0;row_balance=0;
+    unsigned marked=0,unique_marked=0,physical=0;row_balance=unique_rows=0;
     for(int d=0;d<c->nd;d++) {
         const hold_tensor *t=hold_find(&c->ar[d],FLASH_BALANCE_LAYOUT_MARKER);
         if(!t)continue;
@@ -65,11 +66,22 @@ static int classify_holder_layout(const core_t *c) {
             fprintf(stderr,"engine: invalid balanced holder metadata in logical slot %d\n",d);return 0;
         }
         marked++;physical|=1u<<c->ar[d].die;
+        const hold_tensor *u=hold_find(&c->ar[d],FLASH_UNIQUE_LAYOUT_MARKER);
+        if(u) {
+            if(u->off || u->bytes || u->type || u->rows!=d || u->K!=6 || u->stride!=8 || u->experts!=1) {
+                fprintf(stderr,"engine: invalid unique-row marker in logical slot %d\n",d);return 0;
+            }
+            unique_marked++;
+        }
     }
     if(marked && marked!=(unsigned)c->nd) {
         fprintf(stderr,"engine: cannot mix balanced and legacy holders\n");return 0;
     }
     row_balance=marked!=0;
+    if(unique_marked && unique_marked!=(unsigned)c->nd) {
+        fprintf(stderr,"engine: cannot mix unique-row and replicated-row holders\n");return 0;
+    }
+    unique_rows=unique_marked!=0;
     return 1;
 }
 
@@ -80,7 +92,8 @@ static core_t *core;
 #define ctx (core->ctx)
 #define ar (core->ar)
 static void execution_split(split_t *s,int die,int block) {
-    if(row_balance)balance_split(s,(unsigned)die,(unsigned)nd);
+    if(unique_rows)unique_split(s,(unsigned)die,(unsigned)nd);
+    else if(row_balance)balance_split(s,(unsigned)die,(unsigned)nd);
     else split_of(s,die,nd,block);
 }
 static char tname[128];
@@ -135,6 +148,22 @@ static unsigned allocated_positions = 1;
 static int balanced_speculation,last_extra_executed;
 static CUdeviceptr balanced_prequant_ready[MAXD];
 static unsigned last_position_slot;
+#ifdef FLASH_DFLASH_QUANT
+#include "dflash/resident.h"
+#include "dflash/target.h"
+static int dflash_quant;
+static unsigned dflash_rank=1,dflash_state_bank=3;
+static unsigned dflash_target_layer[5];
+static dflash_resident *dflash_quant_resident;
+static CUdeviceptr dflash_feature_ring,dflash_state_selector[MAXD];
+static CUdeviceptr dflash_dn_bank[4][MAXD][NB],dflash_conv_bank[4][MAXD][NB];
+static CUdeviceptr dflash_ring_bank[4][MAXD][NB],dflash_ple_bank[4][MAXD];
+static CUdeviceptr dflash_dn_table[MAXD][NB],dflash_conv_table[MAXD][NB];
+static CUdeviceptr dflash_ring_table[MAXD][NB],dflash_ple_table[MAXD];
+static const prog_t *dflash_program_source[5];
+static CUdeviceptr dflash_program_cache[5][MAXD];
+static void dflash_prefix_bind(dn_bufs_t *,int,int,unsigned);
+#endif
 static dn_bufs_t *position_buf(int,unsigned);
 static int producer_quant,group_matrices,residual_fp8;
 static int gr_replicate_ffn;
@@ -193,6 +222,12 @@ static unsigned attn_q_split_mode;
 #endif
 static char cubin_path[512]; static uint64_t cubin_fnv;   /* identity of the loaded kernel image: FNV-1a 64 of the cubin file */
 static const char *profile_op_name(unsigned op) {
+#ifdef FLASH_DFLASH_QUANT
+    if(dflash_quant && op==OP_DFLASH_FEATURES)return "dflash_features";
+    if(dflash_quant && op==OP_DFLASH_DN4)return "gdn_prefix4";
+    if(dflash_quant && op==109u)return "balanced_hcup4";
+#endif
+    if(unique_rows && op==OP_UNIQUE_ROUTER)return "router_shard";
     if(row_balance && op==108u)return "balanced_batch";
     if(row_balance && op==109u)return "balanced_hcup5";
     if(row_balance && op==110u)return "balanced_prequant";
@@ -209,6 +244,10 @@ static void check_fused_moe_module(CUmodule module) {
     }
     CUresult balanced_marker=cuModuleGetFunction(&marker,module,"flash_balanced_rows_abi_v1");
     if(row_balance){CK(balanced_marker);CK(cuModuleGetFunction(&marker,module,"flash_balance_head_peer_abi_v2"));}
+    CUresult unique_marker=cuModuleGetFunction(&marker,module,"flash_unique_rows_abi_v1");
+    if((unique_marker==CUDA_SUCCESS)!=!!unique_rows) {
+        fprintf(stderr,"engine: unique-row holder and kernel layouts must agree\n");longjmp(init_jb,1);
+    }
     else if(balanced_marker==CUDA_SUCCESS) {
         fprintf(stderr,"engine: balanced SASS requires row-balanced holders and program\n");
         CK(CUDA_ERROR_INVALID_IMAGE);
@@ -570,6 +609,7 @@ static void clone_position(int d, dn_bufs_t *b, xchg_t *x, int alias_attention) 
 	SECOND(g); SECOND(gu); SECOND(hq); SECOND(hs32); SECOND(hs16); SECOND(has); SECOND(out);
     SECOND(balance_gate_local);SECOND(balance_up_local);SECOND(balance_down_local);SECOND(balance_quant_ready);
     SECOND(balance_index_local);SECOND(balance_attn_ready);
+    SECOND(unique_router_packets);SECOND(unique_k_local);SECOND(unique_v_local);
 	SECOND(qg); SECOND(k); SECOND(v); SECOND(qo); SECOND(aout);
 	/* Wide headless programs serialize gather/partial/merge per position. */
 	if (!alias_attention) { SECOND(kc); SECOND(vc); SECOND(pm); SECOND(pd); SECOND(po); }
@@ -694,6 +734,9 @@ static void model_program(prog_t *P, int d, unsigned position, unsigned nprompt,
 		dn_bufs_t layer = *b;
 		layer.dn_state = dst_dn[d][bb]; layer.conv_state = dst_conv[d][bb]; layer.ple_state = dst_ple[d];
 		qsa_bind_layer(&layer, nblk_qsa, dst_kq[d][bb], dst_ks[d][bb], dst_vq[d][bb], dst_vs[d][bb], dst_pkt[d][bb], dst_ring[d][bb]);
+#ifdef FLASH_DFLASH_QUANT
+        if(dflash_quant && checkpoints==2)dflash_prefix_bind(&layer,d,bb,position);
+#endif
 #ifdef FLASH_VERIFY_NATIVE
 		if (checkpoints) {
 			layer.checkpoint_copy_op = OP_VERIFY_COPY;
@@ -708,6 +751,13 @@ static void model_program(prog_t *P, int d, unsigned position, unsigned nprompt,
 		if (bb == 1) prog_ple_prefix(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
 		if (BLK_IS_ATTN(bb)) prog_attn_block(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
 		else prog_deltanet_block(P, &sp[d][bb], x, &dw[d][bb], &layer, 0, eps);
+#ifdef FLASH_DFLASH_QUANT
+        if(dflash_quant)for(unsigned tap=0;tap<5;tap++)if((unsigned)bb==dflash_target_layer[tap]) {
+            phase_t *capture=prog_add(P,OP_DFLASH_FEATURES,(unsigned)d==dflash_rank?10:0);
+            ph_ptr(capture,0x140,b->S);ph_ptr(capture,0x148,dflash_feature_ring);
+            ph_tokv(P,capture,0x150,0,0);ph_u32(capture,0x154,tap);
+        }
+#endif
 #ifdef FLASH_DFLASH_NATIVE
 		if(dflash_enabled)for(unsigned tap=0;tap<5;tap++)if(bb==dflash_layers[tap]) {
 			phase_t *capture=prog_add(P,OP_XCOPY,10);
@@ -803,7 +853,13 @@ static int fuse_exact_program(prog_t *out,int d) {
 #endif
 
 static void upload_programs(const prog_t *P, unsigned *nph, unsigned positions) {
+	unsigned previous_positions=active_program_positions;
 	active_program_positions = positions;
+#ifdef FLASH_DFLASH_QUANT
+    int cached=dflash_quant && positions<=4 && dflash_program_source[positions]==P;
+#else
+    (void)previous_positions;
+#endif
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d]));
 		nph[d] = (unsigned)P[d].n;
@@ -830,16 +886,30 @@ static void upload_programs(const prog_t *P, unsigned *nph, unsigned positions) 
             prof_publications[d]+=(flags&128u)!=0;
             i += (int)step;
         }
-        if(producer_quant && ((positions!=1 && !balanced_speculation) || prof_nph[d]>=500)) {
+        if(producer_quant && positions!=1 && !balanced_speculation) {
             fprintf(stderr,"phase candidate not runnable: die %d has %d phases, %u positions\n",d,prof_nph[d],positions);
             longjmp(run_jb,1);
         }
         if(d && producer_quant && getenv("FLASH_LOCKSTEP_PHASES") && atoi(getenv("FLASH_LOCKSTEP_PHASES")) && prof_nph[d]!=prof_nph[0]) {
             fprintf(stderr,"lockstep diagnostic requires equal physical phase counts on every die\n");longjmp(run_jb,1);
         }
+#ifdef FLASH_DFLASH_QUANT
+        if(dflash_quant && positions<=4) {
+            if(!dflash_program_cache[positions][d])
+                dflash_program_cache[positions][d]=dalloc(sizeof(phase_t)*(size_t)program_capacity);
+            dPROG[d]=dflash_program_cache[positions][d];
+        }
+        if(!cached)
+#endif
 		CK(cuMemcpyHtoD(dPROG[d], P[d].p, sizeof(phase_t) * (size_t)P[d].n));
+#ifdef FLASH_DFLASH_QUANT
+        if(!cached || previous_positions!=positions)
+#endif
 		CK(cuMemsetD32(dCTL[d] + 0x24, positions, 1));
 	}
+#ifdef FLASH_DFLASH_QUANT
+    if(dflash_quant && positions<=4)dflash_program_source[positions]=P;
+#endif
 }
 
 /* ---- persistent launches bounded by snapshots and known-prefix tails ---- */
@@ -1147,11 +1217,17 @@ static int prepare_images(const engine_img *imgs, int nimg, int nprompt, int T) 
 #include "exactbatch/engine_verify.c"
 #endif
 #ifdef FLASH_BALANCED_SPEC_NATIVE
+#ifdef FLASH_DFLASH_QUANT
+#include "dflash/engine_quant.inc"
+#endif
 #include "balance/speculate.c"
 #endif
 
 int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[2], const sampling *sm, int snap_at, const engine_img *imgs, int nimg, const engine_cb *cb, run_stats *st) {
     last_extra_executed=0;last_position_slot=0;
+#ifdef FLASH_DFLASH_QUANT
+    memset(dflash_program_source,0,sizeof dflash_program_source);
+#endif
 #ifdef FLASH_BALANCED_SPEC_NATIVE
     memset(&bspec,0,sizeof bspec);
 #endif
@@ -1213,6 +1289,12 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
 	}
 	/* the prefix cache: resume from the snapshot if the prompt starts with its tokens (at least one prompt token must
 	   still run, to produce the logits of the last one) */
+#ifdef FLASH_DFLASH_QUANT
+    /* The older snapshot ABI has no target-feature ring. Rebuild conditioning
+     * from the prompt instead of using a recurrent-only snapshot as a draft
+     * prefix. Ordinary within-request retained banks need no such replay. */
+    if(dflash_quant && use_speculative)snap_s=0;
+#endif
 	int resume = (snap_s > 0 && snap_s <= nprompt - 1 && !memcmp(ids, snap_ids, 4 * (size_t)snap_s)) ? snap_s : 0;
     last_timing.resumed=resume;last_timing.completed=resume;last_timing.counts_known=1;last_timing.error_code=0;
 	kv_trace_start = resume;
@@ -1225,6 +1307,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
         for(unsigned p=0;p<allocated_positions;p++) {
             CK(cuMemsetD32(position_buf(d,p)->balance_quant_ready,0,16));
             CK(cuMemsetD32(position_buf(d,p)->balance_attn_ready,0,16));
+            if(unique_rows)CK(cuMemsetD32(position_buf(d,p)->ne+4,0,1));
         }
     }
 	if (!resume) snap_s = 0;   /* this response rewrites the attention caches from position 0 */
@@ -1530,10 +1613,19 @@ int engine_init(core_t *c) {
 	if (c->abi != CORE_ABI) { fprintf(stderr, "engine: the core speaks ABI %d, this library was built for %d\n", c->abi, CORE_ABI); return -1; }
     if(!classify_holder_layout(c))return -1;
     const char *spec=getenv("FLASH_BALANCED_SPECULATE");balanced_speculation=0;
+#ifdef FLASH_DFLASH_QUANT
+    dflash_quant=spec && !strcmp(spec,"dflash2");
+    dflash_rank=getenv("FLASH_DFLASH_RANK")?(unsigned)atoi(getenv("FLASH_DFLASH_RANK")):1;
+    if(dflash_quant && dflash_rank>=6){fprintf(stderr,"engine: DFlash2 rank must be 0..5\n");return -1;}
+#endif
     if(spec && strcmp(spec,"0")) {
 #ifdef FLASH_BALANCED_SPEC_NATIVE
-        if(strcmp(spec,"lookup") || !row_balance || trace_n || xtrace_n || body_trace) {
-            fprintf(stderr,"engine: balanced speculation requires lookup mode, balanced holders and tracing off\n");return -1;
+        int known_proposer=!strcmp(spec,"lookup");
+#ifdef FLASH_DFLASH_QUANT
+        known_proposer|=dflash_quant;
+#endif
+        if(!known_proposer || !row_balance || trace_n || xtrace_n || body_trace) {
+            fprintf(stderr,"engine: speculative mode requires a supported proposer, balanced/unique holders and tracing off\n");return -1;
         }
         balanced_speculation=1;
 #else
@@ -1607,13 +1699,17 @@ int engine_init(core_t *c) {
 	allocated_positions = two_position ? 2 : 1;
 #ifdef FLASH_EXACT_BATCH
 	const char *batch_env = getenv("FLASH_PHASE_BATCH");
-    if(balanced_speculation && (!batch_env || !strcmp(batch_env,"0")))batch_env="5";
-	if (batch_env && strcmp(batch_env, "0") && strcmp(batch_env, "5") && strcmp(batch_env, "8")) {
-		fprintf(stderr, "engine: FLASH_PHASE_BATCH must be 0, 5 or 8\n");
+    unsigned spec_width=5;
+#ifdef FLASH_DFLASH_QUANT
+    if(dflash_quant)spec_width=4;
+#endif
+    if(balanced_speculation && (!batch_env || !strcmp(batch_env,"0")))batch_env=spec_width==4?"4":"5";
+	if (batch_env && strcmp(batch_env, "0") && strcmp(batch_env,"4") && strcmp(batch_env, "5") && strcmp(batch_env, "8")) {
+		fprintf(stderr, "engine: FLASH_PHASE_BATCH must be 0, 4, 5 or 8\n");
 		longjmp(init_jb, 1);
 	}
 	exact_width = batch_env ? (unsigned)atoi(batch_env) : 0;
-    if(balanced_speculation && exact_width!=5) {fprintf(stderr,"engine: balanced speculation requires five-position capacity\n");longjmp(init_jb,1);}
+    if(balanced_speculation && exact_width!=spec_width) {fprintf(stderr,"engine: proposer requires %u-position capacity\n",spec_width);longjmp(init_jb,1);}
 	exact_cubin_path[0] = 0; exact_cubin_fnv = 0;
 	if (exact_width) {
 		const char *image = getenv("FLASH_EXACT_CUBIN");
@@ -1673,6 +1769,9 @@ int engine_init(core_t *c) {
 		CK(cuModuleGetFunction(&marker, exact_mod[d], "flash_exact_batch_abi_v1"));
         if(balanced_speculation){
             check_fused_moe_module(exact_mod[d]);CK(cuModuleGetFunction(&marker,exact_mod[d],"flash_balance_batch_abi_v1"));
+#ifdef FLASH_DFLASH_QUANT
+            if(dflash_quant)CK(cuModuleGetFunction(&marker,exact_mod[d],"flash_balance_hcup4_abi_v1"));
+#endif
             if(getenv("FLASH_BALANCED_HCUP5") && atoi(getenv("FLASH_BALANCED_HCUP5")))
                 CK(cuModuleGetFunction(&marker,exact_mod[d],"flash_balance_hcup5_abi_v1"));
             if(getenv("FLASH_HCUP5_STAGE_TRACE") && atoi(getenv("FLASH_HCUP5_STAGE_TRACE")))
@@ -1777,10 +1876,15 @@ int engine_init(core_t *c) {
             b->balance_gate_local=dalloc(44u*gate_rows);b->balance_up_local=dalloc(44u*gate_rows);
             b->balance_down_local=dalloc(24u*down_rows);b->balance_quant_ready=dalloc(64);
             b->balance_index_local=dalloc(4u*gate_rows);b->balance_attn_ready=dalloc(64);
+            if(unique_rows) {
+                b->unique_router_packets=dalloc(6u*UNIQUE_ROUTE_PACKET_WORDS*4);
+                unsigned kv_rows=balance_row_count(512,(unsigned)d,(unsigned)nd,8);
+                b->unique_k_local=dalloc(4u*kv_rows);b->unique_v_local=dalloc(4u*kv_rows);
+            }
         }
 		b->out = dalloc(4 * 2560);
         unsigned heads=row_balance?4u:24u;
-		b->qg=dalloc(4u*heads*512);b->k=dalloc(4u*kv_width);b->v=dalloc(4u*kv_width);
+		b->qg=dalloc(4u*heads*512);b->k=dalloc(4u*(unique_rows?512u:kv_width));b->v=dalloc(4u*(unique_rows?512u:kv_width));
         b->qo=dalloc(4u*heads*256);b->aout=dalloc(4u*heads*256);
 		b->pm=dalloc(4u*heads*8);b->pd=dalloc(4u*(heads*8+16));b->po=dalloc(4u*heads*8*256);
 		if (has_attn[d]) {   /* the attention layers of this die: RoPE tables, the indexer scratch, the compact caches of the attended keys */
@@ -1814,6 +1918,7 @@ int engine_init(core_t *c) {
 			split_t *s = &sp[d][bb]; execution_split(s, d, bb);
 			dn_weights_t *w = &dw[d][bb]; int is_attn = BLK_IS_ATTN(bb);
             w->balanced_rows=(unsigned)row_balance;w->balanced_layer=(unsigned)bb;
+            w->unique_rows=(unsigned)unique_rows;
             if(row_balance) {
                 w->attn_head_first=balance_attention_first((unsigned)d,(unsigned)nd);
                 w->attn_head_count=balance_attention_heads((unsigned)d,(unsigned)nd);w->attn_kv_heads=1;
@@ -1943,6 +2048,19 @@ int engine_init(core_t *c) {
         b->balance_attention_targets=producer_tables[p][d][1];
         CUdeviceptr heads[6];for(int e=0;e<nd;e++)heads[e]=position_buf(e,p)->amo;
         b->balance_head_sources=dalloc(sizeof heads);CK(cuMemcpyHtoD(b->balance_head_sources,heads,sizeof heads));
+        if(unique_rows) {
+            CUdeviceptr packet[6],keys[6],values[6];
+            for(int e=0;e<nd;e++) {
+                packet[e]=position_buf(e,p)->unique_router_packets;
+                keys[e]=position_buf(e,p)->k;values[e]=position_buf(e,p)->v;
+            }
+            b->unique_router_targets=dalloc(sizeof packet);CK(cuMemcpyHtoD(b->unique_router_targets,packet,sizeof packet));
+            b->unique_k_targets=dalloc(sizeof keys);CK(cuMemcpyHtoD(b->unique_k_targets,keys,sizeof keys));
+            b->unique_v_targets=dalloc(sizeof values);CK(cuMemcpyHtoD(b->unique_v_targets,values,sizeof values));
+            CUdeviceptr route[7]={b->unique_router_packets,b->lidx,b->lw,b->idx,b->w,b->s,b->ne};
+            b->unique_router_config=dalloc(sizeof route);CK(cuMemcpyHtoD(b->unique_router_config,route,sizeof route));
+            CK(cuMemcpyHtoD(b->ne+8,&b->unique_router_config,sizeof b->unique_router_config));
+        }
     }
     if(residual_fp8)for(unsigned p=0;p<allocated_positions;p++)for(int d=0;d<nd;d++){CK(cuCtxSetCurrent(ctx[d]));for(unsigned k=0;k<2;k++)residual_encoded[p][d][k]=dalloc(fp8_bytes(10240));}
     if(producer_quant)for(int d=0;d<nd;d++) {
@@ -1953,7 +2071,7 @@ int engine_init(core_t *c) {
 	for (int d = 0; d < nd; d++) {
 		CK(cuCtxSetCurrent(ctx[d])); CK(cuMemcpyHtoD(xc[d].xtab, tab, sizeof tab));
 		uint32_t hdr[32] = { 0 }; hdr[3] = (uint32_t)d; hdr[4] = (uint32_t)nd;
-		for (int e = 0; e < 6; e++) { uint64_t a = e < nd ? (uint64_t)xc[e].flags + 64u * (unsigned)d : (uint64_t)dCTL[d] + 0xc0; memcpy(&hdr[16 + 2 * e], &a, 8); }
+		for (int e = 0; e < 6; e++) { uint64_t a = e < nd ? (uint64_t)xc[e].flags + (unique_rows?4u:64u) * (unsigned)d : (uint64_t)dCTL[d] + 0xc0; memcpy(&hdr[16 + 2 * e], &a, 8); }
 		uint64_t mf = (uint64_t)xc[d].flags; memcpy(&hdr[28], &mf, 8);
 		CK(cuMemsetD8(dCTL[d], 0, 0x100)); CK(cuMemcpyHtoD(dCTL[d], hdr, sizeof hdr));
 	}
@@ -1982,6 +2100,9 @@ int engine_init(core_t *c) {
 #ifdef FLASH_DFLASH_NATIVE
 	if(dflash_enabled)dflash_init();
 #endif
+#ifdef FLASH_DFLASH_QUANT
+    dflash_quant_init();
+#endif
 	in_init = 0;
 	fprintf(stderr, "engine: %d dies, %d/%d blocks, up to %d positions, %.0f MB of buffers per die, ready in %.1f s\n", nd, nlayers_run, NB, MAXT, (double)alloc_bytes / nd / 1e6, now() - ts0);
 	return 0;
@@ -1989,6 +2110,9 @@ int engine_init(core_t *c) {
 
 void engine_fini(void) {
 	release_request_programs();
+#ifdef FLASH_DFLASH_QUANT
+    dflash_quant_fini();
+#endif
 #ifdef FLASH_DFLASH_NATIVE
 	dflash_fini();
 #endif
@@ -2255,7 +2379,7 @@ int engine_session(FILE *in, FILE *out) {
 #endif
 #ifdef FLASH_EXACT_BATCH
 			fprintf(out, " phase_batch=%u exact_cubin=%s exact_cubin_fnv=%016llx", exact_width, exact_width ? exact_cubin_path : "none", (unsigned long long)exact_cubin_fnv);
-            fprintf(out," balanced_speculative=%d proposer=%s",balanced_speculation,balanced_speculation?"prompt_lookup_1_16":"none");
+            fprintf(out," balanced_speculative=%d proposer=%s",balanced_speculation,balanced_speculation?balanced_proposer_name():"none");
 #endif
 #ifdef FLASH_MTP_NATIVE
 			fprintf(out," mtp_shadow=%d mtp_mode=%d mtp_rollout=%d mtp_model=%s mtp_cubin=%s mtp_cubin_fnv=%016llx",mtp_enabled==1,mtp_enabled,mtp_enabled==2,mtp_enabled?mtp_model_path:"none",mtp_enabled?mtp_cubin_path:"none",(unsigned long long)mtp_cubin_fnv);

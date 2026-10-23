@@ -8,7 +8,7 @@ static void balance_work_dump(FILE *out) {
     }
     for(int d=0;d<nd;d++) {
         unsigned n=prof_desc[d];
-        if(!n || n>program_capacity || prof_nph[d]<=0 || prof_nph[d]>=500){failures++;continue;}
+        if(!n || n>program_capacity || prof_nph[d]<=0 || prof_nph[d]>=4096){failures++;continue;}
         phase_t *p=malloc((size_t)n*sizeof *p);
         if(!p){failures++;continue;}
         CK(cuCtxSetCurrent(ctx[d]));CK(cuMemcpyDtoH(p,dPROG[d],(size_t)n*sizeof *p));

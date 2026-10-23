@@ -97,6 +97,7 @@ void split_of(split_t *s, int d, int n, int blk);
 typedef struct {
 	CUdeviceptr hc_attn_norm, hc_attn_dj, hc_attn_up;
     unsigned balanced_rows,balanced_layer,embedding_first,embedding_columns,embedding_stride;
+    unsigned unique_rows;
 	unsigned attn_q_split, attn_q_first, attn_q_rows;
     unsigned attn_head_first,attn_head_count,attn_kv_heads;
 	CUdeviceptr hc_ffn_norm, hc_ffn_dj, hc_ffn_up;
@@ -129,6 +130,8 @@ typedef struct {
     CUdeviceptr balance_owner_bounds;
     CUdeviceptr balance_head_sources; /* six peer pointers to die winners */
     CUdeviceptr balance_index_local,balance_index_targets,balance_attention_targets,balance_attn_ready;
+    CUdeviceptr unique_router_packets,unique_router_targets,unique_router_config;
+    CUdeviceptr unique_k_local,unique_v_local,unique_k_targets,unique_v_targets;
 	CUdeviceptr S2;                   /* 10240 scratch stream: the attention side's write lands here (bf16hcrwx), the MoE end writes S */
 	CUdeviceptr xh, t;                /* 10240; 324 = SiLU(0.25 down) ++ inj */
 	CUdeviceptr ldown, lup, lz;       /* djn; 4 x 32 cbn; 32 cbn */
@@ -170,6 +173,11 @@ typedef struct {
 	/* Optional verifier captures. The ordinary programs leave these zero. */
 	CUdeviceptr dn_checkpoint, conv_checkpoint, ple_checkpoint, ring_checkpoint;
 	unsigned checkpoint_copy_op;
+    /* A retained B4 prefix writes its own state bank. Position zero resolves
+     * its input through {selected-index pointer, four bank pointers}; later
+     * positions read the preceding bank directly. */
+    unsigned prefix_states;
+    CUdeviceptr dn_input_table,conv_input_table,ple_input_table,ring_input_table;
 } dn_bufs_t;
 
 void prog_deltanet_block(prog_t *P, const split_t *s, const xchg_t *x, const dn_weights_t *w, const dn_bufs_t *b, unsigned t, float eps);

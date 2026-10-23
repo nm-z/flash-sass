@@ -30,13 +30,25 @@ static void prog_balanced_moe(prog_t *p,const split_t *s,const dn_weights_t *w,
                              CUdeviceptr inj) {
     unsigned gate_rows=balance_row_count(640,(unsigned)s->d,(unsigned)s->n,8);
     unsigned down_rows=balance_row_count(2560,(unsigned)s->d,(unsigned)s->n,8);
-    ph_bf16(p,OP_BF16K2560,w->ffn_gate_inp_x,z,b->r,513,0);
-    ph_router(p,b->r,b->r+512*4,b->idx,b->w,b->s);
-    ph_moesel(p,b->idx,b->w,w->emap,b->lidx,b->lw,b->ne,b->part);
+    if(w->unique_rows) {
+        ph_bf16(p,OP_UNIQUE_ROUTER,w->ffn_gate_inp_x,z,b->r,
+                unique_router_rows((unsigned)s->d,(unsigned)s->n),0);
+        phase_t *route=p->p+p->n-1;
+        route->w[10]=w->balanced_layer+1;
+        ph_ptr(route,0x168,b->unique_router_targets);
+        route->w[14]=unique_router_first((unsigned)s->d,(unsigned)s->n);
+        route->w[15]=(unsigned)s->d;
+        route->w[30]|=1u;p->pending_wait=1;p->xj++;
+    } else {
+        ph_bf16(p,OP_BF16K2560,w->ffn_gate_inp_x,z,b->r,513,0);
+        ph_router(p,b->r,b->r+512*4,b->idx,b->w,b->s);
+        ph_moesel(p,b->idx,b->w,w->emap,b->lidx,b->lw,b->ne,b->part);
+    }
     int first=p->n;
     ph_q2(p,OP_Q2MOEGN,w->ffn_gate_exps,b->zq,b->zs32,b->balance_gate_local,
           gate_rows,b->lidx,b->zas,0,b->ne);
     balance_row_descriptor(p->p+p->n-1,(unsigned)s->d,gate_rows,b->balance_gate_targets,640,10,0,w->balanced_layer);
+    if(w->unique_rows)p->p[p->n-1].w[30]|=PHASE_UNIQUE_ROUTE;
     ph_q2(p,OP_Q2MOEGN,w->ffn_up_exps,b->zq,b->zs32,b->balance_up_local,
           gate_rows,b->lidx,b->zas,0,b->ne);
     balance_row_descriptor(p->p+p->n-1,(unsigned)s->d,gate_rows,b->balance_up_targets,640,10,0,w->balanced_layer);

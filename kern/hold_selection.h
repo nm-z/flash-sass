@@ -5,11 +5,14 @@ typedef struct { int r0, n; } range_t;
 typedef struct { range_t r[6]; int nr; int rows_total; int experts; unsigned row_grain,embedding_first,embedding_groups; } sel_t;   /* rows_total: rows the ranges index */
 static int split_on;
 static int balance_on;
+static int unique_on;
 static split_t SP;
 #include "balance/layout.h"
 #include "balance/embedding.h"
+#include "unique/layout.h"
 static void holder_split(int die,int dies,int block) {
-    if(balance_on)balance_split(&SP,(unsigned)die,(unsigned)dies);
+    if(balance_on && unique_on)unique_split(&SP,(unsigned)die,(unsigned)dies);
+    else if(balance_on)balance_split(&SP,(unsigned)die,(unsigned)dies);
     else split_of(&SP,die,dies,block);
 }
 static void sel_whole(sel_t *s, int rows, int experts) { s->nr = 1; s->r[0].r0 = 0; s->r[0].n = experts > 1 ? experts : rows; s->rows_total = rows; s->experts = experts; s->row_grain=s->embedding_first=s->embedding_groups=0; }
@@ -26,6 +29,36 @@ static void select_rows(const char *name, int rows, int experts, sel_t *s) {
 	if (!strcmp(name, "output_hc_up.weight")) { s->nr = 4; for (int l = 0; l < 4; l++) s->r[l] = (range_t){ 2560 * l + 32 * p->cb0, 32 * p->cbn }; return; }
 	const char *x = suffix(name);
 	if (!x) return;
+    if(balance_on && unique_on) {
+        if(!strcmp(x,"ffn_gate_inp_x.weight")) {
+            s->nr=1;s->r[0]=(range_t){(int)unique_router_first((unsigned)p->d,(unsigned)p->n),
+                                    (int)unique_router_rows((unsigned)p->d,(unsigned)p->n)};return;
+        }
+        if(!strcmp(x,"attn_k.weight") || !strcmp(x,"attn_v.weight")) {
+            s->row_grain=FLASH_BALANCE_EXPERT_GRAIN;return;
+        }
+        if(!strcmp(x,"attn_qkv.weight") || !strcmp(x,"ssm_conv1d.weight")) {
+            s->nr=0;
+            s->r[s->nr++]=(range_t){128*p->klo,128*p->nk};
+            s->r[s->nr++]=(range_t){2048+128*p->klo,128*p->nk};
+            for(int group=0;group<3;group++)s->r[s->nr++]=(range_t){4096+128*(p->klo+16*group),128*p->nk};
+            return;
+        }
+        if(!strcmp(x,"attn_gate.weight")) {
+            s->nr=3;for(int group=0;group<3;group++)s->r[group]=(range_t){128*(p->klo+16*group),128*p->nk};return;
+        }
+        if(!strcmp(x,"ssm_ab.weight") || !strcmp(x,"ssm_ab.bias")) {
+            s->nr=0;s->rows_total=96;
+            for(int side=0;side<2;side++)for(int group=0;group<3;group++)
+                s->r[s->nr++]=(range_t){48*side+p->klo+16*group,p->nk};
+            return;
+        }
+        if(!strcmp(x,"ssm_a")) {
+            s->nr=3;s->rows_total=48;
+            for(int group=0;group<3;group++)s->r[group]=(range_t){p->klo+16*group,p->nk};
+            return;
+        }
+    }
     if(balance_on) {
         if(strstr(x,"_exps.weight") || strstr(x,"_shexp.weight")) {
             s->row_grain=FLASH_BALANCE_EXPERT_GRAIN;return;

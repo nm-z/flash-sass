@@ -1,0 +1,23 @@
+{
+  "repository": "incoai/Qwen3.8-Flash-Next-DFlash2-GGUF",
+  "revision": "4f5a39be8f0a9e9a573ac9824251830a8f4096d9",
+  "filename": "Qwen3.8-Flash-Next-DFlash2-Q4_K_M.gguf",
+  "bytes": 362124704,
+  "published_sha256": "2f174e593998c77df0eb7ca13961915a26f25f7944d784a1838e1856e857ff0d",
+  "path_on_engi_and_archy": "/home/nate/models-cache/flash-sass/dflash2-q4km/Qwen3.8-Flash-Next-DFlash2-Q4_K_M.gguf",
+  "architecture": "dflash",
+  "layers": 5,
+  "hidden": 2560,
+  "feed_forward": 7680,
+  "attention_heads": 32,
+  "kv_heads": 8,
+  "head_dimension": 128,
+  "window": 2048,
+  "checkpoint_block_capacity": 8,
+  "execution_block": 4,
+  "proposals_per_round": 3,
+  "mask_token": 248077,
+  "target_completed_layers_zero_based": [5, 15, 25, 35, 45],
+  "tensor_formats": {"Q4_K": 45, "Q6_K": 4, "F32": 32},
+  "main_target_checkpoint_changed": false
+}

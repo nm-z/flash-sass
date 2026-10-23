@@ -1,6 +1,7 @@
 #ifndef FLASH_BALANCE_BATCH_H
 #define FLASH_BALANCE_BATCH_H
 #include "../prog.h"
+#include "../dflash/target.h"
 #define OP_BALANCED_BATCH 108u
 #define OP_BALANCED_HCUP5 109u
 #define OP_BALANCED_PREQUANT 110u
@@ -13,6 +14,7 @@ typedef struct {
     unsigned publications;
     unsigned peer_acquires;
     unsigned native_hcup_phases;
+    unsigned native_dn_phases;
     unsigned local_quant_phases;
 } balance_batch_work;
 /* Every input is a complete, already-fused balanced position program. The

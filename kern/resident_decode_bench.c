@@ -140,6 +140,22 @@ static FILE *start(const char *core,const char *lib,const char *cubin,int fused)
             }
             execv(core,args);perror("exec balanced flashcore");_exit(127);
         }
+        const char *holder_dir=getenv("BENCH_HOLDER_DIR");
+        if(holder_dir && *holder_dir) {
+            /* Original whole-expert caches can use any physical placement;
+             * the manifests supply the mapping. Keep benchmark policy explicit. */
+            const char *visible=getenv("BENCH_VISIBLE_DEVICES");
+            const char *anchor=getenv("BENCH_ANCHOR_DIE");
+            setenv("CUDA_VISIBLE_DEVICES",visible?visible:"0,1,3,4,5,6",1);
+            setenv("FLASH_ANCHOR_DIE",anchor?anchor:"3",1);
+            setenv("FLASH_PLE_FILE","/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf",1);
+            char paths[6][1024];char *args[10]={(char *)core,"/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf",(char *)lib};
+            for(int d=0;d<6;d++) {
+                if(snprintf(paths[d],sizeof paths[d],"%s/h%d.ipc.bin",holder_dir,d)>=(int)sizeof paths[d])_exit(2);
+                args[d+3]=paths[d];
+            }
+            execv(core,args);perror("exec original-layout flashcore");_exit(127);
+        }
         execl(core,core,"/home/nate/codex/flash-astra-perf-20261018/ple-direct.gguf",lib,
               "/tmp/hold-h0.manifest","/tmp/hold-h1.manifest","/tmp/hold-h2.manifest",
               "/tmp/hold-h3.manifest","/tmp/hold-h4.manifest","/tmp/hold-h5.manifest",(char *)0);
@@ -259,7 +275,7 @@ int main(int argc,char **argv) {
     if(verify_rollback && (verify_rollback<1 || verify_rollback>8 || !resident || exact_batch || mtp_audit || native_chunk || pair_cost || candidate_only || prefix_hash || (verify_states!=0 && verify_states!=1)))
         fail("rollback audit requires resident matched mode, kept1..8 and state check0/1");
     if(verify_matrix && (verify_matrix!=1 || verify_rollback!=1))fail("rollback matrix starts with BENCH_VERIFY_ROLLBACK=1");
-    if(kernel_only && (kernel_only!=1 || !resident || native_chunk || exact_batch || mtp_audit || verify_rollback || pair_cost || (candidate_only && !plain_decode)))fail("kernel-only comparison requires ordinary resident matched mode");
+    if(kernel_only && (kernel_only!=1 || native_chunk || exact_batch || mtp_audit || verify_rollback || pair_cost || (candidate_only && !plain_decode)))fail("kernel-only comparison requires ordinary full-model decode");
     if(native_chunk && (pair_cost || !resident || native_chunk<128 || native_chunk>1024 || (native_chunk&(native_chunk-1)))) fail("native chunk requires resident mode and power-of-two size 128..1024");
     if(candidate_only && !native_chunk && mtp_audit<2 && !plain_decode) fail("candidate-only requires native chunk, plain decode or unchecked MTP");
     if(separate_chunk && !native_chunk) fail("separate chunk module requires native chunk mode");
@@ -410,7 +426,7 @@ int main(int argc,char **argv) {
             {size_t used=strlen(cmd);snprintf(cmd+used,sizeof cmd-used," FLASH_GR_WRITE_TRACE=%d",getenv("BENCH_GR_WRITE_TRACE")?atoi(getenv("BENCH_GR_WRITE_TRACE")):0);}
             command(active,cmd); fclose(active); active=NULL;
             f=connect_core(); if(!f) fail("post-reload connection"); active=f;
-        } else { f=start(argv[1],argv[2],argv[3+arm],arm); active=f; }
+        } else { f=start(argv[1],argv[2],argv[3+arm],arm && !kernel_only); active=f; }
         const char *name=row_balance?"row-balanced":kernel_only?(arm?"kernel-candidate":"baseline"):verify_rollback?(arm?"rollback-audit":"baseline"):mtp_audit?(arm?(mtp_audit==4?"dflash2-full-model":mtp_audit==3?"mtp-full-model":mtp_audit==2?"mtp-rollout":"mtp-shadow"):"baseline"):pair_cost?(arm?"paired-full-head":"scalar-full-head"):exact_batch?(arm?"exact-b8":"production-b2"):(arm?(native_chunk?"native-chunk":"fused"):"baseline");
         const char *workload=candidate_only && repetitions==1 && !repeatability && !pair_cost?"decode-first-execution":mtp_audit==4?"dflash2-full-model-unchecked":mtp_audit==3?"mtp-full-model-unchecked":mtp_audit==2?"mtp-unchecked-rollout":verify_rollback?"rollback-state-diagnostic":mtp_audit?"draft-shadow-diagnostic":pair_cost?"teacher_forced":candidate_only?(generate==1&&prefix_hash?"native-prefix-repeatability":"decode-repeatability"):"decode";
         if(getenv("BENCH_CUDA_DEBUG") && atoi(getenv("BENCH_CUDA_DEBUG")))workload="cuda-debug-diagnostic";

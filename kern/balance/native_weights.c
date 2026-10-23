@@ -200,6 +200,7 @@ static void balance(backing src[6],const char *out) {
         dst[d].die=(int[]){0,1,6,3,4,5}[d];
         hold_tensor marker={0};snprintf(marker.name,sizeof marker.name,"%s",FLASH_BALANCE_LAYOUT_MARKER);
         marker.rows=d;marker.K=6;marker.stride=8;marker.experts=1;add_tensor(dst+d,marker);
+        if(unique_on){snprintf(marker.name,sizeof marker.name,"%s",FLASH_UNIQUE_LAYOUT_MARKER);add_tensor(dst+d,marker);}
         if(out){char sub[64],p[1024];snprintf(sub,sizeof sub,"die%d",d);path(dirs[d],out,sub);newdir(dirs[d]);path(p,dirs[d],"arena.bin");fd[d]=fresh(p);}
     }
     /* The first holder has zero-byte metadata for unowned projections, too.
@@ -318,7 +319,8 @@ int main(int argc,char **argv) {
         require(getenv("SPLIT_SHARES") && getenv("ATTN_MAP"),"source split policy required");
         for(int d=0;d<6;d++){int logical;metadata_read(&src[d].a,argv[d+2],&logical);require(logical<0,"plan expects live original manifests");}
         balance(src,NULL);
-    } else if(argc==4 && !strcmp(argv[1],"balance")) {
+    } else if(argc==4 && (!strcmp(argv[1],"balance") || !strcmp(argv[1],"unique"))) {
+        unique_on=!strcmp(argv[1],"unique");
         policy_read(argv[2]);
         for(int d=0;d<6;d++) {
             char sub[64],dir[1024],p[1024];snprintf(sub,sizeof sub,"die%d",d);path(dir,argv[2],sub);path(p,dir,"metadata.bin");int logical;metadata_read(&src[d].a,p,&logical);require(logical==d,"cached source rank mismatch");
@@ -326,6 +328,6 @@ int main(int argc,char **argv) {
             src[d].image=mmap(NULL,src[d].a.bytes,PROT_READ,MAP_PRIVATE,fd,0);if(src[d].image==MAP_FAILED)die("map source cache");close(fd);
         }
         balance(src,argv[3]);
-    } else {fprintf(stderr,"usage: native_weights save NEW_DIR MANIFEST0..5 | plan MANIFEST0..5 | balance SOURCE_CACHE NEW_CACHE | seal RECOVERED_CACHE | load|launch DIE_CACHE PHYSICAL_GPU NEW_MANIFEST\n");return 2;}
+    } else {fprintf(stderr,"usage: native_weights save NEW_DIR MANIFEST0..5 | plan MANIFEST0..5 | balance|unique SOURCE_CACHE NEW_CACHE | seal RECOVERED_CACHE | load|launch DIE_CACHE PHYSICAL_GPU NEW_MANIFEST\n");return 2;}
     for(int d=0;d<6;d++){if(src[d].image)munmap((void *)src[d].image,src[d].a.bytes);free(src[d].a.t);}return 0;
 }

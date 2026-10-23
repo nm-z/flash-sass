@@ -7,8 +7,16 @@ static void prog_balanced_attention(prog_t *p,const split_t *s,const xchg_t *x,
     CUdeviceptr z=ph_hc_read(p,s,x,w->hc_attn_norm,w->hc_attn_dj,w->hc_attn_up,b,eps,0,0,0);
     int first=p->n;
     ph_gemv_any(p,w->attn_q_type,2560,w->attn_q,b->zq,b->zs32,b->zs16,b->qg,w->attn_head_count*512,b->zas,0,0);
-    ph_gemv_any(p,w->attn_k_type,2560,w->attn_k,b->zq,b->zs32,b->zs16,b->k,256,b->zas,0,0);
-    ph_gemv_any(p,w->attn_v_type,2560,w->attn_v,b->zq,b->zs32,b->zs16,b->v,256,b->zas,0,0);
+    if(w->unique_rows) {
+        unsigned kv_rows=balance_row_count(512,(unsigned)s->d,(unsigned)s->n,8);
+        ph_gemv_any(p,w->attn_k_type,2560,w->attn_k,b->zq,b->zs32,b->zs16,b->unique_k_local,kv_rows,b->zas,0,0);
+        balance_row_descriptor(p->p+p->n-1,(unsigned)s->d,kv_rows,b->unique_k_targets,512,1,0,w->balanced_layer);
+        ph_gemv_any(p,w->attn_v_type,2560,w->attn_v,b->zq,b->zs32,b->zs16,b->unique_v_local,kv_rows,b->zas,0,0);
+        balance_row_descriptor(p->p+p->n-1,(unsigned)s->d,kv_rows,b->unique_v_targets,512,1,0,w->balanced_layer);
+    } else {
+        ph_gemv_any(p,w->attn_k_type,2560,w->attn_k,b->zq,b->zs32,b->zs16,b->k,256,b->zas,0,0);
+        ph_gemv_any(p,w->attn_v_type,2560,w->attn_v,b->zq,b->zs32,b->zs16,b->v,256,b->zas,0,0);
+    }
     unsigned rows=balance_row_count(640,(unsigned)s->d,(unsigned)s->n,8);
     ph_bf16(p,OP_BF16K2560,w->indexer_x,z,b->balance_index_local,rows,0);
     balance_row_descriptor(p->p+p->n-1,(unsigned)s->d,rows,b->balance_index_targets,640,1,0,w->balanced_layer);

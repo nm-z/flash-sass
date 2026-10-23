@@ -53,6 +53,17 @@ die_deterministic.cubin: die_deterministic.sass skel_die.cubin
 	cp skel_die.cubin $@
 	$(MAXAS) -i die_deterministic.sass $@
 
+die_dag.sass: die_deterministic.sass phase/dag_schedule.lua
+	$(LUA) phase/dag_schedule.lua $< $@ $@.csv
+die_dag.cubin: die_dag.sass skel_die.cubin
+	cp skel_die.cubin $@
+	$(MAXAS) -i die_dag.sass $@
+die_dag_memory.sass: die_deterministic.sass phase/dag_memory.lua
+	$(LUA) phase/dag_memory.lua $< $@ $@.csv
+die_dag_memory.cubin: die_dag_memory.sass skel_die.cubin
+	cp skel_die.cubin $@
+	$(MAXAS) -i die_dag_memory.sass $@
+
 die_phase.sass die_deterministic.sass: phase/mutable_loads.lua phase/serial_dependencies.lua phase/fixed_latency.lua phase/pipeline_completions.lua exactbatch/Makefile.inc
 
 die_phase_xtrace.sass: die_phase.sass phase/exchange_trace.lua
@@ -150,6 +161,53 @@ die_balanced_grpacket.cubin: die_balanced_grpacket.sass die_balanced_grpacket.pt
 	$(PTXAS11) -arch=sm_52 -o $@ die_balanced_grpacket.ptx
 	$(MAXAS) -i die_balanced_grpacket.sass $@
 
+# One-owner matrix placement, distributed routing and hierarchical publication.
+# This is a complete production image with a distinct holder/module ABI.
+die_unique.sass: die_balanced.sass unique/gdn.lua unique/router.lua unique/collective.lua phase/predicate_latency.lua
+	$(LUA) unique/gdn.lua $< $@.gdn
+	$(LUA) unique/router.lua $@.gdn $@.router
+	$(LUA) unique/collective.lua $@.router $@.collective
+	$(LUA) phase/predicate_latency.lua $@.collective $@ $@.predicate.csv
+die_unique.ptx: die_balanced.ptx unique/marker.ptxinc
+	cat $^ > $@
+die_unique.cubin: die_unique.sass die_unique.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ die_unique.ptx
+	$(MAXAS) -i die_unique.sass $@
+
+# DFlash2 uses the same full target image for prefill and retained-prefix B4.
+# The native GR matrix has four independent chains over one weight stream.
+die_dflash2_scalar.sass: die_unique.sass dflash/target.lua
+	$(LUA) dflash/target.lua $< $@.raw
+	$(LUA) phase/predicate_latency.lua $@.raw $@ $@.predicate.csv
+die_dflash2_scalar.ptx: die_unique.ptx dflash/target_marker.ptxinc
+	cat $^ > $@
+die_dflash2_scalar.cubin: die_dflash2_scalar.sass die_dflash2_scalar.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ die_dflash2_scalar.ptx
+	$(MAXAS) -i die_dflash2_scalar.sass $@
+die_dflash2_b4.sass: die_balanced.sass balance/batch_frame.lua balance/hcup5.lua balance/receiver_quant.lua unique/gdn.lua unique/router.lua unique/collective.lua dflash/target.lua dflash/dn4.lua
+	$(LUA) balance/batch_frame.lua $< $@.frame
+	$(LUA) balance/hcup5.lua $@.frame $@.hcup4 4
+	$(LUA) balance/receiver_quant.lua $@.hcup4 $@.localq
+	$(LUA) unique/gdn.lua $@.localq $@.gdn
+	$(LUA) unique/router.lua $@.gdn $@.router
+	$(LUA) unique/collective.lua $@.router $@.collective
+	$(LUA) dflash/target.lua $@.collective $@.target
+	$(LUA) dflash/dn4.lua $@.target $@.dn4 $@.collective
+	$(LUA) phase/predicate_latency.lua $@.dn4 $@ $@.predicate.csv
+die_dflash2_b4.ptx: die_unique.ptx dflash/batch_marker.ptxinc dflash/target_marker.ptxinc
+	cat $^ > $@
+die_dflash2_b4.cubin: die_dflash2_b4.sass die_dflash2_b4.ptx
+	$(PTXAS11) -arch=sm_52 -o $@ die_dflash2_b4.ptx
+	$(MAXAS) -i die_dflash2_b4.sass $@
+
+# CUDA 11.x is required for Maxwell code generation; the target stays SASS.
+DFLASH_NVCC ?= /home/nate/qwen3-next/toolchains/cuda-11.8/bin/nvcc
+dflash/device.cubin: dflash/device.cu dflash/device.h
+	$(DFLASH_NVCC) -cubin -arch=sm_52 -O3 --fmad=true -o $@ $<
+DFLASH_QUANT_SRC = dflash/gguf_model.c dflash/resident.c
+libengine_dflash2.so: $(ENGINE_SRC) $(DFLASH_QUANT_SRC) dflash/engine_quant.inc dflash/target.h dflash/device.h dflash/resident.h dflash/gguf_model.h exactbatch/prog_group.c exactbatch/prog_group.h balance/batch.c balance/batch.h balance/speculate.c exact_ops.h prog.h engine.h core.h prefill.h trace_host.inc timings.h qsa_state.h ple_read_pool.h ple_read_reload.h phase/plan.h balance/attention_plan.h
+	$(CC) -std=gnu99 -O2 -ffp-contract=off -Wall -fPIC -shared -pthread -DFLASH_EXACT_BATCH -DFLASH_BALANCED_SPEC_NATIVE -DFLASH_DFLASH_QUANT -DFLASH_REV='"$(FLASH_REV)-dflash2"' -o $@.new $(ENGINE_SRC) $(DFLASH_QUANT_SRC) exactbatch/prog_group.c balance/batch.c -I. -I../ref -I$(CUDA)/include -lcuda -lm && mv -f $@.new $@
+
 # Complete production-image experiment: replicated local GR-up. It has a
 # distinct marker so an ordinary image cannot silently execute its descriptors.
 die_balanced_localup.sass: die_balanced.sass balance/local_up.lua phase/predicate_latency.lua
@@ -195,6 +253,7 @@ die_phase_serial.cubin: die_phase_serial.sass die_phase.ptx
 	$(MAXAS) -i die_phase_serial.sass $@
 
 libengine.so libengine_exact.so libengine_mtp.so libengine_mtp_chunk.so libengine_dflash.so libengine_verify.so libengine_chunk.so: phase/plan.h phase/ownership.h phase/gr_replica.h phase/exchange_host.inc balance/layout.h balance/program.h balance/attention_program.h balance/attention_plan.h balance/body_host.inc balance/qsa_audit.inc balance/head_audit.inc balance/work_dump.inc balance/ple_dma.h
+libengine.so libengine_exact.so libengine_mtp.so libengine_mtp_chunk.so libengine_dflash.so libengine_verify.so libengine_chunk.so: unique/layout.h
 
 die_gr_fp8.sass: die_gr.sass fp8/link.lua
 	$(LUA) fp8/link.lua $< $@
