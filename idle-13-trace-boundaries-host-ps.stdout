@@ -1,0 +1,337 @@
+    PID    PPID STAT WCHAN                     ELAPSED     TIME COMMAND
+      1       0 Ss   -                           73625 00:02:15 systemd
+      2       0 S    -                           73625 00:00:00 kthreadd
+      3       2 S    -                           73625 00:00:00 pool_workqueue_release
+      4       2 I<   -                           73625 00:00:00 kworker/R-rcu_gp
+      5       2 I<   -                           73625 00:00:00 kworker/R-sync_wq
+      6       2 I<   -                           73625 00:00:00 kworker/R-kvfree_rcu_reclaim
+      7       2 I<   -                           73625 00:00:00 kworker/R-slub_flushwq
+      8       2 I<   -                           73625 00:00:00 kworker/R-netns
+     10       2 I<   -                           73625 00:00:00 kworker/0:0H-events_highpri
+     13       2 I<   -                           73625 00:00:00 kworker/R-mm_percpu_wq
+     14       2 S    -                           73625 00:00:02 ksoftirqd/0
+     16       2 I    -                           73625 00:02:11 rcu_preempt
+     17       2 S    -                           73625 00:00:00 rcub/0
+     18       2 S    -                           73625 00:00:00 rcu_exp_par_gp_kthread_worker/0
+     19       2 S    -                           73625 00:00:00 rcu_exp_gp_kthread_worker
+     20       2 S    -                           73625 00:00:00 migration/0
+     21       2 S    -                           73625 00:00:00 idle_inject/0
+     22       2 S    -                           73625 00:00:00 cpuhp/0
+     23       2 S    -                           73625 00:00:00 cpuhp/1
+     24       2 S    -                           73625 00:00:00 idle_inject/1
+     25       2 S    -                           73625 00:00:01 migration/1
+     26       2 S    -                           73625 00:00:01 ksoftirqd/1
+     28       2 I<   -                           73625 00:00:00 kworker/1:0H-events_highpri
+     29       2 S    -                           73625 00:00:00 cpuhp/2
+     30       2 S    -                           73625 00:00:00 idle_inject/2
+     31       2 S    -                           73625 00:00:00 migration/2
+     32       2 S    -                           73625 00:00:01 ksoftirqd/2
+     34       2 I<   -                           73625 00:00:00 kworker/2:0H-events_highpri
+     35       2 S    -                           73625 00:00:00 cpuhp/3
+     36       2 S    -                           73625 00:00:00 idle_inject/3
+     37       2 S    -                           73625 00:00:00 migration/3
+     38       2 S    -                           73625 00:00:01 ksoftirqd/3
+     40       2 I<   -                           73625 00:00:00 kworker/3:0H-events_highpri
+     41       2 S    -                           73625 00:00:00 cpuhp/4
+     42       2 S    -                           73625 00:00:00 idle_inject/4
+     43       2 S    -                           73625 00:00:01 migration/4
+     44       2 S    -                           73625 00:00:01 ksoftirqd/4
+     46       2 I<   -                           73625 00:00:00 kworker/4:0H-events_highpri
+     47       2 S    -                           73625 00:00:00 cpuhp/5
+     48       2 S    -                           73625 00:00:00 idle_inject/5
+     49       2 S    -                           73625 00:00:00 migration/5
+     50       2 S    -                           73625 00:00:01 ksoftirqd/5
+     52       2 I<   -                           73625 00:00:00 kworker/5:0H-events_highpri
+     53       2 S    -                           73625 00:00:00 cpuhp/6
+     54       2 S    -                           73625 00:00:00 idle_inject/6
+     55       2 S    -                           73625 00:00:00 migration/6
+     56       2 S    -                           73625 00:00:01 ksoftirqd/6
+     58       2 I<   -                           73625 00:00:00 kworker/6:0H-events_highpri
+     59       2 S    -                           73625 00:00:00 cpuhp/7
+     60       2 S    -                           73625 00:00:00 idle_inject/7
+     61       2 S    -                           73625 00:00:00 migration/7
+     62       2 S    -                           73625 00:00:01 ksoftirqd/7
+     64       2 I<   -                           73625 00:00:00 kworker/7:0H-events_highpri
+     65       2 S    -                           73625 00:00:00 cpuhp/8
+     66       2 S    -                           73625 00:00:00 idle_inject/8
+     67       2 S    -                           73625 00:00:01 migration/8
+     68       2 S    -                           73625 00:00:01 ksoftirqd/8
+     70       2 I<   -                           73625 00:00:00 kworker/8:0H-events_highpri
+     71       2 S    -                           73625 00:00:00 cpuhp/9
+     72       2 S    -                           73625 00:00:00 idle_inject/9
+     73       2 S    -                           73625 00:00:00 migration/9
+     74       2 S    -                           73625 00:00:01 ksoftirqd/9
+     76       2 I<   -                           73625 00:00:00 kworker/9:0H-events_highpri
+     77       2 S    -                           73625 00:00:00 cpuhp/10
+     78       2 S    -                           73625 00:00:00 idle_inject/10
+     79       2 S    -                           73625 00:00:00 migration/10
+     80       2 S    -                           73625 00:00:02 ksoftirqd/10
+     82       2 I<   -                           73625 00:00:00 kworker/10:0H-events_highpri
+     83       2 S    -                           73625 00:00:00 cpuhp/11
+     84       2 S    -                           73625 00:00:00 idle_inject/11
+     85       2 S    -                           73625 00:00:00 migration/11
+     86       2 S    -                           73625 00:00:00 ksoftirqd/11
+     88       2 I<   -                           73625 00:00:00 kworker/11:0H-events_highpri
+     89       2 S    -                           73625 00:00:00 kdevtmpfs
+     90       2 I<   -                           73625 00:00:00 kworker/R-inet_frag_wq
+     91       2 I    -                           73625 00:00:00 rcu_tasks_kthread
+     92       2 I    -                           73625 00:00:00 rcu_tasks_rude_kthread
+     93       2 I    -                           73625 00:00:00 rcu_tasks_trace_kthread
+     94       2 S    -                           73625 00:00:00 kauditd
+     95       2 S    -                           73625 00:00:00 khungtaskd
+     96       2 S    -                           73625 00:00:00 oom_reaper
+     98       2 I<   -                           73625 00:00:00 kworker/R-writeback
+     99       2 S    -                           73625 00:01:54 kcompactd0
+    100       2 SN   -                           73625 00:00:00 ksmd
+    101       2 SN   -                           73625 00:00:06 khugepaged
+    102       2 I<   -                           73625 00:00:00 kworker/R-kblockd
+    103       2 I<   -                           73625 00:00:00 kworker/R-blkcg_punt_bio
+    104       2 I<   -                           73625 00:00:00 kworker/R-kintegrityd
+    105       2 S    -                           73625 00:00:00 irq/9-acpi
+    107       2 I<   -                           73625 00:00:00 kworker/R-tpm_dev_wq
+    108       2 I<   -                           73625 00:00:00 kworker/R-ata_sff
+    109       2 I<   -                           73625 00:00:00 kworker/R-edac-poller
+    110       2 I<   -                           73625 00:00:00 kworker/R-devfreq_wq
+    111       2 S    -                           73625 00:00:00 watchdogd
+    112       2 I<   -                           73625 00:00:00 kworker/R-quota_events_unbound
+    113       2 I<   -                           73625 00:00:01 kworker/0:1H-kblockd
+    115       2 S    -                           73625 00:01:45 kswapd0
+    116       2 I<   -                           73625 00:00:00 kworker/R-kthrotld
+    117       2 I<   -                           73625 00:00:00 kworker/R-acpi_thermal_pm
+    118       2 S    -                           73625 00:00:00 scsi_eh_0
+    119       2 I<   -                           73625 00:00:00 kworker/R-scsi_tmf_0
+    120       2 S    -                           73625 00:00:00 scsi_eh_1
+    121       2 I<   -                           73625 00:00:00 kworker/R-scsi_tmf_1
+    122       2 S    -                           73625 00:00:00 scsi_eh_2
+    123       2 I<   -                           73625 00:00:00 kworker/R-scsi_tmf_2
+    124       2 S    -                           73625 00:00:00 scsi_eh_3
+    125       2 I<   -                           73625 00:00:00 kworker/R-scsi_tmf_3
+    136       2 I<   -                           73625 00:00:00 kworker/R-mld
+    138       2 I<   -                           73625 00:00:00 kworker/2:1H-kblockd
+    139       2 I<   -                           73625 00:00:00 kworker/R-ipv6_addrconf
+    140       2 I<   -                           73625 00:00:00 kworker/R-kstrp
+    147       2 I<   -                           73625 00:00:00 kworker/R-zswap-shrink
+    148       2 I<   -                           73625 00:00:00 kworker/u49:0
+    153       2 I<   -                           73624 00:00:00 kworker/9:1H-kblockd
+    170       2 I<   -                           73624 00:00:00 kworker/11:1H-kblockd
+    171       2 I<   -                           73624 00:00:00 kworker/10:1H-kblockd
+    172       2 I<   -                           73624 00:00:00 kworker/3:1H-kblockd
+    173       2 I<   -                           73624 00:00:00 kworker/1:1H-kblockd
+    177       2 I<   -                           73624 00:00:00 kworker/7:1H-kblockd
+    181       2 I<   -                           73623 00:00:02 kworker/5:1H-events_highpri
+    224       2 I<   -                           73623 00:00:00 kworker/4:1H-kblockd
+    225       2 I<   -                           73623 00:00:00 kworker/6:1H-kblockd
+    226       2 I<   -                           73623 00:00:00 kworker/8:1H-kblockd
+    250       2 S    -                           73622 00:00:05 jbd2/sdb3-8
+    251       2 I<   -                           73622 00:00:00 kworker/R-ext4-rsv-conversion
+    331       1 Ss   -                           73620 00:00:00 systemd-userdbd
+    335       2 S    -                           73620 00:00:00 nv_queue
+    336       2 S    -                           73620 00:00:00 nv_queue
+    344       2 S    -                           73619 00:00:00 psimon
+    347       1 Ssl  -                           73619 00:00:00 systemd-timesyn
+    352       1 Ss   -                           73619 00:00:00 systemd-udevd
+    354       2 S    -                           73619 00:00:00 psimon
+    356       2 S    -                           73619 00:00:00 UVM global queue
+    357       2 S    -                           73619 00:00:00 UVM deferred release queue
+    358       2 S    -                           73619 00:00:00 UVM Tools Event Queue
+    425       2 S    -                           73619 00:00:00 irq/42-mei_me
+    431       2 S    -                           73619 00:00:00 nvidia-modeset/kthread_q
+    432       2 S    -                           73619 00:00:00 nvidia-modeset/deferred_close_kthread_q
+    435       2 S    -                           73619 00:00:14 irq/44-nvidia
+    436       2 S    -                           73619 00:00:00 nvidia
+    437       2 S    -                           73619 00:00:58 nv_queue
+    492       1 Ss   -                           73618 00:00:02 dbus-broker-lau
+    497     492 S    -                           73618 00:00:59 dbus-broker
+    498       1 Ssl  -                           73618 00:00:13 NetworkManager
+    499       1 Ss   -                           73618 00:00:19 avahi-daemon
+    500       1 Ssl  -                           73618 00:00:10 lms
+    501       1 Ss   -                           73618 00:00:32 systemd-logind
+    530     499 S    -                           73618 00:00:00 avahi-daemon
+    565       1 Ss   -                           73617 00:00:12 sshd
+    576       1 Ss   -                           73617 00:00:36 systemd
+    578       1 Ssl  -                           73617 00:00:51 containerd
+    582     576 S    -                           73617 00:00:00 (sd-pam)
+    604       2 S    -                           73616 00:00:14 irq/46-nvidia
+    605       2 S    -                           73616 00:00:00 nvidia
+    606       2 S    -                           73616 00:01:02 nv_queue
+    615     576 Ss   do_epoll_wait               73616 00:00:00 dbus-broker-lau
+    621     615 S    do_epoll_wait               73616 00:00:39 dbus-broker
+    622     576 Ssl  do_epoll_wait               73616 00:00:02 node-MainThread
+    623     576 Ss   inet_csk_accept             73616 00:00:08 nmz-chat-gw
+    624     576 Ssl  do_epoll_wait               73616 00:01:19 pipewire
+    625     576 Ss   do_wait                     73616 00:00:05 bash
+    626     576 Ssl  poll_schedule_timeout.con   73616 00:04:42 wireplumber
+    627     576 Ssl  do_epoll_wait               73616 00:00:04 pipewire-pulse
+    628     576 SNsl futex_do_wait               73616 00:42:37 llama-server
+    631     576 SNs  poll_schedule_timeout.con   73616 00:00:01 socat
+    632     576 SNs  poll_schedule_timeout.con   73616 00:00:00 socat
+    655       1 SNsl -                           73616 00:00:12 rtkit-daemon
+    662       1 Ssl  -                           73616 00:00:36 polkitd
+    738       2 S    -                           73614 00:00:13 irq/47-nvidia
+    739       2 S    -                           73614 00:00:00 nvidia
+    740       2 S    -                           73614 00:01:01 nv_queue
+    749       1 Ssl  futex_do_wait               73614 00:02:57 cloudflared
+    750       1 Ssl  -                           73614 00:00:13 dockerd
+    751       1 Ssl  -                           73614 00:00:03 ollama
+    783       2 S    -                           73612 00:00:14 irq/49-nvidia
+    784       2 S    -                           73612 00:00:00 nvidia
+    785       2 S    -                           73612 00:01:00 nv_queue
+    802       2 S    -                           73612 00:00:00 jbd2/sda3-8
+    803       2 I<   -                           73612 00:00:00 kworker/R-ext4-rsv-conversion
+    806     565 Ss   -                           73611 00:00:00 sshd-session
+    807     565 Ss   -                           73611 00:00:00 sshd-session
+    831     565 Ss   -                           73611 00:00:00 sshd-session
+    857       2 S    -                           73610 00:00:25 irq/50-nvidia
+    858       2 S    -                           73610 00:00:00 nvidia
+    859       2 S    -                           73610 00:01:03 nv_queue
+    863     806 S    -                           73610 00:00:00 sshd-session
+    871     807 S    -                           73610 00:00:04 sshd-session
+    878     831 S    -                           73610 00:00:01 sshd-session
+    966     565 Ss   -                           73608 00:00:00 sshd-session
+    973     966 S    -                           73608 00:00:00 sshd-session
+   1230       1 Sl   -                           73606 00:00:05 containerd-shim
+   1231       1 Sl   -                           73606 00:00:06 containerd-shim
+   1278    1230 Ssl  -                           73606 00:00:11 mlflow
+   1279    1231 Ss   -                           73606 00:00:00 nginx
+   1308     750 Sl   -                           73605 00:00:01 docker-proxy
+   1355    1279 S    -                           73605 00:00:00 nginx
+   1356    1279 S    -                           73605 00:00:00 nginx
+   1357    1279 S    -                           73605 00:00:00 nginx
+   1358    1279 S    -                           73605 00:00:00 nginx
+   1359    1279 S    -                           73605 00:00:00 nginx
+   1360    1279 S    -                           73605 00:00:00 nginx
+   1361    1279 S    -                           73605 00:00:00 nginx
+   1362    1279 S    -                           73605 00:00:00 nginx
+   1363    1279 S    -                           73605 00:00:00 nginx
+   1364    1279 S    -                           73605 00:00:00 nginx
+   1365    1279 S    -                           73605 00:00:00 nginx
+   1366    1279 S    -                           73605 00:00:00 nginx
+   1471       1 Sl   futex_do_wait               73602 00:00:22 codex
+   1488       2 S    -                           73602 00:00:22 irq/51-nvidia
+   1489       2 S    -                           73602 00:00:00 nvidia
+   1491       2 S    -                           73602 00:01:00 nv_queue
+   1686       2 S    -                           73592 00:00:30 irq/52-nvidia
+   1687       2 S    -                           73592 00:00:00 nvidia
+   1688       2 S    -                           73592 00:01:06 nv_queue
+   1851       2 S    -                           73590 00:00:28 irq/53-nvidia
+   1852       2 S    -                           73590 00:00:00 nvidia
+   1853       2 S    -                           73590 00:01:06 nv_queue
+   1877       1 Ssl  -                           73587 00:00:00 plasmalogin
+   1947       2 I<   -                           73586 00:00:00 kworker/R-rpciod
+   1948       2 I<   -                           73586 00:00:00 kworker/R-xprtiod
+   1960       2 I<   -                           73586 00:00:00 kworker/R-nfsiod
+   1982    1877 S    -                           73586 00:00:00 plasmalogin-hel
+   2003       1 Ss   -                           73586 00:00:00 rpcbind
+   2009       1 Ss   -                           73586 00:00:00 systemd
+   2011    2009 S    -                           73586 00:00:00 (sd-pam)
+   2017       1 Ss   -                           73586 00:00:00 rpc.statd
+   2151    1982 Ssl+ -                           73585 00:00:00 startplasma-log
+   2154       2 I    -                           73585 00:00:00 lockd
+   2262    2009 Ss   -                           73584 00:00:00 dbus-broker-lau
+   2267    2262 S    -                           73584 00:00:00 dbus-broker
+   2343     565 Ss   -                           73583 00:00:00 sshd-session
+   2359    2343 S    -                           73583 00:00:01 sshd-session
+   2360    2359 Ssl  futex_do_wait               73583 00:00:02 codex
+   3013    1278 S    -                           73576 00:01:12 python3.11
+   3014    1278 Sl   -                           73576 00:00:06 python3.11
+   3077    3013 S    -                           73576 00:00:00 python3.11
+   3078    3013 Sl   -                           73576 00:01:32 python3.11
+   3079    3013 Sl   -                           73576 00:01:29 python3.11
+   3080    3013 Sl   -                           73576 00:01:31 python3.11
+   3081    3013 Sl   -                           73576 00:01:29 python3.11
+   3401    3014 Sl   -                           73573 00:01:05 python3.11
+   3403    3014 Sl   -                           73573 00:01:06 python3.11
+   3405    3014 Sl   -                           73573 00:01:03 python3.11
+   3407    3014 Sl   -                           73573 00:01:04 python3.11
+   3411    3014 Sl   -                           73573 00:01:14 python3.11
+   3412    3014 Sl   -                           73573 00:00:59 python3.11
+   3413    3014 Sl   -                           73573 00:01:03 python3.11
+   3780     565 Ss   -                           73569 00:00:00 sshd-session
+   3784    3780 S    -                           73569 00:00:01 sshd-session
+   4496     565 Ss   -                           73561 00:00:00 sshd-session
+   4497     565 Ss   -                           73561 00:00:00 sshd-session
+   4514    4497 S    -                           73561 00:00:00 sshd-session
+   4517    4496 S    -                           73561 00:00:00 sshd-session
+   4891     565 Ss   -                           73557 00:00:00 sshd-session
+   4911    4891 S    -                           73557 00:00:01 sshd-session
+ 950518       1 Ss   do_wait                     71256 00:00:44 bash
+ 950520       1 Ss   hrtimer_nanosleep           71256 00:25:46 nvidia-smi
+ 974015       1 Ss   do_wait                     71221 00:00:00 flock
+ 974018  974015 Sl   do_sys_pause                71221 00:00:25 hold
+ 974058       1 Ss   do_wait                     71221 00:00:00 flock
+ 974061  974058 Sl   do_sys_pause                71221 00:00:25 hold
+ 974100       1 Ss   do_wait                     71221 00:00:00 flock
+ 974103  974100 Sl   do_sys_pause                71221 00:00:23 fence
+ 988058       1 Ss   do_wait                     71205 00:00:00 flock
+ 988060  988058 Sl   do_sys_pause                71205 00:00:23 hold
+ 988065       1 Ss   do_wait                     71205 00:00:00 flock
+ 988067  988065 Sl   do_sys_pause                71205 00:00:26 hold
+ 988070       1 Ss   do_wait                     71205 00:00:00 flock
+ 988072  988070 Sl   do_sys_pause                71205 00:00:26 hold
+ 988079       1 Ss   do_wait                     71205 00:00:00 flock
+ 988080  988079 Sl   do_sys_pause                71205 00:00:26 hold
+1009083       2 S    -                           25525 00:00:00 psimon
+1578451       1 Ss   inet_csk_accept             22781 00:00:00 flashd
+1875170       1 Ss   -                           22100 00:00:14 systemd-journal
+2805936     576 SNsl futex_do_wait               67071 00:00:07 llama-server
+2871085     576 SNsl futex_do_wait               66849 00:06:18 llama-server
+2872195     565 Ss   -                           66839 00:00:00 sshd-session
+2872212 2872195 S    -                           66838 00:00:07 sshd-session
+2872213 2872212 Ss   do_wait                     66838 00:00:08 bash
+3479111       2 I    -                            5089 00:00:02 kworker/u48:4-events_unbound
+3575268       1 Ssl  skb_wait_for_more_packets    3990 00:00:24 flashcore
+3598474       2 I    -                            3822 00:00:01 kworker/u48:5-flush-8:16
+3651874       2 I    -                            3306 00:00:00 kworker/2:1-events
+3687774     565 Ss   -                            2947 00:00:00 sshd-session
+3687873 3687774 S    -                            2944 00:00:02 sshd-session
+3687874 3687873 Ss   do_wait                      2944 00:00:00 bash
+3757027       2 I    -                            2349 00:00:00 kworker/0:2-cgroup_free
+3758608       2 I    -                            2334 00:00:00 kworker/1:0-events
+3779718 3687874 Sl+  -                            2064 00:08:48 btop
+3793732       2 I    -                            1920 00:00:00 kworker/7:0-events
+3805210       2 I    -                            1797 00:00:00 kworker/11:2-mm_percpu_wq
+3808205       2 I    -                            1767 00:00:00 kworker/6:0-events
+3817154       2 I    -                            1681 00:00:00 kworker/4:1-events
+3822456       2 I    -                            1620 00:00:00 kworker/9:3-cgroup_free
+3834078       2 I    -                            1497 00:00:00 kworker/3:1-mm_percpu_wq
+3838541       2 I    -                            1450 00:00:00 kworker/5:0-events
+3861915       2 I    -                            1241 00:00:00 kworker/u48:3-events_power_efficient
+3864611       2 I    -                            1211 00:00:00 kworker/9:0-cgroup_release
+3866574       2 I    -                            1191 00:00:00 kworker/10:1-cgroup_free
+3901174       2 I    -                             876 00:00:00 kworker/4:2-cgroup_free
+3902659       2 I    -                             861 00:00:00 kworker/3:0-cgroup_free
+3904295       2 I    -                             845 00:00:00 kworker/8:2-events
+3910630       2 I    -                             783 00:00:00 kworker/1:2-cgroup_free
+3911644       2 I    -                             775 00:00:00 kworker/u48:0-kvfree_rcu_reclaim
+3915045       2 I    -                             739 00:00:00 kworker/10:0-cgroup_free
+3919644     576 Ssl  skb_wait_for_more_packets     690 00:00:04 nates-dsh
+3919659 3919644 Sl   do_epoll_wait                 690 00:00:00 pw-top
+3925329       2 I    -                             629 00:00:00 kworker/11:1-cgroup_release
+3928435       2 I    -                             597 00:00:00 kworker/7:2-events
+3944371       2 I    -                             445 00:00:00 kworker/0:1-events
+3949544       2 I    -                             422 00:00:00 kworker/u48:1-ext4-rsv-conversion
+3950831       2 I    -                             416 00:00:00 kworker/6:1-events
+3951161       2 I    -                             414 00:00:00 kworker/5:1-mm_percpu_wq
+3956167       2 I    -                             383 00:00:00 kworker/u48:2-events_unbound
+3956405       2 I    -                             381 00:00:00 kworker/8:1-cgroup_free
+3959724       2 I    -                             348 00:00:00 kworker/2:0-events
+3965596       2 I    -                             289 00:00:00 kworker/1:1-cgroup_free
+3971463       2 I    -                             253 00:00:00 kworker/3:2
+3974503       2 I    -                             229 00:00:00 kworker/9:1-events
+3975031 3919644 Z    -                             223 00:00:00 nates-dsh <defunct>
+3976159     331 S    -                             212 00:00:00 systemd-userwor
+3977881       2 I    -                             196 00:00:00 kworker/4:0-cgroup_free
+3978770       2 I    -                             188 00:00:00 kworker/7:1-events
+3980149     331 S    -                             174 00:00:00 systemd-userwor
+3980797       2 I    -                             168 00:00:00 kworker/10:2-events
+3981635     331 S    -                             160 00:00:00 systemd-userwor
+3982260       2 I    -                             154 00:00:00 kworker/11:0-cgroup_free
+3988007     565 Ss   -                              92 00:00:00 sshd-session
+3988436 3988007 S    -                              87 00:00:00 sshd-session
+3988437 3988436 Ssl  do_wait                        87 00:00:00 ruby
+3989509       2 I    -                              76 00:00:00 kworker/6:2-events
+3994959     625 S    hrtimer_nanosleep              15 00:00:00 sleep
+3996026       2 I    -                               4 00:00:00 kworker/5:2
+3996060 2872213 S    hrtimer_nanosleep               4 00:00:00 sleep
+3996375  950518 S    hrtimer_nanosleep               0 00:00:00 sleep
+3996422 3988437 R    -                               0 00:00:00 ps

@@ -1,0 +1,85 @@
+START idle-1-model-inventory-nvidia-processes
+PASS idle-1-model-inventory-nvidia-processes exit=0 seconds=0.102
+START idle-1-model-inventory-nvidia-gpus
+PASS idle-1-model-inventory-nvidia-gpus exit=0 seconds=0.084
+START idle-1-model-inventory-ps
+PASS idle-1-model-inventory-ps exit=0 seconds=0.016
+START idle-1-model-inventory-sockets
+PASS idle-1-model-inventory-sockets exit=0 seconds=0.008
+START original-config
+PASS original-config seconds=0.000
+START checkpoint-and-holder-sha256
+PASS checkpoint-and-holder-sha256 exit=0 seconds=839.375
+START tokenize-corpus
+PASS tokenize-corpus exit=0 seconds=0.323
+START idle-2-model-reload-nvidia-processes
+PASS idle-2-model-reload-nvidia-processes exit=0 seconds=0.074
+START idle-2-model-reload-nvidia-gpus
+PASS idle-2-model-reload-nvidia-gpus exit=0 seconds=0.079
+START idle-2-model-reload-ps
+PASS idle-2-model-reload-ps exit=0 seconds=0.020
+START idle-2-model-reload-sockets
+PASS idle-2-model-reload-sockets exit=0 seconds=0.010
+START model-reload
+PASS model-reload seconds=1.809
+START idle-3-model-128-nvidia-processes
+PASS idle-3-model-128-nvidia-processes exit=0 seconds=0.076
+START idle-3-model-128-nvidia-gpus
+PASS idle-3-model-128-nvidia-gpus exit=0 seconds=0.077
+START idle-3-model-128-ps
+PASS idle-3-model-128-ps exit=0 seconds=0.016
+START idle-3-model-128-sockets
+PASS idle-3-model-128-sockets exit=0 seconds=0.008
+WAIT active GPU 5 utilization 3
+START idle-4-model-128-nvidia-processes
+PASS idle-4-model-128-nvidia-processes exit=0 seconds=0.100
+START idle-4-model-128-nvidia-gpus
+PASS idle-4-model-128-nvidia-gpus exit=0 seconds=0.086
+START idle-4-model-128-ps
+PASS idle-4-model-128-ps exit=0 seconds=0.019
+START idle-4-model-128-sockets
+PASS idle-4-model-128-sockets exit=0 seconds=0.008
+START model-128
+PASS model-128 seconds=8.582
+START idle-5-model-32768-nvidia-processes
+PASS idle-5-model-32768-nvidia-processes exit=0 seconds=0.080
+START idle-5-model-32768-nvidia-gpus
+PASS idle-5-model-32768-nvidia-gpus exit=0 seconds=0.082
+START idle-5-model-32768-ps
+PASS idle-5-model-32768-ps exit=0 seconds=0.017
+START idle-5-model-32768-sockets
+PASS idle-5-model-32768-sockets exit=0 seconds=0.008
+WAIT active GPU 4 utilization 2; active GPU 5 utilization 2
+START idle-6-model-32768-nvidia-processes
+PASS idle-6-model-32768-nvidia-processes exit=0 seconds=0.085
+START idle-6-model-32768-nvidia-gpus
+PASS idle-6-model-32768-nvidia-gpus exit=0 seconds=0.087
+START idle-6-model-32768-ps
+PASS idle-6-model-32768-ps exit=0 seconds=0.017
+START idle-6-model-32768-sockets
+PASS idle-6-model-32768-sockets exit=0 seconds=0.007
+START model-32768
+PASS model-32768 seconds=1499.814
+START idle-7-model-65536-nvidia-processes
+PASS idle-7-model-65536-nvidia-processes exit=0 seconds=0.070
+START idle-7-model-65536-nvidia-gpus
+PASS idle-7-model-65536-nvidia-gpus exit=0 seconds=0.088
+START idle-7-model-65536-ps
+PASS idle-7-model-65536-ps exit=0 seconds=0.016
+START idle-7-model-65536-sockets
+PASS idle-7-model-65536-sockets exit=0 seconds=0.037
+START model-65536
+PASS model-65536 seconds=3422.586
+START idle-8-restore-engine-nvidia-processes
+PASS idle-8-restore-engine-nvidia-processes exit=0 seconds=0.079
+START idle-8-restore-engine-nvidia-gpus
+PASS idle-8-restore-engine-nvidia-gpus exit=0 seconds=0.081
+START idle-8-restore-engine-ps
+PASS idle-8-restore-engine-ps exit=0 seconds=0.018
+START idle-8-restore-engine-sockets
+PASS idle-8-restore-engine-sockets exit=0 seconds=0.011
+START restore-engine
+PASS restore-engine seconds=1.731
+START restored-config
+PASS restored-config seconds=0.000
+{"mode":"model","source_revision":"6da421bccb68e613ecbdc8142104935deecccb29","status":"PASS"}

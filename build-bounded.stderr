@@ -1,0 +1,42 @@
+../ref/quant.c: In function 'gemv_bf16_ref':
+../ref/quant.c:315:25: warning: 'v' may be used uninitialized [-Wmaybe-uninitialized]
+  315 |                 y[r] = v[0];
+      |                        ~^~~
+../ref/quant.c:300:15: note: 'v' declared here
+  300 |         float v[32], w[32];
+      |               ^
+../ref/quant.c: In function 'gemv_q4_k_ref':
+../ref/quant.c:379:25: warning: 'v' may be used uninitialized [-Wmaybe-uninitialized]
+  379 |                 y[r] = v[0];
+      |                        ~^~~
+../ref/quant.c:354:15: note: 'v' declared here
+  354 |         float v[32], w[32];
+      |               ^
+../ref/quant.c: In function 'gemv_q5_k_ref':
+../ref/quant.c:443:25: warning: 'v' may be used uninitialized [-Wmaybe-uninitialized]
+  443 |                 y[r] = v[0];
+      |                        ~^~~
+../ref/quant.c:416:15: note: 'v' declared here
+  416 |         float v[32], w[32];
+      |               ^
+../ref/quant.c: In function 'gemv_q3_k_ref':
+../ref/quant.c:529:25: warning: 'v' may be used uninitialized [-Wmaybe-uninitialized]
+  529 |                 y[r] = v[0];
+      |                        ~^~~
+../ref/quant.c:499:15: note: 'v' declared here
+  499 |         float v[32], w[32];
+      |               ^
+../ref/quant.c: In function 'gemv_q6_k_ref':
+../ref/quant.c:622:25: warning: 'v' may be used uninitialized [-Wmaybe-uninitialized]
+  622 |                 y[r] = v[0];
+      |                        ~^~~
+../ref/quant.c:592:15: note: 'v' declared here
+  592 |         float v[32], w[32];
+      |               ^
+../ref/quant.c: In function 'gemv_iq4_xs_ref':
+../ref/quant.c:681:25: warning: 'v' may be used uninitialized [-Wmaybe-uninitialized]
+  681 |                 y[r] = v[0];
+      |                        ~^~~
+../ref/quant.c:661:15: note: 'v' declared here
+  661 |         float v[32], w[32];
+      |               ^

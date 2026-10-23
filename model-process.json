@@ -1,0 +1,25 @@
+{
+  "captured_utc": "2026-10-18T03:26:42Z",
+  "pid": 4010221,
+  "argv": [
+    "ruby",
+    "validation/issue19/run.rb",
+    "--mode",
+    "model",
+    "--out",
+    "/home/nate/codex/flash-pr44-evidence-20261018",
+    "--core-pid",
+    "3575268",
+    "--socket",
+    "/tmp/flash.sock",
+    "--checkpoint",
+    "/mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf",
+    "--lock-dir",
+    "/home/nate/codex/asm-port",
+    "--engine-lock",
+    "/tmp/flash-sass-engine-validation.lock",
+    "--positions",
+    "128,32768,65536"
+  ],
+  "comm": "ruby"
+}
