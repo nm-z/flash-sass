@@ -1,0 +1,557 @@
+{
+   "cases" : [
+      {
+         "case" : "four_tokens",
+         "host" : {
+            "callback_total_ms" : 0.07654,
+            "clock" : "CLOCK_MONOTONIC",
+            "events" : [
+               {
+                  "callback_end_ns" : "89505591715800",
+                  "callback_ms" : 0.017962,
+                  "callback_start_ns" : "89505591697838",
+                  "observation_to_callback_return_ms" : 0.018219,
+                  "observation_to_socket_parse_ms" : 0.118093,
+                  "observed_ns" : "89505591697581",
+                  "position" : 1,
+                  "socket_parsed_ns" : "89505591815674"
+               },
+               {
+                  "callback_end_ns" : "89505657427766",
+                  "callback_ms" : 0.01254,
+                  "callback_start_ns" : "89505657415226",
+                  "observation_to_callback_return_ms" : 0.012727,
+                  "observation_to_socket_parse_ms" : 0.100662,
+                  "observed_ns" : "89505657415039",
+                  "position" : 2,
+                  "socket_parsed_ns" : "89505657515701"
+               },
+               {
+                  "callback_end_ns" : "89505703794754",
+                  "callback_ms" : 0.015049,
+                  "callback_start_ns" : "89505703779705",
+                  "observation_to_callback_return_ms" : 0.015299,
+                  "observation_to_socket_parse_ms" : 0.0733,
+                  "observed_ns" : "89505703779455",
+                  "position" : 3,
+                  "socket_parsed_ns" : "89505703852755"
+               },
+               {
+                  "callback_end_ns" : "89505742935146",
+                  "callback_ms" : 0.030989,
+                  "callback_start_ns" : "89505742904157",
+                  "observation_to_callback_return_ms" : 0.03157,
+                  "observation_to_socket_parse_ms" : 0.115825,
+                  "observed_ns" : "89505742903576",
+                  "position" : 4,
+                  "socket_parsed_ns" : "89505743019401"
+               }
+            ],
+            "host_observation_span_ms" : 151.205995,
+            "scope" : "Core and Unix-socket checker on one host. Callback includes core token write/flush; socket parse includes transport, scheduling and checker parsing. Neither measures GPU-to-host visibility lag; GPU and host epochs are not subtracted."
+         },
+         "status" : "PASS",
+         "timings" : {
+            "aborted" : false,
+            "build_ms" : 5.62620200798847,
+            "cache_n" : 0,
+            "clock" : "CLOCK_MONOTONIC",
+            "counter_semantics" : "last_observed_completed_positions",
+            "counts_final" : true,
+            "counts_known" : true,
+            "decode_intervals" : 3,
+            "decode_ms" : 151.320520002628,
+            "decode_tokens_per_second" : 19.8254671603554,
+            "device_clock" : "SR_GLOBALTIMER",
+            "device_decode_ms" : 151.191552,
+            "device_decode_tokens_per_second" : 19.8423784947984,
+            "device_first_publish_ms" : 29.12768,
+            "device_first_publish_ns" : "1792306626916161536",
+            "device_first_start_ns" : "1792306626887033856",
+            "device_last_traced_publish_ns" : "1792306627067353088",
+            "device_origin" : "first_generated_position_start",
+            "device_traced_tokens" : 4,
+            "error_code" : 0,
+            "first_observed_ms" : 58.8054300023941,
+            "generated_tokens" : 4,
+            "positions_completed" : 5,
+            "positions_executed" : 5,
+            "post_first_ms" : 151.320520002628,
+            "predicted_ms" : 151.320520002628,
+            "predicted_n" : 4,
+            "predicted_per_second" : 19.8254671603554,
+            "prompt_ms" : 58.8054300023941,
+            "prompt_n" : 2,
+            "prompt_per_second" : 34.0104646784927,
+            "prompt_positions_per_second" : 34.0104646784927,
+            "prompt_positions_processed" : 2,
+            "prompt_tokens" : 2,
+            "request_id" : "2",
+            "resumed_positions" : 0,
+            "run_ms" : 210.125950005022,
+            "schema_version" : 1,
+            "stop_token_observed" : false
+         },
+         "tokens" : [
+            220,
+            15,
+            13,
+            15
+         ],
+         "trace" : {
+            "aborted" : "0",
+            "completed" : 5,
+            "count" : 4,
+            "ctas" : "1",
+            "die" : "0",
+            "ended" : "0",
+            "first" : 1,
+            "nblk" : "512",
+            "nph" : 1154,
+            "request" : "2",
+            "requested" : 5,
+            "status" : "completed",
+            "token_events" : [
+               {
+                  "position" : 1,
+                  "publication_ns" : "1792306626916161536",
+                  "start_ns" : "1792306626887033856"
+               },
+               {
+                  "position" : 2,
+                  "publication_ns" : "1792306626981856256",
+                  "start_ns" : "1792306626916162560"
+               },
+               {
+                  "position" : 3,
+                  "publication_ns" : "1792306627028245504",
+                  "start_ns" : "1792306626981856256"
+               },
+               {
+                  "position" : 4,
+                  "publication_ns" : "1792306627067353088",
+                  "start_ns" : "1792306627028246528"
+               }
+            ]
+         }
+      },
+      {
+         "case" : "snapshot_create",
+         "host" : {
+            "callback_total_ms" : 0.070194,
+            "clock" : "CLOCK_MONOTONIC",
+            "events" : [
+               {
+                  "callback_end_ns" : "89505968850069",
+                  "callback_ms" : 0.011286,
+                  "callback_start_ns" : "89505968838783",
+                  "observation_to_callback_return_ms" : 0.011568,
+                  "observation_to_socket_parse_ms" : 0.137397,
+                  "observed_ns" : "89505968838501",
+                  "position" : 1,
+                  "socket_parsed_ns" : "89505968975898"
+               },
+               {
+                  "callback_end_ns" : "89505998036396",
+                  "callback_ms" : 0.037781,
+                  "callback_start_ns" : "89505997998615",
+                  "observation_to_callback_return_ms" : 0.037979,
+                  "observation_to_socket_parse_ms" : 0.091293,
+                  "observed_ns" : "89505997998417",
+                  "position" : 2,
+                  "socket_parsed_ns" : "89505998089710"
+               },
+               {
+                  "callback_end_ns" : "89506027185930",
+                  "callback_ms" : 0.011403,
+                  "callback_start_ns" : "89506027174527",
+                  "observation_to_callback_return_ms" : 0.011574,
+                  "observation_to_socket_parse_ms" : 0.057832,
+                  "observed_ns" : "89506027174356",
+                  "position" : 3,
+                  "socket_parsed_ns" : "89506027232188"
+               },
+               {
+                  "callback_end_ns" : "89506056196112",
+                  "callback_ms" : 0.009724,
+                  "callback_start_ns" : "89506056186388",
+                  "observation_to_callback_return_ms" : 0.009895,
+                  "observation_to_socket_parse_ms" : 0.066492,
+                  "observed_ns" : "89506056186217",
+                  "position" : 4,
+                  "socket_parsed_ns" : "89506056252709"
+               }
+            ],
+            "host_observation_span_ms" : 87.347716,
+            "scope" : "Core and Unix-socket checker on one host. Callback includes core token write/flush; socket parse includes transport, scheduling and checker parsing. Neither measures GPU-to-host visibility lag; GPU and host epochs are not subtracted."
+         },
+         "status" : "PASS",
+         "timings" : {
+            "aborted" : false,
+            "build_ms" : 4.79908300621901,
+            "cache_n" : 0,
+            "clock" : "CLOCK_MONOTONIC",
+            "counter_semantics" : "last_observed_completed_positions",
+            "counts_final" : true,
+            "counts_known" : true,
+            "decode_intervals" : 3,
+            "decode_ms" : 87.3895370023092,
+            "decode_tokens_per_second" : 34.3290524576269,
+            "device_clock" : "SR_GLOBALTIMER",
+            "device_decode_ms" : 87.259136,
+            "device_decode_tokens_per_second" : 34.3803541671556,
+            "device_first_publish_ms" : 29.320192,
+            "device_first_publish_ns" : "1792306627293317120",
+            "device_first_start_ns" : "1792306627263996928",
+            "device_last_traced_publish_ns" : "1792306627380576256",
+            "device_origin" : "first_generated_position_start",
+            "device_traced_tokens" : 4,
+            "error_code" : 0,
+            "first_observed_ms" : 62.084960998618,
+            "generated_tokens" : 4,
+            "positions_completed" : 5,
+            "positions_executed" : 5,
+            "post_first_ms" : 87.3895370023092,
+            "predicted_ms" : 87.3895370023092,
+            "predicted_n" : 4,
+            "predicted_per_second" : 34.3290524576269,
+            "prompt_ms" : 62.084960998618,
+            "prompt_n" : 2,
+            "prompt_per_second" : 32.2139205345481,
+            "prompt_positions_per_second" : 32.2139205345481,
+            "prompt_positions_processed" : 2,
+            "prompt_tokens" : 2,
+            "request_id" : "3",
+            "resumed_positions" : 0,
+            "run_ms" : 149.474498000927,
+            "schema_version" : 1,
+            "stop_token_observed" : false
+         },
+         "tokens" : [
+            220,
+            15,
+            13,
+            15
+         ],
+         "trace" : {
+            "aborted" : "0",
+            "completed" : 5,
+            "count" : 4,
+            "ctas" : "1",
+            "die" : "0",
+            "ended" : "0",
+            "first" : 1,
+            "nblk" : "512",
+            "nph" : 1154,
+            "request" : "3",
+            "requested" : 5,
+            "status" : "completed",
+            "token_events" : [
+               {
+                  "position" : 1,
+                  "publication_ns" : "1792306627293317120",
+                  "start_ns" : "1792306627263996928"
+               },
+               {
+                  "position" : 2,
+                  "publication_ns" : "1792306627322459136",
+                  "start_ns" : "1792306627293318144"
+               },
+               {
+                  "position" : 3,
+                  "publication_ns" : "1792306627351613440",
+                  "start_ns" : "1792306627322460160"
+               },
+               {
+                  "position" : 4,
+                  "publication_ns" : "1792306627380576256",
+                  "start_ns" : "1792306627351614464"
+               }
+            ]
+         }
+      },
+      {
+         "case" : "snapshot_resume",
+         "host" : {
+            "callback_total_ms" : 0.051358,
+            "clock" : "CLOCK_MONOTONIC",
+            "events" : [
+               {
+                  "callback_end_ns" : "89506246627671",
+                  "callback_ms" : 0.010143,
+                  "callback_start_ns" : "89506246617528",
+                  "observation_to_callback_return_ms" : 0.01029,
+                  "observation_to_socket_parse_ms" : 0.058483,
+                  "observed_ns" : "89506246617381",
+                  "position" : 1,
+                  "socket_parsed_ns" : "89506246675864"
+               },
+               {
+                  "callback_end_ns" : "89506275548590",
+                  "callback_ms" : 0.007775,
+                  "callback_start_ns" : "89506275540815",
+                  "observation_to_callback_return_ms" : 0.007898,
+                  "observation_to_socket_parse_ms" : 0.054044,
+                  "observed_ns" : "89506275540692",
+                  "position" : 2,
+                  "socket_parsed_ns" : "89506275594736"
+               },
+               {
+                  "callback_end_ns" : "89506304557608",
+                  "callback_ms" : 0.015589,
+                  "callback_start_ns" : "89506304542019",
+                  "observation_to_callback_return_ms" : 0.01577,
+                  "observation_to_socket_parse_ms" : 0.073054,
+                  "observed_ns" : "89506304541838",
+                  "position" : 3,
+                  "socket_parsed_ns" : "89506304614892"
+               },
+               {
+                  "callback_end_ns" : "89506333357246",
+                  "callback_ms" : 0.017851,
+                  "callback_start_ns" : "89506333339395",
+                  "observation_to_callback_return_ms" : 0.018094,
+                  "observation_to_socket_parse_ms" : 0.059556,
+                  "observed_ns" : "89506333339152",
+                  "position" : 4,
+                  "socket_parsed_ns" : "89506333398708"
+               }
+            ],
+            "host_observation_span_ms" : 86.721771,
+            "scope" : "Core and Unix-socket checker on one host. Callback includes core token write/flush; socket parse includes transport, scheduling and checker parsing. Neither measures GPU-to-host visibility lag; GPU and host epochs are not subtracted."
+         },
+         "status" : "PASS",
+         "timings" : {
+            "aborted" : false,
+            "build_ms" : 2.87947100878228,
+            "cache_n" : 1,
+            "clock" : "CLOCK_MONOTONIC",
+            "counter_semantics" : "last_observed_completed_positions",
+            "counts_final" : true,
+            "counts_known" : true,
+            "decode_intervals" : 3,
+            "decode_ms" : 86.796260002302,
+            "decode_tokens_per_second" : 34.5637012461186,
+            "device_clock" : "SR_GLOBALTIMER",
+            "device_decode_ms" : 86.739968,
+            "device_decode_tokens_per_second" : 34.5861321968668,
+            "device_first_publish_ms" : 29.135872,
+            "device_first_publish_ns" : "1792306627571013632",
+            "device_first_start_ns" : "1792306627541877760",
+            "device_last_traced_publish_ns" : "1792306627657753600",
+            "device_origin" : "first_generated_position_start",
+            "device_traced_tokens" : 4,
+            "error_code" : 0,
+            "first_observed_ms" : 29.5666949969018,
+            "generated_tokens" : 4,
+            "positions_completed" : 5,
+            "positions_executed" : 4,
+            "post_first_ms" : 86.796260002302,
+            "predicted_ms" : 86.796260002302,
+            "predicted_n" : 4,
+            "predicted_per_second" : 34.5637012461186,
+            "prompt_ms" : 29.5666949969018,
+            "prompt_n" : 2,
+            "prompt_per_second" : 33.8218390694255,
+            "prompt_positions_per_second" : 33.8218390694255,
+            "prompt_positions_processed" : 1,
+            "prompt_tokens" : 2,
+            "request_id" : "4",
+            "resumed_positions" : 1,
+            "run_ms" : 116.362954999204,
+            "schema_version" : 1,
+            "stop_token_observed" : false
+         },
+         "tokens" : [
+            220,
+            15,
+            13,
+            15
+         ],
+         "trace" : {
+            "aborted" : "0",
+            "completed" : 5,
+            "count" : 4,
+            "ctas" : "1",
+            "die" : "0",
+            "ended" : "0",
+            "first" : 1,
+            "nblk" : "512",
+            "nph" : 1154,
+            "request" : "4",
+            "requested" : 5,
+            "status" : "completed",
+            "token_events" : [
+               {
+                  "position" : 1,
+                  "publication_ns" : "1792306627571013632",
+                  "start_ns" : "1792306627541877760"
+               },
+               {
+                  "position" : 2,
+                  "publication_ns" : "1792306627599964160",
+                  "start_ns" : "1792306627571014656"
+               },
+               {
+                  "position" : 3,
+                  "publication_ns" : "1792306627628941312",
+                  "start_ns" : "1792306627599965184"
+               },
+               {
+                  "position" : 4,
+                  "publication_ns" : "1792306627657753600",
+                  "start_ns" : "1792306627628942336"
+               }
+            ]
+         }
+      },
+      {
+         "case" : "first_token_stop",
+         "host" : {
+            "callback_total_ms" : 0.009484,
+            "clock" : "CLOCK_MONOTONIC",
+            "events" : [
+               {
+                  "callback_end_ns" : "89506522541779",
+                  "callback_ms" : 0.009484,
+                  "callback_start_ns" : "89506522532295",
+                  "observation_to_callback_return_ms" : 0.009621,
+                  "observation_to_socket_parse_ms" : 0.069898,
+                  "observed_ns" : "89506522532158",
+                  "position" : 1,
+                  "socket_parsed_ns" : "89506522602056"
+               }
+            ],
+            "host_observation_span_ms" : 0,
+            "scope" : "Core and Unix-socket checker on one host. Callback includes core token write/flush; socket parse includes transport, scheduling and checker parsing. Neither measures GPU-to-host visibility lag; GPU and host epochs are not subtracted."
+         },
+         "status" : "PASS",
+         "timings" : {
+            "aborted" : false,
+            "build_ms" : 5.56314800633118,
+            "cache_n" : 1,
+            "clock" : "CLOCK_MONOTONIC",
+            "counter_semantics" : "last_observed_completed_positions",
+            "counts_final" : true,
+            "counts_known" : true,
+            "decode_intervals" : 0,
+            "decode_ms" : 0.0459479924757034,
+            "decode_tokens_per_second" : null,
+            "device_clock" : "SR_GLOBALTIMER",
+            "device_decode_ms" : null,
+            "device_decode_tokens_per_second" : null,
+            "device_first_publish_ms" : 29.110272,
+            "device_first_publish_ns" : "1792306627846978560",
+            "device_first_start_ns" : "1792306627817868288",
+            "device_last_traced_publish_ns" : "1792306627846978560",
+            "device_origin" : "first_generated_position_start",
+            "device_traced_tokens" : 1,
+            "error_code" : 0,
+            "first_observed_ms" : 29.642875000718,
+            "generated_tokens" : 1,
+            "positions_completed" : 2,
+            "positions_executed" : 1,
+            "post_first_ms" : 0.0459479924757034,
+            "predicted_ms" : 0.0459479924757034,
+            "predicted_n" : 1,
+            "predicted_per_second" : null,
+            "prompt_ms" : 29.642875000718,
+            "prompt_n" : 2,
+            "prompt_per_second" : 33.7349194359783,
+            "prompt_positions_per_second" : 33.7349194359783,
+            "prompt_positions_processed" : 1,
+            "prompt_tokens" : 2,
+            "request_id" : "5",
+            "resumed_positions" : 1,
+            "run_ms" : 29.6888229931938,
+            "schema_version" : 1,
+            "stop_token_observed" : true
+         },
+         "tokens" : [
+            220
+         ],
+         "trace" : {
+            "aborted" : "0",
+            "completed" : 2,
+            "count" : 1,
+            "ctas" : "1",
+            "die" : "0",
+            "ended" : "1",
+            "first" : 1,
+            "nblk" : "512",
+            "nph" : 1154,
+            "request" : "5",
+            "requested" : 5,
+            "status" : "completed",
+            "token_events" : [
+               {
+                  "position" : 1,
+                  "publication_ns" : "1792306627846978560",
+                  "start_ns" : "1792306627817868288"
+               }
+            ]
+         }
+      },
+      {
+         "case" : "oversized_argument",
+         "status" : "PASS",
+         "terminal" : "error: 2 prompt ids + 512 new > 512 positions",
+         "timings" : {
+            "aborted" : false,
+            "build_ms" : null,
+            "cache_n" : null,
+            "clock" : "CLOCK_MONOTONIC",
+            "counter_semantics" : "last_observed_completed_positions",
+            "counts_final" : false,
+            "counts_known" : false,
+            "decode_intervals" : null,
+            "decode_ms" : null,
+            "decode_tokens_per_second" : null,
+            "device_clock" : "SR_GLOBALTIMER",
+            "device_decode_ms" : null,
+            "device_decode_tokens_per_second" : null,
+            "device_first_publish_ms" : null,
+            "device_first_publish_ns" : null,
+            "device_first_start_ns" : null,
+            "device_last_traced_publish_ns" : null,
+            "device_origin" : "first_generated_position_start",
+            "device_traced_tokens" : 0,
+            "error_code" : -1,
+            "first_observed_ms" : null,
+            "generated_tokens" : null,
+            "positions_completed" : null,
+            "positions_executed" : null,
+            "post_first_ms" : null,
+            "predicted_ms" : null,
+            "predicted_n" : null,
+            "predicted_per_second" : null,
+            "prompt_ms" : null,
+            "prompt_n" : 2,
+            "prompt_per_second" : null,
+            "prompt_positions_per_second" : null,
+            "prompt_positions_processed" : null,
+            "prompt_tokens" : 2,
+            "request_id" : "6",
+            "resumed_positions" : null,
+            "run_ms" : null,
+            "schema_version" : 1,
+            "stop_token_observed" : null
+         }
+      },
+      {
+         "case" : "paired_prompt",
+         "reason" : "two_position is not enabled",
+         "status" : "SKIP"
+      }
+   ],
+   "config" : "config rev=0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae kv_host=0 ple_disk=1 maxt=512 layers=48/48 nblk=512 dies=6 attn_dies=1,4,5 split=112,97,81,116,97,97 attn_map=1,1,1,1,4,4,4,4,5,5,5,5 img_rows=1 trace_tokens=4 two_position=0 prefill_chunk=0 cubin=/home/nate/claude/flash-sass-resolve/timing-0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae/kern/die_trace.cubin cubin_fnv=c58301f72e223de1",
+   "current_case" : null,
+   "resident" : {
+      "pid" : 1321713,
+      "shared_lock" : "/tmp/flash-sass-engine-validation.lock",
+      "start_tick" : "8922484"
+   },
+   "socket" : "/tmp/flash.sock",
+   "source_sha" : "0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae",
+   "status" : "PASS"
+}

@@ -1,0 +1,28 @@
+{
+   "argv" : [
+      "perl",
+      "/home/nate/claude/flash-sass-resolve/timing-0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae/validation/issue15/run_resident.pl",
+      "--source",
+      "/home/nate/claude/flash-sass-resolve/timing-0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae",
+      "--source-sha",
+      "0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae",
+      "--out",
+      "/home/nate/claude/flash-sass-resolve/issue15-adaptive-0f8b09c-20261018/evidence",
+      "--resident-pid",
+      1321713,
+      "--resident-start",
+      "8922484",
+      "--baseline-engine-sha256",
+      "8ecd2476d48082be2655e1ad4b20a23163a9495a2ebbfd5126ff2990ee478b1b",
+      "--lease-fd",
+      3
+   ],
+   "baseline_engine_sha256" : "8ecd2476d48082be2655e1ad4b20a23163a9495a2ebbfd5126ff2990ee478b1b",
+   "mode" : "resident",
+   "private_image" : "/tmp/flashcore-1321713-gen1.so",
+   "resident_pid" : 1321713,
+   "resident_start_tick" : "8922484",
+   "shared_lock" : "/tmp/flash-sass-engine-validation.lock",
+   "source_sha" : "0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae",
+   "utc" : "2026-10-18T06:57:03Z"
+}

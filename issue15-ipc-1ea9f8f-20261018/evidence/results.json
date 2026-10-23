@@ -1,0 +1,103 @@
+{
+   "commands" : [
+      {
+         "argv" : [
+            "nvidia-smi"
+         ],
+         "exit_code" : 0,
+         "name" : "preflight-status",
+         "seconds" : 0.351042985916138,
+         "timed_out" : false
+      },
+      {
+         "argv" : [
+            "nvidia-smi",
+            "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm",
+            "--format=csv"
+         ],
+         "exit_code" : 0,
+         "name" : "preflight-gpus",
+         "seconds" : 0.100841999053955,
+         "timed_out" : false
+      },
+      {
+         "argv" : [
+            "nvidia-smi",
+            "--query-compute-apps=pid,process_name,gpu_uuid",
+            "--format=csv,noheader,nounits"
+         ],
+         "exit_code" : 0,
+         "name" : "preflight-compute",
+         "seconds" : 0.10064697265625,
+         "timed_out" : false
+      },
+      {
+         "argv" : [
+            "ps",
+            "-eo",
+            "pid=,ppid=,comm=,args="
+         ],
+         "exit_code" : 0,
+         "name" : "preflight-processes",
+         "seconds" : 0.0505719184875488,
+         "timed_out" : false
+      }
+   ],
+   "cores" : [],
+   "error" : "GPU preflight blocked: Existing GPU compute process: 1249426, ./flashcore, GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f\n",
+   "finished_utc" : "2026-10-18T06:46:54Z",
+   "hostname" : "archy",
+   "ipc_layout" : {
+      "captured_utc" : "2026-10-18T06:42:57Z",
+      "manifests" : {
+         "/tmp/hold-h0.manifest" : "94112cb11544279a753411c9005c6549105938167611091298e9ce7da2a63ba7",
+         "/tmp/hold-h1.manifest" : "11a00e7fb074abc8f3a48732acb9f649d3a1bfe30b9bc8ecbc8034256815f440",
+         "/tmp/hold-h2.manifest" : "a009077049b65fd08238da809e3c026af6fb7c818e81db945dde0a38a5419e11",
+         "/tmp/hold-h3.manifest" : "cefb939ddbca4d8b3774465f74d14a7c19b2aee4fce1bea28144beb170271e15",
+         "/tmp/hold-h4.manifest" : "1e9b3a0b446ed15f3d8ed7d8171da6e6e3b6652433baf187da01ce6d8b812950",
+         "/tmp/hold-h5.manifest" : "ed6037d1452b8f59f93fd205eb83443a82ddda4e508cc9bb1479d2966804d544"
+      },
+      "processes" : {
+         "753710" : {
+            "comm" : "flashd",
+            "start_tick" : "8276117"
+         },
+         "974018" : {
+            "comm" : "hold",
+            "start_tick" : "240471"
+         },
+         "974061" : {
+            "comm" : "hold",
+            "start_tick" : "240473"
+         },
+         "974103" : {
+            "comm" : "fence",
+            "start_tick" : "240475"
+         },
+         "988060" : {
+            "comm" : "hold",
+            "start_tick" : "242016"
+         },
+         "988067" : {
+            "comm" : "hold",
+            "start_tick" : "242018"
+         },
+         "988072" : {
+            "comm" : "hold",
+            "start_tick" : "242021"
+         },
+         "988080" : {
+            "comm" : "hold",
+            "start_tick" : "242026"
+         }
+      }
+   },
+   "ipc_layout_sha256" : "9b8a77db7e8414d0d0be1538691bfaed241f6158d397333cff81080d2fa6ea9a",
+   "lock_acquired_utc" : "2026-10-18T06:46:53Z",
+   "lock_released_utc" : "2026-10-18T06:46:54Z",
+   "shared_lock" : "/tmp/flash-sass-engine-validation.lock",
+   "source" : "/home/nate/claude/flash-sass-resolve/timing-1ea9f8f3dbe3009dd309b9acedb035080d8e457a",
+   "source_sha" : "1ea9f8f3dbe3009dd309b9acedb035080d8e457a",
+   "started_utc" : "2026-10-18T06:46:53Z",
+   "status" : "BLOCKED"
+}

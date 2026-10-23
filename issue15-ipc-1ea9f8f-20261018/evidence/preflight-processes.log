@@ -1,0 +1,350 @@
+      1       0 systemd         /usr/lib/systemd/systemd --switched-root --system --deserialize=52
+      2       0 kthreadd        [kthreadd]
+      3       2 pool_workqueue_ [pool_workqueue_release]
+      4       2 kworker/R-rcu_g [kworker/R-rcu_gp]
+      5       2 kworker/R-sync_ [kworker/R-sync_wq]
+      6       2 kworker/R-kvfre [kworker/R-kvfree_rcu_reclaim]
+      7       2 kworker/R-slub_ [kworker/R-slub_flushwq]
+      8       2 kworker/R-netns [kworker/R-netns]
+     10       2 kworker/0:0H-ev [kworker/0:0H-events_highpri]
+     13       2 kworker/R-mm_pe [kworker/R-mm_percpu_wq]
+     14       2 ksoftirqd/0     [ksoftirqd/0]
+     16       2 rcu_preempt     [rcu_preempt]
+     17       2 rcub/0          [rcub/0]
+     18       2 rcu_exp_par_gp_ [rcu_exp_par_gp_kthread_worker/0]
+     19       2 rcu_exp_gp_kthr [rcu_exp_gp_kthread_worker]
+     20       2 migration/0     [migration/0]
+     21       2 idle_inject/0   [idle_inject/0]
+     22       2 cpuhp/0         [cpuhp/0]
+     23       2 cpuhp/1         [cpuhp/1]
+     24       2 idle_inject/1   [idle_inject/1]
+     25       2 migration/1     [migration/1]
+     26       2 ksoftirqd/1     [ksoftirqd/1]
+     28       2 kworker/1:0H-ev [kworker/1:0H-events_highpri]
+     29       2 cpuhp/2         [cpuhp/2]
+     30       2 idle_inject/2   [idle_inject/2]
+     31       2 migration/2     [migration/2]
+     32       2 ksoftirqd/2     [ksoftirqd/2]
+     34       2 kworker/2:0H-ev [kworker/2:0H-events_highpri]
+     35       2 cpuhp/3         [cpuhp/3]
+     36       2 idle_inject/3   [idle_inject/3]
+     37       2 migration/3     [migration/3]
+     38       2 ksoftirqd/3     [ksoftirqd/3]
+     40       2 kworker/3:0H-ev [kworker/3:0H-events_highpri]
+     41       2 cpuhp/4         [cpuhp/4]
+     42       2 idle_inject/4   [idle_inject/4]
+     43       2 migration/4     [migration/4]
+     44       2 ksoftirqd/4     [ksoftirqd/4]
+     46       2 kworker/4:0H-ev [kworker/4:0H-events_highpri]
+     47       2 cpuhp/5         [cpuhp/5]
+     48       2 idle_inject/5   [idle_inject/5]
+     49       2 migration/5     [migration/5]
+     50       2 ksoftirqd/5     [ksoftirqd/5]
+     52       2 kworker/5:0H-ev [kworker/5:0H-events_highpri]
+     53       2 cpuhp/6         [cpuhp/6]
+     54       2 idle_inject/6   [idle_inject/6]
+     55       2 migration/6     [migration/6]
+     56       2 ksoftirqd/6     [ksoftirqd/6]
+     58       2 kworker/6:0H-ev [kworker/6:0H-events_highpri]
+     59       2 cpuhp/7         [cpuhp/7]
+     60       2 idle_inject/7   [idle_inject/7]
+     61       2 migration/7     [migration/7]
+     62       2 ksoftirqd/7     [ksoftirqd/7]
+     64       2 kworker/7:0H-ev [kworker/7:0H-events_highpri]
+     65       2 cpuhp/8         [cpuhp/8]
+     66       2 idle_inject/8   [idle_inject/8]
+     67       2 migration/8     [migration/8]
+     68       2 ksoftirqd/8     [ksoftirqd/8]
+     70       2 kworker/8:0H-ev [kworker/8:0H-events_highpri]
+     71       2 cpuhp/9         [cpuhp/9]
+     72       2 idle_inject/9   [idle_inject/9]
+     73       2 migration/9     [migration/9]
+     74       2 ksoftirqd/9     [ksoftirqd/9]
+     76       2 kworker/9:0H-ev [kworker/9:0H-events_highpri]
+     77       2 cpuhp/10        [cpuhp/10]
+     78       2 idle_inject/10  [idle_inject/10]
+     79       2 migration/10    [migration/10]
+     80       2 ksoftirqd/10    [ksoftirqd/10]
+     82       2 kworker/10:0H-e [kworker/10:0H-events_highpri]
+     83       2 cpuhp/11        [cpuhp/11]
+     84       2 idle_inject/11  [idle_inject/11]
+     85       2 migration/11    [migration/11]
+     86       2 ksoftirqd/11    [ksoftirqd/11]
+     88       2 kworker/11:0H-e [kworker/11:0H-events_highpri]
+     89       2 kdevtmpfs       [kdevtmpfs]
+     90       2 kworker/R-inet_ [kworker/R-inet_frag_wq]
+     91       2 rcu_tasks_kthre [rcu_tasks_kthread]
+     92       2 rcu_tasks_rude_ [rcu_tasks_rude_kthread]
+     93       2 rcu_tasks_trace [rcu_tasks_trace_kthread]
+     94       2 kauditd         [kauditd]
+     95       2 khungtaskd      [khungtaskd]
+     96       2 oom_reaper      [oom_reaper]
+     98       2 kworker/R-write [kworker/R-writeback]
+     99       2 kcompactd0      [kcompactd0]
+    100       2 ksmd            [ksmd]
+    101       2 khugepaged      [khugepaged]
+    102       2 kworker/R-kbloc [kworker/R-kblockd]
+    103       2 kworker/R-blkcg [kworker/R-blkcg_punt_bio]
+    104       2 kworker/R-kinte [kworker/R-kintegrityd]
+    105       2 irq/9-acpi      [irq/9-acpi]
+    107       2 kworker/R-tpm_d [kworker/R-tpm_dev_wq]
+    108       2 kworker/R-ata_s [kworker/R-ata_sff]
+    109       2 kworker/R-edac- [kworker/R-edac-poller]
+    110       2 kworker/R-devfr [kworker/R-devfreq_wq]
+    111       2 watchdogd       [watchdogd]
+    112       2 kworker/R-quota [kworker/R-quota_events_unbound]
+    113       2 kworker/0:1H-kb [kworker/0:1H-kblockd]
+    115       2 kswapd0         [kswapd0]
+    116       2 kworker/R-kthro [kworker/R-kthrotld]
+    117       2 kworker/R-acpi_ [kworker/R-acpi_thermal_pm]
+    118       2 scsi_eh_0       [scsi_eh_0]
+    119       2 kworker/R-scsi_ [kworker/R-scsi_tmf_0]
+    120       2 scsi_eh_1       [scsi_eh_1]
+    121       2 kworker/R-scsi_ [kworker/R-scsi_tmf_1]
+    122       2 scsi_eh_2       [scsi_eh_2]
+    123       2 kworker/R-scsi_ [kworker/R-scsi_tmf_2]
+    124       2 scsi_eh_3       [scsi_eh_3]
+    125       2 kworker/R-scsi_ [kworker/R-scsi_tmf_3]
+    136       2 kworker/R-mld   [kworker/R-mld]
+    138       2 kworker/2:1H-kb [kworker/2:1H-kblockd]
+    139       2 kworker/R-ipv6_ [kworker/R-ipv6_addrconf]
+    140       2 kworker/R-kstrp [kworker/R-kstrp]
+    147       2 kworker/R-zswap [kworker/R-zswap-shrink]
+    148       2 kworker/u49:0   [kworker/u49:0]
+    153       2 kworker/9:1H-kb [kworker/9:1H-kblockd]
+    170       2 kworker/11:1H-k [kworker/11:1H-kblockd]
+    171       2 kworker/10:1H-k [kworker/10:1H-kblockd]
+    172       2 kworker/3:1H-kb [kworker/3:1H-kblockd]
+    173       2 kworker/1:1H-kb [kworker/1:1H-kblockd]
+    177       2 kworker/7:1H-kb [kworker/7:1H-kblockd]
+    181       2 kworker/5:1H-kb [kworker/5:1H-kblockd]
+    224       2 kworker/4:1H-kb [kworker/4:1H-kblockd]
+    225       2 kworker/6:1H-kb [kworker/6:1H-kblockd]
+    226       2 kworker/8:1H-kb [kworker/8:1H-kblockd]
+    250       2 jbd2/sdb3-8     [jbd2/sdb3-8]
+    251       2 kworker/R-ext4- [kworker/R-ext4-rsv-conversion]
+    331       1 systemd-userdbd /usr/lib/systemd/systemd-userdbd
+    335       2 nv_queue        [nv_queue]
+    336       2 nv_queue        [nv_queue]
+    344       2 psimon          [psimon]
+    347       1 systemd-timesyn /usr/lib/systemd/systemd-timesyncd
+    352       1 systemd-udevd   /usr/lib/systemd/systemd-udevd
+    354       2 psimon          [psimon]
+    356       2 UVM global queu [UVM global queue]
+    357       2 UVM deferred re [UVM deferred release queue]
+    358       2 UVM Tools Event [UVM Tools Event Queue]
+    425       2 irq/42-mei_me   [irq/42-mei_me]
+    431       2 nvidia-modeset/ [nvidia-modeset/kthread_q]
+    432       2 nvidia-modeset/ [nvidia-modeset/deferred_close_kthread_q]
+    435       2 irq/44-nvidia   [irq/44-nvidia]
+    436       2 nvidia          [nvidia]
+    437       2 nv_queue        [nv_queue]
+    492       1 dbus-broker-lau /usr/bin/dbus-broker-launch --scope system --audit
+    497     492 dbus-broker     dbus-broker --log 10 --controller 9 --machine-id 819081fae74c49418fb92eb3ced90bfd --max-bytes 536870912 --max-fds 4096 --max-matches 131072 --audit
+    498       1 NetworkManager  /usr/bin/NetworkManager --no-daemon
+    499       1 avahi-daemon    avahi-daemon: running [archy.local]
+    500       1 lms             /usr/bin/lms
+    501       1 systemd-logind  /usr/lib/systemd/systemd-logind
+    530     499 avahi-daemon    avahi-daemon: chroot helper
+    565       1 sshd            sshd: /usr/bin/sshd -D [listener] 0 of 200-400 startups
+    576       1 systemd         /usr/lib/systemd/systemd --user
+    578       1 containerd      /usr/bin/containerd
+    582     576 (sd-pam)        (sd-pam)
+    604       2 irq/46-nvidia   [irq/46-nvidia]
+    605       2 nvidia          [nvidia]
+    606       2 nv_queue        [nv_queue]
+    615     576 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+    621     615 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 819081fae74c49418fb92eb3ced90bfd --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+    622     576 node-MainThread /usr/bin/node /home/nate/kestrel-tilt-web/server.mjs
+    623     576 nmz-chat-gw     /home/nate/.local/bin/nmz-chat-gw
+    624     576 pipewire        /usr/bin/pipewire
+    625     576 bash            /usr/bin/bash /home/nate/codex/ci-trials-ingest.sh
+    626     576 wireplumber     /usr/bin/wireplumber
+    627     576 pipewire-pulse  /usr/bin/pipewire-pulse
+    628     576 llama-server    /home/nate/codex/sol-stop-hook-jev/query-cpu/bin/llama-server --model /home/nate/models/stop-hook/Nemotron-3-Embed-8B-Q8_0.gguf --device none --n-gpu-layers 0 --embedding --pooling mean --metrics --load-mode mmap --threads 4 --threads-batch 4 --host 127.0.0.1 --port 18767 --ctx-size 2048 --parallel 1 --batch-size 512 --ubatch-size 512
+    631     576 socat           /usr/bin/socat TCP-LISTEN:18464,bind=127.0.0.1,reuseaddr,fork TCP:127.0.0.1:18462
+    632     576 socat           /usr/bin/socat TCP-LISTEN:18465,bind=127.0.0.1,reuseaddr,fork TCP:127.0.0.1:18462
+    655       1 rtkit-daemon    /usr/lib/rtkit-daemon
+    662       1 polkitd         /usr/lib/polkit-1/polkitd --no-debug --log-level=notice
+    738       2 irq/47-nvidia   [irq/47-nvidia]
+    739       2 nvidia          [nvidia]
+    740       2 nv_queue        [nv_queue]
+    749       1 cloudflared     /usr/bin/cloudflared --no-autoupdate tunnel --config /home/nate/.cloudflared/llamacpp-archy.yml run
+    750       1 dockerd         /usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock
+    751       1 ollama          /usr/bin/ollama serve
+    783       2 irq/49-nvidia   [irq/49-nvidia]
+    784       2 nvidia          [nvidia]
+    785       2 nv_queue        [nv_queue]
+    802       2 jbd2/sda3-8     [jbd2/sda3-8]
+    803       2 kworker/R-ext4- [kworker/R-ext4-rsv-conversion]
+    806     565 sshd-session    sshd-session: nate [postauth]
+    807     565 sshd-session    sshd-session: nate [postauth]
+    831     565 sshd-session    sshd-session: nate [postauth]
+    857       2 irq/50-nvidia   [irq/50-nvidia]
+    858       2 nvidia          [nvidia]
+    859       2 nv_queue        [nv_queue]
+    863     806 sshd-session    sshd-session: nate
+    871     807 sshd-session    sshd-session: nate
+    878     831 sshd-session    sshd-session: nate
+    966     565 sshd-session    sshd-session: nate [postauth]
+    973     966 sshd-session    sshd-session: nate
+   1230       1 containerd-shim /usr/bin/containerd-shim-runc-v2 -namespace moby -id 27e8add84bc5e58102ec8b3f3fc7fc7bb167d31f3963c8855c43500492e40de7 -address /run/containerd/containerd.sock
+   1231       1 containerd-shim /usr/bin/containerd-shim-runc-v2 -namespace moby -id 56921008b76722271df8cee0b66bbce8e3a1deff3c3034057970e005d3096f78 -address /run/containerd/containerd.sock
+   1278    1230 mlflow          /usr/local/bin/python3.11 /usr/local/bin/mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:////mlflow/db/mlflow.db --default-artifact-root mlflow-artifacts:/ --serve-artifacts --artifacts-destination /mlflow/artifacts --allowed-hosts mlflow.nm-z.com,localhost,127.0.0.1,192.168.1.218,archy,archy.local,localhost:5000,127.0.0.1:5000,192.168.1.218:5000,archy:5000,archy.local:5000 --cors-allowed-origins https://mlflow.nm-z.com
+   1279    1231 nginx           nginx: master process nginx -g daemon off;
+   1308     750 docker-proxy    /usr/bin/docker-proxy -proto tcp -host-ip 127.0.0.1 -host-port 8094 -container-ip 172.17.0.2 -container-port 80 -use-listen-fd
+   1355    1279 nginx           nginx: worker process
+   1356    1279 nginx           nginx: worker process
+   1357    1279 nginx           nginx: worker process
+   1358    1279 nginx           nginx: worker process
+   1359    1279 nginx           nginx: worker process
+   1360    1279 nginx           nginx: worker process
+   1361    1279 nginx           nginx: worker process
+   1362    1279 nginx           nginx: worker process
+   1363    1279 nginx           nginx: worker process
+   1364    1279 nginx           nginx: worker process
+   1365    1279 nginx           nginx: worker process
+   1366    1279 nginx           nginx: worker process
+   1471       1 codex           codex -c features.code_mode_host=true app-server --listen unix://
+   1488       2 irq/51-nvidia   [irq/51-nvidia]
+   1489       2 nvidia          [nvidia]
+   1491       2 nv_queue        [nv_queue]
+   1686       2 irq/52-nvidia   [irq/52-nvidia]
+   1687       2 nvidia          [nvidia]
+   1688       2 nv_queue        [nv_queue]
+   1851       2 irq/53-nvidia   [irq/53-nvidia]
+   1852       2 nvidia          [nvidia]
+   1853       2 nv_queue        [nv_queue]
+   1877       1 plasmalogin     /usr/bin/plasmalogin
+   1947       2 kworker/R-rpcio [kworker/R-rpciod]
+   1948       2 kworker/R-xprti [kworker/R-xprtiod]
+   1960       2 kworker/R-nfsio [kworker/R-nfsiod]
+   1982    1877 plasmalogin-hel /usr/lib/plasmalogin-helper --socket /tmp/plasmalogin-auth-ec4ebdb4-de8d-498b-aba7-0a76412c3cfe --id 2 --start /usr/bin/startplasma-login-wayland --user plasmalogin --greeter
+   2003       1 rpcbind         /usr/bin/rpcbind -w -f
+   2009       1 systemd         /usr/lib/systemd/systemd --user
+   2011    2009 (sd-pam)        (sd-pam)
+   2017       1 rpc.statd       /usr/sbin/rpc.statd
+   2151    1982 startplasma-log /usr/bin/startplasma-login-wayland
+   2154       2 lockd           [lockd]
+   2262    2009 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+   2267    2262 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 819081fae74c49418fb92eb3ced90bfd --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+   3013    1278 python3.11      /usr/local/bin/python3.11 -m uvicorn --log-config /usr/local/lib/python3.11/site-packages/mlflow/server/uvicorn_log_config.yaml --host 0.0.0.0 --port 5000 --workers 4 mlflow.server.fastapi_app:app
+   3014    1278 python3.11      /usr/local/bin/python3.11 -m mlflow.server.jobs._job_runner
+   3077    3013 python3.11      /usr/local/bin/python3.11 -c from multiprocessing.resource_tracker import main;main(6)
+   3078    3013 python3.11      /usr/local/bin/python3.11 -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=7, pipe_handle=9) --multiprocessing-fork
+   3079    3013 python3.11      /usr/local/bin/python3.11 -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=7, pipe_handle=13) --multiprocessing-fork
+   3080    3013 python3.11      /usr/local/bin/python3.11 -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=7, pipe_handle=17) --multiprocessing-fork
+   3081    3013 python3.11      /usr/local/bin/python3.11 -c from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=7, pipe_handle=21) --multiprocessing-fork
+   3401    3014 python3.11      /usr/local/bin/python3.11 -m huey.bin.huey_consumer mlflow.server.jobs._huey_consumer.huey_instance -w 10 -q
+   3403    3014 python3.11      /usr/local/bin/python3.11 -m huey.bin.huey_consumer mlflow.server.jobs._huey_consumer.huey_instance -w 10 -q
+   3405    3014 python3.11      /usr/local/bin/python3.11 -m huey.bin.huey_consumer mlflow.server.jobs._huey_consumer.huey_instance -w 5 -q
+   3407    3014 python3.11      /usr/local/bin/python3.11 -m huey.bin.huey_consumer mlflow.server.jobs._huey_consumer.huey_instance -w 10 -q
+   3411    3014 python3.11      /usr/local/bin/python3.11 -m huey.bin.huey_consumer mlflow.server.jobs._periodic_tasks_consumer.huey_instance -w 5 -q -f
+   3412    3014 python3.11      /usr/local/bin/python3.11 -m huey.bin.huey_consumer mlflow.server.jobs._huey_consumer.huey_instance -w 2 -q
+   3413    3014 python3.11      /usr/local/bin/python3.11 -m huey.bin.huey_consumer mlflow.server.jobs._huey_consumer.huey_instance -w 5 -q
+   3780     565 sshd-session    sshd-session: nate [postauth]
+   3784    3780 sshd-session    sshd-session: nate
+   4496     565 sshd-session    sshd-session: nate [postauth]
+   4497     565 sshd-session    sshd-session: nate [postauth]
+   4514    4497 sshd-session    sshd-session: nate
+   4517    4496 sshd-session    sshd-session: nate
+   4891     565 sshd-session    sshd-session: nate [postauth]
+   4911    4891 sshd-session    sshd-session: nate
+  44809 4153572 nates-dsh <defu [nates-dsh] <defunct>
+ 146716 4153572 nates-dsh <defu [nates-dsh] <defunct>
+ 246498 4153572 nates-dsh <defu [nates-dsh] <defunct>
+ 339009 4153572 nates-dsh <defu [nates-dsh] <defunct>
+ 436782 4153572 nates-dsh <defu [nates-dsh] <defunct>
+ 537318 4153572 nates-dsh <defu [nates-dsh] <defunct>
+ 637923 4153572 nates-dsh <defu [nates-dsh] <defunct>
+ 724748 4153572 nates-dsh <defu [nates-dsh] <defunct>
+ 753710       1 flashd          ./flashd /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf /tmp/flash.sock 127.0.0.1:18090
+ 802476 4153572 nates-dsh <defu [nates-dsh] <defunct>
+ 884277 4153572 nates-dsh <defu [nates-dsh] <defunct>
+ 950518       1 bash            bash /home/nate/thermalwd.sh 92
+ 950520       1 nvidia-smi      nvidia-smi --query-gpu=timestamp,index,power.draw,temperature.gpu,clocks.sm,memory.used,clocks_throttle_reasons.active --format=csv,noheader -l 2 -f /home/nate/flash-power2.csv
+ 961994 4153572 nates-dsh <defu [nates-dsh] <defunct>
+ 974015       1 flock           flock -s -n /home/nate/codex/asm-port/GPU-1783441e-9a1a-684e-82bb-14d24e6e0c8f.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974018  974015 hold            ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 0 0 48 /tmp/hold-h0.manifest token_embd output split=0/6
+ 974058       1 flock           flock -s -n /home/nate/codex/asm-port/GPU-ccb8b3a3-f45d-8962-215b-c2b140e4bb28.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974061  974058 hold            ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 1 0 48 /tmp/hold-h1.manifest output split=1/6
+ 974100       1 flock           flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./fence 2 2 2750-3769
+ 974103  974100 fence           ./fence 2 2 2750-3769
+ 988058       1 flock           flock -s -n /home/nate/codex/asm-port/GPU-c767d250-4454-d181-d648-8706b5f2fb64.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988060  988058 hold            ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 2 0 48 /tmp/hold-h2.manifest output split=2/6
+ 988065       1 flock           flock -s -n /home/nate/codex/asm-port/GPU-5f06269e-5fe2-ff52-1a0d-b0d0c0c763a6.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988067  988065 hold            ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 3 0 48 /tmp/hold-h3.manifest output split=3/6
+ 988070       1 flock           flock -s -n /home/nate/codex/asm-port/GPU-906e6ede-6cde-d0dd-5110-d1bb8bf2458d.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988072  988070 hold            ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 4 0 48 /tmp/hold-h4.manifest output split=4/6
+ 988079       1 flock           flock -s -n /home/nate/codex/asm-port/GPU-1d9dc086-8739-66c2-fa98-f5bf3ef2b2d4.lock ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+ 988080  988079 hold            ./hold /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf 5 0 48 /tmp/hold-h5.manifest output split=5/6
+1009083       2 psimon          [psimon]
+1037874       2 kworker/u48:0-e [kworker/u48:0-events_unbound]
+1038124 4153572 nates-dsh <defu [nates-dsh] <defunct>
+1038808       2 kworker/8:2-eve [kworker/8:2-events]
+1058603       2 kworker/6:1-mm_ [kworker/6:1-mm_percpu_wq]
+1097816       2 kworker/0:0-eve [kworker/0:0-events]
+1108990       2 kworker/u48:2-w [kworker/u48:2-writeback]
+1123811 4153572 nates-dsh <defu [nates-dsh] <defunct>
+1143156       2 kworker/11:0-mm [kworker/11:0-mm_percpu_wq]
+1145994       2 kworker/9:3-eve [kworker/9:3-events]
+1160161       2 kworker/2:1-cgr [kworker/2:1-cgroup_free]
+1169594       2 kworker/7:2-cgr [kworker/7:2-cgroup_free]
+1184908       2 kworker/u48:8-f [kworker/u48:8-flush-8:16]
+1190755       2 kworker/1:0-eve [kworker/1:0-events]
+1201827       2 kworker/2:0-cgr [kworker/2:0-cgroup_release]
+1202276       2 kworker/10:1-cg [kworker/10:1-cgroup_release]
+1203135 4153572 nates-dsh <defu [nates-dsh] <defunct>
+1203296       2 kworker/4:0-cgr [kworker/4:0-cgroup_release]
+1205535       2 kworker/0:1-eve [kworker/0:1-events]
+1205576       2 kworker/5:1-rcu [kworker/5:1-rcu_gp]
+1214489       2 kworker/8:1-eve [kworker/8:1-events]
+1218103       2 kworker/3:1-mm_ [kworker/3:1-mm_percpu_wq]
+1220565       2 kworker/7:1-eve [kworker/7:1-events]
+1230329       2 kworker/9:0-eve [kworker/9:0-events]
+1237604       2 kworker/4:2-eve [kworker/4:2-events]
+1237630       2 kworker/11:1-cg [kworker/11:1-cgroup_free]
+1242332       2 kworker/6:2-cgr [kworker/6:2-cgroup_free]
+1249426       1 flashcore       ./flashcore /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00002-of-00002.gguf /home/nate/claude/flash-sass-live/kern/libengine.so /tmp/hold-h0.manifest /tmp/hold-h1.manifest /tmp/hold-h2.manifest /tmp/hold-h3.manifest /tmp/hold-h4.manifest /tmp/hold-h5.manifest
+1250406       2 kworker/1:2-cgr [kworker/1:2-cgroup_free]
+1252350       2 kworker/u48:1-w [kworker/u48:1-writeback]
+1253052       2 kworker/3:0-eve [kworker/3:0-events]
+1261622       2 kworker/5:0-eve [kworker/5:0-events]
+1262670       1 bash            bash -s
+1262698 1262670 gpuq            /bin/bash /usr/local/bin/gpuq run -- env SEQUENCE_LOCK_FD=9 SEQUENCE_LAUNCHER_REVISION=5890c75fa938ad68d3eb89ff2d2902b644a8ecb3 bash /tmp/flash-issue7-queue-validation-gpuq-9zQ4QV24.sh
+1262699 1262670 tee             tee -a /tmp/flash-issue7-gpuq-controller-9zQ4QV24.log
+1263877       2 kworker/10:0-cg [kworker/10:0-cgroup_free]
+1270827       2 kworker/2:2-eve [kworker/2:2-events]
+1272575       2 kworker/11:2-ev [kworker/11:2-events]
+1273997       2 kworker/9:1-cgr [kworker/9:1-cgroup_free]
+1281590       2 kworker/6:0-cgr [kworker/6:0-cgroup_free]
+1282056     331 systemd-userwor systemd-userwork: waiting...
+1282150 4153572 nates-dsh <defu [nates-dsh] <defunct>
+1283609     331 systemd-userwor systemd-userwork: waiting...
+1283647     331 systemd-userwor systemd-userwork: waiting...
+1285889       2 kworker/3:2-eve [kworker/3:2-events]
+1287140       2 kworker/0:2-cgr [kworker/0:2-cgroup_free]
+1287386       2 kworker/1:1-eve [kworker/1:1-events]
+1287584       1 bash            bash /tmp/flash-issue15-queue-ipc.sh /home/nate/claude/flash-sass-resolve/timing-1ea9f8f3dbe3009dd309b9acedb035080d8e457a /home/nate/claude/flash-sass-resolve/issue15-ipc-1ea9f8f-20261018 1ea9f8f3dbe3009dd309b9acedb035080d8e457a /home/nate/claude/flash-sass-resolve/issue15-ipc-1ea9f8f-20261018/ipc-layout.json
+1288600     625 sleep           sleep 120
+1288714       2 kworker/8:0     [kworker/8:0]
+1293781       2 kworker/10:2-ev [kworker/10:2-events]
+1294276 2872213 sleep           sleep 5
+1294301 1262698 flock           /usr/bin/flock 9
+1294405  950518 sleep           sleep 1
+1294414 1287584 perl            perl /home/nate/claude/flash-sass-resolve/timing-1ea9f8f3dbe3009dd309b9acedb035080d8e457a/validation/issue15/run_target.pl --source /home/nate/claude/flash-sass-resolve/timing-1ea9f8f3dbe3009dd309b9acedb035080d8e457a --source-sha 1ea9f8f3dbe3009dd309b9acedb035080d8e457a --lease-fd 9 --ipc-layout /home/nate/claude/flash-sass-resolve/issue15-ipc-1ea9f8f-20261018/ipc-layout.json --out /home/nate/claude/flash-sass-resolve/issue15-ipc-1ea9f8f-20261018/evidence
+1294460     576 gpuheat.sh      /bin/bash /home/nate/codex/flashnext/gpuheat.sh
+1294463 1294460 nvidia-smi      nvidia-smi --query-gpu=uuid,index,temperature.gpu --format=csv,noheader
+1294466 1294414 ps              ps -eo pid=,ppid=,comm=,args=
+1875170       1 systemd-journal /usr/lib/systemd/systemd-journald
+2805936     576 llama-server    /home/nate/llama-cuda118-master-bin/llama-server -m /home/nate/models/persuader/LFM2-1.2B-Q8_0.gguf -ngl 0 -t 4 -c 8192 --parallel 4 --host 0.0.0.0 --port 18620
+2871085     576 llama-server    /home/nate/codex/llama-ref/build/bin/llama-server --model /home/nate/models/embed/Qwen3-Embedding-0.6B-Q8_0.gguf --embedding --pooling last --host 127.0.0.1 --port 18615 --ctx-size 4096 --parallel 1 --batch-size 512 --ubatch-size 512 --threads 4 --n-gpu-layers 0 --metrics
+2872195     565 sshd-session    sshd-session: nate [postauth]
+2872212 2872195 sshd-session    sshd-session: nate@notty
+2872213 2872212 bash            bash -c while curl -fsS --connect-timeout 2 --max-time 5 --output /dev/null http://127.0.0.1:18615/health; do printf . || exit 1; sleep 5; done; exit 1
+3687774     565 sshd-session    sshd-session: nate [postauth]
+3687873 3687774 sshd-session    sshd-session: nate@pts/0
+3687874 3687873 bash            -bash
+3779718 3687874 btop            btop
+4153572     576 nates-dsh       /home/nate/.local/bin/nates-dsh --config /home/nate/.config/nates-dsh.toml serve
+4153589 4153572 pw-top          pw-top -b

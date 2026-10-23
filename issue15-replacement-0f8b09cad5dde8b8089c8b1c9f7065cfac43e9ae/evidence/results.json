@@ -1,0 +1,28 @@
+{
+   "commands" : [
+      {
+         "argv" : [
+            "nvidia-smi",
+            "--query-gpu=index,uuid,name,driver_version,memory.free,clocks.sm",
+            "--format=csv"
+         ],
+         "exit_code" : 0,
+         "name" : "gpu-after",
+         "seconds" : 0.100506067276001,
+         "timed_out" : false
+      }
+   ],
+   "error" : "Read core cwd: No such file or directory at /home/nate/claude/flash-sass-resolve/timing-0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae/validation/issue15/run_resident.pl line 245.\n",
+   "finished_utc" : "2026-10-18T06:53:32Z",
+   "hostname" : "archy",
+   "lock_acquired_utc" : "2026-10-18T06:53:32Z",
+   "protocol" : [],
+   "resident_pid" : 1249426,
+   "resident_start_tick" : "8841095",
+   "shared_lock" : "/tmp/flash-sass-engine-validation.lock",
+   "socket" : "/tmp/flash.sock",
+   "source" : "/home/nate/claude/flash-sass-resolve/timing-0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae",
+   "source_sha" : "0f8b09cad5dde8b8089c8b1c9f7065cfac43e9ae",
+   "started_utc" : "2026-10-18T06:53:32Z",
+   "status" : "BLOCKED"
+}
