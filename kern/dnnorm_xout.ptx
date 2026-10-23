@@ -1,0 +1,11 @@
+// DNNORM_XOUT keeps the Y table at 0x158 and xoff at 0x168.
+.version 7.4
+.target sm_52
+.address_size 64
+
+.visible .entry dnnorm(.param .u64 po, .param .u64 pw, .param .u64 pg, .param .u64 py, .param .f32 eps, .param .u32 pad, .param .u32 xoff)
+{
+	.reg .f32 %f;
+	ld.param.f32 %f, [eps];
+	ret;
+}
