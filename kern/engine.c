@@ -205,7 +205,7 @@ static void check_fused_moe_module(CUmodule module) {
         CK(CUDA_ERROR_INVALID_IMAGE);
     }
     if(row_balance)CK(cuModuleGetFunction(&marker,module,"flash_balance_head_producer_abi_v2"));
-    if(row_balance)CK(cuModuleGetFunction(&marker,module,"flash_balance_down_owner_map_abi_v3"));
+    if(row_balance)CK(cuModuleGetFunction(&marker,module,"flash_balance_distributed_quant_abi_v6"));
     if(getenv("FLASH_FUSED_GR") && atoi(getenv("FLASH_FUSED_GR")))CK(cuModuleGetFunction(&marker,module,"flash_gr_read_sum_abi_v1"));
     if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_phase_fused_abi_v6"));
     if(producer_quant)CK(cuModuleGetFunction(&marker,module,"flash_phase_exchange_join_abi_v1"));
@@ -556,6 +556,7 @@ static void clone_position(int d, dn_bufs_t *b, xchg_t *x, int alias_attention) 
 	SECOND(lidx); SECOND(lw); SECOND(ne); SECOND(part);
 	SECOND(g); SECOND(gu); SECOND(hq); SECOND(hs32); SECOND(hs16); SECOND(has); SECOND(out);
     SECOND(balance_gate_local);SECOND(balance_up_local);SECOND(balance_down_local);SECOND(balance_quant_ready);
+    SECOND(balance_down_packed);
     SECOND(balance_index_local);SECOND(balance_attn_ready);
 	SECOND(qg); SECOND(k); SECOND(v); SECOND(qo); SECOND(aout);
 	/* Wide headless programs serialize gather/partial/merge per position. */
@@ -602,6 +603,7 @@ static void reset_fresh_sequence(int d) {
         ZERO(r);ZERO(idx);ZERO(w);ZERO(s);ZERO(lidx);ZERO(lw);ZERO(ne);ZERO(part);
         ZERO(g);ZERO(gu);ZERO(hq);ZERO(hs32);ZERO(hs16);ZERO(has);ZERO(out);
         ZERO(balance_gate_local);ZERO(balance_up_local);ZERO(balance_down_local);
+        ZERO(balance_down_packed);
         ZERO(balance_index_local);
         ZERO(qg);ZERO(k);ZERO(v);ZERO(qo);ZERO(aout);ZERO(kc);ZERO(vc);ZERO(pm);ZERO(pd);ZERO(po);
         ZERO(iqk);ZERO(iq);ZERO(sc);ZERO(hst);ZERO(sel);
@@ -1187,7 +1189,7 @@ int engine_run(const uint32_t *ids, int nprompt, int n_new, const uint32_t stop[
         CK(cuCtxSetCurrent(ctx[d]));
         if(ple_device_cache)CK(cuMemsetD32(ple_device_ready[d]+4u*(size_t)resume,0,(size_t)(T-resume)));
         for(unsigned p=0;p<allocated_positions;p++) {
-            CK(cuMemsetD32(position_buf(d,p)->balance_quant_ready,0,16));
+            CK(cuMemsetD32(position_buf(d,p)->balance_quant_ready,0,96));
             CK(cuMemsetD32(position_buf(d,p)->balance_attn_ready,0,16));
         }
     }
@@ -1700,7 +1702,8 @@ int engine_init(core_t *c) {
             unsigned gate_rows=balance_row_count(640,(unsigned)d,(unsigned)nd,8);
             unsigned down_rows=balance_row_count(2560,(unsigned)d,(unsigned)nd,8);
             b->balance_gate_local=dalloc(44u*gate_rows);b->balance_up_local=dalloc(44u*gate_rows);
-            b->balance_down_local=dalloc(24u*down_rows);b->balance_quant_ready=dalloc(64);
+            b->balance_down_local=dalloc(24u*down_rows);b->balance_quant_ready=dalloc(96u*4);
+            b->balance_down_packed=dalloc(220u*128);
             b->balance_index_local=dalloc(4u*gate_rows);b->balance_attn_ready=dalloc(64);
         }
 		b->out = dalloc(4 * 2560);
@@ -1849,14 +1852,24 @@ int engine_init(core_t *c) {
     }
     if(row_balance)for(unsigned p=0;p<allocated_positions;p++)for(int d=0;d<nd;d++) {
         CK(cuCtxSetCurrent(ctx[d]));dn_bufs_t *b=position_buf(d,p);
-        CUdeviceptr gate[6],up[6],down[6];
-        for(int e=0;e<nd;e++){gate[e]=position_buf(e,p)->g;up[e]=position_buf(e,p)->gu;down[e]=position_buf(e,p)->part;}
-        b->balance_gate_targets=dalloc(sizeof gate);CK(cuMemcpyHtoD(b->balance_gate_targets,gate,sizeof gate));
-        b->balance_up_targets=dalloc(sizeof up);CK(cuMemcpyHtoD(b->balance_up_targets,up,sizeof up));
+        CUdeviceptr gate[11*14],up[11*14],down[6];
+        unsigned units=balance_row_count(640,(unsigned)d,6,8)/8;
+        for(unsigned rank=0;rank<11;rank++)for(unsigned unit=0;unit<units;unit++) {
+            unsigned row=balance_global_row(unit*8,(unsigned)d,6,8);
+            unsigned owner=((rank*640+row)/32)%6;
+            gate[rank*units+unit]=position_buf((int)owner,p)->g+4ull*(rank*640+row);
+            up[rank*units+unit]=position_buf((int)owner,p)->gu+4ull*(rank*640+row);
+        }
+        for(int e=0;e<nd;e++)down[e]=position_buf(e,p)->part;
+        size_t route_bytes=11u*units*sizeof(CUdeviceptr);
+        b->balance_gate_targets=dalloc(route_bytes);CK(cuMemcpyHtoD(b->balance_gate_targets,gate,route_bytes));
+        b->balance_up_targets=dalloc(route_bytes);CK(cuMemcpyHtoD(b->balance_up_targets,up,route_bytes));
         b->balance_down_targets=dalloc(sizeof down);CK(cuMemcpyHtoD(b->balance_down_targets,down,sizeof down));
-        uint32_t gate_map[7040];for(unsigned i=0;i<7040;i++)gate_map[i]=balance_gate_packed_index(i);
-        CUdeviceptr packed_map=dalloc(sizeof gate_map);CK(cuMemcpyHtoD(packed_map,gate_map,sizeof gate_map));
-        CUdeviceptr prepare[8]={b->g,b->gu,b->hq,b->hs32,b->hs16,b->has,b->balance_quant_ready,packed_map};
+        CUdeviceptr packets[6],ready[6];
+        for(unsigned e=0;e<6;e++){packets[e]=position_buf((int)e,p)->balance_down_packed;ready[e]=position_buf((int)e,p)->balance_quant_ready;}
+        CUdeviceptr packet_targets=dalloc(sizeof packets);CK(cuMemcpyHtoD(packet_targets,packets,sizeof packets));
+        CUdeviceptr ready_targets=dalloc(sizeof ready);CK(cuMemcpyHtoD(ready_targets,ready,sizeof ready));
+        CUdeviceptr prepare[5]={b->g,b->gu,packet_targets,b->balance_quant_ready,ready_targets};
         b->balance_prepare=dalloc(sizeof prepare);CK(cuMemcpyHtoD(b->balance_prepare,prepare,sizeof prepare));
         uint32_t bounds[7+512];for(int e=0;e<=nd;e++)bounds[e]=split_bound(512,(int)e,nd);
         for(unsigned owner=0;owner<6;owner++)for(unsigned e=bounds[owner];e<bounds[owner+1];e++)bounds[7+e]=owner;

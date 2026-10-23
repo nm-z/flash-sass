@@ -126,6 +126,7 @@ typedef struct {
     CUdeviceptr balance_gate_local,balance_up_local,balance_down_local;
     CUdeviceptr balance_gate_targets,balance_up_targets,balance_down_targets;
     CUdeviceptr balance_prepare,balance_quant_ready;
+    CUdeviceptr balance_down_packed;  /* 220 records: 64 code bytes,16 metadata bytes,128-byte stride */
     CUdeviceptr balance_owner_bounds;
     CUdeviceptr balance_head_sources; /* six peer pointers to die winners */
     CUdeviceptr balance_index_local,balance_index_targets,balance_attention_targets,balance_attn_ready;

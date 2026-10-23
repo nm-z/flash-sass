@@ -54,11 +54,21 @@ local function geometry(a)
    if wide then assert(k==640 and w[22]==2560,'wide down tile geometry') end
    put('global_rows',w[22]);put('published_ranks',w[23])
   else assert(w[1]==16,'dense dispatch geometry') end
-  if w[30]&0x100000~=0 then put('published_values',rows*w[23]*6) end
+  if w[30]&0x100000~=0 then put('published_values',rows*w[23]*(w[30]&0x4000000~=0 and 1 or 6)) end
   if w[30]&0x80~=0 then put('published_values',rows*6) end
   if w[30]&0x200000~=0 then
-   put('activation_values',11*640);put('quant_groups',11*20)
-   if sass:find('LDG.E.CG mb_mapped, [mb_address]',1,true) then put('activation_map_lookups',7040) end
+   if sass:find('BM_DISTRIBUTED_PREPARE:',1,true) then
+    local groups=36+(w[24]<4 and 1 or 0)
+    put('activation_values',groups*32);put('quant_groups',groups)
+    if sass:find('BM_LOCAL_INPUTS:',1,true) then put('activation_local_reads',groups*64)
+    else put('activation_source_pointers',groups*64) end
+    put('published_packet_words',groups*20*6)
+    if sass:find('BM_PACKET_STAGE:',1,true) then put('packet_stage_words',groups*20*2) end
+    put('quant_ready_producers',96)
+   else
+    put('activation_values',11*640);put('quant_groups',11*20)
+    if sass:find('LDG.E.CG mb_mapped, [mb_address]',1,true) then put('activation_map_lookups',7040) end
+   end
   end
   if w[30]&0x800000~=0 then put('reduced_values',rows*6) end
   if w[30]&0x1000000~=0 then put('head_candidates',rows);put('cta_winners',16) end
@@ -118,6 +128,7 @@ for p=0,expected-1 do
   local group=assert(phase[m],'member gap');local dims={};local ref=assert(group[0]);opnames[ref.name]=true
   for d=0,5 do
    local a=assert(group[d],'missing die');assert(a.name==ref.name and a.w[0]==ref.w[0],'opcode mismatch')
+   if a.w[30]&0x80000~=0 then assert(a.w[24]==d,'row-stripe logical owner mismatch') end
    assert(a.index==index[d+1],'descriptor index gap');index[d+1]=a.index+1
    assert(a.w[30]==ref.w[30] and a.w[31]==ref.w[31],'different dispatch paths/token masks')
    dims[d]=geometry(a)

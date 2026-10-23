@@ -48,6 +48,7 @@ int main(int argc,char **argv) {
             db[d].balance_gate_local=symbol();db[d].balance_up_local=symbol();db[d].balance_down_local=symbol();
             db[d].balance_gate_targets=symbol();db[d].balance_up_targets=symbol();db[d].balance_down_targets=symbol();
             db[d].balance_prepare=symbol();db[d].balance_quant_ready=symbol();db[d].balance_owner_bounds=symbol();
+            db[d].balance_down_packed=symbol();
             db[d].balance_index_local=symbol();db[d].balance_index_targets=symbol();db[d].balance_attn_ready=symbol();
             db[d].balance_head_sources=symbol();
         }
@@ -126,8 +127,8 @@ int main(int argc,char **argv) {
             i+=(int)width;
         }
         printf("schedule die=%d layers=48 head=1 mtp=0 fp8=0 descriptors=%d phases=%u inner_grid_barriers=%u\n",d,p.n,phases,inner);
-        printf("wait_summary die=%d baseline=%d grid_boundaries=%u exchange_publications=%u exchange_waits=%u publication_system_fence_threads=%u\n",d,baseline,grid,send,wait,16u*send);
-        if(row_balance)printf("balanced_internal_waits die=%d qsa_grid_joins=%u qsa_selection_producer_joins=%u qsa_score_consumer_joins=%u moe_prepare_grid_joins=%u\n",
+        printf("wait_summary die=%d baseline=%d grid_boundaries=%u exchange_publications=%u exchange_waits=%u frame_publication_system_fence_threads=%u\n",d,baseline,grid,send,wait,16u*send);
+        if(row_balance)printf("balanced_internal_waits die=%d qsa_grid_joins=%u qsa_selection_producer_joins=%u qsa_score_consumer_joins=%u moe_prepare_peer_joins=%u moe_prepare_producers_per_join=96\n",
                              d,balanced_grid,balanced_selection,balanced_score,balanced_prepare);
         for(unsigned o=0;o<128;o++)if(count[o])printf("op die=%d opcode=%u name=%s phases=%u\n",d,o,profile_op_name(o),count[o]);
         prog_free(&p);

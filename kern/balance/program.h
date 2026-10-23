@@ -25,6 +25,11 @@ static void balance_group(prog_t *p,int first,unsigned width) {
     p->p[first].w[30]|=8u|32u|(width<<8)|1u;
     p->pending_wait=1;p->xj++;
 }
+static void balance_gate_descriptor(phase_t *a,unsigned die,unsigned rows,CUdeviceptr routes,
+                                    unsigned ranks,unsigned base,unsigned layer) {
+    balance_row_descriptor(a,die,rows,routes,640,ranks,base,layer);
+    a->w[30]|=PHASE_BALANCED_GATE_ROUTE;
+}
 static void prog_balanced_moe(prog_t *p,const split_t *s,const dn_weights_t *w,
                              const dn_bufs_t *b,CUdeviceptr z,CUdeviceptr sin,
                              CUdeviceptr inj) {
@@ -36,28 +41,28 @@ static void prog_balanced_moe(prog_t *p,const split_t *s,const dn_weights_t *w,
     int first=p->n;
     ph_q2(p,OP_Q2MOEGN,w->ffn_gate_exps,b->zq,b->zs32,b->balance_gate_local,
           gate_rows,b->lidx,b->zas,0,b->ne);
-    balance_row_descriptor(p->p+p->n-1,(unsigned)s->d,gate_rows,b->balance_gate_targets,640,10,0,w->balanced_layer);
+    balance_gate_descriptor(p->p+p->n-1,(unsigned)s->d,gate_rows,b->balance_gate_targets,10,0,w->balanced_layer);
     ph_q2(p,OP_Q2MOEGN,w->ffn_up_exps,b->zq,b->zs32,b->balance_up_local,
           gate_rows,b->lidx,b->zas,0,b->ne);
-    balance_row_descriptor(p->p+p->n-1,(unsigned)s->d,gate_rows,b->balance_up_targets,640,10,0,w->balanced_layer);
+    balance_gate_descriptor(p->p+p->n-1,(unsigned)s->d,gate_rows,b->balance_up_targets,10,0,w->balanced_layer);
     ph_gemv_any(p,w->ffn_gate_shexp_type,2560,w->ffn_gate_shexp,b->zq,b->zs32,b->zs16,
                 b->balance_gate_local+40u*gate_rows,gate_rows,b->zas,0,0);
-    balance_row_descriptor(p->p+p->n-1,(unsigned)s->d,gate_rows,b->balance_gate_targets,640,1,6400,w->balanced_layer);
+    balance_gate_descriptor(p->p+p->n-1,(unsigned)s->d,gate_rows,b->balance_gate_targets+10u*(gate_rows/8)*8,1,6400,w->balanced_layer);
     ph_gemv_any(p,w->ffn_up_shexp_type,2560,w->ffn_up_shexp,b->zq,b->zs32,b->zs16,
                 b->balance_up_local+40u*gate_rows,gate_rows,b->zas,0,0);
-    balance_row_descriptor(p->p+p->n-1,(unsigned)s->d,gate_rows,b->balance_up_targets,640,1,6400,w->balanced_layer);
+    balance_gate_descriptor(p->p+p->n-1,(unsigned)s->d,gate_rows,b->balance_up_targets+10u*(gate_rows/8)*8,1,6400,w->balanced_layer);
     balance_group(p,first,4);
     first=p->n;
-    ph_q2(p,OP_Q2MOEDN,w->ffn_down_exps,b->hq,b->hs32,b->balance_down_local,
-          down_rows,b->lidx,b->has,b->lw,b->ne);
+    ph_q2(p,OP_Q2MOEDN,w->ffn_down_exps,b->balance_down_packed,b->balance_down_packed+64,b->balance_down_local,
+          down_rows,b->lidx,b->balance_down_packed+76,b->lw,b->ne);
     phase_t *a=p->p+p->n-1;
     balance_row_descriptor(a,(unsigned)s->d,down_rows,0,2560,1,0,w->balanced_layer);
     a->w[30]|=PHASE_BALANCED_PREPARE;ph_ptr(a,0x1a0,b->balance_prepare);
     ph_ptr(a,0x188,b->balance_owner_bounds);
     unsigned shared_offset=(w->balanced_layer%(unsigned)s->n)*down_rows*4u;
     ph_gemv_any(p,w->ffn_down_shexp_type,640,w->ffn_down_shexp,
-                b->hq+12800,b->hs32+800,b->hs16+1600,b->balance_down_local+shared_offset,
-                down_rows,b->has+800,1,b->s);
+                b->balance_down_packed+25600,b->balance_down_packed+25664,b->balance_down_packed+25668,b->balance_down_local+shared_offset,
+                down_rows,b->balance_down_packed+25676,1,b->s);
     balance_row_descriptor(p->p+p->n-1,(unsigned)s->d,down_rows,b->balance_down_targets,2560,1,0,w->balanced_layer);
     a=p->p+p->n-1;a->w[30]|=PHASE_BALANCED_REDUCE;ph_ptr(a,0x1a0,b->balance_down_local);
     balance_group(p,first,2);

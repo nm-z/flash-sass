@@ -93,7 +93,8 @@ die_balanced.sass: die_phase.sass balance/embedding.lua balance/ple.lua balance/
 	$(LUA) balance/embedding.lua $< $@.embedding
 	$(LUA) balance/ple.lua $@.embedding $@.ple
 	$(LUA) balance/moe.lua $@.ple $@.moe
-	$(LUA) balance/attention.lua $@.moe $@.attention
+	$(LUA) balance/packet_inputs.lua $@.moe $@.packets
+	$(LUA) balance/attention.lua $@.packets $@.attention
 	$(LUA) balance/head.lua $@.attention $@.head
 	$(LUA) balance/publish.lua $@.head $@.published
 	$(LUA) balance/quant_publish.lua $@.published $@.quantpublished
@@ -105,6 +106,7 @@ die_balanced.sass: die_phase.sass balance/embedding.lua balance/ple.lua balance/
 die_balanced.ptx: die_phase.ptx balance/marker.ptxinc
 	cat $^ > $@
 die_balanced.sass: exactbatch/Makefile.inc
+die_balanced.sass: balance/packet_inputs.lua
 die_balanced.sass: balance/load_bursts.lua
 die_balanced.cubin: die_balanced.sass die_balanced.ptx
 	$(PTXAS11) -arch=sm_52 -o $@ die_balanced.ptx

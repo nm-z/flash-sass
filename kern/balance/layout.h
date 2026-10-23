@@ -12,6 +12,7 @@
 #define PHASE_BALANCED_REDUCE 0x800000u
 #define PHASE_BALANCED_HEAD_OUTPUT 0x1000000u
 #define PHASE_BALANCED_TILE32 0x2000000u
+#define PHASE_BALANCED_GATE_ROUTE 0x4000000u
 #define OP_BALANCED_SELECT 107u
 
 /* Output rows, not whole experts, are striped across all six dies. Every
