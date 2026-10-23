@@ -1,0 +1,16 @@
+// Skeleton for MaxAs: same entry name and parameter layout as attnpart.sass.
+.version 7.4
+.target sm_52
+.address_size 64
+
+.visible .entry attnpart(.param .u64 pqo, .param .u64 pkc, .param .u64 pvc, .param .u64 ppm, .param .u64 ppd, .param .u64 ppo, .param .u32 n)
+{
+	.shared .align 16 .b8 smem[31232];
+	.reg .u32 %r<2>;
+	.reg .pred %p;
+	ld.param.u32 %r0, [n];
+	mov.u32 %r1, %tid.x;
+	setp.lt.u32 %p, %r1, %r0;
+	@%p ret;
+	ret;
+}
