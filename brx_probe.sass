@@ -1,0 +1,50 @@
+# Kernel: brx_probe
+<CONSTANT_MAPPING>
+param_OUT0 : c[0x0][0x140]
+param_OUT1 : c[0x0][0x144]
+param_INDEX : c[0x0][0x148]
+</CONSTANT_MAPPING>
+<REGISTER_MAPPING>
+0 : index
+2,3 : out<0-1>
+4 : offset
+</REGISTER_MAPPING>
+--:-:-:-:6 MOV index, param_INDEX;
+--:-:-:-:6 MOV out0, param_OUT0;
+--:-:-:-:6 MOV out1, param_OUT1;
+--:-:-:-:6 ISETP.GE.U32.AND P0, PT, index, 0x4, PT;
+--:-:-:-:6 SHL offset, index, 0x5;
+--:-:-:-:6 NOP;
+--:-:-:-:6 NOP;
+--:-:-:-:6 @P0 BRA BAD;
+--:-:-:-:6 BRX offset TABLE;
+TABLE:
+--:-:-:-:6 BRA CASE0;
+--:-:-:-:6 NOP;
+--:-:-:-:6 NOP;
+--:-:-:-:6 BRA CASE1;
+--:-:-:-:6 NOP;
+--:-:-:-:6 NOP;
+--:-:-:-:6 BRA CASE2;
+--:-:-:-:6 NOP;
+--:-:-:-:6 NOP;
+--:-:-:-:6 BRA CASE3;
+--:-:-:-:6 NOP;
+--:-:-:-:6 NOP;
+CASE0:
+--:-:-:-:6 MOV32I index, 0x6f;
+--:-:-:-:6 BRA DONE;
+CASE1:
+--:-:-:-:6 MOV32I index, 0x1d;
+--:-:-:-:6 BRA DONE;
+CASE2:
+--:-:-:-:6 MOV32I index, 0x2d1;
+--:-:-:-:6 BRA DONE;
+CASE3:
+--:-:-:-:6 MOV32I index, 0x1f7;
+--:-:-:-:6 BRA DONE;
+BAD:
+--:-:-:-:6 MOV32I index, 0xffffffff;
+DONE:
+--:1:-:-:6 STG.E [out], index;
+01:-:-:-:f EXIT;
