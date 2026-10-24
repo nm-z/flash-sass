@@ -1,0 +1,19 @@
+[Unit]
+Description=Qwen3.8-Flash-Next inference server
+After=network-online.target
+Wants=network-online.target
+RequiresMountsFor=/mnt/models
+
+[Service]
+Type=simple
+User=nate
+WorkingDirectory=/home/nate
+Environment=LIBDIR=/home/nate/llama-cuda118-f32dot-lib-v9:/home/nate/llama-cuda118-f32dot-lib-v7
+Environment=CTX=65536
+Environment=UB=8
+Environment=GGML_CUDA_P2P=1
+Environment="EXTRA=--parallel 1 --jinja --alias qwen-next"
+ExecStart=/home/nate/run-flash-ssd.sh
+
+[Install]
+WantedBy=multi-user.target
