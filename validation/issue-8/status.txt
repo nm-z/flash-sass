@@ -1,7 +1,0 @@
-unitmap-clean exit=0 expected=0
-unitmap-duplicate exit=1 expected=1
-unitmap-missing exit=1 expected=1
-kv-1-clean exit=0 expected=0
-kv-1-query-byte exit=1 expected=1
-kv-2052-clean exit=0 expected=0
-kv-2052-query-byte exit=1 expected=1

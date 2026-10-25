@@ -1,7 +1,0 @@
-Observed on archy at 2026-10-18T03:32:14Z with lslocks:
-4010221 ruby FLOCK WRITE /tmp/flash-sass-engine-validation.lock
-
-The earlier targeted ps query identified PID 4010221 as:
-ruby validation/issue19/run.rb --mode model --out /home/nate/codex/flash-pr44-evidence-20261018 --core-pid 3575268 --socket /tmp/flash.sock --checkpoint /mnt/sentry-nfs/flash-next-q2/Qwen3.8-Flash-Next-GSQ-RCO-Q2_0-00001-of-00002.gguf --lock-dir /home/nate/codex/asm-port --engine-lock /tmp/flash-sass-engine-validation.lock --positions 128,32768,65536
-
-No process was stopped and the shared lock file was not removed or replaced.

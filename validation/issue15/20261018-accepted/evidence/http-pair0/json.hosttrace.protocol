@@ -1,5 +1,0 @@
-hosttrace_begin request=7 first=17 count=2 clock=CLOCK_MONOTONIC status=completed aborted=0 ended=1 completed=19 requested=21
-position,observed_ns,callback_start_ns,callback_end_ns,ple_staging_start_ns,ple_staging_end_ns,ple_ready_ns,ple_bytes,ple_short_reads
-17,90284538869416,90284538869585,90284538884635,90284014575799,90284014616671,90284014616671,1440,0
-18,90284592592851,90284592593100,90284592609360,90284538884741,90284563616975,90284563616975,1440,0
-hosttrace_end

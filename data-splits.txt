@@ -1,0 +1,86 @@
+rows
+	contiguous blocks
+		die:even row-range
+	cyclic (card-dealing)
+		die:rows
+	block-cyclic
+		die:equal row-ranges
+	structure-aligned
+
+	consumer-aligned
+	weighted
+	dynamic
+K
+experts
+expert inner dimension
+heads
+keys/context
+positions
+layers
+hyper-connection lanes
+vocabulary
+
+---
+blk (layer)
+	tensor (table)
+		row (neuron)
+			weight, weight, ... (column)
+		row
+		...
+	tensor
+	...
+blk
+...
+blk.tensor.row.weight
+---
+token_embd:			blk(in).tensor(1).row(248320).weight(2560)
+per_layer_token_embd:	blk(in).ngram(2).tensor(8).row(20000000).weight(160)
+ple_key:			blk(1).tensor(1).row(10240).weight(2560)
+ple_value:			blk(1).tensor(1).row(2560).weight(2560)
+hc_attn_down:		blk(48).tensor(1).row(320).weight(10240)
+hc_attn_inject:		blk(48).tensor(1).row(4).weight(10240)
+hc_attn_up:			blk(48).tensor(1).row(10240).weight(320)
+attn_qkv:			blk(36).tensor(q|k|v)
+					q.head(16).row(128).weight(2560)
+					k.head(16).row(128).weight(2560)
+					v.set(3).head(16).row(128).weight(2560)
+attn_gate:			blk(36).tensor(1).row(6144).weight(2560)
+ssm_alpha:			blk(36).tensor(1).row(48).weight(2560)
+ssm_beta:			blk(36).tensor(1).row(48).weight(2560)
+ssm_conv1d:			blk(36).tensor(1).row(10240).weight(4)
+ssm_out:			blk(36).tensor(1).row(2560).weight(6144)
+attn_q:			blk(12).tensor(1).head(24).row(512).weight(2560)
+attn_k:			blk(12).tensor(1).head(2).row(256).weight(2560)
+attn_v:			blk(12).tensor(1).head(2).row(256).weight(2560)
+indexer.q_proj:		blk(12).tensor(1).row(512).weight(2560)
+indexer.k_proj:		blk(12).tensor(1).row(128).weight(2560)
+attn_output:		blk(12).tensor(1).row(2560).weight(6144)
+hc_ffn_down:		blk(48).tensor(1).row(320).weight(10240)
+hc_ffn_inject:		blk(48).tensor(1).row(4).weight(10240)
+hc_ffn_up:			blk(48).tensor(1).row(10240).weight(320)
+ffn_gate_inp:		blk(48).tensor(1).row(512).weight(2560)
+ffn_gate_shexp:		blk(48).tensor(1).row(640).weight(2560)
+ffn_up_shexp:		blk(48).tensor(1).row(640).weight(2560)
+ffn_gate_exps:		blk(48).tensor(1).expert(512).row(640).weight(2560)
+ffn_up_exps:		blk(48).tensor(1).expert(512).row(640).weight(2560)
+ffn_down_exps:		blk(48).tensor(1).expert(512).row(2560).weight(640)
+ffn_down_shexp:		blk(48).tensor(1).row(2560).weight(640)
+output_hc_norm:		blk(out).tensor(1).weight(10240)
+output_hc_down:		blk(out).tensor(1).row(320).weight(10240)
+output_hc_up:		blk(out).tensor(1).row(10240).weight(320)
+output:			blk(out).tensor(1).row(248320).weight(2560)
+
+for a..2
+	CUDA.profile()
+	for b..4
+		CUDA.profile()
+		@sync begin
+			@async begin
+				device!(0)
+				# do work on GPU 0 here
+			end
+			@async begin
+				device!(1)
+				# do work on GPU 1 here
+			end
+		end

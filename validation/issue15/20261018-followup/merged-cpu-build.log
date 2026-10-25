@@ -1,8 +1,0 @@
-make: Entering directory '/home/nate/claude/flash-sass-resolve/issue-15/kern'
-make: 'timings_test' is up to date.
-make: 'flashd_timing_test' is up to date.
-make: 'flashd' is up to date.
-cc -L/opt/cuda/targets/x86_64-linux/lib/stubs -std=gnu99 -O2 -ffp-contract=off -Wall -UNDEBUG -o trace_session_test trace_session_test.c prog.c holdc.c ../ref/qsa.c ../ref/block.c ../ref/attn.c ../ref/ple.c ../ref/quant.c ../ref/gguf.c ../ref/fmath.c ../ref/hc.c ../ref/deltanet.c ../ref/router.c ../ref/split.c -I../ref -I/opt/cuda/include -lcuda -lm
-make: 'output_tokens_test' is up to date.
-cc -L/opt/cuda/targets/x86_64-linux/lib/stubs -std=c11 -O2 -Wall -Wextra -Werror -o prefill_plan_test prefill_plan_test.c
-make: Leaving directory '/home/nate/claude/flash-sass-resolve/issue-15/kern'

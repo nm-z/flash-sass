@@ -1,8 +1,0 @@
-  vq differs at byte 256: gpu 00 ref 7f
-  vs differs at byte 6: gpu 00 ref ff
-  vc differs at byte 0: gpu ff ref 00
-  vc differs at byte 0: gpu 00 ref 40
-  vc differs at byte 0: gpu 00 ref 40
-  vc differs at byte 0: gpu ff ref 00
-first mismatch at t = 0 (n = 1 keys, 0 blocks selected)
-kv: 16 tokens, NBLK 2: MISMATCH (16 tokens differ; query/append checks 16, gather/attention checks 16)

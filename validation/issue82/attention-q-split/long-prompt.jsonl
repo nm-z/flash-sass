@@ -1,4 +1,0 @@
-{"case":"repeat2048","repetition":0,"warmup":true,"done":"done 129 0 2048 47062.8 43278.4 0 0\n","wall_ms":47072.82295799814,"first_observed_ms":43288.498737005284,"decode_intervals":128,"decode_ms":3784.0737809892744,"decode_tps":33.825978933882425,"engine_decode_tps":33.82306310115209,"engine_prefill_ms":43278.4,"engine_run_ms":47062.8}
-{"arm":"iq4-bias","index":0,"runs":[{"warmup":true,"decode_tps":33.825978933882425,"engine_prefill_ms":43278.4}]}
-{"case":"repeat2048","repetition":0,"warmup":true,"done":"done 129 0 2048 44747.6 41060.4 0 0\n","wall_ms":44774.392060004175,"first_observed_ms":41067.16033699922,"decode_intervals":128,"decode_ms":3707.145483000204,"decode_tps":34.52791388602565,"engine_decode_tps":34.71468865263618,"engine_prefill_ms":41060.4,"engine_run_ms":44747.6}
-{"arm":"qsplit","index":1,"runs":[{"warmup":true,"decode_tps":34.52791388602565,"engine_prefill_ms":41060.4}]}

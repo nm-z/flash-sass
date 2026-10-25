@@ -1,7 +1,0 @@
-# Initial integrated component run and cache preparation
-
-The direct executable at `e7921ae0dd20148d7677ee8c0f9b12533b527ffc` passed 41 cases: 146 positive checked positions and three negative controls. [Raw results](direct/matrix/results.json), [source identity](direct/source-revision.txt), [binary/cubin identities](direct/binaries.sha256), and the [locking wrapper](run-direct.sh) are preserved. This is synthetic-history component evidence. The later repeated matrix at [523110f](../review-523110f/README.md) is the final integrated-source component result.
-
-The initial SSH build capture timed out while its remote build continued. [build.log](build.log) preserves that capture; [build-confirm.log](build-confirm.log) and [build-confirm.exit](build-confirm.exit) record the completed successful build. An initial transport timeout is not presented as a successful command.
-
-The CPU cache export selected actual embedding, blocks 0 through 7, and output-head tensors. [export.log](cache-preparation/export.log) and [export.exit](cache-preparation/export.exit) record the export. [manifest.new](cache-preparation/manifest.new) is explicitly a non-IPC packing manifest. [tensors.sha256](cache-preparation/tensors.sha256) records fresh hashes of all 189 packed tensor files used by the scalar eight-block fixture. No checkpoint tensor bytes are committed, and no fresh whole-checkpoint hash is claimed.
