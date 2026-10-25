@@ -111,6 +111,14 @@ every test under 60 s.
   rounds, accepted 1..8: 20/9/5/5/4/1/2/2, mean 2.688, 154.1 ms a round: verify 140.9, draft 13.15 of which the
   head 11.49); SPECP 4: 26.65 (2.453, 90.6 ms); plain 41.45. The verify costs about 16 ms a position; positions 5-8
   are rarely accepted on this (2-bit) target.
+- **llama.cpp reference on the same GGUFs and fixture (2026-10-25, archy's `llama-cuda118-unsloth-bin`, 8 M60s,
+  `per_layer_token_embd` on the CPU, greedy):** plain 11.29-11.43 tok/s generated (prompt 30-31); DFlash2
+  (`--spec-type draft-dflash`, 7 drafts) 4.29 tok/s with 28 of 338 drafted tokens accepted (8.3 %, about 1.6 tokens a
+  round with the bonus token) against flashnext's 2.69 a round at block 8. Its 128 ids equal the flash-sass oracle
+  (flashnext's differ at the output-22 near tie). The draft checks out against the SGLang reference
+  (`~/.cache/flash-sass-dflash2-reference`): taps are the 4-lane mean after blocks 5 .. 45 (its capture patch),
+  context K/V from hidden_norm(fc(taps)) without layer norm or conv, the conv zero before a block's first position,
+  the selector linear (no activation). The low acceptance is this draft against this 2-bit target, not flashnext.
 - **Multi-group placements fixed (2026-10-25, c73cc2c):** the output head now lives on the last group only (the
   group that runs the collapse; earlier groups' slices waited for a Z that never reached them), split over its
   dies; the draft's head uses those slices (checked to cover all 248320 rows); B8 only with one group; the
