@@ -168,7 +168,9 @@ typedef struct { uint32_t *out; int n, cap; } outbuf;
 static void emit(outbuf *o, uint32_t id) { if (o->n < o->cap) o->out[o->n] = id; o->n++; }
 
 static void bpe_word(const tok_vocab *v, const char *w, uint32_t wn, outbuf *o) {
-	static sym_t *sy; static int sycap; static heap_t h; static char *scratch; static uint32_t scap;
+	/* (one copy a thread: flashd tokenizes requests on their own threads, FLASHD_CONCURRENT of them at once) */
+	static _Thread_local sym_t *sy; static _Thread_local int sycap; static _Thread_local heap_t h;
+	static _Thread_local char *scratch; static _Thread_local uint32_t scap;
 	if ((int)wn > sycap) { sycap = (int)wn * 2; sy = realloc(sy, sizeof *sy * (size_t)sycap); }
 	if (2 * wn + 2 > scap) { scap = 2 * wn + 2; scratch = realloc(scratch, scap); }
 	int ns = 0; h.n = 0;
