@@ -15,7 +15,7 @@
  * others wait in a FIFO queue (see "the request queue"; GET endpoints never wait).
  *
  *   flashd <shard-1.gguf> <flash-socket> <host:port>      env FLASHD_NAME, FLASHD_THINKING (0: off by default),
- *   FLASHD_QUEUE_MAX (waiting requests, default 8), FLASHD_QUEUE_WAIT_S (default 600),
+ *   FLASHD_QUEUE_MAX (waiting requests, default 8), FLASHD_QUEUE_WAIT_S (default 600), FLASHD_CONCURRENT (requests running at once, default 1),
  *   FLASHD_REQUEST_MAX_S (default 300 without vision, 2400 with FLASHVIS_SOCK; 0 disables the limit) */
 #define _GNU_SOURCE
 #include "jinja.h"
@@ -145,7 +145,7 @@ static void admitted_error(int fd, int headers_sent, int status, const char *msg
 }
 
 /* ---- the request queue ----
-   The engine runs one sequence, so one request runs at a time and the others wait here in arrival order. A request whose client goes away
+   FLASHD_CONCURRENT requests run at once (default 1: an engine of one sequence), the others wait here in arrival order. A request whose client goes away
    leaves the queue (or, running, stops the engine) instead of being served to nobody; a full queue or a long wait is a 503 with Retry-After.
    FLASHD_QUEUE_MAX (waiting requests, default 8), FLASHD_QUEUE_WAIT_S (default 600). GET /queue shows the depth.
    FLASHD_REQUEST_MAX_S (default 300 without vision, 2400 with FLASHVIS_SOCK; 0: no limit) bounds a whole request from its arrival, the wait and the run together: a request still waiting
@@ -153,6 +153,7 @@ static void admitted_error(int fd, int headers_sent, int status, const char *msg
 typedef struct waiter { struct waiter *next; } waiter;
 static pthread_mutex_t QM = PTHREAD_MUTEX_INITIALIZER; static pthread_cond_t QC = PTHREAD_COND_INITIALIZER;
 static waiter *QHEAD, *QTAIL; static int QBUSY, QLEN, QMAX = 8, QWAIT_S = 600, REQ_MAX_S = FLASHD_TEXT_REQUEST_MAX_S;
+static int QCONC = 1;   /* FLASHD_CONCURRENT: requests running at once (an engine that batches sequences); QBUSY counts them */
 static int client_gone(int fd) {   /* the peer closed or reset its end */
 	struct pollfd p = { .fd = fd, .events = POLLRDHUP };
 	return poll(&p, 1, 0) > 0 && (p.revents & (POLLRDHUP | POLLHUP | POLLERR));
@@ -168,12 +169,12 @@ static int queue_enter(int fd, int stream, int *hdr, double *waited_ms, double d
 	double t0 = mono_ms(), last_note = t0; waiter me = { 0 };
 	pthread_mutex_lock(&QM);
     if (deadline_expired(deadline)) { pthread_mutex_unlock(&QM); *waited_ms = 0; return -4; }
-	if (!QBUSY && !QHEAD) { QBUSY = 1; pthread_mutex_unlock(&QM); *waited_ms = 0; return 0; }
+	if (QBUSY < QCONC && !QHEAD) { QBUSY++; pthread_mutex_unlock(&QM); *waited_ms = 0; return 0; }
 	if (QLEN >= QMAX) { pthread_mutex_unlock(&QM); *waited_ms = 0; return -2; }
 	if (QTAIL) QTAIL->next = &me; else QHEAD = &me;
 	QTAIL = &me; QLEN++;
 	int rc = 0;
-	while (!(QHEAD == &me && !QBUSY)) {
+	while (!(QHEAD == &me && QBUSY < QCONC)) {
         double wait_ms = 1000.;
         if (deadline > 0) {
             double left = deadline - mono_ms();
@@ -184,7 +185,7 @@ static int queue_enter(int fd, int stream, int *hdr, double *waited_ms, double d
         ts.tv_nsec += (long)(wait_ms * 1e6);
         ts.tv_sec += ts.tv_nsec / 1000000000L; ts.tv_nsec %= 1000000000L;
 		pthread_cond_timedwait(&QC, &QM, &ts);
-		if (QHEAD == &me && !QBUSY) break;
+		if (QHEAD == &me && QBUSY < QCONC) break;
 		double now = mono_ms();
 		if (client_gone(fd)) { rc = -1; break; }
 		if (QWAIT_S > 0 && now - t0 > QWAIT_S * 1e3) { rc = -3; break; }
@@ -200,12 +201,12 @@ static int queue_enter(int fd, int stream, int *hdr, double *waited_ms, double d
 	}
 	if (!rc && deadline > 0 && mono_ms() >= deadline) rc = -4;   /* its turn came too late: leave rather than start a cancelled run */
 	if (rc) q_remove(&me);
-	else { QHEAD = me.next; if (!QHEAD) QTAIL = NULL; QLEN--; QBUSY = 1; }
+	else { QHEAD = me.next; if (!QHEAD) QTAIL = NULL; QLEN--; QBUSY++; }
 	pthread_cond_broadcast(&QC); pthread_mutex_unlock(&QM);
 	*waited_ms = mono_ms() - t0;
 	return rc;
 }
-static void queue_leave(void) { pthread_mutex_lock(&QM); QBUSY = 0; pthread_cond_broadcast(&QC); pthread_mutex_unlock(&QM); }
+static void queue_leave(void) { pthread_mutex_lock(&QM); QBUSY--; pthread_cond_broadcast(&QC); pthread_mutex_unlock(&QM); }
 static void busy(int fd, const char *msg, int retry_after) {
 	sbuf b = {0}; sb_puts(&b, "{\"error\":{\"message\":"); sb_json_str(&b, msg, strlen(msg)); sb_puts(&b, ",\"code\":503}}");
 	char h[256]; int k = snprintf(h, sizeof h, "HTTP/1.1 503 Service Unavailable\r\nContent-Type: application/json\r\nRetry-After: %d\r\nCache-Control: no-store\r\nContent-Length: %zu\r\nConnection: close\r\n\r\n", retry_after, b.n);
@@ -814,6 +815,7 @@ int main(int argc, char **argv) {
 	if (getenv("FLASHD_NAME")) NAME = getenv("FLASHD_NAME");
 	if (getenv("FLASHD_THINKING")) THINK_DEFAULT = atoi(getenv("FLASHD_THINKING"));
 	if (getenv("FLASHD_QUEUE_MAX")) QMAX = atoi(getenv("FLASHD_QUEUE_MAX"));
+	if (getenv("FLASHD_CONCURRENT")) QCONC = atoi(getenv("FLASHD_CONCURRENT")) > 0 ? atoi(getenv("FLASHD_CONCURRENT")) : 1;
 	if (getenv("FLASHD_QUEUE_WAIT_S")) QWAIT_S = atoi(getenv("FLASHD_QUEUE_WAIT_S"));
 	VIS_SOCK = getenv("FLASHVIS_SOCK");
 	REQ_MAX_S = request_max_seconds(getenv("FLASHD_REQUEST_MAX_S"), VIS_SOCK && *VIS_SOCK);
