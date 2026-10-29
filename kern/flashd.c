@@ -653,13 +653,13 @@ static void chat(int fd, const char *body, size_t bn, double request_start_ms) {
             if(v && v->k==J_DICT)sb_put(&engine_timing,line+8,ln-8);
             continue;
         }
-        unsigned id; int e, npm, ran, torun; double r, f;
-		if (sscanf(line, "prog %d %d", &ran, &torun) == 2) {
+        unsigned id; int e, npm, ran, torun, cached = 0; double r, f;
+		if (sscanf(line, "prog %d %d %d", &ran, &torun, &cached) >= 2) {
             double now = http_clock_ms();
             if (progress && stream && !g.gone && !g.cap_hit && !expired && (ran >= torun || now - last_progress_ms >= 500.)) {
                 last_progress_ms = now; quiet = 0;
                 sbuf b = {0};
-                sb_printf(&b, "data: {\"choices\":[],\"created\":%ld,\"id\":\"chatcmpl-flash\",\"model\":\"%s\",\"object\":\"chat.completion.chunk\",\"prompt_progress\":{\"total\":%d,\"cache\":0,\"processed\":%d,\"time_ms\":%.1f}}\n\n", g.created, NAME, torun, ran, now - engine_submitted_ms);
+                sb_printf(&b, "data: {\"choices\":[],\"created\":%ld,\"id\":\"chatcmpl-flash\",\"model\":\"%s\",\"object\":\"chat.completion.chunk\",\"prompt_progress\":{\"total\":%d,\"cache\":%d,\"processed\":%d,\"time_ms\":%.1f}}\n\n", g.created, NAME, torun, cached, ran, now - engine_submitted_ms);
                 if (chunk(fd, b.s, b.n)) g.gone = 1;
                 sb_free(&b);
             }
