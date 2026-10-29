@@ -493,6 +493,9 @@ static void chat(int fd, const char *body, size_t bn, double request_start_ms) {
 	  if ((x = jv_getz(req, "seed")) && x->k == J_INT && x->i >= 0) { seed = (unsigned long long)x->i; have_seed = 1; } }
 	if (!have_seed) { struct timespec ts; clock_gettime(CLOCK_REALTIME, &ts); seed = (unsigned long long)ts.tv_nsec * 1000003ull ^ (unsigned long long)ts.tv_sec * 0x9e3779b97f4a7c15ull ^ (unsigned long long)(uintptr_t)body; }
 	int stream = 0; jv *sv = jv_getz(req, "stream"); if (sv && sv->k == J_BOOL) stream = sv->b;
+	/* llama-server's return_progress: while the prompt runs, chunks with no choices carry
+	   "prompt_progress":{"total","cache","processed","time_ms"} (the engine's "prog" lines, at most one every 500 ms) */
+	int progress = 0; jv *rp = jv_getz(req, "return_progress"); if (rp && rp->k == J_BOOL) progress = rp->b;
 	long max_tokens = 512; jv *mt = jv_getz(req, "max_tokens"); if (!mt) mt = jv_getz(req, "max_completion_tokens");
 	if (mt && mt->k == J_INT && mt->i > 0) max_tokens = (long)mt->i;
 
@@ -603,7 +606,7 @@ static void chat(int fd, const char *body, size_t bn, double request_start_ms) {
     int raw_token_events = 0, negotiating = 2, cancel_on_eof = 0;
     int cancel_requested = 0, cancel_drain_timed_out = 0;
     double cancel_start_ms = 0;
-    double first_socket_observed_ms = 0, last_socket_observed_ms = 0;
+    double first_socket_observed_ms = 0, last_socket_observed_ms = 0, last_progress_ms = 0;
     sbuf engine_timing = {0};
     engine_reader reader={0};
 	/* a long prompt takes minutes before the first token: an idle stream is cut by proxies (Cloudflare closes after 100 s), so an SSE comment goes out
@@ -650,8 +653,18 @@ static void chat(int fd, const char *body, size_t bn, double request_start_ms) {
             if(v && v->k==J_DICT)sb_put(&engine_timing,line+8,ln-8);
             continue;
         }
-        unsigned id; int e, npm; double r, f;
-		if (sscanf(line, "tok %u", &id) == 1) {
+        unsigned id; int e, npm, ran, torun; double r, f;
+		if (sscanf(line, "prog %d %d", &ran, &torun) == 2) {
+            double now = http_clock_ms();
+            if (progress && stream && !g.gone && !g.cap_hit && !expired && (ran >= torun || now - last_progress_ms >= 500.)) {
+                last_progress_ms = now; quiet = 0;
+                sbuf b = {0};
+                sb_printf(&b, "data: {\"choices\":[],\"created\":%ld,\"id\":\"chatcmpl-flash\",\"model\":\"%s\",\"object\":\"chat.completion.chunk\",\"prompt_progress\":{\"total\":%d,\"cache\":0,\"processed\":%d,\"time_ms\":%.1f}}\n\n", g.created, NAME, torun, ran, now - engine_submitted_ms);
+                if (chunk(fd, b.s, b.n)) g.gone = 1;
+                sb_free(&b);
+            }
+        }
+		else if (sscanf(line, "tok %u", &id) == 1) {
             last_socket_observed_ms = http_clock_ms();
             if (!raw_token_events++) first_socket_observed_ms = last_socket_observed_ms;
             if(!g.gone && !g.cap_hit && !expired)on_token(&g, id);
